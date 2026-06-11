@@ -569,12 +569,14 @@ authorization code flow described below; the <code class="docutils literal notra
 pre-authorized code flow.</p>
 <section id="pre-authorized-code-flow">
 <h2>Pre-authorized code flow<a class="headerlink" href="#pre-authorized-code-flow" title="Link to this heading"></a></h2>
-<p>In the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> the issuer generates a pre-authorized code
-out of band, hands it to the wallet inside an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI Credential Offer</a>,
-and the wallet sends that code to the issuer’s <code class="docutils literal notranslate"><span class="pre">/token</span></code> endpoint with
-<code class="docutils literal notranslate"><span class="pre">grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code</span></code>. The issuer’s
-<code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> resolves the pre-authorized code into the attributes to be
-issued. The wallet then obtains a <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer’s <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce
+<p>In the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> the issuer has already determined the
+attributes to be issued out of band, binds them to a freshly generated
+pre-authorized code in an issuance session, and hands that code to the wallet
+inside an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI Credential Offer</a>. The wallet sends the code to the
+issuer’s <code class="docutils literal notranslate"><span class="pre">/token</span></code> endpoint with
+<code class="docutils literal notranslate"><span class="pre">grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code</span></code>; the issuer
+loads the session keyed by the code to find the attributes to issue (this grant
+carries no PKCE). The wallet then obtains a <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer’s <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce
 endpoint</a> and exchanges proofs of possession for attestations at the
 <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint.</p>
 <p>In our codebase, this flow is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> (the
@@ -642,8 +644,6 @@ Attestation-Based Client Authentication</a>);</p></li>
 has <code class="docutils literal notranslate"><span class="pre">token_type=DPoP</span></code>, and every subsequent request at the credential issuer
 carries both an <code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">DPoP</span> <span class="pre">&lt;access_token&gt;</span></code> header and a fresh DPoP
 proof JWT (which includes <code class="docutils literal notranslate"><span class="pre">ath</span></code>, the hash of the access token);</p></li>
-<li><p>OpenID4VCI 1.0 moves <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> out of the <code class="docutils literal notranslate"><span class="pre">/token</span></code> response into a dedicated
-<a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce endpoint</a> at the credential issuer;</p></li>
 <li><p>Issuance uses a single <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint that accepts a <code class="docutils literal notranslate"><span class="pre">proofs</span></code> array,
 carrying one Proof of Possession per attestation private key.</p></li>
 </ul>
@@ -696,23 +696,47 @@ field in the <code class="docutils literal notranslate"><span class="pre">wallet
 <p>In the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, the Authorization Server and Credential Issuer roles are
 combined: the wallet talks to a single <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, which hosts its own <code class="docutils literal notranslate"><span class="pre">/par</span></code>,
 <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">/token</span></code>, <code class="docutils literal notranslate"><span class="pre">/nonce</span></code> and <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoints. Behind the scenes,
-the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> still delegates the actual user authentication to an upstream
-OpenID Connect provider — in practice <a class="reference external" href="https://github.com/minvws/nl-rdo-max">RDO Max</a> acting as a DigiD broker.</p>
-<p>For the internal structure of the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> — which crates contribute the
-handlers, the <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> and <code class="docutils literal notranslate"><span class="pre">UpstreamAuthorizationEndpointResolver</span></code>
-seams, where state lives, and how a single <code class="docutils literal notranslate"><span class="pre">/token</span></code> request flows through the
-components — see
+the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> delegates the actual user authentication to an upstream OpenID
+Connect provider — in practice <a class="reference external" href="https://github.com/minvws/nl-rdo-max">RDO Max</a> acting as a DigiD broker.</p>
+<p>For the internal structure of the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, see
 <a class="reference internal" href="../../development/pid-issuer-architecture.html"><span class="std std-doc">PID Issuer architecture</span></a>.</p>
-<section id="delegation-to-rdo-max-what-is-decoupled-what-is-passed-through">
-<h3>Delegation to RDO Max: what is decoupled, what is passed through<a class="headerlink" href="#delegation-to-rdo-max-what-is-decoupled-what-is-passed-through" title="Link to this heading"></a></h3>
-<p>Conceptually the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> runs its own Authorization Server in front of RDO
-Max. Most OAuth parameters are therefore <em>decoupled</em>: the wallet’s values are
-terminated at the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, which substitutes its own for the upstream
-server. A few parameters are <em>shared</em> so that RDO Max can redirect the browser
-straight back to the wallet without any intermediary redirects to the PID
-Issuer’s domain, and lets RDO Max’s error/cancel responses reach the wallet
-directly.</p>
-<p>Parameter handling on <strong>upstream <code class="docutils literal notranslate"><span class="pre">/authorize</span></code></strong>:</p>
+<section id="pid-issuance-oauth-flow-overview">
+<h3>PID issuance OAuth flow overview<a class="headerlink" href="#pid-issuance-oauth-flow-overview" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> runs two independent OAuth 2.0 authorization-code exchanges
+that share no parameters:</p>
+<ol class="arabic simple">
+<li><p><strong>Wallet ↔ PID Issuer</strong> — the HAIP exchange described above. The wallet
+pushes a PAR, calls <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, eventually receives an
+authorization code at its own <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, and exchanges it at the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/token</span></code>. The wallet’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code>,
+PKCE pair, WIA (<code class="docutils literal notranslate"><span class="pre">client_assertion</span></code>) and DPoP all terminate at the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>.</p></li>
+<li><p><strong>PID Issuer ↔ RDO Max</strong> — a second, freshly minted exchange the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> starts while handling the wallet’s <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>. Every parameter
+here is the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s own: its DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, its own <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>
+(the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code>), a random <code class="docutils literal notranslate"><span class="pre">state</span></code> (the
+<code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>), its own PKCE pair, <code class="docutils literal notranslate"><span class="pre">scope=openid</span></code> and a fresh OIDC <code class="docutils literal notranslate"><span class="pre">nonce</span></code>.
+RDO Max redirects back to the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s callback — <strong>never to the
+wallet</strong>.</p></li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> terminates the upstream round-trip at its own callback,
+generates its <strong>own</strong> authorization code, and only then redirects the browser
+back to the wallet. RDO Max never redirects the browser to the wallet directly.
+The two exchanges are linked solely by a server-side <strong>state-bridge</strong> entry,
+keyed by the <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>, that remembers the wallet’s original
+<code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code> and PKCE challenge (and the upstream PKCE verifier)
+while the user is away at DigiD.</p>
+<p>Because the upstream round-trip is terminated at the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, the upstream
+<code class="docutils literal notranslate"><span class="pre">/token</span></code> + <code class="docutils literal notranslate"><span class="pre">/userinfo</span></code> exchange (which yields the BSN) and the BRP attribute
+lookup happen <strong>in the <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code> handler</strong>, before the wallet ever calls
+<code class="docutils literal notranslate"><span class="pre">/token</span></code>. By the time the wallet exchanges its code at <code class="docutils literal notranslate"><span class="pre">/token</span></code>, the attributes
+are already determined and stored in the issuance session, so <code class="docutils literal notranslate"><span class="pre">/token</span></code> only
+verifies the wallet’s PKCE <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code> and issues the access token — there
+is no upstream interaction at <code class="docutils literal notranslate"><span class="pre">/token</span></code>. If anything fails in the callback (BSN,
+BRP, document build), the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> redirects the browser back to the
+wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> with an OAuth <code class="docutils literal notranslate"><span class="pre">error</span></code> response.</p>
+<p>Parameter handling, <strong>wallet ↔ PID Issuer</strong> (everything terminates at the PID
+Issuer):</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
@@ -721,59 +745,57 @@ directly.</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code></p></td>
-<td><p><strong>decoupled</strong> — wallet’s client id → PID Issuer’s DigiD client id</p></td>
+<td><p>validated against accepted wallet client ids; never forwarded</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code></p></td>
-<td><p><strong>shared</strong> — wallet’s universal link, passed through</p></td>
+<td><p>wallet’s universal link; the PID Issuer redirects here with its own code</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>/<code class="docutils literal notranslate"><span class="pre">_method</span></code></p></td>
-<td><p><strong>decoupled</strong> — PID Issuer generates its own PKCE pair for the upstream</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>remembered in the state bridge, echoed on the final wallet redirect</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
-<td><p><strong>shared</strong> — so the wallet can verify it when the code comes back</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>/<code class="docutils literal notranslate"><span class="pre">_method</span></code></p></td>
+<td><p>wallet’s PKCE (<code class="docutils literal notranslate"><span class="pre">c1</span></code>, <code class="docutils literal notranslate"><span class="pre">S256</span></code>); verified at the PID Issuer’s <code class="docutils literal notranslate"><span class="pre">/token</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">response_type=code</span></code></p></td>
-<td><p><strong>shared</strong></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scope</span></code></p></td>
-<td><p><strong>terminated</strong> — replaced with <code class="docutils literal notranslate"><span class="pre">openid</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nonce</span></code> (OIDC)</p></td>
-<td><p>PID Issuer generates its own for the upstream session</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scope</span></code></p></td>
+<td><p>the requested PID credential configuration</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">client_assertion</span></code> (WIA)</p></td>
-<td><p><strong>terminated</strong> — wallet ↔ PID Issuer only</p></td>
+<td><p>wallet &lt;-&gt; PID Issuer only</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DPoP</span></code> header</p></td>
+<td><p>wallet &lt;-&gt; PID Issuer only</p></td>
 </tr>
 </tbody>
 </table>
-<p>Parameter handling on <strong>upstream <code class="docutils literal notranslate"><span class="pre">/token</span></code></strong>:</p>
+<p>Parameter handling, <strong>PID Issuer → RDO Max</strong> (all freshly generated by the PID
+Issuer, on both upstream <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> and <code class="docutils literal notranslate"><span class="pre">/token</span></code>):</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
-<th class="head"><p>Handling</p></th>
+<th class="head"><p>Value</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code></p></td>
-<td><p><strong>decoupled</strong> — rewritten as above</p></td>
+<td><p>the PID Issuer’s DigiD client id</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code</span></code></p></td>
-<td><p><strong>shared</strong> — the upstream code flows wallet → PID Issuer → RDO Max</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code></p></td>
+<td><p>the PID Issuer’s own <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code></p></td>
-<td><p><strong>shared</strong></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>random <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>; keys the state-bridge entry</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code_verifier</span></code></p></td>
-<td><p><strong>decoupled</strong> — wallet sends its verifier; PID Issuer swaps in its own</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>/<code class="docutils literal notranslate"><span class="pre">_method</span></code></p></td>
+<td><p>the PID Issuer’s own PKCE pair (<code class="docutils literal notranslate"><span class="pre">c2</span></code>, <code class="docutils literal notranslate"><span class="pre">S256</span></code>)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grant_type=authorization_code</span></code></p></td>
-<td><p><strong>shared</strong></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scope</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openid</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">client_assertion</span></code> (WIA)</p></td>
-<td><p><strong>terminated</strong></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nonce</span></code> (OIDC)</p></td>
+<td><p>fresh random, required by nl-rdo-max</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DPoP</span></code> header</p></td>
-<td><p><strong>terminated</strong> — RDO Max is not DPoP-aware; upstream client auth used</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">code_verifier</span></code> (<code class="docutils literal notranslate"><span class="pre">/token</span></code>)</p></td>
+<td><p>the PID Issuer’s own verifier (<code class="docutils literal notranslate"><span class="pre">v2</span></code>); upstream client auth applied</p></td>
 </tr>
 </tbody>
 </table>
@@ -781,8 +803,9 @@ directly.</p>
 wallet-side DPoP layer and the Wallet Instance Attestation (WIA,
 <code class="docutils literal notranslate"><span class="pre">client_assertion</span></code>) are omitted below — both sit strictly between the wallet and
 the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> and do not affect the delegation to RDO Max.</p>
-<p>PKCE tracer values: wallet uses <code class="docutils literal notranslate"><span class="pre">(v1,</span> <span class="pre">c1)</span></code>, the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> uses <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code> on
-the upstream server.</p>
+<p>PKCE tracer values: the wallet uses <code class="docutils literal notranslate"><span class="pre">(v1,</span> <span class="pre">c1)</span></code> toward the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>; the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> uses <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code> toward RDO Max. Each verifier is checked only by
+the party that issued the challenge.</p>
 <pre  class="mermaid">
         sequenceDiagram
     autonumber
@@ -815,34 +838,37 @@ the upstream server.</p>
     %% ---- PAR ----
     Wallet-&gt;&gt;PI: POST /par
     note right of Wallet: response_type=code&lt;br/&gt;client_id=nl-wallet-app&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_challenge=c1, code_challenge_method=S256&lt;br/&gt;state=s1&lt;br/&gt;scope=eu.europa.ec.eudi.pid_vc_sd_jwt&lt;br/&gt;issuer_state=s_iss   ← if from offer
-    PI-&gt;&gt;PI: bind session S,&lt;br/&gt;store PAR keyed by request_uri
+    PI-&gt;&gt;PI: store PAR keyed by request_uri
     PI-&gt;&gt;Wallet: 201 { request_uri: &quot;urn:...abc&quot;, expires_in: 60 }
 
     %% ---- Front-channel authorization ----
     Wallet-&gt;&gt;OS: open browser → GET &lt;PID_Issuer&gt;/authorize?&lt;br/&gt;client_id=nl-wallet-app&amp;request_uri=urn:...abc
     OS-&gt;&gt;PI: GET /authorize?client_id=nl-wallet-app&amp;request_uri=urn:...abc
+    PI-&gt;&gt;PI: consume PAR, validate client_id
     PI--&gt;&gt;RDO: GET /.well-known/openid-configuration&lt;br/&gt;(first upstream use, cached thereafter)
     RDO--&gt;&gt;PI: upstream OIDC metadata&lt;br/&gt;(authorization_endpoint, token_endpoint, userinfo_endpoint)
-    PI-&gt;&gt;PI: generate PKCE_P (v2, c2)&lt;br/&gt;and upstream nonce, attach to session S
-    note right of PI: rewrite on the way to RDO Max:&lt;br/&gt;client_id       nl-wallet-app  →  pid-issuer-digid&lt;br/&gt;code_challenge  c1             →  c2&lt;br/&gt;scope           terminated     →  scope=openid&lt;br/&gt;redirect_uri    (passed through)&lt;br/&gt;state           (passed through)&lt;br/&gt;response_type   (passed through)
-    PI-&gt;&gt;OS: 302 Location: &lt;RDO&gt;/authorize?&lt;br/&gt;response_type=code&amp;client_id=pid-issuer-digid&amp;&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&amp;&lt;br/&gt;code_challenge=c2&amp;code_challenge_method=S256&amp;&lt;br/&gt;state=s1&amp;scope=openid
+    PI-&gt;&gt;PI: generate PKCE_P (v2, c2) and random issuer_state=s2,&lt;br/&gt;store state_bridge[s2] = {&lt;br/&gt;  wallet_redirect_uri=&lt;wallet_ul&gt;, wallet_state=s1,&lt;br/&gt;  wallet_code_challenge=c1, upstream_code_verifier=v2 }
+    PI-&gt;&gt;OS: 302 Location: &lt;RDO&gt;/authorize?&lt;br/&gt;response_type=code&amp;client_id=pid-issuer-digid&amp;&lt;br/&gt;redirect_uri=&lt;PI&gt;/digid/callback&amp;&lt;br/&gt;code_challenge=c2&amp;code_challenge_method=S256&amp;&lt;br/&gt;state=s2&amp;scope=openid&amp;nonce=&lt;random&gt;
     OS-&gt;&gt;RDO: GET /authorize?...
     note over OS,RDO: user authenticates via DigiD
-    RDO-&gt;&gt;OS: 302 Location: &lt;wallet_ul&gt;?&lt;br/&gt;code=code1&amp;state=s1
+    RDO-&gt;&gt;OS: 302 Location: &lt;PI&gt;/digid/callback?&lt;br/&gt;code=up_code&amp;state=s2
+    OS-&gt;&gt;PI: GET /digid/callback?code=up_code&amp;state=s2
+
+    %% ---- Upstream token + userinfo, BRP, mint issuer code ----
+    PI-&gt;&gt;PI: consume state_bridge[s2] → { wallet_*, v2 }
+    PI-&gt;&gt;RDO: POST /token&lt;br/&gt;(grant_type=authorization_code, code=up_code,&lt;br/&gt;redirect_uri=&lt;PI&gt;/digid/callback, code_verifier=v2,&lt;br/&gt;client_id=pid-issuer-digid, upstream client auth)
+    RDO-&gt;&gt;PI: { access_token: &lt;upstream_at&gt;, ... }
+    PI-&gt;&gt;RDO: GET /userinfo (Authorization: Bearer &lt;upstream_at&gt;)
+    RDO-&gt;&gt;PI: BSN (encrypted JWE)
+    PI-&gt;&gt;PI: Lookup attributes in BRP,&lt;br/&gt;build PID documents (SD-JWT + mdoc),&lt;br/&gt;mint authorization code=code1,&lt;br/&gt;store AuthCodeIssued session[code1] = {&lt;br/&gt;  documents, wallet_code_challenge=c1 }
+    PI-&gt;&gt;OS: 302 Location: &lt;wallet_ul&gt;?code=code1&amp;state=s1
     OS-&gt;&gt;Wallet: openWallet(code=code1, state=s1)
     Wallet-&gt;&gt;Wallet: verify state == s1
 
     %% ---- Token exchange ----
     Wallet-&gt;&gt;PI: POST /token
     note right of Wallet: grant_type=authorization_code&lt;br/&gt;code=code1&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_verifier=v1      ← wallet's PKCE&lt;br/&gt;client_id=nl-wallet-app
-    PI-&gt;&gt;PI: verify code_verifier v1 against c1,&lt;br/&gt;load session S → v2
-    note right of PI: rewrite on the way to RDO Max:&lt;br/&gt;client_id      nl-wallet-app  →  pid-issuer-digid&lt;br/&gt;code_verifier  v1             →  v2&lt;br/&gt;code, redirect_uri, grant_type  (passed through),&lt;br/&gt;upstream client auth applied
-    PI-&gt;&gt;RDO: POST /token
-    note right of PI: grant_type=authorization_code&lt;br/&gt;code=code1&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_verifier=v2&lt;br/&gt;client_id=pid-issuer-digid&lt;br/&gt;(with upstream client auth)
-    RDO-&gt;&gt;PI: { access_token: &lt;upstream_at&gt;, ... }
-    PI-&gt;&gt;RDO: GET /userinfo (Authorization: Bearer &lt;upstream_at&gt;)
-    RDO-&gt;&gt;PI: BSN (encrypted JWE)
-    PI-&gt;&gt;PI: Lookup attributes in BRP
+    PI-&gt;&gt;PI: load session[code1],&lt;br/&gt;verify S256(v1) == c1 (wallet PKCE),&lt;br/&gt;no upstream interaction
     PI-&gt;&gt;Wallet: { access_token: &lt;at&gt;, token_type: &quot;Bearer&quot;,&lt;br/&gt;  expires_in: 3600,&lt;br/&gt;  authorization_details: [{..., credential_identifiers:[...]}] }
 
     Note over OS,RDO: Issuance phase

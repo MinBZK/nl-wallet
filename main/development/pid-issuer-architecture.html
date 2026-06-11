@@ -562,6 +562,18 @@ That diagram treats the <code class="docutils literal notranslate"><span class="
 wire between the wallet, the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> and RDO Max. This page opens that box:
 which crates contribute which pieces, where state lives, and which traits are
 the extension points for plugging in a different backend.</p>
+<p>The key structural idea is that issuance is split into two phases, each with its
+own component:</p>
+<ul class="simple">
+<li><p>an <strong>Authorization Phase</strong>, owned by <code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer</span></code>, covering <code class="docutils literal notranslate"><span class="pre">/par</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/authorize</span></code> and the upstream-IdP round-trip; and</p></li>
+<li><p>an <strong>Issuance Phase</strong>, owned by <code class="docutils literal notranslate"><span class="pre">Issuer</span></code>, covering <code class="docutils literal notranslate"><span class="pre">/token</span></code>, <code class="docutils literal notranslate"><span class="pre">/nonce</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/credential</span></code> and the credential previews.</p></li>
+</ul>
+<p>The Authorization Phase ends by writing an issuance session (keyed by an
+authorization code) that the Issuance Phase then consumes. The pre-authorized
+code flow (the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>) skips the Authorization Phase entirely and
+uses the bare <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> directly.</p>
 <section id="crate-map">
 <h2>Crate map<a class="headerlink" href="#crate-map" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> process is assembled from three crates:</p>
@@ -571,65 +583,96 @@ storage baked in. Relevant pieces:</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">authorization::PushedAuthorizationRequest</span></code>,
 <code class="docutils literal notranslate"><span class="pre">authorization::PushedAuthorizationResponse</span></code>,
-<code class="docutils literal notranslate"><span class="pre">authorization::AuthorizationRequest</span></code>, <code class="docutils literal notranslate"><span class="pre">token::TokenRequest</span></code>,
-<code class="docutils literal notranslate"><span class="pre">token::TokenResponse</span></code>, <code class="docutils literal notranslate"><span class="pre">credential::CredentialRequest(s)</span></code>,
-<code class="docutils literal notranslate"><span class="pre">credential::CredentialResponse(s)</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">issuer::AttributeService</span></code> — the trait that produces the attributes to be
-issued given a <code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">issuer::Issuer</span></code> — the protocol state machine: verifies token/credential
-requests, drives the session, calls into the <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code>, generates
-access tokens, etc. <code class="docutils literal notranslate"><span class="pre">process_token_request</span></code> accepts an optional
-<code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code> that it forwards verbatim to the
-<code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> — the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> never inspects or interprets the value.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">par::ParStore</span></code>, <code class="docutils literal notranslate"><span class="pre">nonce::store::NonceStore</span></code>,
-<code class="docutils literal notranslate"><span class="pre">server_state::SessionStore&lt;IssuanceData&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">pkce::PkceFlowStore</span></code> —
-abstractions over where PAR entries, c_nonces, issuance sessions and
-upstream-PKCE bridging entries live. Default in-memory impls
-(<code class="docutils literal notranslate"><span class="pre">MemoryParStore</span></code>, <code class="docutils literal notranslate"><span class="pre">MemoryNonceStore</span></code>, <code class="docutils literal notranslate"><span class="pre">MemorySessionStore</span></code>,
-<code class="docutils literal notranslate"><span class="pre">MemoryPkceFlowStore</span></code>) ship alongside.</p></li>
+<code class="docutils literal notranslate"><span class="pre">authorization::VciAuthorizationRequest</span></code> (with its <code class="docutils literal notranslate"><span class="pre">for_auth_code</span></code>
+constructor and the <code class="docutils literal notranslate"><span class="pre">OidcAuthorizationRequest</span></code> wrapper that adds the OIDC
+<code class="docutils literal notranslate"><span class="pre">nonce</span></code>), <code class="docutils literal notranslate"><span class="pre">token::TokenRequest</span></code>, <code class="docutils literal notranslate"><span class="pre">token::TokenResponse</span></code>,
+<code class="docutils literal notranslate"><span class="pre">credential::CredentialRequest(s)</span></code>, <code class="docutils literal notranslate"><span class="pre">credential::CredentialResponse(s)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::Issuer</span></code> — the <strong>Issuance Phase</strong> state machine: serves <code class="docutils literal notranslate"><span class="pre">/token</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/nonce</span></code>, <code class="docutils literal notranslate"><span class="pre">/credential</span></code> and the previews. It holds the
+<code class="docutils literal notranslate"><span class="pre">SessionStore&lt;IssuanceData&gt;</span></code> and the nonce store. <code class="docutils literal notranslate"><span class="pre">process_token_request</span></code>
+loads the issuance session keyed by the code, verifies the wallet’s PKCE
+according to the session’s <code class="docutils literal notranslate"><span class="pre">Grant</span></code>, and issues the access token. It does
+<strong>no</strong> upstream interaction and knows nothing about DigiD or a BSN — by
+the time it runs, the issuables are already in the session.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::{AuthCodeIssued,</span> <span class="pre">Grant,</span> <span class="pre">IssuanceData}</span></code> — the issuance session
+data. <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> carries the <code class="docutils literal notranslate"><span class="pre">issuable_documents</span></code> plus a <code class="docutils literal notranslate"><span class="pre">Grant</span></code>:
+either <code class="docutils literal notranslate"><span class="pre">Grant::PreAuthorizedCode</span></code> (no PKCE) or
+<code class="docutils literal notranslate"><span class="pre">Grant::AuthorizationCode</span> <span class="pre">{</span> <span class="pre">wallet_code_challenge</span> <span class="pre">}</span></code> (the wallet’s PKCE
+challenge, verified at <code class="docutils literal notranslate"><span class="pre">/token</span></code>). <code class="docutils literal notranslate"><span class="pre">Issuer::new_preauthorized_session</span></code>
+writes the pre-authorized variant directly; the auth-code variant is
+written by <code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer::complete_authorization</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">authorizing_issuer::AuthorizingIssuer</span></code> — the <strong>Authorization Phase</strong>
+wrapper around an <code class="docutils literal notranslate"><span class="pre">Issuer</span></code>. Owns the PAR store and an
+<code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code> impl. Serves <code class="docutils literal notranslate"><span class="pre">/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, and exposes
+<code class="docutils literal notranslate"><span class="pre">complete_authorization</span></code>, which mints a fresh issuer-side authorization
+code, writes the <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> session (with
+<code class="docutils literal notranslate"><span class="pre">Grant::AuthorizationCode</span></code>), and builds the wallet-facing redirect URL.
+Deployments doing only the pre-authorized grant never construct one.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">authorization_code_flow::{AuthorizationCodeFlow,</span> <span class="pre">AuthorizeOutcome}</span></code> — the
+trait abstracting a single OAuth authorization-code grant at <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>.
+<code class="docutils literal notranslate"><span class="pre">authorize()</span></code> returns either <code class="docutils literal notranslate"><span class="pre">AuthorizeOutcome::RedirectTo(url)</span></code> (send the
+user-agent to an external IdP) or <code class="docutils literal notranslate"><span class="pre">AuthorizeOutcome::IssuedCode(code)</span></code> (an
+issuer-minted code with no external round-trip). Any state that must
+survive between <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> and the eventual callback is private to the
+impl. This is the seam where the upstream IdP is plugged in.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">par::ParStore</span></code> / <code class="docutils literal notranslate"><span class="pre">store::Store</span></code>, <code class="docutils literal notranslate"><span class="pre">nonce::store::NonceStore</span></code>,
+<code class="docutils literal notranslate"><span class="pre">server_state::SessionStore&lt;IssuanceData&gt;</span></code> — abstractions over where PAR
+entries, c_nonces and issuance sessions live. Default in-memory impls ship
+alongside. The upstream PKCE verifier is not held here; it travels in the
+flow’s own state-bridge entry (see below).</p></li>
 </ul>
 </li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">wallet_core/lib/openid4vc_server</span></code></strong> — generic axum wiring for an OpenID4VCI
-issuer, knows nothing about DigiD or BRP:</p>
+issuer, knows nothing about DigiD or BRP. It exposes two routers:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">issuer::create_issuance_router</span></code> mounts the handlers on
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::create_issuance_router</span></code> mounts the <strong>Issuance Phase</strong> handlers:
 <code class="docutils literal notranslate"><span class="pre">/.well-known/openid-credential-issuer</span></code>,
-<code class="docutils literal notranslate"><span class="pre">/.well-known/oauth-authorization-server</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/par</span></code>,
-<code class="docutils literal notranslate"><span class="pre">/issuance/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/token</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/nonce</span></code>,
-<code class="docutils literal notranslate"><span class="pre">/issuance/credential</span></code>, and <code class="docutils literal notranslate"><span class="pre">/issuance/credential_preview</span></code> (an extension
-we support on top of the spec).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">issuer::ApplicationState</span></code> bundles the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code>, the <code class="docutils literal notranslate"><span class="pre">ParStore</span></code>, the
-<code class="docutils literal notranslate"><span class="pre">PkceFlowStore</span></code>, the optional upstream adapter, and the accepted wallet
-<code class="docutils literal notranslate"><span class="pre">client_id</span></code>s. Both <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> (write) and <code class="docutils literal notranslate"><span class="pre">/token</span></code> (consume) consult the
-<code class="docutils literal notranslate"><span class="pre">PkceFlowStore</span></code> to bridge the decoupled wallet/upstream PKCE pairs.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">issuer::UpstreamAuthorizationAdapter</span></code> — the extension point the
-<code class="docutils literal notranslate"><span class="pre">/authorize</span></code> handler uses to resolve the upstream authorization endpoint
-and rewrite the wallet’s <code class="docutils literal notranslate"><span class="pre">AuthorizationRequest</span></code> into one the upstream
-provider accepts. Letting the implementer own the full request mutation
-keeps non-standard quirks (e.g. nl-rdo-max requires a <code class="docutils literal notranslate"><span class="pre">nonce</span></code>) out of the
-generic handler.</p></li>
+<code class="docutils literal notranslate"><span class="pre">/.well-known/oauth-authorization-server</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/token</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/issuance/nonce</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/credential</span></code> (+ <code class="docutils literal notranslate"><span class="pre">batch_credential</span></code>, the
+<code class="docutils literal notranslate"><span class="pre">delete</span></code> reject routes) and <code class="docutils literal notranslate"><span class="pre">/issuance/credential_preview</span></code> (an extension
+we support on top of the spec). Backed by <code class="docutils literal notranslate"><span class="pre">IssuanceState</span> <span class="pre">{</span> <span class="pre">issuer</span> <span class="pre">}</span></code>. Both
+flows mount this: the pre-authorized <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> mounts it
+standalone, the auth-code <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> mounts it alongside the
+authorization router.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::create_authorization_router</span></code> mounts the <strong>Authorization Phase</strong>
+handlers <code class="docutils literal notranslate"><span class="pre">/issuance/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/issuance/authorize</span></code>. Backed by
+<code class="docutils literal notranslate"><span class="pre">AuthorizationState</span> <span class="pre">{</span> <span class="pre">authorizing_issuer</span> <span class="pre">}</span></code>. The <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> handler just
+calls <code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer::process_authorize</span></code> and 302-redirects to whatever
+URL it returns; it has no knowledge of state bridging or the upstream IdP.</p></li>
+<li><p>The upstream-IdP callback route is <strong>not</strong> in this crate. It is owned by
+the concrete <code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code> impl and mounted by the binary.</p></li>
 </ul>
 </li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">wallet_core/wallet_server/pid_issuer</span></code></strong> — the PID-specific concretions:</p>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">wallet_core/wallet_server/pid_issuer</span></code></strong> — the PID-specific concrete types:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">pid::attributes::BrpPidAttributeService</span></code> — implements <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code>
-by obtaining the BSN via DigiD and then looking up attributes in the BRP.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow</span></code> — the concrete
+<code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code>. It owns the DigiD client, the state-bridge store,
+the BRP client, the recovery-code HMAC key, the issuer’s DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code>
+and the issuer’s own callback URL. Its <code class="docutils literal notranslate"><span class="pre">authorize()</span></code> generates the
+upstream PKCE pair and a random <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>, writes a
+<code class="docutils literal notranslate"><span class="pre">StateBridgeEntry</span></code> keyed by that <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>, and returns a
+<code class="docutils literal notranslate"><span class="pre">RedirectTo</span></code> the upstream <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>. It also <strong>owns the
+<code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code> route</strong> (via <code class="docutils literal notranslate"><span class="pre">callback_router</span></code>): the termination point
+for the upstream redirect, which consumes the bridge entry, obtains the
+BSN, looks up BRP attributes, builds the PID <code class="docutils literal notranslate"><span class="pre">IssuableDocument</span></code>s, and
+calls <code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer::complete_authorization</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pid::digid::DigidMetadataCache</span></code> — fetches and holds the upstream OIDC
-discovery document; shared between the adapter and <code class="docutils literal notranslate"><span class="pre">OpenIdClient</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pid::digid::DigidAuthorizationAdapter</span></code> — implements
-<code class="docutils literal notranslate"><span class="pre">UpstreamAuthorizationAdapter</span></code>; consults the <code class="docutils literal notranslate"><span class="pre">DigidMetadataCache</span></code> to
-resolve the upstream <code class="docutils literal notranslate"><span class="pre">authorization_endpoint</span></code>, rewrites the wallet’s
-<code class="docutils literal notranslate"><span class="pre">client_id</span></code> to the DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, sets <code class="docutils literal notranslate"><span class="pre">scope=openid</span></code>, and adds a
-fresh random <code class="docutils literal notranslate"><span class="pre">nonce</span></code> (required by nl-rdo-max).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pid::digid::OpenIdClient</span></code> — drives the upstream token + userinfo exchange
-via <code class="docutils literal notranslate"><span class="pre">pid::userinfo::request_userinfo</span></code>: POST to RDO Max’s <code class="docutils literal notranslate"><span class="pre">/token</span></code>, GET
-<code class="docutils literal notranslate"><span class="pre">/userinfo</span></code> as a signed-and-encrypted JWT, fetch the JWKS in parallel (via
-a per-call <code class="docutils literal notranslate"><span class="pre">pid::jwks::HttpJwksClient</span></code> wrapper), JWE-decrypt the payload
-and verify the JWS signature against the JWKS to extract the BSN.</p></li>
+discovery document.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pid::digid::{DigidClient,</span> <span class="pre">HttpDigidClient}</span></code> — the trait + HTTP impl for
+the upstream exchange. <code class="docutils literal notranslate"><span class="pre">authorization_endpoint()</span></code> resolves the upstream
+<code class="docutils literal notranslate"><span class="pre">/authorize</span></code> URL (from the cache);
+<code class="docutils literal notranslate"><span class="pre">bsn(code,</span> <span class="pre">code_verifier,</span> <span class="pre">redirect_uri)</span></code> performs the upstream <code class="docutils literal notranslate"><span class="pre">/token</span></code> +
+<code class="docutils literal notranslate"><span class="pre">/userinfo</span></code> exchange (fetching the JWKS, JWE-decrypting and JWS-verifying
+the userinfo) to extract the BSN.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pid::brp::client::HttpBrpClient</span></code> (implements <code class="docutils literal notranslate"><span class="pre">BrpClient</span></code>) — queries the
 BRP for personal data by BSN.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">server::serve</span></code> wires all of the above into <code class="docutils literal notranslate"><span class="pre">create_issuance_router</span></code> and
-serves it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">server::serve</span></code> merges <code class="docutils literal notranslate"><span class="pre">create_issuance_router</span></code>,
+<code class="docutils literal notranslate"><span class="pre">create_authorization_router</span></code> and the flow’s <code class="docutils literal notranslate"><span class="pre">callback_router</span></code>, and serves
+them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer_common::state_bridge_store::IssuerStateBridgeStore</span></code> — the store
+backing the flow’s state bridge (Postgres or in-memory). It is generic
+over the entry type, serializing it to/from JSON, so the entry’s shape
+stays private to the <code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code> impl.</p></li>
 </ul>
 </li>
 </ul>
@@ -640,26 +683,25 @@ serves it.</p></li>
         flowchart LR
     subgraph ovcs[&quot;openid4vc_server (HTTP wiring)&quot;]
         direction TB
-        Router[&quot;create_issuance_router&lt;br/&gt;axum handlers&quot;]
-        AppState[&quot;ApplicationState&quot;]
-        UpAd_trait[&quot;trait&lt;br/&gt;UpstreamAuthorizationAdapter&quot;]
+        IssRouter[&quot;create_issuance_router&lt;br/&gt;(IssuanceState)&quot;]
+        AuthRouter[&quot;create_authorization_router&lt;br/&gt;(AuthorizationState)&quot;]
     end
 
     subgraph ovc[&quot;openid4vc (protocol types)&quot;]
         direction TB
+        AuthIssuer[&quot;struct AuthorizingIssuer&quot;]
         Issuer[&quot;struct Issuer&quot;]
-        AS_trait[&quot;trait AttributeService&quot;]
-        Store_traits[&quot;trait ParStore&lt;br/&gt;trait PkceFlowStore&lt;br/&gt;trait SessionStore of IssuanceData&lt;br/&gt;trait NonceStore&quot;]
-        MemStores[&quot;MemoryParStore&lt;br/&gt;MemoryPkceFlowStore&quot;]
+        AF_trait[&quot;trait AuthorizationCodeFlow&lt;br/&gt;(+ AuthorizeOutcome)&quot;]
+        Store_traits[&quot;trait ParStore / Store&lt;br/&gt;trait SessionStore of IssuanceData&lt;br/&gt;trait NonceStore&quot;]
     end
 
     subgraph pidi[&quot;pid_issuer (PID-specific)&quot;]
         direction TB
-        BrpAttr[&quot;BrpPidAttributeService&quot;]
-        DigidAdapter[&quot;DigidAuthorizationAdapter&quot;]
-        OpenIdClient[&quot;OpenIdClient&quot;]
+        Flow[&quot;UpstreamOidcAuthorizationCodeFlow&lt;br/&gt;(owns /digid/callback)&quot;]
+        DigidClient[&quot;HttpDigidClient&quot;]
         DigidCache[&quot;DigidMetadataCache&lt;br/&gt;(holds OIDC metadata)&quot;]
         BrpClient[&quot;HttpBrpClient&quot;]
+        Bridge[&quot;IssuerStateBridgeStore&quot;]
     end
 
     subgraph ext[&quot;external&quot;]
@@ -668,140 +710,142 @@ serves it.</p></li>
         BRP[(&quot;BRP&quot;)]
     end
 
-    Router --&gt; AppState
-    AppState --&gt;|holds| Issuer
-    AppState --&gt;|holds| MemStores
-    AppState --&gt;|holds| UpAd_trait
-    Issuer --&gt;|calls| AS_trait
-    Issuer --&gt;|reads/writes| Store_traits
+    AuthRouter --&gt; AuthIssuer
+    IssRouter --&gt; Issuer
+    AuthIssuer --&gt;|wraps| Issuer
+    AuthIssuer --&gt;|holds| AF_trait
+    AuthIssuer --&gt;|reads/writes PAR| Store_traits
+    Issuer --&gt;|reads/writes sessions, nonces| Store_traits
 
-    MemStores -.implements.-&gt; Store_traits
-    BrpAttr -.implements.-&gt; AS_trait
-    DigidAdapter -.implements.-&gt; UpAd_trait
-
-    BrpAttr --&gt;|owns| OpenIdClient
-    BrpAttr --&gt;|owns| BrpClient
-    OpenIdClient -. shares Arc .-&gt; DigidCache
-    DigidAdapter -. shares Arc .-&gt; DigidCache
+    Flow -.implements.-&gt; AF_trait
+    Flow --&gt;|owns| DigidClient
+    Flow --&gt;|owns| BrpClient
+    Flow --&gt;|reads/writes| Bridge
+    Flow --&gt;|complete_authorization| AuthIssuer
+    DigidClient --&gt;|owns| DigidCache
 
     DigidCache --&gt;|GET /.well-known/&lt;br/&gt;openid-configuration| RDO
-    OpenIdClient --&gt;|POST /token,&lt;br/&gt;GET /userinfo,&lt;br/&gt;GET jwks_uri| RDO
+    DigidClient --&gt;|POST /token,&lt;br/&gt;GET /userinfo,&lt;br/&gt;GET jwks_uri| RDO
     BrpClient --&gt;|get_person_by_bsn| BRP
-    </pre><p>Two extension points are worth noting:</p>
+    </pre><p>The extension points worth noting:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> — swapping <code class="docutils literal notranslate"><span class="pre">BrpPidAttributeService</span></code> for a different
-implementation is how the generic <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> (disclosure-based
-issuance) reuses the same <code class="docutils literal notranslate"><span class="pre">openid4vc_server</span></code> handlers. The <code class="docutils literal notranslate"><span class="pre">/token</span></code> handler
-doesn’t know what a BSN is.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">UpstreamAuthorizationAdapter</span></code> — plugs in the upstream OIDC provider. Today
-the only implementor is <code class="docutils literal notranslate"><span class="pre">DigidAuthorizationAdapter</span></code>; a different IdP would get
-a sibling implementation here.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code> — plugs in the upstream IdP and its callback. Today
+the only implementor is <code class="docutils literal notranslate"><span class="pre">UpstreamOidcAuthorizationCodeFlow</span></code> (DigiD via RDO
+Max); a different IdP would get a sibling implementation that owns its own
+callback route. The generic <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> handler doesn’t know what DigiD is.</p></li>
+<li><p>The pre-authorized code flow reuses the bare <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> (via
+<code class="docutils literal notranslate"><span class="pre">create_issuance_router</span></code>) without an <code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer</span></code> at all. That is how
+the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> (disclosure-based issuance) shares the Issuance Phase:
+it computes the issuables from the disclosed attributes and writes them with
+<code class="docutils literal notranslate"><span class="pre">Issuer::new_preauthorized_session</span></code>, then hands the wallet a Credential Offer
+carrying the pre-authorized code. The <code class="docutils literal notranslate"><span class="pre">/token</span></code> handler doesn’t know what a BSN
+is.</p></li>
 </ul>
-<p>State lives behind the four <code class="docutils literal notranslate"><span class="pre">*Store</span></code> traits. The in-memory variants shown here
-can all be replaced by stateful variants.</p>
+<p>State lives behind the <code class="docutils literal notranslate"><span class="pre">*Store</span></code> traits (PAR, sessions, nonces) plus the flow’s
+own <code class="docutils literal notranslate"><span class="pre">IssuerStateBridgeStore</span></code>. The in-memory variants can all be replaced by
+stateful (Postgres) variants.</p>
 </section>
-<section id="internal-flow-par-authorize-and-token">
-<h2>Internal flow: PAR, authorize and token<a class="headerlink" href="#internal-flow-par-authorize-and-token" title="Link to this heading"></a></h2>
+<section id="internal-flow-par-authorize-callback-and-token">
+<h2>Internal flow: PAR, authorize, callback and token<a class="headerlink" href="#internal-flow-par-authorize-callback-and-token" title="Link to this heading"></a></h2>
 <p>This narrows the protocol diagram down to the lanes inside the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>
-process across the three authorization-phase requests, so it’s visible which
-trait is consulted where and when the upstream DigiD round-trip happens relative
-to the protocol state machine.</p>
+process, so it’s visible which component is consulted where and that the
+upstream DigiD round-trip happens in the <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code> handler, before the
+wallet’s <code class="docutils literal notranslate"><span class="pre">/token</span></code>, not during it.</p>
 <pre  class="mermaid">
         sequenceDiagram
     autonumber
     participant W as Wallet
     participant H as handler&lt;br/&gt;(openid4vc_server)
-    participant R as DigidAuthorizationAdapter
-    participant P as ParStore
-    participant F as PkceFlowStore
+    participant AI as AuthorizingIssuer&lt;br/&gt;(openid4vc)
+    participant F as UpstreamOidcAuthorizationCodeFlow&lt;br/&gt;(+ /digid/callback)
+    participant B as IssuerStateBridgeStore
     participant I as Issuer&lt;br/&gt;(openid4vc)
-    participant A as BrpPidAttributeService
-    participant O as OpenIdClient
+    participant D as HttpDigidClient
     participant RDO as RDO Max
     participant BRP
-    Note over W, F: POST /issuance/par
-    W -&gt;&gt; H: POST /par (AuthorizationRequest)
-    H -&gt;&gt; H: validate client_id against&lt;br/&gt;accepted_wallet_client_ids
-    H -&gt;&gt; P: store(request_uri,&lt;br/&gt;authorization_request, expires_at)
-    P -&gt;&gt; H: ok
-    H -&gt;&gt; W: 201 PushedAuthorizationResponse&lt;br/&gt;(request_uri, expires_in)
-    Note over W, F: GET /issuance/authorize
+
+    Note over W, BRP: POST /issuance/par
+    W -&gt;&gt; H: POST /par (VciAuthorizationRequest)
+    H -&gt;&gt; AI: process_pushed_authorization_request
+    AI -&gt;&gt; AI: validate client_id,&lt;br/&gt;store(request_uri, request) in PAR store
+    AI -&gt;&gt; W: 201 PushedAuthorizationResponse&lt;br/&gt;(request_uri, expires_in)
+
+    Note over W, BRP: GET /issuance/authorize
     W -&gt;&gt; H: GET /authorize?client_id,request_uri
-    H -&gt;&gt; H: validate client_id
-    H -&gt;&gt; P: consume(request_uri)
-    P -&gt;&gt; H: AuthorizationRequest&lt;br/&gt;(including wallet code_challenge c1)
-    H -&gt;&gt; H: generate upstream PKCE pair (v2, c2),&lt;br/&gt;rewrite code_challenge and&lt;br/&gt;code_challenge_method to (c2, S256)
-    H -&gt;&gt; F: store(c1, v2)
-    F -&gt;&gt; H: ok
-    H -&gt;&gt; R: adapt(authorization_request)
-    R -&gt;&gt; RDO: GET /.well-known/openid-configuration&lt;br/&gt;(cached after first call)
-    RDO -&gt;&gt; R: OidcProviderMetadata
-    R -&gt;&gt; R: rewrite client_id to DigiD client_id,&lt;br/&gt;set scope=openid,&lt;br/&gt;add fresh random nonce
-    R -&gt;&gt; H: (authorization_endpoint,&lt;br/&gt;rewritten AuthorizationRequest)
-    H -&gt;&gt; W: 302 Location: upstream /authorize?...
-    Note over W, BRP: POST /issuance/token
-    W -&gt;&gt; H: POST /token&lt;br/&gt;(TokenRequest with code_verifier v1)
-    H -&gt;&gt; H: derive c1 = SHA256(v1)
-    H -&gt;&gt; F: consume(c1)
-    F -&gt;&gt; H: upstream code_verifier v2
-    H -&gt;&gt; H: verify wallet code_verifier v1&lt;br/&gt;against c1 (PKCE check)
-    H -&gt;&gt; I: process_token_request(token_request,&lt;br/&gt;upstream_code_verifier=Some(v2))
-    I -&gt;&gt; A: attributes(token_request,&lt;br/&gt;upstream_code_verifier)
-    A -&gt;&gt; O: bsn(code, code_verifier, redirect_uri)
+    H -&gt;&gt; AI: process_authorize(request_uri, client_id)
+    AI -&gt;&gt; AI: validate client_id,&lt;br/&gt;consume(request_uri) from PAR store,&lt;br/&gt;check PAR client_id matches
+    AI -&gt;&gt; F: authorize(authorization_request)
+    F -&gt;&gt; F: generate upstream PKCE (v2, c2)&lt;br/&gt;and random issuer_state s2
+    F -&gt;&gt; B: store(s2, { wallet_redirect_uri, wallet_state s1,&lt;br/&gt;  wallet_code_challenge c1, upstream_code_verifier v2 })
+    F -&gt;&gt; D: authorization_endpoint()
+    D -&gt;&gt; RDO: GET /.well-known/openid-configuration&lt;br/&gt;(cached after first call)
+    RDO -&gt;&gt; D: OidcProviderMetadata
+    D -&gt;&gt; F: upstream authorization_endpoint
+    F -&gt;&gt; AI: AuthorizeOutcome::RedirectTo(upstream /authorize?…)
+    AI -&gt;&gt; W: 302 Location: upstream /authorize?&lt;br/&gt;client_id=pid-issuer-digid, redirect_uri=&lt;PI&gt;/digid/callback,&lt;br/&gt;state=s2, code_challenge=c2, scope=openid, nonce=…
+
+    Note over W, BRP: user authenticates via DigiD, then RDO Max redirects to /digid/callback
+
+    Note over W, BRP: GET /digid/callback
+    RDO -&gt;&gt; F: GET /digid/callback?code=up_code&amp;state=s2
+    F -&gt;&gt; B: consume(s2)
+    B -&gt;&gt; F: { wallet_*, upstream_code_verifier v2 }
+    F -&gt;&gt; D: bsn(up_code, v2, &lt;PI&gt;/digid/callback)
     par fetch userinfo JWE
-        O -&gt;&gt; RDO: POST {token_endpoint}&lt;br/&gt;(grant_type, code,&lt;br/&gt;redirect_uri, code_verifier,&lt;br/&gt;client_id)
-        RDO -&gt;&gt; O: access_token (upstream)
-        O -&gt;&gt; RDO: GET {userinfo_endpoint}&lt;br/&gt;Accept: application/jwt,&lt;br/&gt;Bearer (upstream_at)
-        RDO -&gt;&gt; O: userinfo JWE (JWT)
+        D -&gt;&gt; RDO: POST {token_endpoint}&lt;br/&gt;(grant_type, code=up_code,&lt;br/&gt;redirect_uri=&lt;PI&gt;/digid/callback,&lt;br/&gt;code_verifier=v2, client_id=pid-issuer-digid)
+        RDO -&gt;&gt; D: access_token (upstream)
+        D -&gt;&gt; RDO: GET {userinfo_endpoint}&lt;br/&gt;Accept: application/jwt, Bearer (upstream_at)
+        RDO -&gt;&gt; D: userinfo JWE (JWT)
     and fetch JWKS
-        O -&gt;&gt; RDO: GET {jwks_uri}
-        RDO -&gt;&gt; O: JwkSet
+        D -&gt;&gt; RDO: GET {jwks_uri}
+        RDO -&gt;&gt; D: JwkSet
     end
-    O -&gt;&gt; O: JWE-decrypt to JWS,&lt;br/&gt;verify JWS signature&lt;br/&gt;against JwkSet,&lt;br/&gt;extract BSN claim
-    O -&gt;&gt; A: BSN
-    A -&gt;&gt; BRP: get_person_by_bsn(bsn)
-    BRP -&gt;&gt; A: person data
-    A -&gt;&gt; A: build IssuableDocument&lt;br/&gt;(PID attestation,&lt;br/&gt;with recovery_code attribute)
-    A -&gt;&gt; I: VecNonEmpty of IssuableDocument
-    I -&gt;&gt; I: persist session,&lt;br/&gt;generate access_token and c_nonce
+    D -&gt;&gt; D: JWE-decrypt to JWS,&lt;br/&gt;verify JWS against JwkSet,&lt;br/&gt;extract BSN claim
+    D -&gt;&gt; F: BSN
+    F -&gt;&gt; BRP: get_person_by_bsn(bsn)
+    BRP -&gt;&gt; F: person data
+    F -&gt;&gt; F: build IssuableDocuments&lt;br/&gt;(SD-JWT + mdoc, with recovery_code)
+    F -&gt;&gt; AI: complete_authorization(documents,&lt;br/&gt;wallet_code_challenge c1, wallet_redirect_uri, wallet_state s1)
+    AI -&gt;&gt; AI: mint authorization code code1
+    AI -&gt;&gt; I: write_session(AuthCodeIssued[code1] =&lt;br/&gt;  { documents, Grant::AuthorizationCode { c1 } })
+    AI -&gt;&gt; F: (code1, wallet redirect URL)
+    F -&gt;&gt; W: 302 Location: &lt;wallet_redirect_uri&gt;?code=code1&amp;state=s1
+
+    Note over W, BRP: POST /issuance/token
+    W -&gt;&gt; H: POST /token&lt;br/&gt;(code=code1, code_verifier=v1)
+    H -&gt;&gt; I: process_token_request(token_request, dpop)
+    I -&gt;&gt; I: load session[code1],&lt;br/&gt;verify S256(v1) == c1 (wallet PKCE),&lt;br/&gt;generate access_token + c_nonce&lt;br/&gt;(no upstream interaction)
     I -&gt;&gt; H: TokenResponse
     H -&gt;&gt; W: TokenResponse
     </pre><p>A few things the extended diagram makes visible:</p>
 <ul class="simple">
-<li><p><strong>Where the state stores are hit.</strong> <code class="docutils literal notranslate"><span class="pre">ParStore::store</span></code> is called on <code class="docutils literal notranslate"><span class="pre">/par</span></code>,
-<code class="docutils literal notranslate"><span class="pre">ParStore::consume</span></code> is called on <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">PkceFlowStore::store</span></code> is
-called on <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">PkceFlowStore::consume</span></code> is called on <code class="docutils literal notranslate"><span class="pre">/token</span></code>, and
-the <code class="docutils literal notranslate"><span class="pre">SessionStore&lt;IssuanceData&gt;</span></code> load happens only inside the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> on
-<code class="docutils literal notranslate"><span class="pre">/token</span></code>.</p></li>
-<li><p><strong>Where the upstream-specific request mutation lives.</strong> Everything the
-upstream provider needs that the wallet’s request doesn’t carry — DigiD’s
-<code class="docutils literal notranslate"><span class="pre">client_id</span></code>, <code class="docutils literal notranslate"><span class="pre">scope=openid</span></code>, and the random <code class="docutils literal notranslate"><span class="pre">nonce</span></code> nl-rdo-max requires — is
-applied inside <code class="docutils literal notranslate"><span class="pre">DigidAuthorizationAdapter::adapt</span></code>, not in the
-<code class="docutils literal notranslate"><span class="pre">openid4vc_server</span></code> handler. The handler only validates the wallet’s
-<code class="docutils literal notranslate"><span class="pre">client_id</span></code>, drives PAR consumption, and forwards what the adapter returns.</p></li>
-<li><p><strong>How the upstream <code class="docutils literal notranslate"><span class="pre">client_id</span></code> is set in each phase.</strong> On <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> the
-adapter rewrites the wallet’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code> to DigiD’s. On <code class="docutils literal notranslate"><span class="pre">/token</span></code> there is no
-rewrite: <code class="docutils literal notranslate"><span class="pre">OpenIdClient</span></code> is constructed with the DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code> and uses it
-when building its own upstream <code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>. The wallet’s
-<code class="docutils literal notranslate"><span class="pre">TokenRequest.client_id</span></code> never reaches RDO Max.</p></li>
-<li><p><strong>The PKCE decoupling</strong> is symmetric with the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> rewrite but flipped
-in ownership, and lives entirely in <code class="docutils literal notranslate"><span class="pre">openid4vc_server</span></code>. At <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> the
-handler generates its own pair <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code>, substitutes the wallet’s
-<code class="docutils literal notranslate"><span class="pre">code_challenge</span></code> with <code class="docutils literal notranslate"><span class="pre">c2</span></code>, and persists <code class="docutils literal notranslate"><span class="pre">v2</span></code> keyed by the wallet’s <code class="docutils literal notranslate"><span class="pre">c1</span></code> in a
-dedicated <code class="docutils literal notranslate"><span class="pre">PkceFlowStore</span></code> (mirror of <code class="docutils literal notranslate"><span class="pre">ParStore</span></code>). At <code class="docutils literal notranslate"><span class="pre">/token</span></code> the handler
-recomputes <code class="docutils literal notranslate"><span class="pre">c1</span></code> from the wallet’s <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code>, looks up <code class="docutils literal notranslate"><span class="pre">v2</span></code>, verifies the
-wallet’s verifier against <code class="docutils literal notranslate"><span class="pre">c1</span></code> (wallet-facing PKCE check), and delegates to
-<code class="docutils literal notranslate"><span class="pre">Issuer</span></code> — passing <code class="docutils literal notranslate"><span class="pre">v2</span></code> wrapped in an <code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code> alongside the
-unmodified <code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>. The <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> accepts the <code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code>
-only as an opaque pass-through to the <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code>; it never inspects or
-interprets the value. <code class="docutils literal notranslate"><span class="pre">BrpPidAttributeService</span></code> then unwraps <code class="docutils literal notranslate"><span class="pre">v2</span></code> from the
-<code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code> (and reads <code class="docutils literal notranslate"><span class="pre">code</span></code> / <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> from the
-<code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>) before calling <code class="docutils literal notranslate"><span class="pre">OpenIdClient::bsn</span></code>. The upstream PKCE check is
-then done by RDO Max. Result: wallet and RDO Max each see their own PKCE pair;
-neither sees the other’s.</p></li>
+<li><p><strong>Where the upstream round-trip happens.</strong> The upstream <code class="docutils literal notranslate"><span class="pre">/token</span></code> + <code class="docutils literal notranslate"><span class="pre">/userinfo</span></code>
+exchange and the BRP lookup are driven entirely by the <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code>
+handler, which runs <em>before</em> the wallet’s <code class="docutils literal notranslate"><span class="pre">/token</span></code>. By the time the wallet
+exchanges its code, the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> only verifies PKCE and reads the issuables
+from the session — it never talks to RDO Max or the BRP.</p></li>
+<li><p><strong>Where the state stores are hit.</strong> <code class="docutils literal notranslate"><span class="pre">ParStore::store</span></code> on <code class="docutils literal notranslate"><span class="pre">/par</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ParStore::consume</span></code> on <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>; <code class="docutils literal notranslate"><span class="pre">IssuerStateBridgeStore::store</span></code> on
+<code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">IssuerStateBridgeStore::consume</span></code> on <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code>;
+<code class="docutils literal notranslate"><span class="pre">SessionStore&lt;IssuanceData&gt;</span></code> is <em>written</em> on <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code> (inside
+<code class="docutils literal notranslate"><span class="pre">complete_authorization</span></code>) and <em>read</em> on <code class="docutils literal notranslate"><span class="pre">/token</span></code> (and again on <code class="docutils literal notranslate"><span class="pre">/credential</span></code>).</p></li>
+<li><p><strong>The two OAuth exchanges are fully separate.</strong> The upstream <code class="docutils literal notranslate"><span class="pre">client_id</span></code>,
+<code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> (the issuer’s own <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code>), <code class="docutils literal notranslate"><span class="pre">state</span></code> (the random
+<code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>) and PKCE pair <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code> are all generated by the flow; none
+of the wallet’s parameters are forwarded. The single link between them is the
+<code class="docutils literal notranslate"><span class="pre">StateBridgeEntry</span></code>, keyed by <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>, that the callback consumes to
+recover the wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code> and <code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>.</p></li>
+<li><p><strong>The PKCE pairs never cross over.</strong> The wallet’s <code class="docutils literal notranslate"><span class="pre">(v1,</span> <span class="pre">c1)</span></code> is verified only
+by the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> at <code class="docutils literal notranslate"><span class="pre">/token</span></code>; the issuer’s <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code> is verified only by RDO
+Max at the upstream <code class="docutils literal notranslate"><span class="pre">/token</span></code>. The wallet’s <code class="docutils literal notranslate"><span class="pre">code_challenge</span></code> never reaches RDO
+Max, and the issuer’s never reaches the wallet.</p></li>
+<li><p><strong>Error handling.</strong> If any callback step (BSN, BRP, document build) fails, the
+flow redirects the browser back to the wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> with an OAuth
+<code class="docutils literal notranslate"><span class="pre">error</span></code> response (carrying the wallet’s <code class="docutils literal notranslate"><span class="pre">state</span></code>), rather than surfacing a bare
+HTTP error.</p></li>
 </ul>
-<p>The protocol-level view of the same exchange — including which parameters the
-<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> rewrites on the way to RDO Max — is in
+<p>The protocol-level view of the same exchange — including which parameters live
+in which of the two OAuth exchanges — is in
 <a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html#pid-issuance"><span class="std std-ref">Issuance with OpenID4VCI</span></a>.</p>
 </section>
 </section>
