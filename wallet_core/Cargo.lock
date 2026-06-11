@@ -662,11 +662,15 @@ dependencies = [
 name = "attestation_types"
 version = "0.6.0-dev"
 dependencies = [
+ "base64 0.22.1",
+ "data-url 0.3.2",
  "itertools 0.14.0",
+ "rstest",
  "serde",
  "serde_json",
  "serde_with",
  "strum 0.28.0",
+ "thiserror 2.0.17",
  "url",
 ]
 
@@ -3441,7 +3445,6 @@ dependencies = [
  "axum-server",
  "base64 0.22.1",
  "const-decoder",
- "data-url 0.3.2",
  "derive_more",
  "futures",
  "http",

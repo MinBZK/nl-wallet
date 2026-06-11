@@ -1374,12 +1374,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_image(Image apiObj, wire_cst_image wireObj) {
-    if (apiObj is Image_Svg) {
-      var pre_svg = cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
-        apiObj.svg,
-      );
+    if (apiObj is Image_Jpeg) {
+      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
       wireObj.tag = 0;
-      wireObj.kind.Svg.svg = pre_svg;
+      wireObj.kind.Jpeg.data = pre_data;
       return;
     }
     if (apiObj is Image_Png) {
@@ -1388,10 +1386,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Png.data = pre_data;
       return;
     }
-    if (apiObj is Image_Jpeg) {
-      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
+    if (apiObj is Image_Svg) {
+      var pre_svg = cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+        apiObj.svg,
+      );
       wireObj.tag = 2;
-      wireObj.kind.Jpeg.data = pre_data;
+      wireObj.kind.Svg.svg = pre_svg;
       return;
     }
     if (apiObj is Image_Asset) {
@@ -3713,17 +3713,17 @@ final class wire_cst_attestation_identity extends ffi.Struct {
   external AttestationIdentityKind kind;
 }
 
-final class wire_cst_Image_Svg extends ffi.Struct {
-  @ffi.UintPtr()
-  external int svg;
+final class wire_cst_Image_Jpeg extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
 }
 
 final class wire_cst_Image_Png extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
 }
 
-final class wire_cst_Image_Jpeg extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
+final class wire_cst_Image_Svg extends ffi.Struct {
+  @ffi.UintPtr()
+  external int svg;
 }
 
 final class wire_cst_Image_Asset extends ffi.Struct {
@@ -3731,11 +3731,11 @@ final class wire_cst_Image_Asset extends ffi.Struct {
 }
 
 final class ImageKind extends ffi.Union {
-  external wire_cst_Image_Svg Svg;
+  external wire_cst_Image_Jpeg Jpeg;
 
   external wire_cst_Image_Png Png;
 
-  external wire_cst_Image_Jpeg Jpeg;
+  external wire_cst_Image_Svg Svg;
 
   external wire_cst_Image_Asset Asset;
 }

@@ -2307,16 +2307,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return Image_Svg(
-          svg: dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(raw[1]),
+        return Image_Jpeg(
+          data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 1:
         return Image_Png(
           data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 2:
-        return Image_Jpeg(
-          data: dco_decode_list_prim_u_8_strict(raw[1]),
+        return Image_Svg(
+          svg: dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(raw[1]),
         );
       case 3:
         return Image_Asset(
@@ -3339,16 +3339,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_svg = sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
-          deserializer,
-        );
-        return Image_Svg(svg: var_svg);
+        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
+        return Image_Jpeg(data: var_data);
       case 1:
         var var_data = sse_decode_list_prim_u_8_strict(deserializer);
         return Image_Png(data: var_data);
       case 2:
-        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
-        return Image_Jpeg(data: var_data);
+        var var_svg = sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+          deserializer,
+        );
+        return Image_Svg(svg: var_svg);
       case 3:
         var var_path = sse_decode_String(deserializer);
         return Image_Asset(path: var_path);
@@ -4681,18 +4681,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_image(Image self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case Image_Svg(svg: final svg):
+      case Image_Jpeg(data: final data):
         sse_encode_i_32(0, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case Image_Png(data: final data):
+        sse_encode_i_32(1, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case Image_Svg(svg: final svg):
+        sse_encode_i_32(2, serializer);
         sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
           svg,
           serializer,
         );
-      case Image_Png(data: final data):
-        sse_encode_i_32(1, serializer);
-        sse_encode_list_prim_u_8_strict(data, serializer);
-      case Image_Jpeg(data: final data):
-        sse_encode_i_32(2, serializer);
-        sse_encode_list_prim_u_8_strict(data, serializer);
       case Image_Asset(path: final path):
         sse_encode_i_32(3, serializer);
         sse_encode_String(path, serializer);

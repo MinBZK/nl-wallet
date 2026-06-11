@@ -3,11 +3,11 @@ use std::num::NonZeroU64;
 use std::ops::Not;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::data_uri::DataUri;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
-use http_utils::data_uri::DataUri;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;

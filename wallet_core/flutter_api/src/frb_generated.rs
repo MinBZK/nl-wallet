@@ -2252,16 +2252,16 @@ impl SseDecode for crate::models::image::Image {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_svg = <SanitizedSvg>::sse_decode(deserializer);
-                return crate::models::image::Image::Svg { svg: var_svg };
+                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::image::Image::Jpeg { data: var_data };
             }
             1 => {
                 let mut var_data = <Vec<u8>>::sse_decode(deserializer);
                 return crate::models::image::Image::Png { data: var_data };
             }
             2 => {
-                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
-                return crate::models::image::Image::Jpeg { data: var_data };
+                let mut var_svg = <SanitizedSvg>::sse_decode(deserializer);
+                return crate::models::image::Image::Svg { svg: var_svg };
             }
             3 => {
                 let mut var_path = <String>::sse_decode(deserializer);
@@ -3623,11 +3623,11 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::uri::IdentifyUriResult>
 impl flutter_rust_bridge::IntoDart for crate::models::image::Image {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::models::image::Image::Svg { svg } => [0.into_dart(), svg.into_into_dart().into_dart()].into_dart(),
-            crate::models::image::Image::Png { data } => [1.into_dart(), data.into_into_dart().into_dart()].into_dart(),
             crate::models::image::Image::Jpeg { data } => {
-                [2.into_dart(), data.into_into_dart().into_dart()].into_dart()
+                [0.into_dart(), data.into_into_dart().into_dart()].into_dart()
             }
+            crate::models::image::Image::Png { data } => [1.into_dart(), data.into_into_dart().into_dart()].into_dart(),
+            crate::models::image::Image::Svg { svg } => [2.into_dart(), svg.into_into_dart().into_dart()].into_dart(),
             crate::models::image::Image::Asset { path } => {
                 [3.into_dart(), path.into_into_dart().into_dart()].into_dart()
             }
@@ -4684,17 +4684,17 @@ impl SseEncode for crate::models::image::Image {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::models::image::Image::Svg { svg } => {
+            crate::models::image::Image::Jpeg { data } => {
                 <i32>::sse_encode(0, serializer);
-                <SanitizedSvg>::sse_encode(svg, serializer);
+                <Vec<u8>>::sse_encode(data, serializer);
             }
             crate::models::image::Image::Png { data } => {
                 <i32>::sse_encode(1, serializer);
                 <Vec<u8>>::sse_encode(data, serializer);
             }
-            crate::models::image::Image::Jpeg { data } => {
+            crate::models::image::Image::Svg { svg } => {
                 <i32>::sse_encode(2, serializer);
-                <Vec<u8>>::sse_encode(data, serializer);
+                <SanitizedSvg>::sse_encode(svg, serializer);
             }
             crate::models::image::Image::Asset { path } => {
                 <i32>::sse_encode(3, serializer);
@@ -5899,9 +5899,9 @@ mod io {
         fn cst_decode(self) -> crate::models::image::Image {
             match self.tag {
                 0 => {
-                    let ans = unsafe { self.kind.Svg };
-                    crate::models::image::Image::Svg {
-                        svg: ans.svg.cst_decode(),
+                    let ans = unsafe { self.kind.Jpeg };
+                    crate::models::image::Image::Jpeg {
+                        data: ans.data.cst_decode(),
                     }
                 }
                 1 => {
@@ -5911,9 +5911,9 @@ mod io {
                     }
                 }
                 2 => {
-                    let ans = unsafe { self.kind.Jpeg };
-                    crate::models::image::Image::Jpeg {
-                        data: ans.data.cst_decode(),
+                    let ans = unsafe { self.kind.Svg };
+                    crate::models::image::Image::Svg {
+                        svg: ans.svg.cst_decode(),
                     }
                 }
                 3 => {
@@ -7825,16 +7825,16 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub union ImageKind {
-        Svg: wire_cst_Image_Svg,
-        Png: wire_cst_Image_Png,
         Jpeg: wire_cst_Image_Jpeg,
+        Png: wire_cst_Image_Png,
+        Svg: wire_cst_Image_Svg,
         Asset: wire_cst_Image_Asset,
         nil__: (),
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_Image_Svg {
-        svg: usize,
+    pub struct wire_cst_Image_Jpeg {
+        data: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -7843,8 +7843,8 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_Image_Jpeg {
-        data: *mut wire_cst_list_prim_u_8_strict,
+    pub struct wire_cst_Image_Svg {
+        svg: usize,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

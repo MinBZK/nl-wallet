@@ -37,26 +37,26 @@ typedef struct wire_cst_attestation_identity {
   union AttestationIdentityKind kind;
 } wire_cst_attestation_identity;
 
-typedef struct wire_cst_Image_Svg {
-  uintptr_t svg;
-} wire_cst_Image_Svg;
+typedef struct wire_cst_Image_Jpeg {
+  struct wire_cst_list_prim_u_8_strict *data;
+} wire_cst_Image_Jpeg;
 
 typedef struct wire_cst_Image_Png {
   struct wire_cst_list_prim_u_8_strict *data;
 } wire_cst_Image_Png;
 
-typedef struct wire_cst_Image_Jpeg {
-  struct wire_cst_list_prim_u_8_strict *data;
-} wire_cst_Image_Jpeg;
+typedef struct wire_cst_Image_Svg {
+  uintptr_t svg;
+} wire_cst_Image_Svg;
 
 typedef struct wire_cst_Image_Asset {
   struct wire_cst_list_prim_u_8_strict *path;
 } wire_cst_Image_Asset;
 
 typedef union ImageKind {
-  struct wire_cst_Image_Svg Svg;
-  struct wire_cst_Image_Png Png;
   struct wire_cst_Image_Jpeg Jpeg;
+  struct wire_cst_Image_Png Png;
+  struct wire_cst_Image_Svg Svg;
   struct wire_cst_Image_Asset Asset;
 } ImageKind;
 

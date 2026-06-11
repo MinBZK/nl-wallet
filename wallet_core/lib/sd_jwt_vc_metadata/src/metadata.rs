@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::ops::Deref;
-use std::string::FromUtf8Error;
 use std::sync::LazyLock;
 
 use attestation_types::claim_path::ClaimPath;
-use http_utils::data_uri::DataUri;
+use attestation_types::data_uri::DataUri;
+use attestation_types::image::Image;
 use itertools::Itertools;
 use nutype::nutype;
 use regex::Regex;
@@ -281,56 +281,6 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Image {
-    Svg(String),
-    Png(Vec<u8>),
-    Jpeg(Vec<u8>),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ImageError {
-    #[error("utf8 decode error: {0}")]
-    Utf8Decode(#[from] FromUtf8Error),
-    #[error("unsupported mime type: {0}")]
-    UnsupportedMimeType(String),
-}
-
-impl TryFrom<DataUri> for Image {
-    type Error = ImageError;
-
-    fn try_from(value: DataUri) -> Result<Self, Self::Error> {
-        match value.mime_type.as_str() {
-            "image/jpeg" => Ok(Image::Jpeg(value.data)),
-            "image/png" => Ok(Image::Png(value.data)),
-            "image/svg+xml" => String::from_utf8(value.data)
-                .map(Image::Svg)
-                .map_err(ImageError::Utf8Decode),
-            _ => Err(ImageError::UnsupportedMimeType(value.mime_type)),
-        }
-    }
-}
-
-impl From<Image> for DataUri {
-    fn from(value: Image) -> Self {
-        match value {
-            Image::Jpeg(data) => DataUri {
-                mime_type: String::from("image/jpeg"),
-                data,
-            },
-            Image::Png(data) => DataUri {
-                mime_type: String::from("image/png"),
-                data,
-            },
-            Image::Svg(xml) => DataUri {
-                mime_type: String::from("image/svg+xml"),
-                data: xml.as_bytes().to_vec(),
-            },
-        }
-    }
-}
-
 #[serde_as]
 #[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
@@ -551,6 +501,8 @@ mod test {
     use std::str::FromStr;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::data_uri::DataUri;
+    use attestation_types::image::ImageError;
     use rstest::rstest;
     use serde_json::json;
     use utils::vec_nonempty;

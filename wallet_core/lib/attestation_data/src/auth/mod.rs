@@ -1,11 +1,11 @@
 pub mod issuer_auth;
 pub mod reader_auth;
 
+use attestation_types::image::Image;
 use derive_more::Debug;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -25,19 +25,6 @@ impl From<Vec<(&str, &str)>> for LocalizedStrings {
             .collect();
         LocalizedStrings(map)
     }
-}
-
-/// Encapsulates an image.
-#[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "mimeType", content = "imageData")]
-pub enum Image {
-    #[serde(rename = "image/svg+xml")]
-    Svg(String),
-    #[serde(rename = "image/png")]
-    Png(#[serde_as(as = "Base64")] Vec<u8>),
-    #[serde(rename = "image/jpeg")]
-    Jpeg(#[serde_as(as = "Base64")] Vec<u8>),
 }
 
 #[serde_as]

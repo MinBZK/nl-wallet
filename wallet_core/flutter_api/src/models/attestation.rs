@@ -2,7 +2,6 @@ use chrono::Utc;
 use svg_sanitize::SanitizedSvg;
 use tracing::warn;
 use wallet::attestation_data;
-use wallet::sd_jwt_vc_metadata;
 use wallet::sd_jwt_vc_metadata::LogoMetadata;
 
 use crate::models::disclosure::Organization;
@@ -154,27 +153,13 @@ impl TryFrom<LogoMetadata> for ImageWithMetadata {
     fn try_from(value: LogoMetadata) -> Result<Self, Self::Error> {
         Ok(ImageWithMetadata {
             image: match value.image {
-                wallet::sd_jwt_vc_metadata::Image::Svg(xml) => Image::Svg {
+                wallet::attestation_types::Image::Jpeg(data) => Image::Jpeg { data },
+                wallet::attestation_types::Image::Png(data) => Image::Png { data },
+                wallet::attestation_types::Image::Svg(xml) => Image::Svg {
                     svg: SanitizedSvg::try_new(&xml)?.into(),
                 },
-                wallet::sd_jwt_vc_metadata::Image::Png(data) => Image::Png { data },
-                wallet::sd_jwt_vc_metadata::Image::Jpeg(data) => Image::Jpeg { data },
             },
             alt_text: value.alt_text.into_inner(),
-        })
-    }
-}
-
-impl TryFrom<sd_jwt_vc_metadata::Image> for Image {
-    type Error = svg_sanitize::Error;
-
-    fn try_from(value: sd_jwt_vc_metadata::Image) -> Result<Self, Self::Error> {
-        Ok(match value {
-            sd_jwt_vc_metadata::Image::Svg(xml) => Image::Svg {
-                svg: SanitizedSvg::try_new(&xml)?.into(),
-            },
-            sd_jwt_vc_metadata::Image::Png(data) => Image::Png { data },
-            sd_jwt_vc_metadata::Image::Jpeg(data) => Image::Jpeg { data },
         })
     }
 }

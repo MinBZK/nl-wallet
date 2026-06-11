@@ -54,7 +54,6 @@ pub use crate::wallet::WalletState;
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;
     pub use attestation_data::attributes::AttributeValue;
-    pub use attestation_data::auth::Image;
     pub use attestation_data::auth::LocalizedStrings;
     pub use attestation_data::auth::Organization;
     pub use attestation_data::auth::reader_auth::DeletionPolicy;
@@ -68,6 +67,7 @@ pub mod attestation_data {
 
 pub mod attestation_types {
     pub use attestation_types::credential_format::Format;
+    pub use attestation_types::image::Image;
 }
 
 pub mod configuration {
@@ -87,7 +87,6 @@ pub mod openid4vc {
 pub mod sd_jwt_vc_metadata {
     pub use sd_jwt_vc_metadata::ClaimDisplayMetadata;
     pub use sd_jwt_vc_metadata::DisplayMetadata;
-    pub use sd_jwt_vc_metadata::Image;
     pub use sd_jwt_vc_metadata::LogoMetadata;
     pub use sd_jwt_vc_metadata::RenderingMetadata;
 }
