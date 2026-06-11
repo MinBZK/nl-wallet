@@ -1653,7 +1653,7 @@ impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::uri::IdentifyUriResult {
         match self {
-            0 => crate::models::uri::IdentifyUriResult::GeneralIssuance,
+            0 => crate::models::uri::IdentifyUriResult::GenericIssuance,
             1 => crate::models::uri::IdentifyUriResult::PidIssuance,
             2 => crate::models::uri::IdentifyUriResult::PidRenewal,
             3 => crate::models::uri::IdentifyUriResult::PinRecovery,
@@ -2237,7 +2237,7 @@ impl SseDecode for crate::models::uri::IdentifyUriResult {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::models::uri::IdentifyUriResult::GeneralIssuance,
+            0 => crate::models::uri::IdentifyUriResult::GenericIssuance,
             1 => crate::models::uri::IdentifyUriResult::PidIssuance,
             2 => crate::models::uri::IdentifyUriResult::PidRenewal,
             3 => crate::models::uri::IdentifyUriResult::PinRecovery,
@@ -3604,7 +3604,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::Format> for c
 impl flutter_rust_bridge::IntoDart for crate::models::uri::IdentifyUriResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            Self::GeneralIssuance => 0.into_dart(),
+            Self::GenericIssuance => 0.into_dart(),
             Self::PidIssuance => 1.into_dart(),
             Self::PidRenewal => 2.into_dart(),
             Self::PinRecovery => 3.into_dart(),
@@ -4670,7 +4670,7 @@ impl SseEncode for crate::models::uri::IdentifyUriResult {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::models::uri::IdentifyUriResult::GeneralIssuance => 0,
+                crate::models::uri::IdentifyUriResult::GenericIssuance => 0,
                 crate::models::uri::IdentifyUriResult::PidIssuance => 1,
                 crate::models::uri::IdentifyUriResult::PidRenewal => 2,
                 crate::models::uri::IdentifyUriResult::PinRecovery => 3,

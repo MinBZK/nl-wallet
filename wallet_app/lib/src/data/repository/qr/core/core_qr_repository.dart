@@ -66,7 +66,7 @@ class CoreQrRepository implements QrRepository {
       case IdentifyUriResult.CredentialOffer:
         // TODO(PVW-5980): Handle this case.
         throw UnimplementedError();
-      case IdentifyUriResult.GeneralIssuance:
+      case IdentifyUriResult.GenericIssuance:
         // TODO(PVW-5980): Handle this case.
         throw UnimplementedError();
     }
