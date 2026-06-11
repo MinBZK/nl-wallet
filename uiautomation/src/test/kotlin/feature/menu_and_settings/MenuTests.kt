@@ -40,7 +40,7 @@ class MenuTests : TestBase() {
         setUp(testInfo)
         assertTrue(menuScreen.menuListButtonsVisible(), "menu screen is not visible")
 
-        menuScreen.clickHelpButton()
+        menuScreen.clickHelpAndInfoButton()
         menuScreen.clickBottomBackButton()
         menuScreen.clickHistoryButton()
 

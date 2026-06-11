@@ -80,6 +80,7 @@ MENU["<a href='use-cases/UC9.1_ShowAppMenu.html'>9.1 View app menu</a>"]
 APP_INFO["<a href='use-cases/UC9.2_GetAppInformation.html'>9.2 Get app info</a>"]
 SCAN_QR["<a href='use-cases/UC9.9_ScanQR.html'>9.9 Scan QR</a>"]
 SHOW_QR["<a href='use-cases/UC5.3_ShowQR.html'>5.3 SHOW QR</a>"]
+TRANSFER["<a href='use-cases/UC9.10_TransferWallet.html'>9.10 Transfer wallet</a>"]
 
 RECOVER_PIN["<a href='use-cases/UC2.3.2_RecoverPIN.html'>2.3.2 Recover PIN</a>"]
 RENEW_PID["<a href='use-cases/UC3.2_RenewPid.html'>3.3 Renew PID</a>"]
@@ -106,9 +107,12 @@ LOGIN --> RECOVER_PIN
 
 RECOVER_PIN --> END
 
-QR --> OBTAIN_CARDS
-QR --> SHARE
-QR --> LOGIN
+SCAN_QR --> OBTAIN_CARDS
+SCAN_QR --> SHARE
+SCAN_QR --> LOGIN
+SCAN_QR --> TRANSFER
+
+SHOW_QR --> SHARE
 
 ALL_HISTORY --> HISTORY_EVENT
 
@@ -153,6 +157,7 @@ WIPE["<a href='use-cases/UC9.4_WipeAllAppData.html'>9.4 Wipe app data</a>"]
 HELP["<a href='use-cases/UC9.6_GetHelp.html'>9.6 Get help</a>"]
 LOGOUT["<a href='use-cases/UC9.7_LogoutOffTheApp.html'>9.7 Logout of app</a>"]
 QR["<a href='use-cases/UC9.9_ScanQR.html'>9.9 Scan QR</a>"]
+TRANSFER["<a href='use-cases/UC9.10_TransferWallet.html'>9.10 Transfer wallet</a>"]
 
 WIPE --> INTRODUCE
 
@@ -165,6 +170,7 @@ LOGIN --> ELLIP3
 QR --> OBTAIN_CARDS
 QR --> SHARE
 QR --> LOGIN
+QR --> TRANSFER
 
 MENU --> APP_TOUR
 MENU --> QR

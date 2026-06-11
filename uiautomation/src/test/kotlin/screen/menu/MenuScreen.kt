@@ -4,8 +4,7 @@ import util.MobileActions
 
 class MenuScreen : MobileActions() {
 
-    private val appTourVideoButton = l10n.getString("menuScreenTourCta")
-    private val helpButton = l10n.getString("menuScreenHelpCta")
+    private val helpAndInfoButton = l10n.getString("menuScreenHelpCta")
     private val historyButton = l10n.getString("menuScreenHistoryCta")
     private val settingsButton = l10n.getString("menuScreenSettingsCta")
     private val feedbackButton = l10n.getString("menuScreenFeedbackCta")
@@ -15,7 +14,7 @@ class MenuScreen : MobileActions() {
     private val browserTestButton = "Browser Test"
 
     fun menuListButtonsVisible() =
-        elementWithTextVisible(helpButton) && elementWithTextVisible(historyButton) && elementWithTextVisible(settingsButton) &&
+        elementWithTextVisible(helpAndInfoButton) && elementWithTextVisible(historyButton) && elementWithTextVisible(settingsButton) &&
             elementWithTextVisible(feedbackButton) && elementWithTextVisible(aboutButton)
 
     fun logoutButtonVisible(): Boolean {
@@ -23,7 +22,7 @@ class MenuScreen : MobileActions() {
         return elementWithTextVisible(logoutButton)
     }
 
-    fun clickHelpButton() = clickElementWithText(helpButton)
+    fun clickHelpAndInfoButton() = clickElementWithText(helpAndInfoButton)
 
     fun clickHistoryButton() = clickElementWithText(historyButton)
 
@@ -47,6 +46,4 @@ class MenuScreen : MobileActions() {
         scrollToElementWithText(logoutButton)
         clickElementContainingText(browserTestButton)
     }
-
-    fun clickAppTourVideoButton()= clickElementContainingText(appTourVideoButton.substringBefore("'"))
 }
