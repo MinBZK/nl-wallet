@@ -1,108 +1,102 @@
 {
-  "vct": "https://bmi.bund.example/credential/pid/1.0",
-  "name": "SD-JWT-based Verifiable Credentials",
-  "description": "SD-JWT-based Verifiable Credentials (SD-JWT VC)",
+  "vct": "https://betelgeuse.example.com/education_credential",
+  "name": "Betelgeuse Education Credential - Preliminary Version",
+  "description": "This is our development version of the education credential. Don't panic.",
+  "extends": "https://galaxy.example.com/galactic-education-credential-0.9",
+  "extends#integrity": "sha256-ilOUJsTultOwLfz7QUcFALaRa3BP/jelX1ds04kB9yU=",
   "display": [
     {
       "locale": "en-US",
-      "name": "Example PID",
-      "description": "Example PID"
+      "name": "Betelgeuse Education Credential",
+      "description": "An education credential for all carbon-based life forms on Betelgeusians",
+      "rendering": {
+        "simple": {
+          "logo": {
+            "uri": "https://betelgeuse.example.com/public/education-logo.png",
+            "uri#integrity": "sha256-LmXfh+9cLlJNXN+TsMk+PmKjZ5t0WRL5ca/xGgX3c1U=",
+            "alt_text": "Betelgeuse Ministry of Education logo"
+          },
+          "background_image": {
+            "uri": "https://betelgeuse.example.com/public/credential-background.png",
+            "uri#integrity": "sha256-5sBT7mMLylHLWrrS/qQ8aHpRAxoraWVmWX6eUVMlrrA="
+          },
+          "background_color": "#12107c",
+          "text_color": "#FFFFFF"
+        },
+        "svg_templates": [
+          {
+            "uri": "https://betelgeuse.example.com/public/credential-english.svg",
+            "uri#integrity": "sha256-I4JcBGO7UfrkOBrsV7ytNJAfGuKLQh+e+Z31mc7iAb4=",
+            "properties": {
+              "orientation": "landscape",
+              "color_scheme": "light",
+              "contrast": "high"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "locale": "de-DE",
+      "name": "Betelgeuse-Bildungsnachweis",
+      "rendering": {
+        "simple": {
+          "logo": {
+            "uri": "https://betelgeuse.example.com/public/education-logo-de.png",
+            "uri#integrity": "sha256-LmXfh+9cLlJNXN+TsMk+PmKjZ5t0WRL5ca/xGgX3c1U=",
+            "alt_text": "Logo des Betelgeusischen Bildungsministeriums"
+          },
+          "background_image": {
+            "uri": "https://betelgeuse.example.com/public/credential-background-de.png",
+            "uri#integrity": "sha256-9cLlJNXN+TsMk+PmKjZ5t0WRL5ca/xGgX3c1ULmXfh="
+          },
+          "background_color": "#12107c",
+          "text_color": "#FFFFFF"
+        },
+        "svg_templates": [
+          {
+            "uri": "https://betelgeuse.example.com/public/credential-german.svg",
+            "uri#integrity": "sha256-I4JcBGO7UfrkOBrsV7ytNJAfGuKLQh+e+Z31mc7iAb4=",
+            "properties": {
+              "orientation": "landscape",
+              "color_scheme": "light",
+              "contrast": "high"
+            }
+          }
+        ]
+      }
     }
   ],
   "claims": [
     {
-      "path": ["family_name"],
+      "path": ["name"],
       "display": [
+        {
+          "locale": "de-DE",
+          "label": "Vor- und Nachname",
+          "description": "Der Name des Studenten"
+        },
         {
           "locale": "en-US",
           "label": "Name",
-          "description": "Family name of the person, including any prefixes"
+          "description": "The name of the student"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
-      "path": ["given_name"],
+      "path": ["address"],
       "display": [
         {
-          "locale": "en-US",
-          "label": "First name",
-          "description": "First name of the person"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["birth_family_name"],
-      "display": [
+          "locale": "de-DE",
+          "label": "Adresse",
+          "description": "Adresse zum Zeitpunkt des Abschlusses"
+        },
         {
           "locale": "en-US",
-          "label": "Family name birth",
-          "description": "Family name birth"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["also_known_as"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Also known as",
-          "description": "Also known as"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["gender"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Gender",
-          "description": "Gender"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["source_document_type"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Source document type",
-          "description": "Source document type"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["birthdate"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Birth date",
-          "description": "Birth date of the person"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["place_of_birth", "locality"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Birth locality"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["place_of_birth", "country"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Birth country"
+          "label": "Address",
+          "description": "Address at the time of graduation"
         }
       ],
       "sd": "always"
@@ -111,108 +105,61 @@
       "path": ["address", "street_address"],
       "display": [
         {
+          "locale": "de-DE",
+          "label": "Straße"
+        },
+        {
           "locale": "en-US",
-          "label": "Street address"
+          "label": "Street Address"
         }
       ],
+      "sd": "always",
+      "svg_id": "address_street_address"
+    },
+    {
+      "path": ["degrees"],
+      "display": [
+        {
+          "locale": "de-DE",
+          "label": "Abschlüsse",
+          "description": "Abschlüsse des Studenten"
+        },
+        {
+          "locale": "en-US",
+          "label": "Degrees",
+          "description": "Degrees earned by the student"
+        }
+      ],
+      "sd": "never"
+    },
+    {
+      "path": ["degrees", null],
       "sd": "always"
     },
     {
-      "path": ["address", "postal_code"],
+      "path": ["degrees", null, "field_of_study"],
       "display": [
         {
+          "locale": "de-DE",
+          "label": "Studienfach"
+        },
+        {
           "locale": "en-US",
-          "label": "Postal code"
+          "label": "Field of Study"
         }
       ],
-      "sd": "always"
+      "sd": "never"
     },
     {
-      "path": ["address", "locality"],
+      "path": ["degrees", null, "date_awarded"],
       "display": [
         {
-          "locale": "en-US",
-          "label": "Locality"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["address", "country"],
-      "display": [
+          "locale": "de-DE",
+          "label": "Verleihungsdatum"
+        },
         {
           "locale": "en-US",
-          "label": "Country"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["nationalities", null],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Nationalities"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["age_equal_or_over", "18"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 18?"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["age_equal_or_over", "12"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 12?"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["age_equal_or_over", "65"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 65?"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["age_equal_or_over", "21"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 21?"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["age_equal_or_over", "14"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 14?"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["age_equal_or_over", "16"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 16?"
+          "label": "Date Awarded"
         }
       ],
       "sd": "always"
