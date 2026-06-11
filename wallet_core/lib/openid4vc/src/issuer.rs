@@ -8,10 +8,9 @@ use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::CredentialPayloadError;
-use attestation_data::credential_payload::MdocCredentialPayloadError;
+use attestation_data::credential_payload::CredentialPayloadIntoSignedMdocError;
+use attestation_data::credential_payload::CredentialPayloadIntoSignedSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_types::credential_format::Format;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
@@ -195,14 +194,14 @@ pub enum CredentialRequestError {
     #[error("missing WIA")]
     MissingWia,
 
-    #[error("error converting PreviewableCredentialPayload to CredentialPayload: {0}")]
-    PreviewConversion(#[from] CredentialPayloadError),
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    JwkConversion(#[from] JwkConversionError),
 
     #[error("error converting CredentialPayload to Mdoc: {0}")]
-    MdocConversion(#[from] MdocCredentialPayloadError),
+    MdocConversion(#[from] CredentialPayloadIntoSignedMdocError),
 
     #[error("error converting CredentialPayload to SD-JWT: {0}")]
-    SdJwtConversion(#[from] SdJwtCredentialPayloadError),
+    SdJwtConversion(#[from] CredentialPayloadIntoSignedSdJwtError),
 
     #[error("error verifying WIA: {0}")]
     Wia(#[from] WiaError),

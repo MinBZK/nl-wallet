@@ -11,9 +11,9 @@ use std::collections::HashSet;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::MdocCredentialPayloadError;
+use attestation_data::credential_payload::CredentialPayloadFromMdocError;
+use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use itertools::Itertools;
@@ -230,10 +230,10 @@ pub enum WalletIssuanceError {
     AttributeRandomLength(usize, usize),
 
     #[error("error converting mdoc to a CredentialPayload: {0}")]
-    MdocCredentialPayload(#[from] MdocCredentialPayloadError),
+    MdocCredentialPayload(#[from] CredentialPayloadFromMdocError),
 
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
-    SdJwtCredentialPayloadError(#[from] SdJwtCredentialPayloadError),
+    SdJwtCredentialPayloadError(#[from] CredentialPayloadFromSdJwtError),
 
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
