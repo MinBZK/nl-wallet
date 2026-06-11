@@ -11,6 +11,7 @@ use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
+use futures::try_join;
 use http_utils::reqwest::HttpJsonClient;
 use itertools::Itertools;
 use jwt::wia::WiaDisclosure;
@@ -400,26 +401,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .request_token(&token_endpoint, &token_request, &dpop_header)
             .await?;
 
-        // Fetch type metadata
-        let type_metadata =
-            Self::fetch_type_metadata(&credential_configurations, &issuer_metadata, &message_client).await?;
-
-        // Call the credential preview endpoint to retrieve the credential previews.
-        let preview_request = CredentialPreviewRequest::CredentialConfigurationIds {
-            credential_configuration_ids: credential_configurations
-                .into_nonempty_iter()
-                .map(|(id, _)| id)
-                .collect(),
-        };
-        let preview_response = message_client
-            .request_credential_preview(
+        // Request preview and fetch type metadata
+        let (type_metadata, credential_previews) = try_join!(
+            Self::fetch_type_metadata(&credential_configurations, &issuer_metadata, &message_client),
+            Self::request_previews(
+                credential_configurations.nonempty_iter().map(|(id, _)| id.clone()),
                 credential_preview_endpoint,
-                &preview_request,
                 &token_response.access_token,
+                &message_client
             )
-            .await?;
-
-        let credential_previews: VecNonEmpty<CredentialPreview> = preview_response.credential_previews;
+        )?;
 
         let issuer_registration = credential_previews
             .iter()
@@ -458,6 +449,23 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         };
 
         Ok(issuance_client)
+    }
+
+    async fn request_previews(
+        credential_configuration_ids: impl IntoNonEmptyIterator<Item = CredentialConfigurationId>,
+        preview_endpoint: &Url,
+        access_token: &AccessToken,
+        message_client: &H,
+    ) -> Result<VecNonEmpty<CredentialPreview>, WalletIssuanceError> {
+        let preview_request = CredentialPreviewRequest::CredentialConfigurationIds {
+            credential_configuration_ids: credential_configuration_ids.into_nonempty_iter().collect(),
+        };
+
+        let preview_response = message_client
+            .request_credential_preview(preview_endpoint, &preview_request, access_token)
+            .await?;
+
+        Ok(preview_response.credential_previews)
     }
 
     async fn fetch_type_metadata(
