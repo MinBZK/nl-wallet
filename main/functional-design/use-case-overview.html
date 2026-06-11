@@ -634,6 +634,7 @@ MENU[&quot;&lt;a href='use-cases/UC9.1_ShowAppMenu.html'&gt;9.1 View app menu&lt
 APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
 SCAN_QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;]
 SHOW_QR[&quot;&lt;a href='use-cases/UC5.3_ShowQR.html'&gt;5.3 SHOW QR&lt;/a&gt;&quot;]
+TRANSFER[&quot;&lt;a href='use-cases/UC9.10_TransferWallet.html'&gt;9.10 Transfer wallet&lt;/a&gt;&quot;]
 
 RECOVER_PIN[&quot;&lt;a href='use-cases/UC2.3.2_RecoverPIN.html'&gt;2.3.2 Recover PIN&lt;/a&gt;&quot;]
 RENEW_PID[&quot;&lt;a href='use-cases/UC3.2_RenewPid.html'&gt;3.3 Renew PID&lt;/a&gt;&quot;]
@@ -660,9 +661,12 @@ LOGIN --&gt; RECOVER_PIN
 
 RECOVER_PIN --&gt; END
 
-QR --&gt; OBTAIN_CARDS
-QR --&gt; SHARE
-QR --&gt; LOGIN
+SCAN_QR --&gt; OBTAIN_CARDS
+SCAN_QR --&gt; SHARE
+SCAN_QR --&gt; LOGIN
+SCAN_QR --&gt; TRANSFER
+
+SHOW_QR --&gt; SHARE
 
 ALL_HISTORY --&gt; HISTORY_EVENT
 
@@ -706,6 +710,7 @@ WIPE[&quot;&lt;a href='use-cases/UC9.4_WipeAllAppData.html'&gt;9.4 Wipe app data
 HELP[&quot;&lt;a href='use-cases/UC9.6_GetHelp.html'&gt;9.6 Get help&lt;/a&gt;&quot;]
 LOGOUT[&quot;&lt;a href='use-cases/UC9.7_LogoutOffTheApp.html'&gt;9.7 Logout of app&lt;/a&gt;&quot;]
 QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;]
+TRANSFER[&quot;&lt;a href='use-cases/UC9.10_TransferWallet.html'&gt;9.10 Transfer wallet&lt;/a&gt;&quot;]
 
 WIPE --&gt; INTRODUCE
 
@@ -718,6 +723,7 @@ LOGIN --&gt; ELLIP3
 QR --&gt; OBTAIN_CARDS
 QR --&gt; SHARE
 QR --&gt; LOGIN
+QR --&gt; TRANSFER
 
 MENU --&gt; APP_TOUR
 MENU --&gt; QR
