@@ -272,7 +272,7 @@ mod tests {
         // Setup wallet disclosure state
         let credential_offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             "https://issuer.example.com".parse().unwrap(),
-            vec_nonempty!["config_id".to_string().into()],
+            vec_nonempty!["config_id".to_string().into()].into(),
             "123".to_string().into(),
         ))
         .to_credential_offer_url();

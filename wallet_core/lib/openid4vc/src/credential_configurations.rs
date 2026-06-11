@@ -16,7 +16,7 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
-use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
@@ -198,7 +198,7 @@ impl<K, L> CredentialConfigurations<K, L> {
         self.configs_by_id.values()
     }
 
-    pub fn all_configuration_ids(&self) -> VecNonEmpty<&CredentialConfigurationId> {
+    pub fn all_configuration_ids(&self) -> VecNonEmptyUnique<&CredentialConfigurationId> {
         self.configs_by_id
             .keys()
             .collect_vec()
