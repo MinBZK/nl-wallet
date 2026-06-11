@@ -141,7 +141,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
         digid_metadata_cache: DigidMetadataCache,
         recovery_code_secret_key: SecretKeyVariant,
         store_connection: StoreConnection,
-        callback_base_url: BaseUrl,
+        callback_base_url: &BaseUrl,
     ) -> Result<Self, Error> {
         let client_id: String = client_id.into();
         let digid_client =
@@ -166,7 +166,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
         store_connection: StoreConnection,
-        callback_base_url: BaseUrl,
+        callback_base_url: &BaseUrl,
         client_id: String,
     ) -> Self {
         Self::new_with_store(
@@ -184,7 +184,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
-        callback_base_url: BaseUrl,
+        callback_base_url: &BaseUrl,
         client_id: String,
     ) -> Self {
         Self {
@@ -489,7 +489,7 @@ mod tests {
             digid_client,
             recovery_code_secret_key(),
             state_bridge_store,
-            CALLBACK_BASE_URL.parse().unwrap(),
+            &CALLBACK_BASE_URL.parse().unwrap(),
             String::from(CLIENT_ID),
         )
     }

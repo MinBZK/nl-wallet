@@ -362,7 +362,7 @@ pub async fn setup_env(
             MockDigidClient::default(),
             recovery_code_secret_key,
             StoreConnection::Memory,
-            public_url.as_base_url().clone(),
+            public_url.as_base_url(),
             "mock-digid-client".to_string(),
         )
     })

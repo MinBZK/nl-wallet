@@ -53,7 +53,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                 digid_metadata_cache,
                 recovery_code_secret_key,
                 store_connection,
-                callback_base_url,
+                &callback_base_url,
             )
         })
         .await?;

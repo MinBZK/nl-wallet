@@ -99,7 +99,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             digid_metadata_cache,
             recovery_secret_key,
             store_connection,
-            callback_base_url,
+            &callback_base_url,
         )
         .unwrap()
     })
