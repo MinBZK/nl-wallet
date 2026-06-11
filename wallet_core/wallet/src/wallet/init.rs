@@ -32,6 +32,7 @@ use super::PersistedPinRecoverySessionData;
 use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
+use super::issuance::SessionState;
 use super::issuance::WalletIssuanceSession;
 use super::pin_recovery::PinRecoverySession;
 use crate::config::ConfigurationError;
@@ -352,7 +353,7 @@ where
 
                 Ok(Some(Session::Issuance(WalletIssuanceSession::Pid {
                     purpose: data.purpose,
-                    session_state: super::issuance::SessionState::Authorization { authorization_session },
+                    session_state: SessionState::Authorization { authorization_session },
                 })))
             }
             (None, Some(data)) => {
