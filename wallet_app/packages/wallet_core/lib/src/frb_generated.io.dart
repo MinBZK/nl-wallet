@@ -1515,10 +1515,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_rendering_metadata(RenderingMetadata apiObj, wire_cst_rendering_metadata wireObj) {
     if (apiObj is RenderingMetadata_Simple) {
       var pre_logo = cst_encode_opt_box_autoadd_image_with_metadata(apiObj.logo);
+      var pre_background_image = cst_encode_opt_box_autoadd_image(apiObj.backgroundImage);
       var pre_background_color = cst_encode_opt_String(apiObj.backgroundColor);
       var pre_text_color = cst_encode_opt_String(apiObj.textColor);
       wireObj.tag = 0;
       wireObj.kind.Simple.logo = pre_logo;
+      wireObj.kind.Simple.background_image = pre_background_image;
       wireObj.kind.Simple.background_color = pre_background_color;
       wireObj.kind.Simple.text_color = pre_text_color;
       return;
@@ -3753,6 +3755,8 @@ final class wire_cst_image_with_metadata extends ffi.Struct {
 
 final class wire_cst_RenderingMetadata_Simple extends ffi.Struct {
   external ffi.Pointer<wire_cst_image_with_metadata> logo;
+
+  external ffi.Pointer<wire_cst_image> background_image;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> background_color;
 

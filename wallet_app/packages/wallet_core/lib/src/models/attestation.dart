@@ -180,6 +180,7 @@ sealed class RenderingMetadata with _$RenderingMetadata {
 
   const factory RenderingMetadata.simple({
     ImageWithMetadata? logo,
+    Image? backgroundImage,
     String? backgroundColor,
     String? textColor,
   }) = RenderingMetadata_Simple;

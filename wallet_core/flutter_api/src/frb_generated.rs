@@ -2758,10 +2758,12 @@ impl SseDecode for crate::models::attestation::RenderingMetadata {
         match tag_ {
             0 => {
                 let mut var_logo = <Option<crate::models::image::ImageWithMetadata>>::sse_decode(deserializer);
+                let mut var_backgroundImage = <Option<crate::models::image::Image>>::sse_decode(deserializer);
                 let mut var_backgroundColor = <Option<String>>::sse_decode(deserializer);
                 let mut var_textColor = <Option<String>>::sse_decode(deserializer);
                 return crate::models::attestation::RenderingMetadata::Simple {
                     logo: var_logo,
+                    background_image: var_backgroundImage,
                     background_color: var_backgroundColor,
                     text_color: var_textColor,
                 };
@@ -3840,11 +3842,13 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::RenderingMeta
         match self {
             crate::models::attestation::RenderingMetadata::Simple {
                 logo,
+                background_image,
                 background_color,
                 text_color,
             } => [
                 0.into_dart(),
                 logo.into_into_dart().into_dart(),
+                background_image.into_into_dart().into_dart(),
                 background_color.into_into_dart().into_dart(),
                 text_color.into_into_dart().into_dart(),
             ]
@@ -5100,11 +5104,13 @@ impl SseEncode for crate::models::attestation::RenderingMetadata {
         match self {
             crate::models::attestation::RenderingMetadata::Simple {
                 logo,
+                background_image,
                 background_color,
                 text_color,
             } => {
                 <i32>::sse_encode(0, serializer);
                 <Option<crate::models::image::ImageWithMetadata>>::sse_encode(logo, serializer);
+                <Option<crate::models::image::Image>>::sse_encode(background_image, serializer);
                 <Option<String>>::sse_encode(background_color, serializer);
                 <Option<String>>::sse_encode(text_color, serializer);
             }
@@ -6217,6 +6223,7 @@ mod io {
                     let ans = unsafe { self.kind.Simple };
                     crate::models::attestation::RenderingMetadata::Simple {
                         logo: ans.logo.cst_decode(),
+                        background_image: ans.background_image.cst_decode(),
                         background_color: ans.background_color.cst_decode(),
                         text_color: ans.text_color.cst_decode(),
                     }
@@ -8082,6 +8089,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_RenderingMetadata_Simple {
         logo: *mut wire_cst_image_with_metadata,
+        background_image: *mut wire_cst_image,
         background_color: *mut wire_cst_list_prim_u_8_strict,
         text_color: *mut wire_cst_list_prim_u_8_strict,
     }

@@ -2641,8 +2641,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return RenderingMetadata_Simple(
           logo: dco_decode_opt_box_autoadd_image_with_metadata(raw[1]),
-          backgroundColor: dco_decode_opt_String(raw[2]),
-          textColor: dco_decode_opt_String(raw[3]),
+          backgroundImage: dco_decode_opt_box_autoadd_image(raw[2]),
+          backgroundColor: dco_decode_opt_String(raw[3]),
+          textColor: dco_decode_opt_String(raw[4]),
         );
       case 1:
         return RenderingMetadata_SvgTemplates();
@@ -3784,9 +3785,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (tag_) {
       case 0:
         var var_logo = sse_decode_opt_box_autoadd_image_with_metadata(deserializer);
+        var var_backgroundImage = sse_decode_opt_box_autoadd_image(deserializer);
         var var_backgroundColor = sse_decode_opt_String(deserializer);
         var var_textColor = sse_decode_opt_String(deserializer);
-        return RenderingMetadata_Simple(logo: var_logo, backgroundColor: var_backgroundColor, textColor: var_textColor);
+        return RenderingMetadata_Simple(
+          logo: var_logo,
+          backgroundImage: var_backgroundImage,
+          backgroundColor: var_backgroundColor,
+          textColor: var_textColor,
+        );
       case 1:
         return RenderingMetadata_SvgTemplates();
       default:
@@ -5038,11 +5045,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case RenderingMetadata_Simple(
         logo: final logo,
+        backgroundImage: final backgroundImage,
         backgroundColor: final backgroundColor,
         textColor: final textColor,
       ):
         sse_encode_i_32(0, serializer);
         sse_encode_opt_box_autoadd_image_with_metadata(logo, serializer);
+        sse_encode_opt_box_autoadd_image(backgroundImage, serializer);
         sse_encode_opt_String(backgroundColor, serializer);
         sse_encode_opt_String(textColor, serializer);
       case RenderingMetadata_SvgTemplates():

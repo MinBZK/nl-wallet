@@ -266,8 +266,16 @@ pub struct DisplayMetadata {
 #[serde(rename_all = "lowercase")]
 pub enum RenderingMetadata {
     Simple {
+        /// An object containing information about the logo to be displayed for the type.
         logo: Option<LogoMetadata>,
+
+        /// An object containing information about the background image to be displayed for the type.
+        background_image: Option<BackgroundImageMetadata>,
+
+        /// An RGB color value for the background of the credential.
         background_color: Option<String>,
+
+        /// An RGB color value for the text of the credential.
         text_color: Option<String>,
     },
     SvgTemplates,
@@ -335,6 +343,16 @@ pub struct LogoMetadata {
     /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
     /// because of accessibility requirements.
     pub alt_text: SpecOptional<String>,
+}
+
+#[serde_as]
+#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BackgroundImageMetadata {
+    /// Explicitly reject non-embedded images and unsupported mime types
+    #[debug(skip)]
+    #[serde(rename = "uri")]
+    #[serde_as(as = "TryFromInto<DataUri>")]
+    pub image: Image,
 }
 
 #[skip_serializing_none]
@@ -543,6 +561,7 @@ mod test {
     use crate::examples::test::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::test::RED_DOT_BYTES;
     use crate::examples::test::SIMPLE_EMBEDDED_METADATA_BYTES;
+    use crate::examples::test::SIMPLE_REMOTE_BACKGROUND_METADATA_BYTES;
     use crate::examples::test::SIMPLE_REMOTE_METADATA_BYTES;
     use crate::examples::test::VCT_EXAMPLE_CREDENTIAL;
 
@@ -562,6 +581,11 @@ mod test {
         pub(crate) fn simple_remote_example() -> serde_json::Error {
             // Explicitly unsupported at the moment, hence the error return
             serde_json::from_slice::<Self>(SIMPLE_REMOTE_METADATA_BYTES).unwrap_err()
+        }
+
+        pub(crate) fn simple_remote_background_example() -> serde_json::Error {
+            // Explicitly unsupported at the moment, hence the error return
+            serde_json::from_slice::<Self>(SIMPLE_REMOTE_BACKGROUND_METADATA_BYTES).unwrap_err()
         }
     }
 
@@ -607,6 +631,9 @@ mod test {
                     image: Image::Png(RED_DOT_BYTES.to_vec()),
                     alt_text: "An example PNG logo".to_string().into(),
                 }),
+                background_image: Some(BackgroundImageMetadata {
+                    image: Image::Png(RED_DOT_BYTES.to_vec())
+                }),
                 background_color: Some("#FF8000".to_string()),
                 text_color: Some("#0080FF".to_string()),
             }),
@@ -619,6 +646,14 @@ mod test {
         assert_eq!(
             "data-url error: not a valid data url at line 14 column 59",
             UncheckedTypeMetadata::simple_remote_example().to_string(),
+        );
+    }
+
+    #[test]
+    fn test_deserialize_with_simple_rendering_and_remote_background() {
+        assert_eq!(
+            "data-url error: not a valid data url at line 18 column 59",
+            UncheckedTypeMetadata::simple_remote_background_example().to_string(),
         );
     }
 

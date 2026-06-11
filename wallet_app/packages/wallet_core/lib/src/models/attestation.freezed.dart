@@ -857,10 +857,10 @@ return svgTemplates(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ImageWithMetadata? logo,  String? backgroundColor,  String? textColor)?  simple,TResult Function()?  svgTemplates,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ImageWithMetadata? logo,  Image? backgroundImage,  String? backgroundColor,  String? textColor)?  simple,TResult Function()?  svgTemplates,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case RenderingMetadata_Simple() when simple != null:
-return simple(_that.logo,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+return simple(_that.logo,_that.backgroundImage,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
 return svgTemplates();case _:
   return orElse();
 
@@ -879,10 +879,10 @@ return svgTemplates();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ImageWithMetadata? logo,  String? backgroundColor,  String? textColor)  simple,required TResult Function()  svgTemplates,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ImageWithMetadata? logo,  Image? backgroundImage,  String? backgroundColor,  String? textColor)  simple,required TResult Function()  svgTemplates,}) {final _that = this;
 switch (_that) {
 case RenderingMetadata_Simple():
-return simple(_that.logo,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates():
+return simple(_that.logo,_that.backgroundImage,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates():
 return svgTemplates();}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -897,10 +897,10 @@ return svgTemplates();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ImageWithMetadata? logo,  String? backgroundColor,  String? textColor)?  simple,TResult? Function()?  svgTemplates,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ImageWithMetadata? logo,  Image? backgroundImage,  String? backgroundColor,  String? textColor)?  simple,TResult? Function()?  svgTemplates,}) {final _that = this;
 switch (_that) {
 case RenderingMetadata_Simple() when simple != null:
-return simple(_that.logo,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+return simple(_that.logo,_that.backgroundImage,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
 return svgTemplates();case _:
   return null;
 
@@ -913,10 +913,11 @@ return svgTemplates();case _:
 
 
 class RenderingMetadata_Simple extends RenderingMetadata {
-  const RenderingMetadata_Simple({this.logo, this.backgroundColor, this.textColor}): super._();
+  const RenderingMetadata_Simple({this.logo, this.backgroundImage, this.backgroundColor, this.textColor}): super._();
   
 
  final  ImageWithMetadata? logo;
+ final  Image? backgroundImage;
  final  String? backgroundColor;
  final  String? textColor;
 
@@ -930,16 +931,16 @@ $RenderingMetadata_SimpleCopyWith<RenderingMetadata_Simple> get copyWith => _$Re
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_Simple&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_Simple&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.backgroundImage, backgroundImage) || other.backgroundImage == backgroundImage)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,logo,backgroundColor,textColor);
+int get hashCode => Object.hash(runtimeType,logo,backgroundImage,backgroundColor,textColor);
 
 @override
 String toString() {
-  return 'RenderingMetadata.simple(logo: $logo, backgroundColor: $backgroundColor, textColor: $textColor)';
+  return 'RenderingMetadata.simple(logo: $logo, backgroundImage: $backgroundImage, backgroundColor: $backgroundColor, textColor: $textColor)';
 }
 
 
@@ -950,11 +951,11 @@ abstract mixin class $RenderingMetadata_SimpleCopyWith<$Res> implements $Renderi
   factory $RenderingMetadata_SimpleCopyWith(RenderingMetadata_Simple value, $Res Function(RenderingMetadata_Simple) _then) = _$RenderingMetadata_SimpleCopyWithImpl;
 @useResult
 $Res call({
- ImageWithMetadata? logo, String? backgroundColor, String? textColor
+ ImageWithMetadata? logo, Image? backgroundImage, String? backgroundColor, String? textColor
 });
 
 
-
+$ImageCopyWith<$Res>? get backgroundImage;
 
 }
 /// @nodoc
@@ -967,16 +968,29 @@ class _$RenderingMetadata_SimpleCopyWithImpl<$Res>
 
 /// Create a copy of RenderingMetadata
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? logo = freezed,Object? backgroundColor = freezed,Object? textColor = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? logo = freezed,Object? backgroundImage = freezed,Object? backgroundColor = freezed,Object? textColor = freezed,}) {
   return _then(RenderingMetadata_Simple(
 logo: freezed == logo ? _self.logo : logo // ignore: cast_nullable_to_non_nullable
-as ImageWithMetadata?,backgroundColor: freezed == backgroundColor ? _self.backgroundColor : backgroundColor // ignore: cast_nullable_to_non_nullable
+as ImageWithMetadata?,backgroundImage: freezed == backgroundImage ? _self.backgroundImage : backgroundImage // ignore: cast_nullable_to_non_nullable
+as Image?,backgroundColor: freezed == backgroundColor ? _self.backgroundColor : backgroundColor // ignore: cast_nullable_to_non_nullable
 as String?,textColor: freezed == textColor ? _self.textColor : textColor // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
 
+/// Create a copy of RenderingMetadata
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ImageCopyWith<$Res>? get backgroundImage {
+    if (_self.backgroundImage == null) {
+    return null;
+  }
 
+  return $ImageCopyWith<$Res>(_self.backgroundImage!, (value) {
+    return _then(_self.copyWith(backgroundImage: value));
+  });
+}
 }
 
 /// @nodoc

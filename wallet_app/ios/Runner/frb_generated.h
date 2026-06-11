@@ -72,6 +72,7 @@ typedef struct wire_cst_image_with_metadata {
 
 typedef struct wire_cst_RenderingMetadata_Simple {
   struct wire_cst_image_with_metadata *logo;
+  struct wire_cst_image *background_image;
   struct wire_cst_list_prim_u_8_strict *background_color;
   struct wire_cst_list_prim_u_8_strict *text_color;
 } wire_cst_RenderingMetadata_Simple;

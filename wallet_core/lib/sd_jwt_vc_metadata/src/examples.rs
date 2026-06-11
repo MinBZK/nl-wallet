@@ -19,6 +19,8 @@ pub(crate) mod test {
     pub(crate) const SIMPLE_EMBEDDED_METADATA_BYTES: &[u8] =
         include_bytes!("../examples/simple-embedded-metadata.json");
     pub(crate) const SIMPLE_REMOTE_METADATA_BYTES: &[u8] = include_bytes!("../examples/simple-remote-metadata.json");
+    pub(crate) const SIMPLE_REMOTE_BACKGROUND_METADATA_BYTES: &[u8] =
+        include_bytes!("../examples/simple-remote-background-metadata.json");
 
     pub(crate) const VCT_EXAMPLE_CREDENTIAL: &str = "https://sd_jwt_vc_metadata.example.com/example_credential";
     pub(crate) const VCT_EXAMPLE_CREDENTIAL_V2: &str = "https://sd_jwt_vc_metadata.example.com/example_credential_v2";
