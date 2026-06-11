@@ -151,7 +151,7 @@ where
             Some(UriType::Redirect(FlowType::Issuance))
                 if matches!(
                     self.session,
-                    Some(Session::Issuance(WalletIssuanceSession::General {
+                    Some(Session::Issuance(WalletIssuanceSession::Generic {
                         session_state: SessionState::Authorization { .. },
                     })),
                 ) =>
@@ -247,7 +247,7 @@ mod tests {
         );
 
         // Set up a general issuance session that will match the URI.
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::General {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
             session_state: SessionState::Authorization {
                 authorization_session: MockAuthorizationSession::new(),
             },

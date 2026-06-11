@@ -187,7 +187,7 @@ pub enum WalletIssuanceSession<AS, IS> {
         purpose: PidIssuancePurpose,
         session_state: SessionState<AS, IS>,
     },
-    General {
+    Generic {
         session_state: SessionState<AS, IS>,
     },
 }
@@ -207,20 +207,20 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
     pub fn new(pid_purpose: Option<PidIssuancePurpose>, session_state: SessionState<AS, IS>) -> Self {
         match pid_purpose {
             Some(purpose) => WalletIssuanceSession::Pid { purpose, session_state },
-            None => WalletIssuanceSession::General { session_state },
+            None => WalletIssuanceSession::Generic { session_state },
         }
     }
 
     pub fn pid_purpose(&self) -> Option<PidIssuancePurpose> {
         match self {
             WalletIssuanceSession::Pid { purpose, .. } => Some(*purpose),
-            WalletIssuanceSession::General { .. } => None,
+            WalletIssuanceSession::Generic { .. } => None,
         }
     }
 
     pub fn session_state(&self) -> &SessionState<AS, IS> {
         match self {
-            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::General { session_state } => {
+            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
                 session_state
             }
         }
@@ -228,7 +228,7 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
 
     pub fn session_state_mut(&mut self) -> &mut SessionState<AS, IS> {
         match self {
-            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::General { session_state } => {
+            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
                 session_state
             }
         }
@@ -236,7 +236,7 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
 
     pub fn into_session_state(self) -> SessionState<AS, IS> {
         match self {
-            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::General { session_state } => {
+            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
                 session_state
             }
         }
@@ -425,7 +425,7 @@ where
             IssuanceFlow::AuthorizationCode { authorization_session } => {
                 let auth_url = authorization_session.auth_url().clone();
 
-                let session_data = WalletIssuanceSession::General {
+                let session_data = WalletIssuanceSession::Generic {
                     session_state: SessionState::Authorization { authorization_session },
                 };
                 self.session.replace(Session::Issuance(session_data));
@@ -1395,7 +1395,7 @@ mod tests {
         let session_state = SessionState::Authorization { authorization_session };
         let issuance_session = match purpose {
             Some(purpose) => WalletIssuanceSession::Pid { purpose, session_state },
-            None => WalletIssuanceSession::General { session_state },
+            None => WalletIssuanceSession::Generic { session_state },
         };
         wallet.session = Some(Session::Issuance(issuance_session));
         wallet
@@ -1724,7 +1724,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up an active issuance session.
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::General {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
             session_state: SessionState::Authorization {
                 authorization_session: MockAuthorizationSession::new(),
             },
