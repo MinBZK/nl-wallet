@@ -10,7 +10,7 @@
 //! The usage of ECDSA in this fashion makes this protocol resistant against replay attacks: an observer of the
 //! communication between the wallet and AS is unable to use what it sees to authenticate towards the AS as the user.
 //!
-//! This module offers three functions:
+//! This module offers the following:
 //! - [`new_pin_salt()`] returns a new salt that should be called once when registering to the wallet provider and
 //!   stored afterwards, for future invocations of the two functions below.
 //! - The [`PinKey<'a>`] struct, which contains the salt and the PIN, and has methods to compute signatures and the
@@ -21,18 +21,19 @@ use crypto::keys::EphemeralEcdsaKey;
 use crypto::utils::KeyBytes;
 use crypto::utils::hkdf;
 use crypto::utils::random_bytes;
+use p256::FieldBytes;
 use p256::NistP256;
-use p256::Scalar;
 use p256::SecretKey;
 use p256::U256;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Curve;
+use p256::elliptic_curve::bigint::ArrayEncoding;
 use p256::elliptic_curve::bigint::Limb;
 use p256::elliptic_curve::bigint::NonZero;
 use p256::elliptic_curve::bigint::U384;
-use p256::elliptic_curve::ops::Reduce;
+use p256::elliptic_curve::zeroize::Zeroize;
 use ring::error::Unspecified as UnspecifiedRingError;
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
@@ -107,46 +108,74 @@ fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRing
     // bias effect to negligibility by making the output of hkdf() sufficienfly larger.
     // Making it larger by 8 bytes, i.e. 32 bits, is conventional.
     let hkdf = hkdf(salt, b"", pin, 256 / 8 + 8)?;
-    let scalar = bytes_to_ecdsa_scalar(hkdf);
-    Ok(SecretKey::new(Scalar::reduce(scalar).into()).into())
+    let key_bytes = bytes_to_ecdsa_privkey_bytes(hkdf);
+
+    // This error is not actually a `ring` error, but there is no need to map it to something more specific,
+    // because it does not actually occur: it happens only if the scalar is larger than the P256 modulus,
+    // which it isn't by how it is constructed in bytes_to_ecdsa_privkey_bytes().
+    let key = SecretKey::from_bytes(FieldBytes::from_slice(key_bytes.as_ref())).map_err(|_| UnspecifiedRingError)?;
+
+    Ok(key.into())
 }
 
 /// Convert the specified bytes to a number suitable for use as an ECDSA private key: an (almost) uniformly distributed
 /// random number between 0 and q-1 (inclusive), where q is the order of the ECDSA elliptic curve. This is done by
-/// parsing the input bytes to an integer I and returning  `1 + I mod (q-1)`.
-fn bytes_to_ecdsa_scalar(bts: KeyBytes) -> U256 {
+/// parsing the input bytes to an integer `i` and returning  `i mod (q-1) + 1`.
+fn bytes_to_ecdsa_privkey_bytes(bts: KeyBytes) -> KeyBytes {
     // If this is not the case, the output won't be distributed sufficiently close to uniformly random.
     assert!(bts.as_ref().len() >= 256 / 8 + 8);
 
-    // For parsing the HKDF output as big-endian bytes to an integer, prepend zeroes so that it becomes
-    // the size required by the U384 type (384 bits).
-    let bts = bts.into_zero_padded_front(384 / 8);
+    // By construction `bts` does not fit into an U256, so we do the calculations using U384 instances.
+    // Before converting our bytes to U384, ensure we have exactly 384 bits by prepending zeroes.
+    let bts = {
+        let len = 384 / 8;
+        let prefix_len = len - bts.as_ref().len();
+        let mut padded = vec![0u8; len];
+        padded[prefix_len..].copy_from_slice(bts.as_ref());
+        drop(bts); // zeroize bts
+        KeyBytes::from(padded)
+    };
 
+    // Now we compute `i mod (q-1) + 1`, explicitly calling zeroize() on each intermediate where necessary.
+    let mut i = U384::from_be_slice(bts.as_ref().as_slice()); // Convert to U384
+    drop(bts);
+
+    // We'll need this below.
     let q = u256_to_u384(&NistP256::ORDER);
-    let int = U384::from_be_slice(bts.as_ref().as_slice())
-        .rem(&NonZero::from_uint(q.sub_mod(&U384::ONE, &q)))
-        .add_mod(&U384::ONE, &q);
 
-    u384_to_u256(&int)
+    // reduced := i mod (q-1)
+    let mut reduced = i.rem(&NonZero::from_uint(q.sub_mod(&U384::ONE, &q)));
+    i.zeroize();
+
+    // plus_one := reduced + 1 = i mod (q-1) + 1
+    let mut plus_one = reduced.add_mod(&U384::ONE, &q);
+    reduced.zeroize();
+
+    // Convert back to bytes
+    let mut result_array = plus_one.to_be_byte_array();
+    plus_one.zeroize();
+
+    // Our scalar is now ≤ q-1 < 2^256 by construction, so its upper 16 bytes are always zero.
+    // Discard them so we return 256 bits, the appropriate size for constructing a P256 private key.
+    let result = KeyBytes::from(result_array[16..].to_vec());
+    result_array.zeroize();
+
+    result
 }
 
 // The U... bigint types (U256 and U384) offer no API to convert them from one size
-// to the other, necessitating these conversion methods.
+// to the other, necessitating this conversion method.
 fn u256_to_u384(x: &U256) -> U384 {
     let mut limbs = x.as_limbs().to_vec();
     limbs.append(&mut vec![Limb(0); (384 - 256) / Limb::BITS]);
     U384::new(limbs.try_into().unwrap())
 }
 
-fn u384_to_u256(x: &U384) -> U256 {
-    U256::new(x.as_limbs()[..256 / Limb::BITS].try_into().unwrap())
-}
-
 #[cfg(test)]
 mod tests {
+    use futures::FutureExt;
     use p256::ecdsa::signature::Verifier;
     use p256::elliptic_curve::bigint::ArrayEncoding;
-    use p256::elliptic_curve::bigint::Random;
     use p256::elliptic_curve::bigint::RandomMod;
     use p256::elliptic_curve::bigint::Wrapping;
     use rand_core::OsRng;
@@ -154,21 +183,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_conversion() {
-        let x = U256::random(&mut OsRng);
-        assert_eq!(x, u384_to_u256(&u256_to_u384(&x)));
-        assert_eq!(NistP256::ORDER, u384_to_u256(&u256_to_u384(&NistP256::ORDER)));
-    }
-
-    #[test]
-    fn test_bytes_to_pin_scalar() {
-        // If x < NistP256::ORDER - 1, then bytes_to_pin_scalar() applied to the bytes of x should return x + 1.
+    fn test_bytes_to_ecdsa_privkey_bytes() {
+        // If x < NistP256::ORDER - 1, then bytes_to_ecdsa_privkey_bytes() applied to the bytes of x
+        // should return x + 1.
         let x = U256::random_mod(
             &mut OsRng,
             &NonZero::new((Wrapping(NistP256::ORDER) - Wrapping(U256::from(2u8))).0).unwrap(),
         );
-        let scalar = bytes_to_ecdsa_scalar(u256_to_u384(&x).to_be_byte_array().to_vec().into());
+        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(&x).to_be_byte_array().to_vec().into());
+        let scalar = U256::from_be_slice(scalar_bytes.as_ref());
         assert_eq!(Wrapping(x) + Wrapping(U256::ONE), Wrapping(scalar));
+
+        // x = ORDER - 1: (ORDER-1) mod (ORDER-1) = 0, so result = 0 + 1 = 1.
+        let x = (Wrapping(NistP256::ORDER) - Wrapping(U256::ONE)).0;
+        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(&x).to_be_byte_array().to_vec().into());
+        let scalar = U256::from_be_slice(scalar_bytes.as_ref());
+        assert_eq!(scalar, U256::ONE);
+
+        // Larger values of x just cause the result to increment due to the modular nature of the computation in
+        // bytes_to_ecdsa_privkey_bytes().
+        let x = NistP256::ORDER;
+        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(&x).to_be_byte_array().to_vec().into());
+        let scalar = U256::from_be_slice(scalar_bytes.as_ref());
+        assert_eq!(scalar, U256::from(2u8));
     }
 
     #[test]
@@ -186,8 +223,8 @@ mod tests {
         assert_ne!(privkey, different_pin);
     }
 
-    #[tokio::test]
-    async fn it_works() {
+    #[test]
+    fn it_works() {
         let pin = "123456";
         let salt = &new_pin_salt();
         let challenge = b"challenge";
@@ -196,7 +233,8 @@ mod tests {
         let public_key = pin_key.verifying_key().expect("Cannot get public key from PIN key");
         let response = pin_key
             .try_sign(challenge)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("Cannot sign challenge using PIN key");
 
         public_key

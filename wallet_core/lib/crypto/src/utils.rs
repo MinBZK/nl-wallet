@@ -30,23 +30,9 @@ pub fn sha256(bts: &[u8]) -> Vec<u8> {
     Sha256::digest(bts).to_vec()
 }
 
-/// Key material produced by [`hkdf`], suitable as key material for cryptographic purposes.
-/// Unclonable, and zeroed on drop to prevent it from lingering in memory.
+/// Key material. Unclonable, and zeroed on drop to prevent it from lingering in memory.
 #[derive(Debug, AsRef, From, ZeroizeOnDrop)]
-pub struct KeyBytes(#[debug("<HKDF bytes>")] Vec<u8>);
-
-impl KeyBytes {
-    /// Prepend zeroes to the specicfied `len`.
-    pub fn into_zero_padded_front(self, len: usize) -> Self {
-        let prefix_len = len - self.0.len();
-
-        let mut padded = vec![0u8; len];
-        padded[prefix_len..].copy_from_slice(&self.0);
-
-        // self dropped here; ZeroizeOnDrop wipes the original buffer
-        padded.into()
-    }
-}
+pub struct KeyBytes(#[debug("<KeyBytes>")] Vec<u8>);
 
 /// Compute the HKDF from [RFC 5869](https://tools.ietf.org/html/rfc5869).
 pub fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<KeyBytes, UnspecifiedRingError> {
