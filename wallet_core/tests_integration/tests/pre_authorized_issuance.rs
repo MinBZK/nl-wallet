@@ -62,6 +62,8 @@ async fn test_pre_authorized_code_issuance() {
         );
     }
 
-    let a = attestations.first().unwrap();
-    assert_eq!(a.attestation_type, "com.example.jum.bonuskaart".to_string());
+    assert_eq!(
+        attestations.first().unwrap().attestation_type,
+        "com.example.jum.bonuskaart".to_string()
+    );
 }
