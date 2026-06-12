@@ -8485,6 +8485,7 @@ dependencies = [
  "openid4vc",
  "openid4vc_server",
  "p256",
+ "pacf_issuance_server",
  "pid_issuer",
  "platform_support",
  "rand_core 0.6.4",

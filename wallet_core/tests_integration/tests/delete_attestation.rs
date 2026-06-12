@@ -36,6 +36,7 @@ async fn test_delete_attestation_ok() {
             trust_anchor,
             tls_config,
         ),
+        pacf_issuance_server_settings(db_setup.pacf_issuance_server_url()),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;

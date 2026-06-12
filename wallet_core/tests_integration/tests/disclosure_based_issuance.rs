@@ -215,6 +215,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         pid_issuer_settings(db_setup.pid_issuer_url()),
         (issuance_server_settings, vec![], di_trust_anchor, di_tls_config),
+        pacf_issuance_server_settings(db_setup.pacf_issuance_server_url()),
     )
     .await;
 

@@ -127,6 +127,7 @@ test_common = [
     "dep:health_checkers",
     "dep:indexmap",
     "dep:issuance_server",
+    "dep:pacf_issuance_server",
     "dep:issuer_common",
     "dep:jwt",
     "dep:openid4vc",
@@ -296,6 +297,7 @@ issuer_common = { path = "../wallet_server/issuer_common", optional = true }
 jwt = { path = "../lib/jwt", optional = true }
 openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true }
+pacf_issuance_server = { path = "../wallet_server/pacf_issuance_server", optional = true }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true }
 platform_support = { path = "../wallet/platform_support", optional = true }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", optional = true }
@@ -326,6 +328,7 @@ hsm = { path = "../lib/hsm", features = ["test"] }
 issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 openid4vc_server = { path = "../lib/openid4vc_server", features = ["issuance"] }
+pacf_issuance_server = { path = "../wallet_server/pacf_issuance_server" }
 pid_issuer.path = "../wallet_server/pid_issuer"
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }

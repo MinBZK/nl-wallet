@@ -146,6 +146,7 @@ pub struct DbSetup {
 #[strum(serialize_all = "snake_case")]
 pub enum DbName {
     IssuanceServer,
+    PacfIssuanceServer,
     PidIssuer,
     VerificationServer,
     WalletProvider,
@@ -247,6 +248,10 @@ impl DbSetup {
 
     pub fn issuance_server_url(&self) -> Url {
         DbName::IssuanceServer.url(self.connect_options.clone(), self.index)
+    }
+
+    pub fn pacf_issuance_server_url(&self) -> Url {
+        DbName::PacfIssuanceServer.url(self.connect_options.clone(), self.index)
     }
 
     pub fn server_utils_url(&self) -> Url {
@@ -513,6 +518,7 @@ async fn migrate(name: DbName, connect_options: PgConnectOptions) {
     let pool = connection_from_url(url.clone()).await;
     match name {
         DbName::IssuanceServer => issuer_common_migrations::Migrator::up(&pool, None).await,
+        DbName::PacfIssuanceServer => issuer_common_migrations::Migrator::up(&pool, None).await,
         DbName::PidIssuer => pid_issuer_migrations::Migrator::up(&pool, None).await,
         DbName::VerificationServer => server_utils_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProvider => wallet_provider_migrations::Migrator::up(&pool, None).await,

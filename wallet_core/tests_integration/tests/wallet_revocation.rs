@@ -348,6 +348,7 @@ async fn setup_revocation_env(
         verification_server_settings(db_setup.verification_server_url()),
         pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
+        pacf_issuance_server_settings(db_setup.pacf_issuance_server_url()),
     )
     .await;
 

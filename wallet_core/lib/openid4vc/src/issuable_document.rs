@@ -133,5 +133,24 @@ pub mod mock {
             )
             .unwrap()
         }
+
+        pub fn new_mock_loyalty() -> Self {
+            IssuableDocument::try_new_with_random_id(
+                Format::MsoMdoc,
+                "com.example.jum.bonuskaart".to_string(),
+                IndexMap::from([
+                    (
+                        "branch".to_string(),
+                        Attribute::Single(AttributeValue::Text("Demodam".to_string())),
+                    ),
+                    (
+                        "loyalty_number".to_string(),
+                        Attribute::Single(AttributeValue::Text("9876543210".to_string())),
+                    ),
+                ])
+                .into(),
+            )
+            .unwrap()
+        }
     }
 }

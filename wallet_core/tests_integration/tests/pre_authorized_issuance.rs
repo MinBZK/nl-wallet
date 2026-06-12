@@ -1,13 +1,12 @@
 use db_test::DbSetup;
-use openid4vc::credential_offer::CredentialOffer;
-use openid4vc::credential_offer::CredentialOfferContainer;
+use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::issuable_document::IssuableDocument;
+use pacf_issuance_server::offer::OfferRequest;
+use pacf_issuance_server::offer::OfferResponse;
 use serial_test::serial;
 use tests_integration::common::*;
 use utils::vec_nonempty;
 use wallet::IssuanceStartResult;
-
-const DEGREE_CREDENTIAL_CONFIG_ID: &str = "com.example.degree_sd_jwt";
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
@@ -19,25 +18,23 @@ async fn test_pre_authorized_code_issuance() {
     wallet = do_wallet_registration(wallet, pin).await;
 
     // Create a pre-authorized issuance session on the issuance server.
-    let documents = vec_nonempty![IssuableDocument::new_mock_degree("BSc".to_string())];
-    let session_token = issuance_data
-        .issuance_server_issuer
-        .new_preauthorized_session(documents)
-        .await
-        .expect("should create pre-authorized session");
+    let documents = vec_nonempty![IssuableDocument::new_mock_loyalty()];
 
-    // Build the URL including the credential offer.
-    let config_ids = vec_nonempty![DEGREE_CREDENTIAL_CONFIG_ID.to_string().into()];
-    let credential_offer = CredentialOffer::new_pre_authorized(
-        issuance_data.issuance_server.public.clone(),
-        config_ids.into(),
-        session_token.into(),
-    );
-    let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
+    let offer_response = default_reqwest_client_builder()
+        .build()
+        .unwrap()
+        .post(issuance_data.pacf_issuance_server.internal.join("offer"))
+        .json(&OfferRequest { documents })
+        .send()
+        .await
+        .unwrap()
+        .json::<OfferResponse>()
+        .await
+        .unwrap();
 
     // The wallet should resolve the offer and return credential previews immediately.
     let IssuanceStartResult::Previews(previews) = wallet
-        .start_issuance_from_offer(offer_url)
+        .start_issuance_from_offer(offer_response.credential_offer_url)
         .await
         .expect("should start issuance from offer")
     else {
@@ -64,4 +61,7 @@ async fn test_pre_authorized_code_issuance() {
             preview.attestation_type,
         );
     }
+
+    let a = attestations.first().unwrap();
+    assert_eq!(a.attestation_type, "com.example.jum.bonuskaart".to_string());
 }
