@@ -4,11 +4,10 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
-use issuer_common::settings::IssuerSettings;
+use issuer_common::settings::AuthorizingIssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
 use jwk_simple::Key;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -21,7 +20,6 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -33,16 +31,10 @@ pub struct PidIssuerSettings {
     pub brp_server: BaseUrl,
 
     #[debug(skip)]
-    pub wia_trust_anchors: TrustAnchors,
-
-    /// Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization Request.
-    pub wallet_redirect_uris: VecNonEmpty<Url>,
-
-    #[debug(skip)]
     pub recovery_code: SecretKey,
 
     #[serde(flatten)]
-    pub issuer_settings: IssuerSettings,
+    pub authorizing_issuer_settings: AuthorizingIssuerSettings,
 }
 
 #[serde_as]
@@ -123,10 +115,10 @@ impl ServerSettings for PidIssuerSettings {
     }
 
     fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
-        self.issuer_settings.validate()
+        self.authorizing_issuer_settings.issuer_settings.validate()
     }
 
     fn server_settings(&self) -> &Settings {
-        &self.issuer_settings.server_settings
+        &self.authorizing_issuer_settings.issuer_settings.server_settings
     }
 }
