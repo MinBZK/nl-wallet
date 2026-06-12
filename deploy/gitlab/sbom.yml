@@ -6,6 +6,7 @@ build-sbom:
     ## Rust
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
+
     ## NPM
     - cd wallet_web
     - cyclonedx-npm --spec-version 1.5 --output-format json --output-file bom.json --package-lock-only
@@ -13,12 +14,20 @@ build-sbom:
     - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
     - mv bom-bundled.json bom.json
     - cd ..
+
     ## Flutter
     - (cd wallet_app && cdxgen --fail-on-error --spec-version 1.5 --type dart --output bom.json)
+
     ## iOS
     - bundle install
     - cd wallet_app
     - flutter pub get --enforce-lockfile
+
+      # force swift_package_manager_enabled for cocoapods
+    - dep_file=$(mktemp)
+    - jq '.swift_package_manager_enabled.ios = true' < .flutter-plugins-dependencies > $dep_file
+    - mv $dep_file .flutter-plugins-dependencies
+
     - cd ios
     - bundle exec pod install --allow-root --deployment
     - cyclonedx-cocoapods # only supports single spec version (currently 1.6)
@@ -30,11 +39,14 @@ build-sbom:
       | jq 'del(.components[] | select(."bom-ref" == "pkg:cocoapods/Flutter@1.0.0?file_name=Flutter")) | del(.dependencies[].dependsOn[]? | select(. == "pkg:cocoapods/Flutter@1.0.0?file_name=Flutter"))'
       > bom.json
     - cd ../..
+
     ## Android
     - (cd wallet_app/android/app && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
     - (cd wallet_core/wallet/platform_support/android && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
+
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
     - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
+
     # converting it to xml does work
     - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
     - deploy/bin/store-artifact.sh bom.* qt/quality-time/sbom/
