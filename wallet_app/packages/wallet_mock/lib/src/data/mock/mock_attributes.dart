@@ -15,8 +15,8 @@ const _kMockLastName = AttributeValue_String(value: 'De Bruijn');
 const kMockPidAttestationAttributes = [
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Voornamen'),
-      ClaimDisplayMetadata(lang: 'en', label: 'First names'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Voornamen'),
+      ClaimDisplayMetadata(locale: 'en', label: 'First names'),
     ],
     value: _kMockFirstNames,
     key: 'mock_firstNames',
@@ -24,8 +24,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Achternaam'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Surname'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Achternaam'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Surname'),
     ],
     value: _kMockLastName,
     key: 'mock_lastName',
@@ -33,8 +33,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Naam bij geboorte'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Birth name'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Naam bij geboorte'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Birth name'),
     ],
     value: AttributeValue_String(value: 'Molenaar'),
     key: 'mock_birthName',
@@ -42,8 +42,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Geboortedatum'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Birth date'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Geboortedatum'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Birth date'),
     ],
     value: _kMockBirthDate,
     key: 'mock_birthDate',
@@ -51,8 +51,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Ouder dan 18'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Older than 18'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Ouder dan 18'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Older than 18'),
     ],
     value: AttributeValue_Boolean(value: true),
     key: 'mock_olderThan18',
@@ -60,8 +60,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Geboorteplaats'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Birthplace'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Geboorteplaats'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Birthplace'),
     ],
     value: _kMockBirthPlace,
     key: 'mock_birthPlace',
@@ -69,8 +69,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Geboorteland'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Country of birth'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Geboorteland'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Country of birth'),
     ],
     value: AttributeValue_String(value: 'Nederland'),
     key: 'mock_birthCountry',
@@ -78,8 +78,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Getrouwd of geregistreerd partnerschap'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Married or registered partnership'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Getrouwd of geregistreerd partnerschap'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Married or registered partnership'),
     ],
     value: AttributeValue_Boolean(value: true),
     key: 'mock_hasSpouseOrPartner',
@@ -87,8 +87,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Burger­service­nummer (BSN)'),
-      ClaimDisplayMetadata(lang: 'en', label: 'BSN'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Burger­service­nummer (BSN)'),
+      ClaimDisplayMetadata(locale: 'en', label: 'BSN'),
     ],
     value: AttributeValue_String(value: '111222333'),
     key: kMockCitizenShipNumberKey,
@@ -96,8 +96,8 @@ const kMockPidAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Nationaliteiten'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Nationalities'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Nationaliteiten'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Nationalities'),
     ],
     value: AttributeValue_Array(
       value: [
@@ -113,8 +113,8 @@ const kMockPidAttestationAttributes = [
 const kMockAddressAttestationAttributes = [
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Land'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Country'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Land'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Country'),
     ],
     value: AttributeValue_String(value: 'Nederland'),
     key: 'mock_country',
@@ -122,8 +122,8 @@ const kMockAddressAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Straatnaam'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Street'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Straatnaam'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Street'),
     ],
     value: AttributeValue_String(value: 'Turfmarkt'),
     key: 'mock_streetName',
@@ -131,8 +131,8 @@ const kMockAddressAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Huisnummer'),
-      ClaimDisplayMetadata(lang: 'en', label: 'House number'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Huisnummer'),
+      ClaimDisplayMetadata(locale: 'en', label: 'House number'),
     ],
     value: AttributeValue_String(value: '147'),
     key: 'mock_houseNumber',
@@ -140,8 +140,8 @@ const kMockAddressAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Postcode'),
-      ClaimDisplayMetadata(lang: 'en', label: 'Postal code'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Postcode'),
+      ClaimDisplayMetadata(locale: 'en', label: 'Postal code'),
     ],
     value: AttributeValue_String(value: '2511 DP'),
     key: 'mock_postalCode',
@@ -149,8 +149,8 @@ const kMockAddressAttestationAttributes = [
   ),
   AttestationAttribute(
     labels: [
-      ClaimDisplayMetadata(lang: 'nl', label: 'Woonplaats'),
-      ClaimDisplayMetadata(lang: 'en', label: 'City, town or village'),
+      ClaimDisplayMetadata(locale: 'nl', label: 'Woonplaats'),
+      ClaimDisplayMetadata(locale: 'en', label: 'City, town or village'),
     ],
     value: AttributeValue_String(value: 'Den Haag'),
     key: 'mock_city',
@@ -160,31 +160,31 @@ const kMockAddressAttestationAttributes = [
 
 const kMockDiplomaAttestationAttributes = [
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Onderwijsinstelling')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Onderwijsinstelling')],
     value: AttributeValue.string(value: 'Universiteit X'),
     key: 'mock_university',
     svgId: 'mock_university',
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Opleiding')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Opleiding')],
     value: AttributeValue.string(value: 'WO Bachelor Bedrijfskunde'),
     key: 'mock_education',
     svgId: 'mock_education',
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Niveau')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Niveau')],
     value: AttributeValue.string(value: 'WO'),
     key: 'mock_educationLevel',
     svgId: 'mock_educationLevel',
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Type')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Type')],
     value: AttributeValue.string(value: 'Getuigschrift'),
     key: kMockOtherKey,
     svgId: kMockOtherKey,
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Uitgifte datum')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Uitgifte datum')],
     value: AttributeValue.string(value: '01-01-2013'),
     key: kMockIssuanceDateKey,
     svgId: kMockIssuanceDateKey,
@@ -193,31 +193,31 @@ const kMockDiplomaAttestationAttributes = [
 
 const kMockMasterDiplomaDataAttributes = [
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Onderwijsinstelling')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Onderwijsinstelling')],
     value: AttributeValue.string(value: 'Universiteit X'),
     key: 'mock_university',
     svgId: 'mock_university',
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Opleiding')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Opleiding')],
     value: AttributeValue.string(value: 'WO Master Bedrijfskunde'),
     key: 'mock_education',
     svgId: 'mock_education',
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Niveau')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Niveau')],
     value: AttributeValue.string(value: 'WO'),
     key: 'mock_educationLevel',
     svgId: 'mock_educationLevel',
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Type')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Type')],
     value: AttributeValue.string(value: 'Getuigschrift'),
     key: kMockOtherKey,
     svgId: kMockOtherKey,
   ),
   AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Uitgifte datum')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Uitgifte datum')],
     value: AttributeValue.string(value: '01-01-2015'),
     key: kMockIssuanceDateKey,
     svgId: kMockIssuanceDateKey,
@@ -230,49 +230,49 @@ final kMockDrivingLicenseRenewedDataAttributes = _buildDrivingLicenseDataAttribu
 List<AttestationAttribute> _buildDrivingLicenseDataAttributes({required String category}) {
   return [
     const AttestationAttribute(
-      labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Voornamen')],
+      labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Voornamen')],
       value: _kMockFirstNames,
       key: kMockFirstNamesKey,
       svgId: kMockFirstNamesKey,
     ),
     const AttestationAttribute(
-      labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Naam')],
+      labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Naam')],
       value: _kMockLastName,
       key: kMockLastNameKey,
       svgId: kMockLastNameKey,
     ),
     const AttestationAttribute(
-      labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Geboortedatum')],
+      labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Geboortedatum')],
       value: _kMockBirthDate,
       key: kMockBirthDateKey,
       svgId: kMockBirthDateKey,
     ),
     const AttestationAttribute(
-      labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Geboorteplaats')],
+      labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Geboorteplaats')],
       value: _kMockBirthPlace,
       key: 'mock_birthPlace',
       svgId: 'mock_birthPlace',
     ),
     const AttestationAttribute(
-      labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Afgiftedatum')],
+      labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Afgiftedatum')],
       value: AttributeValue.string(value: '04-23-2018'),
       key: kMockIssuanceDateKey,
       svgId: kMockIssuanceDateKey,
     ),
     const AttestationAttribute(
-      labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Datum geldig tot')],
+      labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Datum geldig tot')],
       value: AttributeValue.string(value: '23-04-2028'),
       key: 'mock_expiryDate',
       svgId: 'mock_expiryDate',
     ),
     const AttestationAttribute(
-      labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Rijbewijsnummer')],
+      labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Rijbewijsnummer')],
       value: AttributeValue.string(value: '99999999999'),
       key: kMockOtherKey,
       svgId: kMockOtherKey,
     ),
     AttestationAttribute(
-      labels: [const ClaimDisplayMetadata(lang: 'nl', label: 'Rijbewijscategorieën')],
+      labels: [const ClaimDisplayMetadata(locale: 'nl', label: 'Rijbewijscategorieën')],
       value: AttributeValue.string(value: category),
       key: 'mock_drivingLicenseCategories',
       svgId: 'mock_drivingLicenseCategories',
@@ -282,43 +282,43 @@ List<AttestationAttribute> _buildDrivingLicenseDataAttributes({required String c
 
 final kMockHealthInsuranceDataAttributes = [
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Naam')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Naam')],
     value: AttributeValue.string(value: 'Willeke De Bruijn'),
     key: 'mock_fullName',
     svgId: 'mock_fullName',
   ),
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Geslacht')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Geslacht')],
     value: AttributeValue.string(value: 'Vrouw'),
     key: 'mock_gender',
     svgId: 'mock_gender',
   ),
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Geboortedatum')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Geboortedatum')],
     value: _kMockBirthDate,
     key: kMockBirthDateKey,
     svgId: kMockBirthDateKey,
   ),
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Klantnummer')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Klantnummer')],
     value: AttributeValue.string(value: '12345678'),
     key: 'mock_healthIssuerClientId',
     svgId: 'mock_healthIssuerClientId',
   ),
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Kaartnummer')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Kaartnummer')],
     value: AttributeValue.string(value: '9999999999'),
     key: 'mock_documentNr',
     svgId: 'mock_documentNr',
   ),
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'UZOVI')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'UZOVI')],
     value: AttributeValue.string(value: 'XXXX - 9999'),
     key: 'mock_healthIssuerId',
     svgId: 'mock_healthIssuerId',
   ),
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Verloopdatum')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Verloopdatum')],
     value: AttributeValue.string(value: '0-01-2024'),
     key: 'mock_healthInsuranceExpiryDate',
     svgId: 'mock_healthInsuranceExpiryDate',
@@ -327,13 +327,13 @@ final kMockHealthInsuranceDataAttributes = [
 
 final kMockVOGDataAttributes = [
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Type')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Type')],
     value: AttributeValue.string(value: '1'),
     key: 'mock_certificateOfConduct',
     svgId: 'mock_certificateOfConduct',
   ),
   const AttestationAttribute(
-    labels: [ClaimDisplayMetadata(lang: 'nl', label: 'Datum geldig tot')],
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Datum geldig tot')],
     value: AttributeValue.string(value: '05-02-2023'),
     key: 'mock_expiryDate',
     svgId: 'mock_expiryDate',

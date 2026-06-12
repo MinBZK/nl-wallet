@@ -160,7 +160,7 @@ List<DisplayMetadata> _buildDisplayMetaData({
 }) {
   return [
     DisplayMetadata(
-      lang: 'en',
+      locale: 'en',
       name: englishTitle,
       summary: englishSummary,
       rendering: RenderingMetadata.simple(
@@ -175,7 +175,7 @@ List<DisplayMetadata> _buildDisplayMetaData({
       ),
     ),
     DisplayMetadata(
-      lang: 'nl',
+      locale: 'nl',
       name: dutchTitle,
       summary: dutchSummary,
       rendering: RenderingMetadata.simple(

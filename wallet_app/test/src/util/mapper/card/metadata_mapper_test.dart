@@ -18,7 +18,7 @@ void main() {
   group('DisplayMetadataMapper', () {
     test('should map basic display metadata', () {
       const input = core.DisplayMetadata(
-        lang: 'en',
+        locale: 'en',
         name: 'Test Card',
         description: 'Test Description',
         summary: 'Test Summary',
@@ -40,7 +40,7 @@ void main() {
 
     test('should map simple rendering metadata', () {
       const input = core.DisplayMetadata(
-        lang: 'nl',
+        locale: 'nl',
         name: 'Naam',
         rendering: core.RenderingMetadata_Simple(
           backgroundColor: '#FFFFFF',
@@ -61,7 +61,7 @@ void main() {
 
     test('should map logo in rendering metadata', () {
       const input = core.DisplayMetadata(
-        lang: 'en',
+        locale: 'en',
         name: 'Logo Card',
         rendering: core.RenderingMetadata_Simple(
           logo: core.ImageWithMetadata(
@@ -84,7 +84,7 @@ void main() {
 
     test('should return null rendering for SvgTemplates', () {
       const input = core.DisplayMetadata(
-        lang: 'en',
+        locale: 'en',
         name: 'SVG Template Card',
         rendering: core.RenderingMetadata_SvgTemplates(),
       );
@@ -96,7 +96,7 @@ void main() {
 
     test('should handle 8-digit hex colors', () {
       const input = core.DisplayMetadata(
-        lang: 'en',
+        locale: 'en',
         name: 'Transparent Card',
         rendering: core.RenderingMetadata_Simple(
           backgroundColor: '#80FFFFFF',
@@ -113,7 +113,7 @@ void main() {
 
     test('should return null for invalid hex colors', () {
       const input = core.DisplayMetadata(
-        lang: 'en',
+        locale: 'en',
         name: 'Invalid Color Card',
         rendering: core.RenderingMetadata_Simple(
           backgroundColor: 'invalid',

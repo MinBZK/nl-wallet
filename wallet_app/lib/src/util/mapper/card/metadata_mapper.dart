@@ -27,7 +27,7 @@ class DisplayMetadataMapper extends Mapper<DisplayMetadata, CardDisplayMetadata>
       RenderingMetadata_SvgTemplates() => null,
     };
     return CardDisplayMetadata(
-      language: LocaleExtension.parseLocale(input.lang),
+      language: LocaleExtension.parseLocale(input.locale),
       name: input.name,
       description: input.description,
       rawSummary: input.summary,
