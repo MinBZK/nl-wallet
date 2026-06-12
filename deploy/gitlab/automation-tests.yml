@@ -475,7 +475,7 @@ run-digid-bridge-test-ont:
   script:
     - START_TIME=$(date -u -d "-1 minute" "+%Y-%m-%d %H:%M:%S")
     - echo "Performance test starting, query range begins at $START_TIME"
-    - wallet_core/tests_integration/run_performance_test.sh --skip-build 25
+    - DELAY=0.2 wallet_core/tests_integration/run_performance_test.sh --skip-build 25
     - END_TIME=$(date -u -d "+1 minute" "+%Y-%m-%d %H:%M:%S")
     - echo "Performance test completed, query range ends at $END_TIME"
     - echo "START_TIME=$START_TIME" > perf-test-timeframe.txt
