@@ -4,7 +4,6 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::return_url::credential_offer_base_uri;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -84,7 +83,11 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType<FlowType>> {
         return Some(UriType::Invocation(InvocationUri::Disclosure));
     }
 
-    if uri_str.starts_with(credential_offer_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
+    if uri_str.starts_with(
+        urls::credential_offer_base_uri(&UNIVERSAL_LINK_BASE_URL)
+            .as_ref()
+            .as_str(),
+    ) {
         return Some(UriType::Invocation(InvocationUri::CredentialOffer));
     }
 
@@ -286,7 +289,7 @@ mod tests {
         );
 
         // The credential offer URI should be recognised.
-        let credential_offer_uri = credential_offer_base_uri(&UNIVERSAL_LINK_BASE_URL).join("offer123");
+        let credential_offer_uri = urls::credential_offer_base_uri(&UNIVERSAL_LINK_BASE_URL).join("offer123");
         assert_matches!(
             wallet.identify_uri(credential_offer_uri.as_str()).unwrap(),
             UriType::Invocation(InvocationUri::CredentialOffer)

@@ -1,5 +1,4 @@
 use http_utils::urls::ALLOWED_HTTP_SCHEMES;
-use http_utils::urls::BaseUrl;
 use nutype::nutype;
 use strfmt::strfmt;
 use url::Url;
@@ -32,25 +31,11 @@ impl ReturnUrlTemplate {
     }
 }
 
-const CREDENTIAL_OFFER_BASE_PATH: &str = "credential-offer";
-
-#[inline]
-pub fn credential_offer_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
-    universal_link_base.join_base_url(CREDENTIAL_OFFER_BASE_PATH)
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
     use super::*;
-
-    #[test]
-    fn test_credential_offer_base_uri() {
-        let base = "https://example.com/app/".parse::<BaseUrl>().unwrap();
-        let result = credential_offer_base_uri(&base);
-        assert_eq!(result.as_ref().as_str(), "https://example.com/app/credential-offer");
-    }
 
     #[rstest]
     #[case("https://example.com/{session_token}", true)]
