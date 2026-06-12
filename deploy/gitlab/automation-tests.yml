@@ -453,21 +453,15 @@ run-digid-bridge-test-ont:
         POSTGRES_PASSWORD: "postgres"
   before_script:
     - set -euo pipefail
-    # Pull DigiD secrets/configmap from the ont cluster and expose as PID_ISSUER__* env vars so the
-    # config crate overrides the TOML-rendered defaults at runtime (same mechanism as the deployment).
-    - PID_ISSUER__DIGID__BSN_PRIVKEY="$(kubectl get secret nl-wallet-pid-issuer-digid-bsn-privkey
-      --output=jsonpath='{.data.bsn_privkey}' | base64 --decode)"
+    - PID_ISSUER__DIGID__BSN_PRIVKEY="$(kubectl get secret nl-wallet-pid-issuer-digid-bsn-privkey --output=jsonpath='{.data.bsn_privkey}' | base64 --decode)"
     - export PID_ISSUER__DIGID__BSN_PRIVKEY
-    - PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS="$(kubectl get configmap
-      nl-wallet-pid-issuer-digid-http-trust-anchors --output=jsonpath='{.data.trust_anchors}')"
+    - PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS="$(kubectl get configmap nl-wallet-pid-issuer-digid-http-trust-anchors --output=jsonpath='{.data.trust_anchors}')"
     - export PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS
     - PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER="$DIGID_BASE_URL"
     - export PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER
     - PID_ISSUER__DIGID__CLIENT_ID="$DIGID_CLIENT_ID"
     - export PID_ISSUER__DIGID__CLIENT_ID
-    # Construct the wallet's redirect_uri from UL_HOSTNAME (provided by build-env-ont) so it
-    # matches what ont's rdo-max has registered for this client.
-    - DIGID_TEST_REDIRECT_URI="https://${UL_HOSTNAME}/deeplink/return-from-digid/"
+    - DIGID_TEST_REDIRECT_URI="$PID_ISSUER_DIGID_CALLBACK_URL"
     - export DIGID_TEST_REDIRECT_URI
     # Port-forward brpproxy (internal-only in the cluster) to localhost for the in-process pid_issuer.
     - kubectl port-forward service/brpproxy 5001:80 &
