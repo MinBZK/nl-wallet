@@ -1,6 +1,7 @@
 import UIKit
 import PlatformSupport
 import Flutter
+import Sentry
 import flutter_local_notifications
 import workmanager_apple
 
@@ -12,6 +13,8 @@ import workmanager_apple
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    initializeSentry()
+
     self.platformSupport = PlatformSupport.shared
 
     let dummy = dummy_method_to_enforce_bundling()
@@ -23,6 +26,51 @@ import workmanager_apple
     initializeWorkmanager()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  fileprivate func initializeSentry() {
+    let sentryConfig = dartDefines()
+    guard let dsn = sentryConfig["SENTRY_DSN"], !dsn.isEmpty else { return }
+
+    SentrySDK.start { options in
+      options.dsn = dsn
+      options.environment = sentryConfig["SENTRY_ENVIRONMENT"].flatMap { $0.isEmpty ? nil : $0 } ?? "unspecified"
+      options.releaseName = sentryConfig["SENTRY_RELEASE"].flatMap { $0.isEmpty ? nil : $0 }
+      #if DEBUG
+      options.debug = true
+      #else
+      options.debug = false
+      #endif
+      options.sendDefaultPii = false
+      options.enableCrashHandler = true
+      options.enableWatchdogTerminationTracking = true
+      options.enableAppHangTracking = true
+      options.enableAppHangTrackingV2 = true
+      options.beforeSend = { event in
+        event.user?.geo = nil
+        event.user?.ipAddress = nil
+        return event
+      }
+    }
+  }
+
+  fileprivate func dartDefines() -> [String: String] {
+    guard let encodedDefines = Bundle.main.object(forInfoDictionaryKey: "DART_DEFINES") as? String else {
+      return [:]
+    }
+
+    var result: [String: String] = [:]
+    for encodedDefine in encodedDefines.split(separator: ",") {
+      guard
+        let data = Data(base64Encoded: String(encodedDefine)),
+        let decoded = String(data: data, encoding: .utf8)
+      else { continue }
+
+      let parts = decoded.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+      guard parts.count == 2 else { continue }
+      result[String(parts[0])] = String(parts[1])
+    }
+    return result
   }
 
   fileprivate func initializeLocalNotifications() {

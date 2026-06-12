@@ -87,6 +87,10 @@ impl Scrub for Event<'_> {
         self.breadcrumbs = Default::default();
         self.transaction = None;
         self.request = None;
+        if let Some(user) = self.user.as_mut() {
+            user.ip_address = None;
+            user.other.remove("geo");
+        }
 
         self.exception.iter_mut().for_each(|e| e.scrub(sensitive_messages));
     }

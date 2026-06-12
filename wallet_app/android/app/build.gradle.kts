@@ -22,6 +22,11 @@ fun loadProperties(name: String): Map<String, String> {
     }
 }
 
+// Sentry dart-defines are raw strings, while buildConfigField expects a Java/Kotlin source literal.
+// Escape them here so quotes, backslashes, or line breaks cannot break generated BuildConfig code.
+fun String.asBuildConfigString(): String =
+    "\"${replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")}\""
+
 val keystoreProperties = loadProperties("key.properties")
 val signingConfigName = if (keystoreProperties["storeFile"] != null) "release" else "debug"
 
@@ -108,6 +113,14 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
+        buildConfigField("String", "SENTRY_DSN", (dartEnvironmentVariables["SENTRY_DSN"] ?: "").asBuildConfigString())
+        buildConfigField(
+            "String",
+            "SENTRY_ENVIRONMENT",
+            (dartEnvironmentVariables["SENTRY_ENVIRONMENT"] ?: "unspecified").asBuildConfigString()
+        )
+        buildConfigField("String", "SENTRY_RELEASE", (dartEnvironmentVariables["SENTRY_RELEASE"] ?: "").asBuildConfigString())
+
         multiDexEnabled = true
 
         manifestPlaceholders["appName"] = System.getenv("APP_NAME") ?: "NL Wallet"
@@ -177,6 +190,7 @@ flutter {
 dependencies {
     implementation("net.java.dev.jna:jna:5.17.0@aar") // Java Native Access
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    implementation("io.sentry:sentry-android:8.43.0") // Also a transitive dependency from sentry_flutter, change both when upgrading
     implementation(project(path = ":platform_support"))
 }
 
@@ -204,6 +218,9 @@ mapOf(
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
             args("--features", "wallet/allow_insecure_url")
         }
+        dartEnvironmentVariables["SENTRY_DSN"]?.takeIf { it.isNotEmpty() }?.let { environment("SENTRY_DSN", it) }
+        dartEnvironmentVariables["SENTRY_ENVIRONMENT"]?.takeIf { it.isNotEmpty() }?.let { environment("SENTRY_ENVIRONMENT", it) }
+        dartEnvironmentVariables["SENTRY_RELEASE"]?.takeIf { it.isNotEmpty() }?.let { environment("SENTRY_RELEASE", it) }
     }
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
         dependsOn("cargoBuildNativeLibrary${buildMode}")

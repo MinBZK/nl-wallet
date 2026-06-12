@@ -23,7 +23,6 @@ import 'src/feature/update/update_checker.dart';
 import 'src/util/helper/onboarding_helper.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
-import 'src/wallet_error_handler.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -31,36 +30,46 @@ void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // Propagate uncaught errors
-  final errorHandler = WalletErrorHandler();
-  PlatformDispatcher.instance.onError = errorHandler.handleError;
+  if (Environment.hasSentryDsn) {
+    await SentryFlutter.init(configureSentry, appRunner: initializeAndRun);
+  } else {
+    await initializeAndRun();
+  }
+}
 
+FutureOr<void> initializeAndRun() async {
   if (Environment.mockRepositories) {
     core.WalletCore.initMock(api: mock.api);
   } else {
-    final lib = Platform.isIOS || Platform.isMacOS ? ExternalLibrary.process(iKnowHowToUseIt: true) : null;
+    final lib = Platform.isIOS || Platform.isMacOS
+        ? ExternalLibrary.process(iKnowHowToUseIt: true)
+        : null;
     await core.WalletCore.init(externalLibrary: lib);
   }
 
   await core.postInit();
 
-  if (Environment.hasSentryDsn) {
-    await SentryFlutter.init(
-      (options) => options
-        ..dsn = Environment.sentryDsn
-        ..environment = Environment.sentryEnvironment
-        ..release =
-            Environment.sentryRelease() // default applies when SENTRY_RELEASE not set
-        ..debug = kDebugMode
-        ..beforeSend = beforeSend,
-      appRunner: mainImpl,
-    );
-  } else {
-    mainImpl();
-  }
+  await mainImpl();
+}
+
+void configureSentry(SentryFlutterOptions options) {
+  options
+    ..dsn = Environment.sentryDsn
+    ..environment = Environment.sentryEnvironment
+    ..release =
+        Environment.sentryRelease() // default applies when SENTRY_RELEASE not set
+    ..debug = kDebugMode
+    ..sendDefaultPii = false
+    ..autoInitializeNativeSdk = false
+    ..enableNativeCrashHandling = false
+    ..beforeSend = beforeSend;
 }
 
 FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
+  event.user
+    ?..geo = null
+    ..ipAddress = null;
+
   // Strip all breadcrumbs and exception values from the event
   event.breadcrumbs = null;
   event.exceptions?.forEach((ex) {
@@ -95,9 +104,7 @@ FutureOr<void> mainImpl() async {
             child: MaintenanceChecker(
               child: UpdateChecker(
                 child: PrivacyCover(
-                  child: WalletApp(
-                    navigatorKey: _navigatorKey,
-                  ),
+                  child: WalletApp(navigatorKey: _navigatorKey),
                 ),
               ),
             ),
