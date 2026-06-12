@@ -14,11 +14,6 @@ ignoreUntil = 2027-01-01
 reason = "`bincode` is a transitive dependency that is no longer maintained but considered complete and used by `http-cache`. Waiting for `http-cache` to find alternatives."
 
 [[IgnoredVulns]]
-id = "RUSTSEC-2026-0097"
-ignoreUntil = 2027-01-01
-reason = "We are not vulnerable as we do not use a custom logger, which is one of the conditions for the unsound behaviour. Additionally, `rand` is held back by rsa, there are release candidates for a new version which will allow upgrading rand."
-
-[[IgnoredVulns]]
 id = "RUSTSEC-2026-0173"
 ignoreUntil = 2027-01-01
 reason = "`proc-macro-error2` is a transitive dependency that is no longer maintained used by `sea-bae` (`sea-orm-macros`) and `serde_valid_derive` (`serde_valid`). Waiting for those crates to find alternatives."
