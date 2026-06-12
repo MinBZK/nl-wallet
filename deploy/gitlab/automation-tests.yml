@@ -461,8 +461,6 @@ run-digid-bridge-test-ont:
     - export PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER
     - PID_ISSUER__DIGID__CLIENT_ID="$DIGID_CLIENT_ID"
     - export PID_ISSUER__DIGID__CLIENT_ID
-    - DIGID_TEST_REDIRECT_URI="$PID_ISSUER_DIGID_CALLBACK_URL"
-    - export DIGID_TEST_REDIRECT_URI
     # Port-forward brpproxy (internal-only in the cluster) to localhost for the in-process pid_issuer.
     - kubectl port-forward service/brpproxy 5001:80 &
     - export PID_ISSUER__BRP_SERVER="http://localhost:5001/"

@@ -53,12 +53,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let db_setup = DbSetup::create_clean().await;
     let mut settings = pid_issuer_settings(db_setup.pid_issuer_url());
 
-    // The wallet's PAR redirect_uri: DIGID_TEST_REDIRECT_URI in CI, otherwise the default
-    // universal-link base. Allowlist exactly this value so the PAR passes redirect_uri validation
-    // regardless of the build-time override.
-    let redirect_uri = option_env!("DIGID_TEST_REDIRECT_URI")
-        .map(|raw| raw.parse().expect("DIGID_TEST_REDIRECT_URI is not a valid URL"))
-        .unwrap_or_else(|| urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner());
+    let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
     settings.wallet_redirect_uris = vec_nonempty![redirect_uri.clone()];
 
     let hsm = settings
