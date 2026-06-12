@@ -8,6 +8,7 @@ use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::CertificateError;
+use derive_more::IsVariant;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -192,7 +193,7 @@ pub enum WalletIssuanceSession<AS, IS> {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, IsVariant)]
 pub enum SessionState<AS, IS> {
     Authorization {
         authorization_session: AS,
@@ -240,10 +241,6 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
                 session_state
             }
         }
-    }
-
-    pub fn is_in_authorization_state(&self) -> bool {
-        matches!(self.session_state(), SessionState::Authorization { .. })
     }
 }
 
@@ -464,7 +461,7 @@ where
         info!("Checking if there is an active issuance session");
         if !matches!(
             &self.session,
-            Some(Session::Issuance(issuance_session)) if issuance_session.is_in_authorization_state()
+            Some(Session::Issuance(issuance_session)) if issuance_session.session_state().is_authorization()
         ) {
             return Err(IssuanceError::SessionState);
         }
