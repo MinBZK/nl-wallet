@@ -1637,11 +1637,17 @@ mod tests {
 
         assert!(wallet.session.is_none());
 
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(move |_| Ok(()));
+
         wallet.issuance_discovery.expect_start_sync().return_once(|| {
             let mut session = MockAuthorizationSession::new();
             session
                 .expect_get_auth_url()
                 .return_const(Url::parse(AUTH_URL).unwrap());
+            session.expect_get_state().return_const("some_state".to_string());
             Ok(IssuanceFlow::AuthorizationCode {
                 authorization_session: session,
             })
