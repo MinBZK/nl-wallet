@@ -37,6 +37,7 @@
 pub mod confirmation;
 pub mod error;
 pub mod headers;
+pub mod jades_b_b;
 pub mod jwk;
 pub mod jwt;
 pub mod nonce;

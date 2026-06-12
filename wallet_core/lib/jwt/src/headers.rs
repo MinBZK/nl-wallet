@@ -166,6 +166,11 @@ impl HeaderWithX5c {
 }
 
 impl<H> HeaderWithX5c<H> {
+    /// Construct a `HeaderWithX5c<H>` from an arbitrary inner header type and a certificate chain.
+    pub fn new(inner: H, x5c: VecNonEmpty<BorrowingCertificate>) -> Self {
+        HeaderWithX5c { header: inner, x5c }
+    }
+
     pub fn inner(&self) -> &H {
         &self.header
     }

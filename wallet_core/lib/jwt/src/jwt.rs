@@ -420,6 +420,15 @@ impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithX5c> {
         let header = HeaderWithX5c::from_certs(vec_nonempty![keypair.certificate().to_owned()]);
         SignedJwt::sign_with_header(header, payload, keypair.private_key()).await
     }
+
+    pub async fn sign_with_header_and_certificate<K: EcdsaKey, H: Serialize + Into<Header>>(
+        payload: &T,
+        header: H,
+        keypair: &KeyPair<K>,
+    ) -> Result<SignedJwt<T, HeaderWithX5c<H>>, JwtError> {
+        let header = HeaderWithX5c::new(header, vec_nonempty![keypair.certificate().to_owned()]);
+        SignedJwt::sign_with_header(header, payload, keypair.private_key()).await
+    }
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithJwk> {
