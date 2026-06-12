@@ -172,7 +172,7 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+    let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
     let trust_anchors = TrustAnchors::from(&ca);
     let wia_keypair = ca.generate_wia_mock().unwrap();
 

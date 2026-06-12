@@ -203,7 +203,9 @@ impl CommandExtension for Command {
         issuer_auth_json: &Path,
         file_prefix: &Path,
     ) -> &mut Self {
-        self.arg("issuer")
+        self.arg("cert")
+            .arg("--type")
+            .arg("issuer")
             .arg("--ca-key-file")
             .arg(ca_key)
             .arg("--ca-crt-file")
@@ -223,7 +225,9 @@ impl CommandExtension for Command {
         rp_auth_json: &Path,
         file_prefix: &Path,
     ) -> &mut Self {
-        self.arg("reader")
+        self.arg("cert")
+            .arg("--type")
+            .arg("reader")
             .arg("--ca-key-file")
             .arg(ca_key)
             .arg("--ca-crt-file")
@@ -237,7 +241,9 @@ impl CommandExtension for Command {
     }
 
     fn generate_tsl_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
-        self.arg("tsl")
+        self.arg("cert")
+            .arg("--type")
+            .arg("tsl")
             .arg("--ca-key-file")
             .arg(ca_key)
             .arg("--ca-crt-file")
@@ -256,7 +262,9 @@ impl CommandExtension for Command {
         issuer_auth_json: &Path,
         file_prefix: &Path,
     ) -> &mut Self {
-        self.arg("issuer-cert")
+        self.arg("cert-pub")
+            .arg("--type")
+            .arg("issuer")
             .arg("--public-key-file")
             .arg(pk)
             .arg("--ca-key-file")
@@ -279,7 +287,9 @@ impl CommandExtension for Command {
         rp_auth_json: &Path,
         file_prefix: &Path,
     ) -> &mut Self {
-        self.arg("reader-cert")
+        self.arg("cert-pub")
+            .arg("--type")
+            .arg("reader")
             .arg("--public-key-file")
             .arg(pk)
             .arg("--ca-key-file")
@@ -295,7 +305,9 @@ impl CommandExtension for Command {
     }
 
     fn generate_tsl_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
-        self.arg("tsl-cert")
+        self.arg("cert-pub")
+            .arg("--type")
+            .arg("tsl")
             .arg("--public-key-file")
             .arg(pk)
             .arg("--ca-key-file")
@@ -751,7 +763,7 @@ fn regenerating_ca() -> Result<()> {
 }
 
 #[test]
-fn regenerating_mdl() -> Result<()> {
+fn regenerating_cert() -> Result<()> {
     let temp = TempDir::new()?;
     let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
 
@@ -792,106 +804,6 @@ fn regenerating_mdl() -> Result<()> {
     // Regenerate issuer key pair should succeed with force
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .arg("--force")
-        .assert()
-        .success();
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-#[test]
-fn regenerating_rp_auth() -> Result<()> {
-    let temp = TempDir::new()?;
-    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
-
-    // Generate ca and assert success
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_ca(&ca_prefix)
-        .assert()
-        .success();
-
-    let (rp_auth_prefix, rp_auth_crt, rp_auth_key) = keypair_paths(&temp, "test-reader-auth-kp");
-    let rp_auth_json = temp.child("test-reader-auth.json");
-
-    // Generate reader JSON input file
-    rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
-
-    // Generate reader key pair and assert success
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .assert()
-        .success();
-
-    // Regenerate reader key pair should fail on key
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_file_already_exists(&rp_auth_key)?);
-
-    // Regenerate reader key pair should fail on crt when key is deleted
-    std::fs::remove_file(&rp_auth_key)?;
-
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_file_already_exists(&rp_auth_crt)?);
-
-    // Regenerate reader key pair should succeed with force
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .arg("--force")
-        .assert()
-        .success();
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-#[test]
-fn regenerating_tsl() -> Result<()> {
-    let temp = TempDir::new()?;
-    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
-
-    // Generate ca and assert success
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_ca(&ca_prefix)
-        .assert()
-        .success();
-
-    let (tsl_prefix, tsl_crt, tsl_key) = keypair_paths(&temp, "test-tsl-kp");
-
-    // Generate reader key pair and assert success
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
-        .assert()
-        .success();
-
-    // Regenerate reader key pair should fail on key
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_file_already_exists(&tsl_key)?);
-
-    // Regenerate reader key pair should fail on crt when key is deleted
-    std::fs::remove_file(&tsl_key)?;
-
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_file_already_exists(&tsl_crt)?);
-
-    // Regenerate reader key pair should succeed with force
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
         .arg("--force")
         .assert()
         .success();
@@ -1138,102 +1050,6 @@ fn missing_input_files_reader_pubkey() -> Result<()> {
     // Generate reader_auth should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_missing_public_key_file(&public_key_file));
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-fn setup_tsl_files(temp: &TempDir) -> (ChildPath, ChildPath, ChildPath) {
-    let (ca_prefix, ca_crt, ca_key) = keypair_paths(temp, "test-ca");
-    let (tsl_prefix, _tsl_crt, _tsl_key) = keypair_paths(temp, "test-tls-kp");
-
-    // Generate ca
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_ca(&ca_prefix)
-        .arg("--force")
-        .assert()
-        .success();
-
-    (ca_crt, ca_key, tsl_prefix)
-}
-
-fn setup_tsl_pubkey_files(temp: &TempDir) -> (ChildPath, ChildPath, ChildPath, ChildPath) {
-    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(temp);
-
-    let public_key_path = public_key_path(temp, "test-tslh-crt");
-    generate_public_key(&public_key_path);
-
-    (public_key_path, ca_crt, ca_key, tsl_prefix)
-}
-
-#[test]
-fn missing_input_files_tsl() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(&temp);
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate reader should fail on missing CA key
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (ca_crt, ca_key, tsl_prefix) = setup_tsl_files(&temp);
-    std::fs::remove_file(&ca_crt)?;
-
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-#[test]
-fn missing_input_files_tsl_pubkey() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp);
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate reader should fail on missing CA key
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_cert(&public_key_file, &ca_crt, &ca_key, &tsl_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp);
-    std::fs::remove_file(&ca_crt)?;
-
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_cert(&public_key_file, &ca_crt, &ca_key, &tsl_prefix)
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Setup files without public key file
-    let (public_key_file, ca_crt, ca_key, tsl_prefix) = setup_tsl_pubkey_files(&temp);
-    std::fs::remove_file(&public_key_file)?;
-
-    // Generate reader_auth should fail when missing JSON file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_tsl_cert(&public_key_file, &ca_crt, &ca_key, &tsl_prefix)
         .assert()
         .failure()
         .stderr(predicate_missing_public_key_file(&public_key_file));

@@ -1106,7 +1106,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let key_pair = generate_reader_mock_with_registration(&ca, ReaderRegistration::new_mock()).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&ca, &ReaderRegistration::new_mock()).unwrap();
         let reader_certificate = key_pair.certificate().clone();
 
         // When the session is in the DisclosureProposed state (the reader sent a device request),
@@ -1220,7 +1220,7 @@ mod tests {
         let (doc_type, claims) = items_request.clone().into_doctype_and_claims();
         reader_registration.authorized_attributes = HashMap::from_iter([(doc_type, claims.collect_vec())]);
 
-        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, &reader_registration).unwrap();
 
         let verifier_certificate = VerifierCertificate::try_new(key_pair.certificate().to_owned())
             .unwrap()
@@ -1553,7 +1553,7 @@ mod tests {
 
         let session_transcript = qr_session_transcript(device_engagement);
 
-        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, &reader_registration).unwrap();
         let doc_requests = join_all(
             items_requests
                 .into_iter()
@@ -1688,7 +1688,7 @@ mod tests {
         reader_registration.authorized_attributes =
             HashMap::from_iter([(registered_doc_type, registered_claims.collect_vec())]);
 
-        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, &reader_registration).unwrap();
         let cose_key: CoseKey = (&key_pair.verifying_key().await.unwrap()).try_into().unwrap();
         let session_transcript = SessionTranscript::new_qr(cose_key, None);
         let doc_request = create_doc_request(requested_photo_id_items_request, &session_transcript, &key_pair).await;
@@ -1778,8 +1778,8 @@ mod tests {
             });
 
         // Create two different key pairs from the same CA, so that the resulting certificates differ.
-        let key_pair1 = generate_reader_mock_with_registration(&READER_CA, reader_registration.clone()).unwrap();
-        let key_pair2 = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let key_pair1 = generate_reader_mock_with_registration(&READER_CA, &reader_registration).unwrap();
+        let key_pair2 = generate_reader_mock_with_registration(&READER_CA, &reader_registration).unwrap();
 
         let session_transcript = qr_session_transcript(None);
 
@@ -1806,7 +1806,7 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
         // do not add any authorized attributes to the registration
 
-        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, &reader_registration).unwrap();
         let cose_key: CoseKey = (&key_pair.verifying_key().await.unwrap()).try_into().unwrap();
         let session_transcript = SessionTranscript::new_qr(cose_key, None);
 
@@ -1839,7 +1839,7 @@ mod tests {
         let (doc_type, claims) = items_request.clone().into_doctype_and_claims();
         reader_registration.authorized_attributes = HashMap::from_iter([(doc_type, claims.collect_vec())]);
 
-        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, &reader_registration).unwrap();
 
         let verifier_certificate = VerifierCertificate::try_new(key_pair.certificate().to_owned())
             .unwrap()

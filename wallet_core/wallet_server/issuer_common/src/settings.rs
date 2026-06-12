@@ -636,6 +636,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
@@ -659,7 +660,7 @@ mod tests {
     use crate::settings::IssuerSettingsValidationError;
 
     fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
-        let keypair = generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock())
+        let keypair = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock())
             .expect("generate issuer cert failed")
             .into();
 
@@ -850,8 +851,7 @@ mod tests {
         let status_list_keypair = issuer_ca
             .generate_key_pair(
                 "different.example.com",
-                CertificateUsage::OAuthStatusSigning,
-                Default::default(),
+                CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
             )
             .expect("generate tsl cert failed");
 

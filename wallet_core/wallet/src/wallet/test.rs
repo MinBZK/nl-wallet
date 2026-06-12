@@ -155,7 +155,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+    let issuance_key = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
     let trust_anchor = ca.to_borrowing_trust_anchor();
 
     IssuerKey {
@@ -669,7 +669,7 @@ pub fn mock_issuance_session(
 pub fn mock_verifier_certificate() -> VerifierCertificate {
     let ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_registration = ReaderRegistration::new_mock();
-    let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
+    let key_pair = generate_reader_mock_with_registration(&ca, &reader_registration).unwrap();
 
     VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap()
 }

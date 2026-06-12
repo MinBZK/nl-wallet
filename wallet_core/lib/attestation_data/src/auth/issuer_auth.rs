@@ -15,6 +15,19 @@ pub struct IssuerRegistration {
     pub organization: Box<Organization>,
 }
 
+impl IssuerRegistration {
+    #[cfg(feature = "mock")]
+    pub fn to_certificate_configuration(
+        &self,
+    ) -> Result<crypto::x509::CertificateConfiguration, crypto::x509::CertificateError> {
+        let custom_ext = self.to_custom_ext()?;
+        Ok(crypto::x509::CertificateConfiguration::with_usage_and_extension(
+            crypto::x509::CertificateUsage::Mdl,
+            custom_ext,
+        ))
+    }
+}
+
 impl BorrowingCertificateExtension for IssuerRegistration {
     /// oid: 2.1.123.2
     /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
@@ -26,17 +39,6 @@ impl BorrowingCertificateExtension for IssuerRegistration {
 impl From<IssuerRegistration> for CertificateType {
     fn from(source: IssuerRegistration) -> Self {
         CertificateType::Mdl(source)
-    }
-}
-
-#[cfg(any(test, feature = "generate"))]
-impl TryFrom<IssuerRegistration> for Vec<rcgen::CustomExtension> {
-    type Error = crypto::x509::CertificateError;
-
-    fn try_from(value: IssuerRegistration) -> Result<Self, Self::Error> {
-        let certificate_type = CertificateType::from(value);
-        let result = certificate_type.try_into()?;
-        Ok(result)
     }
 }
 

@@ -353,7 +353,7 @@ function generate_pid_issuer_key_pair {
 
     # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca issuer-cert \
+        --bin wallet_ca cert-pub --type issuer \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
@@ -373,7 +373,7 @@ function generate_pid_issuer_tsl_key_pair {
 
     # Generate a certificate for the public key including issuer authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca tsl \
+        --bin wallet_ca cert --type tsl \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "pid.example.com" \
@@ -398,7 +398,7 @@ function generate_wallet_provider_tsl_key_pair {
 
     # Generate a certificate for the public key including issuer authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca tsl-cert \
+        --bin wallet_ca cert-pub --type tsl \
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
@@ -416,7 +416,7 @@ function generate_wallet_provider_tsl_key_pair {
 # $1 - ISSUER_NAME: Name of the Issuer
 function generate_demo_issuer_key_pairs {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca reader \
+        --bin wallet_ca cert --type reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
         --common-name "${SERVICES_HOST}" \
@@ -439,7 +439,7 @@ function generate_demo_issuer_key_pairs {
 # $1 - ISSUER_NAME: Name of the Issuer
 function generate_demo_issuer_issuance_key_pairs {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca issuer \
+        --bin wallet_ca cert --type issuer \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${SERVICES_HOST}" \
@@ -448,7 +448,7 @@ function generate_demo_issuer_issuance_key_pairs {
         --force
 
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca tsl \
+        --bin wallet_ca cert --type tsl \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${SERVICES_HOST}" \
@@ -475,7 +475,7 @@ function generate_demo_relying_party_key_pair {
     local relying_party_name="$1"
 
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca reader \
+        --bin wallet_ca cert --type reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
         --common-name "${SERVICES_HOST}" \
@@ -503,7 +503,7 @@ function generate_relying_party_hsm_key_pair {
 
     # Generate a certificate for the public key including reader authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-          --bin wallet_ca reader-cert \
+          --bin wallet_ca cert-pub --type reader \
           --public-key-file "${TARGET_DIR}/$2/$1.pub.pem" \
           --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
           --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \

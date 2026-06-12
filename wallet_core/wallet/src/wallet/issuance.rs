@@ -857,7 +857,6 @@ mod tests {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
-    use attestation_data::x509::CertificateType;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Duration;
@@ -1524,8 +1523,8 @@ mod tests {
             .collect_vec();
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let cert_type = CertificateType::from(IssuerRegistration::new_mock());
-        let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
+        let cert_config = IssuerRegistration::new_mock().to_certificate_configuration().unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", cert_config).unwrap();
 
         let (payload, stored_type_metadata) = create_example_credential_payload(&time_generator, attestation_type);
         let sd_jwt = payload
@@ -2247,8 +2246,8 @@ mod tests {
     #[test]
     fn test_match_preview_and_stored_attestations() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let cert_type = CertificateType::from(IssuerRegistration::new_mock());
-        let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
+        let cert_config = IssuerRegistration::new_mock().to_certificate_configuration().unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", cert_config).unwrap();
 
         let time_generator = MockTimeGenerator::default();
 

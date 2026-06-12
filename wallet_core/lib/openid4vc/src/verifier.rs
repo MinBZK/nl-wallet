@@ -1684,7 +1684,7 @@ mod tests {
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::new(
                     UseCaseData::new(
-                        generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+                        generate_reader_mock_with_registration(&ca, &reader_registration).unwrap(),
                         session_type_return_url,
                     ),
                     None,
@@ -1697,7 +1697,7 @@ mod tests {
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::new(
                     UseCaseData::new(
-                        generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
+                        generate_reader_mock_with_registration(&ca, &reader_registration).unwrap(),
                         session_type_return_url,
                     ),
                     None,
@@ -2155,7 +2155,7 @@ mod tests {
             DISCLOSURE_USECASE.to_string(),
             WalletInitiatedUseCase {
                 data: UseCaseData {
-                    key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+                    key_pair: generate_reader_mock_with_registration(&ca, &reader_registration).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".into(),
                 },

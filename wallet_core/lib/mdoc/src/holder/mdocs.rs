@@ -123,6 +123,7 @@ mod test {
     use crypto::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateUsage;
     use futures::FutureExt;
     use http_utils::urls::HttpsUri;
@@ -167,7 +168,10 @@ mod test {
             let time = time_generator.generate();
 
             let issuer_key_pair = ca
-                .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+                .generate_key_pair(
+                    ISSUANCE_CERT_CN,
+                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                )
                 .unwrap();
 
             let device_public_key = &device_key.verifying_key().await.unwrap();

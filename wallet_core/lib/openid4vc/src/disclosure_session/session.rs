@@ -287,6 +287,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateUsage;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -414,7 +415,10 @@ mod tests {
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_key_pair = ca
-            .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                ISSUANCE_CERT_CN,
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
         let sd_jwt_key = MockRemoteEcdsaKey::new_random("sd_jwt_key".to_string());
         let sd_jwt_public_key = *sd_jwt_key.verifying_key();

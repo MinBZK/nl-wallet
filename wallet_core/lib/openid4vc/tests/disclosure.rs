@@ -35,6 +35,7 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
@@ -255,13 +256,16 @@ async fn disclosure_using_message_client(
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock_with_registration(
         &ca,
-        ReaderRegistration::mock_from_dcql_query(&test_credentials.to_dcql_query(formats.iter().copied())),
+        &ReaderRegistration::mock_from_dcql_query(&test_credentials.to_dcql_query(formats.iter().copied())),
     )
     .unwrap();
 
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = issuer_ca
-        .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
+        .generate_key_pair(
+            PID_ISSUER_CERT_CN,
+            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+        )
         .unwrap();
 
     // Initialize the "wallet"
@@ -1050,7 +1054,10 @@ where
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     let issuer_keypair = issuer_ca
-        .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+        .generate_key_pair(
+            ISSUANCE_CERT_CN,
+            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+        )
         .unwrap();
 
     // Initialize the verifier
@@ -1058,7 +1065,7 @@ where
     let dcql_query = test_credentials.to_dcql_query([Format::SdJwt]);
     let reader_registration = ReaderRegistration::mock_from_dcql_query(&dcql_query);
     let use_case = WalletInitiatedUseCase::new(
-        generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+        generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap(),
         SessionTypeReturnUrl::SameDevice,
         dcql_query.try_into().unwrap(),
         "https://example.com/redirect_uri".parse().unwrap(),
@@ -1096,7 +1103,10 @@ fn setup_verifier(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     let issuer_keypair = issuer_ca
-        .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
+        .generate_key_pair(
+            PID_ISSUER_CERT_CN,
+            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+        )
         .unwrap();
 
     // Initialize the verifier
@@ -1106,7 +1116,7 @@ fn setup_verifier(
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
                 UseCaseData::new(
-                    generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+                    generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap(),
                     SessionTypeReturnUrl::SameDevice,
                 ),
                 None,
@@ -1119,7 +1129,7 @@ fn setup_verifier(
             ALL_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
                 UseCaseData::new(
-                    generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
+                    generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap(),
                     SessionTypeReturnUrl::Both,
                 ),
                 None,

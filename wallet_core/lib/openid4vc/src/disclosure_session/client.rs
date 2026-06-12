@@ -302,6 +302,7 @@ mod tests {
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificateExtension;
+    use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateUsage;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -530,7 +531,10 @@ mod tests {
             }
             Format::SdJwt => {
                 let issuer_key_pair = ca
-                    .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+                    .generate_key_pair(
+                        ISSUANCE_CERT_CN,
+                        CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                    )
                     .unwrap();
                 let verified_sd_jwt =
                     SignedSdJwt::pid_example(&issuer_key_pair, attestation_key.verifying_key()).into_verified();

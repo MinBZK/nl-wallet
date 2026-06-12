@@ -563,7 +563,8 @@ export IDENTIFIER=foocorp
 mkdir -p "${CA_DIR}" "${TARGET_DIR}"
 
 # Create the issuer certificate using wallet_ca.
-cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" issuer \
+cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
+    --type issuer \
     --ca-key-file "${CA_DIR}/ca.${IDENTIFIER}.key.pem" \
     --ca-crt-file "${CA_DIR}/ca.${IDENTIFIER}.crt.pem" \
     --common-name "issuer.${IDENTIFIER}" \
@@ -571,7 +572,8 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" issuer \
     --file-prefix "${TARGET_DIR}/issuer.${IDENTIFIER}"
 
 # Create the reader certificate using wallet_ca.
-cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" reader \
+cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
+    --type reader \
     --ca-key-file "${CA_DIR}/ca.${IDENTIFIER}.key.pem" \
     --ca-crt-file "${CA_DIR}/ca.${IDENTIFIER}.crt.pem" \
     --common-name "reader.${IDENTIFIER}" \
@@ -579,7 +581,8 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" reader \
     --file-prefix "${TARGET_DIR}/reader.${IDENTIFIER}"
 
 # Create the tsl certificate using wallet_ca.
-cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" tsl \
+cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
+    --type tsl \
     --ca-key-file "${CA_DIR}/ca.issuer.key.pem" \
     --ca-crt-file "${CA_DIR}/ca.issuer.crt.pem" \
     --common-name "issuer.${IDENTIFIER}" \
