@@ -41,6 +41,8 @@ create-deployment-ont:
       artifacts: false
     - job: build-demo-issuer-image
       artifacts: false
+    - job: build-demo-index-image
+      artifacts: false
     - job: build-verification-server-image
       artifacts: false
     - job: build-verification-server-migrations-image
@@ -62,6 +64,8 @@ create-deployment-ont:
     - job: build-gba-fetch-image
       artifacts: false
     - job: build-gba-fetch-frontend-image
+      artifacts: false
+    - job: build-revocation-portal-image
       artifacts: false
   variables:
     PARENT_PIPELINE_ID: $CI_PIPELINE_ID
