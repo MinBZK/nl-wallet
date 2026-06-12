@@ -1,3 +1,4 @@
+import { buffer as consumeBuffer } from "node:stream/consumers"
 import { promisify } from "node:util"
 
 import { BufferResultFile } from "@allurereport/reader-api"
@@ -41,28 +42,14 @@ export async function loadFromZip(path: string, callback: (resultFile: ZipResult
       } else {
         try {
           const readStream = await openReadStream(entry)
-
-          // Reading from the async iterator does not seem to work for large files
-          const buffers: Buffer[] = []
-          readStream.on("data", (chunk) => {
-            buffers.push(chunk)
-          })
-          readStream.on("end", async () => {
-            const buffer = Buffer.concat(buffers)
-            await callback(new ZipResultFile(path, buffer, entry.fileName))
-            zipFile.readEntry()
-          })
-
-          readStream.on("err", (err) => {
-            error = true
-            zipFile.close()
-            reject(err)
-          })
+          const buffer = await consumeBuffer(readStream)
+          await callback(new ZipResultFile(path, buffer, entry.fileName))
         } catch (err) {
           error = true
           zipFile.close()
-          reject(err)
+          return reject(err)
         }
+        zipFile.readEntry()
       }
     })
   })
