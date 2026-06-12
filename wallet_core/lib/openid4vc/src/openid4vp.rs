@@ -1002,7 +1002,7 @@ impl VpAuthorizationResponse {
                 //         there is a matching disclosed attestation.
                 let (id, mut attestations) = disclosed_attestations.remove_entry(credential_request.id()).unwrap();
 
-                for attestation in attestations.iter_mut() {
+                for attestation in &mut attestations {
                     attestation.attributes.prune(credential_request.claim_paths());
                 }
 

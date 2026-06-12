@@ -22,7 +22,7 @@ async fn test_pre_authorized_code_issuance() {
     let documents = vec_nonempty![IssuableDocument::new_mock_degree("BSc".to_string())];
     let session_token = issuance_data
         .issuance_server_issuer
-        .new_session(documents)
+        .new_preauthorized_session(documents)
         .await
         .expect("should create pre-authorized session");
 
@@ -30,7 +30,7 @@ async fn test_pre_authorized_code_issuance() {
     let config_ids = vec_nonempty![DEGREE_CREDENTIAL_CONFIG_ID.to_string().into()];
     let credential_offer = CredentialOffer::new_pre_authorized(
         issuance_data.issuance_server.public.clone(),
-        config_ids,
+        config_ids.into(),
         session_token.into(),
     );
     let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();

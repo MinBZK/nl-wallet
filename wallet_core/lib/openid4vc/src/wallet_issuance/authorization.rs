@@ -13,9 +13,10 @@ use crate::ErrorResponse;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
@@ -87,7 +88,8 @@ pub enum OAuthError {
 #[derive(Debug)]
 pub struct HttpAuthorizationSession<P = S256PkcePair> {
     credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
-    issuer_metadata: IssuerMetadata,
+    credential_issuer: IssuerIdentifier,
+    issuer_endpoints: IssuerEndpoints,
     oauth_metadata: AuthorizationServerMetadata,
     http_client: HttpJsonClient,
 
@@ -101,7 +103,8 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct HttpAuthorizationSessionData {
     credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
-    issuer_metadata: IssuerMetadata,
+    credential_issuer: IssuerIdentifier,
+    issuer_endpoints: IssuerEndpoints,
     oauth_metadata: AuthorizationServerMetadata,
     auth_url: Url,
     client_id: String,
@@ -118,7 +121,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     pub(super) async fn create(
         http_client: HttpJsonClient,
         credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
-        issuer_metadata: IssuerMetadata,
+        credential_issuer: IssuerIdentifier,
+        issuer_endpoints: IssuerEndpoints,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
         redirect_uri: Url,
@@ -127,7 +131,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
-        let par_request = VciAuthorizationRequest::for_par(
+        let par_request = VciAuthorizationRequest::for_auth_code(
             client_id.clone(),
             redirect_uri.clone(),
             state.clone(),
@@ -170,7 +174,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 
         Ok(Self {
             credential_configurations,
-            issuer_metadata,
+            credential_issuer,
+            issuer_endpoints,
             oauth_metadata,
             http_client,
             auth_url,
@@ -223,7 +228,8 @@ impl HttpAuthorizationSession {
     pub fn restore(http_client: HttpJsonClient, data: HttpAuthorizationSessionData) -> Self {
         Self {
             credential_configurations: data.credential_configurations,
-            issuer_metadata: data.issuer_metadata,
+            credential_issuer: data.credential_issuer,
+            issuer_endpoints: data.issuer_endpoints,
             oauth_metadata: data.oauth_metadata,
             http_client,
             auth_url: data.auth_url,
@@ -250,7 +256,8 @@ impl AuthorizationSession for HttpAuthorizationSession {
     fn persist(&self) -> Self::Persisted {
         HttpAuthorizationSessionData {
             credential_configurations: self.credential_configurations.clone(),
-            issuer_metadata: self.issuer_metadata.clone(),
+            credential_issuer: self.credential_issuer.clone(),
+            issuer_endpoints: self.issuer_endpoints.clone(),
             oauth_metadata: self.oauth_metadata.clone(),
             auth_url: self.auth_url.clone(),
             client_id: self.client_id.clone(),
@@ -280,8 +287,9 @@ impl AuthorizationSession for HttpAuthorizationSession {
         HttpIssuanceSession::create(
             message_client,
             self.credential_configurations,
-            self.issuer_metadata,
-            self.oauth_metadata,
+            self.credential_issuer,
+            self.issuer_endpoints,
+            &self.oauth_metadata.token_endpoint,
             token_request,
             trust_anchors,
         )
@@ -343,12 +351,12 @@ mod tests {
         HttpAuthorizationSession {
             credential_configurations: issuer_metadata
                 .credential_configurations_supported
-                .iter()
-                .map(|(id, config)| (id.clone(), config.clone()))
+                .into_iter()
                 .collect_vec()
                 .try_into()
                 .unwrap(),
-            issuer_metadata,
+            credential_issuer: issuer_metadata.credential_issuer,
+            issuer_endpoints: issuer_metadata.endpoints,
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -437,12 +445,12 @@ mod tests {
             HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             issuer_metadata
                 .credential_configurations_supported
-                .iter()
-                .map(|(id, config)| (id.clone(), config.clone()))
+                .into_iter()
                 .collect_vec()
                 .try_into()
                 .unwrap(),
-            issuer_metadata,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
             oauth_metadata,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -548,12 +556,12 @@ mod tests {
         let persisted = HttpAuthorizationSessionData {
             credential_configurations: issuer_metadata
                 .credential_configurations_supported
-                .iter()
-                .map(|(id, config)| (id.clone(), config.clone()))
+                .into_iter()
                 .collect_vec()
                 .try_into()
                 .unwrap(),
-            issuer_metadata,
+            credential_issuer: issuer_metadata.credential_issuer,
+            issuer_endpoints: issuer_metadata.endpoints,
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             auth_url: ISSUER_URL.parse().unwrap(),
             client_id: CLIENT_ID.to_string(),
@@ -563,9 +571,10 @@ mod tests {
         };
 
         let session = HttpAuthorizationSession {
-            credential_configurations: persisted.credential_configurations.clone(),
-            issuer_metadata: persisted.issuer_metadata.clone(),
-            oauth_metadata: persisted.oauth_metadata.clone(),
+            credential_configurations: persisted.credential_configurations,
+            credential_issuer: persisted.credential_issuer,
+            issuer_endpoints: persisted.issuer_endpoints,
+            oauth_metadata: persisted.oauth_metadata,
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
             client_id: persisted.client_id.clone(),

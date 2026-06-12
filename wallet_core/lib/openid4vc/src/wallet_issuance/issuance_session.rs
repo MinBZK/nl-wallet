@@ -11,6 +11,7 @@ use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
+use futures::try_join;
 use http_utils::reqwest::HttpJsonClient;
 use itertools::Itertools;
 use jwt::wia::WiaDisclosure;
@@ -54,11 +55,11 @@ use crate::credential::CredentialResponses;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
+use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::metadata::issuer_metadata::IssuerMetadata;
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
@@ -328,11 +329,12 @@ impl HttpVcMessageClient {
 #[derive(Debug)]
 struct IssuanceState {
     access_token: AccessToken,
+    credential_issuer: IssuerIdentifier,
+    issuer_endpoints: IssuerEndpoints,
     credential_previews: VecNonEmpty<CredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
     type_metadata: HashMap<CredentialConfigurationId, IssuanceTypeMetadata>,
     issuer_registration: IssuerRegistration,
-    issuer_metadata: IssuerMetadata,
     #[debug(skip)]
     dpop_signing_key: SigningKey,
     dpop_nonce: Option<String>,
@@ -378,48 +380,38 @@ fn credential_request_types_from_preview(
 }
 
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
+    #[expect(clippy::too_many_arguments, reason = "constructor method")]
     pub(crate) async fn create(
         message_client: H,
         credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
-        issuer_metadata: IssuerMetadata,
-        oauth_metadata: AuthorizationServerMetadata,
+        credential_issuer: IssuerIdentifier,
+        issuer_endpoints: IssuerEndpoints,
+        token_endpoint: &Url,
         token_request: TokenRequest,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self, WalletIssuanceError> {
-        let credential_preview_endpoint = issuer_metadata
+        let credential_preview_endpoint = issuer_endpoints
             .credential_preview_endpoint
             .as_ref()
-            .map(|url| url.as_ref().as_ref())
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
-        let token_endpoint = oauth_metadata.token_endpoint;
         let dpop_signing_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
         let (token_response, dpop_nonce) = message_client
-            .request_token(&token_endpoint, &token_request, &dpop_header)
+            .request_token(token_endpoint, &token_request, &dpop_header)
             .await?;
 
-        // Fetch type metadata
-        let type_metadata =
-            Self::fetch_type_metadata(&credential_configurations, &issuer_metadata, &message_client).await?;
-
-        // Call the credential preview endpoint to retrieve the credential previews.
-        let preview_request = CredentialPreviewRequest::CredentialConfigurationIds {
-            credential_configuration_ids: credential_configurations
-                .into_nonempty_iter()
-                .map(|(id, _)| id)
-                .collect(),
-        };
-        let preview_response = message_client
-            .request_credential_preview(
-                credential_preview_endpoint,
-                &preview_request,
+        // Request preview and fetch type metadata
+        let (type_metadata, credential_previews) = try_join!(
+            Self::fetch_type_metadata(&credential_configurations, &credential_issuer, &message_client),
+            Self::request_previews(
+                credential_configurations.nonempty_iter().map(|(id, _)| id.clone()),
+                credential_preview_endpoint.as_url(),
                 &token_response.access_token,
+                &message_client
             )
-            .await?;
-
-        let credential_previews: VecNonEmpty<CredentialPreview> = preview_response.credential_previews;
+        )?;
 
         let issuer_registration = credential_previews
             .iter()
@@ -443,11 +435,12 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let session_state = IssuanceState {
             access_token: token_response.access_token,
+            credential_issuer,
+            issuer_endpoints,
             credential_previews,
             credential_request_types,
             type_metadata,
             issuer_registration,
-            issuer_metadata,
             dpop_signing_key,
             dpop_nonce,
         };
@@ -460,9 +453,26 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         Ok(issuance_client)
     }
 
+    async fn request_previews(
+        credential_configuration_ids: impl IntoNonEmptyIterator<Item = CredentialConfigurationId>,
+        preview_endpoint: &Url,
+        access_token: &AccessToken,
+        message_client: &H,
+    ) -> Result<VecNonEmpty<CredentialPreview>, WalletIssuanceError> {
+        let preview_request = CredentialPreviewRequest::CredentialConfigurationIds {
+            credential_configuration_ids: credential_configuration_ids.into_nonempty_iter().collect(),
+        };
+
+        let preview_response = message_client
+            .request_credential_preview(preview_endpoint, &preview_request, access_token)
+            .await?;
+
+        Ok(preview_response.credential_previews)
+    }
+
     async fn fetch_type_metadata(
         credential_configurations: impl IntoIterator<Item = &(CredentialConfigurationId, CredentialConfiguration)>,
-        issuer_metadata: &IssuerMetadata,
+        credential_issuer: &IssuerIdentifier,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, IssuanceTypeMetadata>, WalletIssuanceError> {
         // Get all unique type metadata uris
@@ -478,10 +488,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         .to_owned();
 
                     // Required by our own profile
-                    if !uri.has_same_scheme_and_host(issuer_metadata.credential_issuer.as_issuer_url()) {
+                    if !uri.has_same_scheme_and_host(credential_issuer.as_issuer_url()) {
                         return Err(WalletIssuanceError::HostMismatchWithIssuerIdentifier(
                             uri,
-                            issuer_metadata.credential_issuer.clone().into(),
+                            credential_issuer.clone().into(),
                         ));
                     }
 
@@ -538,14 +548,14 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     where
         W: IssuanceWscd,
     {
-        let issuer_metadata = &self.session_state.issuer_metadata;
+        let issuer_endpoints = &self.session_state.issuer_endpoints;
         let key_count = self.session_state.credential_request_types.len();
 
         // Determine the correct credential endpoint URL, to be used below.
         let credential_endpoint_url = if key_count.get() == 1 {
-            &issuer_metadata.credential_endpoint
+            &issuer_endpoints.credential_endpoint
         } else {
-            issuer_metadata
+            issuer_endpoints
                 .batch_credential_endpoint
                 .as_ref()
                 .ok_or(WalletIssuanceError::NoBatchCredentialEndpoint)?
@@ -553,7 +563,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         .as_url();
 
         // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata.
-        let c_nonce = match issuer_metadata.nonce_endpoint.as_ref() {
+        let c_nonce = match issuer_endpoints.nonce_endpoint.as_ref() {
             None => None,
             Some(nonce_endpoint) => {
                 let (NonceResponse { c_nonce }, dpop_nonce) = self
@@ -570,12 +580,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             }
         };
 
-        let aud = self
-            .session_state
-            .issuer_metadata
-            .credential_issuer
-            .as_ref()
-            .to_string();
+        let aud = self.session_state.credential_issuer.as_ref().to_string();
 
         let issuance_data = wscd
             .perform_issuance(key_count, aud.clone(), c_nonce.clone())
@@ -727,7 +732,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
         let url = self
             .session_state
-            .issuer_metadata
+            .issuer_endpoints
             .batch_credential_endpoint
             .as_ref()
             .ok_or(WalletIssuanceError::NoBatchCredentialEndpoint)?
@@ -1012,6 +1017,7 @@ mod tests {
 
     use super::*;
     use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::metadata::well_known::WellKnownMetadata;
     use crate::preview::CredentialPreviewResponse;
@@ -1070,20 +1076,20 @@ mod tests {
                 })
             });
 
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
         let credential_configs = issuer_metadata
             .credential_configurations_supported
-            .iter()
-            .map(|(id, config)| (id.clone(), config.clone()))
+            .into_iter()
             .collect_vec()
             .try_into()
             .unwrap();
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
 
         HttpIssuanceSession::create(
             mock_msg_client,
             credential_configs,
-            issuer_metadata,
-            oauth_metadata,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
             trust_anchors,
         )
@@ -1231,8 +1237,7 @@ mod tests {
 
         let credential_configs: VecNonEmpty<_> = issuer_metadata
             .credential_configurations_supported
-            .iter()
-            .map(|(id, config)| (id.clone(), config.clone()))
+            .into_iter()
             .collect_vec()
             .try_into()
             .unwrap();
@@ -1280,8 +1285,9 @@ mod tests {
         let error = HttpIssuanceSession::create(
             mock_msg_client,
             credential_configs,
-            issuer_metadata,
-            oauth_metadata,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
             &TrustAnchors::from(&ca),
         )
@@ -1305,16 +1311,17 @@ mod tests {
         let config_id = credential_previews.first().config_id.clone();
         let mut issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, attestation_type, config_id.clone());
         if !has_nonce_endpoint {
-            issuer_metadata.nonce_endpoint = None;
+            issuer_metadata.endpoints.nonce_endpoint = None;
         }
 
         IssuanceState {
             access_token: "access_token".to_string().into(),
+            credential_issuer: issuer_metadata.credential_issuer,
+            issuer_endpoints: issuer_metadata.endpoints,
             credential_previews,
             credential_request_types,
             type_metadata: [(config_id, issuance_type_metadata)].into(),
             issuer_registration: IssuerRegistration::new_mock(),
-            issuer_metadata,
             dpop_signing_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
         }

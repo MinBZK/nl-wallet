@@ -2,6 +2,6 @@
 
 pub mod prelude;
 
-pub mod pkce_flow;
 pub mod proof_nonce;
 pub mod pushed_authorization_request;
+pub mod state_bridge;

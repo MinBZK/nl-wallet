@@ -3,7 +3,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
-use issuer_common::pkce_store::IssuerPkceStore;
 use openid4vc::issuer::WiaConfig;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
@@ -34,30 +33,37 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         wia_trust_anchors: settings.wia_trust_anchors,
     };
 
+    let wallet_redirect_uris = settings.wallet_redirect_uris;
+
     let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings)?;
     let brp_client = HttpBrpClient::new(settings.brp_server);
     let recovery_code_secret_key = SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?;
     let digid_client_id = settings.digid.client_id;
     let bsn_privkey = settings.digid.bsn_privkey;
 
+    let callback_base_url = settings.issuer_settings.public_url.as_base_url().clone();
+
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
-        .into_authorizing_issuer(hsm, Some(wia_config), |store_connection| {
+        .into_authorizing_issuer(hsm, Some(wia_config), wallet_redirect_uris, |store_connection| {
             UpstreamOidcAuthorizationCodeFlow::try_new(
                 brp_client,
                 &bsn_privkey,
                 digid_client_id,
                 digid_metadata_cache,
                 recovery_code_secret_key,
-                Arc::new(IssuerPkceStore::new(store_connection)),
+                store_connection,
+                &callback_base_url,
             )
         })
         .await?;
+
+    let authorizing_issuer = Arc::new(issuer);
 
     let health_checkers = health_checkers::boxed(hsm_checker)
         .into_iter()
         .chain(database_checkers.into_iter().map(|checker| Box::new(checker) as Box<_>));
 
     // This will block until the server shuts down.
-    server::serve(issuer, server_settings, serve_status_lists, health_checkers).await
+    server::serve(authorizing_issuer, server_settings, serve_status_lists, health_checkers).await
 }

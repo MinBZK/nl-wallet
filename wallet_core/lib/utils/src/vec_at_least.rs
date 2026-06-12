@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
@@ -160,16 +161,6 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
         self.0.iter_mut()
     }
-}
-
-impl<T, const N: usize> VecAtLeastN<T, N, false> {
-    pub fn insert(&mut self, index: usize, element: T) {
-        self.0.insert(index, element);
-    }
-
-    pub fn push(&mut self, e: T) {
-        self.0.push(e);
-    }
 
     pub fn nonempty_iter(&self) -> Iter<'_, T> {
         Iter { iter: self.0.iter() }
@@ -182,13 +173,23 @@ impl<T, const N: usize> VecAtLeastN<T, N, false> {
     }
 }
 
+impl<T, const N: usize> VecAtLeastN<T, N, false> {
+    pub fn insert(&mut self, index: usize, element: T) {
+        self.0.insert(index, element);
+    }
+
+    pub fn push(&mut self, e: T) {
+        self.0.push(e);
+    }
+}
+
 impl<A, const N: usize> Extend<A> for VecAtLeastN<A, N, false> {
     fn extend<T: IntoIterator<Item = A>>(&mut self, iter: T) {
         self.0.extend(iter);
     }
 }
 
-/// Should be used as the constructor for types where the uniqueness constraint is set.
+/// Should be used as the constructor for types where the uniqueness constraint is not set.
 impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, false> {
     type Error = VecAtLeastNError<T>;
 
@@ -218,6 +219,32 @@ where
         }
 
         Ok(vec_at_least)
+    }
+}
+
+/// Create a deduplicated VecNonEmptyUnique from a VecNonEmpty.
+///
+/// Note: only works for N=1 since for N > 1 we cannot maintain the guarantee that
+/// the vec is at least N because of the deduplication.
+impl<T: Eq + Hash> From<VecNonEmpty<T>> for VecNonEmptyUnique<T> {
+    fn from(value: VecNonEmpty<T>) -> Self {
+        let mut seen = HashSet::with_capacity(value.len().get());
+        let mask = value.iter().map(|item| seen.insert(item)).collect_vec();
+
+        Self(
+            value
+                .0
+                .into_iter()
+                .zip(mask)
+                .filter_map(|(item, keep)| keep.then_some(item))
+                .collect(),
+        )
+    }
+}
+
+impl<T, const N: usize> From<VecAtLeastN<T, N, true>> for VecAtLeastN<T, N, false> {
+    fn from(value: VecAtLeastN<T, N, true>) -> Self {
+        Self(value.0)
     }
 }
 
@@ -290,7 +317,7 @@ impl<'a, T> IntoIterator for IterMut<'a, T> {
     }
 }
 
-/// An owned non-empty iterator over values from an [`VecNonEmpty`].
+/// An owned non-empty iterator over values from an [`VecAtLeastN`].
 #[derive(Clone)]
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct IntoIter<T> {
@@ -315,7 +342,7 @@ impl<T: Debug> Debug for IntoIter<T> {
     }
 }
 
-impl<T> IntoNonEmptyIterator for VecNonEmpty<T> {
+impl<T, const N: usize, const UNIQUE: bool> IntoNonEmptyIterator for VecAtLeastN<T, N, UNIQUE> {
     type IntoNEIter = IntoIter<T>;
 
     fn into_nonempty_iter(self) -> Self::IntoNEIter {
@@ -325,7 +352,7 @@ impl<T> IntoNonEmptyIterator for VecNonEmpty<T> {
     }
 }
 
-impl<'a, T> IntoNonEmptyIterator for &'a VecNonEmpty<T> {
+impl<'a, T, const N: usize, const UNIQUE: bool> IntoNonEmptyIterator for &'a VecAtLeastN<T, N, UNIQUE> {
     type IntoNEIter = Iter<'a, T>;
 
     fn into_nonempty_iter(self) -> Self::IntoNEIter {
@@ -333,7 +360,7 @@ impl<'a, T> IntoNonEmptyIterator for &'a VecNonEmpty<T> {
     }
 }
 
-impl<T> IntoIterator for VecNonEmpty<T> {
+impl<T, const N: usize, const UNIQUE: bool> IntoIterator for VecAtLeastN<T, N, UNIQUE> {
     type Item = T;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -342,7 +369,7 @@ impl<T> IntoIterator for VecNonEmpty<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a VecNonEmpty<T> {
+impl<'a, T, const N: usize, const UNIQUE: bool> IntoIterator for &'a VecAtLeastN<T, N, UNIQUE> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;
 
@@ -351,7 +378,7 @@ impl<'a, T> IntoIterator for &'a VecNonEmpty<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a mut VecNonEmpty<T> {
+impl<'a, T, const N: usize, const UNIQUE: bool> IntoIterator for &'a mut VecAtLeastN<T, N, UNIQUE> {
     type Item = &'a mut T;
     type IntoIter = std::slice::IterMut<'a, T>;
 
@@ -365,8 +392,21 @@ impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
     where
         I: IntoNonEmptyIterator<Item = T>,
     {
-        // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
-        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>()).unwrap_or_else(|_| unreachable!())
+        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>())
+            // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
+            .unwrap_or_else(|_| panic!("NonEmptyIterator produces empty iterator"))
+    }
+}
+
+impl<T: Eq + Hash> FromNonEmptyIterator<T> for VecNonEmptyUnique<T> {
+    fn from_nonempty_iter<I>(iter: I) -> Self
+    where
+        I: IntoNonEmptyIterator<Item = T>,
+    {
+        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>())
+            // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
+            .unwrap_or_else(|_| panic!("NonEmptyIterator produces empty iterator"))
+            .into()
     }
 }
 
@@ -443,6 +483,7 @@ mod tests {
     use super::VecAtLeastTwo;
     use super::VecAtLeastTwoUnique;
     use super::VecNonEmpty;
+    use super::VecNonEmptyUnique;
 
     #[test]
     #[should_panic]
@@ -472,6 +513,14 @@ mod tests {
         let result = serde_json::from_value::<VecNonEmpty<()>>(json!([]));
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_vec_non_empty_to_vec_non_empty_unique_and_back() {
+        let vec = vec_nonempty![1, 2, 2, 3, 3];
+        let vec_unique: VecNonEmptyUnique<_> = vec.into();
+        assert_eq!(vec_unique.0, vec![1, 2, 3]);
+        assert_eq!(vec_nonempty![1, 2, 3], vec_unique.into());
     }
 
     #[test]
@@ -570,5 +619,12 @@ mod tests {
     fn test_nonempty_iter_fold() {
         let vec = vec_nonempty![1, 2, 3];
         assert_eq!(6, vec.nonempty_iter().fold(0, |acc, x| acc + x));
+    }
+
+    #[test]
+    fn test_nonempty_iter_unique() {
+        let vec = vec_nonempty![1, 1, 2, 3];
+        let vec_unique = vec.into_nonempty_iter().collect::<VecNonEmptyUnique<_>>();
+        assert_eq!(vec_unique.0, vec![1, 2, 3]);
     }
 }

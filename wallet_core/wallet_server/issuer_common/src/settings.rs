@@ -51,8 +51,10 @@ use status_lists::postgres::StatusListServiceError;
 use status_lists::publish::PublishDir;
 use status_lists::settings::ExpiryLessThanTtl;
 use status_lists::settings::StatusListsSettings;
+use url::Url;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::nonce_store::ProofNonceStore;
 use crate::par_store::IssuerParStore;
@@ -497,6 +499,7 @@ impl IssuerSettings {
         self,
         hsm: Option<Pkcs11Hsm>,
         wia_config: Option<WiaConfig>,
+        wallet_redirect_uris: VecNonEmpty<Url>,
         flow: impl FnOnce(StoreConnection) -> Result<AF, E>,
     ) -> Result<
         (
@@ -523,7 +526,7 @@ impl IssuerSettings {
         let flow =
             flow(store_connection.clone()).map_err(|e| IssuerSettingsError::AuthorizationCodeFlow(Box::new(e)))?;
 
-        let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow);
+        let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
 
         Ok((authorizing_issuer, database_checkers, store_connection, server_settings))
     }

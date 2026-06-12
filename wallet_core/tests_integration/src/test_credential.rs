@@ -15,7 +15,7 @@ use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
 use pid_issuer::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
 use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use pid_issuer::pid::constants::PID_RESIDENT_STREET;
-use pid_issuer::pid::mock::eudi_nl_pid_example;
+use pid_issuer::pid::mock::mock_pid_example;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 
@@ -32,7 +32,7 @@ fn new_nl_pid<'a>(
             issuer: "https://pid.example.com".parse().unwrap(),
             ..PreviewableCredentialPayload::example_with_attributes(
                 PID_ATTESTATION_TYPE,
-                eudi_nl_pid_example(),
+                mock_pid_example(),
                 &MockTimeGenerator::default(),
             )
         },

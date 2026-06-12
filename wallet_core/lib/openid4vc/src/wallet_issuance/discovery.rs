@@ -7,6 +7,7 @@ use itertools::Itertools;
 use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
@@ -21,6 +22,7 @@ use crate::credential_offer::Grants;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::metadata::well_known;
@@ -50,7 +52,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        let (credential_configurations, flow, issuer_metadata, oauth_metadata) =
+        let (credential_configurations, credential_issuer, issuer_endpoints, flow, oauth_metadata) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
         let issuance_flow = match flow {
@@ -58,7 +60,8 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                 let authorization_session = HttpAuthorizationSession::create(
                     self.http_client.clone(),
                     credential_configurations,
-                    issuer_metadata,
+                    credential_issuer,
+                    issuer_endpoints,
                     oauth_metadata,
                     client_id,
                     redirect_uri,
@@ -73,7 +76,8 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                     .create_issuance_session(
                         pre_authorized_code,
                         credential_configurations,
-                        issuer_metadata,
+                        credential_issuer,
+                        issuer_endpoints,
                         oauth_metadata,
                         client_id,
                         issuer_trust_anchors,
@@ -93,7 +97,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
     ) -> Result<Self::Authorization, WalletIssuanceError> {
-        let (credential_configuration_ids, flow, issuer_metadata, oauth_metadata) =
+        let (credential_configurations, credential_identifier, issuer_endpoints, flow, oauth_metadata) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
         let CredentialOfferFlow::AuthorizationCode { issuer_state } = flow else {
@@ -102,8 +106,9 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
         HttpAuthorizationSession::create(
             self.http_client.clone(),
-            credential_configuration_ids,
-            issuer_metadata,
+            credential_configurations,
+            credential_identifier,
+            issuer_endpoints,
             oauth_metadata,
             client_id,
             redirect_uri,
@@ -118,7 +123,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
-        let (credential_configurations, flow, issuer_metadata, oauth_metadata) =
+        let (credential_configurations, credential_identifier, issuer_endpoints, flow, oauth_metadata) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
         let CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } = flow else {
@@ -128,7 +133,8 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         self.create_issuance_session(
             pre_authorized_code,
             credential_configurations,
-            issuer_metadata,
+            credential_identifier,
+            issuer_endpoints,
             oauth_metadata,
             client_id,
             issuer_trust_anchors,
@@ -147,7 +153,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 #[derive(Debug)]
 struct NormalizedCredentialOffer {
     credential_issuer: IssuerIdentifier,
-    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+    credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId>,
     authorization_server: Option<IssuerIdentifier>,
     grant: CredentialOfferGrant,
 }
@@ -306,8 +312,9 @@ impl HttpIssuanceDiscovery {
     ) -> Result<
         (
             VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+            IssuerIdentifier,
+            IssuerEndpoints,
             CredentialOfferFlow,
-            IssuerMetadata,
             AuthorizationServerMetadata,
         ),
         WalletIssuanceError,
@@ -315,6 +322,13 @@ impl HttpIssuanceDiscovery {
         let credential_offer = self.process_credential_offer(offer_uri).await?;
 
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer).await?;
+
+        let IssuerMetadata {
+            credential_issuer,
+            endpoints: issuer_endpoints,
+            mut credential_configurations_supported,
+            ..
+        } = issuer_metadata;
 
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
@@ -324,8 +338,8 @@ impl HttpIssuanceDiscovery {
             .into_iter()
             .enumerate()
             .partition_map(
-                |(_index, id)| match issuer_metadata.credential_configurations_supported.get(&id) {
-                    Some(config) => Either::Left((id, config.clone())),
+                move |(_index, id)| match credential_configurations_supported.remove(&id) {
+                    Some(config) => Either::Left((id, config)),
                     None => Either::Right(id),
                 },
             );
@@ -341,7 +355,7 @@ impl HttpIssuanceDiscovery {
         // of the credential configurations offered require key binding, as the metadata may contain other
         // configurations that do not concern this particular issuance session.
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
-        if issuer_metadata.nonce_endpoint.is_none()
+        if issuer_endpoints.nonce_endpoint.is_none()
             && credential_configs
                 .iter()
                 .any(|(_, config)| config.cryptographic_binding.is_some())
@@ -377,7 +391,13 @@ impl HttpIssuanceDiscovery {
             }
         };
 
-        Ok((credential_configs, flow, issuer_metadata, oauth_metadata))
+        Ok((
+            credential_configs,
+            credential_issuer,
+            issuer_endpoints,
+            flow,
+            oauth_metadata,
+        ))
     }
 
     #[expect(clippy::too_many_arguments, reason = "internal helper method")]
@@ -385,7 +405,8 @@ impl HttpIssuanceDiscovery {
         &self,
         pre_authorized_code: AuthorizationCode,
         credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
-        issuer_metadata: IssuerMetadata,
+        credential_issuer: IssuerIdentifier,
+        issuer_endpoints: IssuerEndpoints,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
         issuer_trust_anchors: &TrustAnchors,
@@ -402,8 +423,9 @@ impl HttpIssuanceDiscovery {
         HttpIssuanceSession::create(
             message_client,
             credential_configurations,
-            issuer_metadata,
-            oauth_metadata,
+            credential_issuer,
+            issuer_endpoints,
+            &oauth_metadata.token_endpoint,
             token_request,
             issuer_trust_anchors,
         )
@@ -706,7 +728,7 @@ mod test {
         };
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants,
         };
 
@@ -946,7 +968,7 @@ mod test {
         // Construct a Credential Offer that contains no grants.
         let credential_offer = CredentialOffer {
             credential_issuer,
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants: None,
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
@@ -973,7 +995,7 @@ mod test {
         // Construct a Pre-Authorized Code Credential Offer with a Transaction Code.
         let credential_offer = CredentialOffer {
             credential_issuer,
-            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants: Some(Grants {
                 pre_authorized_code: Some(GrantPreAuthorizedCode {
                     pre_authorized_code: "code".to_string().into(),
@@ -1006,7 +1028,7 @@ mod test {
         // Construct a Pre-Authorized Code Credential Offer with an unknown Authorization Server.
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier.clone(),
-            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants: Some(Grants {
                 pre_authorized_code: Some(GrantPreAuthorizedCode {
                     pre_authorized_code: "code".to_string().into(),
@@ -1049,7 +1071,8 @@ mod test {
                 "other_id".to_string().into(),
                 CONFIG_ID.clone(),
                 "another_id".to_string().into()
-            ],
+            ]
+            .into(),
             grants: Some(Grants::new_pre_authorized("fake_pre_auth_code".to_string().into())),
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
@@ -1084,7 +1107,7 @@ mod test {
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![CONFIG_ID.clone()],
+            vec_nonempty![CONFIG_ID.clone()].into(),
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();
@@ -1113,7 +1136,7 @@ mod test {
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![CONFIG_ID.clone()],
+            vec_nonempty![CONFIG_ID.clone()].into(),
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();

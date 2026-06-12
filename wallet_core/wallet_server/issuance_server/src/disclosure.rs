@@ -150,6 +150,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::sync::Arc;
@@ -174,6 +175,7 @@ mod tests {
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::issuable_document::IssuableDocument;
+    use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
@@ -232,7 +234,7 @@ mod tests {
                     )])
                     .into(),
                 )
-                .unwrap(),
+                .expect("creating an IssuableDocument should not fail"),
             ])
         }
     }
@@ -311,7 +313,7 @@ mod tests {
         let pre_authorized_code = credential_offer.grants.unwrap().pre_authorized_code.unwrap();
 
         // The session handler should have inserted a new issuance session in the session store.
-        let IssuanceData::Created(session) = sessions
+        let IssuanceData::AuthCodeIssued(session) = sessions
             .get(&SessionToken::from(pre_authorized_code.pre_authorized_code))
             .await
             .unwrap()
@@ -320,6 +322,7 @@ mod tests {
         else {
             panic!("session absent or in unexpected state")
         };
+        assert_matches!(session.grant, Grant::PreAuthorizedCode);
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
         let issuable = session.issuable_documents.as_ref().first().unwrap();

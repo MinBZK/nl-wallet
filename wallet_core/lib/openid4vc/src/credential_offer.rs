@@ -11,7 +11,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
-use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
@@ -83,7 +83,7 @@ pub struct CredentialOffer {
     /// the respective object that contains information about the Credential being offered as defined in Section
     /// 12.2.4. For example, these string values can be used to obtain scope values to be used in the Authorization
     /// Request.
-    pub credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+    pub credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId>,
 
     /// Object indicating to the Wallet the Grant Types the Credential Issuer's Authorization Server is prepared to
     /// process for this Credential Offer.
@@ -93,7 +93,7 @@ pub struct CredentialOffer {
 impl CredentialOffer {
     pub fn new_authorization(
         credential_issuer: IssuerIdentifier,
-        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+        credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId>,
         issuer_state: Option<String>,
     ) -> Self {
         Self {
@@ -105,7 +105,7 @@ impl CredentialOffer {
 
     pub fn new_pre_authorized(
         credential_issuer: IssuerIdentifier,
-        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+        credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId>,
         pre_authorized_code: AuthorizationCode,
     ) -> Self {
         Self {

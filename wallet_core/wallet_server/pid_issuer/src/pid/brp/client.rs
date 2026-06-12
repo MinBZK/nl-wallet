@@ -21,6 +21,7 @@ pub enum BrpError {
     Conversion(String),
 }
 
+#[trait_variant::make(Send)]
 pub trait BrpClient {
     async fn get_person_by_bsn(&self, bsn: &str) -> Result<BrpPersons, BrpError>;
 }

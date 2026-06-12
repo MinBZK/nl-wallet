@@ -74,7 +74,7 @@ impl<K: Hash + Eq, V, G: Generator<DateTime<Utc>>> MemoryStore<K, V, G> {
             .lock()
             .expect("there should be no panic while the lock is held");
         match entries.remove(key) {
-            Some((value, expires_at)) if now <= expires_at => Some(value),
+            Some((value, expires_at)) if now < expires_at => Some(value),
             _ => None,
         }
     }

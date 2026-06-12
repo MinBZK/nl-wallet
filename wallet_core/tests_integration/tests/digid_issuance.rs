@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use db_test::DbSetup;
@@ -8,7 +6,6 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use issuer_common::pkce_store::IssuerPkceStore;
 use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -30,6 +27,7 @@ use server_utils::settings::SecretKey;
 use server_utils::store::StoreConnection;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
+use utils::vec_nonempty;
 use wallet::test::default_wallet_config;
 use wallet_account::NL_WALLET_CLIENT_ID;
 
@@ -53,7 +51,10 @@ use wallet_account::NL_WALLET_CLIENT_ID;
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
     let db_setup = DbSetup::create_clean().await;
-    let (settings, _) = pid_issuer_settings(db_setup.pid_issuer_url());
+    let mut settings = pid_issuer_settings(db_setup.pid_issuer_url());
+
+    let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
+    settings.wallet_redirect_uris = vec_nonempty![redirect_uri.clone()];
 
     let hsm = settings
         .issuer_settings
@@ -65,37 +66,43 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap();
-    let pkce_store = Arc::new(IssuerPkceStore::new(
-        StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
-            .await
-            .unwrap(),
-    ));
-
-    let flow = UpstreamOidcAuthorizationCodeFlow::try_new(
-        HttpBrpClient::new(settings.brp_server.clone()),
-        &settings.digid.bsn_privkey,
-        settings.digid.client_id.clone(),
-        digid_metadata_cache,
-        SecretKeyVariant::from_settings(
-            SecretKey::Software {
-                secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
-            },
-            None,
-        )
-        .unwrap(),
-        pkce_store,
+    let store_connection = StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
+        .await
+        .unwrap();
+    let brp_client = HttpBrpClient::new(settings.brp_server.clone());
+    let bsn_privkey = settings.digid.bsn_privkey.clone();
+    let digid_client_id = settings.digid.client_id.clone();
+    let recovery_secret_key = SecretKeyVariant::from_settings(
+        SecretKey::Software {
+            secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
+        },
+        None,
     )
     .unwrap();
 
-    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, flow).await;
+    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, |_public_url| {
+        // The issuer advertises a fixed, pre-registered callback URL to nl-rdo-max (exact-match
+        // validated against its clients.json) rather than its dynamic bind port, which nl-rdo-max
+        // cannot pre-register. `fake_digid_auth` rewrites the port back to the live issuer when it
+        // follows the callback. Keep the port (3003) in sync with the redirect_uris statically registered in
+        // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
+        let callback_base_url = local_http_base_url(3003);
+        UpstreamOidcAuthorizationCodeFlow::try_new(
+            brp_client,
+            &bsn_privkey,
+            digid_client_id,
+            digid_metadata_cache,
+            recovery_secret_key,
+            store_connection,
+            &callback_base_url,
+        )
+        .unwrap()
+    })
+    .await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
     let wallet_config = default_wallet_config();
-
-    let redirect_uri = option_env!("DIGID_TEST_REDIRECT_URI")
-        .map(|raw| raw.parse().expect("DIGID_TEST_REDIRECT_URI is not a valid URL"))
-        .unwrap_or_else(|| urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner());
 
     let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);

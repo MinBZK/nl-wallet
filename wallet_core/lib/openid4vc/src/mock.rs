@@ -11,6 +11,7 @@ use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -67,11 +68,14 @@ impl IssuerMetadata {
         IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
-            credential_endpoint,
-            batch_credential_endpoint: Some(batch_credential_endpoint),
-            nonce_endpoint: Some(nonce_endpoint),
-            deferred_credential_endpoint: None,
-            notification_endpoint: None,
+            endpoints: IssuerEndpoints {
+                credential_endpoint,
+                batch_credential_endpoint: Some(batch_credential_endpoint),
+                nonce_endpoint: Some(nonce_endpoint),
+                deferred_credential_endpoint: None,
+                notification_endpoint: None,
+                credential_preview_endpoint: Some(credential_preview_endpoint),
+            },
             credential_request_encryption: None,
             credential_response_encryption: None,
             batch_credential_issuance: Some(BatchCredentialIssuance {
@@ -88,7 +92,6 @@ impl IssuerMetadata {
                     type_metadata_uri,
                 ),
             )]),
-            credential_preview_endpoint: Some(credential_preview_endpoint),
         }
     }
 }

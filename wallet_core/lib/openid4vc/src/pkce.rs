@@ -1,11 +1,6 @@
 use base64::prelude::*;
-use chrono::Duration;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
-
-/// TTL for PKCE flow store entries. Bounds how long the user has to complete
-/// the upstream authentication between `/authorize` and `/token`.
-pub const PKCE_FLOW_TTL: Duration = Duration::minutes(10);
 
 /// The maximum length for a PKCE verifier is 128 characters.
 const CODE_VERIFIER_LENGTH: usize = 128;
