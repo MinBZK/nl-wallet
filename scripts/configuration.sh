@@ -112,9 +112,9 @@ export DIGID_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 # Wallet's OAuth client_id (PAR) and iss claim in credential proof JWTs (matches Rust constant NL_WALLET_CLIENT_ID)
 export NL_WALLET_CLIENT_ID="https://wallet.edi.rijksoverheid.nl"
 # Wallet's PAR redirect_uri allowlisted by the pid_issuer. Defaults to the issuance universal link built
-# from the default UL base (walletdebuginteraction://wallet.edi.rijksoverheid.nl/ + return-from-digid).
+# from the default UL base (walletdebuginteraction://wallet.edi.rijksoverheid.nl/ + iss).
 # Override when running the app against local devenv with a custom UNIVERSAL_LINK_BASE.
-export WALLET_REDIRECT_URI="${WALLET_REDIRECT_URI:-walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid}"
+export WALLET_REDIRECT_URI="${WALLET_REDIRECT_URI:-walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss}"
 # Wallet client ID used by MockRemoteWscd in integration tests (matches Rust constant MOCK_WALLET_CLIENT_ID)
 export MOCK_WALLET_CLIENT_ID="mock_wallet_client_id"
 

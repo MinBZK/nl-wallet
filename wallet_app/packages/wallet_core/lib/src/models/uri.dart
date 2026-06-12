@@ -7,10 +7,12 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 enum IdentifyUriResult {
+  GenericIssuance,
   PidIssuance,
   PidRenewal,
   PinRecovery,
   Disclosure,
   DisclosureBasedIssuance,
   Transfer,
+  CredentialOffer,
 }

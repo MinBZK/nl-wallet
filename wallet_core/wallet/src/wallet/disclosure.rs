@@ -58,8 +58,9 @@ use wallet_configuration::wallet_config::PidAttributePaths;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use super::UriType;
 use super::Wallet;
+use super::uri::InvocationUri;
+use super::uri::UriType;
 use super::uri::identify_uri;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
@@ -359,8 +360,8 @@ impl RedirectUriPurpose {
     fn from_uri(uri: &Url) -> Result<Self, DisclosureError> {
         let purpose = identify_uri(uri)
             .and_then(|uri_type| match uri_type {
-                UriType::Disclosure => Some(Self::Browser),
-                UriType::DisclosureBasedIssuance => Some(Self::Issuance),
+                UriType::Invocation(InvocationUri::Disclosure) => Some(Self::Browser),
+                UriType::Invocation(InvocationUri::DisclosureBasedIssuance) => Some(Self::Issuance),
                 _ => None,
             })
             .ok_or_else(|| DisclosureError::DisclosureUri(uri.clone()))?;

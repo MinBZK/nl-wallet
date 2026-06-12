@@ -13,6 +13,7 @@ import 'models/config.dart';
 import 'models/disclosure.dart';
 import 'models/image.dart';
 import 'models/instruction.dart';
+import 'models/issuance.dart';
 import 'models/localize.dart';
 import 'models/notification.dart';
 import 'models/pin.dart';
@@ -80,7 +81,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1466530841;
+  int get rustContentHash => -643715260;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -142,7 +143,7 @@ abstract class WalletCoreApi extends BaseApi {
     required String pin,
   });
 
-  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri});
+  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri});
 
   Future<void> crateApiFullContinuePinRecovery({required String uri});
 
@@ -219,6 +220,8 @@ abstract class WalletCoreApi extends BaseApi {
   });
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
+
+  Future<IssuanceStartResult> crateApiFullStartIssuanceFromOffer({required String offerUri});
 
   Future<void> crateApiFullTransferWallet();
 
@@ -792,26 +795,26 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri}) {
+  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           var arg0 = cst_encode_String(uri);
-          return wire.wire__crate__api__full__continue_pid_issuance(port_, arg0);
+          return wire.wire__crate__api__full__continue_issuance(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_list_attestation_presentation,
           decodeErrorData: dco_decode_AnyhowException,
         ),
-        constMeta: kCrateApiFullContinuePidIssuanceConstMeta,
+        constMeta: kCrateApiFullContinueIssuanceConstMeta,
         argValues: [uri],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiFullContinuePidIssuanceConstMeta => const TaskConstMeta(
-    debugName: "continue_pid_issuance",
+  TaskConstMeta get kCrateApiFullContinueIssuanceConstMeta => const TaskConstMeta(
+    debugName: "continue_issuance",
     argNames: ["uri"],
   );
 
@@ -1694,6 +1697,30 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
+  Future<IssuanceStartResult> crateApiFullStartIssuanceFromOffer({required String offerUri}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_String(offerUri);
+          return wire.wire__crate__api__full__start_issuance_from_offer(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_issuance_start_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullStartIssuanceFromOfferConstMeta,
+        argValues: [offerUri],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullStartIssuanceFromOfferConstMeta => const TaskConstMeta(
+    debugName: "start_issuance_from_offer",
+    argNames: ["offerUri"],
+  );
+
+  @override
   Future<void> crateApiFullTransferWallet() {
     return handler.executeNormal(
       NormalTask(
@@ -2319,6 +2346,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformInt64 dco_decode_isize(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
+  }
+
+  @protected
+  IssuanceStartResult dco_decode_issuance_start_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return IssuanceStartResult_AuthorizationUrl(
+          dco_decode_String(raw[1]),
+        );
+      case 1:
+        return IssuanceStartResult_Previews(
+          dco_decode_list_attestation_presentation(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   @protected
@@ -3331,6 +3375,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_String(deserializer);
+        return IssuanceStartResult_AuthorizationUrl(var_field0);
+      case 1:
+        var var_field0 = sse_decode_list_attestation_presentation(deserializer);
+        return IssuanceStartResult_Previews(var_field0);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -4652,6 +4713,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case IssuanceStartResult_AuthorizationUrl(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(field0, serializer);
+      case IssuanceStartResult_Previews(field0: final field0):
+        sse_encode_i_32(1, serializer);
+        sse_encode_list_attestation_presentation(field0, serializer);
+    }
   }
 
   @protected

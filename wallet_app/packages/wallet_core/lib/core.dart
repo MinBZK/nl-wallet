@@ -10,6 +10,7 @@ export 'src/models/config.dart';
 export 'src/models/disclosure.dart';
 export 'src/models/image.dart';
 export 'src/models/instruction.dart';
+export 'src/models/issuance.dart';
 export 'src/models/localize.dart';
 export 'src/models/notification.dart';
 export 'src/models/pin.dart';

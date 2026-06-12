@@ -61,6 +61,7 @@ pub use self::init::WalletInitError;
 pub use self::init::WalletRepositories;
 pub use self::issuance::IssuanceError;
 pub use self::issuance::IssuanceResult;
+pub use self::issuance::IssuanceStartResult;
 pub use self::issuance::PidIssuancePurpose;
 use self::issuance::WalletIssuanceSession;
 pub use self::lock::LockCallback;
@@ -78,6 +79,8 @@ pub use self::state::CheckPreconditionsError;
 pub use self::state::TransferRole;
 pub use self::state::WalletState;
 pub use self::transfer::TransferError;
+pub use self::uri::InvocationUri;
+pub use self::uri::RedirectUri;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
 use crate::account_provider::HttpAccountProviderClient;
@@ -133,7 +136,7 @@ enum Session<AS, IS, DCS> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct PersistedIssuanceSessionData<AD> {
-    purpose: PidIssuancePurpose,
+    purpose: Option<PidIssuancePurpose>,
     authorization_session: AD,
 }
 

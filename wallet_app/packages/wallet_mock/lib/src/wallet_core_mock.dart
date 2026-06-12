@@ -129,8 +129,13 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri}) async =>
-      kPidAttestations;
+  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) async => kPidAttestations;
+
+  @override
+  Future<IssuanceStartResult> crateApiFullStartIssuanceFromOffer({required String offerUri}) {
+    // TODO(PVW-5980): implement crateApiFullStartIssuanceFromOffer
+    throw UnimplementedError();
+  }
 
   @override
   Future<String> crateApiFullCreatePidIssuanceRedirectUri() async => MockConstants.pidIssuanceRedirectUri;

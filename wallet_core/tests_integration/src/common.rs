@@ -47,6 +47,7 @@ use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
+use pacf_issuance_server::settings::PacfIssuanceServerSettings;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::BrpClient;
 use pid_issuer::pid::digid::DigidClient;
@@ -174,6 +175,7 @@ pub async fn setup_wallet_and_default_env(
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
+        pacf_issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
 }
@@ -221,6 +223,7 @@ pub struct IssuerUrl {
 pub struct IssuerData {
     pub pid_issuer: IssuerUrl,
     pub issuance_server: IssuerUrl,
+    pub pacf_issuance_server: IssuerUrl,
     pub degree_client_ids: DegreeClientIds,
 }
 
@@ -290,10 +293,12 @@ pub async fn setup_env_default(
         verification_server_settings(db_setup.verification_server_url()),
         pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
+        pacf_issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
 }
 
+#[expect(clippy::too_many_arguments, reason = "integration test setup function")]
 pub async fn setup_env(
     (mut static_settings, static_root_ca): (StaticSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
@@ -306,6 +311,7 @@ pub async fn setup_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
+    pacf_issuance_server_settings: PacfIssuanceServerSettings,
 ) -> (
     ConfigServerConfiguration,
     MockDeviceConfig,
@@ -346,6 +352,8 @@ pub async fn setup_env(
 
     let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm.clone())).await;
 
+    let pacf_issuance_server_url = start_pacf_issuance_server(pacf_issuance_server_settings, Some(hsm.clone())).await;
+
     let recovery_code_secret_key =
         SecretKeyVariant::from_settings(issuer_settings.recovery_code.clone(), Some(hsm.clone()))
             .expect("could not initialize recovery code secret key");
@@ -370,6 +378,7 @@ pub async fn setup_env(
 
     let issuer_data = IssuerData {
         issuance_server: issuance_server_url,
+        pacf_issuance_server: pacf_issuance_server_url,
         pid_issuer: pid_issuer_url,
         degree_client_ids,
     };
@@ -481,6 +490,7 @@ where
 }
 
 /// Create an instance of [`Wallet`].
+#[expect(clippy::too_many_arguments, reason = "integration test setup function")]
 pub async fn setup_wallet_and_env(
     db_setup: &DbSetup,
     vendor: WalletDeviceVendor,
@@ -493,6 +503,7 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
+    pacf_issuance_config: PacfIssuanceServerSettings,
 ) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
     let (config_server_config, mock_device_config, wallet_config, issuer_data, verifier_server_urls) = setup_env(
         static_server_settings(),
@@ -501,6 +512,7 @@ pub async fn setup_wallet_and_env(
         verification_server_settings(db_setup.verification_server_url()),
         issuer_config,
         issuance_config,
+        pacf_issuance_config,
     )
     .await;
 
@@ -705,6 +717,23 @@ pub fn issuance_server_settings(
     (settings, issuable_documents, root_ca, tls_config)
 }
 
+pub fn pacf_issuance_server_settings(db_url: Url) -> PacfIssuanceServerSettings {
+    let mut settings = PacfIssuanceServerSettings::new("pacf_issuance_server.toml", "pacf_issuance_server")
+        .expect("Could not read settings");
+
+    settings.0.server_settings.storage.url = db_url;
+
+    settings.0.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    settings.0.server_settings.wallet_server.port = 0;
+
+    settings.0.server_settings.internal_server = ServerAuth::InternalEndpoint(Server {
+        ip: IpAddr::from_str("127.0.0.1").unwrap(),
+        port: 0,
+    });
+
+    settings
+}
+
 pub fn verification_server_settings(db_url: Url) -> VerifierSettings {
     let mut settings =
         VerifierSettings::new("verification_server.toml", "verification_server").expect("Could not read settings");
@@ -826,6 +855,51 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     );
 
     wait_for_server(public_url.as_base_url().clone(), None).await;
+
+    IssuerUrl {
+        internal: internal_url,
+        public: public_url,
+    }
+}
+
+pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
+    let public_listener = TcpListener::bind("localhost:0").await.unwrap();
+    let public_port = public_listener.local_addr().unwrap().port();
+    let public_url = local_http_issuer_identifier(public_port);
+    settings.0.public_url = public_url.clone();
+
+    let internal_listener = get_internal_listener(&mut settings.0.server_settings).await;
+    let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
+    let internal_url = local_http_base_url(internal_port);
+
+    let serve_status_lists = settings.0.status_lists.serve;
+
+    let (issuer, _, _, server_settings) = settings.0.into_issuer(hsm.clone(), None).await.unwrap();
+
+    let issuer = Arc::new(issuer);
+
+    tokio::spawn(
+        async move {
+            if let Err(error) = pacf_issuance_server::server::serve_with_listeners(
+                public_listener,
+                internal_listener,
+                issuer,
+                server_settings,
+                serve_status_lists,
+                [],
+            )
+            .await
+            {
+                tracing::error!("Could not start issuance_server: {error:?}");
+
+                process::exit(1);
+            }
+        }
+        .instrument(info_span!("service", name = "issuance_server")),
+    );
+
+    wait_for_server(public_url.as_base_url().clone(), None).await;
+
     IssuerUrl {
         internal: internal_url,
         public: public_url,
@@ -1071,7 +1145,7 @@ pub async fn do_pid_issuance_with_purpose(
     let redirect_url = follow_authorization_redirects(redirect_uri).await;
 
     let _attestations = wallet
-        .continue_pid_issuance(redirect_url)
+        .continue_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
     wallet

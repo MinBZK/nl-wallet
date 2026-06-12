@@ -9,8 +9,8 @@ public_url = 'http://localhost:8001/'
 wallet_client_ids = [""]
 
 # Exact-match allowlist of redirect_uri values the wallet may use in a PAR. Must equal the wallet's
-# issuance redirect URI: <universal_link_base>/return-from-digid.
-wallet_redirect_uris = ["walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid"]
+# issuance redirect URI: <universal_link_base>/iss.
+wallet_redirect_uris = ["walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss"]
 
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
 wia_trust_anchors = ["MII..."]    # CAs for WIA certificates

@@ -56,10 +56,11 @@ impl BaseUrl {
 }
 
 pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";
-const ISSUANCE_BASE_PATH: &str = "return-from-digid";
+const ISSUANCE_BASE_PATH: &str = "iss";
 const DISCLOSURE_BASE_PATH: &str = "disclosure";
 const DISCLOSURE_BASED_ISSUANCE_BASE_PATH: &str = "disclosure_based_issuance";
 const TRANSFER_BASE_PATH: &str = "transfer";
+const CREDENTIAL_OFFER_BASE_PATH: &str = "credential-offer";
 
 #[inline]
 pub fn issuance_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
@@ -79,6 +80,11 @@ pub fn disclosure_based_issuance_base_uri(universal_link_base: &BaseUrl) -> Base
 #[inline]
 pub fn transfer_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(TRANSFER_BASE_PATH)
+}
+
+#[inline]
+pub fn credential_offer_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
+    universal_link_base.join_base_url(CREDENTIAL_OFFER_BASE_PATH)
 }
 
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "https")), derive(Debug, Clone, TryFrom, FromStr, Into, Display, PartialEq, Eq, Serialize, Deserialize))]
@@ -306,5 +312,12 @@ mod tests {
     #[case(r#"["scheme/"]"#)]
     fn deserialize_connect_source_errors(#[case] input: &str) {
         let _ = toml::from_str::<Test>(&format!("connect_src = {input}")).expect_err("invalid toml");
+    }
+
+    #[test]
+    fn test_credential_offer_base_uri() {
+        let base = "https://example.com/app/".parse::<BaseUrl>().unwrap();
+        let result = credential_offer_base_uri(&base);
+        assert_eq!(result.as_ref().as_str(), "https://example.com/app/credential-offer");
     }
 }

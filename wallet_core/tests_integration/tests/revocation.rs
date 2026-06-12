@@ -63,6 +63,7 @@ async fn test_revocation_degree_ok() {
             trust_anchor,
             tls_config,
         ),
+        pacf_issuance_server_settings(db_setup.pacf_issuance_server_url()),
     )
     .await;
     wallet.stop_background_revocation_checks();

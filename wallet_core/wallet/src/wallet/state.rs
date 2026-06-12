@@ -352,6 +352,7 @@ mod tests {
     use crate::wallet::Session;
     use crate::wallet::WalletDisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
+    use crate::wallet::issuance::SessionState;
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::pin_recovery::PinRecoverySession;
     use crate::wallet::state::CancelSessionError;
@@ -716,9 +717,11 @@ mod tests {
     }
 
     fn auth_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
-        Session::Issuance(WalletIssuanceSession::OAuth {
+        Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: MockAuthorizationSession::new(),
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
         })
     }
 
@@ -733,10 +736,12 @@ mod tests {
             },
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         )]);
-        Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: attestations,
-            protocol_state: pid_issuer,
+        Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: attestations,
+                protocol_state: pid_issuer,
+            },
         })
     }
 

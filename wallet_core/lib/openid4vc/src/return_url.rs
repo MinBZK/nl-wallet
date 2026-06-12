@@ -35,7 +35,7 @@ impl ReturnUrlTemplate {
 mod tests {
     use rstest::rstest;
 
-    use super::ReturnUrlTemplate;
+    use super::*;
 
     #[rstest]
     #[case("https://example.com/{session_token}", true)]

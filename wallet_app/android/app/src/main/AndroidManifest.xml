@@ -76,6 +76,27 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="haip-vp" />
             </intent-filter>
+            <!-- ETSI TS 119 472-3: "eu-eaa-offer" scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="eu-eaa-offer" />
+            </intent-filter>
+            <!-- HAIP: "haip-vci" scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="haip-vci" />
+            </intent-filter>
+            <!-- OpenID4VCI: "openid-credential-offer" scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="openid-credential-offer" />
+            </intent-filter>
         </activity>
 
         <!-- Used by flutter_local_notifications to schedule alarms -->

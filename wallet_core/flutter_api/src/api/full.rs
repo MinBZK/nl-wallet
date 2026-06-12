@@ -25,6 +25,7 @@ use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
+use crate::models::issuance::IssuanceStartResult;
 use crate::models::notification::AppNotification;
 use crate::models::notification::NotificationType;
 use crate::models::pin::PinValidationResult;
@@ -334,6 +335,17 @@ pub async fn cancel_pin_recovery() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[flutter_api_error]
+pub async fn start_issuance_from_offer(offer_uri: String) -> anyhow::Result<IssuanceStartResult> {
+    let offer_uri = Url::parse(&offer_uri)?;
+
+    let mut wallet = wallet().write().await;
+
+    let issuance_start_result = wallet.start_issuance_from_offer(offer_uri).await?;
+
+    Ok(issuance_start_result.into())
+}
+
 // TODO remove this function (PVW-5927)
 #[flutter_api_error]
 pub async fn cancel_issuance() -> anyhow::Result<()> {
@@ -345,12 +357,12 @@ pub async fn cancel_issuance() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<AttestationPresentation>> {
+pub async fn continue_issuance(uri: String) -> anyhow::Result<Vec<AttestationPresentation>> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
-    let wallet_attestations = wallet.continue_pid_issuance(url).await?;
+    let wallet_attestations = wallet.continue_issuance(url).await?;
     let attestations = wallet_attestations
         .into_iter()
         .map(AttestationPresentation::from)

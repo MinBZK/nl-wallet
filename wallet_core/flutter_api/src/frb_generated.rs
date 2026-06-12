@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1466530841;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -643715260;
 
 // Section: executor
 
@@ -578,13 +578,13 @@ fn wire__crate__api__full__continue_disclosure_based_issuance_impl(
         },
     )
 }
-fn wire__crate__api__full__continue_pid_issuance_impl(
+fn wire__crate__api__full__continue_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     uri: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "continue_pid_issuance",
+            debug_name: "continue_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
@@ -593,7 +593,7 @@ fn wire__crate__api__full__continue_pid_issuance_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::continue_pid_issuance(api_uri).await?;
+                        let output_ok = crate::api::full::continue_issuance(api_uri).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1423,6 +1423,30 @@ fn wire__crate__api__full__start_disclosure_impl(
         },
     )
 }
+fn wire__crate__api__full__start_issuance_from_offer_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    offer_uri: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "start_issuance_from_offer",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_offer_uri = offer_uri.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::start_issuance_from_offer(api_offer_uri).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__transfer_wallet_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -1629,12 +1653,14 @@ impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::uri::IdentifyUriResult {
         match self {
-            0 => crate::models::uri::IdentifyUriResult::PidIssuance,
-            1 => crate::models::uri::IdentifyUriResult::PidRenewal,
-            2 => crate::models::uri::IdentifyUriResult::PinRecovery,
-            3 => crate::models::uri::IdentifyUriResult::Disclosure,
-            4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
-            5 => crate::models::uri::IdentifyUriResult::Transfer,
+            0 => crate::models::uri::IdentifyUriResult::GenericIssuance,
+            1 => crate::models::uri::IdentifyUriResult::PidIssuance,
+            2 => crate::models::uri::IdentifyUriResult::PidRenewal,
+            3 => crate::models::uri::IdentifyUriResult::PinRecovery,
+            4 => crate::models::uri::IdentifyUriResult::Disclosure,
+            5 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
+            6 => crate::models::uri::IdentifyUriResult::Transfer,
+            7 => crate::models::uri::IdentifyUriResult::CredentialOffer,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", self),
         }
     }
@@ -2211,12 +2237,14 @@ impl SseDecode for crate::models::uri::IdentifyUriResult {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::models::uri::IdentifyUriResult::PidIssuance,
-            1 => crate::models::uri::IdentifyUriResult::PidRenewal,
-            2 => crate::models::uri::IdentifyUriResult::PinRecovery,
-            3 => crate::models::uri::IdentifyUriResult::Disclosure,
-            4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
-            5 => crate::models::uri::IdentifyUriResult::Transfer,
+            0 => crate::models::uri::IdentifyUriResult::GenericIssuance,
+            1 => crate::models::uri::IdentifyUriResult::PidIssuance,
+            2 => crate::models::uri::IdentifyUriResult::PidRenewal,
+            3 => crate::models::uri::IdentifyUriResult::PinRecovery,
+            4 => crate::models::uri::IdentifyUriResult::Disclosure,
+            5 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
+            6 => crate::models::uri::IdentifyUriResult::Transfer,
+            7 => crate::models::uri::IdentifyUriResult::CredentialOffer,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", inner),
         };
     }
@@ -2266,6 +2294,27 @@ impl SseDecode for isize {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i64::<NativeEndian>().unwrap() as _
+    }
+}
+
+impl SseDecode for crate::models::issuance::IssuanceStartResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_field0 = <String>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceStartResult::AuthorizationUrl(var_field0);
+            }
+            1 => {
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceStartResult::Previews(var_field0);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -3555,12 +3604,14 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::Format> for c
 impl flutter_rust_bridge::IntoDart for crate::models::uri::IdentifyUriResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            Self::PidIssuance => 0.into_dart(),
-            Self::PidRenewal => 1.into_dart(),
-            Self::PinRecovery => 2.into_dart(),
-            Self::Disclosure => 3.into_dart(),
-            Self::DisclosureBasedIssuance => 4.into_dart(),
-            Self::Transfer => 5.into_dart(),
+            Self::GenericIssuance => 0.into_dart(),
+            Self::PidIssuance => 1.into_dart(),
+            Self::PidRenewal => 2.into_dart(),
+            Self::PinRecovery => 3.into_dart(),
+            Self::Disclosure => 4.into_dart(),
+            Self::DisclosureBasedIssuance => 5.into_dart(),
+            Self::Transfer => 6.into_dart(),
+            Self::CredentialOffer => 7.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -3612,6 +3663,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::image::ImageWithMetadata>
     for crate::models::image::ImageWithMetadata
 {
     fn into_into_dart(self) -> crate::models::image::ImageWithMetadata {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceStartResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::issuance::IssuanceStartResult::AuthorizationUrl(field0) => {
+                [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::issuance::IssuanceStartResult::Previews(field0) => {
+                [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::issuance::IssuanceStartResult {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::issuance::IssuanceStartResult>
+    for crate::models::issuance::IssuanceStartResult
+{
+    fn into_into_dart(self) -> crate::models::issuance::IssuanceStartResult {
         self
     }
 }
@@ -4595,12 +4670,14 @@ impl SseEncode for crate::models::uri::IdentifyUriResult {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::models::uri::IdentifyUriResult::PidIssuance => 0,
-                crate::models::uri::IdentifyUriResult::PidRenewal => 1,
-                crate::models::uri::IdentifyUriResult::PinRecovery => 2,
-                crate::models::uri::IdentifyUriResult::Disclosure => 3,
-                crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 4,
-                crate::models::uri::IdentifyUriResult::Transfer => 5,
+                crate::models::uri::IdentifyUriResult::GenericIssuance => 0,
+                crate::models::uri::IdentifyUriResult::PidIssuance => 1,
+                crate::models::uri::IdentifyUriResult::PidRenewal => 2,
+                crate::models::uri::IdentifyUriResult::PinRecovery => 3,
+                crate::models::uri::IdentifyUriResult::Disclosure => 4,
+                crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 5,
+                crate::models::uri::IdentifyUriResult::Transfer => 6,
+                crate::models::uri::IdentifyUriResult::CredentialOffer => 7,
                 _ => {
                     unimplemented!("");
                 }
@@ -4649,6 +4726,25 @@ impl SseEncode for isize {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i64::<NativeEndian>(self as _).unwrap();
+    }
+}
+
+impl SseEncode for crate::models::issuance::IssuanceStartResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::issuance::IssuanceStartResult::AuthorizationUrl(field0) => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(field0, serializer);
+            }
+            crate::models::issuance::IssuanceStartResult::Previews(field0) => {
+                <i32>::sse_encode(1, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -5850,6 +5946,22 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::issuance::IssuanceStartResult> for wire_cst_issuance_start_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::issuance::IssuanceStartResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.AuthorizationUrl };
+                    crate::models::issuance::IssuanceStartResult::AuthorizationUrl(ans.field0.cst_decode())
+                }
+                1 => {
+                    let ans = unsafe { self.kind.Previews };
+                    crate::models::issuance::IssuanceStartResult::Previews(ans.field0.cst_decode())
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
     impl CstDecode<Vec<crate::models::notification::AppNotification>> for *mut wire_cst_list_app_notification {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::notification::AppNotification> {
@@ -6562,6 +6674,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_issuance_start_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: IssuanceStartResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_issuance_start_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_localized_string {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -6942,11 +7067,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance(
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_issuance(
         port_: i64,
         uri: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__continue_pid_issuance_impl(port_, uri)
+        wire__crate__api__full__continue_issuance_impl(port_, uri)
     }
 
     #[unsafe(no_mangle)]
@@ -7180,6 +7305,14 @@ mod io {
         is_qr_code: bool,
     ) {
         wire__crate__api__full__start_disclosure_impl(port_, uri, is_qr_code)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_issuance_from_offer(
+        port_: i64,
+        offer_uri: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__start_issuance_from_offer_impl(port_, offer_uri)
     }
 
     #[unsafe(no_mangle)]
@@ -7739,6 +7872,29 @@ mod io {
     pub struct wire_cst_image_with_metadata {
         image: wire_cst_image,
         alt_text: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_issuance_start_result {
+        tag: i32,
+        kind: IssuanceStartResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union IssuanceStartResultKind {
+        AuthorizationUrl: wire_cst_IssuanceStartResult_AuthorizationUrl,
+        Previews: wire_cst_IssuanceStartResult_Previews,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceStartResult_AuthorizationUrl {
+        field0: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceStartResult_Previews {
+        field0: *mut wire_cst_list_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

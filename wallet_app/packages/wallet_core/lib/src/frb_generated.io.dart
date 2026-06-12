@@ -13,6 +13,7 @@ import 'models/config.dart';
 import 'models/disclosure.dart';
 import 'models/image.dart';
 import 'models/instruction.dart';
+import 'models/issuance.dart';
 import 'models/localize.dart';
 import 'models/notification.dart';
 import 'models/pin.dart';
@@ -193,6 +194,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   PlatformInt64 dco_decode_isize(dynamic raw);
+
+  @protected
+  IssuanceStartResult dco_decode_issuance_start_result(dynamic raw);
 
   @protected
   List<AppNotification> dco_decode_list_app_notification(dynamic raw);
@@ -503,6 +507,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
+
+  @protected
+  IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer);
 
   @protected
   List<AppNotification> sse_decode_list_app_notification(SseDeserializer deserializer);
@@ -1408,6 +1415,22 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_issuance_start_result(IssuanceStartResult apiObj, wire_cst_issuance_start_result wireObj) {
+    if (apiObj is IssuanceStartResult_AuthorizationUrl) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 0;
+      wireObj.kind.AuthorizationUrl.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is IssuanceStartResult_Previews) {
+      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
+      wireObj.tag = 1;
+      wireObj.kind.Previews.field0 = pre_field0;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_localized_string(LocalizedString apiObj, wire_cst_localized_string wireObj) {
     wireObj.language = cst_encode_String(apiObj.language);
     wireObj.value = cst_encode_String(apiObj.value);
@@ -2008,6 +2031,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_app_notification(List<AppNotification> self, SseSerializer serializer);
 
   @protected
@@ -2586,21 +2612,21 @@ class WalletCoreWire implements BaseWire {
             void Function(int, ffi.Pointer<wire_cst_list_prim_u_16_loose>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
-  void wire__crate__api__full__continue_pid_issuance(
+  void wire__crate__api__full__continue_issuance(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> uri,
   ) {
-    return _wire__crate__api__full__continue_pid_issuance(
+    return _wire__crate__api__full__continue_issuance(
       port_,
       uri,
     );
   }
 
-  late final _wire__crate__api__full__continue_pid_issuancePtr =
+  late final _wire__crate__api__full__continue_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance',
+        'frbgen_wallet_core_wire__crate__api__full__continue_issuance',
       );
-  late final _wire__crate__api__full__continue_pid_issuance = _wire__crate__api__full__continue_pid_issuancePtr
+  late final _wire__crate__api__full__continue_issuance = _wire__crate__api__full__continue_issuancePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__continue_pin_recovery(
@@ -3184,6 +3210,23 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__start_disclosure = _wire__crate__api__full__start_disclosurePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, bool)>();
+
+  void wire__crate__api__full__start_issuance_from_offer(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> offer_uri,
+  ) {
+    return _wire__crate__api__full__start_issuance_from_offer(
+      port_,
+      offer_uri,
+    );
+  }
+
+  late final _wire__crate__api__full__start_issuance_from_offerPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__start_issuance_from_offer',
+      );
+  late final _wire__crate__api__full__start_issuance_from_offer = _wire__crate__api__full__start_issuance_from_offerPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__transfer_wallet(
     int port_,
@@ -4281,6 +4324,27 @@ final class wire_cst_flutter_version_state extends ffi.Struct {
   external int tag;
 
   external FlutterVersionStateKind kind;
+}
+
+final class wire_cst_IssuanceStartResult_AuthorizationUrl extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_IssuanceStartResult_Previews extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
+}
+
+final class IssuanceStartResultKind extends ffi.Union {
+  external wire_cst_IssuanceStartResult_AuthorizationUrl AuthorizationUrl;
+
+  external wire_cst_IssuanceStartResult_Previews Previews;
+}
+
+final class wire_cst_issuance_start_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external IssuanceStartResultKind kind;
 }
 
 final class wire_cst_PidIssuanceResult_Ok extends ffi.Struct {

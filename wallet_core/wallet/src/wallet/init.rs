@@ -32,6 +32,7 @@ use super::PersistedPinRecoverySessionData;
 use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
+use super::issuance::SessionState;
 use super::issuance::WalletIssuanceSession;
 use super::pin_recovery::PinRecoverySession;
 use crate::config::ConfigurationError;
@@ -349,11 +350,9 @@ where
             (Some(data), None) => {
                 let authorization_session =
                     issuance_discovery.restore_authorization_session(data.authorization_session);
-
-                Ok(Some(Session::Issuance(WalletIssuanceSession::OAuth {
-                    purpose: data.purpose,
-                    authorization_session,
-                })))
+                let issuance_session =
+                    WalletIssuanceSession::new(data.purpose, SessionState::Authorization { authorization_session });
+                Ok(Some(Session::Issuance(issuance_session)))
             }
             (None, Some(data)) => {
                 let authorization_session =
@@ -397,6 +396,7 @@ mod tests {
     use crate::wallet::UriType;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::generate_key_holder;
+    use crate::wallet::uri::RedirectUri;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]
@@ -527,7 +527,7 @@ mod tests {
             .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
             .returning(|| {
                 Ok(Some(PersistedIssuanceSessionData {
-                    purpose: PidIssuancePurpose::Enrollment,
+                    purpose: Some(PidIssuancePurpose::Enrollment),
                     authorization_session: MockAuthorizationSessionData {
                         auth_url: "https://example.com/auth".parse().unwrap(),
                         state: "state".to_string(),
@@ -576,7 +576,7 @@ mod tests {
 
         assert_matches!(
             &wallet.session,
-            Some(Session::Issuance(WalletIssuanceSession::OAuth {
+            Some(Session::Issuance(WalletIssuanceSession::Pid {
                 purpose: PidIssuancePurpose::Enrollment,
                 ..
             }))
@@ -585,7 +585,7 @@ mod tests {
             wallet
                 .identify_uri(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
                 .unwrap(),
-            UriType::PidIssuance
+            UriType::Redirect(RedirectUri::PidIssuance)
         );
     }
 
@@ -665,7 +665,7 @@ mod tests {
             wallet
                 .identify_uri(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
                 .unwrap(),
-            UriType::PinRecovery
+            UriType::Redirect(RedirectUri::PinRecovery)
         );
     }
 
@@ -691,7 +691,7 @@ mod tests {
             .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
             .returning(|| {
                 Ok(Some(PersistedIssuanceSessionData {
-                    purpose: PidIssuancePurpose::Enrollment,
+                    purpose: Some(PidIssuancePurpose::Enrollment),
                     authorization_session: MockAuthorizationSessionData {
                         auth_url: "https://example.com/auth".parse().unwrap(),
                         state: "issuance_state".to_string(),
