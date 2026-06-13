@@ -1,6 +1,6 @@
 use derive_more::Constructor;
 use http_utils::reqwest::HttpJsonClient;
-use jsonwebtoken::jwk::JwkSet;
+use jwt::jwk::JwkSet;
 use url::Url;
 
 #[derive(Debug, thiserror::Error)]

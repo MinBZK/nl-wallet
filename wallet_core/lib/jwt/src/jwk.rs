@@ -3,6 +3,7 @@ use jsonwebtoken::jwk;
 pub use jsonwebtoken::jwk::AlgorithmParameters;
 use jsonwebtoken::jwk::EllipticCurve;
 pub use jsonwebtoken::jwk::Jwk;
+pub use jsonwebtoken::jwk::JwkSet;
 use p256::EncodedPoint;
 use p256::ecdsa::VerifyingKey;
 

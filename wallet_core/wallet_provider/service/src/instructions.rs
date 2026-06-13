@@ -1437,6 +1437,7 @@ mod tests {
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
     use jwt::Algorithm;
+    use jwt::EcdsaDecodingKey;
     use jwt::UnverifiedJwt;
     use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
@@ -2211,7 +2212,7 @@ mod tests {
         });
 
         if let Some(wia_with_disclosure) = wia_with_disclosure {
-            let wia_key = &wia_with_disclosure
+            let wia_key = wia_with_disclosure
                 .wia()
                 .dangerous_parse_unverified()
                 .unwrap()
@@ -2222,7 +2223,7 @@ mod tests {
 
             wia_with_disclosure
                 .wia_pop()
-                .parse_and_verify(&wia_key.into(), &validations)
+                .parse_and_verify(EcdsaDecodingKey::from(&wia_key), &validations)
                 .unwrap();
         }
     }

@@ -15,6 +15,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::TimeGenerator;
 
 use crate::DEFAULT_VALIDATIONS;
+use crate::EcdsaDecodingKey;
 use crate::JwtTyp;
 use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
@@ -145,9 +146,10 @@ impl WiaDisclosure {
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
+
         let (_, wia_disclosure_claims) = self
             .1
-            .parse_and_verify(&(&wia_pubkey).into(), &validations)
+            .parse_and_verify(EcdsaDecodingKey::from(&wia_pubkey), &validations)
             .map_err(WiaError::Jwt)?;
 
         let nonce = wia_disclosure_claims.nonce.ok_or(WiaError::MissingNonce)?;

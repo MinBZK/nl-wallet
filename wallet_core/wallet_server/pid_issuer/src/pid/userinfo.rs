@@ -1,14 +1,16 @@
 use futures::TryFutureExt;
 use futures::try_join;
 use http_utils::reqwest::HttpJsonClient;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::DecodingKey;
-use jsonwebtoken::Validation;
-use jsonwebtoken::jwk::JwkSet;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::error::JweStringDecryptionError;
+use jwt::Algorithm;
+use jwt::JwtTyp;
+use jwt::UnverifiedJwt;
+use jwt::Validation;
+use jwt::headers::HeaderWithKid;
+use jwt::jwk::JwkSet;
 use openid4vc::AuthBearerErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
@@ -42,14 +44,8 @@ pub enum UserInfoError {
     #[error("JWE decryption error: {0}")]
     JweDecryption(#[source] JweStringDecryptionError),
 
-    #[error("JWT error: {0}")]
-    Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
-
-    #[error("JWT header is missing key ID (kid)")]
-    MissingKeyId,
-
-    #[error("JWT key ID not found in JWKS")]
-    KeyNotFound,
+    #[error("error verifying JWT: {0}")]
+    JwtError(#[from] jwt::error::JwtError),
 
     #[error("config has no userinfo url")]
     NoUserinfoUrl,
@@ -59,6 +55,8 @@ pub enum UserInfoError {
 pub struct UserInfo {
     pub bsn: String,
 }
+
+impl JwtTyp for UserInfo {}
 
 async fn request_userinfo_jwt(
     http_client: &HttpJsonClient,
@@ -119,7 +117,7 @@ pub async fn request_userinfo<C>(
     (expected_jws_alg, expected_enc_alg): (Algorithm, EncryptionAlgorithm),
 ) -> Result<C, UserInfoError>
 where
-    C: DeserializeOwned,
+    C: DeserializeOwned + JwtTyp,
 {
     let jwks_client = HttpJwksClient::new(http_client.clone());
     let jwks_uri = config.as_ref().jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
@@ -139,25 +137,21 @@ where
 }
 
 // We can't use our own `Jwt` types here because they only support ECDSA/P256.
-fn verify_against_keys<C: DeserializeOwned>(
+fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     token: &str,
     jwks: &JwkSet,
     audience: &str,
     algorithm: Algorithm,
 ) -> Result<C, UserInfoError> {
-    let header = jsonwebtoken::decode_header(token)?;
-
-    let kid = header.kid.as_deref().ok_or(UserInfoError::MissingKeyId)?;
-    let jwk = jwks.find(kid).ok_or(UserInfoError::KeyNotFound)?;
-    let key = DecodingKey::from_jwk(jwk)?;
+    let jwt: UnverifiedJwt<C, HeaderWithKid> = token.parse()?;
 
     let mut validation = Validation::new(algorithm);
     validation.required_spec_claims.clear(); // don't require exp
     validation.set_audience(&[audience]);
 
-    let verified = jsonwebtoken::decode(token, &key, &validation)?;
+    let (_, claims) = jwt.parse_and_verify_with_jwkset(jwks, &validation)?;
 
-    Ok(verified.claims)
+    Ok(claims)
 }
 
 #[cfg(test)]
@@ -165,9 +159,12 @@ mod tests {
     use std::assert_matches;
     use std::sync::LazyLock;
 
-    use jsonwebtoken::Algorithm;
-    use jsonwebtoken::EncodingKey;
-    use jsonwebtoken::Header;
+    use jwt::Algorithm;
+    use jwt::EncodingKey;
+    use jwt::Header;
+    use jwt::error::JwtError;
+    use jwt::jwk::Jwk;
+    use jwt::jwk::JwkSet;
     use serde_json::json;
 
     use super::*;
@@ -195,7 +192,7 @@ mod tests {
         let encoding_key = EncodingKey::from_secret(b"secret hmac key");
         let jws = jsonwebtoken::encode(&header, LazyLock::force(&JWS_PAYLOAD), &encoding_key).unwrap();
 
-        let mut jwk = jsonwebtoken::jwk::Jwk::from_encoding_key(&encoding_key, algoritm).unwrap();
+        let mut jwk = Jwk::from_encoding_key(&encoding_key, algoritm).unwrap();
         jwk.common.key_id = Some(kid.to_string());
         let jwks = JwkSet { keys: vec![jwk] };
 
@@ -235,7 +232,10 @@ mod tests {
         )
         .expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::MissingKeyId);
+        assert_matches!(
+            error,
+            UserInfoError::JwtError(JwtError::JsonParsing(error)) if error.to_string().contains("missing field `kid`")
+        );
     }
 
     #[test]
@@ -252,7 +252,7 @@ mod tests {
         )
         .expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::KeyNotFound);
+        assert_matches!(error, UserInfoError::JwtError(JwtError::KeyNotFound(_)));
     }
 
     #[test]
@@ -262,7 +262,7 @@ mod tests {
         let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS256)
             .expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::Jsonwebtoken(_));
+        assert_matches!(error, UserInfoError::JwtError(_));
     }
 
     #[test]
@@ -272,6 +272,6 @@ mod tests {
         let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS512)
             .expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::Jsonwebtoken(_));
+        assert_matches!(error, UserInfoError::JwtError(_));
     }
 }

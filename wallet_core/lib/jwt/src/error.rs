@@ -58,6 +58,18 @@ pub enum JwtError {
     #[error("JWK in JWT header does not match expected public key: expected {0:?}, found {1:?}")]
     #[category(critical)]
     IncorrectJwkPublicKey(Box<VerifyingKey>, Box<VerifyingKey>),
+
+    #[error("key not found in JWK set: {0}")]
+    #[category(critical)]
+    KeyNotFound(String),
+
+    #[error("missing kid field in JWT header")]
+    #[category(critical)]
+    Missingkid,
+
+    #[error("error converting JWK: {0}")]
+    #[category(critical)]
+    JwkConversion(#[source] jsonwebtoken::errors::Error),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
