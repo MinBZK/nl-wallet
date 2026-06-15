@@ -73,7 +73,6 @@ impl DigidClient for MockDigidClient {
             state: state.as_str(),
         })
         .expect("encoding (code, state) query string should never fail");
-        dbg!(&query);
         redirect_uri.set_query(Some(&query));
         Ok(redirect_uri)
     }
