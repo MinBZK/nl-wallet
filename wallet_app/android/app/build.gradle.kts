@@ -218,9 +218,9 @@ mapOf(
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
             args("--features", "wallet/allow_insecure_url")
         }
-        dartEnvironmentVariables["SENTRY_DSN"]?.takeIf { it.isNotEmpty() }?.let { environment("SENTRY_DSN", it) }
-        dartEnvironmentVariables["SENTRY_ENVIRONMENT"]?.takeIf { it.isNotEmpty() }?.let { environment("SENTRY_ENVIRONMENT", it) }
-        dartEnvironmentVariables["SENTRY_RELEASE"]?.takeIf { it.isNotEmpty() }?.let { environment("SENTRY_RELEASE", it) }
+        listOf("SENTRY_DSN", "SENTRY_ENVIRONMENT", "SENTRY_RELEASE").forEach { key ->
+            dartEnvironmentVariables[key]?.takeIf { it.isNotEmpty() }?.let { environment(key, it) }
+        }
     }
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
         dependsOn("cargoBuildNativeLibrary${buildMode}")
