@@ -171,13 +171,20 @@ function fetch_wallet_config() {
     local project_id="$1"
     local job_id="$2"
     local wallet_config_dir="$3"
+    local wallet_config_path="${wallet_config_dir}/wallet-config.json"
+    local config_server_config_path="${wallet_config_dir}/config-server-config.json"
 
     mkdir -p "${wallet_config_dir}"
 
+    # The wallet build script may create these ignored files as symlinks to tracked defaults.
+    # Unlink symlink placeholders so fetched configs are written as real ignored files.
+    [[ -L "${wallet_config_path}" ]] && rm -- "${wallet_config_path}"
+    [[ -L "${config_server_config_path}" ]] && rm -- "${config_server_config_path}"
+
     fetch_job_artifact "${project_id}" "${job_id}" "wallet_core/wallet/wallet-config.json" \
-        | jq -e '.' > "${wallet_config_dir}/wallet-config.json"
+        | jq -e '.' > "${wallet_config_path}"
     fetch_job_artifact "${project_id}" "${job_id}" "wallet_core/wallet/config-server-config.json" \
-        | jq -e '.' > "${wallet_config_dir}/config-server-config.json"
+        | jq -e '.' > "${config_server_config_path}"
 }
 
 function require_env_vars() {
