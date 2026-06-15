@@ -57,6 +57,7 @@ members = [
     "wallet_provider/service",
     "wallet_provider/wallet_account",
     "wallet_server/acf_demo_issuer",
+    "wallet_server/acf_demo_issuer/migrations",
     "wallet_server/issuance_server",
     "wallet_server/issuance_server/migrations",
     "wallet_server/pacf_issuance_server",
