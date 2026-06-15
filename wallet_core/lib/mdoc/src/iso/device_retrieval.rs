@@ -277,9 +277,12 @@ pub type IntentToRetain = bool;
 mod tests {
     use std::assert_matches;
 
+    use ciborium::value::Value;
+
     use super::DeviceRequest;
     use super::DeviceRequestParseError;
     use crate::examples::Example;
+    use crate::utils::serialization::cbor_deserialize;
     use crate::utils::serialization::cbor_serialize;
 
     #[test]
@@ -301,6 +304,28 @@ mod tests {
     #[test]
     fn test_device_request_try_from_bytes_reports_invalid_structure() {
         let bytes = cbor_serialize(&42u8).unwrap();
+
+        assert_matches!(
+            DeviceRequest::try_from_bytes(&bytes),
+            Err(DeviceRequestParseError::InvalidStructure(_))
+        );
+    }
+
+    #[test]
+    fn test_device_request_try_from_bytes_reports_unsupported_version_as_invalid_structure() {
+        let device_request = DeviceRequest::example();
+        let bytes = cbor_serialize(&device_request).unwrap();
+        let mut value: Value = cbor_deserialize(bytes.as_slice()).unwrap();
+        let Value::Map(fields) = &mut value else {
+            panic!("DeviceRequest should serialize as a CBOR map");
+        };
+        let (_, version) = fields
+            .iter_mut()
+            .find(|(key, _)| matches!(key, Value::Text(key) if key == "version"))
+            .expect("DeviceRequest map should contain a version field");
+        *version = Value::Text("1.1".to_string());
+
+        let bytes = cbor_serialize(&value).unwrap();
 
         assert_matches!(
             DeviceRequest::try_from_bytes(&bytes),
