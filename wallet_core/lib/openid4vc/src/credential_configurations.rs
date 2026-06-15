@@ -223,6 +223,13 @@ impl<K, L> CredentialConfigurations<K, L> {
         self.configs_by_id.get(config_id)
     }
 
+    pub fn get_by_scope(&self, scope: &Scope) -> Option<(&CredentialConfigurationId, &CredentialConfiguration<K, L>)> {
+        // The `CredentialConfigurations::try_new()` constructor (which is the only way to create
+        // `CredentialConfigurations`) guarantees that the Credential Configuration ID is used as the scope, so we can
+        // use it as a shortcut.
+        self.configs_by_id.get_key_value(scope.as_ref())
+    }
+
     pub fn get_by_format_and_attestation_type(
         &self,
         format: Format,
@@ -340,6 +347,18 @@ mod tests {
         let config = configs
             .get_by_configuration_id(&"degree_dc+sd-jwt".to_string().into())
             .expect("configuration should exist");
+        assert_eq!(config.format, Format::SdJwt);
+
+        let (id, config) = configs
+            .get_by_scope(&"degree_mso_mdoc".parse().unwrap())
+            .expect("configuration should exist");
+        assert_eq!(*id, "degree_mso_mdoc".to_string().into());
+        assert_eq!(config.format, Format::MsoMdoc);
+
+        let (id, config) = configs
+            .get_by_scope(&"degree_dc+sd-jwt".parse().unwrap())
+            .expect("configuration should exist");
+        assert_eq!(*id, "degree_dc+sd-jwt".to_string().into());
         assert_eq!(config.format, Format::SdJwt);
 
         let (id, config) = configs

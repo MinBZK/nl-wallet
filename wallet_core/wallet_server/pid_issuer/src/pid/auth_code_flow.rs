@@ -262,7 +262,11 @@ where
 {
     type Error = Error;
 
-    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
+    async fn authorize(
+        &self,
+        context: WalletAuthorizationContext,
+        _formats_and_types: VecNonEmpty<(Format, &str)>,
+    ) -> Result<AuthorizeOutcome, Self::Error> {
         // Generate the upstream PKCE pair and the random `issuer_state` we'll use as `state` in
         // the upstream redirect. The upstream provider will echo it back to our callback.
         let upstream_pkce = S256PkcePair::generate();
@@ -337,6 +341,8 @@ where
         redirect_uri,
         state,
         code_challenge,
+        // TODO: Store scope in session state.
+        scope: _scope,
     } = context;
 
     let result = complete_digid_callback(&authorizing_issuer, code_challenge, upstream_code_verifier, code)
@@ -362,6 +368,7 @@ where
     B: BrpClient,
     O: DigidClient,
 {
+    // TODO: Filter issuable documents based on format / attestation type pairs.
     let issuable_documents = authorizing_issuer
         .flow()
         .fetch_issuable_documents(digid_code, upstream_code_verifier)
@@ -409,6 +416,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
+    use attestation_types::credential_format::Format;
     use indexmap::IndexMap;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
     use openid4vc::authorization::VciAuthorizationRequest;
@@ -530,6 +538,7 @@ mod tests {
             context: WalletAuthorizationContext {
                 redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                 state: Some(WALLET_STATE.to_string()),
+                scope: HashSet::from(["scope".parse().unwrap()]),
                 code_challenge: WALLET_CODE_CHALLENGE.to_string(),
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
@@ -589,7 +598,16 @@ mod tests {
         let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
         let wallet_code_challenge = context.code_challenge.clone();
 
-        let outcome = flow.authorize(context).await.unwrap();
+        let outcome = flow
+            .authorize(
+                context,
+                vec_nonempty![
+                    (Format::SdJwt, PID_ATTESTATION_TYPE),
+                    (Format::MsoMdoc, PID_ATTESTATION_TYPE)
+                ],
+            )
+            .await
+            .unwrap();
         let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
             panic!("authorize should redirect the user-agent to the upstream provider");
         };

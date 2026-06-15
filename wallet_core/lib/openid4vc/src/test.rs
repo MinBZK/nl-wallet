@@ -139,7 +139,11 @@ pub struct AlwaysAuthorizingFlow {
 impl AuthorizationCodeFlow for AlwaysAuthorizingFlow {
     type Error = Infallible;
 
-    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
+    async fn authorize(
+        &self,
+        context: WalletAuthorizationContext,
+        _formats_and_types: VecNonEmpty<(Format, &str)>,
+    ) -> Result<AuthorizeOutcome, Self::Error> {
         Ok(AuthorizeOutcome::Authorized(self.documents.clone(), context))
     }
 }

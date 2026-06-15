@@ -269,10 +269,9 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
                 AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => {
                     AuthorizeErrorCode::InvalidClient
                 }
-                AuthorizeError::UnknownRequestUri(_) => AuthorizeErrorCode::InvalidRequest,
-                AuthorizeError::InvalidAuthorizationRequest(e) => match e {
-                    InvalidAuthorizationRequest::UnsupportedCodeChallenge => AuthorizeErrorCode::InvalidRequest,
-                },
+                AuthorizeError::UnknownRequestUri(_)
+                | AuthorizeError::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge)
+                | AuthorizeError::NoValidScope(_) => AuthorizeErrorCode::InvalidRequest,
                 AuthorizeError::ParStore(_)
                 | AuthorizeError::AuthorizationCodeFlow(_)
                 | AuthorizeError::CompleteAuthorization(_) => AuthorizeErrorCode::ServerError,

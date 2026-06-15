@@ -8,6 +8,7 @@
 //! step of the flow. Deployments that only do the pre-authorized-code grant (no flow) use the bare [`Issuer`]
 //! directly and never construct an [`AuthorizingIssuer`].
 
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::Display;
 use std::sync::Arc;
@@ -35,6 +36,7 @@ use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::par;
 use crate::par::PAR_TTL;
+use crate::scope::Scope;
 use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
@@ -70,6 +72,9 @@ pub enum AuthorizeError {
 
     #[error("invalid authorization request: {0}")]
     InvalidAuthorizationRequest(#[source] InvalidAuthorizationRequest),
+
+    #[error("none of the scopes requested reference a known credential configuration: {}", .0.iter().join(" "))]
+    NoValidScope(HashSet<Scope>),
 
     #[error("consuming PAR request failed: {0}")]
     ParStore(#[source] Box<dyn Error + Send + Sync + 'static>),
@@ -195,9 +200,35 @@ where
         let context = WalletAuthorizationContext::try_from_request(authorization_request)
             .map_err(AuthorizeError::InvalidAuthorizationRequest)?;
 
+        // OpenID4VCI states: "Credential Issuers MUST ignore unknown scope values in a request."
+        // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.2>
+        //
+        // Look up the credential configurations based on the scope values, ignoring any unknown scope value. Do not
+        // continue if none of the scopes match Credential Configurations. This could happen if no scope values are
+        // provided. The Credential Configurations are then used to pass their format and attestation types to the
+        // type that implements `AuthorizationCodeFlow`, so that it can return the relevant `IssuableDocument`s.
+        //
+        // The scope is part of `WalletAuthorizationContext` in order to store this in the session state in the next
+        // step. Once there, it is used to compare against any scope that is requested as part of the Token Request
+        // and to return it in the Token Response.
+        let credential_configs = self.issuer.credential_configs();
+        let formats_and_types = match context
+            .scope
+            .iter()
+            .flat_map(|scope| credential_configs.get_by_scope(scope))
+            .map(|(_id, config)| (config.format, config.attestation_type.as_str()))
+            .collect_vec()
+            .try_into()
+        {
+            Ok(credential_types) => credential_types,
+            Err(_) => {
+                return Err(AuthorizeError::NoValidScope(context.scope));
+            }
+        };
+
         let outcome = self
             .flow
-            .authorize(context)
+            .authorize(context, formats_and_types)
             .await
             .map_err(|error| AuthorizeError::AuthorizationCodeFlow(Box::new(error)))?;
 
@@ -208,6 +239,8 @@ where
                     redirect_uri,
                     state,
                     code_challenge,
+                    // TODO: Store scope in session state.
+                    scope: _scope,
                 } = context;
 
                 let code = self
@@ -331,6 +364,8 @@ mod tests {
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
+    use attestation_types::credential_format::Format;
+    use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
@@ -395,7 +430,8 @@ mod tests {
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
-            HashSet::from(["scope".parse().unwrap()]),
+            // Match the attestation type / credential config id / scope configured in the mock issuer.
+            HashSet::from(["com.example.pid".parse().unwrap()]),
             &S256PkcePair::generate(),
         )
     }
@@ -442,7 +478,11 @@ mod tests {
     impl AuthorizationCodeFlow for FixedOutcomeFlow {
         type Error = Infallible;
 
-        async fn authorize(&self, _context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
+        async fn authorize(
+            &self,
+            _context: WalletAuthorizationContext,
+            _credential_types: VecNonEmpty<(Format, &str)>,
+        ) -> Result<AuthorizeOutcome, Self::Error> {
             Ok(self.0.clone())
         }
     }
@@ -579,6 +619,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn process_authorize_rejects_invalid_scope() {
+        // The PAR holds a request with a `plain` code_challenge_method, which we don't support.
+        let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
+        request.scope = HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]);
+        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+            vec![(REQUEST_URI.to_string(), request)],
+            AuthorizeOutcome::RedirectTo(upstream_url()),
+        );
+
+        let error = authorizing_issuer
+            .process_authorize(REQUEST_URI, MOCK_WALLET_CLIENT_ID)
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthorizeError::NoValidScope(scope) if scope.iter().map(AsRef::as_ref).sorted().eq(["scope1", "scope2"])
+        );
+    }
+
+    #[tokio::test]
     async fn process_authorize_passes_through_redirect_outcome() {
         let (authorizing_issuer, _sessions) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
@@ -604,6 +665,7 @@ mod tests {
                 WalletAuthorizationContext {
                     redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                     state: Some(WALLET_STATE.to_string()),
+                    scope: HashSet::from(["com.example.pid".parse().unwrap()]),
                     code_challenge: wallet_code_challenge.clone(),
                 },
             ),
