@@ -1,3 +1,4 @@
+import groovy.json.JsonOutput
 import org.gradle.kotlin.dsl.android
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Base64
@@ -24,8 +25,7 @@ fun loadProperties(name: String): Map<String, String> {
 
 // Sentry dart-defines are raw strings, while buildConfigField expects a Java/Kotlin source literal.
 // Escape them here so quotes, backslashes, or line breaks cannot break generated BuildConfig code.
-fun String.asBuildConfigString(): String =
-    "\"${replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")}\""
+fun String.asBuildConfigString(): String = JsonOutput.toJson(this)
 
 val keystoreProperties = loadProperties("key.properties")
 val signingConfigName = if (keystoreProperties["storeFile"] != null) "release" else "debug"
