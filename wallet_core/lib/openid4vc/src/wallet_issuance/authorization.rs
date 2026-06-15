@@ -5,6 +5,7 @@ use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -28,14 +29,17 @@ use crate::wallet_issuance::WalletIssuanceError;
 use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
 use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
 
-#[derive(Deserialize, Debug, Clone, PartialEq, strum::EnumString)]
+#[derive(Debug, Clone, PartialEq, strum::EnumString, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
     InvalidClient,
+    InvalidRequest,
     ServerError,
 
-    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    // Catch-all for any (spec-compliant) error code the holder doesn't model explicitly. The PAR
+    // endpoint returns RFC 6749 / RFC 9126 codes in snake_case, so deserialization routes through
+    // the strum `FromStr` impl via `DeserializeFromStr`; the `#[strum(default)]` fallback captures
+    // the original code here instead of failing to decode the response.
     #[strum(default)]
     Other(String),
 }
@@ -317,7 +321,9 @@ mod tests {
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
+    use super::ParErrorCode;
     use crate::AuthorizationErrorCode;
+    use crate::ErrorResponse;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -482,6 +488,18 @@ mod tests {
 
         assert!(!session.matches_received_redirect_uri(&Url::parse("https://example.com").unwrap()));
         assert!(!session.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
+    }
+
+    #[rstest]
+    #[case(json!({ "error": "invalid_client" }), ParErrorCode::InvalidClient)]
+    #[case(json!({ "error": "server_error" }), ParErrorCode::ServerError)]
+    #[case(json!({ "error": "invalid_request" }), ParErrorCode::InvalidRequest)]
+    // A spec-compliant code the holder doesn't model explicitly falls through to the catch-all,
+    // preserving the original wire value rather than failing to decode.
+    #[case(json!({ "error": "temporarily_unavailable" }), ParErrorCode::Other("temporarily_unavailable".to_string()))]
+    fn test_par_error_code_deserializes_wire_format(#[case] body: serde_json::Value, #[case] expected: ParErrorCode) {
+        let response: ErrorResponse<ParErrorCode> = serde_json::from_value(body).unwrap();
+        assert_eq!(response.error, expected);
     }
 
     #[tokio::test]
