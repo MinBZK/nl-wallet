@@ -1,6 +1,7 @@
 {
   "issuance_server_url": "http://localhost:3007",
   "pacf_issuance_server_url": "http://localhost:3008/",
+  "acf_demo_issuer_url": "http://localhost:3030/",
   "help_base_url": "https://help.example.com/",
   "webserver": {
     "ip": "0.0.0.0",
@@ -15,6 +16,10 @@
     "key": "key"
   },
   "usecases": {
+    "insurance_acf": {
+      "credential_configuration_ids": ["com.example.insurance"],
+      "issuer_state": "insurance"
+    },
     "loyalty": {
       "data": [
         {

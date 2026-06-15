@@ -379,7 +379,7 @@ then
     if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}demo_issuer${NC}"
-        RUST_LOG=debug cargo run --package demo_issuer --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --package demo_issuer --features "allow_insecure_url" --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
 
         echo -e "demo_issuer logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer.log${NC}"
     fi
