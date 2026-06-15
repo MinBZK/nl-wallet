@@ -248,10 +248,10 @@ where
 
     pub fn into_verified_against_trust_anchors(
         self,
-        validation_options: &Validation,
+        trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
-        trust_anchors: &TrustAnchors,
+        validation_options: &Validation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cError> {
         let (header, payload) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
