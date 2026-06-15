@@ -41,9 +41,7 @@ FutureOr<void> initializeAndRun() async {
   if (Environment.mockRepositories) {
     core.WalletCore.initMock(api: mock.api);
   } else {
-    final lib = Platform.isIOS || Platform.isMacOS
-        ? ExternalLibrary.process(iKnowHowToUseIt: true)
-        : null;
+    final lib = Platform.isIOS || Platform.isMacOS ? ExternalLibrary.process(iKnowHowToUseIt: true) : null;
     await core.WalletCore.init(externalLibrary: lib);
   }
 
