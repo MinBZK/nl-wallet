@@ -9,6 +9,7 @@ use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::CertificateTypeError;
 use chrono::DateTime;
 use chrono::Utc;
+use ciborium::value::Value;
 use crypto::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
@@ -75,6 +76,9 @@ use crate::wallet::disclosure::WalletDisclosureAttestations;
 use crate::wallet::disclosure::instruction_error_from_signing_error;
 use crate::wallet::disclosure::requested_attribute_paths;
 use crate::wallet::state::AttestedKeyRegistrationDataAndConfig;
+
+const REQUEST_INFO_DOC_FORMAT_KEY: &str = "docFormat";
+const MSO_MDOC_DOC_FORMAT: &str = "mso_mdoc";
 
 #[derive(Debug)]
 pub enum CloseProximityDisclosureUpdate {
@@ -203,6 +207,10 @@ pub enum CloseProximityDisclosureError {
         organization: Box<Organization>,
     },
 
+    #[error("unsupported requested document format: {doc_format}")]
+    #[category(critical)]
+    UnsupportedDocFormat { doc_format: String },
+
     #[error("received invalid CBOR from reader: {0}")]
     #[category(critical)]
     MalformedDeviceRequest(#[source] CborError),
@@ -251,6 +259,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
     match error {
         CloseProximityDisclosureError::MalformedDeviceRequest(_) => Some(DeviceResponseStatus::CborDecodingError),
         CloseProximityDisclosureError::InvalidDeviceRequest(_) => Some(DeviceResponseStatus::InvalidRequest),
+        CloseProximityDisclosureError::UnsupportedDocFormat { .. } => Some(DeviceResponseStatus::InvalidRequest),
         CloseProximityDisclosureError::MissingReaderAuth
         | CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
@@ -787,6 +796,8 @@ pub fn verify_device_request(
     let verifier_certificate =
         VerifierCertificate::try_new(certificate)?.ok_or(CloseProximityDisclosureError::MissingReaderRegistration)?;
 
+    verify_requested_doc_formats(device_request)?;
+
     // Verify that the requested attributes are included in the reader authentication.
     verifier_certificate
         .registration()
@@ -799,6 +810,34 @@ pub fn verify_device_request(
     Ok(verifier_certificate)
 }
 
+fn verify_requested_doc_formats(device_request: &DeviceRequest) -> Result<(), CloseProximityDisclosureError> {
+    for items_request in device_request.items_requests() {
+        let Some(requested_doc_format) = items_request
+            .request_info
+            .as_ref()
+            .and_then(|request_info| request_info.get(REQUEST_INFO_DOC_FORMAT_KEY))
+        else {
+            continue;
+        };
+
+        match requested_doc_format {
+            Value::Text(format) if format == MSO_MDOC_DOC_FORMAT => {}
+            Value::Text(format) => {
+                return Err(CloseProximityDisclosureError::UnsupportedDocFormat {
+                    doc_format: format.to_owned(),
+                });
+            }
+            other => {
+                return Err(CloseProximityDisclosureError::UnsupportedDocFormat {
+                    doc_format: format!("{other:?}"),
+                });
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -809,6 +848,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::auth::reader_auth::ValidationError;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::verifier_certificate::VerifierCertificate;
@@ -817,6 +857,7 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use ciborium::value::Value;
     use crypto::WithVerifyingKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
@@ -893,18 +934,46 @@ mod tests {
     use crate::wallet::test::example_stored_attestation_copy;
     use crate::wallet::test::mock_verifier_certificate;
 
+    const ISO_MDL_DOCTYPE: &str = "org.iso.18013.5.1.mDL";
+    const ISO_MDL_NAMESPACE: &str = "org.iso.18013.5.1";
+    const EUDI_PID_DOCTYPE: &str = "eu.europa.ec.eudi.pid.1";
+    const PHOTO_ID_DOCTYPE_LOWERCASE: &str = "org.iso.23220.photoid.1";
+    const PHOTO_ID_DOCTYPE_MIXED_CASE: &str = "org.iso.23220.photoID.1";
+    const PHOTO_ID_BASE_NAMESPACE: &str = "org.iso.23220.1";
+    const PHOTO_ID_NAMESPACE: &str = "org.iso.23220.photoid.1";
+
     fn pid_given_name_items_request() -> ItemsRequest {
+        interop_items_request(
+            PID_ATTESTATION_TYPE,
+            &[(PID_ATTESTATION_TYPE, &[PID_GIVEN_NAME][..])],
+            None,
+        )
+    }
+
+    fn interop_items_request(
+        doc_type: &str,
+        name_spaces: &[(&str, &[&str])],
+        request_info: Option<IndexMap<String, Value>>,
+    ) -> ItemsRequest {
         ItemsRequest {
-            doc_type: PID_ATTESTATION_TYPE.to_owned(),
-            name_spaces: IndexMap::from_iter(vec![(
-                PID_ATTESTATION_TYPE.to_owned(),
-                IndexMap::from_iter(vec![(PID_GIVEN_NAME.to_owned(), true)])
-                    .try_into()
-                    .unwrap(),
-            )])
-            .try_into()
-            .unwrap(),
-            request_info: None,
+            doc_type: doc_type.to_owned(),
+            name_spaces: name_spaces
+                .iter()
+                .map(|(name_space, attributes)| {
+                    (
+                        (*name_space).to_owned(),
+                        attributes
+                            .iter()
+                            .map(|attribute| ((*attribute).to_owned(), true))
+                            .collect::<IndexMap<_, _>>()
+                            .try_into()
+                            .unwrap(),
+                    )
+                })
+                .collect::<IndexMap<_, _>>()
+                .try_into()
+                .unwrap(),
+            request_info,
         }
     }
 
@@ -1388,6 +1457,53 @@ mod tests {
 
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_unsupported_doc_format() {
+        let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
+        send_context
+            .expect()
+            .once()
+            .withf(|response| {
+                let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
+                device_response.documents.is_none()
+                    && device_response.document_errors.is_none()
+                    && device_response.status == DeviceResponseStatus::InvalidRequest
+            })
+            .returning(|_| Ok(()));
+
+        let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        stop_context.expect().never();
+
+        let items_request = interop_items_request(
+            EUDI_PID_DOCTYPE,
+            &[(EUDI_PID_DOCTYPE, &["family_name", "given_name"][..])],
+            Some(IndexMap::from_iter([(
+                "docFormat".to_string(),
+                Value::Text("sd-jwt+kb".to_string()),
+            )])),
+        );
+        let (device_request, session_transcript, _trust_anchors) =
+            setup_device_request(vec![items_request], None).await;
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        install_session_established_close_proximity_session(
+            &mut wallet,
+            cbor_serialize(&session_transcript).unwrap(),
+            cbor_serialize(&device_request).unwrap(),
+        );
+
+        let result = wallet.continue_close_proximity_disclosure().await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::UnsupportedDocFormat { doc_format }
+            )) if doc_format == "sd-jwt+kb"
+        );
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_continue_close_proximity_disclosure_send_error_response_failure_still_stops_ble_server() {
         let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
         send_context.expect().once().returning(|_| {
@@ -1467,6 +1583,150 @@ mod tests {
         );
 
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_accepts_same_reader_multi_document_request() {
+        let pid_items_request = interop_items_request(
+            EUDI_PID_DOCTYPE,
+            &[(
+                EUDI_PID_DOCTYPE,
+                &["family_name", "given_name", "birth_date", "age_over_18"][..],
+            )],
+            None,
+        );
+        let mdl_items_request = interop_items_request(
+            ISO_MDL_DOCTYPE,
+            &[(
+                ISO_MDL_NAMESPACE,
+                &["family_name", "given_name", "birth_date", "document_number"][..],
+            )],
+            None,
+        );
+
+        let (device_request, session_transcript, trust_anchors) =
+            setup_device_request(vec![pid_items_request, mdl_items_request], None).await;
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_accepts_multi_namespace_items_request() {
+        let photo_id_items_request = interop_items_request(
+            PHOTO_ID_DOCTYPE_LOWERCASE,
+            &[
+                (
+                    PHOTO_ID_BASE_NAMESPACE,
+                    &["family_name", "given_name", "birth_date"][..],
+                ),
+                (PHOTO_ID_NAMESPACE, &["portrait", "document_number"][..]),
+            ],
+            None,
+        );
+
+        let (device_request, session_transcript, trust_anchors) =
+            setup_device_request(vec![photo_id_items_request], None).await;
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_rejects_sd_jwt_kb_doc_format() {
+        let items_request = interop_items_request(
+            EUDI_PID_DOCTYPE,
+            &[(EUDI_PID_DOCTYPE, &["family_name", "given_name"][..])],
+            Some(IndexMap::from_iter([(
+                "docFormat".to_string(),
+                Value::Text("sd-jwt+kb".to_string()),
+            )])),
+        );
+
+        let (device_request, session_transcript, trust_anchors) = setup_device_request(vec![items_request], None).await;
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert_matches!(
+            result,
+            Err(CloseProximityDisclosureError::UnsupportedDocFormat { doc_format }) if doc_format == "sd-jwt+kb"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_rejects_doctype_case_variant_not_in_reader_registration() {
+        let registered_photo_id_items_request = interop_items_request(
+            PHOTO_ID_DOCTYPE_LOWERCASE,
+            &[(PHOTO_ID_NAMESPACE, &["family_name", "given_name"][..])],
+            None,
+        );
+        let requested_photo_id_items_request = interop_items_request(
+            PHOTO_ID_DOCTYPE_MIXED_CASE,
+            &[(PHOTO_ID_NAMESPACE, &["family_name", "given_name"][..])],
+            None,
+        );
+
+        let mut reader_registration = ReaderRegistration::new_mock();
+        let (registered_doc_type, registered_claims) = registered_photo_id_items_request.into_doctype_and_claims();
+        reader_registration.authorized_attributes =
+            HashMap::from_iter([(registered_doc_type, registered_claims.collect_vec())]);
+
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let cose_key: CoseKey = (&key_pair.verifying_key().await.unwrap()).try_into().unwrap();
+        let session_transcript = SessionTranscript::new_qr(cose_key, None);
+        let doc_request = create_doc_request(requested_photo_id_items_request, &session_transcript, &key_pair).await;
+        let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_request]);
+        let trust_anchors = TrustAnchors::from(&*READER_CA);
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert_matches!(
+            result,
+            Err(CloseProximityDisclosureError::ReaderAuthValidation {
+                error: ValidationError::UnregisteredAttributes(unregistered),
+                ..
+            }) if unregistered.contains_key(PHOTO_ID_DOCTYPE_MIXED_CASE)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_rejects_reader_auth_for_different_session_transcript() {
+        let items_request = pid_given_name_items_request();
+
+        let (device_request, _session_transcript, trust_anchors) =
+            setup_device_request(vec![items_request], None).await;
+        let other_session_transcript = qr_session_transcript(None);
+
+        let result = verify_device_request(
+            &device_request,
+            &other_session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert_matches!(result, Err(CloseProximityDisclosureError::InvalidDocRequest(_)));
     }
 
     #[tokio::test]
