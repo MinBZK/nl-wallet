@@ -402,6 +402,7 @@ async fn insert_recovery_code(mut attributes: Attributes, secret_key: &SecretKey
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
@@ -519,7 +520,7 @@ mod tests {
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
-            None,
+            HashSet::from(["scope".parse().unwrap()]),
             &S256PkcePair::generate(),
         )
     }

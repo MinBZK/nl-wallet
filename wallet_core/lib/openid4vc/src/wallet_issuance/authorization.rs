@@ -171,7 +171,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             redirect_uri.clone(),
             state.clone(),
             issuer_state,
-            Some(scope),
+            scope,
             &pkce_pair,
         );
 

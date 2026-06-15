@@ -126,8 +126,9 @@ pub struct TokenResponse {
     pub token_type: TokenType,
     pub refresh_token: Option<String>,
 
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
-    pub scope: Option<HashSet<Scope>>,
+    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, Scope>")]
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub scope: HashSet<Scope>,
 
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub expires_in: Option<Duration>,
@@ -144,7 +145,7 @@ impl TokenResponse {
             token_type: TokenType::DPoP,
             expires_in: None,
             refresh_token: None,
-            scope: None,
+            scope: HashSet::new(),
             authorization_details: None,
         }
     }
@@ -223,7 +224,7 @@ pub enum CredentialPreviewError {
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokenType {
     #[default]
     Bearer,
@@ -268,7 +269,7 @@ mod tests {
         let token_response = TokenResponse {
             access_token: "access_token".to_string().into(),
             token_type: TokenType::Bearer,
-            scope: Some(HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()])),
+            scope: HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]),
             expires_in: None,
             refresh_token: None,
             authorization_details: None,
@@ -295,5 +296,28 @@ mod tests {
         });
 
         assert_eq!(json, expected_json);
+    }
+
+    #[test]
+    fn token_response_deserialization() {
+        let json = json!({
+            "access_token": "token",
+            "token_type": "DPoP"
+        });
+
+        let token_response = serde_json::from_value::<TokenResponse>(json.clone())
+            .expect("should be able to deserialize TokenResponse from JSON value");
+
+        assert_eq!(token_response.access_token.as_ref(), "token");
+        assert_eq!(token_response.token_type, TokenType::DPoP);
+        assert!(token_response.refresh_token.is_none());
+        assert!(token_response.scope.is_empty());
+        assert!(token_response.expires_in.is_none());
+        assert!(token_response.authorization_details.is_none());
+
+        let serialized_json =
+            serde_json::to_value(token_response).expect("should be able to serialize TokenResponse to JSON value");
+
+        assert_eq!(json, serialized_json);
     }
 }

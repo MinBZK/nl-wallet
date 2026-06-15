@@ -476,7 +476,6 @@ mod test {
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
     use crate::token::TokenResponse;
-    use crate::token::TokenType;
     use crate::wallet_issuance::AuthorizationSession;
     use crate::wallet_issuance::IssuanceFlow;
     use crate::wallet_issuance::IssuanceSession;
@@ -613,14 +612,7 @@ mod test {
             credential_previews: vec_nonempty![preview],
         };
 
-        let token_response = TokenResponse {
-            access_token: "mock_access_token".to_string().into(),
-            token_type: TokenType::DPoP,
-            refresh_token: None,
-            scope: None,
-            expires_in: None,
-            authorization_details: None,
-        };
+        let token_response = TokenResponse::new("mock_access_token".to_string().into());
 
         let issuer_identifier = httpmock_issuer_add_metadata(
             &server,

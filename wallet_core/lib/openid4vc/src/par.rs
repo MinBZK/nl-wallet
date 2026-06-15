@@ -19,6 +19,8 @@ pub fn generate_request_uri() -> String {
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
+    use std::collections::HashSet;
+
     use crate::authorization::VciAuthorizationRequest;
     use crate::pkce::PkcePair;
     use crate::pkce::S256PkcePair;
@@ -30,7 +32,7 @@ pub mod test {
             "uri://redirect_uri".parse().unwrap(),
             String::from("state"),
             None,
-            None,
+            HashSet::new(),
             &S256PkcePair::generate(),
         )
     }

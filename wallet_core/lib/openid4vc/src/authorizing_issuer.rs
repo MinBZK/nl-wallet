@@ -326,6 +326,7 @@ impl WalletRedirect {
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::convert::Infallible;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
@@ -394,7 +395,7 @@ mod tests {
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
-            None,
+            HashSet::from(["scope".parse().unwrap()]),
             &S256PkcePair::generate(),
         )
     }

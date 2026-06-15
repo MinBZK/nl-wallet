@@ -67,8 +67,9 @@ pub struct VciAuthorizationRequest {
     #[serde(flatten)]
     pub code_challenge: PkceCodeChallenge,
 
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
-    pub scope: Option<HashSet<Scope>>,
+    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, Scope>")]
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub scope: HashSet<Scope>,
 
     /// String value identifying a certain processing context at the Credential Issuer. A value for this parameter is
     /// typically passed in a Credential Offer from the Credential Issuer to the Wallet. This request parameter is used
@@ -84,7 +85,7 @@ impl VciAuthorizationRequest {
         redirect_uri: Url,
         state: String,
         issuer_state: Option<String>,
-        scope: Option<HashSet<Scope>>,
+        scope: HashSet<Scope>,
         pkce_pair: &P,
     ) -> Self {
         Self {
@@ -257,7 +258,7 @@ mod tests {
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: "challenge-xyz".to_string(),
             },
-            scope: Some(scope),
+            scope,
             issuer_state: Some("state-xyz".to_string()),
         }
     }
@@ -274,8 +275,6 @@ mod tests {
         assert!(
             decoded
                 .scope
-                .as_ref()
-                .unwrap()
                 .iter()
                 .map(AsRef::as_ref)
                 .sorted()

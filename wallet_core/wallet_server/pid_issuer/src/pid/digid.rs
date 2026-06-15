@@ -157,7 +157,7 @@ impl DigidClient for HttpDigidClient {
             redirect_uri,
             state,
             None,
-            Some(HashSet::from([OPENID_SCOPE.clone()])),
+            HashSet::from([OPENID_SCOPE.clone()]),
             pkce_pair,
         );
 
