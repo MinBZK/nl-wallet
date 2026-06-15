@@ -44,6 +44,17 @@ val dartEnvironmentVariables = if (project.hasProperty("dart-defines")) {
     mapOf()
 }
 
+fun Map<String, String>.nonEmptyDartDefine(key: String): String? =
+    this[key]?.takeIf { it.isNotEmpty() }
+
+val sentryDsn = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_DSN")
+val sentryEnvironment = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_ENVIRONMENT")
+val sentryRelease = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_RELEASE")
+
+check(sentryDsn == null || sentryEnvironment != null) {
+    "SENTRY_ENVIRONMENT must be set when SENTRY_DSN is set"
+}
+
 val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
     ?: listOf("armeabi-v7a", "arm64-v8a", "x86_64")
 
@@ -113,13 +124,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        buildConfigField("String", "SENTRY_DSN", (dartEnvironmentVariables["SENTRY_DSN"] ?: "").asBuildConfigString())
-        buildConfigField(
-            "String",
-            "SENTRY_ENVIRONMENT",
-            (dartEnvironmentVariables["SENTRY_ENVIRONMENT"] ?: "unspecified").asBuildConfigString()
-        )
-        buildConfigField("String", "SENTRY_RELEASE", (dartEnvironmentVariables["SENTRY_RELEASE"] ?: "").asBuildConfigString())
+        buildConfigField("String", "SENTRY_DSN", (sentryDsn ?: "").asBuildConfigString())
+        buildConfigField("String", "SENTRY_ENVIRONMENT", (sentryEnvironment ?: "").asBuildConfigString())
+        buildConfigField("String", "SENTRY_RELEASE", (sentryRelease ?: "").asBuildConfigString())
 
         multiDexEnabled = true
 
@@ -218,8 +225,12 @@ mapOf(
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
             args("--features", "wallet/allow_insecure_url")
         }
-        listOf("SENTRY_DSN", "SENTRY_ENVIRONMENT", "SENTRY_RELEASE").forEach { key ->
-            dartEnvironmentVariables[key]?.takeIf { it.isNotEmpty() }?.let { environment(key, it) }
+        mapOf(
+            "SENTRY_DSN" to sentryDsn,
+            "SENTRY_ENVIRONMENT" to sentryEnvironment,
+            "SENTRY_RELEASE" to sentryRelease,
+        ).forEach { (key, value) ->
+            value?.let { environment(key, it) }
         }
     }
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
