@@ -637,6 +637,7 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::MissingReaderRegistration
             | CloseProximityDisclosureError::InvalidCertificateType(_)
             | CloseProximityDisclosureError::ReaderAuthValidation { .. }
+            | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidCertificate { .. }
