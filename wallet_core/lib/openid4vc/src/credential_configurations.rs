@@ -7,7 +7,6 @@ use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::server_keys::KeyPair;
 use derive_more::Debug;
-use derive_more::From;
 use http_utils::urls::HttpsUri;
 use itertools::Either;
 use itertools::Itertools;
@@ -150,7 +149,7 @@ impl CredentialConfigurationMetadata {
 }
 
 /// Static credential configurations indexed by their identifier.
-#[derive(Debug, From)]
+#[derive(Debug)]
 pub(crate) struct CredentialConfigurations<K, L> {
     configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K, L>>,
     ids_by_format_and_attestation_type: HashMap<(Format, Cow<'static, str>), CredentialConfigurationId>,
