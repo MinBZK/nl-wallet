@@ -360,7 +360,7 @@ mod tests {
 
         assert_matches!(
             &metadata_configs
-                .get(&"degree_mso_mdoc".to_string().into())
+                .get("degree_mso_mdoc")
                 .expect("metadata configuration should exist")
                 .format,
             CredentialFormat::MsoMdoc { doctype, .. } if doctype == "com.example.degree"
@@ -368,7 +368,7 @@ mod tests {
 
         assert_matches!(
             &metadata_configs
-                .get(&"degree_dc+sd-jwt".to_string().into())
+                .get("degree_dc+sd-jwt")
                 .expect("metadata configuration should exist")
                 .format,
             CredentialFormat::SdJwt { vct, .. } if vct == "com.example.degree"
@@ -442,7 +442,7 @@ mod tests {
         let mut params = credential_configuration_parameters();
 
         // Change one of the Credential Configuration IDs to an empty string.
-        let config = params.remove(&"degree_mso_mdoc".to_string().into()).unwrap();
+        let config = params.remove("degree_mso_mdoc").unwrap();
         params.insert("".to_string().into(), config);
 
         let error = CredentialConfigurations::try_new(params)

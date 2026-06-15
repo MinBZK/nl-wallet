@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::ops::Not;
@@ -39,6 +40,12 @@ use crate::scope::Scope;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
 #[as_ref(str)]
 pub struct CredentialConfigurationId(String);
+
+impl Borrow<str> for CredentialConfigurationId {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
