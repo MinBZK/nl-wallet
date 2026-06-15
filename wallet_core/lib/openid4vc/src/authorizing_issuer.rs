@@ -209,8 +209,7 @@ where
         // type that implements `AuthorizationCodeFlow`, so that it can return the relevant `IssuableDocument`s.
         //
         // The scope is part of `WalletAuthorizationContext` in order to store this in the session state in the next
-        // step. Once there, it is used to compare against any scope that is requested as part of the Token Request
-        // and to return it in the Token Response.
+        // step. Once there, it is used to compare against any scope that is requested as part of the Token Request.
         let credential_configs = self.issuer.credential_configs();
         let formats_and_types = match context
             .scope

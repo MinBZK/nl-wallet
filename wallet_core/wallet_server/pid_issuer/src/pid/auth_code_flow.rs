@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use attestation_data::attributes::Attribute;
@@ -19,6 +20,8 @@ use hsm::service::HsmError;
 use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
+use itertools::Either;
+use itertools::Itertools;
 use jwk_simple::Key;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -60,6 +63,9 @@ const DIGID_CALLBACK_PATH: &str = "/digid/callback";
 /// Errors raised by [`UpstreamOidcAuthorizationCodeFlow`] on either half of the flow.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("unsupported attestation type(s) requested: {}", .0.iter().join(", "))]
+    UnsupportedAttestationType(Vec<String>),
+
     #[error("DigiD error: {0}")]
     Digid(#[source] digid::Error),
 
@@ -104,6 +110,7 @@ pub enum Error {
 struct StateBridgeEntry {
     context: WalletAuthorizationContext,
     upstream_code_verifier: String,
+    formats: VecNonEmpty<Format>,
 }
 
 /// Query parameters sent by the upstream provider when redirecting the user back to the issuer's
@@ -222,6 +229,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         &self,
         upstream_code: AuthorizationCode,
         upstream_code_verifier: String,
+        formats: VecNonEmpty<Format>,
     ) -> Result<VecNonEmpty<IssuableDocument>, Error>
     where
         B: BrpClient,
@@ -240,16 +248,19 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         let person = persons.persons.remove(0);
         let attributes = insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
-        let issuable_documents = vec_nonempty![
-            IssuableDocument::try_new_with_random_id(
-                Format::SdJwt,
-                PID_ATTESTATION_TYPE.to_string(),
-                attributes.clone(),
-            )
-            .map_err(|_| Error::InvalidIssuableDocuments)?,
-            IssuableDocument::try_new_with_random_id(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string(), attributes)
-                .map_err(|_| Error::InvalidIssuableDocuments)?,
-        ];
+        // Create an `IssuableDocument` for each requested format.
+        let format_count = formats.len().get();
+        let issuable_documents = formats
+            .into_iter()
+            .zip(std::iter::repeat_n(attributes, format_count))
+            .map(|(format, attributes)| {
+                IssuableDocument::try_new_with_random_id(format, PID_ATTESTATION_TYPE.to_string(), attributes)
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| Error::InvalidIssuableDocuments)?
+            .try_into()
+            // Unforuntately the non-empty iterator does not support zip().
+            .expect("source iterator is non-empty");
 
         Ok(issuable_documents)
     }
@@ -265,8 +276,30 @@ where
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
-        _formats_and_types: VecNonEmpty<(Format, &str)>,
+        formats_and_types: VecNonEmpty<(Format, &str)>,
     ) -> Result<AuthorizeOutcome, Self::Error> {
+        // Return an error if any of the attestation types are not the PID attestation type and retain only the
+        // requested formats.
+        let (formats, unsupported): (HashSet<_>, HashSet<_>) =
+            formats_and_types
+                .into_iter()
+                .partition_map(|(format, attestation_type)| {
+                    if attestation_type == PID_ATTESTATION_TYPE {
+                        Either::Left(format)
+                    } else {
+                        Either::Right(attestation_type.to_string())
+                    }
+                });
+
+        if !unsupported.is_empty() {
+            return Err(Error::UnsupportedAttestationType(unsupported.into_iter().collect()));
+        }
+
+        let formats = formats.into_iter().collect_vec().try_into().expect(
+            "deduplicated formats from non-emtpy formats and types should never be empty when there are no \
+             unsupported attestation types",
+        );
+
         // Generate the upstream PKCE pair and the random `issuer_state` we'll use as `state` in
         // the upstream redirect. The upstream provider will echo it back to our callback.
         let upstream_pkce = S256PkcePair::generate();
@@ -288,6 +321,7 @@ where
         let entry = StateBridgeEntry {
             context,
             upstream_code_verifier: upstream_pkce.into_code_verifier(),
+            formats,
         };
         self.state_bridge_store
             .store(issuer_state, entry)
@@ -336,6 +370,7 @@ where
     let StateBridgeEntry {
         context,
         upstream_code_verifier,
+        formats,
     } = entry;
     let WalletAuthorizationContext {
         redirect_uri,
@@ -345,9 +380,15 @@ where
         scope: _scope,
     } = context;
 
-    let result = complete_digid_callback(&authorizing_issuer, code_challenge, upstream_code_verifier, code)
-        .await
-        .inspect_err(|error| warn!("digid callback: completion failed: {error}"));
+    let result = complete_digid_callback(
+        &authorizing_issuer,
+        code_challenge,
+        upstream_code_verifier,
+        formats,
+        code,
+    )
+    .await
+    .inspect_err(|error| warn!("digid callback: completion failed: {error}"));
 
     let url = WalletRedirect::new(redirect_uri, state).into_redirect_url(result.as_ref(), "server_error");
 
@@ -361,6 +402,7 @@ async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
     code_challenge: String,
     upstream_code_verifier: String,
+    formats: VecNonEmpty<Format>,
     digid_code: AuthorizationCode,
 ) -> Result<AuthorizationCode, Error>
 where
@@ -371,7 +413,7 @@ where
     // TODO: Filter issuable documents based on format / attestation type pairs.
     let issuable_documents = authorizing_issuer
         .flow()
-        .fetch_issuable_documents(digid_code, upstream_code_verifier)
+        .fetch_issuable_documents(digid_code, upstream_code_verifier, formats)
         .await?;
 
     authorizing_issuer
@@ -419,6 +461,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use indexmap::IndexMap;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
+    use itertools::Itertools;
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -542,6 +585,7 @@ mod tests {
                 code_challenge: WALLET_CODE_CHALLENGE.to_string(),
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
+            formats: vec_nonempty![Format::MsoMdoc, Format::SdJwt],
         }
     }
 
@@ -603,7 +647,9 @@ mod tests {
                 context,
                 vec_nonempty![
                     (Format::SdJwt, PID_ATTESTATION_TYPE),
-                    (Format::MsoMdoc, PID_ATTESTATION_TYPE)
+                    (Format::MsoMdoc, PID_ATTESTATION_TYPE),
+                    // Test deduplication.
+                    (Format::SdJwt, PID_ATTESTATION_TYPE)
                 ],
             )
             .await
@@ -631,6 +677,44 @@ mod tests {
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
         assert_eq!(entry.context.code_challenge, wallet_code_challenge);
         assert!(!entry.upstream_code_verifier.is_empty());
+        assert!(
+            entry
+                .formats
+                .iter()
+                .map(ToString::to_string)
+                .sorted()
+                .eq(["dc+sd-jwt", "mso_mdoc"])
+        );
+    }
+
+    #[tokio::test]
+    async fn test_authorize_error_unsupported_attestation_type() {
+        let bridge = memory_bridge_store();
+        let flow = flow_with_clients(
+            MockBrpClient::from_fixture("frouke"),
+            MockDigidClient::default(),
+            Arc::clone(&bridge),
+        );
+
+        let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
+
+        let error = flow
+            .authorize(
+                context,
+                vec_nonempty![
+                    (Format::SdJwt, "foo"),
+                    (Format::MsoMdoc, "bar"),
+                    (Format::SdJwt, "not_supported")
+                ],
+            )
+            .await
+            .expect_err("starting authorization flow should fail");
+
+        assert_matches!(
+            error,
+            Error::UnsupportedAttestationType(unsupported)
+                if unsupported.iter().sorted().eq(["bar", "foo", "not_supported"])
+        )
     }
 
     #[tokio::test]
@@ -644,12 +728,14 @@ mod tests {
         let StateBridgeEntry {
             context,
             upstream_code_verifier,
+            formats,
         } = state_bridge_entry();
 
         let code = complete_digid_callback(
             &authorizing_issuer,
             context.code_challenge,
             upstream_code_verifier,
+            formats,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
@@ -692,12 +778,14 @@ mod tests {
         let StateBridgeEntry {
             context,
             upstream_code_verifier,
+            formats,
         } = state_bridge_entry();
 
         let error = complete_digid_callback(
             &authorizing_issuer,
             context.code_challenge,
             upstream_code_verifier,
+            formats,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
