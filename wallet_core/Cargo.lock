@@ -9572,6 +9572,7 @@ dependencies = [
  "wallet_configuration",
  "wallet_migrations",
  "wscd",
+ "zeroize",
  "zstd",
 ]
 

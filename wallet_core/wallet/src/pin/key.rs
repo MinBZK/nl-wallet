@@ -21,6 +21,8 @@ use crypto::keys::EphemeralEcdsaKey;
 use crypto::utils::KeyBytes;
 use crypto::utils::hkdf;
 use crypto::utils::random_bytes;
+use derive_more::AsRef;
+use derive_more::From;
 use p256::FieldBytes;
 use p256::NistP256;
 use p256::SecretKey;
@@ -35,6 +37,7 @@ use p256::elliptic_curve::bigint::NonZero;
 use p256::elliptic_curve::bigint::U384;
 use p256::elliptic_curve::zeroize::Zeroize;
 use ring::error::Unspecified as UnspecifiedRingError;
+use zeroize::ZeroizeOnDrop;
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {
@@ -58,16 +61,21 @@ impl From<PinKeyError> for p256::ecdsa::Error {
     }
 }
 
+#[derive(Clone, ZeroizeOnDrop, From, AsRef)]
+pub struct Pin {
+    pin: String,
+}
+
 /// All PIN data needed to compute signatures. Implements [`Signer<Signature>`] such that the ECDSA private key is
 /// guaranteed to be dropped from memory when [`PinKey::try_sign()`] returns.
 pub struct PinKey<'a> {
-    pub pin: &'a str,
-    pub salt: &'a [u8],
+    pub pin: &'a Pin,
+    pub salt: &'a KeyBytes,
 }
 
 impl PinKey<'_> {
     pub fn verifying_key(&self) -> Result<VerifyingKey, PinKeyError> {
-        let signing_key = pin_private_key(self.salt, self.pin)?;
+        let signing_key = pin_private_key(self.salt.as_ref(), self.pin.as_ref())?;
         let verifying_key = *signing_key.verifying_key();
 
         Ok(verifying_key)
@@ -82,7 +90,7 @@ impl EcdsaKey for PinKey<'_> {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, PinKeyError> {
-        let key = pin_private_key(self.salt, self.pin)?;
+        let key = pin_private_key(self.salt.as_ref(), self.pin.as_ref())?;
         let signature = p256::ecdsa::signature::Signer::sign(&key, msg);
 
         Ok(signature)
@@ -226,10 +234,13 @@ mod tests {
     #[test]
     fn it_works() {
         let pin = "123456";
-        let salt = &new_pin_salt();
+        let salt = new_pin_salt();
         let challenge = b"challenge";
 
-        let pin_key = PinKey { pin, salt };
+        let pin_key = PinKey {
+            pin: &pin.to_string().into(),
+            salt: &salt.into(),
+        };
         let public_key = pin_key.verifying_key().expect("Cannot get public key from PIN key");
         let response = pin_key
             .try_sign(challenge)
