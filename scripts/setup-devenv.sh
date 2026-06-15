@@ -470,6 +470,7 @@ cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/com.exa
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.json" "${PACF_ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.insurance.json" "${ACF_DEMO_ISSUER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
 export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
@@ -493,11 +494,15 @@ render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DI
 render_template "${DEVENV}/demo_issuer_pacf_issuance_server.toml.template" "${PACF_ISSUANCE_SERVER_DIR}/pacf_issuance_server.toml"
 render_template "${DEVENV}/demo_issuer_pacf_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pacf_issuance_server.toml"
 
+# And the acf_demo_issuer config
+render_template "${DEVENV}/acf_demo_issuer.toml.template" "${ACF_DEMO_ISSUER_DIR}/acf_demo_issuer.toml"
+
 # Ensure the status_lists dirs exists
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

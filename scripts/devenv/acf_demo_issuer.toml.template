@@ -1,0 +1,55 @@
+public_url = 'http://${SERVICES_HOST}:${ACF_DEMO_ISSUER_PORT}/'
+wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
+batch_size = 4
+wallet_redirect_uris = ["${WALLET_REDIRECT_URI}"]
+issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
+
+wia_trust_anchors = ["${WIA_CA_CRT}"]
+metadata = [
+    "${ISSUER_METADATA_INSURANCE_PATH}",
+]
+
+[storage]
+url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/acf_demo_issuer'
+
+[wallet_server]
+ip = '0.0.0.0'
+port = ${ACF_DEMO_ISSUER_PORT}
+
+[internal_server]
+ip = '0.0.0.0'
+port = ${ACF_DEMO_ISSUER_IS_PORT}
+
+[status_lists]
+list_size = 100
+
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
+# Demo usecases, keyed by the `issuer_state` value carried in the credential offer.
+[usecases.insurance]
+kind = "consent"
+
+[[usecases.insurance.documents]]
+format = "mso_mdoc"
+attestation_type = "com.example.insurance"
+attributes = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" }
+
+[credential_configurations."com.example.insurance"]
+format = "mso_mdoc"
+attestation_type = "com.example.insurance"
+valid_days = 365
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
+
+[credential_configurations."com.example.insurance".status_list]
+group_name = "com.example.insurance"
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
+certificate = "${DEMO_ISSUER_CRT_INSURANCE_TSL}"

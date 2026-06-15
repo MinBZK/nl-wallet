@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Receive your credential</title>
+  </head>
+  <body>
+    <main>
+      <h1>Receive your credential</h1>
+      <p>An issuer wants to issue a <strong>{{ usecase }}</strong> credential to your wallet.</p>
+      <form method="post" action="?state={{ state }}">
+        <button type="submit">Receive credential</button>
+      </form>
+    </main>
+  </body>
+</html>
