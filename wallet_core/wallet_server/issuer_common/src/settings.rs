@@ -7,6 +7,7 @@ use std::sync::Arc;
 use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -58,6 +59,71 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::nonce_store::ProofNonceStore;
 use crate::par_store::IssuerParStore;
+
+/// Settings for an authorizing (Authorization Phase) issuer: the shared [`IssuerSettings`] plus the
+/// parameters that only the auth-code path needs.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthorizingIssuerSettings {
+    /// Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization
+    /// Request. Validated by [`AuthorizingIssuer`] at `/par`.
+    pub wallet_redirect_uris: VecNonEmpty<Url>,
+
+    /// Trust anchors for verifying the wallet attestation (Wallet Instance Attestation).
+    #[debug(skip)]
+    pub wia_trust_anchors: TrustAnchors,
+
+    #[serde(flatten)]
+    pub issuer_settings: IssuerSettings,
+}
+
+impl AuthorizingIssuerSettings {
+    /// Build an [`AuthorizingIssuer`] (auth-code Authorization Phase) wrapping the inner [`Issuer`]
+    /// produced by [`IssuerSettings::into_issuer`], plus the PAR store and an [`AuthorizationCodeFlow`]
+    /// implementation. The `flow` closure receives the same [`StoreConnection`] used for sessions
+    /// + PAR so the impl can construct its own stores.
+    pub async fn into_authorizing_issuer<AF, E>(
+        self,
+        hsm: Option<Pkcs11Hsm>,
+        flow: impl FnOnce(StoreConnection) -> Result<AF, E>,
+    ) -> Result<
+        (
+            AuthorizingIssuer<
+                PrivateKeyVariant,
+                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
+                SessionStoreVariant<IssuanceData>,
+                ProofNonceStore,
+                IssuerParStore,
+                AF,
+            >,
+            Vec<DatabaseChecker>,
+            StoreConnection,
+            Settings,
+        ),
+        IssuerSettingsError,
+    >
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        let Self {
+            wallet_redirect_uris,
+            wia_trust_anchors,
+            issuer_settings,
+        } = self;
+
+        let wia_config = WiaConfig { wia_trust_anchors };
+
+        let (issuer, database_checkers, store_connection, server_settings) =
+            issuer_settings.into_issuer(hsm, Some(wia_config)).await?;
+
+        let par_store = IssuerParStore::new(store_connection.clone());
+        let flow =
+            flow(store_connection.clone()).map_err(|e| IssuerSettingsError::AuthorizationCodeFlow(Box::new(e)))?;
+
+        let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
+
+        Ok((authorizing_issuer, database_checkers, store_connection, server_settings))
+    }
+}
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
@@ -489,46 +555,6 @@ impl IssuerSettings {
         .map_err(IssuerSettingsError::CredentialConfigurations)?;
 
         Ok((issuer, database_checkers, store_connection, self.server_settings))
-    }
-
-    /// Build an [`AuthorizingIssuer`] (auth-code Authorization Phase) wrapping the inner [`Issuer`]
-    /// produced by [`Self::into_issuer`], plus the PAR store and an [`AuthorizationCodeFlow`]
-    /// implementation. The `flow` closure receives the same [`StoreConnection`] used for sessions
-    /// + PAR so the impl can construct its own stores (e.g. the wallet ↔ upstream PKCE bridge).
-    pub async fn into_authorizing_issuer<AF, E>(
-        self,
-        hsm: Option<Pkcs11Hsm>,
-        wia_config: Option<WiaConfig>,
-        wallet_redirect_uris: VecNonEmpty<Url>,
-        flow: impl FnOnce(StoreConnection) -> Result<AF, E>,
-    ) -> Result<
-        (
-            AuthorizingIssuer<
-                PrivateKeyVariant,
-                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
-                SessionStoreVariant<IssuanceData>,
-                ProofNonceStore,
-                IssuerParStore,
-                AF,
-            >,
-            Vec<DatabaseChecker>,
-            StoreConnection,
-            Settings,
-        ),
-        IssuerSettingsError,
-    >
-    where
-        E: std::error::Error + Send + Sync + 'static,
-    {
-        let (issuer, database_checkers, store_connection, server_settings) = self.into_issuer(hsm, wia_config).await?;
-
-        let par_store = IssuerParStore::new(store_connection.clone());
-        let flow =
-            flow(store_connection.clone()).map_err(|e| IssuerSettingsError::AuthorizationCodeFlow(Box::new(e)))?;
-
-        let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
-
-        Ok((authorizing_issuer, database_checkers, store_connection, server_settings))
     }
 }
 

@@ -36,7 +36,6 @@ use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuer::WiaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
@@ -304,7 +303,7 @@ pub async fn setup_env(
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
-    issuer_settings: PidIssuerSettings,
+    pid_issuer_settings: PidIssuerSettings,
     (mut issuance_server_settings, issuable_documents, di_root_ca, di_tls_config): (
         IssuanceServerSettings,
         Vec<IssuableDocument>,
@@ -328,7 +327,11 @@ pub async fn setup_env(
     assert_eq!(Some(wp_settings.hsm.clone()), verifier_settings.server_settings.hsm);
     assert_eq!(
         Some(wp_settings.hsm.clone()),
-        issuer_settings.issuer_settings.server_settings.hsm
+        pid_issuer_settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .server_settings
+            .hsm
     );
 
     let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
@@ -355,10 +358,10 @@ pub async fn setup_env(
     let pacf_issuance_server_url = start_pacf_issuance_server(pacf_issuance_server_settings, Some(hsm.clone())).await;
 
     let recovery_code_secret_key =
-        SecretKeyVariant::from_settings(issuer_settings.recovery_code.clone(), Some(hsm.clone()))
+        SecretKeyVariant::from_settings(pid_issuer_settings.recovery_code.clone(), Some(hsm.clone()))
             .expect("could not initialize recovery code secret key");
 
-    let pid_issuer_url = start_pid_issuer_server(issuer_settings, Some(hsm), |public_url| {
+    let pid_issuer_url = start_pid_issuer_server(pid_issuer_settings, Some(hsm), |public_url| {
         // The production `UpstreamOidcAuthorizationCodeFlow` (state bridge, callback handler, BRP
         // attribute mapping, recovery-code HMAC) with only its two external boundaries mocked:
         // `MockDigidClient` redirects the user-agent straight back to the issuer's own
@@ -677,14 +680,29 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
 }
 
 pub fn pid_issuer_settings(db_url: Url) -> PidIssuerSettings {
-    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
+    let mut pid_settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
-    settings.issuer_settings.server_settings.storage.url = db_url;
+    pid_settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .server_settings
+        .storage
+        .url = db_url;
 
-    settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.issuer_settings.server_settings.wallet_server.port = 0;
+    pid_settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .server_settings
+        .wallet_server
+        .ip = IpAddr::from_str("127.0.0.1").unwrap();
+    pid_settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .server_settings
+        .wallet_server
+        .port = 0;
 
-    settings
+    pid_settings
 }
 
 pub fn issuance_server_settings(
@@ -907,7 +925,7 @@ pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings
 }
 
 pub async fn start_pid_issuer_server<B, O, F>(
-    mut settings: PidIssuerSettings,
+    mut pid_settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     flow_builder: F,
 ) -> IssuerUrl
@@ -919,27 +937,24 @@ where
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
-    settings.issuer_settings.public_url = public_url.clone();
+    pid_settings.authorizing_issuer_settings.issuer_settings.public_url = public_url.clone();
 
-    let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
+    let internal_listener =
+        get_internal_listener(&mut pid_settings.authorizing_issuer_settings.issuer_settings.server_settings).await;
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
     let internal_url = local_http_base_url(internal_port);
 
-    let serve_status_lists = settings.issuer_settings.status_lists.serve;
-
-    let wia_config = WiaConfig {
-        wia_trust_anchors: settings.wia_trust_anchors,
-    };
-
-    let wallet_redirect_uris = settings.wallet_redirect_uris;
+    let serve_status_lists = pid_settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .status_lists
+        .serve;
 
     let flow = flow_builder(&public_url);
 
-    let (issuer, _, _, server_settings) = settings
-        .issuer_settings
-        .into_authorizing_issuer(hsm, Some(wia_config), wallet_redirect_uris, |_| {
-            Ok::<_, Infallible>(flow)
-        })
+    let (issuer, _, _, server_settings) = pid_settings
+        .authorizing_issuer_settings
+        .into_authorizing_issuer(hsm, |_| Ok::<_, Infallible>(flow))
         .await
         .unwrap();
 

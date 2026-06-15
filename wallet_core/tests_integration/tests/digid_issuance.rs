@@ -51,12 +51,13 @@ use wallet_account::NL_WALLET_CLIENT_ID;
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
     let db_setup = DbSetup::create_clean().await;
-    let mut settings = pid_issuer_settings(db_setup.pid_issuer_url());
+    let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url());
 
     let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
-    settings.wallet_redirect_uris = vec_nonempty![redirect_uri.clone()];
+    pid_settings.authorizing_issuer_settings.wallet_redirect_uris = vec_nonempty![redirect_uri.clone()];
 
-    let hsm = settings
+    let hsm = pid_settings
+        .authorizing_issuer_settings
         .issuer_settings
         .server_settings
         .hsm
@@ -65,13 +66,21 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
-    let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap();
-    let store_connection = StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
-        .await
-        .unwrap();
-    let brp_client = HttpBrpClient::new(settings.brp_server.clone());
-    let bsn_privkey = settings.digid.bsn_privkey.clone();
-    let digid_client_id = settings.digid.client_id.clone();
+    let digid_metadata_cache = DigidMetadataCache::try_new(pid_settings.digid.client_settings.clone()).unwrap();
+    let store_connection = StoreConnection::try_new(
+        pid_settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .server_settings
+            .storage
+            .url
+            .clone(),
+    )
+    .await
+    .unwrap();
+    let brp_client = HttpBrpClient::new(pid_settings.brp_server.clone());
+    let bsn_privkey = pid_settings.digid.bsn_privkey.clone();
+    let digid_client_id = pid_settings.digid.client_id.clone();
     let recovery_secret_key = SecretKeyVariant::from_settings(
         SecretKey::Software {
             secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
@@ -80,7 +89,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     )
     .unwrap();
 
-    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, |_public_url| {
+    let issuer_url = start_pid_issuer_server(pid_settings.clone(), hsm, |_public_url| {
         // The issuer advertises a fixed, pre-registered callback URL to nl-rdo-max (exact-match
         // validated against its clients.json) rather than its dynamic bind port, which nl-rdo-max
         // cannot pre-register. `fake_digid_auth` rewrites the port back to the live issuer when it
@@ -125,8 +134,8 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
         authorization_session.auth_url().clone(),
-        settings.digid.client_settings.oidc_identifier.as_ref(),
-        settings
+        pid_settings.digid.client_settings.oidc_identifier.as_ref(),
+        pid_settings
             .digid
             .client_settings
             .trust_anchors
