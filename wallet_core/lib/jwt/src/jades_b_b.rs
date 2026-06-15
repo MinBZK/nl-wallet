@@ -1,9 +1,14 @@
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::EcdsaKey;
+use crypto::server_keys::KeyPair;
 use jsonwebtoken::Header;
 use serde::Deserialize;
 use serde::Serialize;
+use utils::generator::Generator;
 
+use crate::JwtTyp;
+use crate::SignedJwt;
 use crate::error::JwtError;
 use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
@@ -59,25 +64,41 @@ impl TryFrom<Header> for JAdESBBInnerHeader {
     }
 }
 
-impl From<JAdESBBInnerHeader> for Header {
-    fn from(value: JAdESBBInnerHeader) -> Self {
-        value.inner.into()
+impl<C: Serialize + JwtTyp> SignedJwt<C, JAdESBBHeader> {
+    pub async fn sign_with_iat<K: EcdsaKey>(
+        payload: &C,
+        keypair: &KeyPair<K>,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<SignedJwt<C, JAdESBBHeader>, JwtError> {
+        let header = JAdESBBInnerHeader {
+            inner: HeaderWithTyp::new::<C>(),
+            iat: Some(time.generate()),
+        };
+
+        SignedJwt::<C, JAdESBBHeader>::sign_with_header_and_certificate(payload, header, keypair).await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::num::NonZeroUsize;
+    use std::panic;
 
+    use base64::prelude::*;
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::CertificateUsage;
     use jsonwebtoken::Algorithm;
     use serde_json::Value;
     use serde_json::json;
+    use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
 
     use super::*;
+    use crate::DEFAULT_VALIDATIONS;
+    use crate::UnverifiedJwt;
     use crate::headers::HeaderWithX5c;
 
     fn test_header() -> JAdESBBHeader {
@@ -190,5 +211,84 @@ mod tests {
         });
         let result: Result<JAdESBBHeader, _> = serde_json::from_value(json_val);
         assert!(result.is_err(), "deserialization must fail with an empty x5c array");
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    struct ToyJAdESBBPayload {}
+
+    impl JwtTyp for ToyJAdESBBPayload {
+        const TYP: &'static str = JADES_B_B_JWT_TYP;
+    }
+
+    #[tokio::test]
+    async fn test_sign_jades_b_b_token() {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock().unwrap();
+
+        let toy_payload = ToyJAdESBBPayload {};
+
+        let signed_jwt =
+            SignedJwt::<_, JAdESBBHeader>::sign_with_iat(&toy_payload, &keypair, &MockTimeGenerator::default())
+                .await
+                .unwrap();
+
+        let verified = signed_jwt.clone().into_verified();
+        assert!(verified.header().inner().iat.is_some());
+        assert_eq!(verified.header().inner().inner.typ, JADES_B_B_JWT_TYP);
+        assert_eq!(verified.header().inner().inner.alg, Algorithm::ES256);
+
+        let unverified = signed_jwt.into_unverified();
+        let (header, payload) = unverified
+            .parse_and_verify_against_trust_anchors(
+                &TrustAnchors::from(&ca),
+                &MockTimeGenerator::default(),
+                CertificateUsage::ReaderAuth,
+                &DEFAULT_VALIDATIONS,
+            )
+            .unwrap();
+
+        // after parsing, the `iat` field is not present in the verified header
+        assert!(header.inner().iat.is_none());
+        assert_eq!(header.inner().inner.typ, JADES_B_B_JWT_TYP);
+        assert_eq!(header.inner().inner.alg, Algorithm::ES256);
+        assert_eq!(payload, toy_payload);
+    }
+
+    #[tokio::test]
+    async fn test_sign_jades_b_b_without_iat() {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock().unwrap();
+
+        let toy_payload = ToyJAdESBBPayload {};
+
+        let signed_jwt = SignedJwt::<_, HeaderWithX5c>::sign_with_certificate(&toy_payload, &keypair)
+            .await
+            .unwrap();
+
+        let unverified = signed_jwt.into_unverified();
+
+        let json: serde_json::Value = serde_json::from_slice(
+            &BASE64_URL_SAFE_NO_PAD
+                .decode(unverified.serialization().split('.').take(1).last().unwrap())
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(json["iat"].is_null());
+
+        // reinterpret as to be able to parse the JAdES-B-B header
+        let unverified: UnverifiedJwt<ToyJAdESBBPayload, JAdESBBHeader> = unverified.serialization().parse().unwrap();
+        let (header, payload): (JAdESBBHeader, ToyJAdESBBPayload) = unverified
+            .parse_and_verify_against_trust_anchors(
+                &TrustAnchors::from(&ca),
+                &MockTimeGenerator::default(),
+                CertificateUsage::ReaderAuth,
+                &DEFAULT_VALIDATIONS,
+            )
+            .unwrap(); // should parse even without an `iat` field
+
+        assert!(header.inner().iat.is_none());
+        assert_eq!(header.inner().inner.typ, JADES_B_B_JWT_TYP);
+        assert_eq!(header.inner().inner.alg, Algorithm::ES256);
+        assert_eq!(payload, toy_payload);
     }
 }

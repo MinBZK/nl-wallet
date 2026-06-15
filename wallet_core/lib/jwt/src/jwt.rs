@@ -379,12 +379,13 @@ impl<T, H> SignedJwt<T, H> {
     }
 }
 
-impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
+impl<T: Serialize + JwtTyp, H: Serialize> SignedJwt<T, H> {
     async fn sign_with_header(header: H, payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, H>> {
-        let mut header: Header = header.into();
-        header.typ = Some(T::TYP.to_owned());
+        // Serialize H directly; T::TYP is added by inserting into the JSON object directly
+        let mut header_json: serde_json::Map<_, _> = serde_json::from_value(serde_json::to_value(&header)?)?;
+        header_json.insert("typ".to_owned(), serde_json::Value::String(T::TYP.to_owned()));
 
-        let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header)?);
+        let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header_json)?);
         let encoded_payload = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
 
         let header_and_payload = encoded_header + "." + &encoded_payload;
@@ -420,8 +421,10 @@ impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithX5c> {
         let header = HeaderWithX5c::from_certs(vec_nonempty![keypair.certificate().to_owned()]);
         SignedJwt::sign_with_header(header, payload, keypair.private_key()).await
     }
+}
 
-    pub async fn sign_with_header_and_certificate<K: EcdsaKey, H: Serialize + Into<Header>>(
+impl<T: Serialize + JwtTyp, H: Serialize> SignedJwt<T, HeaderWithX5c<H>> {
+    pub async fn sign_with_header_and_certificate<K: EcdsaKey>(
         payload: &T,
         header: H,
         keypair: &KeyPair<K>,

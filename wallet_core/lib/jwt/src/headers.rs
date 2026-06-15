@@ -58,16 +58,6 @@ impl Default for HeaderWithTyp {
     }
 }
 
-impl From<HeaderWithTyp> for Header {
-    fn from(value: HeaderWithTyp) -> Self {
-        Header {
-            alg: value.alg,
-            typ: Some(value.typ.into_owned()),
-            ..Default::default()
-        }
-    }
-}
-
 impl TryFrom<Header> for HeaderWithTyp {
     type Error = JwtError;
 
@@ -103,14 +93,6 @@ impl HeaderWithJwk {
             header: HeaderWithTyp::default(),
             jwk,
         })
-    }
-}
-
-impl<H: Into<Header>> From<HeaderWithJwk<H>> for Header {
-    fn from(value: HeaderWithJwk<H>) -> Self {
-        let mut header: Header = value.header.into();
-        header.jwk = Some(value.jwk);
-        header
     }
 }
 
@@ -176,20 +158,6 @@ impl<H> HeaderWithX5c<H> {
     }
 }
 
-impl<H: Into<Header>> From<HeaderWithX5c<H>> for Header {
-    fn from(value: HeaderWithX5c<H>) -> Self {
-        let mut header: Header = value.header.into();
-        header.x5c = Some(
-            value
-                .x5c
-                .iter()
-                .map(|cert| BASE64_STANDARD.encode(cert.as_ref()))
-                .collect(),
-        );
-        header
-    }
-}
-
 impl<H, E> TryFrom<Header> for HeaderWithX5c<H>
 where
     H: TryFrom<Header, Error = E>,
@@ -233,14 +201,6 @@ pub struct HeaderWithKid<H = HeaderWithTyp> {
 impl<H> HeaderWithKid<H> {
     pub fn inner(&self) -> &H {
         &self.header
-    }
-}
-
-impl<H: Into<Header>> From<HeaderWithKid<H>> for Header {
-    fn from(value: HeaderWithKid<H>) -> Self {
-        let mut header: Header = value.header.into();
-        header.kid = Some(value.kid);
-        header
     }
 }
 
