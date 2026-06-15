@@ -385,16 +385,10 @@ where
         };
 
         // Get an SD-JWT copy out of the PID we just received.
-        let attestation = issuance_result
+        let pid = issuance_result
             .into_iter()
-            .find(|attestation| attestation.attestation_type == offered_pid)
-            .expect("no PID received"); // accept_issuance() already checks this against the previews
-
-        let pid_attestation_type = attestation.attestation_type;
-        let pid = attestation
-            .copies
-            .into_inner()
-            .into_iter()
+            .filter(|attestation| attestation.attestation_type == offered_pid)
+            .flat_map(|attestation| attestation.copies.into_inner().into_iter())
             .find_map(|copy| match copy {
                 IssuedCredential::MsoMdoc { .. } => None,
                 IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
@@ -403,7 +397,7 @@ where
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(&pid_config.recovery_code_path(&pid_attestation_type)?)
+            .disclose(&pid_config.recovery_code_path(&offered_pid)?)
             .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
             .finish()
             .into();
@@ -489,6 +483,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use p256::ecdsa::SigningKey;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
@@ -517,6 +512,7 @@ mod tests {
     use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::create_example_pid_mdoc;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
@@ -960,13 +956,21 @@ mod tests {
 
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, _) = mock_issuance_session([(
-            IssuedCredential::SdJwt {
-                key_identifier: "key_id".to_string(),
-                sd_jwt: sd_jwt.clone(),
-            },
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        )]);
+        let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
+
+        let (pid_issuer, _) = mock_issuance_session([
+            (
+                IssuedCredential::MsoMdoc { mdoc },
+                VerifiedTypeMetadataDocuments::nl_pid_example(),
+            ),
+            (
+                IssuedCredential::SdJwt {
+                    key_identifier: "key_id".to_string(),
+                    sd_jwt: sd_jwt.clone(),
+                },
+                VerifiedTypeMetadataDocuments::nl_pid_example(),
+            ),
+        ]);
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
