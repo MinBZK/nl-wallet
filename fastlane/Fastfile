@@ -56,12 +56,12 @@ end
 # Upload debug symbols to Sentry.
 # Requires the following environment variables: [SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL].
 # SENTRY_AUTH_TOKEN enables the sentry_dart_plugin, after which the existense of the other variables is checked.
-private_lane :upload_sentry_symbols do
+private_lane :upload_sentry_symbols do |options|
   unless ENV["SENTRY_AUTH_TOKEN"].blank? then
     UI.user_error!("Missing environment variable 'SENTRY_ORG'") if ENV["SENTRY_ORG"].blank?
     UI.user_error!("Missing environment variable 'SENTRY_PROJECT'") if ENV["SENTRY_PROJECT"].blank?
     UI.user_error!("Missing environment variable 'SENTRY_URL'") if ENV["SENTRY_URL"].blank?
-    sh(*flutter_cmd, "packages", "pub", "run", "sentry_dart_plugin")
+    sh({ "SENTRY_RELEASE" => options[:sentry_release] }, *flutter_cmd, "packages", "pub", "run", "sentry_dart_plugin")
   end
 end
 
@@ -138,7 +138,6 @@ platform :android do
     universal_link_base = options[:universal_link_base]
     sentry_dsn = ENV["SENTRY_DSN"]
     sentry_environment = ENV["SENTRY_ENVIRONMENT"]
-    sentry_release = ENV["SENTRY_RELEASE"]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -149,6 +148,9 @@ platform :android do
     demo_index_url = options[:demo_index_url] || ""
     show_debug_options = options[:show_debug_options] || false
     allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
+
+    sentry_release = ENV["SENTRY_RELEASE"]
+    sentry_release = "#{application_id}@#{version}+#{build}" if sentry_release.blank?
 
     UI.user_error!("Invalid file_format: #{file_format}") unless ["aab", "apk"].include? file_format
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
@@ -175,7 +177,7 @@ platform :android do
             "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
       )
 
-      upload_sentry_symbols
+      upload_sentry_symbols(sentry_release: sentry_release)
 
       source_filepath = "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}"
       target_filepath = "../#{application_id}-#{version}-#{build_mode}.#{file_format}"
@@ -416,7 +418,6 @@ platform :ios do
     universal_link_base = options[:universal_link_base]
     sentry_dsn = ENV["SENTRY_DSN"]
     sentry_environment = ENV["SENTRY_ENVIRONMENT"]
-    sentry_release = ENV["SENTRY_RELEASE"]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -427,6 +428,10 @@ platform :ios do
     demo_index_url = options[:demo_index_url] || ""
     show_debug_options = options[:show_debug_options] || false
     allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
+
+    bundle_id = options[:bundle_id] || get_app_identifier
+    sentry_release = ENV["SENTRY_RELEASE"]
+    sentry_release = "#{bundle_id}@#{version}+#{build}" if sentry_release.blank?
 
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
@@ -463,7 +468,7 @@ platform :ios do
             "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
       )
 
-      upload_sentry_symbols
+      upload_sentry_symbols(sentry_release: sentry_release)
       extract_entitlements
     end
   end
