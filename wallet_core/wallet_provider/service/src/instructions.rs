@@ -427,6 +427,7 @@ impl HandleInstruction for ChangePinCommit {
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
     user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+    time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(PerformIssuanceResult, VecNonEmpty<WrappedKey>), InstructionError>
 where
     T: Committable,
@@ -446,7 +447,12 @@ where
         .collect();
 
     // The JWT claims to be signed in the PoPs.
-    let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
+    let claims = JwtPopClaims::new(
+        instruction.nonce,
+        NL_WALLET_CLIENT_ID.to_string(),
+        instruction.aud,
+        time,
+    );
 
     let issuance_result = PerformIssuanceResult {
         key_identifiers: key_ids,
@@ -499,19 +505,22 @@ where
         .map_err(Into::into)
 }
 
-async fn wia<T, R, H>(
+async fn wia<T, R, H, G>(
     claims: &JwtPopClaims,
     wallet_user: &WalletUser,
     user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+    generators: &G,
 ) -> Result<(WrappedKey, WiaDisclosure), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
+    G: Generator<Uuid> + Generator<DateTime<Utc>>,
 {
     // generate WIA ID
-    let wia_id = Uuid::new_v4();
-    let exp = Utc::now() + user_state.wia_status_tracking_validity;
+    let wia_id = generators.generate();
+    let now: DateTime<Utc> = generators.generate();
+    let exp = now + user_state.wia_status_tracking_validity;
     let status_claim = user_state
         .status_list_service
         .obtain_status_claims(
@@ -533,7 +542,7 @@ where
 
     let (wia_wrapped_key, wia) = user_state
         .wia_issuer
-        .issue_wia(exp.into(), status_claim)
+        .issue_wia(exp.into(), status_claim, generators)
         .await
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
@@ -599,7 +608,7 @@ impl HandleInstruction for PerformIssuance {
         H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (issuance_result, wrapped_keys) = perform_issuance(self, user_state).await?;
+        let (issuance_result, wrapped_keys) = perform_issuance(self, user_state, generators).await?;
 
         let db_keys = create_issuance_keys(wrapped_keys.into_inner(), None, false, generators);
 
@@ -628,9 +637,9 @@ impl HandleInstruction for IssueWia {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         // The JWT claims to be signed in the PoPs.
-        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
+        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud, generators);
 
-        let (wia_wrapped_key, wia_disclosure) = wia(&claims, wallet_user, user_state).await?;
+        let (wia_wrapped_key, wia_disclosure) = wia(&claims, wallet_user, user_state, generators).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -669,7 +678,7 @@ impl HandleInstruction for Sign {
     async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _generators: &G,
+        generators: &G,
         user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
@@ -720,7 +729,12 @@ impl HandleInstruction for Sign {
                 .map(|wrapped_key| attestation_key(wrapped_key, user_state))
                 .collect_vec();
             let keys = keys.iter().collect_vec().try_into().unwrap_or_else(|_| unreachable!()); // We know there are at least two keys
-            let claims = JwtPopClaims::new(self.poa_nonce, NL_WALLET_CLIENT_ID.to_string(), self.poa_aud);
+            let claims = JwtPopClaims::new(
+                self.poa_nonce,
+                NL_WALLET_CLIENT_ID.to_string(),
+                self.poa_aud,
+                generators,
+            );
             let poa = Poa::new(keys, claims).await?;
 
             Ok(SignResult {

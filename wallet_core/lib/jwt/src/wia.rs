@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use attestation_types::status_claim::StatusClaim;
+use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
@@ -12,6 +13,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
 use crate::DEFAULT_VALIDATIONS;
@@ -66,6 +68,7 @@ pub struct ClientStatus {
 }
 
 impl WiaClaims {
+    #[expect(clippy::too_many_arguments, reason = "constructor")]
     pub fn new(
         holder_pubkey: &VerifyingKey,
         iss: String,
@@ -73,9 +76,9 @@ impl WiaClaims {
         exp: DateTimeSeconds,
         wallet_info: WiaWalletInfo,
         client_status: ClientStatus,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Self, JwtError> {
-        let now = Utc::now().into();
-
+        let now = time.generate().into();
         Ok(Self {
             cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
             iss,
@@ -196,7 +199,9 @@ mod tests {
     use std::assert_matches;
 
     use attestation_types::status_claim::StatusClaim;
+    use chrono::DateTime;
     use chrono::Duration;
+    use chrono::TimeDelta;
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
@@ -205,9 +210,13 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
+    use utils::generator::Generator;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::SignedJwt;
     use crate::UnverifiedJwt;
+    use crate::error::JwtError;
+    use crate::error::JwtX5cError;
     use crate::headers::HeaderWithX5c;
     use crate::nonce::Nonce;
     use crate::pop::JwtPopClaims;
@@ -221,7 +230,11 @@ mod tests {
     const ISS: &str = "https://wia-issuer.example.com/";
     const WALLET_CLIENT_ID: &str = "wallet-client";
 
-    fn make_wia(wia_keypair: &KeyPair, holder_pubkey: &VerifyingKey) -> UnverifiedJwt<WiaClaims, HeaderWithX5c> {
+    fn make_wia(
+        wia_keypair: &KeyPair,
+        holder_pubkey: &VerifyingKey,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> UnverifiedJwt<WiaClaims, HeaderWithX5c> {
         let wia_claims = WiaClaims::new(
             holder_pubkey,
             ISS.to_string(),
@@ -232,6 +245,7 @@ mod tests {
                 status: StatusClaim::new_mock(),
                 exp: (Utc::now() + Duration::days(365)).into(),
             },
+            time,
         )
         .unwrap();
 
@@ -244,7 +258,12 @@ mod tests {
 
     fn make_pop(holder_key: &SigningKey, nonce: Option<Nonce>, aud: &str) -> UnverifiedJwt<JwtPopClaims> {
         SignedJwt::sign(
-            &JwtPopClaims::new(nonce, WALLET_CLIENT_ID.to_string(), aud.to_string()),
+            &JwtPopClaims::new(
+                nonce,
+                WALLET_CLIENT_ID.to_string(),
+                aud.to_string(),
+                &MockTimeGenerator::default(),
+            ),
             holder_key,
         )
         .now_or_never()
@@ -260,7 +279,7 @@ mod tests {
         let holder_key = SigningKey::random(&mut OsRng);
 
         let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
             make_pop(&holder_key, Some(Nonce::new_random()), AUD),
         );
 
@@ -279,7 +298,7 @@ mod tests {
         let wrong_key = SigningKey::random(&mut OsRng);
 
         let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
             make_pop(&wrong_key, Some(Nonce::new_random()), AUD),
         );
 
@@ -297,7 +316,7 @@ mod tests {
         let holder_key = SigningKey::random(&mut OsRng);
 
         let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
             make_pop(&holder_key, Some(Nonce::new_random()), "https://wrong.example.com/"),
         );
 
@@ -315,7 +334,7 @@ mod tests {
         let holder_key = SigningKey::random(&mut OsRng);
 
         let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
             make_pop(&holder_key, Some(Nonce::new_random()), AUD),
         );
 
@@ -333,7 +352,7 @@ mod tests {
         let holder_key = SigningKey::random(&mut OsRng);
 
         let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
             make_pop(&holder_key, None, AUD),
         );
 
@@ -342,5 +361,30 @@ mod tests {
             .unwrap_err();
 
         assert_matches!(error, WiaError::MissingNonce);
+    }
+
+    #[test]
+    fn verify_wia_not_yet_valid() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(
+                &wia_keypair,
+                holder_key.verifying_key(),
+                &MockTimeGenerator::new(Utc::now() + TimeDelta::weeks(1)), // WIA will be valid in a week from now
+            ),
+            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
+        );
+
+        let error = disclosure
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .unwrap_err();
+
+        assert_matches!(
+            error,
+            WiaError::JwtX5c(JwtX5cError::Jwt(JwtError::Validation(error))) if *error.kind() == jsonwebtoken::errors::ErrorKind::ImmatureSignature
+        );
     }
 }

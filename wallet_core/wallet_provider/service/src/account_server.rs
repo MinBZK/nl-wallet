@@ -1230,7 +1230,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .await?;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_result, keys) = perform_issuance(instruction_payload.issuance_instruction, user_state).await?;
+        let (issuance_result, keys) =
+            perform_issuance(instruction_payload.issuance_instruction, user_state, generators).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 

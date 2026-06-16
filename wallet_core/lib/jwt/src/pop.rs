@@ -3,6 +3,7 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use serde::Deserialize;
 use serde::Serialize;
+use utils::generator::Generator;
 
 use crate::JwtTyp;
 use crate::nonce::Nonce;
@@ -21,12 +22,12 @@ pub struct JwtPopClaims {
 }
 
 impl JwtPopClaims {
-    pub fn new(nonce: Option<Nonce>, iss: String, aud: String) -> Self {
+    pub fn new(nonce: Option<Nonce>, iss: String, aud: String, time: &impl Generator<DateTime<Utc>>) -> Self {
         Self {
             nonce,
             iss,
             aud,
-            iat: Utc::now(),
+            iat: time.generate(),
         }
     }
 }

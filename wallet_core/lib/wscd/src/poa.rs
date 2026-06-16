@@ -206,6 +206,7 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
     use rstest::rstest;
+    use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::Poa;
@@ -222,7 +223,12 @@ mod tests {
 
         let poa = Poa::new(
             vec![&key1, &key2].try_into().unwrap(),
-            JwtPopClaims::new(Some(nonce.clone()), iss.clone(), aud.clone()),
+            JwtPopClaims::new(
+                Some(nonce.clone()),
+                iss.clone(),
+                aud.clone(),
+                &MockTimeGenerator::default(),
+            ),
         )
         .await
         .unwrap();
