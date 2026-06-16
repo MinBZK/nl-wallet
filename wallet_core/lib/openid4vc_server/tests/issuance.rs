@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -643,7 +644,7 @@ fn dpop_header_for(token_url: &Url) -> String {
 async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> AuthorizationCode {
     let documents = mock_issuable_documents(NonZeroUsize::MIN);
     authorizing_issuer
-        .complete_authorization(documents, "irrelevant-challenge".to_string())
+        .complete_authorization(documents, HashSet::new(), "irrelevant-challenge".to_string())
         .await
         .unwrap()
 }

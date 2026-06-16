@@ -237,13 +237,12 @@ where
                 let WalletAuthorizationContext {
                     redirect_uri,
                     state,
+                    scope,
                     code_challenge,
-                    // TODO: Store scope in session state.
-                    scope: _scope,
                 } = context;
 
                 let code = self
-                    .complete_authorization(issuables, code_challenge)
+                    .complete_authorization(issuables, scope, code_challenge)
                     .await
                     .map_err(AuthorizeError::CompleteAuthorization)?;
 
@@ -264,7 +263,8 @@ where
     pub async fn complete_authorization(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
-        code_challenge: String,
+        request_scope: HashSet<Scope>,
+        wallet_code_challenge: String,
     ) -> Result<AuthorizationCode, CompleteAuthorizationError> {
         let code = AuthorizationCode::from(random_string(AUTH_CODE_LENGTH));
 
@@ -273,7 +273,8 @@ where
             IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
                 issuable_documents,
                 grant: Grant::AuthorizationCode {
-                    wallet_code_challenge: code_challenge,
+                    request_scope,
+                    wallet_code_challenge,
                 },
             })),
         );
@@ -656,7 +657,7 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_builds_wallet_redirect_for_issued_code() {
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
-        let wallet_code_challenge = "wallet-code-challenge".to_string();
+        let code_challenge = "wallet-code-challenge".to_string();
         let (authorizing_issuer, sessions) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
             AuthorizeOutcome::Authorized(
@@ -665,7 +666,7 @@ mod tests {
                     redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                     state: Some(WALLET_STATE.to_string()),
                     scope: HashSet::from(["com.example.pid".parse().unwrap()]),
-                    code_challenge: wallet_code_challenge.clone(),
+                    code_challenge: code_challenge.clone(),
                 },
             ),
         );
@@ -694,9 +695,13 @@ mod tests {
         let IssuanceData::AuthCodeIssued(auth_code_issued) = session.data else {
             panic!("expected an AuthCodeIssued session");
         };
-        assert_eq!(
+        assert_matches!(
             auth_code_issued.grant,
-            Grant::AuthorizationCode { wallet_code_challenge }
+            Grant::AuthorizationCode {
+                request_scope,
+                wallet_code_challenge,
+            } if request_scope.iter().map(AsRef::as_ref).eq(["com.example.pid"])
+                && wallet_code_challenge == code_challenge
         );
         assert_eq!(auth_code_issued.issuable_documents.len(), documents.len());
     }
@@ -707,10 +712,14 @@ mod tests {
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
-        let wallet_code_challenge = "wallet-code-challenge".to_string();
+        let code_challenge = "wallet-code-challenge".to_string();
 
         let code = authorizing_issuer
-            .complete_authorization(documents.clone(), wallet_code_challenge.clone())
+            .complete_authorization(
+                documents.clone(),
+                HashSet::from(["scope".parse().unwrap()]),
+                code_challenge.clone(),
+            )
             .await
             .unwrap();
 
@@ -724,9 +733,12 @@ mod tests {
         let IssuanceData::AuthCodeIssued(auth_code_issued) = session.data else {
             panic!("expected an AuthCodeIssued session");
         };
-        assert_eq!(
+        assert_matches!(
             auth_code_issued.grant,
-            Grant::AuthorizationCode { wallet_code_challenge }
+            Grant::AuthorizationCode {
+                request_scope,
+                wallet_code_challenge,
+            } if request_scope.iter().map(AsRef::as_ref).eq(["scope"]) && wallet_code_challenge == code_challenge
         );
         assert_eq!(auth_code_issued.issuable_documents.len(), documents.len());
     }

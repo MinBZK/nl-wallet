@@ -74,6 +74,7 @@ use crate::pkce::S256PkcePair;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::recurring_task::start_recurring_task;
+use crate::scope::Scope;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
@@ -243,10 +244,13 @@ pub struct AuthCodeIssued {
     pub grant: Grant,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, strum::Display)]
+#[derive(Serialize, Deserialize, Debug, Clone, strum::Display)]
 pub enum Grant {
     PreAuthorizedCode,
-    AuthorizationCode { wallet_code_challenge: String },
+    AuthorizationCode {
+        request_scope: HashSet<Scope>,
+        wallet_code_challenge: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -910,7 +914,10 @@ impl Grant {
     /// passes unconditionally; `AuthorizationCode` requires a `code_verifier` whose S256 challenge
     /// matches the one captured at `/authorize`.
     fn verify_pkce(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
-        let Grant::AuthorizationCode { wallet_code_challenge } = self else {
+        let Grant::AuthorizationCode {
+            wallet_code_challenge, ..
+        } = self
+        else {
             // Pre-authorized-code grant: no PKCE to verify.
             return Ok(());
         };

@@ -33,6 +33,7 @@ use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
+use openid4vc::scope::Scope;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
@@ -375,13 +376,13 @@ where
     let WalletAuthorizationContext {
         redirect_uri,
         state,
+        scope,
         code_challenge,
-        // TODO: Store scope in session state.
-        scope: _scope,
     } = context;
 
     let result = complete_digid_callback(
         &authorizing_issuer,
+        scope,
         code_challenge,
         upstream_code_verifier,
         formats,
@@ -400,6 +401,7 @@ where
 /// writes the `AuthCodeIssued` session, and returns the code.
 async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
+    request_scope: HashSet<Scope>,
     code_challenge: String,
     upstream_code_verifier: String,
     formats: VecNonEmpty<Format>,
@@ -417,7 +419,7 @@ where
         .await?;
 
     authorizing_issuer
-        .complete_authorization(issuable_documents, code_challenge)
+        .complete_authorization(issuable_documents, request_scope, code_challenge)
         .await
         .map_err(Error::CompleteAuthorization)
 }
@@ -515,6 +517,7 @@ mod tests {
     const CALLBACK_BASE_URL: &str = "https://issuer.example.com/";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_STATE: &str = "wallet-state";
+    const WALLET_SCOPE: &str = "wallet-scope";
     const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
 
     fn recovery_code_secret_key() -> SecretKeyVariant {
@@ -571,7 +574,7 @@ mod tests {
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
-            HashSet::from(["scope".parse().unwrap()]),
+            HashSet::from([WALLET_SCOPE.parse().unwrap()]),
             &S256PkcePair::generate(),
         )
     }
@@ -581,7 +584,7 @@ mod tests {
             context: WalletAuthorizationContext {
                 redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                 state: Some(WALLET_STATE.to_string()),
-                scope: HashSet::from(["scope".parse().unwrap()]),
+                scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
                 code_challenge: WALLET_CODE_CHALLENGE.to_string(),
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
@@ -733,6 +736,7 @@ mod tests {
 
         let code = complete_digid_callback(
             &authorizing_issuer,
+            context.scope,
             context.code_challenge,
             upstream_code_verifier,
             formats,
@@ -751,11 +755,13 @@ mod tests {
         let IssuanceData::AuthCodeIssued(auth_code_issued) = session.data else {
             panic!("expected an AuthCodeIssued session");
         };
-        assert_eq!(
+        assert_matches!(
             auth_code_issued.grant,
             Grant::AuthorizationCode {
-                wallet_code_challenge: WALLET_CODE_CHALLENGE.to_string()
-            }
+                request_scope,
+                wallet_code_challenge
+            } if request_scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE])
+                && wallet_code_challenge == WALLET_CODE_CHALLENGE
         );
         assert_eq!(auth_code_issued.issuable_documents.len().get(), 2);
         assert!(
@@ -783,6 +789,7 @@ mod tests {
 
         let error = complete_digid_callback(
             &authorizing_issuer,
+            context.scope,
             context.code_challenge,
             upstream_code_verifier,
             formats,
