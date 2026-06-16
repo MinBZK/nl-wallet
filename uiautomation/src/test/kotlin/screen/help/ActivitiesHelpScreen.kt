@@ -20,7 +20,10 @@ class ActivitiesHelpScreen : MobileActions() {
 
     fun helpAndInfoHeadersVisible() = elementWithTextVisible(helpHeader) && elementWithTextVisible(infoHeader)
 
-    fun clickSomethingElseButton() = clickElementWithText(somethingElseButton)
+    fun clickSomethingElseButton() {
+        scrollToElementWithText(somethingElseButton)
+        clickElementWithText(somethingElseButton)
+    }
 
     fun clickFirstHelpGroupButton() {
         when (platformName()) {
