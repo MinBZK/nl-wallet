@@ -196,7 +196,9 @@
 <p>The NL Wallet, VV, and OV implement the
 <a class="reference external" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08">SD-JWT VC Draft 08</a>
 [SD-JWT-VC] specification, with <em>additional constraints and customizations</em>
-outlined in the profile below.</p>
+outlined in the profile below. For the SD-JWT VC Type metadata specification, Draft 13 is implemented.
+See
+<a class="reference external" href="https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-13.html#name-sd-jwt-vc-type-metadata">SD-JWT VC Type Metadata</a>.</p>
 <p>Our goal is to contribute to a fully interoperable EUDI framework that delivers
 maximum value to users and organizations. Achieving this requires consensus on
 standards and implementation profiles. To contribute to that consensus, this
@@ -242,24 +244,12 @@ referring to an extended type.</p></li>
 containing <code class="docutils literal notranslate"><span class="pre">simple</span></code> rendering MUST be present.</p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">schema</span></code></p>
-<ul>
-<li><p>REQUIRED (OPTIONAL in [SD-JWT-VC]). An embedded JSON Schema document
-describing the structure of the Verifiable Credential.</p></li>
-</ul>
-</li>
-<li><p><code class="docutils literal notranslate"><span class="pre">schema_uri</span></code></p>
-<ul>
-<li><p>NOT SUPPORTED (OPTIONAL in [SD-JWT-VC]). Schema information MUST be
-embedded using <code class="docutils literal notranslate"><span class="pre">schema</span></code>.</p></li>
-</ul>
-</li>
 </ul>
 </section>
 <section id="display-metadata">
 <h3>Display Metadata<a class="headerlink" href="#display-metadata" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">lang</span></code></p>
+<li><p><code class="docutils literal notranslate"><span class="pre">locale</span></code></p>
 <ul>
 <li><p>REQUIRED, must be unique for every object in the <code class="docutils literal notranslate"><span class="pre">display</span></code> array.</p></li>
 </ul>
@@ -304,10 +294,26 @@ the example above:</p>
 <section id="simple-rendering">
 <h4>Simple Rendering<a class="headerlink" href="#simple-rendering" title="Link to this heading"></a></h4>
 <p>The NL Wallet supports <code class="docutils literal notranslate"><span class="pre">simple</span></code> rendering as specified, except the <code class="docutils literal notranslate"><span class="pre">uri</span></code> of
-<a class="reference internal" href="#logo-metadata">Logo Metadata</a>.</p>
+<a class="reference internal" href="#logo-metadata">Logo Metadata</a> and
+<a class="reference internal" href="#background-image-metadata">Background Image Metadata</a>.</p>
 <p>Rendering using <code class="docutils literal notranslate"><span class="pre">svg_templates</span></code> is not supported.</p>
 <section id="logo-metadata">
 <h5>Logo metadata<a class="headerlink" href="#logo-metadata" title="Link to this heading"></a></h5>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code></p>
+<ul>
+<li><p>REQUIRED. MUST use <code class="docutils literal notranslate"><span class="pre">data</span></code> URI scheme as defined in
+<a class="reference external" href="https://datatracker.ietf.org/doc/html/rfc2397">RFC 2397</a> (no external
+links). Example:
+<code class="docutils literal notranslate"><span class="pre">&quot;data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vc...&quot;</span></code> The
+following mime-types are supported: <code class="docutils literal notranslate"><span class="pre">image/jpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">image/png</span></code>,
+<code class="docutils literal notranslate"><span class="pre">image/svg+xml</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="background-image-metadata">
+<h5>Background image metadata<a class="headerlink" href="#background-image-metadata" title="Link to this heading"></a></h5>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code></p>
 <ul>
@@ -337,11 +343,6 @@ following mime-types are supported: <code class="docutils literal notranslate"><
 types:</p>
 <ul class="simple">
 <li><p>JSON types: <code class="docutils literal notranslate"><span class="pre">boolean</span></code>, <code class="docutils literal notranslate"><span class="pre">number</span></code> and <code class="docutils literal notranslate"><span class="pre">string</span></code></p></li>
-<li><p>There is limited support to use the <code class="docutils literal notranslate"><span class="pre">format</span></code> property of JSON Schema to format
-dates. Only direct explicit properties can be used, i.e. no <code class="docutils literal notranslate"><span class="pre">$ref</span></code> and no
-<code class="docutils literal notranslate"><span class="pre">additionalProperties</span></code>, <code class="docutils literal notranslate"><span class="pre">patternProperties</span></code> or <code class="docutils literal notranslate"><span class="pre">allOf</span></code>, <code class="docutils literal notranslate"><span class="pre">anyOf</span></code>, <code class="docutils literal notranslate"><span class="pre">oneOf</span></code>
-constructs.
-Example:<code class="docutils literal notranslate"><span class="pre">{&quot;properties&quot;:</span> <span class="pre">{&quot;birth_date&quot;:</span> <span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;string&quot;,</span> <span class="pre">&quot;format&quot;:</span> <span class="pre">&quot;date&quot;}}}</span></code></p></li>
 <li><p>The NL Wallet does <em>not</em> (yet) support claims that select a JSON <code class="docutils literal notranslate"><span class="pre">array</span></code> or
 <code class="docutils literal notranslate"><span class="pre">object</span></code> value.</p></li>
 <li><p>Type Metadata MUST only contain claim paths that select the supported types
@@ -351,10 +352,26 @@ type, will be rejected.</p></li>
 <section id="claim-metadata">
 <h4>Claim Metadata<a class="headerlink" href="#claim-metadata" title="Link to this heading"></a></h4>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p>
+<ul>
+<li><p>REQUIRED An array indicating the claim or claims that are being addressed.</p></li>
+</ul>
+</li>
 <li><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p>
 <ul>
 <li><p>REQUIRED (OPTIONAL in [SD-JWT-VC]). At least one Claim Display Metadata
 object MUST be present in the array.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sd</span></code></p>
+<ul>
+<li><p>OPTIONAL A string indicating whether the claim is selectively disclosable.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mandatory</span></code></p>
+<ul>
+<li><p>OPTIONAL A boolean indicating that the claim must be present in the issued
+credential. If omitted, the default value is false.</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">svg_id</span></code></p>
@@ -368,7 +385,7 @@ rendering is not supported.</p></li>
 <section id="claim-display-metadata">
 <h4>Claim Display Metadata<a class="headerlink" href="#claim-display-metadata" title="Link to this heading"></a></h4>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">lang</span></code></p>
+<li><p><code class="docutils literal notranslate"><span class="pre">locale</span></code></p>
 <ul>
 <li><p>REQUIRED. MUST be unique for every object in the <code class="docutils literal notranslate"><span class="pre">display</span></code> array.</p></li>
 </ul>
@@ -382,7 +399,7 @@ rendering is not supported.</p></li>
 extended types should relate to base types.</p>
 <p>When processing types that extend one other, the following rules are applied:</p>
 <ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">display</span></code> metadata entries are merged based on the <code class="docutils literal notranslate"><span class="pre">lang</span></code> field:</p>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">display</span></code> metadata entries are merged based on the <code class="docutils literal notranslate"><span class="pre">locale</span></code> field:</p>
 <ul>
 <li><p>Entries within the base document that have the same language as the
 extending document are replaced entirely by the entry contained in the
@@ -410,7 +427,6 @@ overridden to another value in an extending document.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> of the extending document takes precedence. When the base
 document has <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> set, but the extending document does not, the
 resulting document will not have an <code class="docutils literal notranslate"><span class="pre">svg_id</span></code>.</p></li>
-<li><p>Type information for all claim paths MUST be defined in the JSON-schema.</p></li>
 </ul>
 </li>
 </ul>
@@ -476,12 +492,12 @@ logic for <code class="docutils literal notranslate"><span class="pre">svg_templ
 <p><em>Issue</em></p>
 <p>[SD-JWT VC] allows for refering to external resources in the following cases:</p>
 <ul class="simple">
-<li><p>Type metadata</p>
+<li><p>Logo metadata</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">schema_uri</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code></p></li>
 </ul>
 </li>
-<li><p>Logo metadata</p>
+<li><p>Background image metadata</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code></p></li>
 </ul>
@@ -502,12 +518,12 @@ scheme that NL Wallet is part of. Distributing Type Metadata (and related
 resources) is not yet addressed in ARF or other frameworks.</p>
 <p><em>Implication</em></p>
 <ul class="simple">
-<li><p>Type metadata</p>
+<li><p>Logo metadata</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">schema_uri</span></code> is NOT supported</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code>: only <code class="docutils literal notranslate"><span class="pre">data</span></code> URI scheme is supported</p></li>
 </ul>
 </li>
-<li><p>Logo metadata</p>
+<li><p>Background image metadata</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code>: only <code class="docutils literal notranslate"><span class="pre">data</span></code> URI scheme is supported</p></li>
 </ul>
@@ -517,24 +533,24 @@ resources) is not yet addressed in ARF or other frameworks.</p>
 <section id="c4-unambiguously-select-a-locale-for-displaying-credentials">
 <h3>C4 - Unambiguously select a locale for displaying credentials<a class="headerlink" href="#c4-unambiguously-select-a-locale-for-displaying-credentials" title="Link to this heading"></a></h3>
 <p><em>Issue</em></p>
-<p>[SD-JWT VC] allows a <code class="docutils literal notranslate"><span class="pre">lang</span></code> attribute to support localization in the Type
+<p>[SD-JWT VC] allows a <code class="docutils literal notranslate"><span class="pre">locale</span></code> attribute to support localization in the Type
 Metadata specification.</p>
 <ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">lang</span></code> in <a class="reference internal" href="#display-metadata">Display Metadata</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">lang</span></code> in <a class="reference internal" href="#claim-metadata">Claim Metadata</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">locale</span></code> in <a class="reference internal" href="#display-metadata">Display Metadata</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">locale</span></code> in <a class="reference internal" href="#claim-metadata">Claim Metadata</a></p></li>
 </ol>
 <p>In [SD-JWT VC] there are no rules defined on what a consuming Wallet should
-display when multiple items contain the same value for <code class="docutils literal notranslate"><span class="pre">lang</span></code>. This may result
+display when multiple items contain the same value for <code class="docutils literal notranslate"><span class="pre">locale</span></code>. This may result
 to unexpected or undesired behavior.</p>
 <p><em>Motivation</em></p>
 <p>To avoid unexpected or undesired behavior we propose an additional restriction
 on the collections that contain items that are only distinguished by the value
-of the <code class="docutils literal notranslate"><span class="pre">lang</span></code> attribute.</p>
+of the <code class="docutils literal notranslate"><span class="pre">locale</span></code> attribute.</p>
 <p><em>Implication</em></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">lang</span></code> in <a class="reference internal" href="#display-metadata">Display Metadata</a> must be unique, per
+<li><p><code class="docutils literal notranslate"><span class="pre">locale</span></code> in <a class="reference internal" href="#display-metadata">Display Metadata</a> must be unique, per
 <code class="docutils literal notranslate"><span class="pre">rendering</span></code> method.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">lang</span></code> in <a class="reference internal" href="#claim-metadata">Claim Metadata</a> must be unique.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">locale</span></code> in <a class="reference internal" href="#claim-metadata">Claim Metadata</a> must be unique.</p></li>
 </ul>
 </section>
 <section id="c5-allow-attributes-to-be-selectively-disclosable-by-default">

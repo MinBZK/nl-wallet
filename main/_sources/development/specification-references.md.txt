@@ -37,6 +37,8 @@ this project:
   Selective Disclosure for JWTs
 - [SD-JWT VC](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08) -
   SD-JWT-based Verifiable Credentials
+- [SD-JWT VC type metadata](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-13#name-sd-jwt-vc-type-metadata) -
+  Type metadata for SD-JWT-based Verifiable Credentials
 
 ## Cryptography
 

@@ -5,7 +5,9 @@
 The NL Wallet, VV, and OV implement the
 [SD-JWT VC Draft 08](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08)
 [SD-JWT-VC] specification, with _additional constraints and customizations_
-outlined in the profile below.
+outlined in the profile below. For the SD-JWT VC Type metadata specification, Draft 13 is implemented.
+See
+[SD-JWT VC Type Metadata](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-13.html#name-sd-jwt-vc-type-metadata).
 
 Our goal is to contribute to a fully interoperable EUDI framework that delivers
 maximum value to users and organizations. Achieving this requires consensus on
@@ -41,16 +43,10 @@ profile.
     - REQUIRED (OPTIONAL in [SD-JWT-VC]). See
       [Display Metadata](#display-metadata). At least one Display Metadata
       containing `simple` rendering MUST be present.
-- `schema`
-    - REQUIRED (OPTIONAL in [SD-JWT-VC]). An embedded JSON Schema document
-      describing the structure of the Verifiable Credential.
-- `schema_uri`
-    - NOT SUPPORTED (OPTIONAL in [SD-JWT-VC]). Schema information MUST be
-      embedded using `schema`.
 
 ### Display Metadata
 
-- `lang`
+- `locale`
     - REQUIRED, must be unique for every object in the `display` array.
 - `summary` (not present in [SD-JWT-VC])
     - OPTIONAL. Contains a summary of the credential ( see
@@ -91,11 +87,22 @@ the example above:
 #### Simple Rendering
 
 The NL Wallet supports `simple` rendering as specified, except the `uri` of
-[Logo Metadata](#logo-metadata).
+[Logo Metadata](#logo-metadata) and
+[Background Image Metadata](#background-image-metadata).
 
 Rendering using `svg_templates` is not supported.
 
 ##### Logo metadata
+
+- `uri`
+    - REQUIRED. MUST use `data` URI scheme as defined in
+      [RFC 2397](https://datatracker.ietf.org/doc/html/rfc2397) (no external
+      links). Example:
+      `"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vc..."` The
+      following mime-types are supported: `image/jpeg`, `image/png`,
+      `image/svg+xml`.
+
+##### Background image metadata
 
 - `uri`
     - REQUIRED. MUST use `data` URI scheme as defined in
@@ -119,11 +126,6 @@ The NL Wallet supports rendering of claims that select any of the following
 types:
 
 - JSON types: `boolean`, `number` and `string`
-- There is limited support to use the `format` property of JSON Schema to format
-  dates. Only direct explicit properties can be used, i.e. no `$ref` and no
-  `additionalProperties`, `patternProperties` or `allOf`, `anyOf`, `oneOf`
-  constructs.
-  Example:`{"properties": {"birth_date": {"type": "string", "format": "date"}}}`
 - The NL Wallet does _not_ (yet) support claims that select a JSON `array` or
   `object` value.
 - Type Metadata MUST only contain claim paths that select the supported types
@@ -132,16 +134,24 @@ types:
 
 #### Claim Metadata
 
+- `path`
+    - REQUIRED An array indicating the claim or claims that are being addressed.
 - `display`
     - REQUIRED (OPTIONAL in [SD-JWT-VC]). At least one Claim Display Metadata
       object MUST be present in the array.
+- `sd`
+    - OPTIONAL A string indicating whether the claim is selectively disclosable.
+- `mandatory`
+    - OPTIONAL A boolean indicating that the claim must be present in the issued
+      credential. If omitted, the default value is false.
 - `svg_id`
     - OPTIONAL. Only used for [Credential Summary](#credential-summary). SVG
       rendering is not supported.
 
+
 #### Claim Display Metadata
 
-- `lang`
+- `locale`
     - REQUIRED. MUST be unique for every object in the `display` array.
 
 ### Extending types
@@ -151,7 +161,7 @@ extended types should relate to base types.
 
 When processing types that extend one other, the following rules are applied:
 
-- The `display` metadata entries are merged based on the `lang` field:
+- The `display` metadata entries are merged based on the `locale` field:
     - Entries within the base document that have the same language as the
       extending document are replaced entirely by the entry contained in the
       extending document. Individual properties for a `display` metadata entry
@@ -175,7 +185,6 @@ When processing types that extend one other, the following rules are applied:
     - The `svg_id` of the extending document takes precedence. When the base
       document has `svg_id` set, but the extending document does not, the
       resulting document will not have an `svg_id`.
-    - Type information for all claim paths MUST be defined in the JSON-schema.
 
 ## Profile considerations
 
@@ -241,9 +250,9 @@ _Issue_
 
 [SD-JWT VC] allows for refering to external resources in the following cases:
 
-- Type metadata
-    - `schema_uri`
 - Logo metadata
+    - `uri`
+- Background image metadata
     - `uri`
 
 Downloading resources from external location introduces the following risks:
@@ -263,36 +272,36 @@ resources) is not yet addressed in ARF or other frameworks.
 
 _Implication_
 
-- Type metadata
-    - `schema_uri` is NOT supported
 - Logo metadata
+    - `uri`: only `data` URI scheme is supported
+- Background image metadata
     - `uri`: only `data` URI scheme is supported
 
 ### C4 - Unambiguously select a locale for displaying credentials
 
 _Issue_
 
-[SD-JWT VC] allows a `lang` attribute to support localization in the Type
+[SD-JWT VC] allows a `locale` attribute to support localization in the Type
 Metadata specification.
 
-1. `lang` in [Display Metadata](#display-metadata)
-1. `lang` in [Claim Metadata](#claim-metadata)
+1. `locale` in [Display Metadata](#display-metadata)
+1. `locale` in [Claim Metadata](#claim-metadata)
 
 In [SD-JWT VC] there are no rules defined on what a consuming Wallet should
-display when multiple items contain the same value for `lang`. This may result
+display when multiple items contain the same value for `locale`. This may result
 to unexpected or undesired behavior.
 
 _Motivation_
 
 To avoid unexpected or undesired behavior we propose an additional restriction
 on the collections that contain items that are only distinguished by the value
-of the `lang` attribute.
+of the `locale` attribute.
 
 _Implication_
 
-- `lang` in [Display Metadata](#display-metadata) must be unique, per
+- `locale` in [Display Metadata](#display-metadata) must be unique, per
   `rendering` method.
-- `lang` in [Claim Metadata](#claim-metadata) must be unique.
+- `locale` in [Claim Metadata](#claim-metadata) must be unique.
 
 ### C5 - Allow attributes to be selectively disclosable by default
 

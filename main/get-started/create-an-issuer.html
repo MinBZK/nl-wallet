@@ -379,10 +379,6 @@ configuration files.</p>
 <td><p>array</p></td>
 <td><p>Array of claim objects</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">schema</span></code></p></td>
-<td><p>object</p></td>
-<td><p>A v2020-12 JSON Schema object defining the claims</p></td>
-</tr>
 </tbody>
 </table>
 <p>Claims have the following elements:</p>
@@ -430,7 +426,7 @@ script sections later on will have to be adjusted also).</p>
 <span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Insurance credential&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;display&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">    </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Insurance&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;An insurance credential&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{{coverage}}&quot;</span><span class="p">,</span>
@@ -442,7 +438,7 @@ script sections later on will have to be adjusted also).</p>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verzekering&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Een verzekering attestatie&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{{coverage}}&quot;</span><span class="p">,</span>
@@ -459,45 +455,47 @@ script sections later on will have to be adjusted also).</p>
 <span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;product&quot;</span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;display&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Product&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Soort verzekering&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Product&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Type of insurance&quot;</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">],</span>
-<span class="w">      </span><span class="nt">&quot;sd&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;always&quot;</span>
+<span class="w">      </span><span class="nt">&quot;sd&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;always&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;mandatory&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;coverage&quot;</span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;display&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Dekking&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Dekking van de verzekering&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Coverage&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Coverage of the insurance&quot;</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;sd&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;always&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;mandatory&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;svg_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;coverage&quot;</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;start_date&quot;</span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;display&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Startdatum&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Datum waarop de verzekering ingaat&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Start date&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Date on which the insurance starts&quot;</span>
 <span class="w">        </span><span class="p">}</span>
@@ -508,12 +506,12 @@ script sections later on will have to be adjusted also).</p>
 <span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;duration&quot;</span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;display&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Duur&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Duur van de verzekering&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Duration&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Duration of the insurance&quot;</span>
 <span class="w">        </span><span class="p">}</span>
@@ -524,74 +522,19 @@ script sections later on will have to be adjusted also).</p>
 <span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;customer_number&quot;</span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;display&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl-NL&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Klantnummer&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Klantnummer van de verzekerde&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en-US&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Customer number&quot;</span><span class="p">,</span>
 <span class="w">          </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Customer number of the insured&quot;</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;sd&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;always&quot;</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;$schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://json-schema.org/draft/2020-12/schema&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Insurance VCT Schema&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The JSON schema that defines a insurance VCT&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;vct&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;vct#integrity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;iss&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;nbf&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;number&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;exp&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;number&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;cnf&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;sub&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;iat&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;number&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;attestation_qualification&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;product&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;coverage&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;start_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;date&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;duration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;customer_number&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
-<span class="w">      </span><span class="p">}</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;vct&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;iss&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;attestation_qualification&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;product&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;coverage&quot;</span><span class="p">]</span>
-<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
