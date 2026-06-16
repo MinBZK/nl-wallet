@@ -51,6 +51,19 @@ pub struct JAdESBBInnerHeader {
     // `sigT` field is not allowed, but ignored for interoperability concerns
 }
 
+impl From<JAdESBBInnerHeader> for Header {
+    fn from(value: JAdESBBInnerHeader) -> Self {
+        let mut header: Header = value.inner.into();
+
+        // manually set `iat` as an extra field
+        if let Some(iat) = value.iat {
+            header.extras.insert("iat".to_string(), iat.timestamp());
+        }
+
+        header
+    }
+}
+
 impl TryFrom<Header> for JAdESBBInnerHeader {
     type Error = JwtError;
 
