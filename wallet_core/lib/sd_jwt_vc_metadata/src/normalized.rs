@@ -207,12 +207,15 @@ impl ClaimMetadata {
                     let display = extend_display_properties(extended_claim.display, extending_claim.display);
 
                     // The selective disclosure option is updated, but only if the extended value is `allowed`.
-                    let sd = ClaimSelectiveDisclosureMetadata::extend(extended_claim.sd, extending_claim.sd).ok_or(
-                        NormalizedTypeMetadataError::InconsistentSelectiveDisclosure(
-                            extending_vct.to_string(),
-                            extended_claim.path.clone(),
-                        ),
-                    )?;
+                    let sd = match ClaimSelectiveDisclosureMetadata::extend(extended_claim.sd, extending_claim.sd) {
+                        Some(sd) => sd,
+                        None => {
+                            return Err(NormalizedTypeMetadataError::InconsistentSelectiveDisclosure(
+                                extending_vct.to_string(),
+                                extended_claim.path,
+                            ));
+                        }
+                    };
 
                     // An extending type can set the mandatory property of a claim that is optional in the extended type
                     // to true, but it MUST NOT change a claim that is mandatory in the extended type to false.
