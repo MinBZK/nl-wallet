@@ -1,5 +1,6 @@
 package screen.settings
 
+import domain.Platform
 import org.openqa.selenium.By
 import util.MobileActions
 
@@ -15,9 +16,8 @@ class NotificationsScreen : MobileActions() {
 
     fun toggleNotifications() = clickElementContainingText(pushSettingSubtitle)
 
-    fun notificationsToggled(): Boolean = when (platformName()) {
-        "ANDROID" -> driver.findElement(By.className("android.widget.Switch")).getAttribute("checked") == "true"
-        "IOS" -> driver.findElement(By.className("XCUIElementTypeSwitch")).getAttribute("value") == "1"
-        else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+    fun notificationsToggled(): Boolean = when (platform()) {
+        Platform.ANDROID -> driver.findElement(By.className("android.widget.Switch")).getAttribute("checked") == "true"
+        Platform.IOS -> driver.findElement(By.className("XCUIElementTypeSwitch")).getAttribute("value") == "1"
     }
 }

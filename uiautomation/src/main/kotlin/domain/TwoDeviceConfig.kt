@@ -7,7 +7,7 @@ data class TwoDeviceConfig(
 
 data class DeviceCapabilities(
     val deviceName: String,
-    val platformName: String,
+    val platform: Platform,
     val platformVersion: String,
     val appName: String,
     val udid: String = "",

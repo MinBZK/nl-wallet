@@ -9,6 +9,7 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import domain.Platform
 import screen.dashboard.DashboardScreen
 import screen.permissions.BluetoothPermissionScreen
 import screen.permissions.NativePermissionDialog
@@ -34,13 +35,13 @@ class BluetoothPermissionTests : TestBase() {
     fun verifyBluetoothPermissionScreenShownWhenPermissionNotGranted(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.showQRCode()
-        when (dashboardScreen.platformName()) {
-            "ANDROID" -> {
+        when (dashboardScreen.platform()) {
+            Platform.ANDROID -> {
                 nativePermissionDialog.deny()
                 dashboardScreen.showQRCode()
                 nativePermissionDialog.denyDontAskAgain()
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 nativePermissionDialog.deny()
             }
         }

@@ -22,6 +22,7 @@ class PersonalizePidPreviewScreen : MobileActions() {
     fun clickAcceptButton() {
         switchToNativeContext()
         visible()
+        scrollToEndOfScreen()
         scrollToElementWithText(acceptButton)
         clickElementWithText(acceptButton)
     }

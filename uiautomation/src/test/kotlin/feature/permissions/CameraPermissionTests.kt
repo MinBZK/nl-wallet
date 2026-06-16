@@ -40,10 +40,7 @@ class CameraPermissionTests : TestBase() {
     fun verifyCameraPermissionScreenShownWhenPermissionNotGranted(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.openQRScanner()
-        when (dashboardScreen.platformName()) {
-            "ANDROID" -> nativePermissionDialog.deny()
-            "IOS" -> nativePermissionDialog.deny()
-        }
+        nativePermissionDialog.deny()
         assertTrue(qrScanner.permissionHintVisible(), "camera permission screen is not visible")
         assertTrue(qrScanner.grantPermissionButtonVisible(), "grant camera permission button is not visible")
     }

@@ -468,6 +468,66 @@ platform :ios do
     end
   end
 
+  desc "Build iOS app for simulator"
+  lane :build_simulator do |options|
+
+    if options[:build_mode] == "release"
+      ensure_env_vars(
+        env_vars: ['CONFIG_ENV']
+      )
+    end
+
+    app_name = options[:app_name] || DEFAULT_APP_NAME
+    universal_link_base = options[:universal_link_base]
+    sentry_dsn = ENV["SENTRY_DSN"]
+    sentry_environment = ENV["SENTRY_ENVIRONMENT"]
+    sentry_release = ENV["SENTRY_RELEASE"]
+
+    local_version, local_build = get_local_version_and_build
+    build = options[:build] || local_build
+    version = options[:version].blank? ? local_version : options[:version]
+    build_mode = options[:build_mode] || "debug"
+    fake_attestation = !!options[:fake_attestation]
+    mock_repositories = options[:mock] || false
+    demo_index_url = options[:demo_index_url] || ""
+    show_debug_options = options[:show_debug_options] || false
+    allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
+
+    UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
+
+    flutter = flutter_cmd
+
+    UI.message("Going to build iOS simulator app name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}")
+    UI.message("Using UL hostname \"#{universal_link_base}\", #{fake_attestation ? "fake" : "real"} key/app attestation and #{mock_repositories ? "mock repositories" : "Rust core"}")
+
+    Dir.chdir("../wallet_app") do
+      sh(*flutter, "pub", "get", "--enforce-lockfile")
+
+      Dir.chdir("ios") do
+        sh("bundle", "exec", "pod", "install", "--allow-root", "--deployment")
+      end
+
+      sh({ "APP_NAME" => app_name },
+        *flutter, "build", "ios",
+            "--simulator",
+            "--build-number", build.to_s,
+            "--build-name", version.to_s,
+            "--#{build_mode}",
+            "--dart-define=FAKE_ATTESTATION=#{fake_attestation}",
+            "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
+            "--dart-define=DEMO_INDEX_URL=#{demo_index_url}",
+            "--dart-define=UL_HOSTNAME=#{universal_link_base}",
+            "--dart-define=SENTRY_DSN=#{sentry_dsn}",
+            "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
+            "--dart-define=SENTRY_RELEASE=#{sentry_release}",
+            "--dart-define=SHOW_DEBUG_OPTIONS=#{show_debug_options}",
+            "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
+      )
+
+      UI.message("Simulator app built at wallet_app/build/ios/iphonesimulator/Runner.app")
+    end
+  end
+
   desc "Extract entitlements file"
   lane :extract_entitlements do |options|
     # Substitute environment variables (with defaults) during extraction.
