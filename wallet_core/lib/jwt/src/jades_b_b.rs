@@ -120,10 +120,10 @@ mod tests {
     use crate::UnverifiedJwt;
     use crate::headers::HeaderWithX5c;
 
-    fn test_header() -> JAdESBBHeader {
+    fn test_header(iat: i64) -> JAdESBBHeader {
         let inner = JAdESBBInnerHeader {
             inner: HeaderWithTyp::default(),
-            iat: Some(Utc.timestamp_nanos(0)),
+            iat: Some(Utc.timestamp_opt(iat, 0).unwrap()),
         };
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
@@ -133,17 +133,18 @@ mod tests {
 
     #[test]
     fn test_serialize_roundtrip_with_iat() {
-        let header = test_header();
+        let iat = 1337;
+        let header = test_header(iat);
 
         let json = serde_json::to_value(&header).unwrap();
 
-        assert!(json.get("iat").is_some_and(|v| *v == Value::Number(0.into())));
+        assert!(json.get("iat").is_some_and(|v| *v == Value::Number(iat.into())));
         assert!(json.get("typ").is_some()); // will be set to "JAdES-B-B" by `sign_with_header_and_certificate`, but is "jwt" if not signed
         assert!(json.get("x5c").is_some());
         assert!(json.get("alg").is_some_and(|v| *v == Value::String("ES256".to_owned())));
 
         let header: JAdESBBHeader = serde_json::from_value(json).unwrap();
-        assert_eq!(header.inner().iat, Some(chrono::Utc.timestamp_nanos(0)));
+        assert_eq!(header.inner().iat, Some(chrono::Utc.timestamp_opt(iat, 0).unwrap()));
         assert_eq!(header.x5c.len(), NonZeroUsize::MIN);
         assert_eq!(header.inner().inner.alg, Algorithm::ES256);
     }
@@ -174,7 +175,8 @@ mod tests {
 
     #[test]
     fn test_roundtrip_to_string() {
-        let header = test_header();
+        let iat = 1337;
+        let header = test_header(iat);
 
         let json = serde_json::to_string(&header).unwrap();
         let roundtripped: JAdESBBHeader = serde_json::from_str(&json).unwrap();
@@ -213,7 +215,7 @@ mod tests {
         let json_val = json!({
             "alg": "ES256",
             "typ": "rc-wrp+jwt",
-            "iat": 0,
+            "iat": 1337,
             // "x5c" intentionally absent
         });
         let result: Result<JAdESBBHeader, _> = serde_json::from_value(json_val);
@@ -246,7 +248,7 @@ mod tests {
 
         let toy_payload = ToyJAdESBBPayload {};
 
-        let now = Utc::now().with_nanosecond(0).unwrap();
+        let now = Utc.timestamp_opt(1337, 0).unwrap();
         let signed_jwt =
             SignedJwt::<_, JAdESBBHeader>::sign_with_iat(&toy_payload, &keypair, &MockTimeGenerator::new(now))
                 .await
