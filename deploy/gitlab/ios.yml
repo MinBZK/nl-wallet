@@ -62,6 +62,7 @@ test-ios:
     - |
       bundle exec fastlane ios build \
         app_name:"${APP_NAME}" \
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         fake_attestation:"${FAKE_ATTESTATION:-false}" \

@@ -1,3 +1,4 @@
+import groovy.json.JsonOutput
 import org.gradle.kotlin.dsl.android
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Base64
@@ -22,6 +23,10 @@ fun loadProperties(name: String): Map<String, String> {
     }
 }
 
+// Sentry dart-defines are raw strings, while buildConfigField expects a Java/Kotlin source literal.
+// Escape them here so quotes, backslashes, or line breaks cannot break generated BuildConfig code.
+fun String.asBuildConfigString(): String = JsonOutput.toJson(this)
+
 val keystoreProperties = loadProperties("key.properties")
 val signingConfigName = if (keystoreProperties["storeFile"] != null) "release" else "debug"
 
@@ -37,6 +42,17 @@ val dartEnvironmentVariables = if (project.hasProperty("dart-defines")) {
     }
 } else {
     mapOf()
+}
+
+fun Map<String, String>.nonEmptyDartDefine(key: String): String? =
+    this[key]?.takeIf { it.isNotEmpty() }
+
+val sentryDsn = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_DSN")
+val sentryEnvironment = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_ENVIRONMENT")
+val sentryRelease = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_RELEASE")
+
+check(sentryDsn == null || sentryEnvironment != null) {
+    "SENTRY_ENVIRONMENT must be set when SENTRY_DSN is set"
 }
 
 val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
@@ -108,6 +124,10 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
+        buildConfigField("String", "SENTRY_DSN", (sentryDsn ?: "").asBuildConfigString())
+        buildConfigField("String", "SENTRY_ENVIRONMENT", (sentryEnvironment ?: "").asBuildConfigString())
+        buildConfigField("String", "SENTRY_RELEASE", (sentryRelease ?: "").asBuildConfigString())
+
         multiDexEnabled = true
 
         manifestPlaceholders["appName"] = System.getenv("APP_NAME") ?: "NL Wallet"
@@ -177,6 +197,7 @@ flutter {
 dependencies {
     implementation("net.java.dev.jna:jna:5.17.0@aar") // Java Native Access
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    implementation("io.sentry:sentry-android:8.43.0") // Also a transitive dependency from sentry_flutter, change both when upgrading
     implementation(project(path = ":platform_support"))
 }
 
@@ -203,6 +224,13 @@ mapOf(
         args(options.args)
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
             args("--features", "wallet/allow_insecure_url")
+        }
+        mapOf(
+            "SENTRY_DSN" to sentryDsn,
+            "SENTRY_ENVIRONMENT" to sentryEnvironment,
+            "SENTRY_RELEASE" to sentryRelease,
+        ).forEach { (key, value) ->
+            value?.let { environment(key, it) }
         }
     }
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
