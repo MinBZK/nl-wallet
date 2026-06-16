@@ -27,7 +27,7 @@ const ISSUER_STATE: &str = "insurance";
 async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
     let db_setup = DbSetup::create_clean_only([DbName::AcfDemoIssuer]).await;
 
-    let acf = start_acf_demo_issuer_server(acf_demo_issuer_settings(db_setup.acf_demo_issuer_url()), None).await;
+    let acf = setup_auth_code_env(&db_setup).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 

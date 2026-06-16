@@ -302,7 +302,7 @@ pub async fn setup_env_default(
 
 #[expect(clippy::too_many_arguments, reason = "integration test setup function")]
 pub async fn setup_env(
-    (mut static_settings, static_root_ca): (StaticSettings, ReqwestTrustAnchor),
+    (static_settings, static_root_ca): (StaticSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
@@ -391,9 +391,44 @@ pub async fn setup_env(
 
     let pid_credential_offer = create_pid_credential_offer(&issuer_data.pid_issuer.public);
 
+    let (config_server_config, wallet_config) = build_wallet_environment(
+        static_settings,
+        static_root_ca,
+        ups_port,
+        ups_root_ca,
+        wp_port,
+        Some(pid_credential_offer),
+    )
+    .await;
+
+    (
+        config_server_config,
+        mock_device_config,
+        wallet_config,
+        issuer_data,
+        verifier_server_urls,
+    )
+}
+
+/// Build the wallet's config-server config and bundled [`WalletConfiguration`] (pointing the wallet at
+/// the account server + update-policy server), and start the static server that serves the signed
+/// config. Shared by the full [`setup_env`] and the leaner [`setup_wallet_env`].
+///
+/// `pid_credential_offer` is only relevant to flows that issue PID; pass `None` to leave the bundled
+/// config's default offer untouched.
+async fn build_wallet_environment(
+    mut static_settings: StaticSettings,
+    static_root_ca: ReqwestTrustAnchor,
+    ups_port: u16,
+    ups_root_ca: ReqwestTrustAnchor,
+    wp_port: u16,
+    pid_credential_offer: Option<Url>,
+) -> (ConfigServerConfiguration, WalletConfiguration) {
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_credential_offer = pid_credential_offer.clone();
+    if let Some(pid_credential_offer) = pid_credential_offer.clone() {
+        served_wallet_config.pid_credential_offer = pid_credential_offer;
+    }
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(served_wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -412,7 +447,9 @@ pub async fn setup_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_credential_offer = pid_credential_offer.clone();
+    if let Some(pid_credential_offer) = pid_credential_offer {
+        wallet_config.pid_credential_offer = pid_credential_offer;
+    }
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -421,13 +458,7 @@ pub async fn setup_env(
     wallet_config.update_policy_server.http_config =
         TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca]).unwrap();
 
-    (
-        config_server_config,
-        mock_device_config,
-        wallet_config,
-        issuer_data,
-        verifier_server_urls,
-    )
+    (config_server_config, wallet_config)
 }
 
 /// Create an instance of [`Wallet`] having temporary file storage.
@@ -530,6 +561,48 @@ pub async fn setup_wallet_and_env(
     let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await;
 
     (wallet, verifier_server_urls, issuer_data)
+}
+
+/// Start the minimal wallet-facing stack — update-policy server, wallet provider and the static config
+/// server — and return a registered-capable in-memory [`Wallet`]. Independent of any issuer; compose
+/// with a `setup_*_env` (e.g. [`setup_pre_auth_env`]) for the issuer side of a flow.
+pub async fn setup_wallet_env(db_setup: &DbSetup, vendor: WalletDeviceVendor) -> WalletWithStorage {
+    let mock_device_config = MockDeviceConfig::default();
+
+    let (mut wp_settings, wp_root_ca) =
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
+    wp_settings.ios = mock_device_config.ios_wp_settings();
+    wp_settings.android.root_public_keys = mock_device_config.android_root_public_keys();
+
+    let (ups_settings, ups_root_ca) = update_policy_server_settings();
+    let (static_settings, static_root_ca) = static_server_settings();
+
+    let ups_port = start_update_policy_server(ups_settings, ups_root_ca.clone()).await;
+
+    let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
+    let wp_port = start_wallet_provider(wp_settings, hsm, wp_root_ca).await;
+
+    let (config_server_config, wallet_config) =
+        build_wallet_environment(static_settings, static_root_ca, ups_port, ups_root_ca, wp_port, None).await;
+
+    let key_holder = match vendor {
+        WalletDeviceVendor::Apple => mock_device_config.apple_key_holder(),
+        WalletDeviceVendor::Google => mock_device_config.google_key_holder(),
+    };
+
+    setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await
+}
+
+/// Start just the pre-authorized-code issuer (`pacf_issuance_server`). Its keys are software-backed, so
+/// no HSM is required.
+pub async fn setup_pre_auth_env(db_setup: &DbSetup) -> IssuerUrl {
+    start_pacf_issuance_server(pacf_issuance_server_settings(db_setup.issuance_server_url()), None).await
+}
+
+/// Start just the authorization-code-flow issuer (`acf_demo_issuer`). Its keys are software-backed, so
+/// no HSM is required.
+pub async fn setup_auth_code_env(db_setup: &DbSetup) -> IssuerUrl {
+    start_acf_demo_issuer_server(acf_demo_issuer_settings(db_setup.acf_demo_issuer_url()), None).await
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {

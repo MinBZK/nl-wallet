@@ -90,8 +90,8 @@ path = "tests/update_policy_server.rs"
 required-features = ["integration_test"]
 
 [[test]]
-name = "pre_authorized_issuance"
-path = "tests/pre_authorized_issuance.rs"
+name = "pre_auth_flow_issuance"
+path = "tests/pre_auth_flow_issuance.rs"
 required-features = ["integration_test"]
 
 [[test]]
