@@ -7,6 +7,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use acf_demo_issuer::flow::CONSENT_PATH;
+use acf_demo_issuer::flow::DemoAuthorizationCodeFlow;
+use acf_demo_issuer::settings::AcfDemoIssuerSettings;
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::mock_chain::MockCaChain;
 use android_attest::root_public_key::RootPublicKey;
@@ -914,6 +917,84 @@ pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings
             }
         }
         .instrument(info_span!("service", name = "issuance_server")),
+    );
+
+    wait_for_server(public_url.as_base_url().clone(), None).await;
+
+    IssuerUrl {
+        internal: internal_url,
+        public: public_url,
+    }
+}
+
+/// Wallet `redirect_uri` allowlisted by the acf demo issuer in tests, also used by the test client as
+/// the PAR `redirect_uri`. Overrides whatever the rendered config carries, so the test is self-contained.
+pub const ACF_WALLET_REDIRECT_URI: &str = "https://wallet.example.com/return";
+
+pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
+    let mut settings =
+        AcfDemoIssuerSettings::new("acf_demo_issuer.toml", "acf_demo_issuer").expect("Could not read settings");
+
+    settings.authorizing_issuer_settings.wallet_redirect_uris = vec_nonempty![ACF_WALLET_REDIRECT_URI.parse().unwrap()];
+
+    let server_settings = &mut settings.authorizing_issuer_settings.issuer_settings.server_settings;
+    server_settings.storage.url = db_url;
+    server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    server_settings.wallet_server.port = 0;
+    server_settings.internal_server = ServerAuth::InternalEndpoint(Server {
+        ip: IpAddr::from_str("127.0.0.1").unwrap(),
+        port: 0,
+    });
+
+    settings
+}
+
+pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
+    let public_listener = TcpListener::bind("localhost:0").await.unwrap();
+    let public_port = public_listener.local_addr().unwrap().port();
+    let public_url = local_http_issuer_identifier(public_port);
+    settings.authorizing_issuer_settings.issuer_settings.public_url = public_url.clone();
+
+    let internal_listener =
+        get_internal_listener(&mut settings.authorizing_issuer_settings.issuer_settings.server_settings).await;
+    let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
+    let internal_url = local_http_base_url(internal_port);
+
+    let serve_status_lists = settings.authorizing_issuer_settings.issuer_settings.status_lists.serve;
+
+    let usecases = settings.usecases;
+    let consent_uri = public_url.as_base_url().join(CONSENT_PATH);
+
+    let (issuer, _, _, server_settings) = settings
+        .authorizing_issuer_settings
+        .into_authorizing_issuer(hsm, |store_connection| {
+            Ok::<_, Infallible>(DemoAuthorizationCodeFlow::new(store_connection, consent_uri, usecases))
+        })
+        .await
+        .unwrap();
+
+    let issuer = Arc::new(issuer);
+    let auth_flow_router = DemoAuthorizationCodeFlow::callback_router(Arc::clone(&issuer));
+
+    tokio::spawn(
+        async move {
+            if let Err(error) = acf_demo_issuer::server::serve_with_listeners(
+                public_listener,
+                internal_listener,
+                issuer,
+                auth_flow_router,
+                server_settings,
+                serve_status_lists,
+                [],
+            )
+            .await
+            {
+                tracing::error!("Could not start acf_demo_issuer: {error:?}");
+
+                process::exit(1);
+            }
+        }
+        .instrument(info_span!("service", name = "acf_demo_issuer")),
     );
 
     wait_for_server(public_url.as_base_url().clone(), None).await;

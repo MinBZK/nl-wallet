@@ -1949,6 +1949,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 name = "db_test"
 version = "0.6.0-dev"
 dependencies = [
+ "acf_demo_issuer_migrations",
  "async-dropper",
  "async-trait",
  "audit_log_migrations",
@@ -8381,6 +8382,7 @@ dependencies = [
 name = "tests_integration"
 version = "0.6.0-dev"
 dependencies = [
+ "acf_demo_issuer",
  "android_attest",
  "apple_app_attest",
  "attestation_data",

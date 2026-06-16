@@ -496,6 +496,7 @@ render_template "${DEVENV}/demo_issuer_pacf_issuance_server.toml.template" "${BA
 
 # And the acf_demo_issuer config
 render_template "${DEVENV}/acf_demo_issuer.toml.template" "${ACF_DEMO_ISSUER_DIR}/acf_demo_issuer.toml"
+render_template "${DEVENV}/acf_demo_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/acf_demo_issuer.toml"
 
 # Ensure the status_lists dirs exists
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"

@@ -25,6 +25,7 @@ tokio = { workspace = true, features = ["time"] }
 url.workspace = true
 xxhash-rust = { workspace = true, features = ["xxh3"] }
 
+acf_demo_issuer_migrations.path = "../../wallet_server/acf_demo_issuer/migrations"
 audit_log_migrations.path = "../../wallet_provider/audit_log/migrations"
 issuer_common_migrations.path = "../../wallet_server/issuer_common/migrations"
 pid_issuer_migrations.path = "../../wallet_server/pid_issuer/migrations"
