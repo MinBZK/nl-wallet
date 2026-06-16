@@ -476,8 +476,6 @@ obtain card)<br>
 
 ### LTC38
 
-% manual
-
 #### Unlock app with biometric
 
 **Given** user has completed setup of remote PIN and biometrics<br>
@@ -723,34 +721,22 @@ instructs user to choose a new PIN<br>
 
 ---
 
-### LTC58
-
-% manual
-
-#### Skip setting up biometrics
-
-**Given** user has set up pin<br>
-**And** device supports biometrics<br>
-**When** user skips setting up biometrics<br>
-**Then** system displays message wallet is secured by pin<br>
-
----
-
 ### LTC59
 
 % manual
 
-#### Device does not support biometrics
+#### No Biometric enrolled on device
 
-**Given** device does not support biometrics<br>
-**When** user open apps settings menu<br>
+**Given** device has no enrolled biometric<br>
+**When** user completes PIN setup<br>
 **Then** system does not display biometric configuration option<br>
+**When** user opens the app settings<br>
+**And** user toggles biometric unlock<br>
+**Then** system displays prompt to instruct user to enroll biometric<br>
 
 ---
 
 ### LTC60
-
-% manual
 
 #### Disable biometrics
 
@@ -762,8 +748,6 @@ instructs user to choose a new PIN<br>
 ---
 
 ### LTC61
-
-% manual
 
 #### Setup biometrics in settings
 
