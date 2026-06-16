@@ -274,7 +274,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_sign_jades_b_b_without_iat() {
+    async fn test_verify_jades_b_b_without_iat() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let keypair = ca.generate_reader_mock().unwrap();
 
