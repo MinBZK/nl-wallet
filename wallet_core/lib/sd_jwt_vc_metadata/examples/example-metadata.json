@@ -4,7 +4,7 @@
   "description": "Working version of the NL Wallet PID credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "NL Wallet Personal Data",
       "description": "The Personal Data credential for the NL Wallet",
       "summary": "Example PID credential"
@@ -15,7 +15,7 @@
       "path": ["birth_date"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }
@@ -26,7 +26,7 @@
       "path": ["place_of_birth", "locality"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Locality"
         }
       ],
@@ -36,7 +36,7 @@
       "path": ["place_of_birth", "country", "name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country"
         }
       ],
@@ -46,7 +46,7 @@
       "path": ["place_of_birth", "country", "area_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country area code"
         }
       ],
@@ -56,7 +56,7 @@
       "path": ["financial", "has_debt"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Has debt"
         }
       ],
@@ -66,7 +66,7 @@
       "path": ["financial", "has_job"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Has job"
         }
       ],
@@ -76,83 +76,11 @@
       "path": ["financial", "debt_amount"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Debt amount"
         }
       ],
       "sd": "allowed"
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet PID VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet PID VCT",
-    "type": "object",
-    "properties": {
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "cnf": {
-        "type": "object"
-      },
-      "status": {
-        "type": "object"
-      },
-      "attestation_qualification": {
-        "type": "string"
-      },
-      "birth_date": {
-        "type": "string"
-      },
-      "place_of_birth": {
-        "type": "object",
-        "properties": {
-          "locality": {
-            "type": "string"
-          },
-          "country": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "area_code": {
-                "type": "integer"
-              }
-            }
-          }
-        }
-      },
-      "financial": {
-        "type": "object",
-        "properties": {
-          "has_debt": {
-            "type": "boolean"
-          },
-          "has_job": {
-            "type": "boolean"
-          },
-          "debt_amount": {
-            "type": "integer"
-          }
-        }
-      }
-    },
-    "required": ["vct", "iss", "iat", "status", "attestation_qualification"]
-  }
+  ]
 }

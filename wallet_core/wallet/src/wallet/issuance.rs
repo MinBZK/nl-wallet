@@ -889,7 +889,6 @@ mod tests {
     use super::super::test::WalletDeviceVendor;
     use super::*;
     use crate::WalletEvent;
-    use crate::attestation::AttestationAttributeValue;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::RegistrationData;
@@ -1271,8 +1270,7 @@ mod tests {
         assert_eq!(attestation.attributes.len(), 4);
         assert_eq!(attestation.attributes[0].key, vec_nonempty!["family_name".to_string()]);
         assert_matches!(
-            &attestation.attributes[0].value,
-            AttestationAttributeValue::Basic(AttributeValue::Text(string)) if string == "De Bruijn"
+            &attestation.attributes[0].value, AttributeValue::Text(string) if string == "De Bruijn"
         );
     }
 

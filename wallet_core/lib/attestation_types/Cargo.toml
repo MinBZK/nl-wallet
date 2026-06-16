@@ -15,9 +15,15 @@ mock = []
 test_pid_constants = []
 
 [dependencies]
-url = { workspace = true, features = ["serde"] }
+base64.workspace = true
+data-url.workspace = true
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+url = { workspace = true, features = ["serde"] }
+
+[dev-dependencies]
+rstest.workspace = true

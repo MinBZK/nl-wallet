@@ -137,7 +137,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | CredentialRequestError::IssuanceError(IssuanceError::AttestationTypeNotConfigured { .. })
                 | CredentialRequestError::MissingCredentialConfiguration(_)
-                | CredentialRequestError::PreviewConversion(_)
+                | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::IncorrectNumberOfStatusClaims(_)

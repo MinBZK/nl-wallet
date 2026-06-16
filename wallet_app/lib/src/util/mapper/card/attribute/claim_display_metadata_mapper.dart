@@ -10,7 +10,7 @@ class ClaimDisplayMetadataMapper extends Mapper<List<ClaimDisplayMetadata>, Loca
   @override
   LocalizedText map(List<ClaimDisplayMetadata> input) {
     return input.asMap().map((key, value) {
-      return MapEntry(LocaleExtension.parseLocale(value.lang), value.label);
+      return MapEntry(LocaleExtension.parseLocale(value.locale), value.label);
     });
   }
 }

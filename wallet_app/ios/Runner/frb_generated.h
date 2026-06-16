@@ -37,26 +37,26 @@ typedef struct wire_cst_attestation_identity {
   union AttestationIdentityKind kind;
 } wire_cst_attestation_identity;
 
-typedef struct wire_cst_Image_Svg {
-  uintptr_t svg;
-} wire_cst_Image_Svg;
+typedef struct wire_cst_Image_Jpeg {
+  struct wire_cst_list_prim_u_8_strict *data;
+} wire_cst_Image_Jpeg;
 
 typedef struct wire_cst_Image_Png {
   struct wire_cst_list_prim_u_8_strict *data;
 } wire_cst_Image_Png;
 
-typedef struct wire_cst_Image_Jpeg {
-  struct wire_cst_list_prim_u_8_strict *data;
-} wire_cst_Image_Jpeg;
+typedef struct wire_cst_Image_Svg {
+  uintptr_t svg;
+} wire_cst_Image_Svg;
 
 typedef struct wire_cst_Image_Asset {
   struct wire_cst_list_prim_u_8_strict *path;
 } wire_cst_Image_Asset;
 
 typedef union ImageKind {
-  struct wire_cst_Image_Svg Svg;
-  struct wire_cst_Image_Png Png;
   struct wire_cst_Image_Jpeg Jpeg;
+  struct wire_cst_Image_Png Png;
+  struct wire_cst_Image_Svg Svg;
   struct wire_cst_Image_Asset Asset;
 } ImageKind;
 
@@ -72,6 +72,7 @@ typedef struct wire_cst_image_with_metadata {
 
 typedef struct wire_cst_RenderingMetadata_Simple {
   struct wire_cst_image_with_metadata *logo;
+  struct wire_cst_image *background_image;
   struct wire_cst_list_prim_u_8_strict *background_color;
   struct wire_cst_list_prim_u_8_strict *text_color;
 } wire_cst_RenderingMetadata_Simple;
@@ -86,7 +87,7 @@ typedef struct wire_cst_rendering_metadata {
 } wire_cst_rendering_metadata;
 
 typedef struct wire_cst_display_metadata {
-  struct wire_cst_list_prim_u_8_strict *lang;
+  struct wire_cst_list_prim_u_8_strict *locale;
   struct wire_cst_list_prim_u_8_strict *name;
   struct wire_cst_list_prim_u_8_strict *description;
   struct wire_cst_list_prim_u_8_strict *summary;
@@ -151,7 +152,7 @@ typedef struct wire_cst_validity_status {
 } wire_cst_validity_status;
 
 typedef struct wire_cst_claim_display_metadata {
-  struct wire_cst_list_prim_u_8_strict *lang;
+  struct wire_cst_list_prim_u_8_strict *locale;
   struct wire_cst_list_prim_u_8_strict *label;
   struct wire_cst_list_prim_u_8_strict *description;
 } wire_cst_claim_display_metadata;
@@ -173,10 +174,6 @@ typedef struct wire_cst_AttributeValue_Number {
   int64_t value;
 } wire_cst_AttributeValue_Number;
 
-typedef struct wire_cst_AttributeValue_Date {
-  struct wire_cst_list_prim_u_8_strict *value;
-} wire_cst_AttributeValue_Date;
-
 typedef struct wire_cst_list_attribute_value {
   struct wire_cst_attribute_value *ptr;
   int32_t len;
@@ -190,7 +187,6 @@ typedef union AttributeValueKind {
   struct wire_cst_AttributeValue_String String;
   struct wire_cst_AttributeValue_Boolean Boolean;
   struct wire_cst_AttributeValue_Number Number;
-  struct wire_cst_AttributeValue_Date Date;
   struct wire_cst_AttributeValue_Array Array;
 } AttributeValueKind;
 

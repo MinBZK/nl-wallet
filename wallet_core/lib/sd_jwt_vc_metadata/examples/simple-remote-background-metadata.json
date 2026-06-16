@@ -1,12 +1,12 @@
 {
   "vct": "https://simple.example.com/credential/pid/1.0",
-  "name": "NL Wallet Simple Embedded",
-  "description": "Example with simple rendering and embedded logo and background",
+  "name": "NL Wallet Simple Remote",
+  "description": "Example with simple rendering and remote background",
   "display": [
     {
       "locale": "en-US",
-      "name": "NL Wallet Simple Embedded",
-      "description": "Example with simple rendering and embedded logo",
+      "name": "NL Wallet Simple Remote",
+      "description": "Example with simple rendering and remote background",
       "summary": "{{ birth_date }}",
       "rendering": {
         "simple": {
@@ -15,7 +15,8 @@
             "alt_text": "An example PNG logo"
           },
           "background_image": {
-            "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAMBAQAY3Y2wAAAAAElFTkSuQmCC"
+            "uri": "https://simple.example.com/red-dot.png",
+            "uri#integrity": "sha256-MiD8eDjM2rCjohtdhJgnXHq+aTCruwWen9tJObuowv0="
           },
           "background_color": "#FF8000",
           "text_color": "#0080FF"

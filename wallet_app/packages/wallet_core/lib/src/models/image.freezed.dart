@@ -55,13 +55,13 @@ extension ImagePatterns on Image {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Image_Svg value)?  svg,TResult Function( Image_Png value)?  png,TResult Function( Image_Jpeg value)?  jpeg,TResult Function( Image_Asset value)?  asset,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Image_Jpeg value)?  jpeg,TResult Function( Image_Png value)?  png,TResult Function( Image_Svg value)?  svg,TResult Function( Image_Asset value)?  asset,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case Image_Svg() when svg != null:
-return svg(_that);case Image_Png() when png != null:
-return png(_that);case Image_Jpeg() when jpeg != null:
-return jpeg(_that);case Image_Asset() when asset != null:
+case Image_Jpeg() when jpeg != null:
+return jpeg(_that);case Image_Png() when png != null:
+return png(_that);case Image_Svg() when svg != null:
+return svg(_that);case Image_Asset() when asset != null:
 return asset(_that);case _:
   return orElse();
 
@@ -80,13 +80,13 @@ return asset(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Image_Svg value)  svg,required TResult Function( Image_Png value)  png,required TResult Function( Image_Jpeg value)  jpeg,required TResult Function( Image_Asset value)  asset,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Image_Jpeg value)  jpeg,required TResult Function( Image_Png value)  png,required TResult Function( Image_Svg value)  svg,required TResult Function( Image_Asset value)  asset,}){
 final _that = this;
 switch (_that) {
-case Image_Svg():
-return svg(_that);case Image_Png():
-return png(_that);case Image_Jpeg():
-return jpeg(_that);case Image_Asset():
+case Image_Jpeg():
+return jpeg(_that);case Image_Png():
+return png(_that);case Image_Svg():
+return svg(_that);case Image_Asset():
 return asset(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -101,13 +101,13 @@ return asset(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Image_Svg value)?  svg,TResult? Function( Image_Png value)?  png,TResult? Function( Image_Jpeg value)?  jpeg,TResult? Function( Image_Asset value)?  asset,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Image_Jpeg value)?  jpeg,TResult? Function( Image_Png value)?  png,TResult? Function( Image_Svg value)?  svg,TResult? Function( Image_Asset value)?  asset,}){
 final _that = this;
 switch (_that) {
-case Image_Svg() when svg != null:
-return svg(_that);case Image_Png() when png != null:
-return png(_that);case Image_Jpeg() when jpeg != null:
-return jpeg(_that);case Image_Asset() when asset != null:
+case Image_Jpeg() when jpeg != null:
+return jpeg(_that);case Image_Png() when png != null:
+return png(_that);case Image_Svg() when svg != null:
+return svg(_that);case Image_Asset() when asset != null:
 return asset(_that);case _:
   return null;
 
@@ -125,12 +125,12 @@ return asset(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( SanitizedSvg svg)?  svg,TResult Function( Uint8List data)?  png,TResult Function( Uint8List data)?  jpeg,TResult Function( String path)?  asset,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Uint8List data)?  jpeg,TResult Function( Uint8List data)?  png,TResult Function( SanitizedSvg svg)?  svg,TResult Function( String path)?  asset,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case Image_Svg() when svg != null:
-return svg(_that.svg);case Image_Png() when png != null:
-return png(_that.data);case Image_Jpeg() when jpeg != null:
-return jpeg(_that.data);case Image_Asset() when asset != null:
+case Image_Jpeg() when jpeg != null:
+return jpeg(_that.data);case Image_Png() when png != null:
+return png(_that.data);case Image_Svg() when svg != null:
+return svg(_that.svg);case Image_Asset() when asset != null:
 return asset(_that.path);case _:
   return orElse();
 
@@ -149,12 +149,12 @@ return asset(_that.path);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( SanitizedSvg svg)  svg,required TResult Function( Uint8List data)  png,required TResult Function( Uint8List data)  jpeg,required TResult Function( String path)  asset,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Uint8List data)  jpeg,required TResult Function( Uint8List data)  png,required TResult Function( SanitizedSvg svg)  svg,required TResult Function( String path)  asset,}) {final _that = this;
 switch (_that) {
-case Image_Svg():
-return svg(_that.svg);case Image_Png():
-return png(_that.data);case Image_Jpeg():
-return jpeg(_that.data);case Image_Asset():
+case Image_Jpeg():
+return jpeg(_that.data);case Image_Png():
+return png(_that.data);case Image_Svg():
+return svg(_that.svg);case Image_Asset():
 return asset(_that.path);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -169,12 +169,12 @@ return asset(_that.path);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( SanitizedSvg svg)?  svg,TResult? Function( Uint8List data)?  png,TResult? Function( Uint8List data)?  jpeg,TResult? Function( String path)?  asset,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Uint8List data)?  jpeg,TResult? Function( Uint8List data)?  png,TResult? Function( SanitizedSvg svg)?  svg,TResult? Function( String path)?  asset,}) {final _that = this;
 switch (_that) {
-case Image_Svg() when svg != null:
-return svg(_that.svg);case Image_Png() when png != null:
-return png(_that.data);case Image_Jpeg() when jpeg != null:
-return jpeg(_that.data);case Image_Asset() when asset != null:
+case Image_Jpeg() when jpeg != null:
+return jpeg(_that.data);case Image_Png() when png != null:
+return png(_that.data);case Image_Svg() when svg != null:
+return svg(_that.svg);case Image_Asset() when asset != null:
 return asset(_that.path);case _:
   return null;
 
@@ -186,43 +186,43 @@ return asset(_that.path);case _:
 /// @nodoc
 
 
-class Image_Svg extends Image {
-  const Image_Svg({required this.svg}): super._();
+class Image_Jpeg extends Image {
+  const Image_Jpeg({required this.data}): super._();
   
 
- final  SanitizedSvg svg;
+ final  Uint8List data;
 
 /// Create a copy of Image
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$Image_SvgCopyWith<Image_Svg> get copyWith => _$Image_SvgCopyWithImpl<Image_Svg>(this, _$identity);
+$Image_JpegCopyWith<Image_Jpeg> get copyWith => _$Image_JpegCopyWithImpl<Image_Jpeg>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Svg&&(identical(other.svg, svg) || other.svg == svg));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Jpeg&&const DeepCollectionEquality().equals(other.data, data));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,svg);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(data));
 
 @override
 String toString() {
-  return 'Image.svg(svg: $svg)';
+  return 'Image.jpeg(data: $data)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $Image_SvgCopyWith<$Res> implements $ImageCopyWith<$Res> {
-  factory $Image_SvgCopyWith(Image_Svg value, $Res Function(Image_Svg) _then) = _$Image_SvgCopyWithImpl;
+abstract mixin class $Image_JpegCopyWith<$Res> implements $ImageCopyWith<$Res> {
+  factory $Image_JpegCopyWith(Image_Jpeg value, $Res Function(Image_Jpeg) _then) = _$Image_JpegCopyWithImpl;
 @useResult
 $Res call({
- SanitizedSvg svg
+ Uint8List data
 });
 
 
@@ -230,19 +230,19 @@ $Res call({
 
 }
 /// @nodoc
-class _$Image_SvgCopyWithImpl<$Res>
-    implements $Image_SvgCopyWith<$Res> {
-  _$Image_SvgCopyWithImpl(this._self, this._then);
+class _$Image_JpegCopyWithImpl<$Res>
+    implements $Image_JpegCopyWith<$Res> {
+  _$Image_JpegCopyWithImpl(this._self, this._then);
 
-  final Image_Svg _self;
-  final $Res Function(Image_Svg) _then;
+  final Image_Jpeg _self;
+  final $Res Function(Image_Jpeg) _then;
 
 /// Create a copy of Image
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? svg = null,}) {
-  return _then(Image_Svg(
-svg: null == svg ? _self.svg : svg // ignore: cast_nullable_to_non_nullable
-as SanitizedSvg,
+@pragma('vm:prefer-inline') $Res call({Object? data = null,}) {
+  return _then(Image_Jpeg(
+data: null == data ? _self.data : data // ignore: cast_nullable_to_non_nullable
+as Uint8List,
   ));
 }
 
@@ -318,43 +318,43 @@ as Uint8List,
 /// @nodoc
 
 
-class Image_Jpeg extends Image {
-  const Image_Jpeg({required this.data}): super._();
+class Image_Svg extends Image {
+  const Image_Svg({required this.svg}): super._();
   
 
- final  Uint8List data;
+ final  SanitizedSvg svg;
 
 /// Create a copy of Image
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$Image_JpegCopyWith<Image_Jpeg> get copyWith => _$Image_JpegCopyWithImpl<Image_Jpeg>(this, _$identity);
+$Image_SvgCopyWith<Image_Svg> get copyWith => _$Image_SvgCopyWithImpl<Image_Svg>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Jpeg&&const DeepCollectionEquality().equals(other.data, data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Svg&&(identical(other.svg, svg) || other.svg == svg));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(data));
+int get hashCode => Object.hash(runtimeType,svg);
 
 @override
 String toString() {
-  return 'Image.jpeg(data: $data)';
+  return 'Image.svg(svg: $svg)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $Image_JpegCopyWith<$Res> implements $ImageCopyWith<$Res> {
-  factory $Image_JpegCopyWith(Image_Jpeg value, $Res Function(Image_Jpeg) _then) = _$Image_JpegCopyWithImpl;
+abstract mixin class $Image_SvgCopyWith<$Res> implements $ImageCopyWith<$Res> {
+  factory $Image_SvgCopyWith(Image_Svg value, $Res Function(Image_Svg) _then) = _$Image_SvgCopyWithImpl;
 @useResult
 $Res call({
- Uint8List data
+ SanitizedSvg svg
 });
 
 
@@ -362,19 +362,19 @@ $Res call({
 
 }
 /// @nodoc
-class _$Image_JpegCopyWithImpl<$Res>
-    implements $Image_JpegCopyWith<$Res> {
-  _$Image_JpegCopyWithImpl(this._self, this._then);
+class _$Image_SvgCopyWithImpl<$Res>
+    implements $Image_SvgCopyWith<$Res> {
+  _$Image_SvgCopyWithImpl(this._self, this._then);
 
-  final Image_Jpeg _self;
-  final $Res Function(Image_Jpeg) _then;
+  final Image_Svg _self;
+  final $Res Function(Image_Svg) _then;
 
 /// Create a copy of Image
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? data = null,}) {
-  return _then(Image_Jpeg(
-data: null == data ? _self.data : data // ignore: cast_nullable_to_non_nullable
-as Uint8List,
+@pragma('vm:prefer-inline') $Res call({Object? svg = null,}) {
+  return _then(Image_Svg(
+svg: null == svg ? _self.svg : svg // ignore: cast_nullable_to_non_nullable
+as SanitizedSvg,
   ));
 }
 

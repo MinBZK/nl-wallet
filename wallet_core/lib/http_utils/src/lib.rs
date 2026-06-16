@@ -1,6 +1,5 @@
 #[cfg(feature = "client")]
 pub mod client;
-pub mod data_uri;
 pub mod error;
 pub mod health;
 #[cfg(feature = "httpmock")]

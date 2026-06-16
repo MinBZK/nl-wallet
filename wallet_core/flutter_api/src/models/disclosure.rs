@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use svg_sanitize::SanitizedSvg;
 use tracing::warn;
 use url::Url;
 use wallet::AttributesNotAvailable;
@@ -122,20 +121,6 @@ impl From<RPLocalizedStrings> for Vec<LocalizedString> {
                 value: value.to_owned(),
             })
             .collect()
-    }
-}
-
-impl TryFrom<wallet::attestation_data::Image> for Image {
-    type Error = svg_sanitize::Error;
-
-    fn try_from(value: wallet::attestation_data::Image) -> Result<Self, Self::Error> {
-        Ok(match value {
-            wallet::attestation_data::Image::Svg(xml) => Image::Svg {
-                svg: SanitizedSvg::try_new(&xml)?.into(),
-            },
-            wallet::attestation_data::Image::Png(data) => Image::Png { data },
-            wallet::attestation_data::Image::Jpeg(data) => Image::Jpeg { data },
-        })
     }
 }
 

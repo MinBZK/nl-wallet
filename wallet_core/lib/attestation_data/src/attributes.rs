@@ -58,6 +58,9 @@ pub enum AttributesError {
 
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(Box<IndexMap<String, Vec<Entry>>>),
+
+    #[error("missing a mandatory attribute: {0:?}")]
+    MissingMandatoryAttribute(Vec<Vec<String>>),
 }
 
 impl From<AttributeValue> for ciborium::Value {
@@ -246,18 +249,31 @@ impl Attributes {
     }
 
     pub fn validate(&self, type_metadata: &NormalizedTypeMetadata) -> Result<(), AttributesError> {
-        let mut flattened_attributes = self.flattened();
-        for claim_key_path in type_metadata.claim_key_paths() {
-            flattened_attributes.swap_remove(&claim_key_path);
+        let flattened_attributes = self.flattened();
+        let claim_key_paths = type_metadata.claim_key_paths().collect_vec();
+
+        let attributes_without_claim = flattened_attributes
+            .keys()
+            .filter(|path| !claim_key_paths.contains(path))
+            .map(|path| path.iter().map(ToString::to_string).collect_vec())
+            .collect_vec();
+
+        if !attributes_without_claim.is_empty() {
+            return Err(AttributesError::AttributesWithoutClaim(attributes_without_claim));
         }
-        if !flattened_attributes.is_empty() {
-            return Err(AttributesError::AttributesWithoutClaim(
-                flattened_attributes
-                    .into_iter()
-                    .map(|(path, _)| path.into_iter().map(ToString::to_string).collect())
-                    .collect(),
-            ));
+
+        let missing_mandatory = type_metadata
+            .mandatory_claims()
+            .filter_map(|claim_path| {
+                (!flattened_attributes.contains_key(&claim_path))
+                    .then(|| claim_path.iter().map(ToString::to_string).collect_vec())
+            })
+            .collect_vec();
+
+        if !missing_mandatory.is_empty() {
+            return Err(AttributesError::MissingMandatoryAttribute(missing_mandatory));
         }
+
         // No internal attributes can be in the attributes as they are forbidden as claim in the type metadata
         Ok(())
     }
@@ -303,7 +319,7 @@ impl Attributes {
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttributesError> {
         // Get the claim paths consisting only out of claim key paths
-        let key_paths = type_metadata.claim_key_paths();
+        let key_paths = type_metadata.claim_key_paths().collect_vec();
 
         let mut result = IndexMap::with_capacity(key_paths.len());
 
@@ -765,27 +781,26 @@ pub mod test {
     fn test_traverse_groups() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [{
                 "path": ["birthdate"],
-                "display": [{"lang": "en", "label": "birthdate"}],
+                "display": [{"locale": "en", "label": "birthdate"}],
             }, {
                 "path": ["place_of_birth", "locality"],
-                "display": [{"lang": "en", "label": "birth city"}],
+                "display": [{"locale": "en", "label": "birth city"}],
             }, {
                 "path": ["place_of_birth", "country", "name"],
-                "display": [{"lang": "en", "label": "birth country"}],
+                "display": [{"locale": "en", "label": "birth country"}],
             }, {
                 "path": ["place_of_birth", "country", "area_code"],
-                "display": [{"lang": "en", "label": "birth area code"}],
+                "display": [{"locale": "en", "label": "birth area code"}],
             }, {
                 "path": ["a", "b", "c", "d", "e"],
-                "display": [{"lang": "en", "label": "a b c d e"}],
+                "display": [{"locale": "en", "label": "a b c d e"}],
             }, {
                 "path": ["a", "b", "c1"],
-                "display": [{"lang": "en", "label": "a b c1"}],
-            }],
-            "schema": { "properties": {} }
+                "display": [{"locale": "en", "label": "a b c1"}],
+            }]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -864,14 +879,13 @@ pub mod test {
     fn test_traverse_groups_for_dot_in_attribute_name() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["nest.ed", "birth.date"],
-                    "display": [{"lang": "en", "label": "nested birthday"}],
+                    "display": [{"locale": "en", "label": "nested birthday"}],
                 }
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -896,18 +910,17 @@ pub mod test {
     fn test_traverse_groups_with_extra_entry_not_in_claim() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["a", "a1"],
-                    "display": [{"lang": "en", "label": "a a1"}],
+                    "display": [{"locale": "en", "label": "a a1"}],
                 },
                 {
                     "path": ["a", "a2"],
-                    "display": [{"lang": "en", "label": "a a1"}],
+                    "display": [{"locale": "en", "label": "a a1"}],
                 }
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -941,22 +954,21 @@ pub mod test {
     fn test_traverse_groups_claim_ordering() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["b", "b1"],
-                    "display": [{"lang": "en", "label": "b b1"}],
+                    "display": [{"locale": "en", "label": "b b1"}],
                 },
                 {
                     "path": ["b", "b3"],
-                    "display": [{"lang": "en", "label": "b b3"}],
+                    "display": [{"locale": "en", "label": "b b3"}],
                 },
                 {
                     "path": ["b", "b2"],
-                    "display": [{"lang": "en", "label": "b b2"}],
+                    "display": [{"locale": "en", "label": "b b2"}],
                 }
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -1270,38 +1282,37 @@ pub mod test {
     fn test_validate_ok() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["name"],
-                    "display": [{"lang": "en", "label": "name"}],
+                    "display": [{"locale": "en", "label": "name"}],
                 },
                 {
                     "path": ["birth_date"],
-                    "display": [{"lang": "en", "label": "birth date"}],
+                    "display": [{"locale": "en", "label": "birth date"}],
                 },
                 {
                     "path": ["address", "street"],
-                    "display": [{"lang": "en", "label": "address street"}],
+                    "display": [{"locale": "en", "label": "address street"}],
                 },
                 {
                     "path": ["address", "number"],
-                    "display": [{"lang": "en", "label": "address number"}],
+                    "display": [{"locale": "en", "label": "address number"}],
                 },
                 {
                     "path": ["country", "iso"],
-                    "display": [{"lang": "en", "label": "country iso"}],
+                    "display": [{"locale": "en", "label": "country iso"}],
                 },
                 {
                     "path": ["country", "area_code"],
-                    "display": [{"lang": "en", "label": "country area code"}],
+                    "display": [{"locale": "en", "label": "country area code"}],
                 },
                 {
                     "path": ["adult"],
-                    "display": [{"lang": "en", "label": "adult"}],
+                    "display": [{"locale": "en", "label": "adult"}],
                 },
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -1310,42 +1321,93 @@ pub mod test {
     }
 
     #[test]
-    fn test_validate_missing() {
+    fn test_validate_attributes_without_claim() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["name"],
-                    "display": [{"lang": "en", "label": "name"}],
+                    "display": [{"locale": "en", "label": "name"}],
                 },
                 {
                     "path": ["birth_date"],
-                    "display": [{"lang": "en", "label": "birth date"}],
+                    "display": [{"locale": "en", "label": "birth date"}],
                 },
                 {
                     "path": ["address", "street"],
-                    "display": [{"lang": "en", "label": "address street"}],
+                    "display": [{"locale": "en", "label": "address street"}],
                 },
                 {
                     "path": ["address", "number"],
-                    "display": [{"lang": "en", "label": "address number"}],
+                    "display": [{"locale": "en", "label": "address number"}],
                 },
                 {
                     "path": ["country", "iso"],
-                    "display": [{"lang": "en", "label": "country iso"}],
+                    "display": [{"locale": "en", "label": "country iso"}],
                 },
                 {
                     "path": ["adult"],
-                    "display": [{"lang": "en", "label": "adult"}],
+                    "display": [{"locale": "en", "label": "adult"}],
                 },
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let result = example_attributes().validate(&type_metadata);
         assert_matches!(result, Err(AttributesError::AttributesWithoutClaim(message)) if message == vec![vec!["country", "area_code"]]);
+    }
+
+    #[test]
+    fn test_validate_missing_mandatory_attribute() {
+        let metadata_json = json!({
+            "vct": "com.example.pid",
+            "display": [{"locale": "en", "name": "example"}],
+            "claims": [
+                {
+                    "path": ["name"],
+                    "display": [{"locale": "en", "label": "name"}],
+                },
+                {
+                    "path": ["birth_date"],
+                    "display": [{"locale": "en", "label": "birth date"}],
+                    "mandatory": true,
+                },
+                {
+                    "path": ["birth", "city"],
+                    "display": [{"locale": "en", "label": "birth city"}],
+                    "mandatory": true,
+                },
+                {
+                    "path": ["address", "street"],
+                    "display": [{"locale": "en", "label": "address street"}],
+                },
+                {
+                    "path": ["address", "number"],
+                    "display": [{"locale": "en", "label": "address number"}],
+                },
+                {
+                    "path": ["country", "iso"],
+                    "display": [{"locale": "en", "label": "country iso"}],
+                },
+                {
+                    "path": ["country", "area_code"],
+                    "display": [{"locale": "en", "label": "country iso"}],
+                },
+                {
+                    "path": ["adult"],
+                    "display": [{"locale": "en", "label": "adult"}],
+                },
+            ]
+        });
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
+
+        let result = example_attributes().validate(&type_metadata);
+        assert_matches!(
+            result,
+            Err(AttributesError::MissingMandatoryAttribute(message))
+                if message == vec![vec!["birth_date"], vec!["birth", "city"]]
+        );
     }
 
     mod test_claim_paths_from_attributes {

@@ -15,8 +15,8 @@ abstract class CoreMockData {
     validityStatus: ValidityStatus_Valid(validUntil: null),
   );
 
-  static const enDisplayMetadata = DisplayMetadata(lang: 'en', name: 'PID attestation', rendering: null);
-  static const nlDisplayMetadata = DisplayMetadata(lang: 'nl', name: 'PID attestatie', rendering: null);
+  static const enDisplayMetadata = DisplayMetadata(locale: 'en', name: 'PID attestation', rendering: null);
+  static const nlDisplayMetadata = DisplayMetadata(locale: 'nl', name: 'PID attestatie', rendering: null);
 
   static const AttestationAttribute attestationAttributeName = AttestationAttribute(
     key: 'name',

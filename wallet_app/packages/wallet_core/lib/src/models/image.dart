@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'image.freezed.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `try_from`
 
 // Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SanitizedSvg>>
 abstract class SanitizedSvg implements RustOpaqueInterface {
@@ -19,15 +19,15 @@ abstract class SanitizedSvg implements RustOpaqueInterface {
 sealed class Image with _$Image {
   const Image._();
 
-  const factory Image.svg({
-    required SanitizedSvg svg,
-  }) = Image_Svg;
-  const factory Image.png({
-    required Uint8List data,
-  }) = Image_Png;
   const factory Image.jpeg({
     required Uint8List data,
   }) = Image_Jpeg;
+  const factory Image.png({
+    required Uint8List data,
+  }) = Image_Png;
+  const factory Image.svg({
+    required SanitizedSvg svg,
+  }) = Image_Svg;
   const factory Image.asset({
     required String path,
   }) = Image_Asset;

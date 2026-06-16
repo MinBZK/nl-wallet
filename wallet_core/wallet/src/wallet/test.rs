@@ -50,8 +50,6 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
 use rand_core::OsRng;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
-use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
-use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -190,15 +188,11 @@ pub fn create_example_credential_payload(
     let metadata = TypeMetadata::example_with_claim_names(
         attestation_type,
         &[
-            ("family_name", JsonSchemaPropertyType::String, None),
-            ("given_name", JsonSchemaPropertyType::String, None),
-            (
-                "birth_date",
-                JsonSchemaPropertyType::String,
-                Some(JsonSchemaPropertyFormat::Date),
-            ),
-            ("age_over_18", JsonSchemaPropertyType::Boolean, None),
-            (PID_RECOVERY_CODE, JsonSchemaPropertyType::String, None),
+            "family_name",
+            "given_name",
+            "birth_date",
+            "age_over_18",
+            PID_RECOVERY_CODE,
         ],
     );
 

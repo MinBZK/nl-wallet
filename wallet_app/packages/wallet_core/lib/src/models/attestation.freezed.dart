@@ -313,14 +313,13 @@ extension AttributeValuePatterns on AttributeValue {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AttributeValue_String value)?  string,TResult Function( AttributeValue_Boolean value)?  boolean,TResult Function( AttributeValue_Number value)?  number,TResult Function( AttributeValue_Date value)?  date,TResult Function( AttributeValue_Array value)?  array,TResult Function( AttributeValue_Null value)?  null_,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AttributeValue_String value)?  string,TResult Function( AttributeValue_Boolean value)?  boolean,TResult Function( AttributeValue_Number value)?  number,TResult Function( AttributeValue_Array value)?  array,TResult Function( AttributeValue_Null value)?  null_,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that);case AttributeValue_Number() when number != null:
-return number(_that);case AttributeValue_Date() when date != null:
-return date(_that);case AttributeValue_Array() when array != null:
+return number(_that);case AttributeValue_Array() when array != null:
 return array(_that);case AttributeValue_Null() when null_ != null:
 return null_(_that);case _:
   return orElse();
@@ -340,14 +339,13 @@ return null_(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AttributeValue_String value)  string,required TResult Function( AttributeValue_Boolean value)  boolean,required TResult Function( AttributeValue_Number value)  number,required TResult Function( AttributeValue_Date value)  date,required TResult Function( AttributeValue_Array value)  array,required TResult Function( AttributeValue_Null value)  null_,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AttributeValue_String value)  string,required TResult Function( AttributeValue_Boolean value)  boolean,required TResult Function( AttributeValue_Number value)  number,required TResult Function( AttributeValue_Array value)  array,required TResult Function( AttributeValue_Null value)  null_,}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String():
 return string(_that);case AttributeValue_Boolean():
 return boolean(_that);case AttributeValue_Number():
-return number(_that);case AttributeValue_Date():
-return date(_that);case AttributeValue_Array():
+return number(_that);case AttributeValue_Array():
 return array(_that);case AttributeValue_Null():
 return null_(_that);}
 }
@@ -363,14 +361,13 @@ return null_(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AttributeValue_String value)?  string,TResult? Function( AttributeValue_Boolean value)?  boolean,TResult? Function( AttributeValue_Number value)?  number,TResult? Function( AttributeValue_Date value)?  date,TResult? Function( AttributeValue_Array value)?  array,TResult? Function( AttributeValue_Null value)?  null_,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AttributeValue_String value)?  string,TResult? Function( AttributeValue_Boolean value)?  boolean,TResult? Function( AttributeValue_Number value)?  number,TResult? Function( AttributeValue_Array value)?  array,TResult? Function( AttributeValue_Null value)?  null_,}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that);case AttributeValue_Number() when number != null:
-return number(_that);case AttributeValue_Date() when date != null:
-return date(_that);case AttributeValue_Array() when array != null:
+return number(_that);case AttributeValue_Array() when array != null:
 return array(_that);case AttributeValue_Null() when null_ != null:
 return null_(_that);case _:
   return null;
@@ -389,13 +386,12 @@ return null_(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( String value)?  date,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that.value);case AttributeValue_Number() when number != null:
-return number(_that.value);case AttributeValue_Date() when date != null:
-return date(_that.value);case AttributeValue_Array() when array != null:
+return number(_that.value);case AttributeValue_Array() when array != null:
 return array(_that.value);case AttributeValue_Null() when null_ != null:
 return null_();case _:
   return orElse();
@@ -415,13 +411,12 @@ return null_();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( String value)  date,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String():
 return string(_that.value);case AttributeValue_Boolean():
 return boolean(_that.value);case AttributeValue_Number():
-return number(_that.value);case AttributeValue_Date():
-return date(_that.value);case AttributeValue_Array():
+return number(_that.value);case AttributeValue_Array():
 return array(_that.value);case AttributeValue_Null():
 return null_();}
 }
@@ -437,13 +432,12 @@ return null_();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( String value)?  date,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that.value);case AttributeValue_Number() when number != null:
-return number(_that.value);case AttributeValue_Date() when date != null:
-return date(_that.value);case AttributeValue_Array() when array != null:
+return number(_that.value);case AttributeValue_Array() when array != null:
 return array(_that.value);case AttributeValue_Null() when null_ != null:
 return null_();case _:
   return null;
@@ -645,72 +639,6 @@ class _$AttributeValue_NumberCopyWithImpl<$Res>
   return _then(AttributeValue_Number(
 value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as PlatformInt64,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-
-class AttributeValue_Date extends AttributeValue {
-  const AttributeValue_Date({required this.value}): super._();
-  
-
- final  String value;
-
-/// Create a copy of AttributeValue
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$AttributeValue_DateCopyWith<AttributeValue_Date> get copyWith => _$AttributeValue_DateCopyWithImpl<AttributeValue_Date>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Date&&(identical(other.value, value) || other.value == value));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,value);
-
-@override
-String toString() {
-  return 'AttributeValue.date(value: $value)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $AttributeValue_DateCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
-  factory $AttributeValue_DateCopyWith(AttributeValue_Date value, $Res Function(AttributeValue_Date) _then) = _$AttributeValue_DateCopyWithImpl;
-@useResult
-$Res call({
- String value
-});
-
-
-
-
-}
-/// @nodoc
-class _$AttributeValue_DateCopyWithImpl<$Res>
-    implements $AttributeValue_DateCopyWith<$Res> {
-  _$AttributeValue_DateCopyWithImpl(this._self, this._then);
-
-  final AttributeValue_Date _self;
-  final $Res Function(AttributeValue_Date) _then;
-
-/// Create a copy of AttributeValue
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
-  return _then(AttributeValue_Date(
-value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
-as String,
   ));
 }
 
@@ -929,10 +857,10 @@ return svgTemplates(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ImageWithMetadata? logo,  String? backgroundColor,  String? textColor)?  simple,TResult Function()?  svgTemplates,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ImageWithMetadata? logo,  Image? backgroundImage,  String? backgroundColor,  String? textColor)?  simple,TResult Function()?  svgTemplates,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case RenderingMetadata_Simple() when simple != null:
-return simple(_that.logo,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+return simple(_that.logo,_that.backgroundImage,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
 return svgTemplates();case _:
   return orElse();
 
@@ -951,10 +879,10 @@ return svgTemplates();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ImageWithMetadata? logo,  String? backgroundColor,  String? textColor)  simple,required TResult Function()  svgTemplates,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ImageWithMetadata? logo,  Image? backgroundImage,  String? backgroundColor,  String? textColor)  simple,required TResult Function()  svgTemplates,}) {final _that = this;
 switch (_that) {
 case RenderingMetadata_Simple():
-return simple(_that.logo,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates():
+return simple(_that.logo,_that.backgroundImage,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates():
 return svgTemplates();}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -969,10 +897,10 @@ return svgTemplates();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ImageWithMetadata? logo,  String? backgroundColor,  String? textColor)?  simple,TResult? Function()?  svgTemplates,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ImageWithMetadata? logo,  Image? backgroundImage,  String? backgroundColor,  String? textColor)?  simple,TResult? Function()?  svgTemplates,}) {final _that = this;
 switch (_that) {
 case RenderingMetadata_Simple() when simple != null:
-return simple(_that.logo,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+return simple(_that.logo,_that.backgroundImage,_that.backgroundColor,_that.textColor);case RenderingMetadata_SvgTemplates() when svgTemplates != null:
 return svgTemplates();case _:
   return null;
 
@@ -985,10 +913,11 @@ return svgTemplates();case _:
 
 
 class RenderingMetadata_Simple extends RenderingMetadata {
-  const RenderingMetadata_Simple({this.logo, this.backgroundColor, this.textColor}): super._();
+  const RenderingMetadata_Simple({this.logo, this.backgroundImage, this.backgroundColor, this.textColor}): super._();
   
 
  final  ImageWithMetadata? logo;
+ final  Image? backgroundImage;
  final  String? backgroundColor;
  final  String? textColor;
 
@@ -1002,16 +931,16 @@ $RenderingMetadata_SimpleCopyWith<RenderingMetadata_Simple> get copyWith => _$Re
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_Simple&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_Simple&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.backgroundImage, backgroundImage) || other.backgroundImage == backgroundImage)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,logo,backgroundColor,textColor);
+int get hashCode => Object.hash(runtimeType,logo,backgroundImage,backgroundColor,textColor);
 
 @override
 String toString() {
-  return 'RenderingMetadata.simple(logo: $logo, backgroundColor: $backgroundColor, textColor: $textColor)';
+  return 'RenderingMetadata.simple(logo: $logo, backgroundImage: $backgroundImage, backgroundColor: $backgroundColor, textColor: $textColor)';
 }
 
 
@@ -1022,11 +951,11 @@ abstract mixin class $RenderingMetadata_SimpleCopyWith<$Res> implements $Renderi
   factory $RenderingMetadata_SimpleCopyWith(RenderingMetadata_Simple value, $Res Function(RenderingMetadata_Simple) _then) = _$RenderingMetadata_SimpleCopyWithImpl;
 @useResult
 $Res call({
- ImageWithMetadata? logo, String? backgroundColor, String? textColor
+ ImageWithMetadata? logo, Image? backgroundImage, String? backgroundColor, String? textColor
 });
 
 
-
+$ImageCopyWith<$Res>? get backgroundImage;
 
 }
 /// @nodoc
@@ -1039,16 +968,29 @@ class _$RenderingMetadata_SimpleCopyWithImpl<$Res>
 
 /// Create a copy of RenderingMetadata
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? logo = freezed,Object? backgroundColor = freezed,Object? textColor = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? logo = freezed,Object? backgroundImage = freezed,Object? backgroundColor = freezed,Object? textColor = freezed,}) {
   return _then(RenderingMetadata_Simple(
 logo: freezed == logo ? _self.logo : logo // ignore: cast_nullable_to_non_nullable
-as ImageWithMetadata?,backgroundColor: freezed == backgroundColor ? _self.backgroundColor : backgroundColor // ignore: cast_nullable_to_non_nullable
+as ImageWithMetadata?,backgroundImage: freezed == backgroundImage ? _self.backgroundImage : backgroundImage // ignore: cast_nullable_to_non_nullable
+as Image?,backgroundColor: freezed == backgroundColor ? _self.backgroundColor : backgroundColor // ignore: cast_nullable_to_non_nullable
 as String?,textColor: freezed == textColor ? _self.textColor : textColor // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
 
+/// Create a copy of RenderingMetadata
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ImageCopyWith<$Res>? get backgroundImage {
+    if (_self.backgroundImage == null) {
+    return null;
+  }
 
+  return $ImageCopyWith<$Res>(_self.backgroundImage!, (value) {
+    return _then(_self.copyWith(backgroundImage: value));
+  });
+}
 }
 
 /// @nodoc

@@ -1048,7 +1048,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde::de::Error;
@@ -1074,7 +1073,6 @@ mod tests {
     use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
     use super::is_request_for_recovery_code;
-    use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
@@ -1392,8 +1390,7 @@ mod tests {
 
             assert!(attribute.key.iter().eq([PID_GIVEN_NAME]));
             assert_matches!(
-                &attribute.value,
-                AttestationAttributeValue::Basic(AttributeValue::Text(given_name)) if given_name == expected_name
+                &attribute.value, AttributeValue::Text(given_name) if given_name == expected_name
             );
         }
 
@@ -1413,16 +1410,14 @@ mod tests {
 
             assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER]));
             assert_matches!(
-                &attribute.value,
-                AttestationAttributeValue::Basic(AttributeValue::Text(house_number)) if house_number == expected_house_number
+                &attribute.value, AttributeValue::Text(house_number) if house_number == expected_house_number
             );
 
             let attribute = &presentation.attributes[1];
 
             assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE]));
             assert_matches!(
-                &attribute.value,
-                AttestationAttributeValue::Basic(AttributeValue::Text(postal_code)) if postal_code == expected_postal_code
+                &attribute.value, AttributeValue::Text(postal_code) if postal_code == expected_postal_code
             );
         }
 
@@ -3080,11 +3075,7 @@ mod tests {
         // Create metadata with an sd claim and 2 non-sd claims
         let mut type_metadata_with_non_selectively_disclosable_claim = UncheckedTypeMetadata::example_with_claim_names(
             my_attestation_type,
-            &[
-                (my_sd_claim, JsonSchemaPropertyType::String, None),
-                (my_first_non_sd_claim, JsonSchemaPropertyType::String, None),
-                (my_second_non_sd_claim, JsonSchemaPropertyType::String, None),
-            ],
+            &[my_sd_claim, my_first_non_sd_claim, my_second_non_sd_claim],
         );
         for claim in &mut type_metadata_with_non_selectively_disclosable_claim.claims {
             if [

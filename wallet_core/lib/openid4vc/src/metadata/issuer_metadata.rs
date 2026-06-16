@@ -3,14 +3,15 @@ use std::num::NonZeroU64;
 use std::ops::Not;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::data_uri::DataUri;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
-use http_utils::data_uri::DataUri;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
+use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::LogoMetadata;
@@ -256,7 +257,8 @@ pub struct NameLocale {
     pub name: Option<String>,
 
     /// String value that identifies the language of this object represented as a language tag taken from values
-    /// defined in BCP47 [RFC5646]. There MUST be only one object for each language identifier.
+    /// defined in BCP47 [RFC5646](https://www.rfc-editor.org/info/rfc5646). There MUST be only one object for each
+    /// language identifier.
     pub locale: Option<String>,
 }
 
@@ -613,24 +615,25 @@ pub struct CredentialDisplay {
 
 impl From<DisplayMetadata> for CredentialDisplay {
     fn from(value: DisplayMetadata) -> Self {
-        let (logo, background_color, text_color) = match value.rendering {
+        let (logo, background_image, background_color, text_color) = match value.rendering {
             Some(RenderingMetadata::Simple {
                 logo,
+                background_image,
                 background_color,
                 text_color,
-            }) => (logo, background_color, text_color),
-            Some(RenderingMetadata::SvgTemplates) | None => (None, None, None),
+            }) => (logo, background_image, background_color, text_color),
+            Some(RenderingMetadata::SvgTemplates) | None => (None, None, None, None),
         };
 
         Self {
             name_locale: NameLocale {
                 name: Some(value.name),
-                locale: Some(value.lang),
+                locale: Some(value.locale),
             },
             logo: logo.map(Logo::from),
             description: value.description,
             background_color,
-            background_image: None,
+            background_image: background_image.map(Into::into),
             text_color,
         }
     }
@@ -643,6 +646,14 @@ pub struct BackgroundImage {
     /// Credential Issuer. The Wallet needs to determine the scheme, since the URI value could use the `https:` scheme,
     /// the `data:` scheme, etc.
     pub uri: Url,
+}
+
+impl From<BackgroundImageMetadata> for BackgroundImage {
+    fn from(value: BackgroundImageMetadata) -> Self {
+        Self {
+            uri: Url::from(&DataUri::from(value.image)),
+        }
+    }
 }
 
 const fn bool_value<const B: bool>() -> bool {
@@ -680,7 +691,7 @@ impl From<ClaimMetadata> for CredentialClaim {
                 .into_iter()
                 .map(|display| NameLocale {
                     name: Some(display.label),
-                    locale: Some(display.lang),
+                    locale: Some(display.locale),
                 })
                 .collect_vec()
                 .try_into()

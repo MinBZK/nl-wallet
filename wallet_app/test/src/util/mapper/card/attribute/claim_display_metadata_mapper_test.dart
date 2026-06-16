@@ -13,8 +13,8 @@ void main() {
   group('ClaimDisplayMetadataMapper', () {
     test('should map list of ClaimDisplayMetadata to LocalizedText', () {
       final input = [
-        const ClaimDisplayMetadata(lang: 'en', label: 'English Label'),
-        const ClaimDisplayMetadata(lang: 'nl', label: 'Nederlands Label'),
+        const ClaimDisplayMetadata(locale: 'en', label: 'English Label'),
+        const ClaimDisplayMetadata(locale: 'nl', label: 'Nederlands Label'),
       ];
 
       final result = mapper.map(input);
@@ -32,8 +32,8 @@ void main() {
 
     test('should handle duplicate languages by taking a single, namely the last, one', () {
       final input = [
-        const ClaimDisplayMetadata(lang: 'en', label: 'First'),
-        const ClaimDisplayMetadata(lang: 'en', label: 'Second'),
+        const ClaimDisplayMetadata(locale: 'en', label: 'First'),
+        const ClaimDisplayMetadata(locale: 'en', label: 'Second'),
       ];
 
       final result = mapper.map(input);
@@ -45,7 +45,7 @@ void main() {
 
     test('should parse complex locale strings', () {
       final input = [
-        const ClaimDisplayMetadata(lang: 'en-US', label: 'US English'),
+        const ClaimDisplayMetadata(locale: 'en-US', label: 'US English'),
       ];
 
       final result = mapper.map(input);

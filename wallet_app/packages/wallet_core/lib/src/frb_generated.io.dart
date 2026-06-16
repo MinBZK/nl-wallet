@@ -1177,20 +1177,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Number.value = pre_value;
       return;
     }
-    if (apiObj is AttributeValue_Date) {
-      var pre_value = cst_encode_String(apiObj.value);
-      wireObj.tag = 3;
-      wireObj.kind.Date.value = pre_value;
-      return;
-    }
     if (apiObj is AttributeValue_Array) {
       var pre_value = cst_encode_list_attribute_value(apiObj.value);
-      wireObj.tag = 4;
+      wireObj.tag = 3;
       wireObj.kind.Array.value = pre_value;
       return;
     }
     if (apiObj is AttributeValue_Null) {
-      wireObj.tag = 5;
+      wireObj.tag = 4;
       return;
     }
   }
@@ -1263,7 +1257,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     ClaimDisplayMetadata apiObj,
     wire_cst_claim_display_metadata wireObj,
   ) {
-    wireObj.lang = cst_encode_String(apiObj.lang);
+    wireObj.locale = cst_encode_String(apiObj.locale);
     wireObj.label = cst_encode_String(apiObj.label);
     wireObj.description = cst_encode_opt_String(apiObj.description);
   }
@@ -1319,7 +1313,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_display_metadata(DisplayMetadata apiObj, wire_cst_display_metadata wireObj) {
-    wireObj.lang = cst_encode_String(apiObj.lang);
+    wireObj.locale = cst_encode_String(apiObj.locale);
     wireObj.name = cst_encode_String(apiObj.name);
     wireObj.description = cst_encode_opt_String(apiObj.description);
     wireObj.summary = cst_encode_opt_String(apiObj.summary);
@@ -1380,12 +1374,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_image(Image apiObj, wire_cst_image wireObj) {
-    if (apiObj is Image_Svg) {
-      var pre_svg = cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
-        apiObj.svg,
-      );
+    if (apiObj is Image_Jpeg) {
+      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
       wireObj.tag = 0;
-      wireObj.kind.Svg.svg = pre_svg;
+      wireObj.kind.Jpeg.data = pre_data;
       return;
     }
     if (apiObj is Image_Png) {
@@ -1394,10 +1386,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Png.data = pre_data;
       return;
     }
-    if (apiObj is Image_Jpeg) {
-      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
+    if (apiObj is Image_Svg) {
+      var pre_svg = cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+        apiObj.svg,
+      );
       wireObj.tag = 2;
-      wireObj.kind.Jpeg.data = pre_data;
+      wireObj.kind.Svg.svg = pre_svg;
       return;
     }
     if (apiObj is Image_Asset) {
@@ -1521,10 +1515,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_rendering_metadata(RenderingMetadata apiObj, wire_cst_rendering_metadata wireObj) {
     if (apiObj is RenderingMetadata_Simple) {
       var pre_logo = cst_encode_opt_box_autoadd_image_with_metadata(apiObj.logo);
+      var pre_background_image = cst_encode_opt_box_autoadd_image(apiObj.backgroundImage);
       var pre_background_color = cst_encode_opt_String(apiObj.backgroundColor);
       var pre_text_color = cst_encode_opt_String(apiObj.textColor);
       wireObj.tag = 0;
       wireObj.kind.Simple.logo = pre_logo;
+      wireObj.kind.Simple.background_image = pre_background_image;
       wireObj.kind.Simple.background_color = pre_background_color;
       wireObj.kind.Simple.text_color = pre_text_color;
       return;
@@ -3717,17 +3713,17 @@ final class wire_cst_attestation_identity extends ffi.Struct {
   external AttestationIdentityKind kind;
 }
 
-final class wire_cst_Image_Svg extends ffi.Struct {
-  @ffi.UintPtr()
-  external int svg;
+final class wire_cst_Image_Jpeg extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
 }
 
 final class wire_cst_Image_Png extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
 }
 
-final class wire_cst_Image_Jpeg extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
+final class wire_cst_Image_Svg extends ffi.Struct {
+  @ffi.UintPtr()
+  external int svg;
 }
 
 final class wire_cst_Image_Asset extends ffi.Struct {
@@ -3735,11 +3731,11 @@ final class wire_cst_Image_Asset extends ffi.Struct {
 }
 
 final class ImageKind extends ffi.Union {
-  external wire_cst_Image_Svg Svg;
+  external wire_cst_Image_Jpeg Jpeg;
 
   external wire_cst_Image_Png Png;
 
-  external wire_cst_Image_Jpeg Jpeg;
+  external wire_cst_Image_Svg Svg;
 
   external wire_cst_Image_Asset Asset;
 }
@@ -3760,6 +3756,8 @@ final class wire_cst_image_with_metadata extends ffi.Struct {
 final class wire_cst_RenderingMetadata_Simple extends ffi.Struct {
   external ffi.Pointer<wire_cst_image_with_metadata> logo;
 
+  external ffi.Pointer<wire_cst_image> background_image;
+
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> background_color;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> text_color;
@@ -3777,7 +3775,7 @@ final class wire_cst_rendering_metadata extends ffi.Struct {
 }
 
 final class wire_cst_display_metadata extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> locale;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> name;
 
@@ -3866,7 +3864,7 @@ final class wire_cst_validity_status extends ffi.Struct {
 }
 
 final class wire_cst_claim_display_metadata extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> locale;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> label;
 
@@ -3894,10 +3892,6 @@ final class wire_cst_AttributeValue_Number extends ffi.Struct {
   external int value;
 }
 
-final class wire_cst_AttributeValue_Date extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
-}
-
 final class wire_cst_AttributeValue_Array extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attribute_value> value;
 }
@@ -3908,8 +3902,6 @@ final class AttributeValueKind extends ffi.Union {
   external wire_cst_AttributeValue_Boolean Boolean;
 
   external wire_cst_AttributeValue_Number Number;
-
-  external wire_cst_AttributeValue_Date Date;
 
   external wire_cst_AttributeValue_Array Array;
 }

@@ -2047,14 +2047,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           value: dco_decode_i_64(raw[1]),
         );
       case 3:
-        return AttributeValue_Date(
-          value: dco_decode_String(raw[1]),
-        );
-      case 4:
         return AttributeValue_Array(
           value: dco_decode_list_attribute_value(raw[1]),
         );
-      case 5:
+      case 4:
         return AttributeValue_Null();
       default:
         throw Exception("unreachable");
@@ -2145,7 +2141,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return ClaimDisplayMetadata(
-      lang: dco_decode_String(arr[0]),
+      locale: dco_decode_String(arr[0]),
       label: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
     );
@@ -2221,7 +2217,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return DisplayMetadata(
-      lang: dco_decode_String(arr[0]),
+      locale: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
       summary: dco_decode_opt_String(arr[3]),
@@ -2311,16 +2307,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return Image_Svg(
-          svg: dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(raw[1]),
+        return Image_Jpeg(
+          data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 1:
         return Image_Png(
           data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 2:
-        return Image_Jpeg(
-          data: dco_decode_list_prim_u_8_strict(raw[1]),
+        return Image_Svg(
+          svg: dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(raw[1]),
         );
       case 3:
         return Image_Asset(
@@ -2645,8 +2641,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return RenderingMetadata_Simple(
           logo: dco_decode_opt_box_autoadd_image_with_metadata(raw[1]),
-          backgroundColor: dco_decode_opt_String(raw[2]),
-          textColor: dco_decode_opt_String(raw[3]),
+          backgroundImage: dco_decode_opt_box_autoadd_image(raw[2]),
+          backgroundColor: dco_decode_opt_String(raw[3]),
+          textColor: dco_decode_opt_String(raw[4]),
         );
       case 1:
         return RenderingMetadata_SvgTemplates();
@@ -3067,12 +3064,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_value = sse_decode_i_64(deserializer);
         return AttributeValue_Number(value: var_value);
       case 3:
-        var var_value = sse_decode_String(deserializer);
-        return AttributeValue_Date(value: var_value);
-      case 4:
         var var_value = sse_decode_list_attribute_value(deserializer);
         return AttributeValue_Array(value: var_value);
-      case 5:
+      case 4:
         return AttributeValue_Null();
       default:
         throw UnimplementedError('');
@@ -3161,10 +3155,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_lang = sse_decode_String(deserializer);
+    var var_locale = sse_decode_String(deserializer);
     var var_label = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
-    return ClaimDisplayMetadata(lang: var_lang, label: var_label, description: var_description);
+    return ClaimDisplayMetadata(locale: var_locale, label: var_label, description: var_description);
   }
 
   @protected
@@ -3237,13 +3231,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   DisplayMetadata sse_decode_display_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_lang = sse_decode_String(deserializer);
+    var var_locale = sse_decode_String(deserializer);
     var var_name = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
     var var_summary = sse_decode_opt_String(deserializer);
     var var_rendering = sse_decode_opt_box_autoadd_rendering_metadata(deserializer);
     return DisplayMetadata(
-      lang: var_lang,
+      locale: var_locale,
       name: var_name,
       description: var_description,
       summary: var_summary,
@@ -3345,16 +3339,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_svg = sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
-          deserializer,
-        );
-        return Image_Svg(svg: var_svg);
+        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
+        return Image_Jpeg(data: var_data);
       case 1:
         var var_data = sse_decode_list_prim_u_8_strict(deserializer);
         return Image_Png(data: var_data);
       case 2:
-        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
-        return Image_Jpeg(data: var_data);
+        var var_svg = sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+          deserializer,
+        );
+        return Image_Svg(svg: var_svg);
       case 3:
         var var_path = sse_decode_String(deserializer);
         return Image_Asset(path: var_path);
@@ -3791,9 +3785,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (tag_) {
       case 0:
         var var_logo = sse_decode_opt_box_autoadd_image_with_metadata(deserializer);
+        var var_backgroundImage = sse_decode_opt_box_autoadd_image(deserializer);
         var var_backgroundColor = sse_decode_opt_String(deserializer);
         var var_textColor = sse_decode_opt_String(deserializer);
-        return RenderingMetadata_Simple(logo: var_logo, backgroundColor: var_backgroundColor, textColor: var_textColor);
+        return RenderingMetadata_Simple(
+          logo: var_logo,
+          backgroundImage: var_backgroundImage,
+          backgroundColor: var_backgroundColor,
+          textColor: var_textColor,
+        );
       case 1:
         return RenderingMetadata_SvgTemplates();
       default:
@@ -4450,14 +4450,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case AttributeValue_Number(value: final value):
         sse_encode_i_32(2, serializer);
         sse_encode_i_64(value, serializer);
-      case AttributeValue_Date(value: final value):
-        sse_encode_i_32(3, serializer);
-        sse_encode_String(value, serializer);
       case AttributeValue_Array(value: final value):
-        sse_encode_i_32(4, serializer);
+        sse_encode_i_32(3, serializer);
         sse_encode_list_attribute_value(value, serializer);
       case AttributeValue_Null():
-        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(4, serializer);
     }
   }
 
@@ -4542,7 +4539,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.lang, serializer);
+    sse_encode_String(self.locale, serializer);
     sse_encode_String(self.label, serializer);
     sse_encode_opt_String(self.description, serializer);
   }
@@ -4606,7 +4603,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_display_metadata(DisplayMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.lang, serializer);
+    sse_encode_String(self.locale, serializer);
     sse_encode_String(self.name, serializer);
     sse_encode_opt_String(self.description, serializer);
     sse_encode_opt_String(self.summary, serializer);
@@ -4684,18 +4681,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_image(Image self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case Image_Svg(svg: final svg):
+      case Image_Jpeg(data: final data):
         sse_encode_i_32(0, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case Image_Png(data: final data):
+        sse_encode_i_32(1, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case Image_Svg(svg: final svg):
+        sse_encode_i_32(2, serializer);
         sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
           svg,
           serializer,
         );
-      case Image_Png(data: final data):
-        sse_encode_i_32(1, serializer);
-        sse_encode_list_prim_u_8_strict(data, serializer);
-      case Image_Jpeg(data: final data):
-        sse_encode_i_32(2, serializer);
-        sse_encode_list_prim_u_8_strict(data, serializer);
       case Image_Asset(path: final path):
         sse_encode_i_32(3, serializer);
         sse_encode_String(path, serializer);
@@ -5048,11 +5045,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case RenderingMetadata_Simple(
         logo: final logo,
+        backgroundImage: final backgroundImage,
         backgroundColor: final backgroundColor,
         textColor: final textColor,
       ):
         sse_encode_i_32(0, serializer);
         sse_encode_opt_box_autoadd_image_with_metadata(logo, serializer);
+        sse_encode_opt_box_autoadd_image(backgroundImage, serializer);
         sse_encode_opt_String(backgroundColor, serializer);
         sse_encode_opt_String(textColor, serializer);
       case RenderingMetadata_SvgTemplates():

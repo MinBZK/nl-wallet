@@ -12,7 +12,6 @@ class CardAttributeValueMapper extends Mapper<core.AttributeValue, AttributeValu
       core.AttributeValue_String(:final value) => StringValue(value),
       core.AttributeValue_Boolean(:final value) => BooleanValue(value),
       core.AttributeValue_Number(:final value) => NumberValue(value),
-      core.AttributeValue_Date(:final value) => DateValue(DateTime.parse(value)),
       core.AttributeValue_Array(:final value) => ArrayValue(value.map(map).toList()),
       core.AttributeValue_Null() => NullValue(),
     };

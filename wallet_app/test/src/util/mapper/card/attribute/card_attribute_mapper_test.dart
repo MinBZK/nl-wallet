@@ -7,7 +7,7 @@ import 'package:wallet_core/core.dart' as core;
 
 import '../../../../mocks/wallet_mocks.dart';
 
-const _kSampleCardAttributeLabels = [core.ClaimDisplayMetadata(lang: '-', label: '-')];
+const _kSampleCardAttributeLabels = [core.ClaimDisplayMetadata(locale: '-', label: '-')];
 const _kSampleCardValue = core.AttributeValue_String(value: '-');
 const _kSampleCardAttribute = core.AttestationAttribute(
   key: 'card.key',

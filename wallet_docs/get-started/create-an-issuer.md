@@ -111,7 +111,6 @@ The TAS contains the following particularly important data elements:
 | `description` | string | Description of this verifiable credential           |
 | `display`     | array  | Array of display objects, one per language          |
 | `claims`      | array  | Array of claim objects                              |
-| `schema`      | object | A v2020-12 JSON Schema object defining the claims   |
 
 Claims have the following elements:
 
@@ -144,7 +143,7 @@ Here is the example TAS for an insurance:
   "description": "Insurance credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Insurance",
       "description": "An insurance credential",
       "summary": "{{coverage}}",
@@ -156,7 +155,7 @@ Here is the example TAS for an insurance:
       }
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "Verzekering",
       "description": "Een verzekering attestatie",
       "summary": "{{coverage}}",
@@ -173,45 +172,47 @@ Here is the example TAS for an insurance:
       "path": ["product"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Product",
           "description": "Soort verzekering"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Product",
           "description": "Type of insurance"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["coverage"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Dekking",
           "description": "Dekking van de verzekering"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Coverage",
           "description": "Coverage of the insurance"
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "coverage"
     },
     {
       "path": ["start_date"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Startdatum",
           "description": "Datum waarop de verzekering ingaat"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Start date",
           "description": "Date on which the insurance starts"
         }
@@ -222,12 +223,12 @@ Here is the example TAS for an insurance:
       "path": ["duration"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Duur",
           "description": "Duur van de verzekering"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Duration",
           "description": "Duration of the insurance"
         }
@@ -238,74 +239,19 @@ Here is the example TAS for an insurance:
       "path": ["customer_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Klantnummer",
           "description": "Klantnummer van de verzekerde"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Customer number",
           "description": "Customer number of the insured"
         }
       ],
       "sd": "always"
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Insurance VCT Schema",
-    "description": "The JSON schema that defines a insurance VCT",
-    "type": "object",
-    "properties": {
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "cnf": {
-        "type": "object"
-      },
-      "status": {
-        "type": "object"
-      },
-      "sub": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "attestation_qualification": {
-        "type": "string"
-      },
-      "product": {
-        "type": "string"
-      },
-      "coverage": {
-        "type": "string"
-      },
-      "start_date": {
-        "type": "string",
-        "format": "date"
-      },
-      "duration": {
-        "type": "string"
-      },
-      "customer_number": {
-        "type": "string"
-      }
-    },
-    "required": ["vct", "iss", "attestation_qualification", "product", "coverage"]
-  }
+  ]
 }
 ```
 

@@ -1961,14 +1961,10 @@ impl SseDecode for crate::models::attestation::AttributeValue {
                 return crate::models::attestation::AttributeValue::Number { value: var_value };
             }
             3 => {
-                let mut var_value = <String>::sse_decode(deserializer);
-                return crate::models::attestation::AttributeValue::Date { value: var_value };
-            }
-            4 => {
                 let mut var_value = <Vec<crate::models::attestation::AttributeValue>>::sse_decode(deserializer);
                 return crate::models::attestation::AttributeValue::Array { value: var_value };
             }
-            5 => {
+            4 => {
                 return crate::models::attestation::AttributeValue::Null;
             }
             _ => {
@@ -2008,11 +2004,11 @@ impl SseDecode for Box<crate::models::wallet_state::WalletState> {
 impl SseDecode for crate::models::attestation::ClaimDisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_lang = <String>::sse_decode(deserializer);
+        let mut var_locale = <String>::sse_decode(deserializer);
         let mut var_label = <String>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
         return crate::models::attestation::ClaimDisplayMetadata {
-            lang: var_lang,
+            locale: var_locale,
             label: var_label,
             description: var_description,
         };
@@ -2116,13 +2112,13 @@ impl SseDecode for crate::models::disclosure::DisclosureType {
 impl SseDecode for crate::models::attestation::DisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_lang = <String>::sse_decode(deserializer);
+        let mut var_locale = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
         let mut var_summary = <Option<String>>::sse_decode(deserializer);
         let mut var_rendering = <Option<crate::models::attestation::RenderingMetadata>>::sse_decode(deserializer);
         return crate::models::attestation::DisplayMetadata {
-            lang: var_lang,
+            locale: var_locale,
             name: var_name,
             description: var_description,
             summary: var_summary,
@@ -2256,16 +2252,16 @@ impl SseDecode for crate::models::image::Image {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_svg = <SanitizedSvg>::sse_decode(deserializer);
-                return crate::models::image::Image::Svg { svg: var_svg };
+                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::image::Image::Jpeg { data: var_data };
             }
             1 => {
                 let mut var_data = <Vec<u8>>::sse_decode(deserializer);
                 return crate::models::image::Image::Png { data: var_data };
             }
             2 => {
-                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
-                return crate::models::image::Image::Jpeg { data: var_data };
+                let mut var_svg = <SanitizedSvg>::sse_decode(deserializer);
+                return crate::models::image::Image::Svg { svg: var_svg };
             }
             3 => {
                 let mut var_path = <String>::sse_decode(deserializer);
@@ -2762,10 +2758,12 @@ impl SseDecode for crate::models::attestation::RenderingMetadata {
         match tag_ {
             0 => {
                 let mut var_logo = <Option<crate::models::image::ImageWithMetadata>>::sse_decode(deserializer);
+                let mut var_backgroundImage = <Option<crate::models::image::Image>>::sse_decode(deserializer);
                 let mut var_backgroundColor = <Option<String>>::sse_decode(deserializer);
                 let mut var_textColor = <Option<String>>::sse_decode(deserializer);
                 return crate::models::attestation::RenderingMetadata::Simple {
                     logo: var_logo,
+                    background_image: var_backgroundImage,
                     background_color: var_backgroundColor,
                     text_color: var_textColor,
                 };
@@ -3305,13 +3303,10 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttributeValu
             crate::models::attestation::AttributeValue::Number { value } => {
                 [2.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::attestation::AttributeValue::Date { value } => {
+            crate::models::attestation::AttributeValue::Array { value } => {
                 [3.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::attestation::AttributeValue::Array { value } => {
-                [4.into_dart(), value.into_into_dart().into_dart()].into_dart()
-            }
-            crate::models::attestation::AttributeValue::Null => [5.into_dart()].into_dart(),
+            crate::models::attestation::AttributeValue::Null => [4.into_dart()].into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -3349,7 +3344,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::wallet_state::BlockedReaso
 impl flutter_rust_bridge::IntoDart for crate::models::attestation::ClaimDisplayMetadata {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.lang.into_into_dart().into_dart(),
+            self.locale.into_into_dart().into_dart(),
             self.label.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
         ]
@@ -3496,7 +3491,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::DisclosureType
 impl flutter_rust_bridge::IntoDart for crate::models::attestation::DisplayMetadata {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.lang.into_into_dart().into_dart(),
+            self.locale.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
             self.summary.into_into_dart().into_dart(),
@@ -3628,11 +3623,11 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::uri::IdentifyUriResult>
 impl flutter_rust_bridge::IntoDart for crate::models::image::Image {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::models::image::Image::Svg { svg } => [0.into_dart(), svg.into_into_dart().into_dart()].into_dart(),
-            crate::models::image::Image::Png { data } => [1.into_dart(), data.into_into_dart().into_dart()].into_dart(),
             crate::models::image::Image::Jpeg { data } => {
-                [2.into_dart(), data.into_into_dart().into_dart()].into_dart()
+                [0.into_dart(), data.into_into_dart().into_dart()].into_dart()
             }
+            crate::models::image::Image::Png { data } => [1.into_dart(), data.into_into_dart().into_dart()].into_dart(),
+            crate::models::image::Image::Svg { svg } => [2.into_dart(), svg.into_into_dart().into_dart()].into_dart(),
             crate::models::image::Image::Asset { path } => {
                 [3.into_dart(), path.into_into_dart().into_dart()].into_dart()
             }
@@ -3847,11 +3842,13 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::RenderingMeta
         match self {
             crate::models::attestation::RenderingMetadata::Simple {
                 logo,
+                background_image,
                 background_color,
                 text_color,
             } => [
                 0.into_dart(),
                 logo.into_into_dart().into_dart(),
+                background_image.into_into_dart().into_dart(),
                 background_color.into_into_dart().into_dart(),
                 text_color.into_into_dart().into_dart(),
             ]
@@ -4407,16 +4404,12 @@ impl SseEncode for crate::models::attestation::AttributeValue {
                 <i32>::sse_encode(2, serializer);
                 <i64>::sse_encode(value, serializer);
             }
-            crate::models::attestation::AttributeValue::Date { value } => {
-                <i32>::sse_encode(3, serializer);
-                <String>::sse_encode(value, serializer);
-            }
             crate::models::attestation::AttributeValue::Array { value } => {
-                <i32>::sse_encode(4, serializer);
+                <i32>::sse_encode(3, serializer);
                 <Vec<crate::models::attestation::AttributeValue>>::sse_encode(value, serializer);
             }
             crate::models::attestation::AttributeValue::Null => {
-                <i32>::sse_encode(5, serializer);
+                <i32>::sse_encode(4, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -4459,7 +4452,7 @@ impl SseEncode for Box<crate::models::wallet_state::WalletState> {
 impl SseEncode for crate::models::attestation::ClaimDisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.lang, serializer);
+        <String>::sse_encode(self.locale, serializer);
         <String>::sse_encode(self.label, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
     }
@@ -4568,7 +4561,7 @@ impl SseEncode for crate::models::disclosure::DisclosureType {
 impl SseEncode for crate::models::attestation::DisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.lang, serializer);
+        <String>::sse_encode(self.locale, serializer);
         <String>::sse_encode(self.name, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
         <Option<String>>::sse_encode(self.summary, serializer);
@@ -4691,17 +4684,17 @@ impl SseEncode for crate::models::image::Image {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::models::image::Image::Svg { svg } => {
+            crate::models::image::Image::Jpeg { data } => {
                 <i32>::sse_encode(0, serializer);
-                <SanitizedSvg>::sse_encode(svg, serializer);
+                <Vec<u8>>::sse_encode(data, serializer);
             }
             crate::models::image::Image::Png { data } => {
                 <i32>::sse_encode(1, serializer);
                 <Vec<u8>>::sse_encode(data, serializer);
             }
-            crate::models::image::Image::Jpeg { data } => {
+            crate::models::image::Image::Svg { svg } => {
                 <i32>::sse_encode(2, serializer);
-                <Vec<u8>>::sse_encode(data, serializer);
+                <SanitizedSvg>::sse_encode(svg, serializer);
             }
             crate::models::image::Image::Asset { path } => {
                 <i32>::sse_encode(3, serializer);
@@ -5111,11 +5104,13 @@ impl SseEncode for crate::models::attestation::RenderingMetadata {
         match self {
             crate::models::attestation::RenderingMetadata::Simple {
                 logo,
+                background_image,
                 background_color,
                 text_color,
             } => {
                 <i32>::sse_encode(0, serializer);
                 <Option<crate::models::image::ImageWithMetadata>>::sse_encode(logo, serializer);
+                <Option<crate::models::image::Image>>::sse_encode(background_image, serializer);
                 <Option<String>>::sse_encode(background_color, serializer);
                 <Option<String>>::sse_encode(text_color, serializer);
             }
@@ -5698,18 +5693,12 @@ mod io {
                     }
                 }
                 3 => {
-                    let ans = unsafe { self.kind.Date };
-                    crate::models::attestation::AttributeValue::Date {
-                        value: ans.value.cst_decode(),
-                    }
-                }
-                4 => {
                     let ans = unsafe { self.kind.Array };
                     crate::models::attestation::AttributeValue::Array {
                         value: ans.value.cst_decode(),
                     }
                 }
-                5 => crate::models::attestation::AttributeValue::Null,
+                4 => crate::models::attestation::AttributeValue::Null,
                 _ => unreachable!(),
             }
         }
@@ -5794,7 +5783,7 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::ClaimDisplayMetadata {
             crate::models::attestation::ClaimDisplayMetadata {
-                lang: self.lang.cst_decode(),
+                locale: self.locale.cst_decode(),
                 label: self.label.cst_decode(),
                 description: self.description.cst_decode(),
             }
@@ -5849,7 +5838,7 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::DisplayMetadata {
             crate::models::attestation::DisplayMetadata {
-                lang: self.lang.cst_decode(),
+                locale: self.locale.cst_decode(),
                 name: self.name.cst_decode(),
                 description: self.description.cst_decode(),
                 summary: self.summary.cst_decode(),
@@ -5910,9 +5899,9 @@ mod io {
         fn cst_decode(self) -> crate::models::image::Image {
             match self.tag {
                 0 => {
-                    let ans = unsafe { self.kind.Svg };
-                    crate::models::image::Image::Svg {
-                        svg: ans.svg.cst_decode(),
+                    let ans = unsafe { self.kind.Jpeg };
+                    crate::models::image::Image::Jpeg {
+                        data: ans.data.cst_decode(),
                     }
                 }
                 1 => {
@@ -5922,9 +5911,9 @@ mod io {
                     }
                 }
                 2 => {
-                    let ans = unsafe { self.kind.Jpeg };
-                    crate::models::image::Image::Jpeg {
-                        data: ans.data.cst_decode(),
+                    let ans = unsafe { self.kind.Svg };
+                    crate::models::image::Image::Svg {
+                        svg: ans.svg.cst_decode(),
                     }
                 }
                 3 => {
@@ -6234,6 +6223,7 @@ mod io {
                     let ans = unsafe { self.kind.Simple };
                     crate::models::attestation::RenderingMetadata::Simple {
                         logo: ans.logo.cst_decode(),
+                        background_image: ans.background_image.cst_decode(),
                         background_color: ans.background_color.cst_decode(),
                         text_color: ans.text_color.cst_decode(),
                     }
@@ -6538,7 +6528,7 @@ mod io {
     impl NewWithNullPtr for wire_cst_claim_display_metadata {
         fn new_with_null_ptr() -> Self {
             Self {
-                lang: core::ptr::null_mut(),
+                locale: core::ptr::null_mut(),
                 label: core::ptr::null_mut(),
                 description: core::ptr::null_mut(),
             }
@@ -6590,7 +6580,7 @@ mod io {
     impl NewWithNullPtr for wire_cst_display_metadata {
         fn new_with_null_ptr() -> Self {
             Self {
-                lang: core::ptr::null_mut(),
+                locale: core::ptr::null_mut(),
                 name: core::ptr::null_mut(),
                 description: core::ptr::null_mut(),
                 summary: core::ptr::null_mut(),
@@ -7696,7 +7686,6 @@ mod io {
         String: wire_cst_AttributeValue_String,
         Boolean: wire_cst_AttributeValue_Boolean,
         Number: wire_cst_AttributeValue_Number,
-        Date: wire_cst_AttributeValue_Date,
         Array: wire_cst_AttributeValue_Array,
         nil__: (),
     }
@@ -7717,18 +7706,13 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_AttributeValue_Date {
-        value: *mut wire_cst_list_prim_u_8_strict,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
     pub struct wire_cst_AttributeValue_Array {
         value: *mut wire_cst_list_attribute_value,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_claim_display_metadata {
-        lang: *mut wire_cst_list_prim_u_8_strict,
+        locale: *mut wire_cst_list_prim_u_8_strict,
         label: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
     }
@@ -7780,7 +7764,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_display_metadata {
-        lang: *mut wire_cst_list_prim_u_8_strict,
+        locale: *mut wire_cst_list_prim_u_8_strict,
         name: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
         summary: *mut wire_cst_list_prim_u_8_strict,
@@ -7841,16 +7825,16 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub union ImageKind {
-        Svg: wire_cst_Image_Svg,
-        Png: wire_cst_Image_Png,
         Jpeg: wire_cst_Image_Jpeg,
+        Png: wire_cst_Image_Png,
+        Svg: wire_cst_Image_Svg,
         Asset: wire_cst_Image_Asset,
         nil__: (),
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_Image_Svg {
-        svg: usize,
+    pub struct wire_cst_Image_Jpeg {
+        data: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -7859,8 +7843,8 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_Image_Jpeg {
-        data: *mut wire_cst_list_prim_u_8_strict,
+    pub struct wire_cst_Image_Svg {
+        svg: usize,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -8105,6 +8089,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_RenderingMetadata_Simple {
         logo: *mut wire_cst_image_with_metadata,
+        background_image: *mut wire_cst_image,
         background_color: *mut wire_cst_list_prim_u_8_strict,
         text_color: *mut wire_cst_list_prim_u_8_strict,
     }

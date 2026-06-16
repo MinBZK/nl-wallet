@@ -141,7 +141,7 @@ void main() {
         identity: AttestationIdentity.fixed(id: '0'),
         attestationType: 'pid',
         format: .SdJwt,
-        displayMetadata: [DisplayMetadata(lang: 'nl', name: 'card name')],
+        displayMetadata: [DisplayMetadata(locale: 'nl', name: 'card name')],
         attributes: [],
         issuer: CoreMockData.organization,
         validityStatus: ValidityStatus_Valid(validUntil: null),
