@@ -20,6 +20,8 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::pkce::PkcePair;
+use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::AlwaysAuthorizingFlow;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
@@ -641,12 +643,20 @@ fn dpop_header_for(token_url: &Url) -> String {
 
 /// Plant an `AuthCodeIssued` session against the given authorizing_issuer, returning the
 /// issuer-generated code the caller can use to drive `/token`.
-async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> AuthorizationCode {
+async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> (AuthorizationCode, String) {
     let documents = mock_issuable_documents(NonZeroUsize::MIN);
-    authorizing_issuer
-        .complete_authorization(documents, HashSet::new(), "irrelevant-challenge".to_string())
+    let pkce_pair = S256PkcePair::generate();
+
+    let code = authorizing_issuer
+        .complete_authorization(
+            documents,
+            HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]),
+            pkce_pair.code_challenge().to_string(),
+        )
         .await
-        .unwrap()
+        .unwrap();
+
+    (code, pkce_pair.into_code_verifier())
 }
 
 #[tokio::test]
@@ -658,7 +668,7 @@ async fn token_rejects_missing_code_verifier() {
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
-    let code = plant_authorized_session(&authorizing_issuer).await;
+    let (code, _code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -698,7 +708,7 @@ async fn token_rejects_unknown_code_verifier() {
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
-    let code = plant_authorized_session(&authorizing_issuer).await;
+    let (code, _code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -741,7 +751,7 @@ async fn token_rejects_grant_type_mismatch() {
     // Plant an authorization-code session, then try to redeem its code using the pre-authorized-code
     // grant. The code is placed in the `pre-authorized_code` field so the session is still found, and
     // the grant-type mismatch is what the handler must reject.
-    let code = plant_authorized_session(&authorizing_issuer).await;
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -758,7 +768,7 @@ async fn token_rejects_grant_type_mismatch() {
         client_id: None,
         redirect_uri: None,
         scope: None,
-        code_verifier: None,
+        code_verifier: Some(code_verifier),
     };
 
     let response = http_client
@@ -772,4 +782,66 @@ async fn token_rejects_grant_type_mismatch() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
     assert!(body.contains("unsupported_grant_type"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn token_rejects_scope_mismatch() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    // Reducing the scope in the Token Request should result in an "invalid_scope" error response.
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: None,
+        redirect_uri: None,
+        scope: Some(HashSet::from(["scope1".parse().unwrap()])),
+        code_verifier: Some(code_verifier),
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_scope"), "unexpected body: {body}");
+
+    // However, including exactly the same scope as in the Authorization Request should be allowed.
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: None,
+        redirect_uri: None,
+        scope: Some(HashSet::from(["scope2".parse().unwrap(), "scope1".parse().unwrap()])),
+        code_verifier: Some(code_verifier),
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
 }

@@ -203,6 +203,7 @@ impl From<TokenRequestError> for TokenErrorCode {
             TokenRequestError::SessionNotFound
             | TokenRequestError::MissingCodeVerifier
             | TokenRequestError::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
+            TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
         }
     }
 }

@@ -125,6 +125,17 @@ pub enum TokenRequestError {
     #[error("issuance error: {0}")]
     IssuanceError(#[from] IssuanceError),
 
+    #[error(
+        "scope received in Token Request does not match scope requested in Authorization Request: \
+         expected {}, received: {}",
+        .expected.iter().join(" "),
+        .actual.iter().join(" ")
+    )]
+    ScopeMismatch {
+        expected: HashSet<Scope>,
+        actual: HashSet<Scope>,
+    },
+
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType { expected: String, actual: String },
 
@@ -901,8 +912,23 @@ impl Grant {
     /// Verify that the `grant_type` of the token request matches the grant captured for this session.
     fn verify_grant_type(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
         match (self, &token_request.grant_type) {
-            (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. })
-            | (Grant::AuthorizationCode { .. }, TokenRequestGrantType::AuthorizationCode { .. }) => Ok(()),
+            (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. }) => Ok(()),
+            (Grant::AuthorizationCode { request_scope, .. }, TokenRequestGrantType::AuthorizationCode { .. }) => {
+                // The client has the option of further restricting the requested scope as included in the Authorization
+                // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
+                // we check that the scope in the Token Request is exactly the same as what was included in the
+                // Authorization Request.
+                if let Some(scope) = token_request.scope.as_ref()
+                    && scope != request_scope
+                {
+                    return Err(TokenRequestError::ScopeMismatch {
+                        expected: request_scope.clone(),
+                        actual: scope.clone(),
+                    });
+                }
+
+                Ok(())
+            }
             _ => Err(TokenRequestError::UnexpectedGrantType {
                 expected: self.to_string(),
                 actual: token_request.grant_type.to_string(),
