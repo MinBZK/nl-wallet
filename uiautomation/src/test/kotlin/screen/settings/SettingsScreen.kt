@@ -11,6 +11,7 @@ class SettingsScreen : MobileActions() {
     private val backButton = l10n.getString("generalBottomBackCta")
     private val notificationsButton = l10n.getString("settingsScreenManageNotificationsCta")
     private val revocationCodeButton = l10n.getString("settingsScreenShowRevocationCodeCta")
+    private val setupBiometricsCta = l10n.getString("settingsScreenSetupBiometricsCta")
 
     fun visible() = elementWithTextVisible(screenTitle)
 
@@ -23,9 +24,14 @@ class SettingsScreen : MobileActions() {
 
     fun clickChangePinButton() = clickElementWithText(changePinButton)
 
-    fun clickBackButton() = clickElementWithText(backButton)
+    fun clickBackButton() {
+        visible()
+        clickElementWithText(backButton)
+    }
 
     fun clickNotificationsButton() = clickElementWithText(notificationsButton)
 
     fun clickRevocationCodeButton() = clickElementWithText(revocationCodeButton)
+
+    fun clickSetupBiometricsButton() = clickElementContainingText(setupBiometricsCta.replace("{supportedBiometrics}", ""))
 }

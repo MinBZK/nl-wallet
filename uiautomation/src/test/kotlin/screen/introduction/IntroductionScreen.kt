@@ -37,6 +37,6 @@ class IntroductionScreen : MobileActions() {
     // Explicit wait/sleep to wait for page transition to finish (and button animations to settle).
     // This is needed due to the animations on the intro pages combined with `frameSync = false`.
     private fun explicitWait() {
-        Thread.sleep(1000)
+        Thread.sleep(SCREEN_TRANSITION_MILLIS )
     }
 }

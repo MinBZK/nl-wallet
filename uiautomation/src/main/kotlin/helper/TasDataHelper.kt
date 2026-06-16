@@ -3,9 +3,10 @@ package helper
 import helper.FileUtils.getProjectFile
 import org.json.JSONArray
 import org.json.JSONObject
+import domain.Platform
 import util.TestInfoHandler.Companion.language
 import util.TestInfoHandler.Companion.locale
-import util.TestInfoHandler.Companion.platformName
+import util.TestInfoHandler.Companion.platform
 import java.io.File
 
 class TasDataHelper {
@@ -139,13 +140,13 @@ class TasDataHelper {
         for (i in 0 until displayArray.length()) {
             val display = displayArray.getJSONObject(i)
 
-            when (platformName.lowercase()) {
-                "android" -> {
+            when (platform) {
+                Platform.ANDROID -> {
                     if (display.optString("lang") == "$language-$locale") {
                         return display
                     }
                 }
-                "ios" -> {
+                Platform.IOS -> {
                     if (display.optString("lang") == locale) {
                         return display
                     }

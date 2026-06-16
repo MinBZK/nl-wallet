@@ -1,6 +1,7 @@
 package util
 
 import data.TestConfigRepository.Companion.testConfig
+import domain.Platform
 import org.junit.jupiter.api.TestInfo
 import javax.naming.ConfigurationException
 
@@ -10,7 +11,7 @@ class TestInfoHandler {
         private const val ENGLISH_LANGUAGE_TAG = "english"
         private const val FRANCE_LANGUAGE_TAG = "france"
 
-        val platformName = testConfig.platformName
+        val platform = testConfig.platform
 
         lateinit var sessionName: String
         lateinit var language: String
@@ -38,17 +39,17 @@ class TestInfoHandler {
 
         private fun setEnglishLanguage() {
             language = "en"
-            locale = if (platformName == "android") "US" else "en_US"
+            locale = if (platform == Platform.ANDROID) "US" else "en_US"
         }
 
         private fun setFranceLanguage() {
             language = "fr"
-            locale = if (platformName == "android") "FR" else "fr-FR"
+            locale = if (platform == Platform.ANDROID) "FR" else "fr-FR"
         }
 
         private fun setDutchLanguage() {
             language = "nl"
-            locale = if (platformName == "android") "NL" else "nl-NL"
+            locale = if (platform == Platform.ANDROID) "NL" else "nl-NL"
         }
     }
 }

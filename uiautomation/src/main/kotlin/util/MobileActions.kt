@@ -6,6 +6,7 @@ import com.google.zxing.MultiFormatReader
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import data.TestConfigRepository.Companion.testConfig
+import domain.Platform
 import helper.BrowserStackHelper
 import helper.LocalizationHelper
 import helper.OrganizationAuthMetadataHelper
@@ -93,8 +94,8 @@ open class MobileActions {
     }
 
     fun scrollToElementWithText(text: String): WebElement {
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val quotedText = quoteForAndroid(text)
                 driver.findElement(
                     AppiumBy.androidUIAutomator(
@@ -103,7 +104,7 @@ open class MobileActions {
                     )
                 )
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val quotedText = quoteForIos(text)
                 val predicate = "name == $quotedText"
 
@@ -117,13 +118,12 @@ open class MobileActions {
                 }
                 throw NoSuchElementException("Couldn't bring '$text' into view")
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
     fun scrollToElementContainingText(text: String): WebElement {
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val quotedText = quoteForAndroid(text)
                 driver.findElement(
                     AppiumBy.androidUIAutomator(
@@ -132,7 +132,7 @@ open class MobileActions {
                     )
                 )
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val quotedText = quoteForIos(text)
                 val predicate = "name CONTAINS $quotedText"
 
@@ -146,13 +146,12 @@ open class MobileActions {
                 }
                 throw NoSuchElementException("Couldn't bring element containing '$text' into view")
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
     fun scrollToElementContainingTexts(partialTexts: List<String>) {
-        when (val platform = platformName()) {
-            "ANDROID" -> {
+        when (platform()) {
+            Platform.ANDROID -> {
                 val regexPattern = ".*" + partialTexts.joinToString(".*") { Regex.escape(it) } + ".*"
                 val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
                 driver.findElement(
@@ -162,7 +161,7 @@ open class MobileActions {
                     )
                 ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val predicate = partialTexts.joinToString(" AND ") { partialText ->
                     val quotedText = quoteForIos(partialText)
                     "name CONTAINS $quotedText"
@@ -174,16 +173,13 @@ open class MobileActions {
                     scrollArgs
                 ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
     fun scrollDown(pixels: Int, durationMs: Int = 300) {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
-        }
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver        }
 
         val size = driver.manage().window().size
         val width = size.width
@@ -205,11 +201,9 @@ open class MobileActions {
     }
 
     fun scrollToEndOfScreen(durationMs: Int = 300) {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
-        }
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver        }
 
         val size = driver.manage().window().size
         val width = size.width
@@ -231,11 +225,9 @@ open class MobileActions {
     }
 
     fun switchToWebViewContext() {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
-        }
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver        }
         val context = driver.context ?: ""
         if (context.startsWith(WEB_VIEW_CONTEXT_PREFIX).not()) {
             // Wait for the web view context to be available
@@ -251,7 +243,7 @@ open class MobileActions {
             // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
             // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
             // the loaded web page and the browser startup screen shortly after browser startup.
-            Thread.sleep(1000)
+            Thread.sleep(SCREEN_TRANSITION_MILLIS)
 
             // Switch to the last window handle (a.k.a. tab)
             val windowHandles = (driver as AppiumDriver).windowHandles
@@ -260,27 +252,26 @@ open class MobileActions {
     }
 
     fun switchToNativeContext() {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver
         }
         if (driver.context != NATIVE_APP_CONTEXT) {
             driver.context(NATIVE_APP_CONTEXT)
         }
-        Thread.sleep(1000)
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
     }
 
     protected fun getWebModalAnchor(): WebElement {
         Thread.sleep(BROWSER_STARTUP_TIMEOUT)
-        when (val platform = platformName()) {
-            "ANDROID" -> {
+        when (platform()) {
+            Platform.ANDROID -> {
                 val startButton = driver.findElement(By.tagName("nl-wallet-button"))
                 val jsExecutor = driver as JavascriptExecutor
                 val jsScript = "return arguments[0].querySelector('.modal-anchor')"
                 return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val wait = WebDriverWait(driver, Duration.ofSeconds(10))
                 val startButton = wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("nl-wallet-button")))
 
@@ -295,19 +286,15 @@ open class MobileActions {
                 ) as WebElement
                 return modalAnchor
             }
-            else -> {
-                throw IllegalArgumentException("Unsupported platform: $platform")
-            }
         }
     }
 
-    fun platformName() = driver.capabilities.platformName?.name ?: throw IllegalStateException("No platform name")
+    fun platform(): Platform = Platform.fromString(driver.capabilities.platformName?.name ?: throw IllegalStateException("No platform name"))
 
     fun getElementText(element: WebElement): String {
-        return when (platformName()) {
-            "ANDROID" -> element.getAttribute("contentDescription")
-            "IOS" -> element.getAttribute("name")
-            else -> element.text
+        return when (platform()) {
+            Platform.ANDROID -> element.getAttribute("contentDescription")
+            Platform.IOS -> element.getAttribute("name")
         } ?: element.text
     }
 
@@ -316,8 +303,8 @@ open class MobileActions {
             val sessionId = driver.sessionId.toString()
             BrowserStackHelper.setNetwork(BROWSERSTACK_ENDPOINT, browserStackUserName, browserStackAccessKey, sessionId, "no-network" )
         } else {
-            when (val platform = platformName()) {
-                "ANDROID" -> {
+            when (platform()) {
+                Platform.ANDROID -> {
                     try {
                         runCommand(listOf("adb", "shell", "svc", "wifi", "disable"))
                         runCommand(listOf("adb", "shell", "svc", "data", "disable"))
@@ -326,11 +313,8 @@ open class MobileActions {
                         throw RuntimeException("Failed to disable network via ADB", e)
                     }
                 }
-                "IOS" -> {
+                Platform.IOS -> {
                     throw UnsupportedOperationException("Disabling network not supported on iOS via code. Consider using a manual toggle.")
-                }
-                else -> {
-                    throw IllegalArgumentException("Unsupported platform: $platform")
                 }
             }
         }
@@ -341,8 +325,8 @@ open class MobileActions {
             val sessionId = driver.sessionId.toString()
             BrowserStackHelper.setNetwork(BROWSERSTACK_ENDPOINT, browserStackUserName, browserStackAccessKey, sessionId, "reset" )
         } else {
-            when (val platform = platformName()) {
-                "ANDROID" -> {
+            when (platform()) {
+                Platform.ANDROID -> {
                     try {
                         runCommand(listOf("adb", "shell", "svc", "wifi", "enable"))
                         runCommand(listOf("adb", "shell", "svc", "data", "enable"))
@@ -351,11 +335,8 @@ open class MobileActions {
                         throw RuntimeException("Failed to enable network via ADB", e)
                     }
                 }
-                "IOS" -> {
+                Platform.IOS -> {
                     throw UnsupportedOperationException("Re-enabling network not supported on iOS via code.")
-                }
-                else -> {
-                    throw IllegalArgumentException("Unsupported platform: $platform")
                 }
             }
         }
@@ -379,10 +360,9 @@ open class MobileActions {
             throw NoSuchElementException("No element found containing: $partialText")
         }
 
-        return when (val platform = platformName()) {
-            "ANDROID" -> element.getAttribute("contentDescription")
-            "IOS" -> element.getAttribute("name")
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        return when (platform()) {
+            Platform.ANDROID -> element.getAttribute("contentDescription")
+            Platform.IOS -> element.getAttribute("name")
         }
     }
 
@@ -439,18 +419,17 @@ open class MobileActions {
         val childElements = parentElement.findElements(By.xpath(".//*"))
 
         return childElements.joinToString("") { element ->
-            when (val platform = platformName()) {
-                "ANDROID" -> element.getAttribute("contentDescription") ?: ""
-                "IOS" -> element.getAttribute("name") ?: ""
-                else -> ""
+            when (platform()) {
+                Platform.ANDROID -> element.getAttribute("contentDescription") ?: ""
+                Platform.IOS -> element.getAttribute("name") ?: ""
             }
         }
     }
 
     private fun findElementByPartialText(partialText: String, timeoutInSeconds: Long = 5): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val quotedText = quoteForAndroid(partialText)
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(
@@ -458,7 +437,7 @@ open class MobileActions {
                     )
                 )
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val quotedText = quoteForIos(partialText)
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(
@@ -466,7 +445,6 @@ open class MobileActions {
                     )
                 )
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
@@ -475,8 +453,8 @@ open class MobileActions {
         timeoutInSeconds: Long = 5
     ): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val regexPattern = ".*" + partialTexts.joinToString(".*") { Regex.escape(it) } + ".*"
                 val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
                 wait.until(
@@ -485,7 +463,7 @@ open class MobileActions {
                     )
                 )
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val xpathConditions = partialTexts.joinToString(" and ") { partialText ->
                     val quotedText = quoteForIos(partialText)
                     "contains(@name, $quotedText)"
@@ -496,7 +474,6 @@ open class MobileActions {
                     )
                 )
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
@@ -506,8 +483,8 @@ open class MobileActions {
         timeoutInSeconds: Long = 5
     ): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val escapedInclude = Regex.escape(includeText)
                 val escapedExclude = Regex.escape(excludeText)
                 val regexPattern = "(?s)^(?!.*$escapedExclude).*$escapedInclude.*$"
@@ -518,7 +495,7 @@ open class MobileActions {
                     )
                 )
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val quotedInclude = quoteForIos(includeText)
                 val quotedExclude = quoteForIos(excludeText)
                 wait.until(
@@ -527,7 +504,6 @@ open class MobileActions {
                     )
                 )
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
@@ -542,8 +518,8 @@ open class MobileActions {
 
     private fun findElementByText(text: String, timeoutInSeconds: Long = 5): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val quotedText = quoteForAndroid(text)
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(
@@ -551,7 +527,7 @@ open class MobileActions {
                     )
                 )
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val quotedText = quoteForIos(text)
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(
@@ -559,7 +535,6 @@ open class MobileActions {
                     )
                 )
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
@@ -567,18 +542,17 @@ open class MobileActions {
         descendantElementText: String,
         elementText: String
     ): WebElement {
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val quotedElementText = quoteForAndroid(elementText)
                 val quotedDescendantElementText = quoteForAndroid(descendantElementText)
                 driver.findElement(By.xpath("//*[@content-desc=$quotedElementText and .//*[@content-desc=$quotedDescendantElementText]]"))
             }
-            "IOS" -> {
+            Platform.IOS -> {
                 val quotedElementText = quoteForIos(elementText)
                 val quotedDescendantElementText = quoteForIos(descendantElementText)
                 driver.findElement(By.xpath("//*[@name=$quotedElementText and .//*[@name=$quotedDescendantElementText]]"))
             }
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
@@ -588,8 +562,8 @@ open class MobileActions {
         timeoutInSeconds: Long = 5
     ): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
-        return when (val platform = platformName()) {
-            "ANDROID" -> {
+        return when (platform()) {
+            Platform.ANDROID -> {
                 val quotedText = quoteForAndroid(text)
                 val quotedSibling = quoteForAndroid(siblingText)
 
@@ -597,37 +571,32 @@ open class MobileActions {
                 wait.until(ExpectedConditions.presenceOfElementLocated(AppiumBy.xpath(xpath)))
             }
 
-            "IOS" -> {
+            Platform.IOS -> {
                 val quotedText = quoteForIos(text)
                 val quotedSibling = quoteForIos(siblingText)
 
                 val xpath = "//*[contains(@name, $quotedText) and ../*[contains(@name, $quotedSibling)]]"
                 wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath(xpath)))
             }
-
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
     fun openApp() {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver
         }
         driver.activateApp(testConfig.appIdentifier)
-        Thread.sleep(1000)
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
     }
 
     fun switchToBrowser() {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
-        }
-        when (platformName()) {
-            "ANDROID" -> driver.activateApp("com.android.chrome")
-            "IOS" -> driver.activateApp("com.apple.mobilesafari")
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver        }
+        when (platform()) {
+            Platform.ANDROID -> driver.activateApp("com.android.chrome")
+            Platform.IOS -> driver.activateApp("com.apple.mobilesafari")
         }
     }
 
@@ -638,10 +607,9 @@ open class MobileActions {
     }
 
     fun takeScreenshotOfElement(text: String): ByteArray {
-        val element = when (val platform = platformName()) {
-            "ANDROID" -> findWebElement(By.xpath("//*[@content-desc=${quoteForAndroid(text)}]"))
-            "IOS" -> findWebElement(AppiumBy.iOSNsPredicateString("name == ${quoteForIos(text)}"))
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        val element = when (platform()) {
+            Platform.ANDROID -> findWebElement(By.xpath("//*[@content-desc=${quoteForAndroid(text)}]"))
+            Platform.IOS -> findWebElement(AppiumBy.iOSNsPredicateString("name == ${quoteForIos(text)}"))
         }
         return (element as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
     }
@@ -652,10 +620,9 @@ open class MobileActions {
     }
 
     fun putAppInBackground(seconds: Int) {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver
         }
         driver.runAppInBackground(Duration.ofSeconds(seconds.toLong()))
     }
@@ -690,38 +657,126 @@ open class MobileActions {
     }
 
     fun openUrlInBrowser(url: String) {
-        when (val platform = platformName()) {
-            "ANDROID" -> (driver as JavascriptExecutor).executeScript(
+        when (platform()) {
+            Platform.ANDROID -> (driver as JavascriptExecutor).executeScript(
                 "mobile: deepLink",
                 mapOf("url" to url, "package" to "com.android.chrome"),
             )
-            "IOS" -> (driver as JavascriptExecutor).executeScript(
+            Platform.IOS -> (driver as JavascriptExecutor).executeScript(
                 "mobile: safari launch",
                 mapOf("url" to url),
             )
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
         Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
     }
 
     fun closeApp() {
-        val driver = when (val platform = platformName()) {
-            "ANDROID" -> driver as AndroidDriver
-            "IOS" -> driver as IOSDriver
-            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        val driver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver
         }
         driver.terminateApp(testConfig.appIdentifier)
     }
 
+    fun enrollBiometrics() {
+        when (platform()) {
+            Platform.IOS -> (driver as JavascriptExecutor).executeScript(
+                "mobile: enrollBiometric",
+                mapOf("isEnabled" to true)
+            )
+            // Android requires navigating the system fingerprint enrollment wizard combined with ADB shell commands.
+            Platform.ANDROID -> {
+                val androidDriver = driver as AndroidDriver
+                androidDriver.executeScript(
+                    "mobile: shell",
+                    mapOf("command" to "locksettings set-pin 1234")
+                )
+                Thread.sleep(ANIMATION_SETTLE_MILLIS)
+                androidDriver.executeScript(
+                    "mobile: shell",
+                    mapOf("command" to "am start -a android.settings.FINGERPRINT_ENROLL")
+                )
+                Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+                androidDriver.executeScript(
+                    "mobile: shell",
+                    mapOf("command" to "input text 1234")
+                )
+                androidDriver.executeScript(
+                    "mobile: shell",
+                    mapOf("command" to "input keyevent 66")
+                )
+                Thread.sleep(SCREEN_TRANSITION_MILLIS)
+                val wait = WebDriverWait(androidDriver, Duration.ofSeconds(5))
+                scrollToEndOfScreen()
+                Thread.sleep(ANIMATION_SETTLE_MILLIS)
+                val agreeButton = wait.until(
+                    ExpectedConditions.elementToBeClickable(
+                        By.xpath("//*[@clickable='true' and (contains(@text,'IK GA AKKOORD') or contains(@text,'I agree'))]")
+                    )
+                )
+                agreeButton.click()
+                Thread.sleep(SCREEN_TRANSITION_MILLIS)
+                val nextButton = wait.until(
+                    ExpectedConditions.elementToBeClickable(
+                        By.xpath("//*[@clickable='true' and (contains(@text,'Next') or contains(@text,'Volgende'))]")
+                    )
+                )
+                nextButton.click()
+                Thread.sleep(SCREEN_TRANSITION_MILLIS)
+                repeat(3) {
+                    androidDriver.fingerPrint(1)
+                    Thread.sleep(ANIMATION_SETTLE_MILLIS)
+                }
+                Thread.sleep(ANIMATION_SETTLE_MILLIS)
+                androidDriver.activateApp(testConfig.appIdentifier)
+            }
+        }
+    }
+
+    fun unenrollBiometrics() {
+        when (platform()) {
+            Platform.IOS -> (driver as JavascriptExecutor).executeScript(
+                "mobile: enrollBiometric",
+                mapOf("isEnabled" to false)
+            )
+            Platform.ANDROID -> {
+                // Clearing the PIN also removes all enrolled fingerprints tied to it.
+                try {
+                    (driver as AndroidDriver).executeScript(
+                        "mobile: shell",
+                        mapOf("command" to "locksettings clear --old 1234")
+                    )
+                } catch (_: Exception) { }
+            }
+        }
+    }
+
+    fun performBiometricAuthentication(match: Boolean) {
+        when (platform()) {
+            Platform.ANDROID -> {
+                val fingerId = if (match) 1 else 2
+                (driver as AndroidDriver).fingerPrint(fingerId)
+            }
+            Platform.IOS -> {
+                (driver as JavascriptExecutor).executeScript(
+                    "mobile: sendBiometricMatch",
+                    mapOf("type" to "faceId", "match" to match)
+                )
+            }
+        }
+    }
+
     companion object {
         const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
-        private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
-        private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
-        private const val BROWSER_STARTUP_TIMEOUT = 2000L
+        const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
+        const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
+        const val BROWSER_STARTUP_TIMEOUT = 2000L
         const val DEFAULT_RESET_SLEEP = 10_000L
+        const val ANIMATION_SETTLE_MILLIS = 300L
+        const val SCREEN_TRANSITION_MILLIS = 1000L
 
-        private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
-        private const val NATIVE_APP_CONTEXT = "NATIVE_APP"
+        const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
+        const val NATIVE_APP_CONTEXT = "NATIVE_APP"
 
         private val browserStackUserName = EnvironmentUtil.getVar("BROWSERSTACK_USER")
         private val browserStackAccessKey = EnvironmentUtil.getVar("BROWSERSTACK_KEY")

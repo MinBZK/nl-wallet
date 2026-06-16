@@ -9,6 +9,7 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import domain.Platform
 import screen.menu.MenuScreen
 import screen.permissions.NativePermissionDialog
 import screen.settings.NotificationsScreen
@@ -40,11 +41,9 @@ class NotificationPermissionTests : TestBase() {
         settingsScreen.clickNotificationsButton()
         notificationsScreen.toggleNotifications()
         nativePermissionDialog.deny()
-        when (notificationsScreen.platformName()) {
-            "ANDROID" -> {
-                notificationsScreen.toggleNotifications()
-                nativePermissionDialog.denyDontAskAgain()
-            }
+        if (notificationsScreen.platform() == Platform.ANDROID) {
+            notificationsScreen.toggleNotifications()
+            nativePermissionDialog.denyDontAskAgain()
         }
         assertTrue(!notificationsScreen.notificationsToggled(), "notifications are toggled on")
     }

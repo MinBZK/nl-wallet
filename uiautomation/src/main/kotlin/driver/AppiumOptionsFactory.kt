@@ -38,6 +38,8 @@ internal fun buildIOSOptions(updatedWDABundleId: String, wdaLocalPort: Int? = nu
         setCapability("appium:wdaLaunchTimeout", 60000)
         setCapability("appium:wdaConnectionTimeout", 60000)
         setCapability("appium:webkitResponseTimeout", 20000)
+        setCapability("appium:boundElementsByIndex", true)
+        setCapability("appium:settings[respectSystemAlerts]", true)
         setCapability("appium:xcodeOrgId", "XGL6UKBPLP")
         setCapability("appium:xcodeSigningId", "iPhone Developer")
         setCapability("appium:updatedWDABundleId", updatedWDABundleId)

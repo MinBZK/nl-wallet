@@ -2,6 +2,7 @@ package helper
 
 import com.codeborne.selenide.WebDriverRunner
 import data.TestConfigRepository.Companion.testConfig
+import domain.Platform
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
@@ -9,13 +10,16 @@ import io.appium.java_client.ios.IOSDriver
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.NoSuchElementException
 import util.MobileActions
+import util.MobileActions.Companion.SCREEN_TRANSITION_MILLIS
+import util.MobileActions.Companion.SET_FRAME_SYNC_MAX_WAIT_MILLIS
 
 internal fun clearBrowser(driver: AppiumDriver) {
     if (testConfig.remote) return
     try {
-        when (driver.capabilities.platformName?.name?.uppercase()) {
-            "ANDROID" -> clearAndroidBrowser(driver as AndroidDriver)
-            "IOS" -> clearIosSafariBrowserData(driver as IOSDriver)
+        val platform = driver.capabilities.platformName?.name?.let(Platform::fromString) ?: return
+        when (platform) {
+            Platform.ANDROID -> clearAndroidBrowser(driver as AndroidDriver)
+            Platform.IOS -> clearIosSafariBrowserData(driver as IOSDriver)
         }
     } catch (_: Exception) {}
 }
@@ -23,7 +27,7 @@ internal fun clearBrowser(driver: AppiumDriver) {
 private fun clearAndroidBrowser(driver: AndroidDriver) {
     WebDriverRunner.setWebDriver(driver)
     MobileActions().switchToBrowser()
-    Thread.sleep(1000)
+    Thread.sleep(SCREEN_TRANSITION_MILLIS )
     val webContext = driver.contextHandles.firstOrNull { it.startsWith("WEBVIEW_") } ?: return
     driver.context(webContext)
     driver.switchTo().window(driver.windowHandles.last())
@@ -37,7 +41,7 @@ private fun clearAndroidBrowser(driver: AndroidDriver) {
 private fun clearIosSafariBrowserData(driver: IOSDriver) {
     WebDriverRunner.setWebDriver(driver)
     driver.activateApp("com.apple.Preferences")
-    Thread.sleep(2000)
+    Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
     scrollToAndTap(driver, "name == 'Apps'")
     scrollToAndTap(driver, "name == 'Safari'")
     scrollToAndTap(driver, "name == 'CLEAR_HISTORY_AND_DATA'")

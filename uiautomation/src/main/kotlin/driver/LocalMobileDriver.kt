@@ -2,6 +2,7 @@ package driver
 
 import data.TestConfigRepository.Companion.testConfig
 import domain.DeviceCapabilities
+import domain.Platform
 import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.ios.IOSDriver
@@ -10,7 +11,7 @@ import service.AppiumServiceProvider
 object LocalMobileDriver {
 
     fun createDriver(): AppiumDriver = createDriver(
-        platformName = testConfig.platformName,
+        platform = testConfig.platform,
         deviceName = testConfig.deviceName,
         platformVersion = testConfig.platformVersion,
         automationName = testConfig.automationName,
@@ -19,20 +20,19 @@ object LocalMobileDriver {
     )
 
     fun createDriver(device: DeviceCapabilities, index: Int): AppiumDriver = createDriver(
-        platformName = device.platformName,
+        platform = device.platform,
         deviceName = device.deviceName,
         platformVersion = device.platformVersion,
-        automationName = when (device.platformName.lowercase()) {
-            "android" -> "UiAutomator2"
-            "ios" -> "XCUITest"
-            else -> throw IllegalArgumentException("Unsupported platform: ${device.platformName}")
+        automationName = when (device.platform) {
+            Platform.ANDROID -> "UiAutomator2"
+            Platform.IOS -> "XCUITest"
         },
         udid = device.udid,
         index = index,
     )
 
     private fun createDriver(
-        platformName: String,
+        platform: Platform,
         deviceName: String,
         platformVersion: String,
         automationName: String,
@@ -43,15 +43,23 @@ object LocalMobileDriver {
             ?: throw IllegalStateException("Appium service not started — call AppiumServiceProvider.startService() first")
         val bundleIdSuffix = if (index != null) ".$index" else ""
 
-        return when (platformName.lowercase()) {
-            "android" -> AndroidDriver(serviceUrl, buildAndroidOptions().apply {
+        return when (platform) {
+            Platform.ANDROID -> AndroidDriver(serviceUrl, buildAndroidOptions().apply {
                 if (deviceName.isNotBlank()) setDeviceName(deviceName)
                 setPlatformName("Android")
                 if (platformVersion.isNotBlank()) setPlatformVersion(platformVersion)
                 setAutomationName(automationName)
                 if (udid.isNotBlank()) setCapability("appium:udid", udid)
-            })
-            "ios" -> IOSDriver(serviceUrl, buildIOSOptions(
+            }).also { driver ->
+                // Suppress Chrome's first-run screen so deepLink navigation lands on the target URL.
+                // Chrome reads '/data/local/tmp/chrome-command-line' at startup
+                // For details see https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
+                driver.executeScript(
+                    "mobile: shell",
+                    mapOf("command" to "sh -c 'echo chrome --disable-fre --no-default-browser-check --no-first-run --disable-notifications > /data/local/tmp/chrome-command-line'")
+                )
+            }
+            Platform.IOS -> IOSDriver(serviceUrl, buildIOSOptions(
                 updatedWDABundleId = "nl.ictu.edi.wallet.web-driver-agent-runner$bundleIdSuffix",
                 wdaLocalPort = if (index != null) 8099 + index else null,
             ).apply {
@@ -59,7 +67,6 @@ object LocalMobileDriver {
                 if (platformVersion.isNotBlank()) setPlatformVersion(platformVersion)
                 if (udid.isNotBlank()) setCapability("appium:udid", udid)
             })
-            else -> throw IllegalArgumentException("Invalid platform name: $platformName")
         }
     }
 }

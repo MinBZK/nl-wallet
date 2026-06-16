@@ -1,5 +1,6 @@
 package screen.help
 
+import domain.Platform
 import org.openqa.selenium.By
 import util.MobileActions
 
@@ -23,11 +24,11 @@ class ActivitiesHelpScreen : MobileActions() {
     fun clickSomethingElseButton() = clickElementWithText(somethingElseButton)
 
     fun clickFirstHelpGroupButton() {
-        when (platformName()) {
-            "ANDROID" -> driver.findElement(
+        when (platform()) {
+            Platform.ANDROID -> driver.findElement(
                 By.xpath("//*[@content-desc='$helpHeader']//android.widget.Button[1]")
             ).click()
-            "IOS" -> driver.findElement(
+            Platform.IOS -> driver.findElement(
                 By.xpath("//*[@name='$helpHeader']/following-sibling::XCUIElementTypeButton[1]")
             ).click()
         }
