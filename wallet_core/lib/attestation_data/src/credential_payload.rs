@@ -51,11 +51,11 @@ use crate::attributes::AttributesTraversalBehaviour;
 pub enum PreviewableCredentialPayloadFromSdJwtError {
     #[error("error converting from SD-JWT: {0}")]
     #[category(pd)]
-    SdJwtDecoding(#[from] sd_jwt::error::DecoderError),
+    SdJwtDecoding(#[source] sd_jwt::error::DecoderError),
 
     #[error("error converting claims to attributes: {0}")]
     #[category(pd)]
-    InvalidAttributes(#[from] AttributesError),
+    InvalidAttributes(#[source] AttributesError),
 
     #[error("missing Attestation Qualification")]
     #[category(critical)]
@@ -66,7 +66,7 @@ pub enum PreviewableCredentialPayloadFromSdJwtError {
 pub enum PreviewableCredentialPayloadFromMdocError {
     #[error("unable to convert mdoc TDate to DateTime<Utc>")]
     #[category(critical)]
-    DateConversion(#[from] chrono::ParseError),
+    DateConversion(#[source] chrono::ParseError),
 
     #[error("mdoc is missing issuer URI")]
     #[category(critical)]
@@ -78,15 +78,15 @@ pub enum PreviewableCredentialPayloadFromMdocError {
 
     #[error("attributes error: {0}")]
     #[category(pd)]
-    InvalidAttributes(#[from] AttributesError),
+    InvalidAttributes(#[source] AttributesError),
 
     #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
     #[category(pd)]
-    CoseKeyConversion(#[from] CryptoError),
+    CoseKeyConversion(#[source] CryptoError),
 
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     #[category(pd)]
-    JwkConversion(#[from] JwkConversionError),
+    JwkConversion(#[source] JwkConversionError),
 }
 
 #[serde_as]
@@ -160,33 +160,33 @@ pub enum CredentialPayloadMissingFieldError {
 pub enum CredentialPayloadFromSdJwtError {
     #[error("error converting SD-JWT to PreviewableCredentialPayload")]
     #[category(critical)]
-    PreviewableCredentialPayload(#[from] PreviewableCredentialPayloadFromSdJwtError),
+    PreviewableCredentialPayload(#[source] PreviewableCredentialPayloadFromSdJwtError),
 
-    #[error(transparent)]
+    #[error("missing field: {0}")]
     #[category(defer)]
-    MissingField(#[from] CredentialPayloadMissingFieldError),
+    MissingField(#[source] CredentialPayloadMissingFieldError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialPayloadIntoSignedSdJwtError {
     #[error("error converting AttributeName to ClaimName: {0}")]
     #[category(pd)]
-    InvalidClaimName(#[from] ClaimNameError),
+    InvalidClaimName(#[source] ClaimNameError),
 
     #[error("error converting to SD-JWT: {0}")]
     #[category(pd)]
-    SdJwtEncoding(#[from] sd_jwt::error::EncoderError),
+    SdJwtEncoding(#[source] sd_jwt::error::EncoderError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialPayloadFromMdocError {
     #[error("error converting mdoc to PreviewableCredentialPayload")]
     #[category(defer)]
-    PreviewableCredentialPayload(#[from] PreviewableCredentialPayloadFromMdocError),
+    PreviewableCredentialPayload(#[source] PreviewableCredentialPayloadFromMdocError),
 
-    #[error(transparent)]
+    #[error("missing field: {0}")]
     #[category(defer)]
-    MissingField(#[from] CredentialPayloadMissingFieldError),
+    MissingField(#[source] CredentialPayloadMissingFieldError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -201,23 +201,23 @@ pub enum CredentialPayloadIntoSignedMdocError {
 
     #[error("missing or empty NameSpace detected: {0}")]
     #[category(critical)]
-    MissingOrEmptyNamespace(#[from] IssuerNameSpacesPreConditionError),
+    MissingOrEmptyNamespace(#[source] IssuerNameSpacesPreConditionError),
 
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     #[category(pd)]
-    JwkConversion(#[from] JwkConversionError),
+    JwkConversion(#[source] JwkConversionError),
 
     #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
     #[category(pd)]
-    CoseKeyConversion(#[from] CryptoError),
+    CoseKeyConversion(#[source] CryptoError),
 
     #[error("error converting issuer namespaces to CBOR: {0}")]
     #[category(pd)]
-    CborConversion(#[from] CborError),
+    CborConversion(#[source] CborError),
 
     #[error("error signing mdoc: {0}")]
     #[category(pd)]
-    SigningError(#[from] CoseError),
+    SigningError(#[source] CoseError),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
@@ -267,11 +267,17 @@ impl CredentialPayload {
     }
 
     pub fn from_sd_jwt(sd_jwt: VerifiedSdJwt) -> Result<Self, CredentialPayloadFromSdJwtError> {
-        Ok(SplitCredential::from_sd_jwt(sd_jwt)?.try_into_credential_payload()?)
+        SplitCredential::from_sd_jwt(sd_jwt)
+            .map_err(CredentialPayloadFromSdJwtError::PreviewableCredentialPayload)?
+            .try_into_credential_payload()
+            .map_err(CredentialPayloadFromSdJwtError::MissingField)
     }
 
     pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadFromMdocError> {
-        Ok(SplitCredential::from_mdoc(mdoc, metadata)?.try_into_credential_payload()?)
+        SplitCredential::from_mdoc(mdoc, metadata)
+            .map_err(CredentialPayloadFromMdocError::PreviewableCredentialPayload)?
+            .try_into_credential_payload()
+            .map_err(CredentialPayloadFromMdocError::MissingField)
     }
 
     pub async fn into_signed_sd_jwt(
@@ -290,22 +296,29 @@ impl CredentialPayload {
             .attributes
             .claim_paths(AttributesTraversalBehaviour::AllPaths)
             .into_iter()
-            .try_fold(SdJwtBuilder::new(self.try_into()?), |builder, claims| {
-                let should_be_selectively_disclosable = match sd_by_claims.get(&claims) {
-                    Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
-                    None => true,
-                };
+            .try_fold(
+                SdJwtBuilder::new(
+                    self.try_into()
+                        .map_err(CredentialPayloadIntoSignedSdJwtError::InvalidClaimName)?,
+                ),
+                |builder, claims| {
+                    let should_be_selectively_disclosable = match sd_by_claims.get(&claims) {
+                        Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
+                        None => true,
+                    };
 
-                if !should_be_selectively_disclosable {
-                    return Ok(builder);
-                }
+                    if !should_be_selectively_disclosable {
+                        return Ok(builder);
+                    }
 
-                builder
-                    .make_concealable(claims)
-                    .map_err(CredentialPayloadIntoSignedSdJwtError::SdJwtEncoding)
-            })?
+                    builder
+                        .make_concealable(claims)
+                        .map_err(CredentialPayloadIntoSignedSdJwtError::SdJwtEncoding)
+                },
+            )?
             .finish(issuer_keypair)
-            .await?;
+            .await
+            .map_err(CredentialPayloadIntoSignedSdJwtError::SdJwtEncoding)?;
 
         Ok(sd_jwt)
     }
@@ -346,13 +359,19 @@ impl CredentialPayload {
             .map_err(CredentialPayloadIntoSignedMdocError::MissingOrEmptyNamespace)?;
 
         let doc_type = attestation_type;
-        let cose_pubkey: CoseKey = (&confirmation_key.verifying_key()?).try_into()?;
+        let cose_pubkey: CoseKey = (&confirmation_key
+            .verifying_key()
+            .map_err(CredentialPayloadIntoSignedMdocError::JwkConversion)?)
+            .try_into()
+            .map_err(CredentialPayloadIntoSignedMdocError::CoseKeyConversion)?;
 
         let mso = MobileSecurityObject {
             version: MobileSecurityObjectVersion::V1_0,
             digest_algorithm: DigestAlgorithm::SHA256,
             doc_type,
-            value_digests: (&attrs).try_into()?,
+            value_digests: (&attrs)
+                .try_into()
+                .map_err(CredentialPayloadIntoSignedMdocError::CborConversion)?,
             device_key_info: cose_pubkey.into(),
             validity_info: validity,
             issuer_uri: Some(issuer),
@@ -364,7 +383,9 @@ impl CredentialPayload {
         let header = cose::header_with_x5chain(&vec_nonempty![issuer_keypair.certificate()]);
         let mso = TaggedBytes(mso);
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(&mso, header, issuer_keypair, true).await?;
+            MdocCose::sign(&mso, header, issuer_keypair, true)
+                .await
+                .map_err(CredentialPayloadIntoSignedMdocError::SigningError)?;
         let TaggedBytes(mso) = mso;
 
         Ok((
@@ -459,7 +480,13 @@ impl SplitCredential {
                 .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?,
         };
 
-        let key_info = ConfirmationClaim::Jwk(jwk_from_p256(&VerifyingKey::try_from(mso.device_key_info)?)?);
+        let key_info = ConfirmationClaim::Jwk(
+            jwk_from_p256(
+                &VerifyingKey::try_from(mso.device_key_info)
+                    .map_err(PreviewableCredentialPayloadFromMdocError::CoseKeyConversion)?,
+            )
+            .map_err(PreviewableCredentialPayloadFromMdocError::JwkConversion)?,
+        );
         Ok(SplitCredential {
             previewable,
             issued_at,
