@@ -33,10 +33,10 @@ pub const JADES_B_B_JWT_TYP: &str = "rc-wrp+jwt";
 /// header.
 ///
 /// Access JAdES fields via [`HeaderWithX5c::inner`]: `header.inner().iat`.
-pub type JAdESBBHeader = HeaderWithX5c<JAdESBBInnerHeader>;
+pub type JadesbbHeader = HeaderWithX5c<JadesbbInnerHeader>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JAdESBBInnerHeader {
+pub struct JadesbbInnerHeader {
     #[serde(flatten)]
     pub inner: HeaderWithTyp,
 
@@ -51,8 +51,8 @@ pub struct JAdESBBInnerHeader {
     // `sigT` field is not allowed, but ignored for interoperability concerns
 }
 
-impl From<JAdESBBInnerHeader> for Header {
-    fn from(value: JAdESBBInnerHeader) -> Self {
+impl From<JadesbbInnerHeader> for Header {
+    fn from(value: JadesbbInnerHeader) -> Self {
         let mut header: Header = value.inner.into();
 
         // manually set `iat` as an extra field
@@ -64,7 +64,7 @@ impl From<JAdESBBInnerHeader> for Header {
     }
 }
 
-impl TryFrom<Header> for JAdESBBInnerHeader {
+impl TryFrom<Header> for JadesbbInnerHeader {
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
@@ -75,25 +75,25 @@ impl TryFrom<Header> for JAdESBBInnerHeader {
             .map(|t| DateTime::from_timestamp(t, 0).ok_or(JwtError::IatOutOfRange(t))) // the `iat` field is a valid i64 but out of range for DateTime<Utc>
             .transpose()?;
 
-        Ok(JAdESBBInnerHeader {
+        Ok(JadesbbInnerHeader {
             inner: HeaderWithTyp::try_from(value)?,
             iat,
         })
     }
 }
 
-impl<C: Serialize + JwtTyp> SignedJwt<C, JAdESBBHeader> {
+impl<C: Serialize + JwtTyp> SignedJwt<C, JadesbbHeader> {
     pub async fn sign_with_iat<K: EcdsaKey>(
         payload: &C,
         keypair: &KeyPair<K>,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<SignedJwt<C, JAdESBBHeader>, JwtError> {
-        let header = JAdESBBInnerHeader {
+    ) -> Result<SignedJwt<C, JadesbbHeader>, JwtError> {
+        let header = JadesbbInnerHeader {
             inner: HeaderWithTyp::new::<C>(),
             iat: Some(time.generate()),
         };
 
-        SignedJwt::<C, JAdESBBHeader>::sign_with_header_and_certificate(payload, header, keypair).await
+        SignedJwt::<C, JadesbbHeader>::sign_with_header_and_certificate(payload, header, keypair).await
     }
 }
 
@@ -120,8 +120,8 @@ mod tests {
     use crate::UnverifiedJwt;
     use crate::headers::HeaderWithX5c;
 
-    fn test_header(iat: i64) -> JAdESBBHeader {
-        let inner = JAdESBBInnerHeader {
+    fn test_header(iat: i64) -> JadesbbHeader {
+        let inner = JadesbbInnerHeader {
             inner: HeaderWithTyp::default(),
             iat: Some(Utc.timestamp_opt(iat, 0).unwrap()),
         };
@@ -143,7 +143,7 @@ mod tests {
         assert!(json.get("x5c").is_some());
         assert!(json.get("alg").is_some_and(|v| *v == Value::String("ES256".to_owned())));
 
-        let header: JAdESBBHeader = serde_json::from_value(json).unwrap();
+        let header: JadesbbHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.inner().iat, Some(chrono::Utc.timestamp_opt(iat, 0).unwrap()));
         assert_eq!(header.x5c.len(), NonZeroUsize::MIN);
         assert_eq!(header.inner().inner.alg, Algorithm::ES256);
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_serialize_roundtrip_without_iat() {
-        let inner = JAdESBBInnerHeader {
+        let inner = JadesbbInnerHeader {
             inner: HeaderWithTyp::default(),
             iat: None,
         };
@@ -167,7 +167,7 @@ mod tests {
         assert!(json.get("x5c").is_some());
         assert!(json.get("alg").is_some_and(|v| *v == Value::String("ES256".to_owned())));
 
-        let header: JAdESBBHeader = serde_json::from_value(json).unwrap();
+        let header: JadesbbHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.inner().iat, None);
         assert_eq!(header.x5c.len(), NonZeroUsize::MIN);
         assert_eq!(header.inner().inner.alg, Algorithm::ES256);
@@ -179,7 +179,7 @@ mod tests {
         let header = test_header(iat);
 
         let json = serde_json::to_string(&header).unwrap();
-        let roundtripped: JAdESBBHeader = serde_json::from_str(&json).unwrap();
+        let roundtripped: JadesbbHeader = serde_json::from_str(&json).unwrap();
         assert_eq!(header, roundtripped);
     }
 
@@ -190,7 +190,7 @@ mod tests {
             "alg": "ES256"
         });
 
-        let header: JAdESBBInnerHeader = serde_json::from_value(json).unwrap();
+        let header: JadesbbInnerHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.iat, None);
         assert_eq!(header.inner.alg, Algorithm::ES256);
         assert_eq!(header.inner.typ, JADES_B_B_JWT_TYP);
@@ -204,7 +204,7 @@ mod tests {
             "sigT": "2024-11-14T12:00:00Z"
         });
 
-        let header: JAdESBBInnerHeader = serde_json::from_value(json).unwrap();
+        let header: JadesbbInnerHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.iat, None);
         assert_eq!(header.inner.alg, Algorithm::ES256);
         assert_eq!(header.inner.typ, JADES_B_B_JWT_TYP);
@@ -218,7 +218,7 @@ mod tests {
             "iat": 1337,
             // "x5c" intentionally absent
         });
-        let result: Result<JAdESBBHeader, _> = serde_json::from_value(json_val);
+        let result: Result<JadesbbHeader, _> = serde_json::from_value(json_val);
         assert!(result.is_err(), "deserialization must fail without x5c");
     }
 
@@ -230,14 +230,14 @@ mod tests {
             "x5c": [],
             "iat": 1_700_000_000
         });
-        let result: Result<JAdESBBHeader, _> = serde_json::from_value(json_val);
+        let result: Result<JadesbbHeader, _> = serde_json::from_value(json_val);
         assert!(result.is_err(), "deserialization must fail with an empty x5c array");
     }
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-    struct ToyJAdESBBPayload {}
+    struct ToyJadesbbPayload {}
 
-    impl JwtTyp for ToyJAdESBBPayload {
+    impl JwtTyp for ToyJadesbbPayload {
         const TYP: &'static str = JADES_B_B_JWT_TYP;
     }
 
@@ -246,11 +246,11 @@ mod tests {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let keypair = ca.generate_reader_mock().unwrap();
 
-        let toy_payload = ToyJAdESBBPayload {};
+        let toy_payload = ToyJadesbbPayload {};
 
-        let now = Utc.timestamp_opt(1337, 0).unwrap();
+        let now = Utc.timestamp_opt(1337, 900_000_000).unwrap();
         let signed_jwt =
-            SignedJwt::<_, JAdESBBHeader>::sign_with_iat(&toy_payload, &keypair, &MockTimeGenerator::new(now))
+            SignedJwt::<_, JadesbbHeader>::sign_with_iat(&toy_payload, &keypair, &MockTimeGenerator::new(now))
                 .await
                 .unwrap();
 
@@ -269,7 +269,7 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(header.inner().iat, Some(now));
+        assert_eq!(header.inner().iat, Some(now.with_nanosecond(0).unwrap())); // will be rounded down to 0 ns
         assert_eq!(header.inner().inner.typ, JADES_B_B_JWT_TYP);
         assert_eq!(header.inner().inner.alg, Algorithm::ES256);
         assert_eq!(payload, toy_payload);
@@ -280,7 +280,7 @@ mod tests {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let keypair = ca.generate_reader_mock().unwrap();
 
-        let toy_payload = ToyJAdESBBPayload {};
+        let toy_payload = ToyJadesbbPayload {};
 
         let signed_jwt = SignedJwt::<_, HeaderWithX5c>::sign_with_certificate(&toy_payload, &keypair)
             .await
@@ -299,8 +299,8 @@ mod tests {
         assert_eq!(json["typ"], JADES_B_B_JWT_TYP);
 
         // reinterpret as to be able to parse the JAdES-B-B header
-        let unverified: UnverifiedJwt<ToyJAdESBBPayload, JAdESBBHeader> = unverified.serialization().parse().unwrap();
-        let (header, payload): (JAdESBBHeader, ToyJAdESBBPayload) = unverified
+        let unverified: UnverifiedJwt<ToyJadesbbPayload, JadesbbHeader> = unverified.serialization().parse().unwrap();
+        let (header, payload): (JadesbbHeader, ToyJadesbbPayload) = unverified
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
