@@ -386,10 +386,9 @@ async fn pre_authorized_code_flow(
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
+    let code = issuer.new_preauthorized_session(documents).await.unwrap();
 
-    let credential_offer_url =
-        make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
+    let credential_offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(code));
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
@@ -436,9 +435,9 @@ async fn reject_issuance() {
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
+    let code = issuer.new_preauthorized_session(documents).await.unwrap();
 
-    let offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
+    let offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(code));
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),

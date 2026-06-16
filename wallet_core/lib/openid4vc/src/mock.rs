@@ -15,6 +15,7 @@ use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
 pub struct ExtendingVctRetrieverStub;
@@ -100,10 +101,10 @@ impl IssuerMetadata {
 
 impl TokenRequest {
     pub fn new_mock() -> Self {
-        Self::new_mock_with_pre_authorized_code("123".to_string())
+        Self::new_mock_with_pre_authorized_code("123".to_string().into())
     }
 
-    pub fn new_mock_with_pre_authorized_code(pre_authorized_code: String) -> Self {
-        TokenRequest::new_pre_authorized(pre_authorized_code.into(), "mock_client_id".to_string())
+    pub fn new_mock_with_pre_authorized_code(pre_authorized_code: AuthorizationCode) -> Self {
+        TokenRequest::new_pre_authorized(pre_authorized_code, "mock_client_id".to_string())
     }
 }

@@ -555,24 +555,35 @@ where
     pub async fn new_preauthorized_session(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
+    ) -> Result<AuthorizationCode, SessionStoreError> {
+        let token = self
+            .new_auth_code_issued_session(issuable_documents, Grant::PreAuthorizedCode)
+            .await?;
+
+        Ok(token.into())
+    }
+
+    /// Persist a new session that is in the initial `AuthCodeIssued` state. This is called both for Pre-Authorized
+    /// sessions (by `Isser::new_preauthorized_session()`) and Authorization Code sessions (by
+    /// `AuthorizingIssuer::complete_authorization()`).
+    pub(crate) async fn new_auth_code_issued_session(
+        &self,
+        issuable_documents: VecNonEmpty<IssuableDocument>,
+        grant: Grant,
     ) -> Result<SessionToken, SessionStoreError> {
         let token = SessionToken::new_random();
+
         let session = SessionState::new(
             token.clone(),
             IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
                 issuable_documents,
-                grant: Grant::PreAuthorizedCode,
+                grant,
             })),
         );
-        self.write_new_session(session).await?;
-        Ok(token)
-    }
 
-    /// Persist a new session. Only used by callers in this crate that build their own
-    /// [`SessionState`] (specifically [`AuthorizingIssuer::complete_authorization`] for
-    /// auth-code sessions).
-    pub(crate) async fn write_new_session(&self, state: SessionState<IssuanceData>) -> Result<(), SessionStoreError> {
-        self.sessions.write(state, true).await
+        self.sessions.write(session, true).await?;
+
+        Ok(token)
     }
 
     async fn get_session(&self, code: AuthorizationCode) -> Result<Session<AccessTokenIssued>, CredentialRequestError> {
@@ -603,7 +614,7 @@ where
             })
             .collect::<Result<_, _>>()?;
 
-        let token = self
+        let code = self
             .new_preauthorized_session(to_issue)
             .await
             .map_err(IssuanceError::SessionStore)?;
@@ -611,7 +622,7 @@ where
         Ok(CredentialOffer::new_pre_authorized(
             self.issuer_identifier().clone(),
             credential_configuration_ids,
-            token.into(),
+            code,
         ))
     }
 }
@@ -1872,7 +1883,7 @@ mod tests {
         trust_anchors: TrustAnchors,
         wia_keypair: KeyPair,
     ) -> WalletIssuanceError {
-        let session_token = message_client
+        let code = message_client
             .issuer
             .new_preauthorized_session(mock_issuable_documents(NonZeroUsize::MIN))
             .await
@@ -1900,7 +1911,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
-            TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
+            TokenRequest::new_mock_with_pre_authorized_code(code),
             &trust_anchors,
         )
         .await
@@ -1983,7 +1994,7 @@ mod tests {
             sessions.clone(),
         );
 
-        let token = issuer.new_preauthorized_session(documents).await.unwrap();
-        test_memory_store_with_cleanup_task(sessions, token, &mock_time, CLEANUP_INTERVAL).await;
+        let code = issuer.new_preauthorized_session(documents).await.unwrap();
+        test_memory_store_with_cleanup_task(sessions, code.into(), &mock_time, CLEANUP_INTERVAL).await;
     }
 }

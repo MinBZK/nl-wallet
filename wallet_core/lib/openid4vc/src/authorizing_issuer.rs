@@ -13,7 +13,6 @@ use std::error::Error;
 use std::fmt::Display;
 use std::sync::Arc;
 
-use crypto::utils::random_string;
 use derive_more::Constructor;
 use itertools::Itertools;
 use serde::Serialize;
@@ -30,20 +29,16 @@ use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
-use crate::issuer::AuthCodeIssued;
 use crate::issuer::Grant;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::par;
 use crate::par::PAR_TTL;
 use crate::scope::Scope;
-use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::store::Store;
 use crate::token::AuthorizationCode;
-
-const AUTH_CODE_LENGTH: usize = 32;
 
 /// Errors that can occur during processing of a Pushed Authorization Request.
 #[derive(Debug, thiserror::Error)]
@@ -266,25 +261,19 @@ where
         request_scope: HashSet<Scope>,
         wallet_code_challenge: String,
     ) -> Result<AuthorizationCode, CompleteAuthorizationError> {
-        let code = AuthorizationCode::from(random_string(AUTH_CODE_LENGTH));
-
-        let session_state = SessionState::new(
-            code.clone().into(),
-            IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
+        let token = self
+            .issuer
+            .new_auth_code_issued_session(
                 issuable_documents,
-                grant: Grant::AuthorizationCode {
+                Grant::AuthorizationCode {
                     request_scope,
                     wallet_code_challenge,
                 },
-            })),
-        );
-
-        self.issuer
-            .write_new_session(session_state)
+            )
             .await
             .map_err(CompleteAuthorizationError::SessionStore)?;
 
-        Ok(code)
+        Ok(token.into())
     }
 }
 
