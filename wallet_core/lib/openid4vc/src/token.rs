@@ -74,24 +74,63 @@ impl AccessToken {
     }
 }
 
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-token-request>
-/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3>.
-/// Sent URL-encoded in request body to POST /token.
-/// A DPoP HTTP header may be included.
+/// An OAuth 2.0 Token Request as defined by RFC 6749.
+///
+/// Sent URL-encoded in request body to POST /token. A DPoP HTTP header may be included.
+///
+/// See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.1> and
+/// <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3>.
+#[serde_as]
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenRequest {
     #[serde(flatten)]
     pub grant_type: TokenRequestGrantType,
 
-    pub code_verifier: Option<String>,
+    /// OpenID4VCI states: "For the Pre-Authorized Code Grant Type, authentication of the Client is OPTIONAL".
     pub client_id: Option<String>,
 
-    /// MUST be the redirect URI value as passed to the authorization request
+    /// MUST be the redirect URI value as passed in the Authorization Request.
     pub redirect_uri: Option<Url>,
+
+    /// Section 3.3 of RFC 6749 states that the client may include a scope value when sending the Token Request to the
+    /// token endpoint. Note that, unlike to the Authorization Request, we make a semantic distinction between this
+    /// value not being included and the scope value set being empty.
+    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
+    pub scope: Option<HashSet<Scope>>,
+
+    /// The PKCE code verifier as defined in RFC 7636.
+    pub code_verifier: Option<String>,
 }
 
 impl TokenRequest {
+    pub fn new_authorization_code(
+        authorization_code: AuthorizationCode,
+        client_id: String,
+        redirect_uri: Url,
+        code_verifier: String,
+    ) -> Self {
+        Self {
+            grant_type: TokenRequestGrantType::AuthorizationCode {
+                code: authorization_code,
+            },
+            client_id: Some(client_id),
+            redirect_uri: Some(redirect_uri),
+            scope: None,
+            code_verifier: Some(code_verifier),
+        }
+    }
+
+    pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode, client_id: String) -> Self {
+        Self {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            client_id: Some(client_id),
+            redirect_uri: None,
+            scope: None,
+            code_verifier: None,
+        }
+    }
+
     /// Retrieve either the authorization code or the pre-authorized code, depending on the authorization grant type.
     pub fn code(&self) -> &AuthorizationCode {
         match &self.grant_type {
@@ -102,7 +141,7 @@ impl TokenRequest {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize, strum::Display)]
+#[derive(Debug, Clone, Serialize, Deserialize, strum::Display)]
 #[serde(rename = "snake_case")]
 #[serde(tag = "grant_type")]
 pub enum TokenRequestGrantType {
@@ -251,16 +290,17 @@ mod tests {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
                     pre_authorized_code: "123".to_string().into()
                 },
-                code_verifier: Some("myverifier".to_string()),
                 client_id: Some("myclient".to_string()),
-                redirect_uri: Some("https://example.com".parse().unwrap())
+                redirect_uri: Some("https://example.com".parse().unwrap()),
+                scope: None,
+                code_verifier: Some("myverifier".to_string())
             })
             .unwrap(),
             "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code\
                 &pre-authorized_code=123\
-                &code_verifier=myverifier\
                 &client_id=myclient\
-                &redirect_uri=https%3A%2F%2Fexample.com%2F",
+                &redirect_uri=https%3A%2F%2Fexample.com%2F\
+                &code_verifier=myverifier",
         );
     }
 

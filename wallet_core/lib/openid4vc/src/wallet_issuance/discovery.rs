@@ -29,7 +29,6 @@ use crate::metadata::well_known;
 use crate::metadata::well_known::WellKnownPath;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
-use crate::token::TokenRequestGrantType;
 
 pub struct HttpIssuanceDiscovery {
     http_client: HttpJsonClient,
@@ -413,12 +412,7 @@ impl HttpIssuanceDiscovery {
     ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
 
-        let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-            code_verifier: None,
-            client_id: Some(client_id),
-            redirect_uri: None,
-        };
+        let token_request = TokenRequest::new_pre_authorized(pre_authorized_code, client_id);
 
         HttpIssuanceSession::create(
             message_client,

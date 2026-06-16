@@ -22,7 +22,6 @@ use openid4vc::pkce::S256PkcePair;
 use openid4vc::scope::Scope;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenRequestGrantType;
 use tokio::sync::OnceCell;
 use url::Url;
 
@@ -176,12 +175,8 @@ impl DigidClient for HttpDigidClient {
     async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error> {
         let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
 
-        let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode { code },
-            client_id: Some(self.client_id.clone()),
-            code_verifier: Some(code_verifier),
-            redirect_uri: Some(redirect_uri),
-        };
+        let token_request =
+            TokenRequest::new_authorization_code(code, self.client_id.clone(), redirect_uri, code_verifier);
 
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             self.cache.http_client(),

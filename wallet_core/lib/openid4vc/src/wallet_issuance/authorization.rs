@@ -25,7 +25,6 @@ use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
-use crate::token::TokenRequestGrantType;
 use crate::wallet_issuance::AuthorizationSession;
 use crate::wallet_issuance::WalletIssuanceError;
 use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
@@ -302,14 +301,12 @@ impl AuthorizationSession for HttpAuthorizationSession {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);
 
-        let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode {
-                code: authorization_code,
-            },
-            code_verifier: Some(self.pkce_pair.into_code_verifier()),
-            client_id: Some(self.client_id),
-            redirect_uri: Some(self.redirect_uri),
-        };
+        let token_request = TokenRequest::new_authorization_code(
+            authorization_code,
+            self.client_id,
+            self.redirect_uri,
+            self.pkce_pair.into_code_verifier(),
+        );
 
         HttpIssuanceSession::create(
             message_client,

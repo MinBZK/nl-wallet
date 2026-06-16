@@ -670,9 +670,10 @@ async fn token_rejects_missing_code_verifier() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        code_verifier: None,
         client_id: None,
         redirect_uri: None,
+        scope: None,
+        code_verifier: None,
     };
 
     let response = http_client
@@ -709,9 +710,10 @@ async fn token_rejects_unknown_code_verifier() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
         client_id: None,
         redirect_uri: None,
+        scope: None,
+        code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
     };
 
     let response = http_client
@@ -753,9 +755,10 @@ async fn token_rejects_grant_type_mismatch() {
         grant_type: TokenRequestGrantType::PreAuthorizedCode {
             pre_authorized_code: code,
         },
-        code_verifier: None,
         client_id: None,
         redirect_uri: None,
+        scope: None,
+        code_verifier: None,
     };
 
     let response = http_client
