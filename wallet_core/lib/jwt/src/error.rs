@@ -65,7 +65,7 @@ pub enum JwtError {
 
     #[error("missing kid field in JWT header")]
     #[category(critical)]
-    Missingkid,
+    MissingKid,
 
     #[error("error converting JWK: {0}")]
     #[category(critical)]

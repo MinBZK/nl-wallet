@@ -252,7 +252,7 @@ where
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let kid = value.kid.as_ref().ok_or(JwtError::Missingkid)?.clone();
+        let kid = value.kid.as_ref().ok_or(JwtError::MissingKid)?.clone();
         Ok(HeaderWithKid {
             header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
             kid,
