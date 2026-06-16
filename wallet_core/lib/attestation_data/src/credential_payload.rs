@@ -12,7 +12,6 @@ use http_utils::urls::HttpsUri;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
-use mdoc::DeviceKeyInfo;
 use mdoc::DigestAlgorithm;
 use mdoc::IssuerNameSpaces;
 use mdoc::IssuerNameSpacesPreConditionError;
@@ -80,6 +79,14 @@ pub enum PreviewableCredentialPayloadFromMdocError {
     #[error("attributes error: {0}")]
     #[category(pd)]
     InvalidAttributes(#[from] AttributesError),
+
+    #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
+    #[category(pd)]
+    CoseKeyConversion(#[from] CryptoError),
+
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    #[category(pd)]
+    JwkConversion(#[from] JwkConversionError),
 }
 
 #[serde_as]
@@ -177,14 +184,6 @@ pub enum CredentialPayloadFromMdocError {
     #[category(defer)]
     PreviewableCredentialPayload(#[from] PreviewableCredentialPayloadFromMdocError),
 
-    #[error("error converting holder VerifyingKey to JWK: {0}")]
-    #[category(pd)]
-    JwkConversion(#[from] JwkConversionError),
-
-    #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
-    #[category(pd)]
-    CoseKeyConversion(#[from] CryptoError),
-
     #[error(transparent)]
     #[category(defer)]
     MissingField(#[from] CredentialPayloadMissingFieldError),
@@ -272,9 +271,7 @@ impl CredentialPayload {
     }
 
     pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadFromMdocError> {
-        let split = SplitCredential::from_mdoc(mdoc, metadata)?;
-        let confirmation_key = split.try_into_confirmation_key()?;
-        Ok(confirmation_key.try_into_credential_payload()?)
+        Ok(SplitCredential::from_mdoc(mdoc, metadata)?.try_into_credential_payload()?)
     }
 
     pub async fn into_signed_sd_jwt(
@@ -380,15 +377,15 @@ impl CredentialPayload {
     }
 }
 
-struct SplitCredential<K> {
+struct SplitCredential {
     previewable: PreviewableCredentialPayload,
     issued_at: DateTimeSeconds,
-    key_info: K,
+    key_info: ConfirmationClaim,
     vct_integrity: Option<Integrity>,
     status: Option<StatusClaim>,
 }
 
-impl SplitCredential<ConfirmationClaim> {
+impl SplitCredential {
     fn try_into_credential_payload(self) -> Result<CredentialPayload, CredentialPayloadMissingFieldError> {
         Ok(CredentialPayload {
             issued_at: self.issued_at,
@@ -409,7 +406,7 @@ impl SplitCredential<ConfirmationClaim> {
             .map_err(PreviewableCredentialPayloadFromSdJwtError::InvalidAttributes)?;
         let claims = sd_jwt.into_claims();
 
-        let payload = PreviewableCredentialPayload {
+        let previewable = PreviewableCredentialPayload {
             attestation_type: claims.vct,
             issuer: claims.iss,
             expires: claims.exp,
@@ -421,16 +418,14 @@ impl SplitCredential<ConfirmationClaim> {
         };
 
         Ok(SplitCredential {
-            previewable: payload,
+            previewable,
             issued_at: claims.iat,
             key_info: claims.cnf,
             vct_integrity: claims.vct_integrity,
             status: claims.status,
         })
     }
-}
 
-impl SplitCredential<DeviceKeyInfo> {
     fn from_mdoc(
         mdoc: Mdoc,
         metadata: &NormalizedTypeMetadata,
@@ -438,11 +433,11 @@ impl SplitCredential<DeviceKeyInfo> {
         let (mso, _, issuer_signed) = mdoc.into_components();
         let attributes = issuer_signed.into_entries_by_namespace();
 
-        let iat = (&mso.validity_info.signed)
+        let issued_at = (&mso.validity_info.signed)
             .try_into()
             .map_err(PreviewableCredentialPayloadFromMdocError::DateConversion)?;
 
-        let payload = PreviewableCredentialPayload {
+        let previewable = PreviewableCredentialPayload {
             attestation_type: mso.doc_type,
             issuer: mso
                 .issuer_uri
@@ -464,33 +459,13 @@ impl SplitCredential<DeviceKeyInfo> {
                 .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?,
         };
 
+        let key_info = ConfirmationClaim::Jwk(jwk_from_p256(&VerifyingKey::try_from(mso.device_key_info)?)?);
         Ok(SplitCredential {
-            previewable: payload,
-            issued_at: iat,
-            key_info: mso.device_key_info,
+            previewable,
+            issued_at,
+            key_info,
             vct_integrity: mso.type_metadata_integrity,
             status: mso.status,
-        })
-    }
-}
-
-impl SplitCredential<DeviceKeyInfo> {
-    fn try_into_confirmation_key(self) -> Result<SplitCredential<ConfirmationClaim>, CredentialPayloadFromMdocError> {
-        let SplitCredential {
-            previewable,
-            issued_at,
-            key_info,
-            vct_integrity,
-            status,
-        } = self;
-
-        let key_info = ConfirmationClaim::Jwk(jwk_from_p256(&VerifyingKey::try_from(key_info)?)?);
-        Ok(SplitCredential {
-            previewable,
-            issued_at,
-            key_info,
-            vct_integrity,
-            status,
         })
     }
 }
