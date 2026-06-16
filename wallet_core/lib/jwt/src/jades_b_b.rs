@@ -68,11 +68,16 @@ impl TryFrom<Header> for JAdESBBInnerHeader {
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
+        let iat = value
+            .extras
+            .get::<i64>("iat")
+            .map_err(JwtError::InvalidIat)? // the `iat` field is present but not a valid timestamp
+            .map(|t| DateTime::from_timestamp(t, 0).ok_or(JwtError::IatOutOfRange(t))) // the `iat` field is a valid i64 but out of range for DateTime<Utc>
+            .transpose()?;
+
         Ok(JAdESBBInnerHeader {
             inner: HeaderWithTyp::try_from(value)?,
-            // `iat` is not represented in `jsonwebtoken::Header`, it is set by the signer and not used after
-            // verification
-            iat: None,
+            iat,
         })
     }
 }
@@ -99,6 +104,7 @@ mod tests {
 
     use base64::prelude::*;
     use chrono::TimeZone;
+    use chrono::Timelike;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -240,8 +246,9 @@ mod tests {
 
         let toy_payload = ToyJAdESBBPayload {};
 
+        let now = Utc::now().with_nanosecond(0).unwrap();
         let signed_jwt =
-            SignedJwt::<_, JAdESBBHeader>::sign_with_iat(&toy_payload, &keypair, &MockTimeGenerator::default())
+            SignedJwt::<_, JAdESBBHeader>::sign_with_iat(&toy_payload, &keypair, &MockTimeGenerator::new(now))
                 .await
                 .unwrap();
 
@@ -260,8 +267,7 @@ mod tests {
             )
             .unwrap();
 
-        // after parsing, the `iat` field is not present in the verified header
-        assert!(header.inner().iat.is_none());
+        assert_eq!(header.inner().iat, Some(now));
         assert_eq!(header.inner().inner.typ, JADES_B_B_JWT_TYP);
         assert_eq!(header.inner().inner.alg, Algorithm::ES256);
         assert_eq!(payload, toy_payload);
@@ -286,7 +292,9 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
+
         assert!(json["iat"].is_null());
+        assert_eq!(json["typ"], JADES_B_B_JWT_TYP);
 
         // reinterpret as to be able to parse the JAdES-B-B header
         let unverified: UnverifiedJwt<ToyJAdESBBPayload, JAdESBBHeader> = unverified.serialization().parse().unwrap();

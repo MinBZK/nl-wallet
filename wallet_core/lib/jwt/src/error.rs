@@ -70,6 +70,14 @@ pub enum JwtError {
     #[error("error converting JWK: {0}")]
     #[category(critical)]
     JwkConversion(#[source] jsonwebtoken::errors::Error),
+
+    #[error("error converting iat: {0}")]
+    #[category(critical)]
+    InvalidIat(#[source] jsonwebtoken::errors::Error),
+
+    #[error("iat out of range: {0}")]
+    #[category(critical)]
+    IatOutOfRange(i64),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
