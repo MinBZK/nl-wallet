@@ -320,16 +320,16 @@ fi
 WIA_CA_CRT=$(< "${TARGET_DIR}/ca.wia.crt.der" ${BASE64})
 export WIA_CA_CRT
 
-generate_wia_key_pair
-WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing_key.crt.der" ${BASE64})
+# Generate key for WIA signing and TSL
+generate_wia_signing_key_pair
+WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing.crt.der" ${BASE64})
 export WP_WIA_CERTIFICATE
 
-# Generate key for WIA tsl
-generate_wallet_provider_tsl_key_pair
+generate_wia_tsl_key_pair
 WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
 export WIA_TSL_CRT
 
-# Generate pid issuer key and cert
+# Generate pid issuer key and cert for issuance and TSL
 generate_pid_issuer_key_pair
 generate_pid_issuer_tsl_key_pair
 
