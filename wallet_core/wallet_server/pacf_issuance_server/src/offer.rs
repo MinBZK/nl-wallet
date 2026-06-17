@@ -8,7 +8,7 @@ use axum::routing::post;
 use issuer_common::IssuanceServerIssuer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuer::IssuanceError;
+use openid4vc::issuer::PreAuthorizedSessionError;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -16,14 +16,16 @@ use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
 pub enum OfferError {
-    #[error("issuance error: {0}")]
-    Issuer(#[source] IssuanceError),
+    #[error("could not create Pre-Authorized credential offer: {0}")]
+    PreAuthorizedSession(#[source] PreAuthorizedSessionError),
 }
 
 impl axum::response::IntoResponse for OfferError {
     fn into_response(self) -> axum::response::Response {
         let status = match self {
-            OfferError::Issuer(IssuanceError::AttestationTypeNotConfigured(_, _)) => StatusCode::BAD_REQUEST,
+            OfferError::PreAuthorizedSession(PreAuthorizedSessionError::AttestationTypeNotConfigured(_, _)) => {
+                StatusCode::BAD_REQUEST
+            }
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, self.to_string()).into_response()
@@ -60,7 +62,7 @@ async fn offer(
         .issuer
         .pre_authorized_offer_from_documents(request.documents)
         .await
-        .map_err(OfferError::Issuer)?;
+        .map_err(OfferError::PreAuthorizedSession)?;
 
     let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
     Ok(Json(OfferResponse { credential_offer_url }))

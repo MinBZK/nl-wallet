@@ -13,8 +13,8 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
-use openid4vc::issuer::IssuanceError;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer::PreAuthorizedSessionError;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
@@ -95,8 +95,8 @@ pub enum IssuanceResultHandlerError {
     #[error("no attestations to issue")]
     NoIssuableAttestations,
 
-    #[error("issuance error: {0}")]
-    Issuer(#[source] IssuanceError),
+    #[error("could not create Pre-Authorized credential offer: {0}")]
+    PreAuthorizedSession(#[source] PreAuthorizedSessionError),
 
     #[error("credential offer URL serialization failed: {0}")]
     CredentialOfferSerialization(#[source] serde_json::Error),
@@ -141,7 +141,7 @@ where
             .issuer
             .pre_authorized_offer_from_documents(to_issue)
             .await
-            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::Issuer(e)))?;
+            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::PreAuthorizedSession(e)))?;
 
         let query_params = HashMap::from([CredentialOfferContainer::new_offer(credential_offer).into_query_pair()]);
         Ok(query_params)
@@ -229,8 +229,8 @@ mod tests {
                     Format::SdJwt,
                     attestation.attestation_type.clone(),
                     IndexMap::from([(
-                        "attr_name".to_string(),
-                        Attribute::Single(AttributeValue::Text("attrvalue".to_string())),
+                        "university".to_string(),
+                        Attribute::Single(AttributeValue::Text("University".to_string())),
                     )])
                     .into(),
                 )
@@ -325,8 +325,8 @@ mod tests {
         assert_matches!(session.grant, Grant::PreAuthorizedCode);
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
-        let issuable = session.issuable_documents.as_ref().first().unwrap();
-        assert_eq!(issuable.attestation_type, mock_disclosed_type);
+        let preview_state = session.credential_previews.as_ref().first().unwrap();
+        assert_eq!(preview_state.credential_payload.attestation_type, mock_disclosed_type);
     }
 
     #[tokio::test]

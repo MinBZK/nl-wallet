@@ -135,7 +135,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 }
 
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialRequestError::IssuanceError(IssuanceError::AttestationTypeNotConfigured { .. })
                 | CredentialRequestError::MissingCredentialConfiguration(_)
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MdocConversion(_)
@@ -195,9 +194,7 @@ pub enum TokenErrorCode {
 impl From<TokenRequestError> for TokenErrorCode {
     fn from(err: TokenRequestError) -> Self {
         match err {
-            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
-            | TokenRequestError::AttributesError(_)
-            | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
+            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
             TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
             TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
             TokenRequestError::SessionNotFound

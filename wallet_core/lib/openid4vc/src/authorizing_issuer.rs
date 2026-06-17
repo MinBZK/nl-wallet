@@ -29,6 +29,7 @@ use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
+use crate::issuer::CreateSessionError;
 use crate::issuer::Grant;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -36,7 +37,6 @@ use crate::par;
 use crate::par::PAR_TTL;
 use crate::scope::Scope;
 use crate::server_state::SessionStore;
-use crate::server_state::SessionStoreError;
 use crate::store::Store;
 use crate::token::AuthorizationCode;
 
@@ -81,10 +81,10 @@ pub enum AuthorizeError {
     CompleteAuthorization(#[source] CompleteAuthorizationError),
 }
 
-#[derive(derive_more::Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum CompleteAuthorizationError {
-    #[error("writing authorization-code session failed: {0}")]
-    SessionStore(#[source] SessionStoreError),
+    #[error("could not create Authorization Code session: {0}")]
+    CreateSession(#[source] CreateSessionError),
 }
 
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
@@ -271,7 +271,7 @@ where
                 },
             )
             .await
-            .map_err(CompleteAuthorizationError::SessionStore)?;
+            .map_err(CompleteAuthorizationError::CreateSession)?;
 
         Ok(token.into())
     }
@@ -420,7 +420,7 @@ mod tests {
             WALLET_STATE.to_string(),
             None,
             // Match the attestation type / credential config id / scope configured in the mock issuer.
-            HashSet::from(["com.example.pid".parse().unwrap()]),
+            HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()]),
             &S256PkcePair::generate(),
         )
     }
@@ -692,7 +692,7 @@ mod tests {
             } if request_scope.iter().map(AsRef::as_ref).eq(["com.example.pid"])
                 && wallet_code_challenge == code_challenge
         );
-        assert_eq!(auth_code_issued.issuable_documents.len(), documents.len());
+        assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
     }
 
     #[tokio::test]
@@ -729,7 +729,7 @@ mod tests {
                 wallet_code_challenge,
             } if request_scope.iter().map(AsRef::as_ref).eq(["scope"]) && wallet_code_challenge == code_challenge
         );
-        assert_eq!(auth_code_issued.issuable_documents.len(), documents.len());
+        assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
     }
 
     #[test]

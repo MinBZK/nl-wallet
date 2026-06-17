@@ -31,7 +31,7 @@ use openid4vc::test::mock_issuable_document_with_attrs;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::mock_type_metadata;
 use openid4vc::test::mock_type_metadata_with_required_attr;
-use openid4vc::test::setup_mock_authorizing_issuer_from_type_metadata;
+use openid4vc::test::setup_mock_authorizing_issuer_from_sd_jwt_metadata;
 use openid4vc::test::setup_mock_issuer;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::CredentialPreview;
@@ -116,7 +116,7 @@ async fn start_auth_code_flow_server_with(
     let sessions = Arc::new(MemorySessionStore::default());
 
     let flow = AlwaysAuthorizingFlow::new(documents);
-    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_type_metadata(
+    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_sd_jwt_metadata(
         issuer_identifier.clone(),
         type_metadata,
         sessions,

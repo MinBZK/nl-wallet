@@ -148,6 +148,8 @@ impl AuthorizationCodeFlow for AlwaysAuthorizingFlow {
     }
 }
 
+/// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] with a shared session store and some default credential
+/// configurations.
 pub fn setup_mock_issuer<G>(
     issuer_identifier: IssuerIdentifier,
     attestation_count: NonZeroUsize,
@@ -161,15 +163,36 @@ where
         .map(|attestation_type| mock_type_metadata(attestation_type))
         .collect();
 
-    setup_mock_issuer_from_type_metadata(issuer_identifier, type_metadata, sessions)
+    setup_mock_issuer_from_sd_jwt_metadata(issuer_identifier, type_metadata, sessions)
 }
 
-/// Like [`setup_mock_issuer`], but with one credential configuration per given [`TypeMetadata`]
-/// (deriving the attestation type from its `vct`), so tests can supply metadata with custom
-/// schemas.
-pub fn setup_mock_issuer_from_type_metadata<G>(
+/// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
+/// are are all in SD-JWT format and based on a single SD-JWT VC Type Metadata document.
+pub fn setup_mock_issuer_from_sd_jwt_metadata<G>(
     issuer_identifier: IssuerIdentifier,
-    type_metadata: Vec<TypeMetadata>,
+    metadata: Vec<TypeMetadata>,
+    sessions: Arc<MemorySessionStore<IssuanceData, G>>,
+) -> (MockIssuer<G>, TrustAnchors, KeyPair)
+where
+    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+{
+    let attestations = metadata
+        .into_iter()
+        .map(|metadata| {
+            let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
+
+            (Format::SdJwt, attestation_type, metadata_documents)
+        })
+        .collect();
+
+    setup_mock_issuer_attestation_types_and_metadata(issuer_identifier, attestations, sessions)
+}
+
+/// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
+/// are based on a list of format / attestation type combinations and the relevant SD-JWT VC Type Metadata documents.
+pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
+    issuer_identifier: IssuerIdentifier,
+    attestations: Vec<(Format, String, TypeMetadataDocuments)>,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
 ) -> (MockIssuer<G>, TrustAnchors, KeyPair)
 where
@@ -180,13 +203,13 @@ where
     let trust_anchors = TrustAnchors::from(&ca);
     let wia_keypair = ca.generate_wia_mock().unwrap();
 
-    let config_params = type_metadata
+    let config_params = attestations
         .into_iter()
-        .map(|metadata| {
-            let attestation_type = metadata.as_ref().vct.clone();
+        .map(|(format, attestation_type, metadata_documents)| {
+            let config_id = format!("{attestation_type}_{format}");
 
             let mut status_list = MockStatusListService::new();
-            let status_list_uri_path = attestation_type.replace(':', "-");
+            let status_list_uri_path = config_id.replace(':', "-");
             status_list
                 .expect_obtain_status_claims()
                 .returning(move |_, _, copies| {
@@ -199,11 +222,9 @@ where
                 .expect_start_refresh_job()
                 .return_once(|| tokio::task::spawn(async {}).abort_handle());
 
-            let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-
             let params = CredentialConfigurationParameters {
-                format: Format::SdJwt,
-                attestation_type: attestation_type.clone(),
+                format,
+                attestation_type,
                 key_pair: KeyPair::new_from_signing_key(
                     issuance_keypair.private_key().clone(),
                     issuance_keypair.certificate().clone(),
@@ -220,7 +241,7 @@ where
                 metadata_documents,
             };
 
-            (attestation_type.into(), params)
+            (config_id.into(), params)
         })
         .collect();
 
@@ -240,8 +261,9 @@ where
     (issuer, trust_anchors, wia_keypair)
 }
 
-/// Allow tests to setup a mock issuer supplying metadata with custom schemas.
-pub fn setup_mock_authorizing_issuer_from_type_metadata<G>(
+/// Create a mock [`AuthorizingIssuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential
+/// configurations are are all in SD-JWT format and based on a single SD-JWT VC Type Metadata document.
+pub fn setup_mock_authorizing_issuer_from_sd_jwt_metadata<G>(
     issuer_identifier: IssuerIdentifier,
     type_metadata: Vec<TypeMetadata>,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
@@ -253,7 +275,7 @@ where
 {
     let par_store = MemoryStore::new(PAR_TTL);
     let (issuer, trust_anchor, wia_keypair) =
-        setup_mock_issuer_from_type_metadata(issuer_identifier, type_metadata, sessions);
+        setup_mock_issuer_from_sd_jwt_metadata(issuer_identifier, type_metadata, sessions);
     let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
 
     (authorizing_issuer, trust_anchor, wia_keypair)

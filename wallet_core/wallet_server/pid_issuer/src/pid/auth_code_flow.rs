@@ -454,8 +454,10 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
-    use std::num::NonZeroUsize;
+    use std::fs;
+    use std::path::Path;
     use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
@@ -481,15 +483,17 @@ mod tests {
     use openid4vc::server_state::SessionToken;
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
-    use openid4vc::test::setup_mock_issuer;
+    use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
     use openid4vc::token::AuthorizationCode;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use server_utils::keys::SecretKeyVariant;
     use server_utils::settings::SecretKey;
     use server_utils::store::StoreConnection;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use utils::path::prefix_local_path;
     use utils::vec_nonempty;
 
     use super::DIGID_CALLBACK_PATH;
@@ -519,6 +523,16 @@ mod tests {
     const WALLET_STATE: &str = "wallet-state";
     const WALLET_SCOPE: &str = "wallet-scope";
     const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
+
+    static NL_PID_METADATA: LazyLock<TypeMetadataDocuments> = LazyLock::new(|| {
+        TypeMetadataDocuments::new(vec_nonempty![
+            fs::read(prefix_local_path(Path::new("resources/test/metadata/eudi_pid_1.json"))).unwrap(),
+            fs::read(prefix_local_path(Path::new(
+                "resources/test/metadata/eudi_pid_nl_1.json"
+            )))
+            .unwrap()
+        ])
+    });
 
     fn recovery_code_secret_key() -> SecretKeyVariant {
         SecretKeyVariant::from_settings(
@@ -552,19 +566,33 @@ mod tests {
     /// Wrap a flow in an [`AuthorizingIssuer`] backed by an in-memory issuer + session store, so the
     /// callback path (which writes a session via `complete_authorization`) can be exercised. Returns
     /// the session store so tests can read the written session back.
+    ///
+    /// Note that the [`AuthorizingIssuer`] needs to be configured with the real PID SD-JWT VC Type Metadata, as
+    /// completing the callback will lead to the [`IssuableDocument`]s being validated against it.
     fn authorizing_issuer_with_flow(
         flow: UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient>,
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
-        let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, _) = setup_mock_issuer(issuer_identifier, NonZeroUsize::MIN, Arc::clone(&sessions));
-        let par_store = MemoryStore::new(PAR_TTL);
+
+        let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+            IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap(),
+            vec![
+                (Format::SdJwt, PID_ATTESTATION_TYPE.to_string(), NL_PID_METADATA.clone()),
+                (
+                    Format::MsoMdoc,
+                    PID_ATTESTATION_TYPE.to_string(),
+                    NL_PID_METADATA.clone(),
+                ),
+            ],
+            Arc::clone(&sessions),
+        );
         let authorizing_issuer = AuthorizingIssuer::new(
             Arc::new(issuer),
-            par_store,
+            MemoryStore::new(PAR_TTL),
             flow,
             vec_nonempty![WALLET_REDIRECT_URI.parse().unwrap()],
         );
+
         (authorizing_issuer, sessions)
     }
 
@@ -763,13 +791,13 @@ mod tests {
             } if request_scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE])
                 && wallet_code_challenge == WALLET_CODE_CHALLENGE
         );
-        assert_eq!(auth_code_issued.issuable_documents.len().get(), 2);
+        assert_eq!(auth_code_issued.credential_previews.len().get(), 2);
         assert!(
             auth_code_issued
-                .issuable_documents
+                .credential_previews
                 .as_ref()
                 .iter()
-                .all(|doc| doc.attestation_type == PID_ATTESTATION_TYPE)
+                .all(|preview_state| preview_state.credential_payload.attestation_type == PID_ATTESTATION_TYPE)
         );
     }
 

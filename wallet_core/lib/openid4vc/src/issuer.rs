@@ -109,14 +109,29 @@ pub enum IssuanceError {
     #[error("unknown session: {0:?}")]
     UnknownSession(AuthorizationCode),
 
-    #[error("attestation type for format \"{0}\" not configured: {1}")]
-    AttestationTypeNotConfigured(Format, String),
-
     #[error("failed to retrieve session: {0}")]
     SessionStore(#[source] SessionStoreError),
 
     #[error("invalid DPoP header: {0}")]
     DpopInvalid(#[source] DpopError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateSessionError {
+    #[error("issuable document is not valid: {0}")]
+    IssuableDocument(#[source] IssuableDocumentError),
+
+    #[error("failed to store new session: {0}")]
+    SessionStore(#[source] SessionStoreError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PreAuthorizedSessionError {
+    #[error("could not create Pre-Authorized Code session: {0}")]
+    CreateSession(#[source] CreateSessionError),
+
+    #[error("attestation type for format \"{0}\" not configured: {1}")]
+    AttestationTypeNotConfigured(Format, String),
 }
 
 /// Errors that can occur during processing of the token request.
@@ -147,12 +162,6 @@ pub enum TokenRequestError {
 
     #[error("PKCE verification failed")]
     PkceVerificationFailed,
-
-    #[error("attributes do not match type metadata: {0}")]
-    AttributesError(#[source] AttributesError),
-
-    #[error("credential type in format \"{0}\" not offered: {1}")]
-    CredentialTypeNotOffered(Format, String),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -251,7 +260,7 @@ pub enum CredentialPreviewError {
 /// `Grant::PreAuthorizedCode` (no PKCE) and `Grant::AuthorizationCode` (PKCE-verified at `/token`).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCodeIssued {
-    pub issuable_documents: VecNonEmpty<IssuableDocument>,
+    pub credential_previews: VecNonEmpty<CredentialPreviewState>,
     pub grant: Grant,
 }
 
@@ -548,6 +557,52 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum IssuableDocumentError {
+    #[error("attributes do not match type metadata: {0}")]
+    AttributesError(#[source] AttributesError),
+
+    #[error("credential type in format \"{0}\" not offered in Credential Configurations: {1}")]
+    CredentialTypeNotOffered(Format, String),
+}
+
+fn credential_preview_state_for_issuable_document<K, L>(
+    credential_configurations: &CredentialConfigurations<K, L>,
+    document: IssuableDocument,
+    batch_size: NonZeroU8,
+) -> Result<CredentialPreviewState, IssuableDocumentError> {
+    let format = document.format;
+    let (credential_config_id, credential_config) = credential_configurations
+        .get_by_format_and_attestation_type(format, &document.attestation_type)
+        .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(format, document.attestation_type.clone()))?;
+
+    document
+        .validate_with_metadata(credential_config.metadata.normalized())
+        .map_err(IssuableDocumentError::AttributesError)?;
+
+    // Truncate the current time to only include the date part, so that all issued credentials on a single
+    // day have the same `nbf` and `exp` field
+    let now = utc_now_truncated_to_days();
+    let valid_until = now.add(credential_config.valid_days);
+
+    let (batch_id, credential_payload) = document.into_id_and_previewable_credential_payload(
+        now,
+        valid_until,
+        credential_config.issuer_uri.clone(),
+        credential_config.attestation_qualification,
+    );
+
+    let state = CredentialPreviewState {
+        credential_configuration_id: credential_config_id.clone(),
+        format,
+        batch_size,
+        credential_payload,
+        batch_id,
+    };
+
+    Ok(state)
+}
+
 impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData>,
@@ -555,7 +610,7 @@ where
     async fn new_preauthorized_session(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
-    ) -> Result<AuthorizationCode, SessionStoreError> {
+    ) -> Result<AuthorizationCode, CreateSessionError> {
         let token = self
             .new_auth_code_issued_session(issuable_documents, Grant::PreAuthorizedCode)
             .await?;
@@ -570,18 +625,33 @@ where
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
         grant: Grant,
-    ) -> Result<SessionToken, SessionStoreError> {
+    ) -> Result<SessionToken, CreateSessionError> {
+        let credential_previews = issuable_documents
+            .into_nonempty_iter()
+            .map(|document| {
+                credential_preview_state_for_issuable_document(
+                    &self.issuer_data.credential_configs,
+                    document,
+                    self.issuer_data.batch_size,
+                )
+            })
+            .collect::<Result<_, _>>()
+            .map_err(CreateSessionError::IssuableDocument)?;
+
         let token = SessionToken::new_random();
 
         let session = SessionState::new(
             token.clone(),
             IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
-                issuable_documents,
+                credential_previews,
                 grant,
             })),
         );
 
-        self.sessions.write(session, true).await?;
+        self.sessions
+            .write(session, true)
+            .await
+            .map_err(CreateSessionError::SessionStore)?;
 
         Ok(token)
     }
@@ -599,17 +669,17 @@ where
     pub async fn pre_authorized_offer_from_documents(
         &self,
         to_issue: VecNonEmpty<IssuableDocument>,
-    ) -> Result<CredentialOffer, IssuanceError>
-    where
-        S: SessionStore<IssuanceData>,
-    {
+    ) -> Result<CredentialOffer, PreAuthorizedSessionError> {
         let credential_configuration_ids = to_issue
             .nonempty_iter()
             .map(|document| {
                 self.credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
                     .cloned()
                     .ok_or_else(|| {
-                        IssuanceError::AttestationTypeNotConfigured(document.format, document.attestation_type.clone())
+                        PreAuthorizedSessionError::AttestationTypeNotConfigured(
+                            document.format,
+                            document.attestation_type.clone(),
+                        )
                     })
             })
             .collect::<Result<_, _>>()?;
@@ -617,7 +687,7 @@ where
         let code = self
             .new_preauthorized_session(to_issue)
             .await
-            .map_err(IssuanceError::SessionStore)?;
+            .map_err(PreAuthorizedSessionError::CreateSession)?;
 
         Ok(CredentialOffer::new_pre_authorized(
             self.issuer_identifier().clone(),
@@ -765,8 +835,6 @@ where
                 &self.issuer_data.accepted_wallet_client_ids,
                 dpop,
                 &self.issuer_data.server_url,
-                &self.issuer_data.credential_configs,
-                self.issuer_data.batch_size,
             );
 
         let (response, next) = match result {
@@ -968,48 +1036,30 @@ impl Grant {
 }
 
 impl Session<AuthCodeIssued> {
-    #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
-    fn process_token_request<K, L>(
+    fn process_token_request(
         self,
         token_request: &TokenRequest,
         accepted_wallet_client_ids: &[String],
         dpop: Dpop,
         server_url: &BaseUrl,
-        credential_configurations: &CredentialConfigurations<K, L>,
-        batch_size: NonZeroU8,
     ) -> ProcessTokenRequest {
-        let result = self.validate_and_build_token_response(
-            token_request,
-            dpop,
-            server_url,
-            credential_configurations,
-            batch_size,
-        );
+        let result = self.validate_and_build_token_response(token_request, dpop, server_url);
 
         self.finalize_token_response(accepted_wallet_client_ids, result)
     }
 
-    fn validate_and_build_token_response<K, L>(
+    fn validate_and_build_token_response(
         &self,
         token_request: &TokenRequest,
         dpop: Dpop,
         server_url: &BaseUrl,
-        credential_configurations: &CredentialConfigurations<K, L>,
-        batch_size: NonZeroU8,
-    ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
+    ) -> Result<(TokenResponse, VerifyingKey, String), TokenRequestError> {
         let session_data = self.session_data();
 
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
 
-        build_token_response(
-            token_request,
-            dpop,
-            server_url,
-            credential_configurations,
-            batch_size,
-            session_data.issuable_documents.clone(),
-        )
+        build_token_response(token_request, dpop, server_url)
     }
 
     /// Apply the state transition on a `Session<AuthCodeIssued>` based on the result of
@@ -1018,10 +1068,11 @@ impl Session<AuthCodeIssued> {
     fn finalize_token_response(
         self,
         accepted_wallet_client_ids: &[String],
-        result: Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError>,
+        result: Result<(TokenResponse, VerifyingKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
-            Ok((token_response, credential_previews, dpop_pubkey, dpop_nonce)) => {
+            Ok((token_response, dpop_pubkey, dpop_nonce)) => {
+                let credential_previews = self.state.data.credential_previews.clone();
                 let next = self.transition(AccessTokenIssued {
                     access_token: token_response.access_token.clone(),
                     accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
@@ -1042,66 +1093,21 @@ impl Session<AuthCodeIssued> {
 /// Verify DPoP, build credential previews from the supplied (pre-provisioned) issuables, and
 /// generate a fresh access token + DPoP nonce. Shared by the pre-authorized-code and
 /// authorization-code token-request paths.
-fn build_token_response<K, L>(
+fn build_token_response(
     token_request: &TokenRequest,
     dpop: Dpop,
     server_url: &BaseUrl,
-    credential_configurations: &CredentialConfigurations<K, L>,
-    batch_size: NonZeroU8,
-    issuables: VecNonEmpty<IssuableDocument>,
-) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
+) -> Result<(TokenResponse, VerifyingKey, String), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
     let code = token_request.code().clone();
 
-    let preview_states = issuables
-        .into_nonempty_iter()
-        .map(|document| credential_preview_state_for_issuable_document(credential_configurations, document, batch_size))
-        .collect::<Result<VecNonEmpty<_>, TokenRequestError>>()?;
-
     let dpop_nonce = random_string(32);
     let token_response = TokenResponse::new(AccessToken::new(&code));
 
-    Ok((token_response, preview_states, dpop_public_key, dpop_nonce))
-}
-
-fn credential_preview_state_for_issuable_document<K, L>(
-    credential_configurations: &CredentialConfigurations<K, L>,
-    document: IssuableDocument,
-    batch_size: NonZeroU8,
-) -> Result<CredentialPreviewState, TokenRequestError> {
-    let format = document.format;
-    let (credential_config_id, credential_config) = credential_configurations
-        .get_by_format_and_attestation_type(format, &document.attestation_type)
-        .ok_or_else(|| TokenRequestError::CredentialTypeNotOffered(format, document.attestation_type.clone()))?;
-
-    document
-        .validate_with_metadata(credential_config.metadata.normalized())
-        .map_err(TokenRequestError::AttributesError)?;
-
-    // Truncate the current time to only include the date part, so that all issued credentials on a single
-    // day have the same `nbf` and `exp` field
-    let now = utc_now_truncated_to_days();
-    let valid_until = now.add(credential_config.valid_days);
-
-    let (batch_id, credential_payload) = document.into_id_and_previewable_credential_payload(
-        now,
-        valid_until,
-        credential_config.issuer_uri.clone(),
-        credential_config.attestation_qualification,
-    );
-
-    let state = CredentialPreviewState {
-        credential_configuration_id: credential_config_id.clone(),
-        format,
-        batch_size,
-        credential_payload,
-        batch_id,
-    };
-
-    Ok(state)
+    Ok((token_response, dpop_public_key, dpop_nonce))
 }
 
 impl From<Session<AccessTokenIssued>> for SessionState<IssuanceData> {

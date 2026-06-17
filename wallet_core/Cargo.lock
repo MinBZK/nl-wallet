@@ -5598,6 +5598,7 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
  "serde_qs",
