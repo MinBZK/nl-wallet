@@ -3,7 +3,7 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::DistinguishedName;
+use crypto::x509::CanonicalDistinguishedName;
 use entity::revocation_info;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -17,7 +17,7 @@ use uuid::Uuid;
 pub struct RevocationInfo {
     pub(super) attestation_copy_id: Uuid,
     pub(super) status_claim: StatusClaim,
-    pub(super) issuer_cert_distinguished_name: DistinguishedName,
+    pub(super) issuer_cert_distinguished_name: CanonicalDistinguishedName,
 }
 
 impl RevocationInfo {
@@ -75,8 +75,8 @@ mod test {
     #[test]
     fn test_verify_revocation() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_cert = ca.generate_status_list_mock().unwrap();
-        let issuer_cert_dn = issuer_cert.certificate().distinguished_name_canonical().unwrap();
+        let issuer_cert = ca.generate_issuer_status_list_mock().unwrap();
+        let issuer_cert_dn = issuer_cert.certificate().to_canonical_distinguished_name().unwrap();
         let issuer_trust_anchors = TrustAnchors::from(&ca);
 
         let revocation_verifier =

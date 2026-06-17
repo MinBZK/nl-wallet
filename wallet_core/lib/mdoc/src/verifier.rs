@@ -384,7 +384,7 @@ impl Document {
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
-                        issuer_certificate.distinguished_name_canonical()?,
+                        issuer_certificate.to_canonical_distinguished_name()?,
                         status_claim.clone(),
                         time,
                     )
@@ -543,7 +543,7 @@ mod tests {
                 &IsoCertTimeGenerator,
                 &TrustAnchors::from(&ca),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock().unwrap(),
+                    ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
                 &supported_algorithms,
             )

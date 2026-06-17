@@ -475,6 +475,8 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateUsage;
+    use crypto::x509::DistinguishedName;
+    use crypto::x509::NO_SAN;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde::Deserialize;
@@ -571,13 +573,8 @@ mod tests {
 
     #[tokio::test]
     async fn cose_with_certificate() {
-        let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
-        let issuer_key_pair = ca
-            .generate_key_pair(
-                "cert.example.com",
-                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            )
-            .unwrap();
+        let ca = Ca::generate_mock();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let payload = ToyMessage::default();
         let header = cose::header_with_x5chain(&vec_nonempty![issuer_key_pair.certificate()]);
@@ -595,13 +592,8 @@ mod tests {
 
     #[tokio::test]
     async fn x5chain_single_cert() {
-        let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
-        let issuer_key_pair = ca
-            .generate_key_pair(
-                "cert.example.com",
-                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            )
-            .unwrap();
+        let ca = Ca::generate_mock();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let cert = issuer_key_pair.certificate();
         let header = cose::header_with_x5chain(&vec_nonempty![cert]);
@@ -618,12 +610,14 @@ mod tests {
     #[tokio::test]
     async fn verify_against_trust_anchors_with_intermediate_cert() {
         // Root CA that permits one level of intermediate CAs
-        let root_ca = Ca::generate_with_intermediate_count("root-ca.example.com", Default::default(), 1).unwrap();
+        let root_ca =
+            Ca::generate_with_intermediate_count(DistinguishedName::create_mock("root-ca"), Default::default(), 1)
+                .unwrap();
 
         // Intermediate CA and cert
         let intermediate_ca = root_ca
             .generate_intermediate(
-                "intermediate-ca.example.com",
+                DistinguishedName::create_mock("intermediate-ca"),
                 CertificateConfiguration::with_usage(CertificateUsage::Mdl),
             )
             .unwrap();
@@ -632,8 +626,9 @@ mod tests {
         // Leaf key pair and
         let leaf_key_pair = intermediate_ca
             .generate_key_pair(
-                "leaf.example.com",
+                DistinguishedName::create_mock("leaf"),
                 CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                NO_SAN,
             )
             .unwrap();
         let leaf_certificate = leaf_key_pair.certificate();
@@ -662,17 +657,21 @@ mod tests {
     #[tokio::test]
     async fn verify_against_trust_anchors_missing_intermediate() {
         // Root CA that permits one level of intermediate CAs
-        let root_ca = Ca::generate_with_intermediate_count("root-ca.example.com", Default::default(), 1).unwrap();
+        let root_ca =
+            Ca::generate_with_intermediate_count(DistinguishedName::create_mock("root-ca"), Default::default(), 1)
+                .unwrap();
+
         let intermediate_ca = root_ca
             .generate_intermediate(
-                "intermediate-ca.example.com",
+                DistinguishedName::create_mock("intermediate-ca"),
                 CertificateConfiguration::with_usage(CertificateUsage::Mdl),
             )
             .unwrap();
         let leaf_key_pair = intermediate_ca
             .generate_key_pair(
-                "leaf.example.com",
+                DistinguishedName::create_mock("leaf"),
                 CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                NO_SAN,
             )
             .unwrap();
 

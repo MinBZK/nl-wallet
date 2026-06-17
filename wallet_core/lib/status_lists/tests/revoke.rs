@@ -52,7 +52,7 @@ async fn setup_revocation_test(
 ) -> (PostgresStatusListService<SigningKey, NoRevokeAll>, Url) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
 
-    let key_pair = ca.generate_status_list_mock().unwrap();
+    let key_pair = ca.generate_issuer_status_list_mock().unwrap();
 
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(100).unwrap(),

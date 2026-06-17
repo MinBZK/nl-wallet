@@ -547,7 +547,7 @@ impl UnverifiedSdJwtPresentation {
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
-                        issuer_certificate.distinguished_name_canonical()?,
+                        issuer_certificate.to_canonical_distinguished_name()?,
                         status_claim.clone(),
                         time,
                     )
@@ -832,7 +832,7 @@ mod examples {
                 cnf: ConfirmationClaim::from_verifying_key(holder_pubkey).unwrap(),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
                 vct: PID_ATTESTATION_TYPE.to_owned(),
-                iss: "https://cert.issuer.example.com".parse().unwrap(),
+                iss: "https://issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
                 exp: Some((time.generate() + Days::new(365)).into()),
                 nbf: Some((std::cmp::max(time.generate() - Days::new(365), DateTime::UNIX_EPOCH)).into()),
@@ -859,7 +859,7 @@ mod examples {
                 cnf: ConfirmationClaim::Jwk(jwk_from_p256(holder_public_key).unwrap()),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
                 vct: PID_ATTESTATION_TYPE.to_owned(),
-                iss: "https://cert.issuer.example.com".parse().unwrap(),
+                iss: "https://issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
                 exp: None,
                 nbf: None,

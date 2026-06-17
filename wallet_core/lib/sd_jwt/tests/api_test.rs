@@ -8,8 +8,6 @@ use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateConfiguration;
-use crypto::x509::CertificateUsage;
 use futures::FutureExt;
 use itertools::Itertools;
 use jwt::jwk::jwk_from_p256;
@@ -427,10 +425,8 @@ fn test_wscd_presentation() {
         &time,
     );
 
-    let ca = Ca::generate("myca", Default::default()).unwrap();
-    let issuer_key_pair = ca
-        .generate_key_pair("mycert", CertificateConfiguration::with_usage(CertificateUsage::Mdl))
-        .unwrap();
+    let ca = Ca::generate_mock();
+    let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
     let wscd = MockRemoteWscd::new(vec![holder_key]);
 

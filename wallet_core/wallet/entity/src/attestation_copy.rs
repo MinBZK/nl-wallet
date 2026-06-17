@@ -1,4 +1,4 @@
-use crypto::x509::DistinguishedName;
+use crypto::x509::CanonicalDistinguishedName;
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
@@ -15,7 +15,7 @@ pub struct Model {
     pub key_identifier: String,
     pub status_list_url: Option<String>,
     pub status_list_index: Option<u32>,
-    pub issuer_certificate_dn: DistinguishedName,
+    pub issuer_certificate_dn: CanonicalDistinguishedName,
     pub revocation_status: Option<String>,
     pub attestation_format: AttestationFormat,
     pub attestation: CompressedBlob,

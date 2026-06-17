@@ -124,7 +124,7 @@ mod tests {
                 &IsoCertTimeGenerator,
                 &TrustAnchors::from(&ca),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock().unwrap(),
+                    ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
                 &SupportedAlgorithms::default(),
             )

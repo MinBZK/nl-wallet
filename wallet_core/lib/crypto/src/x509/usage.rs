@@ -99,7 +99,7 @@ impl CertificateUsage {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::assert_matches;
 
     use rstest::rstest;
@@ -108,14 +108,15 @@ mod test {
     use super::*;
 
     fn create_der_seq_of_oid_bytes(oid_bytes: &[&[u8]]) -> Vec<u8> {
-        let mut ext_bytes = Vec::with_capacity(128);
+        let mut der_bytes = Vec::with_capacity(128);
         // Write DER sequence of OIDs (assuming length fits in single byte)
-        ext_bytes.extend_from_slice(&[0x30, oid_bytes.iter().map(|b| b.len() as u8 + 2).sum()]);
+        der_bytes.extend_from_slice(&[0x30, 0]);
         for bytes in oid_bytes {
-            ext_bytes.extend_from_slice(&[0x06, bytes.len() as u8]);
-            ext_bytes.extend_from_slice(bytes);
+            der_bytes.extend_from_slice(&[0x06, bytes.len() as u8]);
+            der_bytes.extend_from_slice(bytes);
         }
-        ext_bytes
+        der_bytes[1] = der_bytes.len() as u8 - 2;
+        der_bytes
     }
 
     #[rstest]

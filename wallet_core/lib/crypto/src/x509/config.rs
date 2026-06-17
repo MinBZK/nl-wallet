@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 
-use crate::x509::CertificateUsage;
+use super::CertificateUsage;
 
 #[derive(Debug, Clone, Default)]
 pub struct CertificateConfiguration {

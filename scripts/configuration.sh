@@ -127,3 +127,6 @@ export SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-local}
 # Optionally use a single CA when generating certs. 0 is false, 1 is true.
 export USE_SINGLE_CA=${USE_SINGLE_CA:-0}
 export USE_SINGLE_CA_PATH=${USE_SINGLE_CA_PATH:-"$TARGET_DIR/single_ca"}
+
+# Access certificate details
+source "${DEVENV}/access_certificates.sh"

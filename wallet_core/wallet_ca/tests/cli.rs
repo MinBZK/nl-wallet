@@ -12,6 +12,12 @@ use assert_fs::prelude::*;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::CertificateUsage;
+use crypto::x509::DistinguishedName;
+use crypto::x509::SubjectAltNameUri;
+use crypto::x509::test::assert_x509_common_name;
+use crypto::x509::test::assert_x509_country_name;
+use crypto::x509::test::assert_x509_organization_identifier;
+use crypto::x509::test::assert_x509_organization_name;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
@@ -26,6 +32,7 @@ use predicates::str::StartsWithPredicate;
 use rand_core::OsRng;
 use time::Duration;
 use time::OffsetDateTime;
+use x509_parser::extensions::GeneralName;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
 
 trait RangeCompare<Offset> {
@@ -118,9 +125,12 @@ fn assert_generated_key(key_file: &ChildPath) -> Result<()> {
     Ok(())
 }
 
+#[expect(clippy::too_many_arguments, reason = "test function")]
 fn assert_generated_certificate(
     crt_file: &ChildPath,
-    expected_cn: &str,
+    expected_issuer_dn: &DistinguishedName,
+    expected_subject_dn: &DistinguishedName,
+    expected_san_uri: Option<&SubjectAltNameUri>,
     start: OffsetDateTime,
     end: OffsetDateTime,
     usage: Option<CertificateUsage>,
@@ -131,11 +141,34 @@ fn assert_generated_certificate(
     assert_eq!(crt_pem.label, "CERTIFICATE");
     let crt = crt_pem.parse_x509()?;
 
-    // verify CN
-    itertools::assert_equal(
-        crt.subject().iter_common_name().map(|a| a.as_str().unwrap()),
-        vec![expected_cn],
-    );
+    assert_x509_common_name(crt.issuer(), &expected_issuer_dn.common_name);
+    assert_x509_country_name(crt.issuer(), &expected_issuer_dn.country_name);
+    assert_x509_organization_name(crt.issuer(), &expected_issuer_dn.organization_name);
+    assert_x509_organization_identifier(crt.issuer(), &expected_issuer_dn.organization_identifier);
+
+    assert_x509_common_name(crt.subject(), &expected_subject_dn.common_name);
+    assert_x509_country_name(crt.subject(), &expected_subject_dn.country_name);
+    assert_x509_organization_name(crt.subject(), &expected_subject_dn.organization_name);
+    assert_x509_organization_identifier(crt.subject(), &expected_subject_dn.organization_identifier);
+
+    // verify SAN URI
+    if let Some(expected_san_uri) = expected_san_uri {
+        itertools::assert_equal(
+            crt.subject_alternative_name()
+                .unwrap()
+                .unwrap()
+                .value
+                .general_names
+                .iter()
+                .map(|gn| match gn {
+                    GeneralName::URI(uri) => uri.to_string(),
+                    _ => panic!("SAN is not a URI"),
+                }),
+            vec![expected_san_uri.as_ref().to_string()],
+        );
+    } else {
+        assert!(crt.subject_alternative_name().unwrap().is_none());
+    }
 
     // verify validity times with minute accuracy
     let not_before = crt.validity().not_before.to_datetime();
@@ -191,7 +224,9 @@ impl CommandExtension for Command {
     fn generate_ca(&mut self, file_prefix: &Path) -> &mut Self {
         self.arg("ca")
             .arg("--common-name")
-            .arg("test-ca")
+            .arg("CA")
+            .arg("--oid")
+            .arg("NTRNL-00000001")
             .arg("--file-prefix")
             .arg(file_prefix)
     }
@@ -211,7 +246,9 @@ impl CommandExtension for Command {
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("test-mdl-kp")
+            .arg("Test Issuer")
+            .arg("--oid")
+            .arg("NTRNL-00000002")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--issuer-auth-file")
@@ -233,7 +270,9 @@ impl CommandExtension for Command {
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("test-reader-auth-kp")
+            .arg("Test Reader")
+            .arg("--oid")
+            .arg("NTRNL-00000003")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--reader-auth-file")
@@ -249,7 +288,9 @@ impl CommandExtension for Command {
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("test-tsl-kp")
+            .arg("Test TSL")
+            .arg("--oid")
+            .arg("NTRNL-00000004")
             .arg("--file-prefix")
             .arg(file_prefix)
     }
@@ -272,7 +313,9 @@ impl CommandExtension for Command {
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("test-mdl-crt")
+            .arg("Test Issuer")
+            .arg("--oid")
+            .arg("NTRNL-00000002")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--issuer-auth-file")
@@ -297,7 +340,9 @@ impl CommandExtension for Command {
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("test-reader-auth-crt")
+            .arg("Test Reader")
+            .arg("--oid")
+            .arg("NTRNL-00000003")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--reader-auth-file")
@@ -315,7 +360,9 @@ impl CommandExtension for Command {
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("test-tsl-crt")
+            .arg("Test TSL")
+            .arg("--oid")
+            .arg("NTRNL-00000004")
             .arg("--file-prefix")
             .arg(file_prefix)
     }
@@ -345,12 +392,12 @@ fn generate_public_key(path: &ChildPath) {
     .unwrap();
 }
 
+const DEFAULT_LIFETIME: Duration = Duration::days(365);
+
 #[test]
 fn happy_flow_with_default_lifetime() -> Result<()> {
     let temp = TempDir::new()?;
     let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
-
-    let expected_lifetime = Duration::days(365);
 
     // Generate ca and assert success and stderr output
     Command::new(assert_cmd::cargo::cargo_bin!())
@@ -360,12 +407,20 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
 
     // Assert generated ca files
+    let ca_dn = DistinguishedName {
+        common_name: "CA".to_string(),
+        country_name: "NL".to_string(),
+        organization_name: "CA".to_string(),
+        organization_identifier: "NTRNL-00000001".to_string(),
+    };
     assert_generated_key(&ca_key)?;
     assert_generated_certificate(
         &ca_crt,
-        "test-ca",
+        &ca_dn,
+        &ca_dn,
+        None,
         OffsetDateTime::now_utc(),
-        OffsetDateTime::now_utc() + expected_lifetime,
+        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
         None,
     )?;
 
@@ -388,9 +443,16 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_key(&mdl_key)?;
         assert_generated_certificate(
             &mdl_crt,
-            "test-mdl-kp",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test Issuer".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test Issuer".to_string(),
+                organization_identifier: "NTRNL-00000002".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + expected_lifetime,
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::Mdl),
         )?;
     }
@@ -416,9 +478,16 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Assert generated issuer certificate
         assert_generated_certificate(
             &mdl_crt,
-            "test-mdl-crt",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test Issuer".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test Issuer".to_string(),
+                organization_identifier: "NTRNL-00000002".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + expected_lifetime,
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::Mdl),
         )?;
     }
@@ -442,9 +511,16 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_key(&rp_auth_key)?;
         assert_generated_certificate(
             &rp_auth_crt,
-            "test-reader-auth-kp",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test Reader".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test Reader".to_string(),
+                organization_identifier: "NTRNL-00000003".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + expected_lifetime,
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::ReaderAuth),
         )?;
     }
@@ -470,9 +546,16 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Assert generated reader certificate
         assert_generated_certificate(
             &rp_auth_crt,
-            "test-reader-auth-crt",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test Reader".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test Reader".to_string(),
+                organization_identifier: "NTRNL-00000003".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + expected_lifetime,
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::ReaderAuth),
         )?;
     }
@@ -488,13 +571,20 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             .success()
             .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
 
-        // Assert generated reader files
+        // Assert generated TSL files
         assert_generated_key(&tsl_key)?;
         assert_generated_certificate(
             &tsl_crt,
-            "test-tsl-kp",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test TSL".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + expected_lifetime,
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
@@ -513,12 +603,19 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             .success()
             .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
 
-        // Assert generated reader certificate
+        // Assert generated TSL certificate
         assert_generated_certificate(
             &tsl_crt,
-            "test-tsl-crt",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test TSL".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + expected_lifetime,
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
@@ -544,128 +641,22 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
 
     // Assert generated ca files
+    let ca_dn = DistinguishedName {
+        common_name: "CA".to_string(),
+        country_name: "NL".to_string(),
+        organization_name: "CA".to_string(),
+        organization_identifier: "NTRNL-00000001".to_string(),
+    };
     assert_generated_key(&ca_key)?;
     assert_generated_certificate(
         &ca_crt,
-        "test-ca",
+        &ca_dn,
+        &ca_dn,
+        None,
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + Duration::days(586),
         None,
     )?;
-
-    // Generate issuer key pair
-    {
-        let (mdl_prefix, mdl_crt, mdl_key) = keypair_paths(&temp, "test-mdl-kp");
-        let issuer_auth_json = temp.child("test-issuer-auth.json");
-
-        // Generate issuer registration JSON input file
-        issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
-
-        // Execute command and assert success and stderr output
-        Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-            .arg("--days=678")
-            .assert()
-            .success()
-            .stderr(predicate_successfully_generated_key_pair(&mdl_crt, &mdl_key)?);
-
-        // Assert generated issuer files
-        assert_generated_key(&mdl_key)?;
-        assert_generated_certificate(
-            &mdl_crt,
-            "test-mdl-kp",
-            OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + Duration::days(678),
-            Some(CertificateUsage::Mdl),
-        )?;
-    }
-
-    // Generate issuer certificate
-    {
-        let (mdl_prefix, mdl_crt, _) = keypair_paths(&temp, "test-mdl-crt");
-        let issuer_auth_json = temp.child("test-issuer-auth.json");
-
-        // Generate issuer registration JSON input file
-        issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
-
-        let public_key_path = public_key_path(&temp, "test-mdl-crt");
-        generate_public_key(&public_key_path);
-
-        // Execute command and assert success and stderr output
-        Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_issuer_cert(&public_key_path, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-            .arg("--days=678")
-            .assert()
-            .success()
-            .stderr(predicate_successfully_generated_certificate(&mdl_crt)?);
-
-        // Assert generated issuer certificate
-        assert_generated_certificate(
-            &mdl_crt,
-            "test-mdl-crt",
-            OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + Duration::days(678),
-            Some(CertificateUsage::Mdl),
-        )?;
-    }
-
-    // Generate reader key pair
-    {
-        let (rp_auth_prefix, rp_auth_crt, rp_auth_key) = keypair_paths(&temp, "test-reader-auth-kp");
-        let rp_auth_json = temp.child("test-reader-auth.json");
-
-        // Generate reader JSON input file
-        rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
-
-        // Execute command and assert success and stderr output
-        Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-            .arg("--days")
-            .arg("7")
-            .assert()
-            .success()
-            .stderr(predicate_successfully_generated_key_pair(&rp_auth_crt, &rp_auth_key)?);
-
-        // Assert generated reader files
-        assert_generated_key(&rp_auth_key)?;
-        assert_generated_certificate(
-            &rp_auth_crt,
-            "test-reader-auth-kp",
-            OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + Duration::days(7),
-            Some(CertificateUsage::ReaderAuth),
-        )?;
-    }
-
-    // Generate reader certificate
-    {
-        let (rp_auth_prefix, rp_auth_crt, _) = keypair_paths(&temp, "test-reader-auth-crt");
-        let rp_auth_json = temp.child("test-reader-auth.json");
-
-        // Generate reader registration JSON input file
-        rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
-
-        let public_key_path = public_key_path(&temp, "test-reader-auth-crt");
-        generate_public_key(&public_key_path);
-
-        // Execute command and assert success and stderr output
-        Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_reader_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-            .arg("--days")
-            .arg("7")
-            .assert()
-            .success()
-            .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
-
-        // Assert generated reader certificate
-        assert_generated_certificate(
-            &rp_auth_crt,
-            "test-reader-auth-crt",
-            OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + Duration::days(7),
-            Some(CertificateUsage::ReaderAuth),
-        )?;
-    }
 
     // Generate tsl key pair
     {
@@ -680,11 +671,18 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             .success()
             .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
 
-        // Assert generated reader files
+        // Assert generated certificate files
         assert_generated_key(&tsl_key)?;
         assert_generated_certificate(
             &tsl_crt,
-            "test-tsl-kp",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test TSL".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
             Some(CertificateUsage::OAuthStatusSigning),
@@ -707,12 +705,227 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             .success()
             .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
 
-        // Assert generated reader certificate
+        // Assert generated certificate
         assert_generated_certificate(
             &tsl_crt,
-            "test-tsl-crt",
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test TSL".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
+            Some(CertificateUsage::OAuthStatusSigning),
+        )?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_with_modified_dn() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success and stderr output
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .arg("--country-name")
+        .arg("DE")
+        .arg("--organization-name")
+        .arg("CA GmbH")
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    // Assert generated ca files
+    let ca_dn = DistinguishedName {
+        common_name: "CA".to_string(),
+        country_name: "DE".to_string(),
+        organization_name: "CA GmbH".to_string(),
+        organization_identifier: "NTRNL-00000001".to_string(),
+    };
+    assert_generated_key(&ca_key)?;
+    assert_generated_certificate(
+        &ca_crt,
+        &ca_dn,
+        &ca_dn,
+        None,
+        OffsetDateTime::now_utc(),
+        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+        None,
+    )?;
+
+    // Generate tsl key pair
+    {
+        let (tsl_prefix, tsl_crt, tsl_key) = keypair_paths(&temp, "test-tsl-kp");
+
+        // Execute command and assert success and stderr output
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .arg("--country-name")
+            .arg("DE")
+            .arg("--organization-name")
+            .arg("Test TSL GmbH")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
+
+        // Assert generated cert files
+        assert_generated_key(&tsl_key)?;
+        assert_generated_certificate(
+            &tsl_crt,
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "DE".to_string(),
+                organization_name: "Test TSL GmbH".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            None,
+            OffsetDateTime::now_utc(),
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            Some(CertificateUsage::OAuthStatusSigning),
+        )?;
+    }
+
+    // Generate tsl certificate
+    {
+        let (tsl_prefix, tsl_crt, _) = keypair_paths(&temp, "test-tsl-crt");
+
+        let public_key_path = public_key_path(&temp, "test-tsl-crt");
+        generate_public_key(&public_key_path);
+
+        // Execute command and assert success and stderr output
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .arg("--country-name")
+            .arg("DE")
+            .arg("--organization-name")
+            .arg("Test TSL GmbH")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
+
+        // Assert generated certificate
+        assert_generated_certificate(
+            &tsl_crt,
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "DE".to_string(),
+                organization_name: "Test TSL GmbH".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            None,
+            OffsetDateTime::now_utc(),
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            Some(CertificateUsage::OAuthStatusSigning),
+        )?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_with_san() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success and stderr output
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    // Assert generated ca files
+    let ca_dn = DistinguishedName {
+        common_name: "CA".to_string(),
+        country_name: "NL".to_string(),
+        organization_name: "CA".to_string(),
+        organization_identifier: "NTRNL-00000001".to_string(),
+    };
+    assert_generated_key(&ca_key)?;
+    assert_generated_certificate(
+        &ca_crt,
+        &ca_dn,
+        &ca_dn,
+        None,
+        OffsetDateTime::now_utc(),
+        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+        None,
+    )?;
+
+    // Generate tsl key pair
+    {
+        let (tsl_prefix, tsl_crt, tsl_key) = keypair_paths(&temp, "test-tsl-kp");
+
+        // Execute command and assert success and stderr output
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .arg("--san-uri")
+            .arg("https://tsl.example.com")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
+
+        // Assert generated cert files
+        assert_generated_key(&tsl_key)?;
+        assert_generated_certificate(
+            &tsl_crt,
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test TSL".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            Some(&"https://tsl.example.com".parse().unwrap()),
+            OffsetDateTime::now_utc(),
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            Some(CertificateUsage::OAuthStatusSigning),
+        )?;
+    }
+
+    // Generate tsl certificate
+    {
+        let (tsl_prefix, tsl_crt, _) = keypair_paths(&temp, "test-tsl-crt");
+
+        let public_key_path = public_key_path(&temp, "test-tsl-crt");
+        generate_public_key(&public_key_path);
+
+        // Execute command and assert success and stderr output
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .arg("--san-uri")
+            .arg("https://tsl.example.com")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
+
+        // Assert generated certificate
+        assert_generated_certificate(
+            &tsl_crt,
+            &ca_dn,
+            &DistinguishedName {
+                common_name: "Test TSL".to_string(),
+                country_name: "NL".to_string(),
+                organization_name: "Test TSL".to_string(),
+                organization_identifier: "NTRNL-00000004".to_string(),
+            },
+            Some(&"https://tsl.example.com".parse().unwrap()),
+            OffsetDateTime::now_utc(),
+            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
