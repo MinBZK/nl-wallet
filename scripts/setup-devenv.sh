@@ -389,7 +389,7 @@ DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_find
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
-ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | openssl enc -base64 -A | tr '+/' '-_' | tr -d '=')
+ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
 export ISSUER_CA_AKI
 
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
