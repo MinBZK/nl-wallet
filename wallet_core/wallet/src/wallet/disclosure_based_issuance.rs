@@ -26,6 +26,7 @@ use super::disclosure::RedirectUriPurpose;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::errors::UpdatePolicyError;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -76,7 +77,7 @@ where
     pub async fn continue_disclosure_based_issuance(
         &mut self,
         selected_indices: &[usize],
-        pin: String,
+        pin: Pin,
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
@@ -349,7 +350,7 @@ mod tests {
 
         // Accept disclosure based issuance
         let previews = wallet
-            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.into())
             .await
             .expect("continuing disclosure based issuance should not have resulted in an error");
 
@@ -416,7 +417,7 @@ mod tests {
             .returning(move || Ok(vec![]));
 
         let previews = wallet
-            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.into())
             .await
             .expect("continuing disclosure based issuance should not have resulted in an error");
 
@@ -434,7 +435,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         let error = wallet
-            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.into())
             .await
             .expect_err("continuing disclosure based issuance should have resulted in an error");
 

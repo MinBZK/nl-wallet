@@ -63,6 +63,7 @@ use crate::instruction::InstructionClient;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -588,7 +589,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_issuance(&mut self, pin: String) -> Result<IssuanceResult, IssuanceError>
+    pub async fn accept_issuance(&mut self, pin: Pin) -> Result<IssuanceResult, IssuanceError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
@@ -1880,7 +1881,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect("Could not accept PID issuance");
 
@@ -1947,7 +1948,7 @@ mod tests {
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1966,7 +1967,7 @@ mod tests {
 
         // Accepting PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1992,7 +1993,7 @@ mod tests {
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2049,7 +2050,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2144,7 +2145,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2177,7 +2178,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2233,7 +2234,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2395,7 +2396,7 @@ mod tests {
         }));
 
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.into())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 

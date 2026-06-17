@@ -17,6 +17,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
 use crate::account_provider::AccountProviderClient;
+use crate::pin::key::Pin;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
 use crate::errors::StorageError;
@@ -82,7 +83,7 @@ where
     #[sentry_capture_error]
     pub async fn delete_attestation(
         &mut self,
-        pin: String,
+        pin: Pin,
         attestation_id: String,
     ) -> Result<(), DeleteAttestationError> {
         info!("Deleting attestation {attestation_id}");
@@ -249,7 +250,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let error = wallet
-            .delete_attestation(PIN.to_string(), "not-a-valid-uuid".to_owned())
+            .delete_attestation(PIN.into(), "not-a-valid-uuid".to_owned())
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
@@ -261,7 +262,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         let error = wallet
-            .delete_attestation(PIN.to_string(), Uuid::new_v4().to_string())
+            .delete_attestation(PIN.into(), Uuid::new_v4().to_string())
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
@@ -274,7 +275,7 @@ mod tests {
         wallet.lock();
 
         let error = wallet
-            .delete_attestation(PIN.to_string(), Uuid::new_v4().to_string())
+            .delete_attestation(PIN.into(), Uuid::new_v4().to_string())
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
@@ -287,7 +288,7 @@ mod tests {
         wallet.update_policy_repository.state = VersionState::Block;
 
         let error = wallet
-            .delete_attestation(PIN.to_string(), Uuid::new_v4().to_string())
+            .delete_attestation(PIN.into(), Uuid::new_v4().to_string())
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
@@ -306,7 +307,7 @@ mod tests {
             .return_once(|_| Ok(None));
 
         let error = wallet
-            .delete_attestation(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.into(), attestation_id.to_string())
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
@@ -335,7 +336,7 @@ mod tests {
         setup_delete_attestation_mocks(&mut wallet, attestation_id, Ok(()));
 
         wallet
-            .delete_attestation(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.into(), attestation_id.to_string())
             .await
             .expect("delete_attestation should succeed");
 
@@ -378,7 +379,7 @@ mod tests {
         setup_delete_attestation_mocks(&mut wallet, attestation_id, Ok(()));
 
         wallet
-            .delete_attestation(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.into(), attestation_id.to_string())
             .await
             .expect("delete_attestation should succeed");
 
@@ -394,7 +395,7 @@ mod tests {
         setup_delete_attestation_mocks(&mut wallet, attestation_id, Err(StorageError::AlreadyOpened));
 
         let error = wallet
-            .delete_attestation(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.into(), attestation_id.to_string())
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
@@ -418,7 +419,7 @@ mod tests {
             });
 
         let error = wallet
-            .delete_attestation(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.into(), attestation_id.to_string())
             .await
             .expect_err("delete_attestation should have resulted in an error");
 

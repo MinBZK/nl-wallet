@@ -144,7 +144,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     };
 
     let return_url = wallet
-        .accept_disclosure(&[msc_index], pin.to_string())
+        .accept_disclosure(&[msc_index], pin.into())
         .await
         .expect("Could not accept disclosure");
 
@@ -236,7 +236,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
 
     // If the issuer has no attestations to issue, we receive an empty vec and no error.
     let attestations = wallet
-        .continue_disclosure_based_issuance(&[0], pin.to_owned())
+        .continue_disclosure_based_issuance(&[0], pin.into())
         .await
         .unwrap();
     assert!(attestations.is_empty());

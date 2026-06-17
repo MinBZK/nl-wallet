@@ -45,7 +45,7 @@ async fn test_pre_authorized_code_issuance() {
 
     // Accept the issuance with the wallet PIN.
     wallet
-        .accept_issuance(pin.to_owned())
+        .accept_issuance(pin.into())
         .await
         .expect("should accept issuance");
 

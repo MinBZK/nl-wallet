@@ -40,13 +40,13 @@ use ring::error::Unspecified as UnspecifiedRingError;
 use zeroize::ZeroizeOnDrop;
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
-pub fn new_pin_salt() -> Vec<u8> {
+pub fn new_pin_salt() -> KeyBytes {
     // Note: when passed to the HKDF function, the variable `salt` does not act as the salt but instead as the input key
     // material. The HKDF salt parameter is left empty. From a cryptographic perspective, what we call "salt" here
     // should really be called "key" or "input_key_material" or something, but we also already have a PIN private
     // key and a corresponding PIN public keys. So in the naming of things we would end up with confusingly many
     // "keys".
-    random_bytes(32)
+    random_bytes(32).into()
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -64,6 +64,18 @@ impl From<PinKeyError> for p256::ecdsa::Error {
 #[derive(Clone, ZeroizeOnDrop, From, AsRef)]
 pub struct Pin {
     pin: String,
+}
+
+impl Pin {
+    pub fn as_str(&self) -> &str {
+        &self.pin
+    }
+}
+
+impl<'a> From<&'a str> for Pin {
+    fn from(value: &'a str) -> Self {
+        value.to_string().into()
+    }
 }
 
 /// All PIN data needed to compute signatures. Implements [`Signer<Signature>`] such that the ECDSA private key is
@@ -220,11 +232,11 @@ mod tests {
     fn test_pin_private_key() {
         let salt = new_pin_salt();
 
-        let privkey = pin_private_key(salt.as_slice(), "123456").expect("Cannot create private key from PIN");
-        let same = pin_private_key(salt.as_slice(), "123456").expect("Cannot create private key from PIN");
+        let privkey = pin_private_key(salt.as_ref(), "123456").expect("Cannot create private key from PIN");
+        let same = pin_private_key(salt.as_ref(), "123456").expect("Cannot create private key from PIN");
         let different_salt =
-            pin_private_key(random_bytes(32).as_slice(), "123456").expect("Cannot create private key from PIN");
-        let different_pin = pin_private_key(salt.as_slice(), "654321").expect("Cannot create private key from PIN");
+            pin_private_key(random_bytes(32).as_ref(), "123456").expect("Cannot create private key from PIN");
+        let different_pin = pin_private_key(salt.as_ref(), "654321").expect("Cannot create private key from PIN");
 
         assert_eq!(privkey, same);
         assert_ne!(privkey, different_salt);
@@ -238,8 +250,8 @@ mod tests {
         let challenge = b"challenge";
 
         let pin_key = PinKey {
-            pin: &pin.to_string().into(),
-            salt: &salt.into(),
+            pin: &pin.into(),
+            salt: &salt,
         };
         let public_key = pin_key.verifying_key().expect("Cannot get public key from PIN key");
         let response = pin_key

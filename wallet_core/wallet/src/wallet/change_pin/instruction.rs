@@ -6,6 +6,8 @@ use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::registration::WalletCertificate;
 
+use crypto::utils::KeyBytes;
+
 use crate::account_provider::AccountProviderClient;
 use crate::errors::AccountProviderError;
 use crate::errors::AccountProviderResponseError;
@@ -14,6 +16,7 @@ use crate::instruction::InstructionClientFactory;
 use crate::instruction::InstructionError;
 use crate::pin::change::ChangePinClient;
 use crate::pin::change::ChangePinClientError;
+use crate::pin::key::Pin;
 use crate::pin::key::PinKey;
 use crate::storage::Storage;
 
@@ -67,19 +70,18 @@ where
 
     async fn start_new_pin(
         &self,
-        old_pin: &str,
-        new_pin: &str,
-        new_pin_salt: &[u8],
+        old_pin: &Pin,
+        new_pin: &Pin,
+        new_pin_salt: &KeyBytes,
     ) -> Result<WalletCertificate, Self::Error> {
-        let new_pin_key = PinKey {
-            pin: new_pin,
-            salt: new_pin_salt,
-        };
-
-        let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.to_string());
+        let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.clone());
 
         client
             .construct_and_send(|challenge| async move {
+                let new_pin_key = PinKey {
+                    pin: new_pin,
+                    salt: new_pin_salt,
+                };
                 let new_pin_key_pop = new_pin_key
                     .try_sign(&challenge)
                     .await
@@ -96,13 +98,13 @@ where
             .await
     }
 
-    async fn commit_new_pin(&self, new_pin: &str) -> Result<(), Self::Error> {
-        let client: InstructionClient<S, AK, GK, A> = self.create(new_pin.to_string());
+    async fn commit_new_pin(&self, new_pin: &Pin) -> Result<(), Self::Error> {
+        let client: InstructionClient<S, AK, GK, A> = self.create(new_pin.clone());
         client.send(ChangePinCommit {}).await
     }
 
-    async fn rollback_new_pin(&self, old_pin: &str) -> Result<(), Self::Error> {
-        let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.to_string());
+    async fn rollback_new_pin(&self, old_pin: &Pin) -> Result<(), Self::Error> {
+        let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.clone());
         client.send(ChangePinRollback {}).await
     }
 }

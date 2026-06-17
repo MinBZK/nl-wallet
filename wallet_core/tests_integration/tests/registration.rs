@@ -47,7 +47,7 @@ async fn ltc43_test_registration_blocked() {
     )
     .await;
 
-    let result = wallet.register("123344").await;
+    let result = wallet.register("123344".into()).await;
     assert!(wallet.is_blocked());
 
     assert!(matches!(result, Err(WalletRegistrationError::VersionBlocked)));

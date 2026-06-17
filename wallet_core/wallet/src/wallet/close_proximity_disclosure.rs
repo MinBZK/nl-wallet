@@ -2,6 +2,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use crate::pin::key::Pin as WalletPin;
+
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::disclosure_type::DisclosureType;
@@ -481,7 +483,7 @@ where
         &mut self,
         close_proximity_session: CloseProximityDisclosureSession,
         selected_indices: &[usize],
-        pin: String,
+        pin: WalletPin,
         attested_key_registration_data_and_config: AttestedKeyRegistrationDataAndConfig<AKH>,
     ) -> Result<(), DisclosureError>
     where
@@ -2077,7 +2079,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let result = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.into())
             .await
             .expect("accepting close proximity disclosure should succeed");
 
@@ -2115,7 +2117,7 @@ mod tests {
         });
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.into())
             .await
             .expect_err("accepting close proximity disclosure should report the disconnect");
 
@@ -2160,7 +2162,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.into())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2201,7 +2203,7 @@ mod tests {
 
         assert!(
             wallet
-                .accept_disclosure(&[0], PIN.to_string())
+                .accept_disclosure(&[0], PIN.into())
                 .await
                 .expect("accepting close proximity disclosure should succeed")
                 .is_none()
@@ -2236,7 +2238,7 @@ mod tests {
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         let error = wallet
-            .accept_disclosure(&[0], "whatever".to_string())
+            .accept_disclosure(&[0], "whatever".into())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2279,7 +2281,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.into())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2332,7 +2334,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.into())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2378,7 +2380,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.into())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 

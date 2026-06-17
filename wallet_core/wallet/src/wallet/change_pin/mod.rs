@@ -19,6 +19,7 @@ use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientFactory;
 use crate::instruction::InstructionClientParameters;
 use crate::pin::change::BeginChangePinOperation;
+use crate::pin::key::Pin;
 use crate::pin::change::ChangePinError;
 use crate::pin::change::FinishChangePinOperation;
 use crate::repository::Repository;
@@ -37,7 +38,7 @@ where
     CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
-    pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>
+    pub async fn begin_change_pin(&mut self, old_pin: Pin, new_pin: Pin) -> Result<(), ChangePinError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
@@ -100,7 +101,7 @@ where
             &hw_pubkey,
         );
 
-        let result = session.begin_change_pin(old_pin, new_pin).await;
+        let result = session.begin_change_pin(&old_pin, &new_pin).await;
         let (new_pin_salt, new_wallet_certificate) = match result {
             Err(error @ ChangePinError::Instruction(InstructionError::AccountRevoked(data))) => {
                 self.handle_wallet_revocation(data).await;
@@ -109,7 +110,7 @@ where
             _ => result?,
         };
 
-        registration_data.pin_salt = new_pin_salt;
+        registration_data.pin_salt = new_pin_salt.as_ref().to_vec();
         registration_data.wallet_certificate = new_wallet_certificate;
 
         info!("PIN change started");
@@ -117,7 +118,7 @@ where
         Ok(())
     }
 
-    pub async fn continue_change_pin(&mut self, pin: &str) -> Result<(), ChangePinError> {
+    pub async fn continue_change_pin(&mut self, pin: &Pin) -> Result<(), ChangePinError> {
         info!("Continue PIN change");
 
         info!("Checking if blocked");
@@ -211,7 +212,7 @@ mod tests {
             .return_once(|_, _: Instruction<ChangePinStart>| Ok(wp_result));
 
         let actual = wallet
-            .begin_change_pin("123456".to_string(), "111122".to_string())
+            .begin_change_pin("123456".into(), "111122".into())
             .await;
         assert_matches!(actual, Ok(()));
 
@@ -230,7 +231,7 @@ mod tests {
             .times(1)
             .return_once(|_, _: Instruction<ChangePinCommit>| Ok(wp_result));
 
-        let actual = wallet.continue_change_pin("111122").await;
+        let actual = wallet.continue_change_pin(&"111122".into()).await;
         assert_matches!(actual, Ok(()));
 
         let change_pin_state = wallet

@@ -20,7 +20,7 @@ async fn ltc41_test_pin_recovery() {
     wallet = do_pin_recovery(wallet, new_pin.clone()).await;
 
     // The wallet can now use the new PIN.
-    wallet.check_pin(new_pin).await.unwrap();
+    wallet.check_pin(new_pin.into()).await.unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -37,12 +37,12 @@ async fn ltc46_test_pin_recovery_timeout() {
     let wrong_pin = "332211".to_string();
     for _ in 0..3 {
         assert_matches!(
-            wallet.check_pin(wrong_pin.clone()).await.unwrap_err(),
+            wallet.check_pin(wrong_pin.clone().into()).await.unwrap_err(),
             WalletUnlockError::Instruction(InstructionError::IncorrectPin { .. })
         );
     }
     assert_matches!(
-        wallet.check_pin(wrong_pin.clone()).await.unwrap_err(),
+        wallet.check_pin(wrong_pin.clone().into()).await.unwrap_err(),
         WalletUnlockError::Instruction(InstructionError::Timeout { .. })
     );
 
@@ -50,5 +50,5 @@ async fn ltc46_test_pin_recovery_timeout() {
     wallet = do_pin_recovery(wallet, new_pin.clone()).await;
 
     // The wallet can now use the new PIN.
-    wallet.check_pin(new_pin).await.unwrap();
+    wallet.check_pin(new_pin.into()).await.unwrap();
 }

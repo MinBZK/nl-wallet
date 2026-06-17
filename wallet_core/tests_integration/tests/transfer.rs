@@ -65,10 +65,10 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
         .await
         .unwrap();
     source
-        .continue_disclosure_based_issuance(&[0], String::from(source_wallet_pin))
+        .continue_disclosure_based_issuance(&[0], source_wallet_pin.into())
         .await
         .unwrap();
-    source.accept_issuance(String::from(source_wallet_pin)).await.unwrap();
+    source.accept_issuance(source_wallet_pin.into()).await.unwrap();
 
     let mut destination = setup_file_wallet(
         config_server_config,
@@ -121,7 +121,7 @@ async fn ltc62_test_wallet_transfer() {
 
     // Other instructions are not allowed during transfer
     let err = destination
-        .begin_change_pin(destination_wallet_pin.clone(), String::from("565656"))
+        .begin_change_pin(destination_wallet_pin.clone().into(), String::from("565656").into())
         .await
         .expect_err("should fail during transfer");
     assert_matches!(
@@ -129,7 +129,7 @@ async fn ltc62_test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
     let err = source
-        .begin_change_pin(source_wallet_pin.clone(), String::from("565656"))
+        .begin_change_pin(source_wallet_pin.clone().into(), String::from("565656").into())
         .await
         .expect_err("should fail during transfer");
     assert_matches!(
@@ -137,7 +137,7 @@ async fn ltc62_test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
 
-    source.confirm_transfer(source_wallet_pin.clone()).await.unwrap();
+    source.confirm_transfer(source_wallet_pin.clone().into()).await.unwrap();
 
     assert_states(TransferSessionState::Confirmed, &mut destination, &mut source).await;
 
@@ -207,7 +207,7 @@ async fn ltc64_test_wallet_transfer_canceled_from_destination() {
 
     assert_states(TransferSessionState::Paired, &mut destination, &mut source).await;
 
-    source.confirm_transfer(source_wallet_pin.clone()).await.unwrap();
+    source.confirm_transfer(source_wallet_pin.clone().into()).await.unwrap();
 
     assert_states(TransferSessionState::Confirmed, &mut destination, &mut source).await;
 

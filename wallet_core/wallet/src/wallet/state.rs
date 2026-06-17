@@ -24,6 +24,7 @@ use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::PinRecoveryData;
@@ -265,7 +266,7 @@ where
 
     pub(super) async fn prepare_remote_instruction_client(
         &mut self,
-        pin: String,
+        pin: Pin,
         (attested_key, registration_data, config): AttestedKeyRegistrationDataAndConfig<AKH>,
     ) -> Result<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError>
     where

@@ -1096,13 +1096,16 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
     assert!(!wallet.has_registration());
 
     // Register with a valid PIN.
-    wallet.register(pin).await.expect("Could not register wallet");
+    wallet
+        .register(pin.into())
+        .await
+        .expect("Could not register wallet");
 
     // The registration should now be loaded.
     assert!(wallet.has_registration());
 
     // Registering again should result in an error.
-    assert!(wallet.register(pin).await.is_err());
+    assert!(wallet.register(pin.into()).await.is_err());
 
     wallet
 }
@@ -1164,7 +1167,7 @@ pub async fn do_pid_issuance_with_purpose(
         .await
         .expect("Could not continue pid issuance");
     wallet
-        .accept_issuance(pin)
+        .accept_issuance(pin.into())
         .await
         .expect("Could not accept pid issuance");
     wallet
@@ -1183,7 +1186,7 @@ pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> 
         .await
         .expect("Could not continue pin recovery");
     wallet
-        .complete_pin_recovery(new_pin)
+        .complete_pin_recovery(new_pin.into())
         .await
         .expect("Could not complete pin recovery");
     wallet
@@ -1205,11 +1208,11 @@ pub async fn do_degree_issuance(
         .unwrap();
 
     let attestation_previews = wallet
-        .continue_disclosure_based_issuance(&[0], pin.clone())
+        .continue_disclosure_based_issuance(&[0], pin.clone().into())
         .await
         .unwrap();
 
-    wallet.accept_issuance(pin).await.unwrap();
+    wallet.accept_issuance(pin.into()).await.unwrap();
 
     attestation_previews
 }

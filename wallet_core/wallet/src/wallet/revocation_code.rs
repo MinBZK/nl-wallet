@@ -16,6 +16,7 @@ use super::Wallet;
 use super::WalletRegistration;
 use super::issuance::PidAttestationFormat;
 use super::lock::WalletUnlockError;
+use crate::pin::key::Pin;
 use crate::account_provider::AccountProviderClient;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
@@ -92,7 +93,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_revocation_code_with_pin(&mut self, pin: String) -> Result<&RevocationCode, RevocationCodeError>
+    pub async fn get_revocation_code_with_pin(&mut self, pin: Pin) -> Result<&RevocationCode, RevocationCodeError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -223,7 +224,7 @@ mod test {
             .return_once(|_, _: Instruction<CheckPin>| Ok(create_wp_result(())));
 
         let _ = wallet
-            .get_revocation_code_with_pin(PIN.to_string())
+            .get_revocation_code_with_pin(PIN.into())
             .await
             .expect("retrieving revocation code using PIN should succeed");
     }
@@ -235,7 +236,7 @@ mod test {
         wallet.update_policy_repository.state = VersionState::Block;
 
         let error = wallet
-            .get_revocation_code_with_pin(PIN.to_string())
+            .get_revocation_code_with_pin(PIN.into())
             .await
             .expect_err("retrieving revocation code using PIN should not succeed when the wallet is blocked");
 
@@ -277,7 +278,7 @@ mod test {
             });
 
         let error = wallet
-            .get_revocation_code_with_pin(PIN.to_string())
+            .get_revocation_code_with_pin(PIN.into())
             .await
             .expect_err("retrieving revocation code using PIN should not succeed when using an incorrect PIN");
 

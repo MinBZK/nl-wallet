@@ -89,7 +89,7 @@ async fn test_delete_attestation_ok() {
 
     // Delete the degree attestation.
     wallet
-        .delete_attestation(pin.to_string(), attestation_id.to_string())
+        .delete_attestation(pin.into(), attestation_id.to_string())
         .await
         .expect("delete_attestation should succeed");
 

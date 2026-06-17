@@ -8,10 +8,13 @@ use serde::Deserialize;
 use serde::Serialize;
 use wallet_account::messages::registration::WalletCertificate;
 
+use crypto::utils::KeyBytes;
+
 use crate::errors::InstructionError;
 use crate::errors::PinValidationError;
 use crate::errors::StorageError;
 use crate::errors::UpdatePolicyError;
+use crate::pin::key::Pin;
 use crate::pin::key::{self as pin_key};
 use crate::storage::RegistrationData;
 use crate::validate_pin;
@@ -36,12 +39,12 @@ pub trait ChangePinClient {
     type Error: ChangePinClientError;
     async fn start_new_pin(
         &self,
-        old_pin: &str,
-        new_pin: &str,
-        new_pin_salt: &[u8],
+        old_pin: &Pin,
+        new_pin: &Pin,
+        new_pin_salt: &KeyBytes,
     ) -> Result<WalletCertificate, Self::Error>;
-    async fn commit_new_pin(&self, new_pin: &str) -> Result<(), Self::Error>;
-    async fn rollback_new_pin(&self, old_pin: &str) -> Result<(), Self::Error>;
+    async fn commit_new_pin(&self, new_pin: &Pin) -> Result<(), Self::Error>;
+    async fn rollback_new_pin(&self, old_pin: &Pin) -> Result<(), Self::Error>;
 }
 
 #[cfg_attr(any(test, feature = "test"), mockall::automock)]
@@ -53,7 +56,7 @@ pub trait ChangePinStorage {
     async fn change_pin(
         &self,
         current_registration_data: RegistrationData,
-        new_pin_salt: Vec<u8>,
+        new_pin_salt: &KeyBytes,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError>;
 }
@@ -149,9 +152,9 @@ where
 {
     pub async fn begin_change_pin(
         &self,
-        old_pin: String,
-        new_pin: String,
-    ) -> ChangePinResult<(Vec<u8>, WalletCertificate)> {
+        old_pin: &Pin,
+        new_pin: &Pin,
+    ) -> ChangePinResult<(KeyBytes, WalletCertificate)> {
         tracing::info!("Start change PIN transaction");
 
         tracing::info!("Ensure no PIN change is in progress");
@@ -161,7 +164,7 @@ where
 
         tracing::info!("Validating new PIN");
         // Make sure the new PIN adheres to the requirements.
-        validate_pin(&new_pin)?;
+        validate_pin(new_pin)?;
 
         let new_pin_salt = pin_key::new_pin_salt();
 
@@ -169,7 +172,7 @@ where
 
         let start_result = self
             .client
-            .start_new_pin(&old_pin, &new_pin, &new_pin_salt)
+            .start_new_pin(old_pin, new_pin, &new_pin_salt)
             .await
             .map_err(|error| {
                 let is_network_error = error.is_network_error();
@@ -191,7 +194,7 @@ where
                 self.storage
                     .change_pin(
                         self.registration_data.clone(),
-                        new_pin_salt.clone(),
+                        &new_pin_salt,
                         new_pin_certificate.clone(),
                     )
                     .await?;
@@ -255,21 +258,21 @@ where
         Ok(())
     }
 
-    async fn commit(&self, new_pin: &str) -> ChangePinResult<()> {
+    async fn commit(&self, new_pin: &Pin) -> ChangePinResult<()> {
         self.with_retries("commit", || async { self.client.commit_new_pin(new_pin).await })
             .await?;
         self.storage.clear_change_pin_state().await?;
         Ok(())
     }
 
-    async fn rollback(&self, old_pin: &str) -> ChangePinResult<()> {
+    async fn rollback(&self, old_pin: &Pin) -> ChangePinResult<()> {
         self.with_retries("rollback", || async { self.client.rollback_new_pin(old_pin).await })
             .await?;
         self.storage.clear_change_pin_state().await?;
         Ok(())
     }
 
-    pub async fn finish_change_pin(&self, pin: &str) -> ChangePinResult<()> {
+    pub async fn finish_change_pin(&self, pin: &Pin) -> ChangePinResult<()> {
         tracing::info!("Continue change PIN transaction");
 
         match self.storage.get_change_pin_state().await? {
@@ -400,11 +403,11 @@ mod test {
         );
 
         let (new_pin_salt, new_wallet_certificate) = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin(&"000111".into(), &"123789".into())
             .await
             .expect("begin changing PIN should succeed");
 
-        assert!(!new_pin_salt.is_empty());
+        assert!(!new_pin_salt.as_ref().is_empty());
         assert_eq!(new_wallet_certificate, registration_data.wallet_certificate);
     }
 
@@ -441,7 +444,7 @@ mod test {
         );
 
         let actual = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin(&"000111".into(), &"123789".into())
             .await;
 
         assert_matches!(
@@ -484,7 +487,7 @@ mod test {
         );
 
         let actual = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin(&"000111".into(), &"123789".into())
             .await;
 
         assert_matches!(
@@ -514,7 +517,7 @@ mod test {
         );
 
         let actual = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin(&"000111".into(), &"123789".into())
             .await;
 
         assert_matches!(actual, Err(ChangePinError::ChangePinAlreadyInProgress));
@@ -574,7 +577,7 @@ mod test {
 
         // Validation with a different certificate public key should fail.
         let error = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin(&"000111".into(), &"123789".into())
             .await
             .expect_err("begin changing PIN should fail");
 
@@ -597,7 +600,7 @@ mod test {
 
         // Validation with a different hardware public key should fail.
         let error = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin(&"000111".into(), &"123789".into())
             .await
             .expect_err("begin changing PIN should fail");
 
@@ -624,7 +627,7 @@ mod test {
 
         // Validation with a different wallet ID should fail.
         let error = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin(&"000111".into(), &"123789".into())
             .await
             .expect_err("begin changing PIN should fail");
 
@@ -649,7 +652,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(actual, Ok(()));
     }
@@ -671,7 +674,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(
             actual,
@@ -705,7 +708,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(actual, Ok(()));
     }
@@ -727,7 +730,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(
             actual,
@@ -756,7 +759,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(actual, Ok(()));
     }
@@ -778,7 +781,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(
             actual,
@@ -815,7 +818,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(actual, Ok(()));
     }
@@ -837,7 +840,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(
             actual,
@@ -866,7 +869,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(actual, Ok(()));
     }
@@ -888,7 +891,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(
             actual,
@@ -925,7 +928,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(actual, Ok(()));
     }
@@ -947,7 +950,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(
             actual,
@@ -968,7 +971,7 @@ mod test {
         let change_pin_session =
             FinishChangePinOperation::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
-        let actual = change_pin_session.finish_change_pin("123789").await;
+        let actual = change_pin_session.finish_change_pin(&"123789".into()).await;
 
         assert_matches!(actual, Err(ChangePinError::NoChangePinInProgress));
     }

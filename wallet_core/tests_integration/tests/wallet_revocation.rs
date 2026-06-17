@@ -49,7 +49,7 @@ async fn test_revoke_wallet_by_revocation_code() {
     let mut wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let revocation_code = wallet
-        .get_revocation_code_with_pin(pin.to_string())
+        .get_revocation_code_with_pin(pin.into())
         .await
         .unwrap()
         .to_string();
@@ -211,7 +211,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         .await
         .expect("Could not continue pid issuance");
     let err = wallet
-        .accept_issuance(pin.to_string())
+        .accept_issuance(pin.into())
         .await
         .expect_err("PID issuance of a revoked wallet should not have succeeded");
 
@@ -275,7 +275,7 @@ async fn test_revoke_wallet_solution() {
         mock_device_config.apple_key_holder(),
     )
     .await;
-    let err = wallet.register(pin).await.expect_err("Could still register");
+    let err = wallet.register(pin.into()).await.expect_err("Could still register");
 
     assert_matches!(err, WalletRegistrationError::AccountRevoked(_));
 }
@@ -320,7 +320,7 @@ async fn test_revoke_wallet_solution_not_enabled() {
     );
 
     // Test if wallet still works
-    assert!(wallet.check_pin(pin.to_string()).await.is_ok());
+    assert!(wallet.check_pin(pin.into()).await.is_ok());
 }
 
 async fn setup_revocation_env(
@@ -438,7 +438,7 @@ async fn assert_wallet_revoked(
 ) {
     // Checking the PIN sends a CheckPin instruction; the wallet provider informs us we are revoked.
     assert_matches!(
-        wallet.check_pin(pin.to_string()).await,
+        wallet.check_pin(pin.into()).await,
         Err(WalletUnlockError::Instruction(InstructionError::AccountRevoked(actual))) if actual == revocation_data
     );
 

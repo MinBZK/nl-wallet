@@ -127,7 +127,7 @@ async fn assert_disclosure_ok(
 
     let attestation_count = test_credentials.as_ref().len();
     let return_url = wallet
-        .accept_disclosure(&vec![0; attestation_count], pin.to_owned())
+        .accept_disclosure(&vec![0; attestation_count], pin.into())
         .await
         .expect("Could not accept disclosure");
 

@@ -502,7 +502,7 @@ mod tests {
 
         // The registration data should now be available.
         let (_, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
-        assert_eq!(registration_data.pin_salt, pin_salt);
+        assert_eq!(registration_data.pin_salt.as_ref(), pin_salt.as_ref());
     }
 
     #[tokio::test]
@@ -516,7 +516,7 @@ mod tests {
         storage.expect_fetch_data::<RegistrationData>().returning(|| {
             Ok(Some(RegistrationData {
                 attested_key_identifier: "key_id_123".to_string(),
-                pin_salt: pin_key::new_pin_salt(),
+                pin_salt: pin_key::new_pin_salt().as_ref().to_vec(),
                 wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "this.isa.jwt".parse().unwrap(),
                 revocation_code: RevocationCode::new_random(),
@@ -600,7 +600,7 @@ mod tests {
         storage.expect_fetch_data::<RegistrationData>().returning(|| {
             Ok(Some(RegistrationData {
                 attested_key_identifier: "key_id_123".to_string(),
-                pin_salt: pin_key::new_pin_salt(),
+                pin_salt: pin_key::new_pin_salt().as_ref().to_vec(),
                 wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "this.isa.jwt".parse().unwrap(),
                 revocation_code: RevocationCode::new_random(),
@@ -680,7 +680,7 @@ mod tests {
         storage.expect_fetch_data::<RegistrationData>().returning(|| {
             Ok(Some(RegistrationData {
                 attested_key_identifier: "key_id_123".to_string(),
-                pin_salt: pin_key::new_pin_salt(),
+                pin_salt: pin_key::new_pin_salt().as_ref().to_vec(),
                 wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "this.isa.jwt".parse().unwrap(),
                 revocation_code: RevocationCode::new_random(),
