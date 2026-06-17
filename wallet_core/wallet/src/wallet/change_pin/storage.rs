@@ -35,12 +35,12 @@ where
     async fn change_pin(
         &self,
         current_registration_data: RegistrationData,
-        new_pin_salt: &KeyBytes,
+        new_pin_salt: KeyBytes,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError> {
         let mut storage = self.write().await;
         let registration_data = RegistrationData {
-            pin_salt: new_pin_salt.clone(),
+            pin_salt: new_pin_salt,
             wallet_certificate: new_pin_certificate,
             ..current_registration_data
         };
@@ -91,7 +91,7 @@ mod tests {
 
         assert_matches!(
             change_pin_storage
-                .change_pin(registration_data, &new_pin_salt, new_wallet_certificate)
+                .change_pin(registration_data, new_pin_salt, new_wallet_certificate)
                 .await,
             Ok(())
         );

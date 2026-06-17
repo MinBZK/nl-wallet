@@ -56,7 +56,7 @@ pub trait ChangePinStorage {
     async fn change_pin(
         &self,
         current_registration_data: RegistrationData,
-        new_pin_salt: &KeyBytes,
+        new_pin_salt: KeyBytes,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError>;
 }
@@ -194,7 +194,7 @@ where
                 self.storage
                     .change_pin(
                         self.registration_data.clone(),
-                        &new_pin_salt,
+                        new_pin_salt.clone(),
                         new_pin_certificate.clone(),
                     )
                     .await?;
