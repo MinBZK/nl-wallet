@@ -13,7 +13,6 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use openid4vc::authorization::PushedAuthorizationResponse;
-use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
@@ -90,7 +89,6 @@ struct AuthCodeFlowServer {
 struct PreAuthCodeFlowServer {
     issuer: Arc<MockIssuer<TimeGenerator>>,
     trust_anchors: TrustAnchors,
-    issuer_identifier: IssuerIdentifier,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
 }
@@ -158,8 +156,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let (issuer, trust_anchors, wia_keypair) =
-        setup_mock_issuer(issuer_identifier.clone(), attestation_count, sessions);
+    let (issuer, trust_anchors, wia_keypair) = setup_mock_issuer(issuer_identifier, attestation_count, sessions);
     let issuer = Arc::new(issuer);
 
     // Pre-authorized-code flow mounts the issuance endpoints standalone.
@@ -176,32 +173,9 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
     PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        issuer_identifier,
         wia_keypair,
         tls_trust_anchor,
     }
-}
-
-fn make_credential_offer_url(
-    issuer_identifier: IssuerIdentifier,
-    attestation_count: NonZeroUsize,
-    pre_authorized_code: Option<AuthorizationCode>,
-) -> Url {
-    let config_ids = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
-        .iter()
-        .map(|attestation_type| attestation_type.to_string().into())
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
-
-    let credential_offer = match pre_authorized_code {
-        None => CredentialOffer::new_authorization(issuer_identifier, config_ids, None),
-        Some(pre_authorized_code) => {
-            CredentialOffer::new_pre_authorized(issuer_identifier, config_ids, pre_authorized_code)
-        }
-    };
-
-    CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url()
 }
 
 fn verify_issued_credentials(
@@ -238,8 +212,9 @@ fn verify_issued_credentials(
 
 /// Simulate wallet issuance, by going through discovery, the `/authorize` redirect (playing the user-agent)
 /// and the wallet redirect, returning the issuance session holding the credential previews.
-async fn start_issuance_session(server: &AuthCodeFlowServer, attestation_count: NonZeroUsize) -> HttpIssuanceSession {
-    let credential_offer_url = make_credential_offer_url(server.issuer_identifier.clone(), attestation_count, None);
+async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSession {
+    let credential_offer = server.authorizing_issuer.authorization_code_credential_offer();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
     let redirect_uri = Url::parse("https://wallet.example.com/callback").unwrap();
 
     let discovery = HttpIssuanceDiscovery::new(
@@ -322,7 +297,7 @@ async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
     let server = start_auth_code_flow_server(attestation_count).await;
-    let mut session = start_issuance_session(&server, attestation_count).await;
+    let mut session = start_issuance_session(&server).await;
 
     assert_eq!(session.credential_previews().len(), attestation_count.get());
 
@@ -355,7 +330,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     )];
     let server = start_auth_code_flow_server_with(vec![type_metadata], documents).await;
 
-    let mut session = start_issuance_session(&server, NonZeroUsize::MIN).await;
+    let mut session = start_issuance_session(&server).await;
 
     let previews = session.credential_previews();
     assert_eq!(previews.len(), 1);
@@ -380,15 +355,14 @@ async fn pre_authorized_code_flow(
     let PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        issuer_identifier,
         wia_keypair,
         tls_trust_anchor,
+        ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let code = issuer.new_preauthorized_session(documents).await.unwrap();
-
-    let credential_offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(code));
+    let credential_offer = issuer.pre_authorized_offer_from_documents(documents).await.unwrap();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
@@ -429,15 +403,13 @@ async fn reject_issuance() {
     let PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        issuer_identifier,
         tls_trust_anchor,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let code = issuer.new_preauthorized_session(documents).await.unwrap();
-
-    let offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(code));
+    let credential_offer = issuer.pre_authorized_offer_from_documents(documents).await.unwrap();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
@@ -445,7 +417,7 @@ async fn reject_issuance() {
 
     let flow = discovery
         .start(
-            &offer_url,
+            &credential_offer_url,
             MOCK_WALLET_CLIENT_ID.to_string(),
             "https://wallet.example.com/callback".parse().unwrap(),
             &trust_anchors,
@@ -466,7 +438,7 @@ async fn reject_issuance() {
 #[tokio::test]
 async fn par_rejects_unknown_client_id() {
     let AuthCodeFlowServer {
-        issuer_identifier,
+        authorizing_issuer,
         tls_trust_anchor,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
@@ -475,7 +447,15 @@ async fn par_rejects_unknown_client_id() {
         .build()
         .unwrap();
 
-    let par_url = format!("{}issuance/par", issuer_identifier.as_base_url().as_ref().as_str());
+    let par_url = format!(
+        "{}issuance/par",
+        authorizing_issuer
+            .issuer()
+            .issuer_identifier()
+            .as_base_url()
+            .as_ref()
+            .as_str()
+    );
     let response = http_client
         .post(&par_url)
         .form(&[

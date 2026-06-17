@@ -552,7 +552,7 @@ impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData>,
 {
-    pub async fn new_preauthorized_session(
+    async fn new_preauthorized_session(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
     ) -> Result<AuthorizationCode, SessionStoreError> {
