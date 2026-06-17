@@ -242,7 +242,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_sign_jades_b_b_token() {
+    async fn test_sign_and_verify_jades_b_b_token_roundtrip() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let keypair = ca.generate_reader_mock().unwrap();
 
