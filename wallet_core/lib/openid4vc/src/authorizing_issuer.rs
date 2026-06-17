@@ -88,6 +88,13 @@ pub enum CompleteAuthorizationError {
     #[error("issuable document is not valid: {0}")]
     IssuableDocument(#[source] IssuableDocumentError),
 
+    #[error(
+        "at least one of the issued credentials belongs to a credential configuration that \
+         has a scope that was not in the Authorization Request, scopes requested: {}",
+        .0.iter().join(" ")
+    )]
+    CredentialScopeMismatch(HashSet<Scope>),
+
     #[error("failed to store new session: {0}")]
     SessionStore(#[source] SessionStoreError),
 }
@@ -271,6 +278,22 @@ where
             .validate_issuable_documents(issuable_documents)
             .map_err(CompleteAuthorizationError::IssuableDocument)?;
 
+        // Since the issuer's Credential Configurations might have changed since we received the Authorization Request,
+        // do a sanity check to see if all of the `IssuableDocument`s belong to a credential configuration that has a
+        // scope that was in the Authorization Request.
+        let credential_configs = self.issuer.credential_configs();
+        let scopes_match = credential_previews.iter().all(|preview_state| {
+            credential_configs
+                .get_by_configuration_id(&preview_state.credential_configuration_id)
+                // Avoid panicking here, even though `validate_issuable_documents()` above ensures that the Credential
+                // Configuration is always present.
+                .is_some_and(|config| request_scope.contains(&config.scope))
+        });
+
+        if !scopes_match {
+            return Err(CompleteAuthorizationError::CredentialScopeMismatch(request_scope));
+        }
+
         let token = self
             .issuer
             .write_auth_code_issued_session(AuthCodeIssued {
@@ -373,6 +396,7 @@ mod tests {
 
     use super::AuthorizeError;
     use super::AuthorizingIssuer;
+    use super::CompleteAuthorizationError;
     use super::ParError;
     use super::WalletRedirect;
     use crate::authorization::PkceCodeChallenge;
@@ -394,6 +418,7 @@ mod tests {
     use crate::server_state::SessionToken;
     use crate::store::MemoryStore;
     use crate::store::Store;
+    use crate::test::MOCK_ATTESTATION_TYPES;
     use crate::test::MockIssuer;
     use crate::test::mock_issuable_documents;
     use crate::test::setup_mock_issuer;
@@ -403,6 +428,8 @@ mod tests {
     const REQUEST_URI: &str = "urn:ietf:params:oauth:request_uri:test";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_STATE: &str = "wallet-state";
+    // Match the credential config id / scope configured in the mock issuer.
+    const WALLET_SCOPE: &str = "com.example.pid_dc+sd-jwt";
 
     type TestAuthorizingIssuer = AuthorizingIssuer<
         SigningKey,
@@ -429,8 +456,7 @@ mod tests {
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
-            // Match the attestation type / credential config id / scope configured in the mock issuer.
-            HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()]),
+            HashSet::from([WALLET_SCOPE.parse().unwrap()]),
             &S256PkcePair::generate(),
         )
     }
@@ -448,7 +474,11 @@ mod tests {
     ) {
         let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, _) = setup_mock_issuer(issuer_identifier, NonZeroUsize::MIN, Arc::clone(&sessions));
+        let (issuer, _, _) = setup_mock_issuer(
+            issuer_identifier,
+            MOCK_ATTESTATION_TYPES.len().try_into().unwrap(),
+            Arc::clone(&sessions),
+        );
 
         let par_store = MemoryStore::new(PAR_TTL);
         for (request_uri, request) in entries {
@@ -664,7 +694,7 @@ mod tests {
                 WalletAuthorizationContext {
                     redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                     state: Some(WALLET_STATE.to_string()),
-                    scope: HashSet::from(["com.example.pid".parse().unwrap()]),
+                    scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
                     code_challenge: code_challenge.clone(),
                 },
             ),
@@ -699,7 +729,7 @@ mod tests {
             Grant::AuthorizationCode {
                 request_scope,
                 wallet_code_challenge,
-            } if request_scope.iter().map(AsRef::as_ref).eq(["com.example.pid"])
+            } if request_scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE])
                 && wallet_code_challenge == code_challenge
         );
         assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
@@ -716,7 +746,7 @@ mod tests {
         let code = authorizing_issuer
             .complete_authorization(
                 documents.clone(),
-                HashSet::from(["scope".parse().unwrap()]),
+                HashSet::from([WALLET_SCOPE.parse().unwrap()]),
                 code_challenge.clone(),
             )
             .await
@@ -737,9 +767,32 @@ mod tests {
             Grant::AuthorizationCode {
                 request_scope,
                 wallet_code_challenge,
-            } if request_scope.iter().map(AsRef::as_ref).eq(["scope"]) && wallet_code_challenge == code_challenge
+            } if request_scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE]) && wallet_code_challenge == code_challenge
         );
         assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
+    }
+
+    #[tokio::test]
+    async fn complete_authorization_error_credential_scope_mismatch() {
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        // Completing authorization with two `IssuableDocument`s when only the scope of a single Credential
+        // Configuration was requested should result in an error.
+        let error = authorizing_issuer
+            .complete_authorization(
+                mock_issuable_documents(2.try_into().unwrap()),
+                HashSet::from([WALLET_SCOPE.parse().unwrap()]),
+                "wallet-code-challenge".to_string(),
+            )
+            .await
+            .expect_err("copleting authorization should fail");
+
+        assert_matches!(
+            error,
+            CompleteAuthorizationError::CredentialScopeMismatch(scope)
+                if scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE])
+        );
     }
 
     #[test]

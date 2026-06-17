@@ -478,6 +478,7 @@ mod tests {
     use openid4vc::par::PAR_TTL;
     use openid4vc::pkce::PkcePair;
     use openid4vc::pkce::S256PkcePair;
+    use openid4vc::scope::Scope;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionToken;
@@ -612,7 +613,11 @@ mod tests {
             context: WalletAuthorizationContext {
                 redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                 state: Some(WALLET_STATE.to_string()),
-                scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
+                // Match the credential config id / scope configured in the mock issuer.
+                scope: HashSet::from([
+                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
+                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
+                ]),
                 code_challenge: WALLET_CODE_CHALLENGE.to_string(),
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
@@ -762,6 +767,9 @@ mod tests {
             formats,
         } = state_bridge_entry();
 
+        let expected_scope = context.scope.clone();
+        let expected_code_challenge = context.code_challenge.clone();
+
         let code = complete_digid_callback(
             &authorizing_issuer,
             context.scope,
@@ -788,8 +796,7 @@ mod tests {
             Grant::AuthorizationCode {
                 request_scope,
                 wallet_code_challenge
-            } if request_scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE])
-                && wallet_code_challenge == WALLET_CODE_CHALLENGE
+            } if request_scope == expected_scope && wallet_code_challenge == expected_code_challenge
         );
         assert_eq!(auth_code_issued.credential_previews.len().get(), 2);
         assert!(

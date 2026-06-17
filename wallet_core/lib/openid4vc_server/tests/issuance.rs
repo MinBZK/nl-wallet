@@ -629,7 +629,10 @@ async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) ->
     let code = authorizing_issuer
         .complete_authorization(
             documents,
-            HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]),
+            HashSet::from([
+                "com.example.pid_dc+sd-jwt".parse().unwrap(),
+                "other_scope".parse().unwrap(),
+            ]),
             pkce_pair.code_challenge().to_string(),
         )
         .await
@@ -787,7 +790,7 @@ async fn token_rejects_scope_mismatch() {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
         client_id: None,
         redirect_uri: None,
-        scope: Some(HashSet::from(["scope1".parse().unwrap()])),
+        scope: Some(HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()])),
         code_verifier: Some(code_verifier),
     };
 
@@ -810,7 +813,10 @@ async fn token_rejects_scope_mismatch() {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
         client_id: None,
         redirect_uri: None,
-        scope: Some(HashSet::from(["scope2".parse().unwrap(), "scope1".parse().unwrap()])),
+        scope: Some(HashSet::from([
+            "com.example.pid_dc+sd-jwt".parse().unwrap(),
+            "other_scope".parse().unwrap(),
+        ])),
         code_verifier: Some(code_verifier),
     };
 
