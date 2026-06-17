@@ -53,28 +53,6 @@
         "credential_type": "urn:eudi:pid:nl:1",
         "path": ["urn:eudi:pid:nl:1", "bsn"]
       }
-    },
-    "insurance": {
-      "client_id": "x509_hash:example-insurance-reader-cert-hash",
-      "data": {
-        "9999999999": [
-          {
-            "format": "dc+sd-jwt",
-            "attestation_type": "com.example.insurance",
-            "attributes": {
-              "product": "Health Insurance",
-              "coverage": "Basic",
-              "start_date": "2025-01-01",
-              "duration": "365",
-              "customer_number": "283728"
-            }
-          }
-        ]
-      },
-      "disclosed": {
-        "credential_type": "urn:eudi:pid:nl:1",
-        "path": ["urn:eudi:pid:nl:1", "bsn"]
-      }
     }
   }
 }
