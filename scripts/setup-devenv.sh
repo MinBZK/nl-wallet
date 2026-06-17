@@ -388,13 +388,6 @@ export DEMO_RELYING_PARTY_KEY_JOB_FINDER
 DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
-# Generate relying party key and cert.
-generate_demo_relying_party_key_pair housing
-DEMO_RELYING_PARTY_KEY_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.key.der" ${BASE64})
-export DEMO_RELYING_PARTY_KEY_HOUSING
-DEMO_RELYING_PARTY_CRT_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.crt.der" ${BASE64})
-export DEMO_RELYING_PARTY_CRT_HOUSING
-
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
 ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | openssl enc -base64 -A | tr '+/' '-_' | tr -d '=')
 export ISSUER_CA_AKI
