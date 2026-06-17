@@ -156,7 +156,7 @@ int-enum = "1.2.0"
 itertools = "0.14.0"
 jni = "0.21.1"
 josekit = "0.10.3"
-jsonwebtoken = { version = "10.2.0", default-features = false, features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.4.0", default-features = false, features = ["rust_crypto"] }
 jwk-simple = "0.2.0"
 libc = "0.2.178"
 # held back by sea-orm / sqlx
@@ -266,3 +266,5 @@ zstd = "0.13.3"
 [patch.crates-io]
 # Pin on newer version due to https://github.com/parallaxsecond/rust-cryptoki/pull/291
 cryptoki = { git = "https://github.com/parallaxsecond/rust-cryptoki.git", rev = "2765af619ed245f8787e46987483bf96179e30cd" }
+# Pin on newer version due to https://github.com/Keats/jsonwebtoken/issues/510
+jsonwebtoken = { git = "https://github.com/Keats/jsonwebtoken.git", rev = "a89c743d222aee5ae1c21d3c3197dabdf25f7f77" }

@@ -26,6 +26,7 @@ use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
+use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -118,7 +119,12 @@ impl DisclosureWscd for MockRemoteWscd {
             Some(
                 Poa::new(
                     keys.try_into().unwrap(),
-                    JwtPopClaims::new(poa_input.nonce, MOCK_WALLET_CLIENT_ID.to_string(), poa_input.aud),
+                    JwtPopClaims::new(
+                        poa_input.nonce,
+                        MOCK_WALLET_CLIENT_ID.to_string(),
+                        poa_input.aud,
+                        &MockTimeGenerator::default(),
+                    ),
                 )
                 .await
                 .map_err(|_| MockRemoteWscdError::Poa)?,
@@ -140,7 +146,12 @@ impl IssuanceWscd for MockRemoteWscd {
         aud: String,
         nonce: Option<Nonce>,
     ) -> Result<IssuanceResult, Self::Error> {
-        let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
+        let claims = JwtPopClaims::new(
+            nonce,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            aud,
+            &MockTimeGenerator::default(),
+        );
 
         let mut keys = self.disclosure.signing_keys.lock();
         let attestation_keys: VecNonEmpty<_> = (0..count.get())
@@ -197,6 +208,7 @@ impl IssuanceWscd for MockRemoteWscd {
                     status: StatusClaim::new_mock(),
                     exp: exp.into(),
                 },
+                &MockTimeGenerator::default(),
             )
             .unwrap(),
             &wia_keypair,
@@ -207,7 +219,12 @@ impl IssuanceWscd for MockRemoteWscd {
         .into();
 
         let wia_disclosure = SignedJwt::sign(
-            &JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud),
+            &JwtPopClaims::new(
+                nonce,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                aud,
+                &MockTimeGenerator::default(),
+            ),
             &wia_key,
         )
         .now_or_never()

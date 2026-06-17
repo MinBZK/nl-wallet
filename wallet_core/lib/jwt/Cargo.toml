@@ -43,4 +43,4 @@ tokio-test.workspace = true
 
 attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["generate", "mock", "mock_secure_keys"] }
-utils.path = "../utils"
+utils = { path = "../utils", features = ["mock_time"] }

@@ -7,6 +7,7 @@ use derive_more::Constructor;
 use derive_more::From;
 use futures::future::try_join_all;
 use jwt::DEFAULT_VALIDATIONS;
+use jwt::EcdsaDecodingKey;
 use jwt::JsonJwt;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
@@ -160,8 +161,8 @@ impl Poa {
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_issuers);
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
-            let pubkey = jwk_to_p256(jwk)?;
-            jwt.parse_and_verify(&(&pubkey).into(), &validations)
+            let pubkey = EcdsaDecodingKey::from(&jwk_to_p256(jwk)?);
+            jwt.parse_and_verify(pubkey, &validations)
                 .map_err(PoaVerificationError::InvalidJwt)?;
         }
 
@@ -197,6 +198,7 @@ mod tests {
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use jwt::DEFAULT_VALIDATIONS;
+    use jwt::EcdsaDecodingKey;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
@@ -204,6 +206,7 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
     use rstest::rstest;
+    use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::Poa;
@@ -220,7 +223,12 @@ mod tests {
 
         let poa = Poa::new(
             vec![&key1, &key2].try_into().unwrap(),
-            JwtPopClaims::new(Some(nonce.clone()), iss.clone(), aud.clone()),
+            JwtPopClaims::new(
+                Some(nonce.clone()),
+                iss.clone(),
+                aud.clone(),
+                &MockTimeGenerator::default(),
+            ),
         )
         .await
         .unwrap();
@@ -240,7 +248,8 @@ mod tests {
 
         // Manually verify the JWTs
         for (jwt, key) in jwts.into_iter().zip([key1, key2]) {
-            jwt.parse_and_verify(&(&key).into(), &validations).unwrap();
+            jwt.parse_and_verify(EcdsaDecodingKey::from(&key), &validations)
+                .unwrap();
         }
 
         poa.verify(

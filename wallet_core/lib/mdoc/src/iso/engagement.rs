@@ -543,7 +543,7 @@ mod tests {
 
             let jwk = serde_json::from_value::<Jwk>(json).unwrap();
             BASE64_URL_SAFE_NO_PAD
-                .decode(jwk.thumbprint(ThumbprintHash::SHA256))
+                .decode(jwk.thumbprint(ThumbprintHash::SHA256).unwrap())
                 .unwrap()
         });
 

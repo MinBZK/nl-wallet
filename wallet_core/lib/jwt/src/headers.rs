@@ -28,7 +28,11 @@ use crate::jwk::jwk_from_p256;
 use crate::jwk::jwk_to_p256;
 
 /// Default `typ` value for JWTs when a payload does not override `JwtTyp::TYP`.
-pub(crate) const DEFAULT_JWT_TYP: &str = "jwt";
+///
+/// From the [JWT RFC](https://www.rfc-editor.org/info/rfc7519/#section-5.1): While media type names are not case
+/// sensitive, it is RECOMMENDED that "JWT" always be spelled using uppercase characters for compatibility with legacy
+/// implementations.
+pub(crate) const DEFAULT_JWT_TYP: &str = "JWT";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HeaderWithTyp {
@@ -102,14 +106,6 @@ impl HeaderWithJwk {
     }
 }
 
-impl<H: Into<Header>> From<HeaderWithJwk<H>> for Header {
-    fn from(value: HeaderWithJwk<H>) -> Self {
-        let mut header: Header = value.header.into();
-        header.jwk = Some(value.jwk);
-        header
-    }
-}
-
 impl<H> HeaderWithJwk<H> {
     pub fn inner(&self) -> &H {
         &self.header
@@ -117,6 +113,14 @@ impl<H> HeaderWithJwk<H> {
 
     pub fn verifying_key(&self) -> Result<VerifyingKey, JwkConversionError> {
         jwk_to_p256(&self.jwk)
+    }
+}
+
+impl<H: Into<Header>> From<HeaderWithJwk<H>> for Header {
+    fn from(value: HeaderWithJwk<H>) -> Self {
+        let mut header: Header = value.header.into();
+        header.jwk = Some(value.jwk);
+        header
     }
 }
 
@@ -162,6 +166,11 @@ impl HeaderWithX5c {
 }
 
 impl<H> HeaderWithX5c<H> {
+    /// Construct a `HeaderWithX5c<H>` from an arbitrary inner header type and a certificate chain.
+    pub fn new(inner: H, x5c: VecNonEmpty<BorrowingCertificate>) -> Self {
+        HeaderWithX5c { header: inner, x5c }
+    }
+
     pub fn inner(&self) -> &H {
         &self.header
     }
@@ -209,6 +218,44 @@ where
         Ok(HeaderWithX5c {
             header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
             x5c,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HeaderWithKid<H = HeaderWithTyp> {
+    #[serde(flatten)]
+    header: H,
+
+    pub kid: String,
+}
+
+impl<H> HeaderWithKid<H> {
+    pub fn inner(&self) -> &H {
+        &self.header
+    }
+}
+
+impl<H: Into<Header>> From<HeaderWithKid<H>> for Header {
+    fn from(value: HeaderWithKid<H>) -> Self {
+        let mut header: Header = value.header.into();
+        header.kid = Some(value.kid);
+        header
+    }
+}
+
+impl<H, E> TryFrom<Header> for HeaderWithKid<H>
+where
+    H: TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
+{
+    type Error = JwtError;
+
+    fn try_from(value: Header) -> Result<Self, Self::Error> {
+        let kid = value.kid.as_ref().ok_or(JwtError::MissingKid)?.clone();
+        Ok(HeaderWithKid {
+            header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
+            kid,
         })
     }
 }

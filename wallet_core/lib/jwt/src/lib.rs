@@ -37,6 +37,7 @@
 pub mod confirmation;
 pub mod error;
 pub mod headers;
+pub mod jades_b_b;
 pub mod jwk;
 pub mod jwt;
 pub mod nonce;
@@ -44,6 +45,7 @@ pub mod pop;
 pub mod wia;
 
 pub use jsonwebtoken::Algorithm;
+pub use jsonwebtoken::EncodingKey;
 pub use jsonwebtoken::Header;
 pub use jsonwebtoken::Validation;
 pub use jwt::*;

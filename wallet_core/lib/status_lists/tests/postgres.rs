@@ -207,7 +207,7 @@ async fn assert_published_list(
     let verifying_key = EcdsaDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
     let (header, claims) = status_list_token
         .as_ref()
-        .parse_and_verify(&verifying_key, &DEFAULT_VALIDATIONS)
+        .parse_and_verify(verifying_key, &DEFAULT_VALIDATIONS)
         .unwrap();
     assert_eq!(header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
 

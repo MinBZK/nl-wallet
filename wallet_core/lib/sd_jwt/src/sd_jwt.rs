@@ -173,10 +173,10 @@ impl UnverifiedSdJwt {
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwt, DecoderError> {
         let issuer_signed = self.issuer_signed.into_verified_against_trust_anchors(
-            &SD_JWT_VALIDATIONS,
+            trust_anchors,
             time,
             CertificateUsage::Mdl,
-            trust_anchors,
+            &SD_JWT_VALIDATIONS,
         )?;
 
         let disclosures = Self::parse_and_verify_disclosures(&self.disclosures, issuer_signed.payload())?;
@@ -524,10 +524,10 @@ impl UnverifiedSdJwtPresentation {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
         // before parsing the disclosures
         let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
-            &SD_JWT_VALIDATIONS,
+            trust_anchors,
             time,
             CertificateUsage::Mdl,
-            trust_anchors,
+            &SD_JWT_VALIDATIONS,
         )?;
 
         let key_binding_jwt = self.key_binding_jwt.into_verified(

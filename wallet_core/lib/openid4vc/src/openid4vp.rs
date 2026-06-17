@@ -2550,6 +2550,7 @@ mod tests {
                 Some(auth_request.nonce.clone()),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 auth_request.client_id.to_string(),
+                &MockTimeGenerator::default(),
             ),
         )
         .now_or_never()
