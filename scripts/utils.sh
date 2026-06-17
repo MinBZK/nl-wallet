@@ -371,7 +371,7 @@ function generate_pid_issuer_key_pair {
 function generate_pid_issuer_tsl_key_pair {
     echo -e "${INFO}Generating PID Issuer TSL key pair${NC}"
 
-    # Generate a certificate for the public key including issuer authentication
+    # Generate a private key and certificate
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert --type tsl \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
@@ -396,7 +396,7 @@ function generate_wallet_provider_tsl_key_pair {
 
     generate_hsm_key_pair wia_tsl_key wallet_provider/wia_tsl.pub.pem
 
-    # Generate a certificate for the public key including issuer authentication
+    # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert-pub --type tsl \
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
