@@ -40,7 +40,7 @@ where
     ) -> Result<(), StorageError> {
         let mut storage = self.write().await;
         let registration_data = RegistrationData {
-            pin_salt: new_pin_salt.as_ref().to_vec(),
+            pin_salt: new_pin_salt.clone(),
             wallet_certificate: new_pin_certificate,
             ..current_registration_data
         };
@@ -81,7 +81,7 @@ mod tests {
 
         let registration_data = RegistrationData {
             attested_key_identifier: "key_id".to_string(),
-            pin_salt: b"pin_salt_1234_old".to_vec(),
+            pin_salt: b"pin_salt_1234_old".to_vec().into(),
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
             revocation_code: RevocationCode::new_random(),
@@ -103,7 +103,7 @@ mod tests {
                 .await
                 .expect("database error")
                 .expect("no registation data found");
-            assert_eq!(actual.pin_salt, b"pin_salt_1234_new");
+            assert_eq!(actual.pin_salt.as_ref(), b"pin_salt_1234_new");
         }
     }
 }

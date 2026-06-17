@@ -310,7 +310,7 @@ where
         // Save the registration data in storage.
         let data = RegistrationData {
             attested_key_identifier: key_identifier,
-            pin_salt: pin_salt.as_ref().to_vec(),
+            pin_salt,
             wallet_id: cert_claims.wallet_id,
             revocation_code,
             wallet_certificate,

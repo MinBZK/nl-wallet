@@ -339,7 +339,7 @@ mod test {
         let hw_pubkey = *hw_privkey.verifying_key();
 
         let attested_key_identifier = crypto::utils::random_string(16);
-        let pin_salt = crypto::utils::random_bytes(32);
+        let pin_salt = crypto::utils::random_bytes(32).into();
         let wallet_id = crypto::utils::random_string(32);
 
         let certificate_claims = WalletCertificateClaims {

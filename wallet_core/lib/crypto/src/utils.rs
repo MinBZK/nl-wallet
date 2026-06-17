@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
 use rand::Rng;
@@ -30,9 +29,15 @@ pub fn sha256(bts: &[u8]) -> Vec<u8> {
     Sha256::digest(bts).to_vec()
 }
 
-/// Key material. Unclonable, and zeroed on drop to prevent it from lingering in memory.
-#[derive(Debug, AsRef, From, ZeroizeOnDrop)]
+/// Key material. Zeroed on drop to prevent it from lingering in memory.
+#[derive(Debug, Clone, From, ZeroizeOnDrop)]
 pub struct KeyBytes(#[debug("<KeyBytes>")] Vec<u8>);
+
+impl AsRef<[u8]> for KeyBytes {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_slice()
+    }
+}
 
 /// Compute the HKDF from [RFC 5869](https://tools.ietf.org/html/rfc5869).
 pub fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<KeyBytes, UnspecifiedRingError> {

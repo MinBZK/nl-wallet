@@ -157,7 +157,7 @@ fn bytes_to_ecdsa_privkey_bytes(bts: KeyBytes) -> KeyBytes {
     };
 
     // Now we compute `i mod (q-1) + 1`, explicitly calling zeroize() on each intermediate where necessary.
-    let mut i = U384::from_be_slice(bts.as_ref().as_slice()); // Convert to U384
+    let mut i = U384::from_be_slice(bts.as_ref()); // Convert to U384
     drop(bts);
 
     // We'll need this below.

@@ -468,7 +468,7 @@ where
         // Generate registration data.
         let registration_data = RegistrationData {
             attested_key_identifier,
-            pin_salt: pin_key::new_pin_salt().as_ref().to_vec(),
+            pin_salt: pin_key::new_pin_salt(),
             wallet_id,
             wallet_certificate,
             revocation_code: RevocationCode::new_random(),

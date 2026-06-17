@@ -19,9 +19,9 @@ use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientFactory;
 use crate::instruction::InstructionClientParameters;
 use crate::pin::change::BeginChangePinOperation;
-use crate::pin::key::Pin;
 use crate::pin::change::ChangePinError;
 use crate::pin::change::FinishChangePinOperation;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -110,7 +110,7 @@ where
             _ => result?,
         };
 
-        registration_data.pin_salt = new_pin_salt.as_ref().to_vec();
+        registration_data.pin_salt = new_pin_salt;
         registration_data.wallet_certificate = new_wallet_certificate;
 
         info!("PIN change started");
@@ -211,9 +211,7 @@ mod tests {
             .times(1)
             .return_once(|_, _: Instruction<ChangePinStart>| Ok(wp_result));
 
-        let actual = wallet
-            .begin_change_pin("123456".into(), "111122".into())
-            .await;
+        let actual = wallet.begin_change_pin("123456".into(), "111122".into()).await;
         assert_matches!(actual, Ok(()));
 
         let change_pin_state = wallet

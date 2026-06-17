@@ -325,7 +325,7 @@ where
         .verifying_key()?;
 
         let registration_data = RegistrationData {
-            pin_salt: new_pin_salt.as_ref().to_vec(),
+            pin_salt: new_pin_salt.clone(),
             ..registration_data.clone()
         };
 
@@ -375,7 +375,7 @@ where
 
         let registration_data = RegistrationData {
             wallet_certificate: new_wallet_certificate,
-            pin_salt: new_pin_salt.as_ref().to_vec(),
+            pin_salt: new_pin_salt,
             ..registration_data.clone()
         };
         self.storage.write().await.upsert_data(&registration_data).await?;
