@@ -361,7 +361,7 @@ async fn pre_authorized_code_flow(
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let credential_offer = issuer.pre_authorized_offer_from_documents(documents).await.unwrap();
+    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
     let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
@@ -408,7 +408,7 @@ async fn reject_issuance() {
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let credential_offer = issuer.pre_authorized_offer_from_documents(documents).await.unwrap();
+    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
     let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(

@@ -29,14 +29,16 @@ use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
-use crate::issuer::CreateSessionError;
+use crate::issuer::AuthCodeIssued;
 use crate::issuer::Grant;
+use crate::issuer::IssuableDocumentError;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::par;
 use crate::par::PAR_TTL;
 use crate::scope::Scope;
 use crate::server_state::SessionStore;
+use crate::server_state::SessionStoreError;
 use crate::store::Store;
 use crate::token::AuthorizationCode;
 
@@ -83,8 +85,11 @@ pub enum AuthorizeError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CompleteAuthorizationError {
-    #[error("could not create Authorization Code session: {0}")]
-    CreateSession(#[source] CreateSessionError),
+    #[error("issuable document is not valid: {0}")]
+    IssuableDocument(#[source] IssuableDocumentError),
+
+    #[error("failed to store new session: {0}")]
+    SessionStore(#[source] SessionStoreError),
 }
 
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
@@ -261,17 +266,22 @@ where
         request_scope: HashSet<Scope>,
         wallet_code_challenge: String,
     ) -> Result<AuthorizationCode, CompleteAuthorizationError> {
+        let credential_previews = self
+            .issuer
+            .validate_issuable_documents(issuable_documents)
+            .map_err(CompleteAuthorizationError::IssuableDocument)?;
+
         let token = self
             .issuer
-            .new_auth_code_issued_session(
-                issuable_documents,
-                Grant::AuthorizationCode {
+            .write_auth_code_issued_session(AuthCodeIssued {
+                credential_previews,
+                grant: Grant::AuthorizationCode {
                     request_scope,
                     wallet_code_challenge,
                 },
-            )
+            })
             .await
-            .map_err(CompleteAuthorizationError::CreateSession)?;
+            .map_err(CompleteAuthorizationError::SessionStore)?;
 
         Ok(token.into())
     }

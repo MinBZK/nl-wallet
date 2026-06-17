@@ -139,7 +139,7 @@ where
 
         let credential_offer = self
             .issuer
-            .pre_authorized_offer_from_documents(to_issue)
+            .new_preauthorized_session(to_issue)
             .await
             .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::PreAuthorizedSession(e)))?;
 

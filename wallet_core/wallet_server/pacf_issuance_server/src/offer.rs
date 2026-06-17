@@ -23,10 +23,10 @@ pub enum OfferError {
 impl axum::response::IntoResponse for OfferError {
     fn into_response(self) -> axum::response::Response {
         let status = match self {
-            OfferError::PreAuthorizedSession(PreAuthorizedSessionError::AttestationTypeNotConfigured(_, _)) => {
-                StatusCode::BAD_REQUEST
+            OfferError::PreAuthorizedSession(PreAuthorizedSessionError::IssuableDocument(_)) => StatusCode::BAD_REQUEST,
+            OfferError::PreAuthorizedSession(PreAuthorizedSessionError::SessionStore(_)) => {
+                StatusCode::INTERNAL_SERVER_ERROR
             }
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, self.to_string()).into_response()
     }
@@ -60,7 +60,7 @@ async fn offer(
 ) -> Result<Json<OfferResponse>, OfferError> {
     let credential_offer = state
         .issuer
-        .pre_authorized_offer_from_documents(request.documents)
+        .new_preauthorized_session(request.documents)
         .await
         .map_err(OfferError::PreAuthorizedSession)?;
 

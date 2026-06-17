@@ -44,6 +44,7 @@ use tracing::warn;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 
 use crate::credential::Credential;
@@ -117,21 +118,12 @@ pub enum IssuanceError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum CreateSessionError {
+pub enum PreAuthorizedSessionError {
     #[error("issuable document is not valid: {0}")]
     IssuableDocument(#[source] IssuableDocumentError),
 
     #[error("failed to store new session: {0}")]
     SessionStore(#[source] SessionStoreError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum PreAuthorizedSessionError {
-    #[error("could not create Pre-Authorized Code session: {0}")]
-    CreateSession(#[source] CreateSessionError),
-
-    #[error("attestation type for format \"{0}\" not configured: {1}")]
-    AttestationTypeNotConfigured(Format, String),
 }
 
 /// Errors that can occur during processing of the token request.
@@ -416,17 +408,6 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
         &self.issuer_data.credential_configs
     }
 
-    pub fn credential_config_id_by_format_and_attestation_type(
-        &self,
-        format: Format,
-        attestation_type: &str,
-    ) -> Option<&CredentialConfigurationId> {
-        self.issuer_data
-            .credential_configs
-            .get_by_format_and_attestation_type(format, attestation_type)
-            .map(|(config_id, _config)| config_id)
-    }
-
     pub fn status_lists(&self) -> impl Iterator<Item = &L> {
         self.issuer_data
             .credential_configs
@@ -603,30 +584,16 @@ fn credential_preview_state_for_issuable_document<K, L>(
     Ok(state)
 }
 
-impl<K, L, S, N> Issuer<K, L, S, N>
-where
-    S: SessionStore<IssuanceData>,
-{
-    async fn new_preauthorized_session(
-        &self,
-        issuable_documents: VecNonEmpty<IssuableDocument>,
-    ) -> Result<AuthorizationCode, CreateSessionError> {
-        let token = self
-            .new_auth_code_issued_session(issuable_documents, Grant::PreAuthorizedCode)
-            .await?;
-
-        Ok(token.into())
-    }
-
-    /// Persist a new session that is in the initial `AuthCodeIssued` state. This is called both for Pre-Authorized
-    /// sessions (by `Isser::new_preauthorized_session()`) and Authorization Code sessions (by
+impl<K, L, S, N> Issuer<K, L, S, N> {
+    /// Process a collection of [`IssuableDocument`]s and validate them against the Credential Configurations in order
+    /// to create a [`CredentialPreviewState`] for each. This is called both for Pre-Authorized sessions (by
+    /// `Isser::new_preauthorized_session()`) and Authorization Code sessions (by
     /// `AuthorizingIssuer::complete_authorization()`).
-    pub(crate) async fn new_auth_code_issued_session(
+    pub(crate) fn validate_issuable_documents(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
-        grant: Grant,
-    ) -> Result<SessionToken, CreateSessionError> {
-        let credential_previews = issuable_documents
+    ) -> Result<VecNonEmpty<CredentialPreviewState>, IssuableDocumentError> {
+        issuable_documents
             .into_nonempty_iter()
             .map(|document| {
                 credential_preview_state_for_issuable_document(
@@ -635,23 +602,62 @@ where
                     self.issuer_data.batch_size,
                 )
             })
-            .collect::<Result<_, _>>()
-            .map_err(CreateSessionError::IssuableDocument)?;
+            .collect()
+    }
+}
 
-        let token = SessionToken::new_random();
+impl<K, L, S, N> Issuer<K, L, S, N>
+where
+    S: SessionStore<IssuanceData>,
+{
+    /// Create and store a new Pre-Authorized session, based on a collection of [`IssuableDocument`]s and return a
+    /// [`CredentialConfiguration`] that can be presented to the wallet.
+    pub async fn new_preauthorized_session(
+        &self,
+        issuable_documents: VecNonEmpty<IssuableDocument>,
+    ) -> Result<CredentialOffer, PreAuthorizedSessionError> {
+        let credential_previews = self
+            .validate_issuable_documents(issuable_documents)
+            .map_err(PreAuthorizedSessionError::IssuableDocument)?;
 
-        let session = SessionState::new(
-            token.clone(),
-            IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
+        let config_ids = VecNonEmptyUnique::from(
+            credential_previews
+                .nonempty_iter()
+                .map(|preview_state| &preview_state.credential_configuration_id)
+                .collect::<VecNonEmpty<_>>(),
+        )
+        .into_nonempty_iter()
+        .cloned()
+        .collect();
+
+        let token = self
+            .write_auth_code_issued_session(AuthCodeIssued {
                 credential_previews,
-                grant,
-            })),
+                grant: Grant::PreAuthorizedCode,
+            })
+            .await
+            .map_err(PreAuthorizedSessionError::SessionStore)?;
+
+        let credential_offer = CredentialOffer::new_pre_authorized(
+            self.issuer_data.metadata.credential_issuer.clone(),
+            config_ids,
+            token.into(),
         );
 
-        self.sessions
-            .write(session, true)
-            .await
-            .map_err(CreateSessionError::SessionStore)?;
+        Ok(credential_offer)
+    }
+
+    /// Persist a new session that is in the initial [`AuthCodeIssued`] state. This is called both for Pre-Authorized
+    /// sessions (by `Isser::new_preauthorized_session()`) and Authorization Code sessions (by
+    /// `AuthorizingIssuer::complete_authorization()`).
+    pub(crate) async fn write_auth_code_issued_session(
+        &self,
+        auth_code_issued: AuthCodeIssued,
+    ) -> Result<SessionToken, SessionStoreError> {
+        let token = SessionToken::new_random();
+        let session = SessionState::new(token.clone(), IssuanceData::AuthCodeIssued(Box::new(auth_code_issued)));
+
+        self.sessions.write(session, true).await?;
 
         Ok(token)
     }
@@ -664,36 +670,6 @@ where
             .ok_or(IssuanceError::UnknownSession(code))?
             .try_into()
             .map_err(CredentialRequestError::IssuanceError)
-    }
-
-    pub async fn pre_authorized_offer_from_documents(
-        &self,
-        to_issue: VecNonEmpty<IssuableDocument>,
-    ) -> Result<CredentialOffer, PreAuthorizedSessionError> {
-        let credential_configuration_ids = to_issue
-            .nonempty_iter()
-            .map(|document| {
-                self.credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
-                    .cloned()
-                    .ok_or_else(|| {
-                        PreAuthorizedSessionError::AttestationTypeNotConfigured(
-                            document.format,
-                            document.attestation_type.clone(),
-                        )
-                    })
-            })
-            .collect::<Result<_, _>>()?;
-
-        let code = self
-            .new_preauthorized_session(to_issue)
-            .await
-            .map_err(PreAuthorizedSessionError::CreateSession)?;
-
-        Ok(CredentialOffer::new_pre_authorized(
-            self.issuer_identifier().clone(),
-            credential_configuration_ids,
-            code,
-        ))
     }
 }
 
@@ -1889,7 +1865,7 @@ mod tests {
         trust_anchors: TrustAnchors,
         wia_keypair: KeyPair,
     ) -> WalletIssuanceError {
-        let code = message_client
+        let credential_offer = message_client
             .issuer
             .new_preauthorized_session(mock_issuable_documents(NonZeroUsize::MIN))
             .await
@@ -1911,6 +1887,12 @@ mod tests {
             })
             .collect();
 
+        let code = credential_offer
+            .grants
+            .unwrap()
+            .pre_authorized_code
+            .unwrap()
+            .pre_authorized_code;
         let mut session = HttpIssuanceSession::create(
             message_client,
             credential_configs,
@@ -2000,7 +1982,14 @@ mod tests {
             sessions.clone(),
         );
 
-        let code = issuer.new_preauthorized_session(documents).await.unwrap();
+        let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
+        let code = credential_offer
+            .grants
+            .unwrap()
+            .pre_authorized_code
+            .unwrap()
+            .pre_authorized_code;
+
         test_memory_store_with_cleanup_task(sessions, code.into(), &mock_time, CLEANUP_INTERVAL).await;
     }
 }
