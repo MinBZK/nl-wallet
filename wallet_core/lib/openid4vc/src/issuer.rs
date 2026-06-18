@@ -1874,16 +1874,17 @@ mod tests {
         let issuer_metadata = message_client.issuer.metadata().clone();
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
 
-        let credential_configs = message_client
-            .issuer
-            .credential_configs()
-            .all_configuration_ids()
+        let credential_configs = credential_offer
+            .credential_configuration_ids
             .into_nonempty_iter()
-            .map(|id| {
-                (
-                    id.clone(),
-                    issuer_metadata.credential_configurations_supported[id].clone(),
-                )
+            .map(|config_id| {
+                let config = issuer_metadata
+                    .credential_configurations_supported
+                    .get(&config_id)
+                    .unwrap()
+                    .clone();
+
+                (config_id, config)
             })
             .collect();
 
