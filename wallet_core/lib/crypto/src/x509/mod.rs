@@ -180,6 +180,9 @@ impl BorrowingCertificate {
     }
 
     /// Verify the certificate against the specified trust anchors.
+    ///
+    /// Additionally, this method verifies that the trust anchors are not contained in the intermediate
+    /// certificates as mandated by HAIP 1.0.
     pub fn verify(
         &self,
         usage: CertificateUsage,
