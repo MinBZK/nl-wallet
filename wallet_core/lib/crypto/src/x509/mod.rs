@@ -1,19 +1,14 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter::once;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
-use derive_more::Constructor;
 use derive_more::Debug;
-use derive_more::Display;
-use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use http_utils::urls::HttpsUriError;
@@ -30,8 +25,6 @@ use rustls_pki_types::pem::PemObject;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::EndEntityCert;
@@ -53,8 +46,16 @@ use yoke::Yokeable;
 
 use crate::trust_anchor::TrustAnchors;
 
+#[cfg(any(test, feature = "generate"))]
+mod config;
+mod dn;
+mod key_identifier;
 mod usage;
 
+#[cfg(any(test, feature = "generate"))]
+pub use config::CertificateConfiguration;
+pub use dn::DistinguishedName;
+pub use key_identifier::KeyIdentifier;
 pub use usage::CertificateUsage;
 pub use usage::CertificateUsageError;
 
@@ -438,69 +439,6 @@ where
     }
 }
 
-/// The KeyIdentifier of a public key from a certificate, being its SHA1 hash.
-///
-/// Returned from [`BorrowingCertificate::authority_key_id`].
-#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
-#[display("{}", BASE64_URL_SAFE_NO_PAD.encode(&self.0))]
-#[debug("{}", self)]
-pub struct KeyIdentifier(Vec<u8>);
-
-impl FromStr for KeyIdentifier {
-    type Err = base64::DecodeError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(KeyIdentifier(BASE64_URL_SAFE_NO_PAD.decode(s)?))
-    }
-}
-
-/// A distinguished name encoded in a canonical, OID-registry-independent format.
-/// This type is specifically designed for database persistence and comparison.
-/// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Display, Constructor)]
-#[cfg_attr(feature = "persistence", derive(sea_orm::DeriveValueType))]
-pub struct DistinguishedName(String);
-
-impl DistinguishedName {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl AsRef<str> for DistinguishedName {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-#[cfg(any(test, feature = "generate"))]
-#[derive(Debug, Clone, Default)]
-pub struct CertificateConfiguration {
-    pub not_before: Option<DateTime<Utc>>,
-    pub not_after: Option<DateTime<Utc>>,
-    pub exclude_aki: bool,
-    pub usage: Option<CertificateUsage>,
-    /// TODO: PVW-5885 PVW-5895 Remove when ReaderRegistration and IssuerRegistration are removed
-    pub extension: Option<rcgen::CustomExtension>,
-}
-
-#[cfg(any(test, feature = "generate"))]
-impl CertificateConfiguration {
-    pub fn with_usage(usage: CertificateUsage) -> Self {
-        Self {
-            usage: Some(usage),
-            ..Default::default()
-        }
-    }
-
-    pub fn with_usage_and_extension(usage: CertificateUsage, extension: rcgen::CustomExtension) -> Self {
-        Self {
-            usage: Some(usage),
-            extension: Some(extension),
-            ..Default::default()
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::assert_matches;
@@ -509,7 +447,6 @@ mod test {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use p256::pkcs8::EncodePublicKey;
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
@@ -518,7 +455,6 @@ mod test {
     use super::*;
     use crate::server_keys::generate::Ca;
     use crate::trust_anchor::TrustAnchors;
-    use crate::utils::sha256;
 
     #[test]
     fn generate_ca() {
@@ -527,33 +463,11 @@ mod test {
             .expect("self signed CA should contain a valid X.509 certificate");
 
         let x509_cert = certificate.x509_certificate();
-        assert_certificate_common_name(x509_cert, &["myca"]);
+        let basic_constraint = x509_cert.basic_constraints().unwrap().unwrap();
+        assert!(basic_constraint.critical);
+        assert!(basic_constraint.value.ca);
+        assert_eq!(basic_constraint.value.path_len_constraint, Some(0));
         assert_certificate_default_validity(x509_cert);
-    }
-
-    #[test]
-    fn parse_aki() {
-        let config = CertificateConfiguration {
-            not_after: Some(Utc::now() + Duration::days(42)),
-            ..Default::default()
-        };
-
-        let ca = Ca::generate("myca", config).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
-            .expect("self signed CA should contain a valid X.509 certificate");
-
-        // `rcgen` computes the AKI as the first 20 bytes of the SHA256 of the DER encoding of the public key,
-        // as per RFC 7093.
-        let pubkey_der = ca
-            .to_signing_key()
-            .unwrap()
-            .verifying_key()
-            .to_public_key_der()
-            .unwrap();
-        let hash = sha256(pubkey_der.as_bytes());
-        let hash = &hash[0..20];
-
-        assert_eq!(hash, &certificate.authority_key_id().unwrap().0);
     }
 
     #[test]
@@ -577,7 +491,6 @@ mod test {
         );
 
         let x509_cert = certificate.x509_certificate();
-        assert_certificate_common_name(x509_cert, &["myca"]);
         assert_certificate_validity(x509_cert, now, later);
     }
 
@@ -649,15 +562,6 @@ mod test {
 
         assert_eq!(not_before, expected_not_before);
         assert_eq!(not_after, expected_not_after);
-    }
-
-    fn assert_certificate_common_name(certificate: &X509Certificate, expected_common_name: &[&str]) {
-        let actual_common_name = certificate
-            .subject
-            .iter_common_name()
-            .map(|cn| cn.as_str().unwrap())
-            .collect::<Vec<_>>();
-        assert_eq!(actual_common_name, expected_common_name);
     }
 
     fn generate_ca_for_validity_test() -> Ca {
