@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
 use jwt::error::JwtError;
@@ -7,8 +8,6 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use wallet_account::messages::registration::WalletCertificate;
-
-use crypto::utils::KeyBytes;
 
 use crate::errors::InstructionError;
 use crate::errors::PinValidationError;

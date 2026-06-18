@@ -70,6 +70,7 @@ use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
@@ -79,7 +80,6 @@ use crate::storage::StorageError;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
 use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
-use crate::pin::key::Pin;
 use crate::wallet::state::AttestedKeyRegistrationDataAndConfig;
 use crate::wallet::state::CheckPreconditionsError;
 

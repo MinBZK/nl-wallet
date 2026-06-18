@@ -1096,10 +1096,7 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
     assert!(!wallet.has_registration());
 
     // Register with a valid PIN.
-    wallet
-        .register(pin.into())
-        .await
-        .expect("Could not register wallet");
+    wallet.register(pin.into()).await.expect("Could not register wallet");
 
     // The registration should now be loaded.
     assert!(wallet.has_registration());

@@ -2,8 +2,6 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::pin::key::Pin as WalletPin;
-
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::disclosure_type::DisclosureType;
@@ -66,6 +64,7 @@ use crate::errors::InstructionError;
 use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::RemoteEcdsaWscd;
+use crate::pin::key::Pin as WalletPin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;

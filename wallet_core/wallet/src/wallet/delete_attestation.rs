@@ -17,11 +17,11 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
 use crate::account_provider::AccountProviderClient;
-use crate::pin::key::Pin;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
 use crate::errors::StorageError;
 use crate::instruction::InstructionClientParameters;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -81,11 +81,7 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn delete_attestation(
-        &mut self,
-        pin: Pin,
-        attestation_id: String,
-    ) -> Result<(), DeleteAttestationError> {
+    pub async fn delete_attestation(&mut self, pin: Pin, attestation_id: String) -> Result<(), DeleteAttestationError> {
         info!("Deleting attestation {attestation_id}");
 
         let attestation_id = attestation_id.parse()?;
