@@ -79,17 +79,6 @@ mod extended_key_usage_oid {
     pub const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
 }
 
-macro_rules! oid_of_usage {
-    ($e:expr) => {
-        match $e {
-            CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
-            CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
-            CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
-            CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
-        }
-    };
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateUsageError {
     #[error("X509 coding error: {0}")]
@@ -141,13 +130,22 @@ impl CertificateUsage {
         result.ok_or(CertificateUsageError::NoKnownUsageFound)
     }
 
+    fn as_oid(self) -> &'static Oid<'static> {
+        match self {
+            CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
+            CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
+            CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
+            CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
+        }
+    }
+
     pub fn as_oid_bytes(&self) -> &'static [u8] {
-        oid_of_usage!(self).as_bytes()
+        self.as_oid().as_bytes()
     }
 
     #[cfg(any(test, feature = "generate"))]
     pub fn as_key_usage_purpose(&self) -> rcgen::ExtendedKeyUsagePurpose {
-        rcgen::ExtendedKeyUsagePurpose::Other(oid_of_usage!(self).iter().expect("oid does not fit in u64").collect())
+        rcgen::ExtendedKeyUsagePurpose::Other(self.as_oid().iter().expect("oid does not fit in u64").collect())
     }
 }
 
