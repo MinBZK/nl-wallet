@@ -146,17 +146,6 @@ pub enum TokenRequestError {
     #[error("session not found for the supplied code")]
     SessionNotFound,
 
-    #[error(
-        "scope received in Token Request does not match scope requested in Authorization Request: \
-         expected {}, received: {}",
-        .expected.iter().join(" "),
-        .actual.iter().join(" ")
-    )]
-    ScopeMismatch {
-        expected: HashSet<Scope>,
-        actual: HashSet<Scope>,
-    },
-
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType { expected: String, actual: String },
 
@@ -177,6 +166,17 @@ pub enum TokenRequestError {
          {expected}, got {actual}"
     )]
     ClientIdMismatch { expected: String, actual: String },
+
+    #[error(
+        "scope received in Token Request does not match scope requested in Authorization Request: \
+         expected {}, received: {}",
+        .expected.iter().join(" "),
+        .actual.iter().join(" ")
+    )]
+    ScopeMismatch {
+        expected: HashSet<Scope>,
+        actual: HashSet<Scope>,
+    },
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
@@ -1015,27 +1015,7 @@ impl Grant {
     fn verify_grant_type(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
         match (self, &token_request.grant_type) {
             (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. }) => Ok(()),
-            (
-                Grant::AuthorizationCode(AuthRequestValues {
-                    scope: request_scope, ..
-                }),
-                TokenRequestGrantType::AuthorizationCode { .. },
-            ) => {
-                // The client has the option of further restricting the requested scope as included in the Authorization
-                // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
-                // we check that the scope in the Token Request is exactly the same as what was included in the
-                // Authorization Request.
-                if let Some(scope) = token_request.scope.as_ref()
-                    && scope != request_scope
-                {
-                    return Err(TokenRequestError::ScopeMismatch {
-                        expected: request_scope.clone(),
-                        actual: scope.clone(),
-                    });
-                }
-
-                Ok(())
-            }
+            (Grant::AuthorizationCode(_), TokenRequestGrantType::AuthorizationCode { .. }) => Ok(()),
             _ => Err(TokenRequestError::UnexpectedGrantType {
                 expected: self.to_string(),
                 actual: token_request.grant_type.to_string(),
@@ -1101,6 +1081,29 @@ impl Grant {
 
         Ok(())
     }
+
+    /// Verify the `scope` of the [`TokenRequest`] when in the Authorization Code flow, if it is present.
+    fn verify_scope(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+        if let Grant::AuthorizationCode(AuthRequestValues {
+            scope: request_scope, ..
+        }) = self
+        {
+            // The client has the option of further restricting the requested scope as included in the Authorization
+            // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
+            // we check that the scope in the Token Request is exactly the same as what was included in the
+            // Authorization Request.
+            if let Some(scope) = token_request.scope.as_ref()
+                && scope != request_scope
+            {
+                return Err(TokenRequestError::ScopeMismatch {
+                    expected: request_scope.clone(),
+                    actual: scope.clone(),
+                });
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Session<AuthCodeIssued> {
@@ -1130,6 +1133,7 @@ impl Session<AuthCodeIssued> {
         session_data
             .grant
             .verify_client_id(token_request, &issuer_data.accepted_wallet_client_ids)?;
+        session_data.grant.verify_scope(token_request)?;
 
         build_token_response(
             token_request.code(),

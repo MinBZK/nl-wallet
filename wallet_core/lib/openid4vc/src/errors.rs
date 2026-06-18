@@ -200,8 +200,6 @@ impl From<TokenRequestError> for TokenErrorCode {
 
             TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
 
-            TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
-
             TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
 
             TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
@@ -211,6 +209,8 @@ impl From<TokenRequestError> for TokenErrorCode {
             TokenRequestError::MissingClientId
             | TokenRequestError::UnknownClient(_)
             | TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidClient,
+
+            TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
 
             TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
         }
