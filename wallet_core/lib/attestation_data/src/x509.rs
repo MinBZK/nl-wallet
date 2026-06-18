@@ -2,6 +2,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateUsageError;
 use derive_more::Debug;
 use error_category::ErrorCategory;
 
@@ -18,9 +19,14 @@ pub enum CertificateType {
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CertificateTypeError {
+    /// TODO: PVW-5885 PVW-5895 Remove when ReaderRegistration and IssuerRegistration are removed
     #[error("certificate error: {0}")]
     #[category(defer)]
     Certificate(#[from] CertificateError),
+
+    #[error("certificate usage error: {0}")]
+    #[category(critical)]
+    CertificateUsage(#[source] CertificateUsageError),
 
     #[error("unknown usage: {0}")]
     #[category(critical)]
@@ -41,7 +47,8 @@ impl CertificateType {
     }
 
     pub fn from_certificate(cert: &BorrowingCertificate) -> Result<Self, CertificateTypeError> {
-        let usage = CertificateUsage::from_certificate(cert.x509_certificate())?;
+        let usage = CertificateUsage::from_certificate(cert.x509_certificate())
+            .map_err(CertificateTypeError::CertificateUsage)?;
         let result = match usage {
             CertificateUsage::Mdl => {
                 let Some(registration) = IssuerRegistration::from_certificate(cert)? else {
@@ -74,26 +81,6 @@ impl From<&CertificateType> for CertificateUsage {
 
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
-    use crypto::x509::BorrowingCertificateExtension;
-    use crypto::x509::CertificateError;
-    use crypto::x509::CertificateUsage;
-    use rcgen::CustomExtension;
-
-    use crate::x509::CertificateType;
-
-    impl TryFrom<CertificateType> for Vec<CustomExtension> {
-        type Error = CertificateError;
-
-        fn try_from(source: CertificateType) -> Result<Vec<CustomExtension>, CertificateError> {
-            let usage = CertificateUsage::from(&source).into();
-            let extension = match source {
-                CertificateType::ReaderAuth(reader_registration) => reader_registration.to_custom_ext()?,
-                CertificateType::Mdl(issuer_registration) => issuer_registration.to_custom_ext()?,
-            };
-            Ok(vec![usage, extension])
-        }
-    }
-
     #[cfg(any(test, feature = "mock"))]
     pub mod mock {
         use crypto::server_keys::KeyPair;
@@ -101,207 +88,30 @@ pub mod generate {
         use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
         use crypto::server_keys::generate::mock::RP_CERT_CN;
+        use crypto::x509::CertificateError;
 
-        use super::*;
         use crate::auth::issuer_auth::IssuerRegistration;
         use crate::auth::reader_auth::ReaderRegistration;
 
         pub fn generate_issuer_mock_with_registration(
             ca: &Ca,
-            issuer_registration: IssuerRegistration,
+            issuer_registration: &IssuerRegistration,
         ) -> Result<KeyPair, CertificateError> {
-            ca.generate_key_pair(
-                ISSUANCE_CERT_CN,
-                CertificateType::Mdl(issuer_registration),
-                Default::default(),
-            )
+            ca.generate_key_pair(ISSUANCE_CERT_CN, issuer_registration.to_certificate_configuration()?)
         }
 
         pub fn generate_pid_issuer_mock_with_registration(
             ca: &Ca,
-            issuer_registration: IssuerRegistration,
+            issuer_registration: &IssuerRegistration,
         ) -> Result<KeyPair, CertificateError> {
-            ca.generate_key_pair(
-                PID_ISSUER_CERT_CN,
-                CertificateType::Mdl(issuer_registration),
-                Default::default(),
-            )
+            ca.generate_key_pair(PID_ISSUER_CERT_CN, issuer_registration.to_certificate_configuration()?)
         }
 
         pub fn generate_reader_mock_with_registration(
             ca: &Ca,
-            reader_registration: ReaderRegistration,
+            reader_registration: &ReaderRegistration,
         ) -> Result<KeyPair, CertificateError> {
-            ca.generate_key_pair(
-                RP_CERT_CN,
-                CertificateType::ReaderAuth(reader_registration),
-                Default::default(),
-            )
+            ca.generate_key_pair(RP_CERT_CN, reader_registration.to_certificate_configuration()?)
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use chrono::DateTime;
-    use chrono::Duration;
-    use chrono::Utc;
-    use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::CertificateConfiguration;
-    use time::OffsetDateTime;
-    use time::macros::datetime;
-    use utils::generator::TimeGenerator;
-    use x509_parser::certificate::X509Certificate;
-
-    use super::CertificateUsage;
-    use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::auth::reader_auth::ReaderRegistration;
-    use crate::x509::CertificateType;
-
-    #[test]
-    fn generate_and_verify_issuer_cert() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let mdl = CertificateType::from(IssuerRegistration::new_mock());
-
-        let issuer_key_pair = ca.generate_key_pair("mycert", mdl.clone(), Default::default()).unwrap();
-
-        issuer_key_pair
-            .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
-            .unwrap();
-
-        // Verify whether the parsed CertificateType equals the original Mdl usage
-        let cert_usage = CertificateType::from_certificate(issuer_key_pair.certificate()).unwrap();
-        assert_eq!(cert_usage, mdl);
-
-        let x509_cert = issuer_key_pair.certificate().x509_certificate();
-        assert_certificate_common_name(x509_cert, &["mycert"]);
-        assert_certificate_default_validity(x509_cert);
-    }
-
-    #[test]
-    fn generate_and_verify_issuer_cert_with_configuration() {
-        let now = Utc::now();
-        let later = now + Duration::days(42);
-
-        let config = CertificateConfiguration {
-            not_before: Some(now),
-            not_after: Some(later),
-            ..Default::default()
-        };
-
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let mdl = CertificateType::from(IssuerRegistration::new_mock());
-
-        let issuer_key_pair = ca.generate_key_pair("mycert", mdl.clone(), config).unwrap();
-
-        issuer_key_pair
-            .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
-            .unwrap();
-
-        // Verify whether the parsed CertificateType equals the original Mdl usage
-        let cert_usage = CertificateType::from_certificate(issuer_key_pair.certificate()).unwrap();
-        assert_eq!(cert_usage, mdl);
-
-        let x509_cert = issuer_key_pair.certificate().x509_certificate();
-        assert_certificate_common_name(x509_cert, &["mycert"]);
-        assert_certificate_validity(x509_cert, now, later);
-    }
-
-    #[test]
-    fn generate_and_verify_reader_cert() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
-
-        let reader_key_pair = ca
-            .generate_key_pair("mycert", reader_auth.clone(), Default::default())
-            .unwrap();
-
-        reader_key_pair
-            .certificate()
-            .verify(
-                CertificateUsage::ReaderAuth,
-                &[],
-                &TimeGenerator,
-                &TrustAnchors::from(&ca),
-            )
-            .unwrap();
-
-        // Verify whether the parsed CertificateType equals the original ReaderAuth usage
-        let cert_type = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
-        assert_eq!(cert_type, reader_auth);
-
-        let x509_cert = reader_key_pair.certificate().x509_certificate();
-        assert_certificate_common_name(x509_cert, &["mycert"]);
-        assert_certificate_default_validity(x509_cert);
-    }
-
-    #[test]
-    fn generate_and_verify_reader_cert_with_configuration() {
-        let now = Utc::now();
-        let later = now + Duration::days(42);
-
-        let config = CertificateConfiguration {
-            not_before: Some(now),
-            not_after: Some(later),
-            ..Default::default()
-        };
-
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
-
-        let reader_key_pair = ca.generate_key_pair("mycert", reader_auth.clone(), config).unwrap();
-
-        reader_key_pair
-            .certificate()
-            .verify(
-                CertificateUsage::ReaderAuth,
-                &[],
-                &TimeGenerator,
-                &TrustAnchors::from(&ca),
-            )
-            .unwrap();
-
-        // Verify whether the parsed CertificateType equals the original ReaderAuth usage
-        let cert_type = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
-        assert_eq!(cert_type, reader_auth);
-
-        let x509_cert = reader_key_pair.certificate().x509_certificate();
-        assert_certificate_common_name(x509_cert, &["mycert"]);
-        assert_certificate_validity(x509_cert, now, later);
-    }
-
-    fn assert_certificate_default_validity(certificate: &X509Certificate) {
-        let not_before = certificate.validity().not_before.to_datetime();
-        let not_after = certificate.validity().not_after.to_datetime();
-
-        assert_eq!(not_before, datetime!(1975-01-01 0:00 UTC));
-        assert_eq!(not_after, datetime!(4096-01-01 0:00 UTC));
-    }
-
-    fn assert_certificate_validity(
-        certificate: &X509Certificate,
-        expected_not_before: DateTime<Utc>,
-        expected_not_after: DateTime<Utc>,
-    ) {
-        let expected_not_before = OffsetDateTime::from_unix_timestamp(expected_not_before.timestamp()).unwrap();
-        let expected_not_after = OffsetDateTime::from_unix_timestamp(expected_not_after.timestamp()).unwrap();
-
-        let not_before = certificate.validity().not_before.to_datetime();
-        let not_after = certificate.validity().not_after.to_datetime();
-
-        assert_eq!(not_before, expected_not_before);
-        assert_eq!(not_after, expected_not_after);
-    }
-
-    fn assert_certificate_common_name(certificate: &X509Certificate, expected_common_name: &[&str]) {
-        let actual_common_name = certificate
-            .subject
-            .iter_common_name()
-            .map(|cn| cn.as_str().unwrap())
-            .collect::<Vec<_>>();
-        assert_eq!(actual_common_name, expected_common_name);
     }
 }

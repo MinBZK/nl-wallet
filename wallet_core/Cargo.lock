@@ -1585,6 +1585,7 @@ dependencies = [
  "rand_core 0.6.4",
  "rcgen 0.14.5",
  "ring",
+ "rstest",
  "rustls-pki-types",
  "rustls-webpki",
  "sea-orm",

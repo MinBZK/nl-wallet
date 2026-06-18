@@ -313,7 +313,8 @@ export IDENTIFIER=foocorp
 mkdir -p "${CA_DIR}" "${TARGET_DIR}"
 
 # Create the reader certificate using wallet_ca.
-cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" reader \
+cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
+    --type reader \
     --ca-key-file "${CA_DIR}/ca.${IDENTIFIER}.key.pem" \
     --ca-crt-file "${CA_DIR}/ca.${IDENTIFIER}.crt.pem" \
     --common-name "reader.${IDENTIFIER}" \

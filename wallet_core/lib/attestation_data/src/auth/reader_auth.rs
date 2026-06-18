@@ -83,16 +83,16 @@ impl ReaderRegistration {
 
         Ok(())
     }
-}
 
-#[cfg(feature = "generate")]
-impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
-    type Error = crypto::x509::CertificateError;
-
-    fn try_from(value: ReaderRegistration) -> Result<Self, Self::Error> {
-        let certificate_type = CertificateType::from(value);
-        let result = certificate_type.try_into()?;
-        Ok(result)
+    #[cfg(feature = "mock")]
+    pub fn to_certificate_configuration(
+        &self,
+    ) -> Result<crypto::x509::CertificateConfiguration, crypto::x509::CertificateError> {
+        let custom_ext = self.to_custom_ext()?;
+        Ok(crypto::x509::CertificateConfiguration::with_usage_and_extension(
+            crypto::x509::CertificateUsage::ReaderAuth,
+            custom_ext,
+        ))
     }
 }
 

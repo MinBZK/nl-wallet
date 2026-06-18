@@ -473,6 +473,7 @@ mod tests {
     use coset::Label;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateUsage;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -572,7 +573,10 @@ mod tests {
     async fn cose_with_certificate() {
         let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
-            .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                "cert.example.com",
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
 
         let payload = ToyMessage::default();
@@ -593,7 +597,10 @@ mod tests {
     async fn x5chain_single_cert() {
         let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
-            .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                "cert.example.com",
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
 
         let cert = issuer_key_pair.certificate();
@@ -617,15 +624,17 @@ mod tests {
         let intermediate_ca = root_ca
             .generate_intermediate(
                 "intermediate-ca.example.com",
-                CertificateUsage::Mdl.into(),
-                Default::default(),
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
             )
             .unwrap();
         let intermediate_certificate = intermediate_ca.as_borrowing_certificate().unwrap();
 
         // Leaf key pair and
         let leaf_key_pair = intermediate_ca
-            .generate_key_pair("leaf.example.com", CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                "leaf.example.com",
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
         let leaf_certificate = leaf_key_pair.certificate();
 
@@ -657,12 +666,14 @@ mod tests {
         let intermediate_ca = root_ca
             .generate_intermediate(
                 "intermediate-ca.example.com",
-                CertificateUsage::Mdl.into(),
-                Default::default(),
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
             )
             .unwrap();
         let leaf_key_pair = intermediate_ca
-            .generate_key_pair("leaf.example.com", CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                "leaf.example.com",
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
 
         // x5chain only contains the leaf cert, not the intermediate

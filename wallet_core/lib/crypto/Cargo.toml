@@ -60,4 +60,5 @@ time = { workspace = true, optional = true }
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
+rstest.workspace = true
 time.workspace = true

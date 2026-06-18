@@ -719,7 +719,6 @@ mod test {
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::x509::CertificateType;
 
     fn setup_into_signed() -> (
         PreviewableCredentialPayload,
@@ -1001,8 +1000,8 @@ mod test {
         let wscd = MockRemoteWscd::new(vec![holder_key.clone()]);
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let cert_type = CertificateType::from(IssuerRegistration::new_mock());
-        let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
+        let cert_config = IssuerRegistration::new_mock().to_certificate_configuration().unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", cert_config).unwrap();
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
             PID_ATTESTATION_TYPE,

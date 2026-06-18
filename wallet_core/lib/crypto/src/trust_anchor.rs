@@ -169,7 +169,7 @@ impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
     }
 }
 
-#[cfg(feature = "examples")]
+#[cfg(any(test, feature = "examples"))]
 impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
     type Error = CertificateError;
 
@@ -210,7 +210,7 @@ impl<'de> Deserialize<'de> for TrustAnchors {
     }
 }
 
-#[cfg(all(feature = "mock", feature = "generate"))]
+#[cfg(any(test, all(feature = "mock", feature = "generate")))]
 pub mod mock {
     use indexmap::IndexSet;
 

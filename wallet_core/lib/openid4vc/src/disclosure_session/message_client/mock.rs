@@ -179,9 +179,7 @@ impl MockVerifierSession {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
         let key_pair = match &reader_registration {
-            Some(reader_registration) => {
-                generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap()
-            }
+            Some(reader_registration) => generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
             None => ca.generate_reader_mock().unwrap(),
         };
 

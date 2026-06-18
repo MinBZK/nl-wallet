@@ -1149,6 +1149,7 @@ mod tests {
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateUsage;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
@@ -2341,7 +2342,10 @@ mod tests {
         // Setup both issuer and holder keys.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_key_pair = ca
-            .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                ISSUANCE_CERT_CN,
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
 
         let holder_key1 = MockRemoteEcdsaKey::new_random("sd_jwt_key_1".to_string());
@@ -2482,7 +2486,10 @@ mod tests {
         // Setup the issuer keys.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let sd_jwt_issuer_key_pair = ca
-            .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                ISSUANCE_CERT_CN,
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
 
         // Create an mdoc holder key and device response using the WSCD. Note that the `PoaInput` is not actually used.
@@ -2593,7 +2600,10 @@ mod tests {
         let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
         let issuer_keypair = ca
-            .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(
+                PID_ISSUER_CERT_CN,
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
             .unwrap();
         let wscd = MockRemoteWscd::default();
 
