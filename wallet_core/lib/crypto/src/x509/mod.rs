@@ -15,7 +15,6 @@ use derive_more::Debug;
 use derive_more::Display;
 use derive_more::From;
 use error_category::ErrorCategory;
-use extended_key_usage_oid::*;
 use http_utils::urls::HttpsUri;
 use http_utils::urls::HttpsUriError;
 use indexmap::IndexMap;
@@ -43,7 +42,6 @@ use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
 use x509_parser::objects::oid_registry;
-use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
 use x509_parser::prelude::ParsedExtension;
@@ -55,104 +53,10 @@ use yoke::Yokeable;
 
 use crate::trust_anchor::TrustAnchors;
 
-/// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
-/// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
-/// being verified.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
-pub enum CertificateUsage {
-    Mdl,
-    ReaderAuth,
-    OAuthStatusSigning,
-    Wia,
-}
+mod usage;
 
-#[rustfmt::skip]
-mod extended_key_usage_oid {
-    use x509_parser::der_parser::Oid;
-    use x509_parser::oid_registry::asn1_rs::oid;
-
-    pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
-    pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
-    // The .127 is made up, the real child node is TDB
-    pub const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
-    // The .128 is made up, the real child node is TBD
-    pub const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum CertificateUsageError {
-    #[error("X509 coding error: {0}")]
-    X509Error(#[from] X509Error),
-
-    #[error("no extended key usage section in certificate")]
-    NoExtendedKeyUsage,
-
-    #[error("no known usage found")]
-    NoKnownUsageFound,
-
-    #[error("multiple usages found for same certificate: {0} and {1}")]
-    MultipleUsages(CertificateUsage, CertificateUsage),
-}
-
-impl CertificateUsage {
-    pub fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateUsageError> {
-        let eku_extension = cert
-            .extended_key_usage()?
-            .ok_or(CertificateUsageError::NoExtendedKeyUsage)?;
-        Self::from_key_usage(eku_extension.value)
-    }
-
-    fn from_key_usage(ext_key_usage: &ExtendedKeyUsage) -> Result<Self, CertificateUsageError> {
-        let mut result = None;
-        for key_usage_oid in &ext_key_usage.other {
-            let cert_usage = {
-                // Unfortunately we cannot use a match statement here.
-                if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
-                    Some(Self::Mdl)
-                } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
-                    Some(Self::ReaderAuth)
-                } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
-                    Some(Self::OAuthStatusSigning)
-                } else if key_usage_oid == EXTENDED_KEY_USAGE_WIA {
-                    Some(Self::Wia)
-                } else {
-                    None
-                }
-            };
-            match (result, cert_usage) {
-                (Some(previous), Some(current)) => {
-                    return Err(CertificateUsageError::MultipleUsages(previous, current));
-                }
-                (None, current @ Some(_)) => result = current,
-                _ => {}
-            }
-        }
-        result.ok_or(CertificateUsageError::NoKnownUsageFound)
-    }
-
-    fn as_oid(self) -> &'static Oid<'static> {
-        match self {
-            CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
-            CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
-            CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
-            CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
-        }
-    }
-
-    pub fn as_oid_bytes(&self) -> &'static [u8] {
-        self.as_oid().as_bytes()
-    }
-
-    #[cfg(any(test, feature = "generate"))]
-    pub fn to_key_usage_purpose(&self) -> rcgen::ExtendedKeyUsagePurpose {
-        rcgen::ExtendedKeyUsagePurpose::Other(
-            self.as_oid()
-                .iter()
-                .expect("oid sub identifier does not fit in u64")
-                .collect(),
-        )
-    }
-}
+pub use usage::CertificateUsage;
+pub use usage::CertificateUsageError;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 #[category(pd)]
@@ -606,7 +510,6 @@ mod test {
     use chrono::Duration;
     use chrono::Utc;
     use p256::pkcs8::EncodePublicKey;
-    use rstest::rstest;
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
@@ -616,58 +519,6 @@ mod test {
     use crate::server_keys::generate::Ca;
     use crate::trust_anchor::TrustAnchors;
     use crate::utils::sha256;
-
-    fn create_der_seq_of_oid_bytes(oid_bytes: &[&[u8]]) -> Vec<u8> {
-        let mut ext_bytes = Vec::with_capacity(128);
-        // Write DER sequence of OIDs (assuming length fits in single byte)
-        ext_bytes.extend_from_slice(&[0x30, oid_bytes.iter().map(|b| b.len() as u8 + 2).sum()]);
-        for bytes in oid_bytes {
-            ext_bytes.extend_from_slice(&[0x06, bytes.len() as u8]);
-            ext_bytes.extend_from_slice(bytes);
-        }
-        ext_bytes
-    }
-
-    #[rstest]
-    fn certificate_usage_to_oid_from_extension(
-        #[values(
-            CertificateUsage::Mdl,
-            CertificateUsage::ReaderAuth,
-            CertificateUsage::OAuthStatusSigning,
-            CertificateUsage::Wia
-        )]
-        cert_usage: CertificateUsage,
-    ) {
-        let oid_bytes = cert_usage.as_oid_bytes();
-
-        let ext_bytes = create_der_seq_of_oid_bytes(&[oid_bytes]);
-        let (_, extended_key_usage) = ExtendedKeyUsage::from_der(&ext_bytes).unwrap();
-
-        let parsed = CertificateUsage::from_key_usage(&extended_key_usage).unwrap();
-        assert_eq!(cert_usage, parsed);
-    }
-
-    #[test]
-    fn check_for_multiple_key_usages() {
-        let ext_bytes =
-            create_der_seq_of_oid_bytes(&[EXTENDED_KEY_USAGE_MDL.as_bytes(), EXTENDED_KEY_USAGE_TSL.as_bytes()]);
-        let (_, extended_key_usage) = ExtendedKeyUsage::from_der(&ext_bytes).unwrap();
-
-        let result = CertificateUsage::from_key_usage(&extended_key_usage);
-        assert!(result.is_err());
-        assert_matches!(result, Err(CertificateUsageError::MultipleUsages(a, b))
-            if a == CertificateUsage::Mdl && b == CertificateUsage::OAuthStatusSigning);
-    }
-
-    #[test]
-    fn check_for_no_known_usage() {
-        let ext_bytes = create_der_seq_of_oid_bytes(&[Oid::from(&[1, 2, 3]).unwrap().as_bytes()]);
-        let (_, extended_key_usage) = ExtendedKeyUsage::from_der(&ext_bytes).unwrap();
-
-        let result = CertificateUsage::from_key_usage(&extended_key_usage);
-        assert!(result.is_err());
-        assert_matches!(result, Err(CertificateUsageError::NoKnownUsageFound))
-    }
 
     #[test]
     fn generate_ca() {
