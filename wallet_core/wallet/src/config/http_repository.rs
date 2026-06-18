@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use http_utils::reqwest::IntoReqwestClient;
 use jwt::DEFAULT_VALIDATIONS;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use parking_lot::RwLock;
 use tracing::info;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -23,13 +23,13 @@ type ConfigState = (Arc<WalletConfiguration>, Option<Arc<WalletConfigJwt>>);
 
 pub struct HttpConfigurationRepository<B> {
     client: EtagHttpClient<WalletConfigJwt, B, ConfigurationError>,
-    signing_public_key: EcdsaDecodingKey,
+    signing_public_key: JwtDecodingKey,
     config: RwLock<ConfigState>,
 }
 
 impl<B> HttpConfigurationRepository<B> {
     pub async fn new(
-        signing_public_key: EcdsaDecodingKey,
+        signing_public_key: JwtDecodingKey,
         storage_path: PathBuf,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {

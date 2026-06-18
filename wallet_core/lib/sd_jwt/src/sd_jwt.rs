@@ -24,7 +24,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
@@ -531,7 +531,7 @@ impl UnverifiedSdJwtPresentation {
         )?;
 
         let key_binding_jwt = self.key_binding_jwt.into_verified(
-            &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
+            &JwtDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
             kb_verification_options,
             time,
         )?;
@@ -749,7 +749,7 @@ where
     H: TryFrom<jwt::Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    pub(crate) fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt<C, H>, DecoderError> {
+    pub(crate) fn into_verified(self, pubkey: &JwtDecodingKey) -> Result<VerifiedSdJwt<C, H>, DecoderError> {
         let issuer_signed = self.issuer_signed.into_verified(pubkey, &SD_JWT_VALIDATIONS)?;
         let disclosures = Self::parse_and_verify_disclosures(&self.disclosures, issuer_signed.payload())?;
         Ok(VerifiedSdJwt {
@@ -768,7 +768,7 @@ where
 {
     pub(crate) fn into_verified(
         self,
-        issuer_pubkey: &EcdsaDecodingKey,
+        issuer_pubkey: &JwtDecodingKey,
         kb_expected_aud: &str,
         kb_expected_nonce: &jwt::nonce::Nonce,
         kb_iat_acceptance_window: std::time::Duration,
@@ -790,7 +790,7 @@ where
             iat_acceptance_window: kb_iat_acceptance_window,
         };
         let key_binding_jwt = self.key_binding_jwt.into_verified(
-            &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
+            &JwtDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
             &kb_verification_options,
             time,
         )?;
@@ -980,7 +980,7 @@ mod test {
         let err = sd_jwt
             .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
             .unwrap()
-            .into_verified(&EcdsaDecodingKey::from(issuer_keypair.certificate().public_key()))
+            .into_verified(&JwtDecodingKey::from(issuer_keypair.certificate().public_key()))
             .expect_err("should fail");
 
         assert_matches!(

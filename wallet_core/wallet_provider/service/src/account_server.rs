@@ -43,7 +43,7 @@ use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
@@ -497,7 +497,7 @@ pub struct AndroidAttestationConfiguration {
 }
 
 pub struct AccountServerKeys {
-    pub wallet_certificate_signing_pubkey: EcdsaDecodingKey,
+    pub wallet_certificate_signing_pubkey: JwtDecodingKey,
     pub pin_keys: AccountServerPinKeys,
     pub revocation_code_key_identifier: String,
 }
@@ -1525,7 +1525,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     }
 
     fn verify_registration_challenge(
-        certificate_signing_pubkey: &EcdsaDecodingKey,
+        certificate_signing_pubkey: &JwtDecodingKey,
         challenge: &[u8],
     ) -> Result<RegistrationChallengeClaims, RegistrationError> {
         let jwt: UnverifiedJwt<RegistrationChallengeClaims> = String::from_utf8(challenge.to_owned())
@@ -2009,7 +2009,7 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::EcdsaDecodingKey;
+    use jwt::JwtDecodingKey;
     use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -2495,7 +2495,7 @@ mod tests {
 
         let (wallet_user, _pin_pubkey) = verify_wallet_certificate(
             &cert,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &JwtDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3106,7 +3106,7 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &JwtDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3123,7 +3123,7 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &JwtDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3518,7 +3518,7 @@ mod tests {
 
         verify_wallet_certificate(
             &result.certificate,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &JwtDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),

@@ -7,8 +7,8 @@ use chrono::Utc;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use jsonwebtoken::jwk::Jwk;
-use jwt::EcdsaDecodingKey;
 use jwt::Header;
+use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::jwk::jwk_to_p256;
@@ -184,7 +184,7 @@ pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, D
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-elliptic-curve-key-used-in-
-pub fn examples_sd_jwt_decoding_key() -> EcdsaDecodingKey {
+pub fn examples_sd_jwt_decoding_key() -> JwtDecodingKey {
     let jwk = json!({
         "kty": "EC",
         "crv": "P-256",
@@ -195,8 +195,8 @@ pub fn examples_sd_jwt_decoding_key() -> EcdsaDecodingKey {
     decoding_key_from_jwk(jwk)
 }
 
-fn decoding_key_from_jwk(jwk: serde_json::Value) -> EcdsaDecodingKey {
+fn decoding_key_from_jwk(jwk: serde_json::Value) -> JwtDecodingKey {
     let jwk: Jwk = serde_json::from_value(jwk).unwrap();
     let verifying_key = jwk_to_p256(&jwk).unwrap();
-    EcdsaDecodingKey::from(&verifying_key)
+    JwtDecodingKey::from(&verifying_key)
 }

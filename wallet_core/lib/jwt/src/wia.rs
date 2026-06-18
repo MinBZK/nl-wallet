@@ -18,7 +18,7 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
 use crate::DEFAULT_VALIDATIONS;
-use crate::EcdsaDecodingKey;
+use crate::JwtDecodingKey;
 use crate::JwtTyp;
 use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
@@ -195,7 +195,7 @@ impl WiaDisclosure {
 
         let (_, wia_disclosure_claims) = self
             .1
-            .parse_and_verify(EcdsaDecodingKey::from(&wia_pubkey), &validations)
+            .parse_and_verify(JwtDecodingKey::from(&wia_pubkey), &validations)
             .map_err(JwtX5cVerifyError::JwtVerify)
             .map_err(WiaError::JwtVerify)?;
 

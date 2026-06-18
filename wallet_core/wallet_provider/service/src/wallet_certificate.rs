@@ -4,7 +4,7 @@ use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
@@ -61,7 +61,7 @@ where
 
 async fn parse_claims_and_retrieve_wallet_user<T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &EcdsaDecodingKey,
+    certificate_signing_pubkey: &JwtDecodingKey,
     wallet_user_repository: &R,
     include_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
@@ -159,7 +159,7 @@ where
 /// - Return the [`WalletUser`].
 pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &EcdsaDecodingKey,
+    certificate_signing_pubkey: &JwtDecodingKey,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
@@ -201,7 +201,7 @@ where
 /// - Returns a tuple of the [`WalletUser`] and [`WalletCertificateClaims`].
 pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &EcdsaDecodingKey,
+    certificate_signing_pubkey: &JwtDecodingKey,
     allow_for_blocked_users: bool,
     repositories: &R,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
@@ -335,7 +335,7 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::EcdsaDecodingKey;
+    use jwt::JwtDecodingKey;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
@@ -455,7 +455,7 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &JwtDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -507,7 +507,7 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &JwtDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -577,7 +577,7 @@ mod tests {
 
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &JwtDecodingKey::from(&setup.signing_pubkey),
             false,
             &user_state.repositories,
         )

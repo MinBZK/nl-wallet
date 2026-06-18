@@ -26,7 +26,7 @@ use db_test::connection_from_url;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use jwt::DEFAULT_VALIDATIONS;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use jwt::SignedJwt;
 use p256::ecdsa::SigningKey;
 use rstest::rstest;
@@ -204,7 +204,7 @@ async fn assert_published_list(
         .parse::<StatusListToken>()
         .unwrap();
 
-    let verifying_key = EcdsaDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
+    let verifying_key = JwtDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
     let (header, claims) = status_list_token
         .as_ref()
         .parse_and_verify(verifying_key, &DEFAULT_VALIDATIONS)

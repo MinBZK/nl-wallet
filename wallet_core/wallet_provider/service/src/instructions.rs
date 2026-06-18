@@ -1437,7 +1437,7 @@ mod tests {
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
     use jwt::Algorithm;
-    use jwt::EcdsaDecodingKey;
+    use jwt::JwtDecodingKey;
     use jwt::UnverifiedJwt;
     use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
@@ -2222,7 +2222,7 @@ mod tests {
 
             wia_with_disclosure
                 .wia_pop()
-                .parse_and_verify(EcdsaDecodingKey::from(&wia_key), &validations)
+                .parse_and_verify(JwtDecodingKey::from(&wia_key), &validations)
                 .unwrap();
         }
     }

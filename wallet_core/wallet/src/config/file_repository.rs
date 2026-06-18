@@ -4,7 +4,7 @@ use std::sync::Arc;
 use derive_more::Constructor;
 use http_utils::reqwest::IntoReqwestClient;
 use jwt::DEFAULT_VALIDATIONS;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::ConfigurationError;
@@ -28,7 +28,7 @@ pub struct FileStorageConfigurationRepository<T> {
 impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
     pub async fn init(
         storage_path: PathBuf,
-        signing_public_key: EcdsaDecodingKey,
+        signing_public_key: JwtDecodingKey,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
@@ -93,7 +93,7 @@ mod tests {
     use http_utils::client::InternalHttpConfig;
     use http_utils::client::TlsPinningConfig;
     use jwt::DEFAULT_VALIDATIONS;
-    use jwt::EcdsaDecodingKey;
+    use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
     use parking_lot::RwLock;
@@ -162,7 +162,7 @@ mod tests {
     #[tokio::test]
     async fn should_store_config_to_filesystem() {
         let signing_key = SigningKey::random(&mut OsRng);
-        let decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
+        let decoding_key = JwtDecodingKey::from(signing_key.verifying_key());
 
         let mut initial_wallet_config = default_wallet_config();
         initial_wallet_config.lock_timeouts.background_timeout = 500;
@@ -204,7 +204,7 @@ mod tests {
     #[tokio::test]
     async fn should_use_newer_embedded_wallet_get() {
         let signing_key = SigningKey::random(&mut OsRng);
-        let config_decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
+        let config_decoding_key = JwtDecodingKey::from(signing_key.verifying_key());
 
         let config_dir = tempfile::tempdir().unwrap();
         let path = config_dir.keep();

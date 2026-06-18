@@ -12,7 +12,7 @@ use derive_more::Display;
 use derive_more::FromStr;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
@@ -74,7 +74,7 @@ impl UnverifiedKeyBindingJwt {
     /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#section-8.3-4.5.1>
     pub fn into_verified(
         self,
-        pubkey: &EcdsaDecodingKey,
+        pubkey: &JwtDecodingKey,
         kb_verification_options: &KbVerificationOptions,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
@@ -232,7 +232,7 @@ mod test {
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
-    use jwt::EcdsaDecodingKey;
+    use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
     use jwt::error::JwtVerifyError;
     use p256::ecdsa::SigningKey;
@@ -403,7 +403,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &EcdsaDecodingKey::from(signing_key.verifying_key()),
+                &JwtDecodingKey::from(signing_key.verifying_key()),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -447,7 +447,7 @@ mod test {
         };
 
         let result = jwt_str.parse::<UnverifiedKeyBindingJwt>().unwrap().into_verified(
-            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            &JwtDecodingKey::from(signing_key.verifying_key()),
             &kb_verification_options,
             &now_generator,
         );
@@ -478,7 +478,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &EcdsaDecodingKey::from(signing_key.verifying_key()),
+                &JwtDecodingKey::from(signing_key.verifying_key()),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -505,7 +505,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &EcdsaDecodingKey::from(signing_key.verifying_key()),
+                &JwtDecodingKey::from(signing_key.verifying_key()),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )

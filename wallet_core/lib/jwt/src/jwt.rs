@@ -18,7 +18,6 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Display;
-use derive_more::From;
 use derive_more::Into;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
@@ -223,7 +222,7 @@ where
     /// Calls `parse_and_verify` and returns a `VerifiedJwt<T, H>`.
     pub fn into_verified(
         self,
-        pubkey: &EcdsaDecodingKey,
+        pubkey: &JwtDecodingKey,
         validation_options: &Validation,
     ) -> Result<VerifiedJwt<T, H>, JwtVerifyError> {
         let (header, payload) = self.parse_and_verify(pubkey, validation_options)?;
@@ -265,7 +264,7 @@ where
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-        let pubkey = EcdsaDecodingKey::from(leaf_cert.public_key());
+        let pubkey = JwtDecodingKey::from(leaf_cert.public_key());
         self.parse_and_verify(&pubkey, validation_options)
             .map_err(JwtX5cVerifyError::JwtVerify)
     }
@@ -299,7 +298,7 @@ where
         &self,
         validation_options: &Validation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
-        let pubkey = EcdsaDecodingKey::from(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?);
+        let pubkey = JwtDecodingKey::from(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?);
         self.parse_and_verify(&pubkey, validation_options)
     }
 
@@ -311,7 +310,7 @@ where
         expected_verifying_key: &VerifyingKey,
         validation_options: &Validation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
-        let pubkey = EcdsaDecodingKey::from(expected_verifying_key);
+        let pubkey = JwtDecodingKey::from(expected_verifying_key);
         let (header, payload) = self.parse_and_verify(&pubkey, validation_options)?;
 
         // Compare the specified key against the one in the JWT header
@@ -344,7 +343,7 @@ where
         let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
         let jwk = jwks.find(&kid).ok_or(JwtVerifyError::KeyNotFound(kid))?;
         let key = DecodingKey::from_jwk(jwk).map_err(JwtVerifyError::JwkConversion)?;
-        self.parse_and_verify(DecodingKeyWrapper(key), validation_options)
+        self.parse_and_verify(JwtDecodingKey(key), validation_options)
     }
 }
 
@@ -361,7 +360,7 @@ where
 /// # Example
 /// ```
 /// # use jwt::DEFAULT_VALIDATIONS;
-/// # use jwt::EcdsaDecodingKey;
+/// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
 /// # use p256::ecdsa::SigningKey;
@@ -380,8 +379,7 @@ where
 /// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
 ///
 /// let unverified = signed.into_unverified();
-/// let (_, payload) =
-///     unverified.parse_and_verify(&EcdsaDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
+/// let (_, payload) = unverified.parse_and_verify(&JwtDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
 /// assert_eq!(payload.name, "alice");
 /// # Ok::<(), anyhow::Error>(())
 /// # });
@@ -591,7 +589,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// From an `UnverifiedJwt`:
 /// ```
 /// # use jwt::DEFAULT_VALIDATIONS;
-/// # use jwt::EcdsaDecodingKey;
+/// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
 /// # use p256::ecdsa::SigningKey;
@@ -610,7 +608,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
 ///
 /// let unverified = signed.into_unverified();
-/// let verified = unverified.into_verified(&EcdsaDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
+/// let verified = unverified.into_verified(&JwtDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
 /// assert_eq!(verified.payload().name, "alice");
 /// # Ok::<(), anyhow::Error>(())
 /// # });
@@ -619,7 +617,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// Or directly from a `SignedJwt`:
 /// ```
 /// # use jwt::DEFAULT_VALIDATIONS;
-/// # use jwt::EcdsaDecodingKey;
+/// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
 /// # use p256::ecdsa::SigningKey;
@@ -688,7 +686,7 @@ impl<T, H> VerifiedJwt<T, H> {
     }
 }
 
-/// EcdsaDecodingKey is an ECDSA public key for use with the `jsonwebtoken` crate. It wraps [`DecodingKey`] and aims to
+/// JwtDecodingKey is a public key for use with the `jsonwebtoken` crate. It wraps [`DecodingKey`] and aims to
 /// solve a confusing aspect of the [`DecodingKey`] API: the functions [`DecodingKey::from_ec_der()`] and
 /// [`DecodingKey::from_ec_pem()`] do not really do what their name suggests, and they are not equivalent apart from
 /// taking DER and PEM encodings.
@@ -706,25 +704,25 @@ impl<T, H> VerifiedJwt<T, H> {
 ///   [`DecodingKey::from_ec_pem()`] accepts this encoding, in PEM form (although it also accepts SEC1-encoded keys in
 ///   PEM form).
 ///
-/// This type solves the unclarity by explicitly naming the SEC1 encoding in [`EcdsaDecodingKey::from_sec1()`] that it
+/// This type solves the unclarity by explicitly naming the SEC1 encoding in [`JwtDecodingKey::from_sec1()`] that it
 /// takes to construct it. From a `VerifyingKey` of the `ecdsa` crate, this encoding may be obtained by calling
 /// `public_key.to_encoded_point(false).as_bytes()`.
 #[derive(Clone, AsRef, Into)]
-pub struct EcdsaDecodingKey(DecodingKey);
+pub struct JwtDecodingKey(DecodingKey);
 
-impl From<DecodingKey> for EcdsaDecodingKey {
+impl From<DecodingKey> for JwtDecodingKey {
     fn from(value: DecodingKey) -> Self {
-        EcdsaDecodingKey(value)
+        JwtDecodingKey(value)
     }
 }
 
-impl From<&VerifyingKey> for EcdsaDecodingKey {
+impl From<&VerifyingKey> for JwtDecodingKey {
     fn from(value: &VerifyingKey) -> Self {
-        EcdsaDecodingKey::from_sec1(value.to_encoded_point(false).as_bytes())
+        JwtDecodingKey::from_sec1(value.to_encoded_point(false).as_bytes())
     }
 }
 
-impl EcdsaDecodingKey {
+impl JwtDecodingKey {
     pub fn from_sec1(key: &[u8]) -> Self {
         DecodingKey::from_ec_der(key).into()
     }
@@ -738,10 +736,6 @@ pub static DEFAULT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
 
     validation_options
 });
-
-/// Provided to allow passing a [`DecodingKey`] to `parse_and_verify`.
-#[derive(AsRef, From)]
-pub struct DecodingKeyWrapper(pub DecodingKey);
 
 /// Trait defining the expected `sub` field value for a JWT payload. To use `sign_with_sub`, types used as payloads of
 /// JWTs must implement this trait, which enforces that only JWTs with a matching `sub` field are accepted when using
@@ -813,7 +807,7 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     /// Verify the JWT, and parse and return its payload.
-    pub fn parse_and_verify_with_sub(&self, pubkey: &EcdsaDecodingKey) -> Result<(H, T), JwtVerifyError> {
+    pub fn parse_and_verify_with_sub(&self, pubkey: &JwtDecodingKey) -> Result<(H, T), JwtVerifyError> {
         let mut validations = SUB_JWT_VALIDATIONS.to_owned();
         validations.sub = Some(T::SUB.to_owned());
         self.parse_and_verify(pubkey, &validations)
@@ -1118,10 +1112,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = jwt
-            .parse_and_verify(
-                EcdsaDecodingKey::from(private_key.verifying_key()),
-                &DEFAULT_VALIDATIONS,
-            )
+            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -1156,10 +1147,7 @@ mod tests {
 
         // the JWT cannot be verified with `parse_and_verify_with_typ()`
         let parsed = jwt
-            .parse_and_verify(
-                EcdsaDecodingKey::from(private_key.verifying_key()),
-                &DEFAULT_VALIDATIONS,
-            )
+            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
         assert_matches!(parsed, JwtVerifyError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
@@ -1174,20 +1162,14 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = unverified_jwt
-            .parse_and_verify(
-                EcdsaDecodingKey::from(private_key.verifying_key()),
-                &DEFAULT_VALIDATIONS,
-            )
+            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(t, parsed);
 
         let verified_jwt = unverified_jwt
             .clone()
-            .into_verified(
-                &EcdsaDecodingKey::from(private_key.verifying_key()),
-                &DEFAULT_VALIDATIONS,
-            )
+            .into_verified(&JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         // The inner JWT value of `VerifiedJwt` is exactly the same as the `UnverifiedJwt`.
@@ -1227,7 +1209,7 @@ mod tests {
             .exactly_one()
             .unwrap()
             .as_ref()
-            .parse_and_verify(EcdsaDecodingKey::from(key1.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify(JwtDecodingKey::from(key1.verifying_key()), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(parsed, message1);
@@ -1253,7 +1235,7 @@ mod tests {
         {
             let (_, parsed) = signed_jwt
                 .as_ref()
-                .parse_and_verify(EcdsaDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)
+                .parse_and_verify(JwtDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)
                 .unwrap();
 
             assert_eq!(parsed, *expected_message);
@@ -1279,10 +1261,7 @@ mod tests {
 
         // we can parse and verify the JWT if we don't require the `sub` field to be present
         let (_, parsed) = jwt
-            .parse_and_verify(
-                EcdsaDecodingKey::from(private_key.verifying_key()),
-                &DEFAULT_VALIDATIONS,
-            )
+            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -1649,10 +1628,7 @@ mod tests {
         let verified_jwt = text_jwt
             .parse::<UnverifiedJwt<_>>()
             .unwrap()
-            .into_verified(
-                &EcdsaDecodingKey::from(private_key.verifying_key()),
-                &DEFAULT_VALIDATIONS,
-            )
+            .into_verified(&JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(signed_jwt.into_verified(), verified_jwt);
