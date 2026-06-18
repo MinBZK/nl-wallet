@@ -130,12 +130,22 @@ fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRing
     let hkdf = hkdf(salt, b"", pin, 256 / 8 + 8)?;
     let key_bytes = bytes_to_ecdsa_privkey_bytes(hkdf);
 
+    // We need to use `SecretKey::from_bytes`, which places a copy of the private key bytes on the stack
+    // without zeroizing them afterwards. So we clear the stack ourselves using `zeroize_stack()`.
+    // Looking at `SecretKey::from_bytes`, it takes less than 200 bytes. We clear 1024 bytes to be
+    // on the safe side.
+    let key = secret_key_from_field_bytes(FieldBytes::from_slice(key_bytes.as_ref()))?;
+    zeroize::zeroize_stack::<1024>();
+
+    Ok(key.into())
+}
+
+#[inline(never)]
+fn secret_key_from_field_bytes(bytes: &FieldBytes) -> Result<SecretKey, UnspecifiedRingError> {
     // This error is not actually a `ring` error, but there is no need to map it to something more specific,
     // because it does not actually occur: it happens only if the scalar is larger than the P256 modulus,
     // which it isn't by how it is constructed in bytes_to_ecdsa_privkey_bytes().
-    let key = SecretKey::from_bytes(FieldBytes::from_slice(key_bytes.as_ref())).map_err(|_| UnspecifiedRingError)?;
-
-    Ok(key.into())
+    SecretKey::from_bytes(bytes).map_err(|_| UnspecifiedRingError)
 }
 
 /// Convert the specified bytes to a number suitable for use as an ECDSA private key: an (almost) uniformly distributed
