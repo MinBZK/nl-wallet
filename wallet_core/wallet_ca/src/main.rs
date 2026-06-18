@@ -181,7 +181,7 @@ impl Command {
         });
 
         let extension = match (issuer_auth_file, reader_auth_file) {
-            (Some(_), Some(_)) => panic!("cannot specify both reader and issuer auth file"),
+            (Some(_), Some(_)) => anyhow::bail!("cannot specify both reader and issuer auth file"),
             (Some(auth_file), _) => Some(serde_json::from_reader::<_, IssuerRegistration>(auth_file)?.to_custom_ext()?),
             (_, Some(auth_file)) => Some(serde_json::from_reader::<_, ReaderRegistration>(auth_file)?.to_custom_ext()?),
             (None, None) => None,
