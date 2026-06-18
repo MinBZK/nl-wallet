@@ -194,17 +194,25 @@ pub enum TokenErrorCode {
 impl From<TokenRequestError> for TokenErrorCode {
     fn from(err: TokenRequestError) -> Self {
         match err {
-            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
-            | TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
+            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
+
+            TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+
             TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+
+            TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
+
+            TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
+
+            TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
+                TokenErrorCode::InvalidGrant
+            }
+
             TokenRequestError::MissingClientId
             | TokenRequestError::UnknownClient(_)
             | TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidClient,
-            TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
-            TokenRequestError::SessionNotFound
-            | TokenRequestError::MissingCodeVerifier
-            | TokenRequestError::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
-            TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
+
+            TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
         }
     }
 }
