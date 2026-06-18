@@ -1599,6 +1599,7 @@ dependencies = [
  "utils",
  "x509-parser 0.18.0",
  "yoke",
+ "zeroize",
 ]
 
 [[package]]

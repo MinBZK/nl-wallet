@@ -20,6 +20,7 @@ use aes_gcm::Aes256Gcm;
 use aes_gcm::Nonce;
 use aes_gcm::aead::Aead;
 use aes_gcm::aead::KeyInit;
+use crypto::utils::KeyBytes;
 use crypto::utils::hkdf;
 use crypto::utils::sha256;
 use p256::PublicKey;
@@ -168,8 +169,8 @@ impl Default for SessionCounters {
 #[derive(Debug)]
 pub struct SessionEncryption {
     role: SessionRole,
-    sk_self: Vec<u8>,
-    sk_remote: Vec<u8>,
+    sk_self: KeyBytes,
+    sk_remote: KeyBytes,
     counters: Mutex<SessionCounters>,
 }
 
@@ -237,7 +238,7 @@ impl SessionEncryption {
             Some(ciphertext) => {
                 let mut counters = self.counters.lock();
                 let iv = session_iv(self.role.decryption_iv_identifier(), counters.decrypted_counter);
-                let plaintext = decrypt_session_data(&self.sk_remote, iv, ciphertext.as_ref())?;
+                let plaintext = decrypt_session_data(self.sk_remote.as_ref(), iv, ciphertext.as_ref())?;
                 counters.decrypted_counter += 1;
                 Some(plaintext)
             }
@@ -277,7 +278,7 @@ impl SessionEncryption {
     fn encrypt_payload(&self, plaintext: &[u8]) -> Result<ByteBuf, SessionEncryptionError> {
         let mut counters = self.counters.lock();
         let iv = session_iv(self.role.encryption_iv_identifier(), counters.encrypted_counter);
-        let ciphertext = encrypt_session_data(&self.sk_self, iv, plaintext)?;
+        let ciphertext = encrypt_session_data(self.sk_self.as_ref(), iv, plaintext)?;
         counters.encrypted_counter += 1;
 
         Ok(ByteBuf::from(ciphertext))

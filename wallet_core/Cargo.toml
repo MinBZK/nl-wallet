@@ -262,6 +262,7 @@ x509-parser = "0.18.0"
 xxhash-rust = "0.8.15"
 yoke = "0.8.1"
 zstd = "0.13.3"
+zeroize = "1.8.2"
 
 [patch.crates-io]
 # Pin on newer version due to https://github.com/parallaxsecond/rust-cryptoki/pull/291

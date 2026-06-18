@@ -18,6 +18,7 @@
 
 use crypto::keys::EcdsaKey;
 use crypto::keys::EphemeralEcdsaKey;
+use crypto::utils::KeyBytes;
 use crypto::utils::hkdf;
 use crypto::utils::random_bytes;
 use p256::NistP256;
@@ -113,18 +114,16 @@ fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRing
 /// Convert the specified bytes to a number suitable for use as an ECDSA private key: an (almost) uniformly distributed
 /// random number between 0 and q-1 (inclusive), where q is the order of the ECDSA elliptic curve. This is done by
 /// parsing the input bytes to an integer I and returning  `1 + I mod (q-1)`.
-fn bytes_to_ecdsa_scalar(mut bts: Vec<u8>) -> U256 {
+fn bytes_to_ecdsa_scalar(bts: KeyBytes) -> U256 {
     // If this is not the case, the output won't be distributed sufficiently close to uniformly random.
-    assert!(bts.len() >= 256 / 8 + 8);
+    assert!(bts.as_ref().len() >= 256 / 8 + 8);
 
     // For parsing the HKDF output as big-endian bytes to an integer, prepend zeroes so that it becomes
     // the size required by the U384 type (384 bits).
-    let mut vec = vec![0u8; 384 / 8 - bts.len()];
-    vec.append(&mut bts);
-    let bts = vec.as_slice();
+    let bts = bts.into_zero_padded_front(384 / 8);
 
     let q = u256_to_u384(&NistP256::ORDER);
-    let int = U384::from_be_slice(bts)
+    let int = U384::from_be_slice(bts.as_ref().as_slice())
         .rem(&NonZero::from_uint(q.sub_mod(&U384::ONE, &q)))
         .add_mod(&U384::ONE, &q);
 
@@ -168,7 +167,7 @@ mod tests {
             &mut OsRng,
             &NonZero::new((Wrapping(NistP256::ORDER) - Wrapping(U256::from(2u8))).0).unwrap(),
         );
-        let scalar = bytes_to_ecdsa_scalar(u256_to_u384(&x).to_be_byte_array().to_vec());
+        let scalar = bytes_to_ecdsa_scalar(u256_to_u384(&x).to_be_byte_array().to_vec().into());
         assert_eq!(Wrapping(x) + Wrapping(U256::ONE), Wrapping(scalar));
     }
 

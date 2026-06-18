@@ -65,7 +65,7 @@ pub fn dh_hmac_key(privkey: &SecretKey, pubkey: &PublicKey, salt: &[u8], info: &
 /// Using the HKDF from RFC 5869, compute a HMAC key.
 pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
     let bts = hkdf(input_key_material, sha256(salt).as_slice(), info, len).map_err(|_| CryptoError::Hkdf)?;
-    let key = hmac::Key::new(hmac::HMAC_SHA256, &bts);
+    let key = hmac::Key::new(hmac::HMAC_SHA256, bts.as_ref());
     Ok(key)
 }
 
