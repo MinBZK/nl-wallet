@@ -312,7 +312,7 @@ pub mod generate {
             }
             result.use_authority_key_identifier_extension = !source.exclude_aki;
             if let Some(usage) = source.usage {
-                result.extended_key_usages.push(usage.as_key_usage_purpose());
+                result.extended_key_usages.push(usage.to_key_usage_purpose());
             }
             if let Some(extension) = source.extension {
                 result.custom_extensions.push(extension);

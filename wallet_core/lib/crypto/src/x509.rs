@@ -144,8 +144,13 @@ impl CertificateUsage {
     }
 
     #[cfg(any(test, feature = "generate"))]
-    pub fn as_key_usage_purpose(&self) -> rcgen::ExtendedKeyUsagePurpose {
-        rcgen::ExtendedKeyUsagePurpose::Other(self.as_oid().iter().expect("oid does not fit in u64").collect())
+    pub fn to_key_usage_purpose(&self) -> rcgen::ExtendedKeyUsagePurpose {
+        rcgen::ExtendedKeyUsagePurpose::Other(
+            self.as_oid()
+                .iter()
+                .expect("oid sub identifier does not fit in u64")
+                .collect(),
+        )
     }
 }
 
@@ -515,7 +520,10 @@ where
         let string =
             Utf8StringRef::new(&json_string).map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?;
 
-        let sub_identifiers = Self::OID.iter().unwrap().collect::<Vec<_>>();
+        let sub_identifiers = Self::OID
+            .iter()
+            .expect("oid sub identifier does not fit in u64")
+            .collect::<Vec<_>>();
         let ext = rcgen::CustomExtension::from_oid_content(
             sub_identifiers.as_slice(),
             string
