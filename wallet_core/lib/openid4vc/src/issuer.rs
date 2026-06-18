@@ -143,6 +143,9 @@ pub enum TokenRequestError {
     #[error("issuance error: {0}")]
     IssuanceError(#[from] IssuanceError),
 
+    #[error("session not found for the supplied code")]
+    SessionNotFound,
+
     #[error(
         "scope received in Token Request does not match scope requested in Authorization Request: \
          expected {}, received: {}",
@@ -157,14 +160,23 @@ pub enum TokenRequestError {
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType { expected: String, actual: String },
 
-    #[error("session not found for the supplied code")]
-    SessionNotFound,
-
     #[error("missing code_verifier")]
     MissingCodeVerifier,
 
     #[error("PKCE verification failed")]
     PkceVerificationFailed,
+
+    #[error("received TokenRequest without \"client_id\"")]
+    MissingClientId,
+
+    #[error("unknown \"client_id\" in Token Request: {0}")]
+    UnknownClient(String),
+
+    #[error(
+        "\"client_id\" in Token Request does not match the one provided in Authorization Request: expected \
+         {expected}, got {actual}"
+    )]
+    ClientIdMismatch { expected: String, actual: String },
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
@@ -1046,6 +1058,49 @@ impl Grant {
             Some(_) => Err(TokenRequestError::PkceVerificationFailed),
         }
     }
+
+    /// Verify that the [`TokenRequest`] contains a `client_id` and:
+    ///
+    /// - In the Pre-Authorized flow, check that `client_id` is one of the allowed IDs.
+    /// - In the Authorization Code flow, check that the `client_id` is exactly the same as the one provided in the
+    ///   Authorization Request.
+    fn verify_client_id(
+        &self,
+        token_request: &TokenRequest,
+        accepted_wallet_client_ids: &HashSet<String>,
+    ) -> Result<(), TokenRequestError> {
+        // Although according to RFC 6749 the `client_id` in a Token Request is optional, HAIP states as follows:
+        //
+        // "Wallets MUST use, and Issuers MUST require, an OAuth2 Client authentication mechanism at OAuth2 Endpoints
+        // that support client authentication (such as the PAR and Token Endpoints)."
+        //
+        // Source: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.4.1>
+        let client_id = token_request
+            .client_id
+            .as_ref()
+            .ok_or(TokenRequestError::MissingClientId)?;
+
+        match self {
+            Grant::PreAuthorizedCode => {
+                if !accepted_wallet_client_ids.contains(client_id) {
+                    return Err(TokenRequestError::UnknownClient(client_id.clone()));
+                }
+            }
+            Grant::AuthorizationCode(AuthRequestValues {
+                client_id: auth_client_id,
+                ..
+            }) => {
+                if client_id != auth_client_id {
+                    return Err(TokenRequestError::ClientIdMismatch {
+                        expected: auth_client_id.clone(),
+                        actual: client_id.clone(),
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Session<AuthCodeIssued> {
@@ -1072,6 +1127,9 @@ impl Session<AuthCodeIssued> {
 
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
+        session_data
+            .grant
+            .verify_client_id(token_request, &issuer_data.accepted_wallet_client_ids)?;
 
         build_token_response(
             token_request.code(),

@@ -197,6 +197,9 @@ impl From<TokenRequestError> for TokenErrorCode {
             TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
             | TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
             TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+            TokenRequestError::MissingClientId
+            | TokenRequestError::UnknownClient(_)
+            | TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidClient,
             TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
             TokenRequestError::SessionNotFound
             | TokenRequestError::MissingCodeVerifier

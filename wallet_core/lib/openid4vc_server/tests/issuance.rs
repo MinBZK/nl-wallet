@@ -1,3 +1,4 @@
+use std::assert_matches;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroUsize;
@@ -12,6 +13,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use openid4vc::TokenErrorCode;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
@@ -42,6 +44,7 @@ use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
+use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
@@ -437,6 +440,41 @@ async fn reject_issuance() {
 }
 
 #[tokio::test]
+async fn pre_authorized_code_flow_rejects_unknown_client_id() {
+    let attestation_count = NonZeroUsize::MIN;
+    let PreAuthCodeFlowServer {
+        issuer,
+        trust_anchors,
+        tls_trust_anchor,
+        ..
+    } = start_pre_authorized_code_flow_server(attestation_count).await;
+
+    let documents = mock_issuable_documents(attestation_count);
+    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
+
+    let discovery = HttpIssuanceDiscovery::new(
+        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+    );
+
+    // A Token Request with an unknown `client_id` should result in a 401 response with the `invalid_client` error code.
+    let error = discovery
+        .start(
+            &credential_offer_url,
+            "unknown_client_id".to_string(),
+            "https://wallet.example.com/callback".parse().unwrap(),
+            &trust_anchors,
+        )
+        .await
+        .expect_err("starting pre-authorized issuance should fail");
+
+    assert_matches!(
+        error,
+        WalletIssuanceError::TokenRequest(error_response) if error_response.error == TokenErrorCode::InvalidClient
+    );
+}
+
+#[tokio::test]
 async fn par_rejects_unknown_client_id() {
     let AuthCodeFlowServer {
         authorizing_issuer,
@@ -667,7 +705,7 @@ async fn token_rejects_missing_code_verifier() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: None,
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
         redirect_uri: None,
         scope: None,
         code_verifier: None,
@@ -707,7 +745,7 @@ async fn token_rejects_unknown_code_verifier() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: None,
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
         redirect_uri: None,
         scope: None,
         code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
@@ -752,7 +790,7 @@ async fn token_rejects_grant_type_mismatch() {
         grant_type: TokenRequestGrantType::PreAuthorizedCode {
             pre_authorized_code: code,
         },
-        client_id: None,
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
         redirect_uri: None,
         scope: None,
         code_verifier: Some(code_verifier),
@@ -793,7 +831,7 @@ async fn token_rejects_scope_mismatch() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: None,
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
         redirect_uri: None,
         scope: Some(HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()])),
         code_verifier: Some(code_verifier),
@@ -816,7 +854,7 @@ async fn token_rejects_scope_mismatch() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: None,
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
         redirect_uri: None,
         scope: Some(HashSet::from([
             "com.example.pid_dc+sd-jwt".parse().unwrap(),
@@ -834,4 +872,69 @@ async fn token_rejects_scope_mismatch() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn token_rejects_differing_client_id() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    // A Token Request without a `client_id` should result in a 401 response with the `invalid_client` error code.
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: None,
+        redirect_uri: None,
+        scope: None,
+        code_verifier: Some(code_verifier),
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_client"), "unexpected body: {body}");
+
+    // A Token Request with a different `client_id` as was used in the Authorization Request should result in a 401
+    // response with the `invalid_client` error code.
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: Some("other_client_id".to_string()),
+        redirect_uri: None,
+        scope: None,
+        code_verifier: Some(code_verifier),
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_client"), "unexpected body: {body}");
 }
