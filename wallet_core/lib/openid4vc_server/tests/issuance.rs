@@ -17,6 +17,7 @@ use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::pkce::PkcePair;
@@ -629,11 +630,15 @@ async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) ->
     let code = authorizing_issuer
         .complete_authorization(
             documents,
-            HashSet::from([
-                "com.example.pid_dc+sd-jwt".parse().unwrap(),
-                "other_scope".parse().unwrap(),
-            ]),
-            pkce_pair.code_challenge().to_string(),
+            AuthRequestValues::new(
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                "https://wallet.example.com/callback".parse().unwrap(),
+                pkce_pair.code_challenge().to_string(),
+                HashSet::from([
+                    "com.example.pid_dc+sd-jwt".parse().unwrap(),
+                    "other_scope".parse().unwrap(),
+                ]),
+            ),
         )
         .await
         .unwrap();

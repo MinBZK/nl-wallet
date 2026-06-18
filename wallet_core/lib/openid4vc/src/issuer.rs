@@ -19,6 +19,7 @@ use chrono::Utc;
 use crypto::EcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
+use derive_more::Constructor;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
@@ -41,6 +42,7 @@ use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
 use tracing::warn;
+use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -268,13 +270,18 @@ pub struct AuthCodeIssued {
     pub credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, strum::Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Constructor, Serialize, Deserialize)]
+pub struct AuthRequestValues {
+    pub client_id: String,
+    pub redirect_uri: Url,
+    pub code_challenge: String,
+    pub scope: HashSet<Scope>,
+}
+
+#[derive(Debug, Clone, strum::Display, Serialize, Deserialize)]
 pub enum Grant {
     PreAuthorizedCode,
-    AuthorizationCode {
-        request_scope: HashSet<Scope>,
-        wallet_code_challenge: String,
-    },
+    AuthorizationCode(AuthRequestValues),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -996,7 +1003,12 @@ impl Grant {
     fn verify_grant_type(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
         match (self, &token_request.grant_type) {
             (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. }) => Ok(()),
-            (Grant::AuthorizationCode { request_scope, .. }, TokenRequestGrantType::AuthorizationCode { .. }) => {
+            (
+                Grant::AuthorizationCode(AuthRequestValues {
+                    scope: request_scope, ..
+                }),
+                TokenRequestGrantType::AuthorizationCode { .. },
+            ) => {
                 // The client has the option of further restricting the requested scope as included in the Authorization
                 // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
                 // we check that the scope in the Token Request is exactly the same as what was included in the
@@ -1023,17 +1035,14 @@ impl Grant {
     /// passes unconditionally; `AuthorizationCode` requires a `code_verifier` whose S256 challenge
     /// matches the one captured at `/authorize`.
     fn verify_pkce(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
-        let Grant::AuthorizationCode {
-            wallet_code_challenge, ..
-        } = self
-        else {
+        let Grant::AuthorizationCode(AuthRequestValues { code_challenge, .. }) = self else {
             // Pre-authorized-code grant: no PKCE to verify.
             return Ok(());
         };
 
         match token_request.code_verifier.as_deref() {
             None => Err(TokenRequestError::MissingCodeVerifier),
-            Some(verifier) if S256PkcePair::challenge_for(verifier) == *wallet_code_challenge => Ok(()),
+            Some(verifier) if S256PkcePair::challenge_for(verifier) == *code_challenge => Ok(()),
             Some(_) => Err(TokenRequestError::PkceVerificationFailed),
         }
     }
