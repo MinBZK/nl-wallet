@@ -280,7 +280,6 @@ pub enum Grant {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessTokenIssued {
     pub access_token: AccessToken,
-    pub accepted_wallet_client_ids: Vec<String>,
     pub prepared_credentials: VecNonEmpty<PreparedCredential>,
     pub dpop_public_key: VerifyingKey,
     pub dpop_nonce: String,
@@ -836,13 +835,7 @@ where
 
         let result = Session::<AuthCodeIssued>::try_from(session)
             .map_err(TokenRequestError::IssuanceError)?
-            .process_token_request(
-                &token_request,
-                &self.issuer_data.accepted_wallet_client_ids,
-                dpop,
-                &self.issuer_data.server_url,
-                &self.issuer_data,
-            );
+            .process_token_request(&token_request, dpop, &self.issuer_data.server_url, &self.issuer_data);
 
         let (response, next) = match result {
             Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
@@ -1046,14 +1039,13 @@ impl Session<AuthCodeIssued> {
     fn process_token_request<K, L>(
         self,
         token_request: &TokenRequest,
-        accepted_wallet_client_ids: &[String],
         dpop: Dpop,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
     ) -> ProcessTokenRequest {
         let result = self.validate_and_build_token_response(token_request, dpop, server_url, issuer_data);
 
-        self.finalize_token_response(accepted_wallet_client_ids, result)
+        self.finalize_token_response(result)
     }
 
     fn validate_and_build_token_response<K, L>(
@@ -1082,14 +1074,12 @@ impl Session<AuthCodeIssued> {
     /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
     fn finalize_token_response(
         self,
-        accepted_wallet_client_ids: &[String],
         result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
             Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(AccessTokenIssued {
                     access_token: token_response.access_token.clone(),
-                    accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
                     prepared_credentials,
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
@@ -1218,7 +1208,6 @@ impl Session<AccessTokenIssued> {
     }
 
     fn verify_wia<K, L>(
-        &self,
         attestations: Option<&WiaDisclosure>,
         issuer_data: &IssuerData<K, L>,
     ) -> Result<Option<Nonce>, CredentialRequestError> {
@@ -1233,7 +1222,7 @@ impl Session<AccessTokenIssued> {
                 let (_, wia_nonce) = wia_disclosure.verify(
                     &wia_config.wia_trust_anchors,
                     issuer_identifier,
-                    &self.state.data.accepted_wallet_client_ids,
+                    &issuer_data.accepted_wallet_client_ids,
                 )?;
 
                 Ok::<_, CredentialRequestError>(wia_nonce)
@@ -1283,7 +1272,7 @@ impl Session<AccessTokenIssued> {
             &issuer_data.metadata.credential_issuer,
         )?;
 
-        let wia_nonce = self.verify_wia(credential_request.attestations.as_ref(), issuer_data)?;
+        let wia_nonce = Self::verify_wia(credential_request.attestations.as_ref(), issuer_data)?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
@@ -1425,7 +1414,7 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
         }
 
-        let wia_nonce = self.verify_wia(credential_requests.attestations.as_ref(), issuer_data)?;
+        let wia_nonce = Self::verify_wia(credential_requests.attestations.as_ref(), issuer_data)?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
