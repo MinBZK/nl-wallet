@@ -371,7 +371,7 @@ pub struct IssuerData<K, L> {
     wia_config: Option<WiaConfig>,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
-    accepted_wallet_client_ids: Vec<String>,
+    accepted_wallet_client_ids: HashSet<String>,
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
@@ -408,6 +408,10 @@ impl<K, L> IssuerData<K, L> {
             credential.format,
             &credential.credential_payload.attestation_type,
         )
+    }
+
+    fn accepted_wallet_client_ids_vec(&self) -> Vec<&String> {
+        self.accepted_wallet_client_ids.iter().collect()
     }
 }
 
@@ -490,8 +494,8 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
             .map(|config| &config.status_list)
     }
 
-    pub fn accepted_wallet_client_ids(&self) -> impl Iterator<Item = &str> {
-        self.issuer_data.accepted_wallet_client_ids.iter().map(String::as_str)
+    pub fn accepted_wallet_client_ids(&self) -> &HashSet<String> {
+        &self.issuer_data.accepted_wallet_client_ids
     }
 
     pub fn issuer_identifier(&self) -> &IssuerIdentifier {
@@ -520,7 +524,7 @@ where
     pub fn try_new(
         issuer_identifier: IssuerIdentifier,
         batch_size: NonZeroU8,
-        wallet_client_ids: Vec<String>,
+        wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
         wia_config: Option<WiaConfig>,
         sessions: Arc<S>,
@@ -1222,7 +1226,7 @@ impl Session<AccessTokenIssued> {
                 let (_, wia_nonce) = wia_disclosure.verify(
                     &wia_config.wia_trust_anchors,
                     issuer_identifier,
-                    &issuer_data.accepted_wallet_client_ids,
+                    &issuer_data.accepted_wallet_client_ids_vec(),
                 )?;
 
                 Ok::<_, CredentialRequestError>(wia_nonce)
@@ -1268,7 +1272,7 @@ impl Session<AccessTokenIssued> {
         }?;
 
         let (holder_pubkey, request_nonce) = credential_request.verify(
-            &issuer_data.accepted_wallet_client_ids,
+            &issuer_data.accepted_wallet_client_ids_vec(),
             &issuer_data.metadata.credential_issuer,
         )?;
 
@@ -1385,7 +1389,7 @@ impl Session<AccessTokenIssued> {
                         }
 
                         let (key, nonce) = cred_req.verify(
-                            &issuer_data.accepted_wallet_client_ids,
+                            &issuer_data.accepted_wallet_client_ids_vec(),
                             &issuer_data.metadata.credential_issuer,
                         )?;
 

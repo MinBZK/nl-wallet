@@ -176,7 +176,7 @@ where
     /// [`AuthorizationCodeFlow`], and translate the [`AuthorizeOutcome`] into the URL
     /// the wallet should be redirected to.
     pub async fn process_authorize(&self, request_uri: &str, client_id: &str) -> Result<Url, AuthorizeError> {
-        if !self.issuer.accepted_wallet_client_ids().any(|id| id == client_id) {
+        if !self.issuer.accepted_wallet_client_ids().contains(client_id) {
             return Err(AuthorizeError::UnknownClient(client_id.to_string()));
         }
 

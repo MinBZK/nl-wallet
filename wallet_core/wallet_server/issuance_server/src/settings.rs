@@ -256,7 +256,7 @@ impl VerifierSettings {
             self.universal_link_base_url,
             use_cases,
             server_settings.issuer_trust_anchors.clone(),
-            issuer.accepted_wallet_client_ids().map(str::to_string).collect_vec(),
+            issuer.accepted_wallet_client_ids().iter().cloned().collect(),
             self.extending_vct_values.unwrap_or_default(),
         );
 
