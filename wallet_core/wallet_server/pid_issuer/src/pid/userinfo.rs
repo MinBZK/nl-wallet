@@ -6,9 +6,11 @@ use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::error::JweStringDecryptionError;
 use jwt::Algorithm;
+use jwt::Header;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
+use jwt::error::JwtError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
 use openid4vc::AuthBearerErrorCode;
@@ -56,7 +58,12 @@ pub struct UserInfo {
     pub bsn: String,
 }
 
-impl JwtTyp for UserInfo {}
+impl JwtTyp for UserInfo {
+    fn is_valid_typ(_header_typ: Option<&str>) -> Result<(), JwtError> {
+        // no `typ` field is set for JWTs provided by RDO-MAX
+        Ok(())
+    }
+}
 
 async fn request_userinfo_jwt(
     http_client: &HttpJsonClient,
@@ -133,25 +140,29 @@ where
         .decrypt_string(&jwe, ExpectedEncryptionAlgorithm::Algorithms(&[expected_enc_alg]))
         .map_err(UserInfoError::JweDecryption)?;
 
-    verify_against_keys(&jws, &jwks, client_id, expected_jws_alg)
+    let validation = userinfo_validation(client_id, expected_jws_alg);
+    verify_against_keys(&jws, &jwks, &validation)
 }
 
 // We can't use our own `Jwt` types here because they only support ECDSA/P256.
 fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     token: &str,
     jwks: &JwkSet,
-    audience: &str,
-    algorithm: Algorithm,
+    validation: &Validation,
 ) -> Result<C, UserInfoError> {
-    let jwt: UnverifiedJwt<C, HeaderWithKid> = token.parse()?;
+    // using `Header` make the `typ` optional, but it will still be validated against `C::TYP`, if present
+    let jwt: UnverifiedJwt<C, HeaderWithKid<Header>> = token.parse()?;
 
-    let mut validation = Validation::new(algorithm);
-    validation.required_spec_claims.clear(); // don't require exp
-    validation.set_audience(&[audience]);
-
-    let (_, claims) = jwt.parse_and_verify_with_jwkset(jwks, &validation)?;
+    let (_, claims) = jwt.parse_and_verify_with_jwkset(jwks, validation)?;
 
     Ok(claims)
+}
+
+fn userinfo_validation(client_id: &str, expected_jws_alg: Algorithm) -> Validation {
+    let mut validation = Validation::new(expected_jws_alg);
+    validation.required_spec_claims.clear(); // don't require exp
+    validation.set_audience(&[client_id]);
+    validation
 }
 
 #[cfg(test)]
@@ -200,16 +211,63 @@ mod tests {
     }
 
     #[test]
+    fn test_verify_actual_token() {
+        let jwt = "eyJhbGciOiJSUzI1NiIsImtpZCI6InhvaVkzek5WMEFoWWp6YjVSbmtKc0xia3BxdGt3d25zcmVUbEZHRFZxM009IiwieDV0Ijo\
+                   iZlp4NTAta21TWEtSV3k0YUNnem9JbDl4T004In0.eyJhdWQiOiIzZTU4MDE2ZS1iYzJlLTQwZDUtYjRiMS1hM2UyNWY2MTkzYj\
+                   kiLCJic24iOiI5OTk5OTE3NzIiLCJleHAiOjE3ODE2ODk3OTEsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjgwMDYiLCJsb2FfY\
+                   XV0aG4iOiJodHRwOi8vZWlkYXMuZXVyb3BhLmV1L0xvQS9zdWJzdGFudGlhbCIsIm5iZiI6MTc4MTY4OTcyMSwic2Vzc2lvbl9p\
+                   ZCI6IkV5eXdtRVVMbEZIMkgwRDBIWnBrZUE1RFQxTzFaY1k0eTFKWFlRWUJ2dzgiLCJzdWIiOiJiNTE2MTQ1MDQ5MDY0ZDA4NDA\
+                   zM2MxMjY4MjcwNWM2ODVkMTAzOTEwNmY0ZmY4MzlkODgzNjQ3ZDk3NjI1NDEwIn0.0ChyJXXPIDKpernNCtpKMO6ONmi3cSxcBm\
+                   mQgJc8KXmAo5jKf2xIQBIovj3O4CCpQiR4LM1gLkwKcpT1KvEb1SycYNl7-DIyOOvlYXnUlh4VmHL73lmGUKewXoY7inl9_1Uir\
+                   VopCI8pVsrhxvsun0gDtHgLUkOrcjRYn0TxTRKk6jmbuR3hRxKAbQHx_Oa9SJvnNoWR5D3YrSQW-Z7ijA8jGh5WXraI6yXUF_vi\
+                   E1yeX2Hm875c8JOwbIzkIu1gXHBQiUYooYF12NFiINus7HTqlFLvFJAz4XF6sX3q-wf8-qJ-VpcG9XM2IIzNLNtEH1-IAIO46i2\
+                   RKNazXnQNTQ"; // obtained from RDO-MAX
+
+        let jwks: JwkSet = serde_json::from_value(json!({
+            "keys":[{
+                "kty":"RSA",
+                "kid":"d/+fA5nlfbnWFPuPYSBkOsayHFVIaTldFnecZ2ZuI2Y=",
+                "alg":"RS256",
+                "e":"AQAB",
+                "n":"2-T8nK09CNJ3L8hP6ukvkZPdqCIdne0So44LbD0jYChpjPnlUBGkSCfogNPjLuLoBwNUcY0UrrXSnpCL-RwxFbJsLojXGp054MxL8iO-l_FJCxK2hx-kOqPDpy-_6vXJTkz9eQuRZ85FOkbfYBxpvl4RXMm_I7I_L4F2vjmMZQA2lpzQUmNtn7mGi7IlaETvzxANj1HtSc9xbjQ1U3vH1nUgi7i2qh5Dx0PKO-jo20SYJ4zGnLvDW66xS5FSGqofsz3bZkrttNdseVjX0fNihWxNWgf_9bFnI89ZCwtXC6sZry4dRBl2x_aQ_SGTPVEMvyJluugdvkf0rwckj90mdw"
+            }, {
+                "kty":"RSA",
+                "n":"2-T8nK09CNJ3L8hP6ukvkZPdqCIdne0So44LbD0jYChpjPnlUBGkSCfogNPjLuLoBwNUcY0UrrXSnpCL-RwxFbJsLojXGp054MxL8iO-l_FJCxK2hx-kOqPDpy-_6vXJTkz9eQuRZ85FOkbfYBxpvl4RXMm_I7I_L4F2vjmMZQA2lpzQUmNtn7mGi7IlaETvzxANj1HtSc9xbjQ1U3vH1nUgi7i2qh5Dx0PKO-jo20SYJ4zGnLvDW66xS5FSGqofsz3bZkrttNdseVjX0fNihWxNWgf_9bFnI89ZCwtXC6sZry4dRBl2x_aQ_SGTPVEMvyJluugdvkf0rwckj90mdw",
+                "e":"AQAB",
+                "kid":"d/+fA5nlfbnWFPuPYSBkOsayHFVIaTldFnecZ2ZuI2Y=",
+                "x5t":"R0TM80khwVsJg4vTl8-2bds4HE4",
+                "alg":"RS256"
+            }, {
+                "kty":"RSA",
+                "n":"vNXjISjuPyVynDhDO9cqfRsfqehHzxOGGzBlmrfUWWJmiKzXaPGkiBjUwtZnlfIqRk-mw8ddhcZcAye8VbIMl4kvVGx4vERSowSIeSXO8CHJyLt6-zCJeJhsPI6PJDwl4p43sf-jSuLmuVJAPSdRRhl4Wxkb-nGrYY3kGR8bjAdlUkS1f6aTnHXc3vpvsONK5Dr3BBjbEzislLU6W-117bMdkUARX3ogqNOs-Hs1SHAMYTLUUCUFrIe8qJurNLqx6D4s_2MHxOAKb5y9Y1U8cR97r6yq8I_zFZ4qvBb9TtOQEIK_F5bhDCoYt-BAPd7pT31iZhZkwHfQeZjSvw7kUQ",
+                "e":"AQAB",
+                "kid":"TPLJl1kcXIKcx/hNT3c6nnVjt3H6KskGJcSxixq9w4A=",
+                "x5t":"v66Q0fKOQ95P7sbUfk_YbU_NX_I",
+                "alg":"RS256"
+            }, {
+                "kty":"RSA",
+                "n":"22LzGPlkPTqRzhCj9y8fSz-RibqYj81NQ-wcVlrD1BAynT9SMfCEfADAy0JdIeFqrStlwb_-H3x8e9nasfQt95LsH51jxtt-plyJLIKe0bbvEet4N2FOfRzt-vvK8OV456YhXGZZwNEh0JpNjui7QbAWYB17pkqz1_g0eTpgAoSdktdsUU5tXxufUqOuveGQ6RyrNWCIl6f3uoEXkv4zv8hiEPauCA9aYl2El8w9ojBVc3CYsDVP8HHqXbUj6nOM8t6VMQ-A1rthT1Az6oNSWKLHG3W1kneaTw7VoCr8ek3aXldDUHgb5-2ASc6liv2p067roWUU_jG3Vy2djHxSBQ",
+                "e":"AQAB",
+                "kid":"xoiY3zNV0AhYjzb5RnkJsLbkpqtkwwnsreTlFGDVq3M=",
+                "x5t":"fZx50-kmSXKRWy4aCgzoIl9xOM8",
+                "alg":"RS256"
+            }]
+        })).unwrap();
+
+        let mut validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
+        validation.validate_exp = false; // we have no way to set the clock, so skip exp validation
+        let payload: UserInfo = verify_against_keys(jwt, &jwks, &validation).unwrap();
+
+        assert_eq!(payload.bsn, "999991772".to_owned());
+    }
+
+    #[test]
     fn test_verify_against_keys_success() {
         let (jws, jwks) = make_jws(true);
 
-        let payload = verify_against_keys::<serde_json::Value>(
-            &jws,
-            &jwks,
-            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
-            Algorithm::HS256,
-        )
-        .expect("verifying JWS should succeed");
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
+        let payload =
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect("verifying JWS should succeed");
 
         assert_eq!(
             payload
@@ -224,13 +282,9 @@ mod tests {
     fn test_verify_against_keys_error_missing_key_id() {
         let (jws, jwks) = make_jws(false);
 
-        let error = verify_against_keys::<serde_json::Value>(
-            &jws,
-            &jwks,
-            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
-            Algorithm::HS256,
-        )
-        .expect_err("verifying JWS should fail");
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
+        let error =
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
         assert_matches!(
             error,
@@ -244,13 +298,9 @@ mod tests {
 
         jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
 
-        let error = verify_against_keys::<serde_json::Value>(
-            &jws,
-            &jwks,
-            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
-            Algorithm::HS256,
-        )
-        .expect_err("verifying JWS should fail");
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
+        let error =
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
         assert_matches!(error, UserInfoError::JwtError(JwtError::KeyNotFound(_)));
     }
@@ -259,8 +309,9 @@ mod tests {
     fn test_verify_against_keys_error_wrong_aud() {
         let (jws, jwks) = make_jws(true);
 
-        let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS256)
-            .expect_err("verifying JWS should fail");
+        let validation = userinfo_validation("wrong_aud", Algorithm::HS256);
+        let error =
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
         assert_matches!(error, UserInfoError::JwtError(_));
     }
@@ -269,8 +320,9 @@ mod tests {
     fn test_verify_against_keys_error_wrong_alg() {
         let (jws, jwks) = make_jws(true);
 
-        let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS512)
-            .expect_err("verifying JWS should fail");
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS512);
+        let error =
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
         assert_matches!(error, UserInfoError::JwtError(_));
     }

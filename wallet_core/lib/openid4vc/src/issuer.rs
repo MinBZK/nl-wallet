@@ -1627,7 +1627,7 @@ mod tests {
         let document = IssuableDocument::new_mock_degree("Education".to_string());
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+        let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
         let config_params = CredentialConfigurationParameters {
             format: document.format,
             attestation_type: document.attestation_type.clone(),

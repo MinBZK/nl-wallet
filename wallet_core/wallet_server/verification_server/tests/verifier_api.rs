@@ -13,7 +13,6 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
-use attestation_data::x509::CertificateType;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
@@ -141,11 +140,7 @@ async fn wallet_server_settings_and_listener(
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = rp_ca
-        .generate_key_pair(
-            "localhost",
-            CertificateType::ReaderAuth(reader_registration),
-            Default::default(),
-        )
+        .generate_key_pair("localhost", reader_registration.to_certificate_configuration().unwrap())
         .unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
@@ -820,7 +815,8 @@ fn prepare_example_credential_payload(
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let issuer_keypair = generate_pid_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
+    let issuer_keypair =
+        generate_pid_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock()).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let holder_privkey = wscd.create_random_key();

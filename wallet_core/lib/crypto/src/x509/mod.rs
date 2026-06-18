@@ -1,21 +1,15 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter::once;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
-use derive_more::Constructor;
 use derive_more::Debug;
-use derive_more::Display;
-use derive_more::From;
 use error_category::ErrorCategory;
-use extended_key_usage_oid::*;
 use http_utils::urls::HttpsUri;
 use http_utils::urls::HttpsUriError;
 use indexmap::IndexMap;
@@ -31,8 +25,6 @@ use rustls_pki_types::pem::PemObject;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::EndEntityCert;
@@ -41,10 +33,8 @@ use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
 use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
-use x509_parser::nom;
 use x509_parser::nom::AsBytes;
 use x509_parser::objects::oid_registry;
-use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
 use x509_parser::prelude::ParsedExtension;
@@ -56,81 +46,18 @@ use yoke::Yokeable;
 
 use crate::trust_anchor::TrustAnchors;
 
-/// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
-/// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
-/// being verified.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
-pub enum CertificateUsage {
-    Mdl,
-    ReaderAuth,
-    OAuthStatusSigning,
-    Wia,
-}
+#[cfg(any(test, feature = "generate"))]
+mod config;
+mod dn;
+mod key_identifier;
+mod usage;
 
-#[rustfmt::skip]
-mod extended_key_usage_oid {
-    use x509_parser::der_parser::Oid;
-    use x509_parser::oid_registry::asn1_rs::oid;
-
-    pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
-    pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
-    // The .127 is made up, the real child node is TDB
-    pub const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
-    // The .128 is made up, the real child node is TBD
-    pub const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
-}
-
-impl CertificateUsage {
-    pub fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {
-        let usage = cert
-            .extended_key_usage()?
-            .map(|eku| Self::from_key_usage(eku.value))
-            .transpose()?
-            .ok_or_else(|| CertificateError::IncorrectEkuCount(0))?;
-
-        Ok(usage)
-    }
-
-    pub fn from_key_usage(ext_key_usage: &ExtendedKeyUsage) -> Result<Self, CertificateError> {
-        if ext_key_usage.other.len() != 1 {
-            return Err(CertificateError::IncorrectEkuCount(ext_key_usage.other.len()));
-        }
-
-        let key_usage_oid = ext_key_usage.other.first().unwrap();
-
-        // Unfortunately we cannot use a match statement here.
-        if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
-            return Ok(Self::Mdl);
-        } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
-            return Ok(Self::ReaderAuth);
-        } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
-            return Ok(Self::OAuthStatusSigning);
-        }
-
-        Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
-    }
-
-    pub fn eku(self) -> &'static [u8] {
-        match self {
-            CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
-            CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
-            CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
-            CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
-        }
-        .as_bytes()
-    }
-}
-
-// This requires both "generate" and "mock", because this is not to be used in the Wallet.
-// The wallet must use CertificateType.
-#[cfg(any(test, all(feature = "generate", feature = "mock")))]
-impl TryFrom<CertificateUsage> for Vec<rcgen::CustomExtension> {
-    type Error = CertificateError;
-
-    fn try_from(source: CertificateUsage) -> Result<Self, Self::Error> {
-        Ok(vec![source.into()])
-    }
-}
+#[cfg(any(test, feature = "generate"))]
+pub use config::CertificateConfiguration;
+pub use dn::DistinguishedName;
+pub use key_identifier::KeyIdentifier;
+pub use usage::CertificateUsage;
+pub use usage::CertificateUsageError;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 #[category(pd)]
@@ -163,14 +90,8 @@ pub enum CertificateError {
     BasicConstraintViolation,
     #[error("failed to parse certificate public key: {0}")]
     PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
-    #[error("EKU count incorrect ({0})")]
-    #[category(critical)]
-    IncorrectEkuCount(usize),
-    #[error("EKU incorrect")]
-    #[category(critical)]
-    IncorrectEku(String),
     #[error("PEM decoding error: {0}")]
-    Pem(#[from] nom::Err<PEMError>),
+    Pem(#[from] x509_parser::nom::Err<PEMError>),
     #[error("DER coding error: {0}")]
     DerEncodingError(#[source] Box<p256::pkcs8::der::Error>),
     #[error("JSON coding error: {0}")]
@@ -259,6 +180,9 @@ impl BorrowingCertificate {
     }
 
     /// Verify the certificate against the specified trust anchors.
+    ///
+    /// Additionally, this method verifies that the trust anchors are not contained in the intermediate
+    /// certificates as mandated by HAIP 1.0.
     pub fn verify(
         &self,
         usage: CertificateUsage,
@@ -286,7 +210,7 @@ impl BorrowingCertificate {
                 intermediate_certs.as_slice(),
                 // unwrap is safe here because we assume the time that is generated lies after the epoch
                 UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())),
-                webpki::KeyUsage::required(usage.eku()),
+                webpki::KeyUsage::required(usage.as_oid_bytes()),
                 None,
                 None,
             )
@@ -506,7 +430,7 @@ where
 
         let sub_identifiers = Self::OID
             .iter()
-            .ok_or(CertificateError::IncorrectEku(Self::OID.to_id_string()))?
+            .expect("oid sub identifier does not fit in u64")
             .collect::<Vec<_>>();
         let ext = rcgen::CustomExtension::from_oid_content(
             sub_identifiers.as_slice(),
@@ -518,48 +442,6 @@ where
     }
 }
 
-/// The KeyIdentifier of a public key from a certificate, being its SHA1 hash.
-///
-/// Returned from [`BorrowingCertificate::authority_key_id`].
-#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
-#[display("{}", BASE64_URL_SAFE_NO_PAD.encode(&self.0))]
-#[debug("{}", self)]
-pub struct KeyIdentifier(Vec<u8>);
-
-impl FromStr for KeyIdentifier {
-    type Err = base64::DecodeError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(KeyIdentifier(BASE64_URL_SAFE_NO_PAD.decode(s)?))
-    }
-}
-
-/// A distinguished name encoded in a canonical, OID-registry-independent format.
-/// This type is specifically designed for database persistence and comparison.
-/// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Display, Constructor)]
-#[cfg_attr(feature = "persistence", derive(sea_orm::DeriveValueType))]
-pub struct DistinguishedName(String);
-
-impl DistinguishedName {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl AsRef<str> for DistinguishedName {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-#[cfg(any(test, feature = "generate"))]
-#[derive(Debug, Clone, Default)]
-pub struct CertificateConfiguration {
-    pub not_before: Option<DateTime<Utc>>,
-    pub not_after: Option<DateTime<Utc>>,
-    pub exclude_aki: bool,
-}
-
 #[cfg(test)]
 mod test {
     use std::assert_matches;
@@ -568,9 +450,6 @@ mod test {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use p256::pkcs8::EncodePublicKey;
-    use p256::pkcs8::ObjectIdentifier;
-    use rcgen::CustomExtension;
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
@@ -579,30 +458,6 @@ mod test {
     use super::*;
     use crate::server_keys::generate::Ca;
     use crate::trust_anchor::TrustAnchors;
-    use crate::utils::sha256;
-
-    struct MdlExtension;
-
-    impl TryFrom<MdlExtension> for Vec<CustomExtension> {
-        type Error = CertificateError;
-
-        fn try_from(_value: MdlExtension) -> Result<Self, Self::Error> {
-            Ok(vec![CertificateUsage::Mdl.into()])
-        }
-    }
-
-    #[test]
-    fn mdoc_eku_encoding_works() {
-        CertificateUsage::Mdl.eku();
-        CertificateUsage::ReaderAuth.eku();
-    }
-
-    #[test]
-    fn parse_oid() {
-        let mdl_kp: ObjectIdentifier = "1.0.18013.5.1.2".parse().unwrap();
-        let mdl_kp: &'static [u8] = Box::leak(mdl_kp.into()).as_bytes();
-        assert_eq!(mdl_kp, CertificateUsage::Mdl.eku());
-    }
 
     #[test]
     fn generate_ca() {
@@ -611,33 +466,11 @@ mod test {
             .expect("self signed CA should contain a valid X.509 certificate");
 
         let x509_cert = certificate.x509_certificate();
-        assert_certificate_common_name(x509_cert, &["myca"]);
+        let basic_constraint = x509_cert.basic_constraints().unwrap().unwrap();
+        assert!(basic_constraint.critical);
+        assert!(basic_constraint.value.ca);
+        assert_eq!(basic_constraint.value.path_len_constraint, Some(0));
         assert_certificate_default_validity(x509_cert);
-    }
-
-    #[test]
-    fn parse_aki() {
-        let config = CertificateConfiguration {
-            not_after: Some(Utc::now() + Duration::days(42)),
-            ..Default::default()
-        };
-
-        let ca = Ca::generate("myca", config).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
-            .expect("self signed CA should contain a valid X.509 certificate");
-
-        // `rcgen` computes the AKI as the first 20 bytes of the SHA256 of the DER encoding of the public key,
-        // as per RFC 7093.
-        let pubkey_der = ca
-            .to_signing_key()
-            .unwrap()
-            .verifying_key()
-            .to_public_key_der()
-            .unwrap();
-        let hash = sha256(pubkey_der.as_bytes());
-        let hash = &hash[0..20];
-
-        assert_eq!(hash, &certificate.authority_key_id().unwrap().0);
     }
 
     #[test]
@@ -661,7 +494,6 @@ mod test {
         );
 
         let x509_cert = certificate.x509_certificate();
-        assert_certificate_common_name(x509_cert, &["myca"]);
         assert_certificate_validity(x509_cert, now, later);
     }
 
@@ -674,11 +506,11 @@ mod test {
         let config = CertificateConfiguration {
             not_before,
             not_after,
+            usage: Some(CertificateUsage::Mdl),
             ..Default::default()
         };
-        let mdl = MdlExtension;
 
-        let issuer_key_pair = ca.generate_key_pair("mycert", mdl, config).unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", config).unwrap();
         issuer_key_pair
             .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
@@ -735,15 +567,6 @@ mod test {
         assert_eq!(not_after, expected_not_after);
     }
 
-    fn assert_certificate_common_name(certificate: &X509Certificate, expected_common_name: &[&str]) {
-        let actual_common_name = certificate
-            .subject
-            .iter_common_name()
-            .map(|cn| cn.as_str().unwrap())
-            .collect::<Vec<_>>();
-        assert_eq!(actual_common_name, expected_common_name);
-    }
-
     fn generate_ca_for_validity_test() -> Ca {
         let now = Utc::now();
         let start = now - Duration::weeks(52);
@@ -777,15 +600,14 @@ mod test {
         let old_ca = Ca::generate_with_intermediate_count("old_ca", Default::default(), 1).unwrap();
         // new_ca uses the same key pair for both the self-signed root and the cross-cert (signed
         // by old_ca). This is the core of a cross-signing setup.
+        let cert_config = CertificateConfiguration::with_usage(CertificateUsage::Mdl);
         let (new_ca, cross_cert_der) = old_ca
-            .generate_root_and_cross_cert("new_ca", CertificateUsage::Mdl, Default::default())
+            .generate_root_and_cross_cert("new_ca", cert_config.clone())
             .unwrap();
         let cross_cert = BorrowingCertificate::from_certificate_der(cross_cert_der).unwrap();
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
-        let leaf = new_ca
-            .generate_key_pair("leaf", CertificateUsage::Mdl, Default::default())
-            .unwrap();
+        let leaf = new_ca.generate_key_pair("leaf", cert_config).unwrap();
 
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
         // Path: leaf ← cross-cert (new key, signed by old CA) ← old CA trust anchor.
@@ -819,6 +641,7 @@ mod test {
     #[test]
     fn chain_with_intermediate_scenario() {
         let time = TimeGenerator;
+        let cert_config = CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth);
 
         // CA
         let ca = Ca::generate_with_intermediate_count("ca", CertificateConfiguration::default(), 2).unwrap();
@@ -826,24 +649,12 @@ mod test {
         let ca_cert = ca.as_borrowing_certificate().unwrap();
 
         // Intermediate
-        let intermediate_ca = ca
-            .generate_intermediate(
-                "intermediate",
-                CertificateUsage::ReaderAuth.into(),
-                CertificateConfiguration::default(),
-            )
-            .unwrap();
+        let intermediate_ca = ca.generate_intermediate("intermediate", cert_config.clone()).unwrap();
         let intermediate_ta = intermediate_ca.to_borrowing_trust_anchor();
         let intermediate_cert = intermediate_ca.as_borrowing_certificate().unwrap();
 
         // Leaf
-        let leaf_key_pair = intermediate_ca
-            .generate_key_pair(
-                "leaf",
-                CertificateUsage::ReaderAuth,
-                CertificateConfiguration::default(),
-            )
-            .unwrap();
+        let leaf_key_pair = intermediate_ca.generate_key_pair("leaf", cert_config).unwrap();
 
         // Verify whole chain with leaf, intermediate and ca trust anchor
         leaf_key_pair

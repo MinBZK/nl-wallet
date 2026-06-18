@@ -584,7 +584,8 @@ mod test {
 
         // Create CA and issuer certificate for the credential preview.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_pid_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+        let issuance_keypair =
+            generate_pid_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
         let trust_anchor = TrustAnchors::from(&ca);
 
         // Create type metadata for the credential preview.

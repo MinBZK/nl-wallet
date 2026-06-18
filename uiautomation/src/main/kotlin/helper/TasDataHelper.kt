@@ -142,12 +142,12 @@ class TasDataHelper {
 
             when (platform) {
                 Platform.ANDROID -> {
-                    if (display.optString("lang") == "$language-$locale") {
+                    if (display.optString("locale") == "$language-$locale") {
                         return display
                     }
                 }
                 Platform.IOS -> {
-                    if (display.optString("lang") == locale) {
+                    if (display.optString("locale") == locale) {
                         return display
                     }
                 }

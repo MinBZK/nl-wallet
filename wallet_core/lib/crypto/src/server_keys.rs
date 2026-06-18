@@ -79,12 +79,8 @@ impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
 pub mod generate {
     use p256::ecdsa::SigningKey;
     use p256::pkcs8::DecodePrivateKey;
-    use p256::pkcs8::ObjectIdentifier;
-    use p256::pkcs8::der::Encode;
-    use p256::pkcs8::der::asn1::SequenceOf;
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
-    use rcgen::CustomExtension;
     use rcgen::DnType;
     use rcgen::IsCa;
     use rcgen::Issuer;
@@ -210,7 +206,6 @@ pub mod generate {
         pub fn generate_intermediate(
             &self,
             common_name: &str,
-            extension: CustomExtension,
             configuration: CertificateConfiguration,
         ) -> Result<Self, CertificateError> {
             if self.intermediate_count < 1 {
@@ -223,7 +218,6 @@ pub mod generate {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(constraint);
             params.distinguished_name.push(DnType::CommonName, common_name);
-            params.custom_extensions.push(extension);
 
             let key_pair = rcgen::KeyPair::generate()?;
             let certificate = params.signed_by(&key_pair, &self.issuer)?;
@@ -232,22 +226,16 @@ pub mod generate {
             Self::new(issuer, certificate.into(), intermediate_count)
         }
 
-        fn certificate_for<EX>(
+        fn certificate_for(
             &self,
             pk: &impl PublicKeyData,
             common_name: &str,
-            extensions: EX,
             configuration: CertificateConfiguration,
-        ) -> Result<BorrowingCertificate, CertificateError>
-        where
-            EX: TryInto<Vec<CustomExtension>, Error = CertificateError>,
-        {
-            let custom_extensions: Vec<CustomExtension> = extensions.try_into()?;
+        ) -> Result<BorrowingCertificate, CertificateError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
             params.distinguished_name.push(DnType::CommonName, common_name);
             params.subject_alt_names.push(SanType::DnsName(common_name.try_into()?));
-            params.custom_extensions.extend(custom_extensions);
 
             let certificate = params.signed_by(pk, &self.issuer)?;
             let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
@@ -255,18 +243,14 @@ pub mod generate {
         }
 
         /// Generate a new key pair signed with the specified CA.
-        pub fn generate_key_pair<EX>(
+        pub fn generate_key_pair(
             &self,
             common_name: &str,
-            extensions: EX,
             configuration: CertificateConfiguration,
-        ) -> Result<KeyPair, CertificateError>
-        where
-            EX: TryInto<Vec<CustomExtension>, Error = CertificateError>,
-        {
+        ) -> Result<KeyPair, CertificateError> {
             let key_pair = rcgen::KeyPair::generate()?;
             let private_key = rcgen_cert_privkey(&key_pair)?;
-            let certificate = self.certificate_for(&key_pair, common_name, extensions, configuration)?;
+            let certificate = self.certificate_for(&key_pair, common_name, configuration)?;
 
             let key_pair = KeyPair {
                 private_key,
@@ -277,18 +261,14 @@ pub mod generate {
         }
 
         /// Generate a new key pair signed with the specified CA.
-        pub fn generate_certificate<EX>(
+        pub fn generate_certificate(
             &self,
             public_key: &[u8],
             common_name: &str,
-            extensions: EX,
             configuration: CertificateConfiguration,
-        ) -> Result<BorrowingCertificate, CertificateError>
-        where
-            EX: TryInto<Vec<CustomExtension>, Error = CertificateError>,
-        {
+        ) -> Result<BorrowingCertificate, CertificateError> {
             let public_key = SubjectPublicKeyInfo::from_der(public_key)?;
-            self.certificate_for(&public_key, common_name, extensions, configuration)
+            self.certificate_for(&public_key, common_name, configuration)
         }
 
         /// Generate a new key pair and return both a self-signed root `Ca` for it and a
@@ -298,7 +278,6 @@ pub mod generate {
         pub fn generate_root_and_cross_cert(
             &self,
             common_name: &str,
-            usage: CertificateUsage,
             configuration: CertificateConfiguration,
         ) -> Result<(Self, CertificateDer<'static>), CertificateError> {
             let key_pair = rcgen::KeyPair::generate()?;
@@ -313,7 +292,6 @@ pub mod generate {
             let mut cross_params = CertificateParams::from(configuration);
             cross_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             cross_params.distinguished_name.push(DnType::CommonName, common_name);
-            cross_params.custom_extensions.push(usage.into());
             let cross_cert = cross_params.signed_by(&key_pair, &self.issuer)?;
 
             let issuer = Issuer::new(self_signed_params, key_pair);
@@ -333,23 +311,13 @@ pub mod generate {
                 result.not_after = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_after)).unwrap();
             }
             result.use_authority_key_identifier_extension = !source.exclude_aki;
+            if let Some(usage) = source.usage {
+                result.extended_key_usages.push(usage.to_key_usage_purpose());
+            }
+            if let Some(extension) = source.extension {
+                result.custom_extensions.push(extension);
+            }
             result
-        }
-    }
-
-    impl From<CertificateUsage> for CustomExtension {
-        fn from(value: CertificateUsage) -> Self {
-            const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
-
-            // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but
-            // [`CertificateParams`] only supports a whitelist of key usages that it is aware of. So we
-            // DER-serialize it manually and add it to the custom extensions.
-            // We unwrap in these functions because they have fixed input for which they always succeed.
-            let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
-            seq.add(ObjectIdentifier::from_bytes(value.eku()).unwrap()).unwrap();
-            let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_der().unwrap());
-            ext.set_criticality(true);
-            ext
         }
     }
 
@@ -385,31 +353,42 @@ pub mod generate {
             }
 
             pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
+                self.generate_key_pair(
+                    PID_ISSUER_CERT_CN,
+                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                )
             }
 
             pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+                self.generate_key_pair(
+                    ISSUANCE_CERT_CN,
+                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                )
             }
 
             pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(WIA_CERT_CN, CertificateUsage::Wia, Default::default())
+                self.generate_key_pair(WIA_CERT_CN, CertificateConfiguration::with_usage(CertificateUsage::Wia))
             }
 
             pub fn generate_reader_mock(&self) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(RP_CERT_CN, CertificateUsage::ReaderAuth, Default::default())
+                self.generate_key_pair(
+                    RP_CERT_CN,
+                    CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth),
+                )
             }
 
             pub fn generate_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
                     ISSUANCE_CERT_CN,
-                    CertificateUsage::OAuthStatusSigning,
-                    Default::default(),
+                    CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
                 )
             }
 
             pub fn generate_status_list_mock_with_dn(&self, dn: &str) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(dn, CertificateUsage::OAuthStatusSigning, Default::default())
+                self.generate_key_pair(
+                    dn,
+                    CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                )
             }
 
             /// Generate a TLS server key pair with the given hostname as the DNS SAN.

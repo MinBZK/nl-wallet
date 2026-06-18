@@ -1459,26 +1459,15 @@ mod tests {
     async fn test_parse_and_verify_jwt_with_cert_intermediates() {
         // Generate a chain of certificates
         let ca = Ca::generate_with_intermediate_count("myca", CertificateConfiguration::default(), 3).unwrap();
+        let cert_config = CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth);
         let intermediate1 = ca
-            .generate_intermediate(
-                "myintermediate1",
-                CertificateUsage::ReaderAuth.into(),
-                CertificateConfiguration::default(),
-            )
+            .generate_intermediate("myintermediate1", cert_config.clone())
             .unwrap();
         let intermediate2 = intermediate1
-            .generate_intermediate(
-                "myintermediate2",
-                CertificateUsage::ReaderAuth.into(),
-                CertificateConfiguration::default(),
-            )
+            .generate_intermediate("myintermediate2", cert_config.clone())
             .unwrap();
         let intermediate3 = intermediate2
-            .generate_intermediate(
-                "myintermediate3",
-                CertificateUsage::ReaderAuth.into(),
-                CertificateConfiguration::default(),
-            )
+            .generate_intermediate("myintermediate3", cert_config)
             .unwrap();
         let keypair = intermediate3.generate_reader_mock().unwrap();
 

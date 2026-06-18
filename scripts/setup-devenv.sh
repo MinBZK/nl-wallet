@@ -320,16 +320,16 @@ fi
 WIA_CA_CRT=$(< "${TARGET_DIR}/ca.wia.crt.der" ${BASE64})
 export WIA_CA_CRT
 
-generate_wia_key_pair
-WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing_key.crt.der" ${BASE64})
+# Generate key for WIA signing and TSL
+generate_wia_signing_key_pair
+WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing.crt.der" ${BASE64})
 export WP_WIA_CERTIFICATE
 
-# Generate key for WIA tsl
-generate_wallet_provider_tsl_key_pair
+generate_wia_tsl_key_pair
 WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
 export WIA_TSL_CRT
 
-# Generate pid issuer key and cert
+# Generate pid issuer key and cert for issuance and TSL
 generate_pid_issuer_key_pair
 generate_pid_issuer_tsl_key_pair
 
@@ -388,15 +388,8 @@ export DEMO_RELYING_PARTY_KEY_JOB_FINDER
 DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
-# Generate relying party key and cert.
-generate_demo_relying_party_key_pair housing
-DEMO_RELYING_PARTY_KEY_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.key.der" ${BASE64})
-export DEMO_RELYING_PARTY_KEY_HOUSING
-DEMO_RELYING_PARTY_CRT_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.crt.der" ${BASE64})
-export DEMO_RELYING_PARTY_CRT_HOUSING
-
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
-ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | openssl enc -base64 -A | tr '+/' '-_' | tr -d '=')
+ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
 export ISSUER_CA_AKI
 
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"

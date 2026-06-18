@@ -313,7 +313,7 @@ mod tests {
             .map(|format| {
                 let id = format!("degree_{format}").into();
 
-                let key_pair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+                let key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
                 let (_, metadata_documents) = TypeMetadataDocuments::degree_example();
 
                 let params = CredentialConfigurationParameters {
