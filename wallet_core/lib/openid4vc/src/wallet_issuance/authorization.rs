@@ -13,6 +13,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use super::AuthorizationSession;
 use super::WalletIssuanceError;
+use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use crate::AuthorizationErrorCode;
@@ -24,7 +25,6 @@ use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
 use crate::token::AuthorizationCode;
@@ -72,14 +72,6 @@ pub enum OAuthError {
     #[category(critical)]
     RedirectUriMismatch,
 
-    #[error("config has no authorization endpoint")]
-    #[category(critical)]
-    NoAuthorizationEndpoint,
-
-    #[error("config has no pushed authorization request endpoint")]
-    #[category(critical)]
-    NoPushedAuthorizationEndpoint,
-
     #[error("pushed authorization request rejected: {0:?}")]
     #[category(expected)]
     PushedAuthorizationRequest(Box<ErrorResponse<ParErrorCode>>),
@@ -95,7 +87,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
-    oauth_metadata: AuthorizationServerMetadata,
+    token_endpoint: Url,
     http_client: HttpJsonClient,
 
     auth_url: Url,
@@ -110,7 +102,7 @@ pub struct HttpAuthorizationSessionData {
     credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
-    oauth_metadata: AuthorizationServerMetadata,
+    token_endpoint: Url,
     auth_url: Url,
     client_id: String,
     redirect_uri: Url,
@@ -128,21 +120,11 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
-        oauth_metadata: AuthorizationServerMetadata,
+        auth_endpoints: AuthorizationEndpoints,
         client_id: String,
         redirect_uri: Url,
         issuer_state: Option<String>,
     ) -> Result<Self, WalletIssuanceError> {
-        let par_endpoint = oauth_metadata
-            .pushed_authorization_request_endpoint
-            .as_ref()
-            .ok_or(OAuthError::NoPushedAuthorizationEndpoint)?;
-
-        let auth_url = oauth_metadata
-            .authorization_endpoint
-            .as_ref()
-            .ok_or(OAuthError::NoAuthorizationEndpoint)?;
-
         // Include the scope values for each Credential Configuration that was present in the Credential Offer and
         // return an error if any of them do not include a scope. According to HAIP:
         //
@@ -175,7 +157,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         );
 
         let response = http_client
-            .post(par_endpoint.as_str(), |builder| builder.form(&par_request))
+            .post(auth_endpoints.par_endpoint, |builder| builder.form(&par_request))
             .await
             .map_err(WalletIssuanceError::ParHttp)?;
 
@@ -192,7 +174,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
         };
 
-        let mut auth_url = auth_url.clone();
+        let mut auth_url = auth_endpoints.authorization_endpoint;
         auth_url
             .query_pairs_mut()
             .append_pair("client_id", &client_id)
@@ -202,7 +184,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             credential_configurations,
             credential_issuer,
             issuer_endpoints,
-            oauth_metadata,
+            token_endpoint: auth_endpoints.token_endpoint,
             http_client,
             auth_url,
             client_id,
@@ -256,7 +238,7 @@ impl HttpAuthorizationSession {
             credential_configurations: data.credential_configurations,
             credential_issuer: data.credential_issuer,
             issuer_endpoints: data.issuer_endpoints,
-            oauth_metadata: data.oauth_metadata,
+            token_endpoint: data.token_endpoint,
             http_client,
             auth_url: data.auth_url,
             client_id: data.client_id,
@@ -284,7 +266,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             credential_configurations: self.credential_configurations.clone(),
             credential_issuer: self.credential_issuer.clone(),
             issuer_endpoints: self.issuer_endpoints.clone(),
-            oauth_metadata: self.oauth_metadata.clone(),
+            token_endpoint: self.token_endpoint.clone(),
             auth_url: self.auth_url.clone(),
             client_id: self.client_id.clone(),
             redirect_uri: self.redirect_uri.clone(),
@@ -313,7 +295,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.credential_configurations,
             self.credential_issuer,
             self.issuer_endpoints,
-            &self.oauth_metadata.token_endpoint,
+            &self.token_endpoint,
             token_request,
             trust_anchors,
         )
@@ -330,6 +312,7 @@ mod tests {
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
     use http_utils::reqwest::default_reqwest_client_builder;
+    use http_utils::urls::BaseUrl;
     use httpmock::Method::POST;
     use httpmock::MockServer;
     use itertools::Itertools;
@@ -349,12 +332,13 @@ mod tests {
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
-    use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::pkce::MockPkcePair;
     use crate::pkce::S256PkcePair;
+    use crate::wallet_issuance::authorization_endpoints::AuthorizationEndpoints;
 
     const ISSUER_URL: &str = "https://example.com";
+    const TOKEN_ENDPOINT: &str = "/issuance/token";
     const CLIENT_ID: &str = "client-1";
     const REDIRECT_URI: &str = "redirect://here";
     const CSRF_TOKEN: &str = "csrf_token";
@@ -385,7 +369,7 @@ mod tests {
                 .unwrap(),
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
-            oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
+            token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
             client_id: CLIENT_ID.to_string(),
@@ -419,6 +403,18 @@ mod tests {
         let error = session.authorization_code(&received).unwrap_err();
 
         assert_matches!(error, OAuthError::Denied);
+    }
+
+    fn authorization_endpoints(base_url: &BaseUrl) -> AuthorizationEndpoints {
+        let authorization_endpoint = base_url.join("/authorize");
+        let pushed_authorization_request_endpoint = base_url.join("/issuance/par");
+        let token_endpoint = base_url.join("/issuance/token");
+
+        AuthorizationEndpoints {
+            authorization_endpoint,
+            par_endpoint: pushed_authorization_request_endpoint,
+            token_endpoint,
+        }
     }
 
     #[rstest]
@@ -455,9 +451,7 @@ mod tests {
             })
             .await;
 
-        let issuer_identifier = server.base_url().parse().unwrap();
-        let mut oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
-        oauth_metadata.pushed_authorization_request_endpoint = Some(server.url("/issuance/par").parse().unwrap());
+        let auth_endpoints = authorization_endpoints(&server.base_url().parse().unwrap());
 
         let pkce_context = MockPkcePair::generate_context();
         pkce_context.expect().return_once(|| {
@@ -478,7 +472,7 @@ mod tests {
                 .unwrap(),
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
-            oauth_metadata,
+            auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             issuer_state.map(str::to_string),
@@ -503,7 +497,7 @@ mod tests {
         let issuer_identifier = "https://example.com".parse::<IssuerIdentifier>().unwrap();
         let config_id = CredentialConfigurationId::from("config_id".to_string());
 
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier.clone());
+        let auth_endpoints = authorization_endpoints(issuer_identifier.as_base_url());
 
         let mut issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, "test", config_id.clone());
 
@@ -524,7 +518,7 @@ mod tests {
             credential_configurations,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
-            oauth_metadata,
+            auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             None,
@@ -642,7 +636,7 @@ mod tests {
                 .unwrap(),
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
-            oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
+            token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             auth_url: ISSUER_URL.parse().unwrap(),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
@@ -654,7 +648,7 @@ mod tests {
             credential_configurations: persisted.credential_configurations,
             credential_issuer: persisted.credential_issuer,
             issuer_endpoints: persisted.issuer_endpoints,
-            oauth_metadata: persisted.oauth_metadata,
+            token_endpoint: persisted.token_endpoint,
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
             client_id: persisted.client_id.clone(),

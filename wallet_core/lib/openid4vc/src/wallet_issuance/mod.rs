@@ -1,4 +1,5 @@
 pub mod authorization;
+mod authorization_endpoints;
 pub mod credential;
 pub mod discovery;
 pub mod issuance_session;
@@ -31,6 +32,7 @@ use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
 use self::authorization::OAuthError;
+use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
 use self::issuance_session::IssuanceTypeMetadata;
 use crate::CredentialErrorCode;
@@ -199,6 +201,9 @@ pub enum WalletIssuanceError {
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
     OauthDiscovery(#[source] WellKnownError),
+
+    #[error("not all authorization endpoints present: {0}")]
+    AuthorizationEndpoints(#[source] AuthorizationEndpointsError),
 
     #[error("error discovering Credential Issuer metadata: {0}")]
     #[category(expected)]
