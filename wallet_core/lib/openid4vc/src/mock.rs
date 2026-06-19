@@ -88,7 +88,7 @@ impl IssuerMetadata {
                 config_id,
                 CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                     attestation_type.to_string(),
-                    Some("scope".parse().unwrap()),
+                    "scope".parse().unwrap(),
                     vec![ProofType::Jwt],
                     vec![],
                     vec![],

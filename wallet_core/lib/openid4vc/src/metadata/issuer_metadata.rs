@@ -330,7 +330,7 @@ pub struct CredentialConfiguration {
 impl CredentialConfiguration {
     pub fn new_mdoc_ecdsa_p256_sha256(
         doctype: String,
-        scope: Option<Scope>,
+        scope: Scope,
         proof_types: Vec<ProofType>,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
@@ -348,7 +348,7 @@ impl CredentialConfiguration {
 
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
-        scope: Option<Scope>,
+        scope: Scope,
         proof_types: Vec<ProofType>,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
@@ -366,7 +366,7 @@ impl CredentialConfiguration {
 
     fn new_ecdsa_p256_sha256(
         format: CredentialFormat,
-        scope: Option<Scope>,
+        scope: Scope,
         cryptographic_binding: CryptographicBinding,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
@@ -374,7 +374,7 @@ impl CredentialConfiguration {
     ) -> Self {
         Self {
             format,
-            scope,
+            scope: Some(scope),
             cryptographic_binding: Some(cryptographic_binding),
             credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
             type_metadata_uri: Some(type_metadata_uri),

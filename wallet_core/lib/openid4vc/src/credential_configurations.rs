@@ -259,7 +259,7 @@ impl<K, L> CredentialConfigurations<K, L> {
                 let credential_configuration = match config.format {
                     Format::MsoMdoc => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
                         attestation_type,
-                        Some(scope),
+                        scope,
                         proof_types,
                         display,
                         claims,
@@ -267,7 +267,7 @@ impl<K, L> CredentialConfigurations<K, L> {
                     ),
                     Format::SdJwt => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         attestation_type,
-                        Some(scope),
+                        scope,
                         proof_types,
                         display,
                         claims,
