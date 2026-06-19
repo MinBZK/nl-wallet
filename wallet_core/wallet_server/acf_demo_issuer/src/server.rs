@@ -27,6 +27,8 @@ use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::flow::create_static_router;
+
 pub type AcfDemoIssuer<AF> = AuthorizingIssuer<
     PrivateKeyVariant,
     PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
@@ -76,8 +78,10 @@ where
 
     let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
     let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
+    // Static assets (CSS, fonts, images) are merged outside no-store so the browser can cache them.
     let mut router =
-        add_cache_control_no_store_layer(issuance_router.merge(authorization_router).merge(auth_flow_router));
+        add_cache_control_no_store_layer(issuance_router.merge(authorization_router).merge(auth_flow_router))
+            .merge(create_static_router());
 
     if serve_status_lists {
         let status_list_router = create_serve_router(

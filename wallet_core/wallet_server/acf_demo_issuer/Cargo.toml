@@ -40,12 +40,17 @@ itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_valid.workspace = true
 serde_with.workspace = true
+strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }
+tower.workspace = true
+tower-http = { workspace = true, features = ["fs"] }
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 utoipa-swagger-ui = { workspace = true, optional = true }
+
+web_utils.path = "../../lib/web_utils"
 
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
@@ -59,6 +64,9 @@ openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"
 utils.path = "../../lib/utils"
 server_utils = { path = "../server_utils", features = ["postgres"] }
 status_lists = { path = "../../lib/status_lists", features = ["axum"] }
+
+[build-dependencies]
+web_utils = { path = "../../lib/web_utils", features = ["build"] }
 
 [dev-dependencies]
 indexmap = { workspace = true, features = ["serde"] }

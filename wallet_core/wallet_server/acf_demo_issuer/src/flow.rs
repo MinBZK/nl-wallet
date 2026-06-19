@@ -10,15 +10,20 @@
 //! offer carries and the wallet echoes back in its authorization request.
 
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 
 use askama::Template;
 use askama_web::WebTemplate;
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::Attributes;
 use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
+use axum::handler::HandlerWithoutStateExt;
 use axum::http::StatusCode;
 use axum::http::header;
+use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
@@ -39,13 +44,20 @@ use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
 use serde::Deserialize;
 use server_utils::store::StoreConnection;
+use tower::ServiceBuilder;
+use tower_http::services::ServeDir;
 use tracing::warn;
 use url::Url;
+use utils::path::prefix_local_path;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use web_utils::headers::set_static_cache_control;
+use web_utils::language::Language;
 
 use crate::settings::Usecase;
 use crate::settings::UsecaseKind;
+use crate::translations::TRANSLATIONS;
+use crate::translations::Words;
 
 /// Length of the random flow-state token keying a [`ConsentFlowEntry`] in the state-bridge store.
 const FLOW_STATE_LENGTH: usize = 32;
@@ -174,6 +186,47 @@ impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
     }
 }
 
+// Bundled CSS — placeholder in dev, full bundle in release. Dev builds are served via ServeDir.
+#[cfg(not(debug_assertions))]
+const CONSENT_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/consent.css"));
+
+struct DocumentPreview {
+    attestation_type: String,
+    attributes: Vec<(String, String)>,
+}
+
+fn collect_attributes(prefix: &str, attr: &Attribute, out: &mut Vec<(String, String)>) {
+    match attr {
+        Attribute::Single(value) => out.push((prefix.to_string(), value.to_string())),
+        Attribute::Nested(map) => {
+            for (key, child) in map {
+                collect_attributes(&format!("{prefix}.{key}"), child, out);
+            }
+        }
+    }
+}
+
+fn flatten_attributes(attrs: &Attributes) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for (key, attr) in attrs.as_ref() {
+        collect_attributes(key, attr, &mut out);
+    }
+    out
+}
+
+struct BaseTemplate<'a> {
+    selected_lang: Language,
+    trans: &'a Words<'a>,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "consent.askama", escape = "html", ext = "html")]
+struct ConsentTemplate<'a> {
+    state: String,
+    doc_previews: Vec<DocumentPreview>,
+    base: BaseTemplate<'a>,
+}
+
 /// Query parameters of the consent page, set by [`DemoAuthorizationCodeFlow::authorize`].
 #[derive(Deserialize)]
 struct ConsentQuery {
@@ -181,16 +234,72 @@ struct ConsentQuery {
     usecase: String,
 }
 
-#[derive(Template, WebTemplate)]
-#[template(path = "consent.askama", escape = "html", ext = "html")]
-struct ConsentTemplate {
-    state: String,
-    usecase: String,
+/// `GET /consent`: render the consent page. The `state` token is round-tripped to `POST /consent`.
+async fn consent_page<K, L, S, N, PAS>(
+    State(authorizing_issuer): State<ConsentCallbackIssuer<K, L, S, N, PAS>>,
+    Query(ConsentQuery { state, usecase }): Query<ConsentQuery>,
+    language: Language,
+) -> Response
+where
+    K: Send + Sync + 'static,
+    L: Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Send + Sync + 'static,
+    N: Send + Sync + 'static,
+    PAS: Send + Sync + 'static,
+{
+    let doc_previews = authorizing_issuer
+        .flow()
+        .usecases
+        .get(&usecase)
+        .into_iter()
+        .flat_map(|uc| uc.documents.as_ref())
+        .map(|doc| {
+            let (_, attestation_type, attributes) = doc.clone().into();
+            DocumentPreview {
+                attestation_type,
+                attributes: flatten_attributes(&attributes),
+            }
+        })
+        .collect();
+
+    ConsentTemplate {
+        state,
+        doc_previews,
+        base: BaseTemplate {
+            selected_lang: language,
+            trans: &TRANSLATIONS[language],
+        },
+    }
+    .into_response()
 }
 
-/// `GET /consent`: render the consent page. The `state` token is round-tripped to `POST /consent`.
-async fn consent_page(Query(ConsentQuery { state, usecase }): Query<ConsentQuery>) -> ConsentTemplate {
-    ConsentTemplate { state, usecase }
+/// Creates a router that serves the static assets for the consent page (CSS, fonts, images).
+///
+/// This must be merged into the top-level router **outside** of `add_cache_control_no_store_layer`
+/// so that fonts and images can be cached by the browser.
+pub fn create_static_router() -> Router {
+    let app = Router::new();
+
+    // In release, serve the bundled CSS from a route handler (no disk access needed).
+    // In debug, the ServeDir fallback below serves it directly from the symlinked source tree.
+    #[cfg(not(debug_assertions))]
+    let app = {
+        use axum::http::HeaderMap;
+        use web_utils::css::serve_bundled_css;
+        app.route(
+            "/static/css/consent.css",
+            get(|h: HeaderMap| async move { serve_bundled_css(&h, CONSENT_CSS) }),
+        )
+    };
+
+    app.fallback_service(
+        ServiceBuilder::new()
+            .layer(middleware::from_fn(set_static_cache_control))
+            .service(
+                ServeDir::new(prefix_local_path(Path::new("assets")))
+                    .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+            ),
+    )
 }
 
 /// Query parameters of the consent submission.

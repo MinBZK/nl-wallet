@@ -1,17 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Receive your credential</title>
-  </head>
-  <body>
-    <main>
-      <h1>Receive your credential</h1>
-      <p>An issuer wants to issue a <strong>{{ usecase }}</strong> credential to your wallet.</p>
-      <form method="post" action="?state={{ state }}">
-        <button type="submit">Receive credential</button>
-      </form>
-    </main>
-  </body>
-</html>
+{% extends "../../../demo/demo_utils/templates/base.askama" %}
+{%- import "../../../demo/demo_utils/templates/components/header.askama" as header -%}
+
+{% block styles %}
+<link rel="stylesheet" href="../static/css/consent.css" />
+{% endblock %}
+
+{% block content %}
+{% call header::header(base.trans.insurance_title, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}
+<main>
+    <section>
+        <h2>{{ base.trans.insurance_consent_body }}</h2>
+    </section>
+    {% if !doc_previews.is_empty() %}
+    <section class="doc-previews">
+        {% for doc in doc_previews %}
+        <div class="card">
+            <h3>{{ doc.attestation_type }}</h3>
+            <dl>
+                {% for (key, value) in &doc.attributes %}
+                <div>
+                    <dt>{{ key }}</dt>
+                    <dd>{{ value }}</dd>
+                </div>
+                {% endfor %}
+            </dl>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+    <section class="buttons">
+        <form method="post" action="?state={{ state }}">
+            <button type="submit">
+                <span>{{ base.trans.add_to_nl_wallet }}</span>
+            </button>
+        </form>
+    </section>
+</main>
+{% endblock %}

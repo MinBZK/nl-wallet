@@ -1,0 +1,87 @@
+@import url("../../../../lib/web_utils/static/css/button-reset.css");
+@import url("../../../../lib/web_utils/static/css/fonts.css");
+@import url("../../../../lib/web_utils/static/css/reset.css");
+@import url("../../../../demo/demo_utils/static/css/common.css");
+@import url("../../../../demo/demo_utils/static/css/title_bar.css");
+@import url("../../../../demo/demo_utils/static/css/page.css");
+@import url("../../../../demo/demo_utils/static/css/buttons-after.css");
+
+:root {
+  --primary-color: #188484;
+  --hover-color: #004c4c;
+  --title-color: #3a839a;
+  --text-color: #002328;
+  --logo-url: url("../images/insurance.svg");
+}
+
+main h2 {
+  font-size: 36px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+/* The form submit button has no icon after the label; remove the icon placeholder. */
+.buttons button::after {
+  display: none;
+}
+
+.doc-previews {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 35, 40, 0.12);
+}
+
+.card h3 {
+  padding: 14px 20px;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+.card dl {
+  margin: 0;
+  background: #f5fafa;
+}
+
+.card dl > div {
+  display: grid;
+  grid-template-columns: 42% 1fr;
+  gap: 8px;
+  padding: 11px 20px;
+  border-bottom: 1px solid #e0ecec;
+  align-items: baseline;
+}
+
+.card dl > div:last-child {
+  border-bottom: none;
+}
+
+.card dt {
+  font-size: 13px;
+  color: #5a8080;
+  font-weight: 500;
+}
+
+.card dd {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  word-break: break-word;
+}
+
+@media only screen and (min-width: 1145px) {
+  main h2 {
+    font-size: 44px;
+    line-height: 1.4;
+  }
+}
