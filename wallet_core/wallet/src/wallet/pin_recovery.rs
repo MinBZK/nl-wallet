@@ -398,12 +398,12 @@ where
                 IssuedCredential::MsoMdoc { .. } => None,
                 IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
             })
-            .expect("no SD-JWT PID received"); // accept_issuance() already checks this against the previews
+            .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
             .disclose(&recovery_code_path)
-            .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
+            .expect("the presence of the recovery code within the PID is guaranteed by continue_pin_recovery()")
             .finish()
             .into();
 
