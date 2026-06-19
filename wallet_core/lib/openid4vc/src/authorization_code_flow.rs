@@ -8,7 +8,6 @@
 
 use std::collections::HashSet;
 
-use attestation_types::credential_format::Format;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -16,6 +15,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
+use crate::issuable_document::CredentialType;
 use crate::issuable_document::IssuableDocument;
 use crate::scope::Scope;
 
@@ -83,6 +83,6 @@ pub trait AuthorizationCodeFlow {
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
-        formats_and_types: VecNonEmpty<(Format, &str)>,
+        credential_types: VecNonEmpty<CredentialType>,
     ) -> Result<AuthorizeOutcome, Self::Error>;
 }

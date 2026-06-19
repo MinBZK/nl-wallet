@@ -2011,7 +2011,6 @@ dependencies = [
  "serde",
  "serde_qs",
  "serde_valid",
- "serde_with",
  "server_utils",
  "strum 0.28.0",
  "tokio",

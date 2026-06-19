@@ -38,6 +38,7 @@ use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::issuable_document::CredentialType;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -106,8 +107,7 @@ pub fn mock_type_metadata_with_required_attr(vct: &str, required_attr: &str) -> 
 /// (typically a subset of [`MOCK_ATTRS`]).
 pub fn mock_issuable_document_with_attrs(attestation_type: &str, attrs: &[(&str, &str)]) -> IssuableDocument {
     IssuableDocument::try_new_with_random_id(
-        Format::SdJwt,
-        attestation_type.to_string(),
+        CredentialType::new(Format::SdJwt, attestation_type.to_string()),
         IndexMap::from_iter(attrs.iter().map(|(key, val)| {
             (
                 key.to_string(),
@@ -142,7 +142,7 @@ impl AuthorizationCodeFlow for AlwaysAuthorizingFlow {
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
-        _formats_and_types: VecNonEmpty<(Format, &str)>,
+        _credential_types: VecNonEmpty<CredentialType>,
     ) -> Result<AuthorizeOutcome, Self::Error> {
         Ok(AuthorizeOutcome::Authorized(self.documents.clone(), context))
     }
@@ -223,8 +223,7 @@ where
                 .return_once(|| tokio::task::spawn(async {}).abort_handle());
 
             let params = CredentialConfigurationParameters {
-                format,
-                attestation_type,
+                credential_type: CredentialType::new(format, attestation_type),
                 key_pair: KeyPair::new_from_signing_key(
                     issuance_keypair.private_key().clone(),
                     issuance_keypair.certificate().clone(),

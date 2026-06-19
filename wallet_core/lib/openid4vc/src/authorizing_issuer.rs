@@ -218,11 +218,11 @@ where
         // The scope is part of `WalletAuthorizationContext` in order to store this in the session state in the next
         // step. Once there, it is used to compare against any scope that is requested as part of the Token Request.
         let credential_configs = self.issuer.credential_configs();
-        let formats_and_types = match context
+        let credential_types = match context
             .scope
             .iter()
             .flat_map(|scope| credential_configs.get_by_scope(scope))
-            .map(|(_id, config)| (config.format, config.attestation_type.as_str()))
+            .map(|(_id, config)| config.credential_type.clone())
             .collect_vec()
             .try_into()
         {
@@ -234,7 +234,7 @@ where
 
         let outcome = self
             .flow
-            .authorize(context, formats_and_types)
+            .authorize(context, credential_types)
             .await
             .map_err(|error| AuthorizeError::AuthorizationCodeFlow(Box::new(error)))?;
 
@@ -386,7 +386,6 @@ mod tests {
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
-    use attestation_types::credential_format::Format;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
@@ -404,6 +403,7 @@ mod tests {
     use crate::authorization_code_flow::AuthorizeOutcome;
     use crate::authorization_code_flow::InvalidAuthorizationRequest;
     use crate::authorization_code_flow::WalletAuthorizationContext;
+    use crate::issuable_document::CredentialType;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -509,7 +509,7 @@ mod tests {
         async fn authorize(
             &self,
             _context: WalletAuthorizationContext,
-            _credential_types: VecNonEmpty<(Format, &str)>,
+            _credential_types: VecNonEmpty<CredentialType>,
         ) -> Result<AuthorizeOutcome, Self::Error> {
             Ok(self.0.clone())
         }

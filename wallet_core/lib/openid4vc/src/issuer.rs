@@ -60,6 +60,7 @@ use crate::credential_configurations::CredentialConfigurationsError;
 use crate::credential_offer::CredentialOffer;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::issuable_document::CredentialType;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
@@ -380,8 +381,8 @@ impl<K, L> IssuerData<K, L> {
             .get_by_configuration_id(&preview_state.credential_configuration_id)
             .and_then(|config| {
                 // Do a sanity check to see if the credential configuration has changed from the stored preview state.
-                (preview_state.format == config.format
-                    && preview_state.credential_payload.attestation_type == config.attestation_type)
+                (preview_state.format == config.credential_type.format
+                    && preview_state.credential_payload.attestation_type == config.credential_type.attestation_type)
                     .then_some(config)
             })
     }
@@ -543,8 +544,8 @@ pub enum IssuableDocumentError {
     #[error("attributes do not match type metadata: {0}")]
     AttributesError(#[source] AttributesError),
 
-    #[error("credential type in format \"{0}\" not offered in Credential Configurations: {1}")]
-    CredentialTypeNotOffered(Format, String),
+    #[error("credential type not offered in Credential Configurations: {0}")]
+    CredentialTypeNotOffered(CredentialType),
 }
 
 fn credential_preview_state_for_issuable_document<K, L>(
@@ -552,10 +553,9 @@ fn credential_preview_state_for_issuable_document<K, L>(
     document: IssuableDocument,
     batch_size: NonZeroU8,
 ) -> Result<CredentialPreviewState, IssuableDocumentError> {
-    let format = document.format;
     let (credential_config_id, credential_config) = credential_configurations
-        .get_by_format_and_attestation_type(format, &document.attestation_type)
-        .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(format, document.attestation_type.clone()))?;
+        .get_by_credential_type(&document.credential_type)
+        .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(document.credential_type.clone()))?;
 
     document
         .validate_with_metadata(credential_config.metadata.normalized())
@@ -566,6 +566,7 @@ fn credential_preview_state_for_issuable_document<K, L>(
     let now = utc_now_truncated_to_days();
     let valid_until = now.add(credential_config.valid_days);
 
+    let format = document.credential_type.format;
     let (batch_id, credential_payload) = document.into_id_and_previewable_credential_payload(
         now,
         valid_until,
@@ -1629,8 +1630,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
         let config_params = CredentialConfigurationParameters {
-            format: document.format,
-            attestation_type: document.attestation_type.clone(),
+            credential_type: document.credential_type.clone(),
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
                 issuance_keypair.certificate().to_owned(),
