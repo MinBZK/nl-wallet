@@ -212,6 +212,10 @@ impl From<TokenRequestError> for TokenErrorCode {
 
             TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
 
+            TokenRequestError::MissingRedirectUri | TokenRequestError::RedirectUriMismatch { .. } => {
+                TokenErrorCode::InvalidRequest
+            }
+
             TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
         }
     }

@@ -178,6 +178,15 @@ pub enum TokenRequestError {
         actual: HashSet<Scope>,
     },
 
+    #[error("missing redirect_uri in Authorization Code flow")]
+    MissingRedirectUri,
+
+    #[error(
+        "redirect_uri received in Token Request does not match the one in the Authorization Request: expected \
+         {expected}, received: {actual}"
+    )]
+    RedirectUriMismatch { expected: Box<Url>, actual: Box<Url> },
+
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
 }
@@ -1104,6 +1113,29 @@ impl Grant {
 
         Ok(())
     }
+
+    /// Verify the `redirect_uri` of the [`TokenRequest`] when in the Authorization Code flow.
+    fn verify_redirect_uri(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+        if let Grant::AuthorizationCode(AuthRequestValues {
+            redirect_uri: request_redirect_uri,
+            ..
+        }) = self
+        {
+            let redirect_uri = token_request
+                .redirect_uri
+                .as_ref()
+                .ok_or(TokenRequestError::MissingRedirectUri)?;
+
+            if redirect_uri != request_redirect_uri {
+                return Err(TokenRequestError::RedirectUriMismatch {
+                    expected: Box::new(request_redirect_uri.clone()),
+                    actual: Box::new(redirect_uri.clone()),
+                });
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Session<AuthCodeIssued> {
@@ -1134,6 +1166,7 @@ impl Session<AuthCodeIssued> {
             .grant
             .verify_client_id(token_request, &issuer_data.accepted_wallet_client_ids)?;
         session_data.grant.verify_scope(token_request)?;
+        session_data.grant.verify_redirect_uri(token_request)?;
 
         build_token_response(
             token_request.code(),
