@@ -709,6 +709,16 @@ Next to these configuration files the build can be configured with:
 | mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`. |
 | demo_index_url                | Option      | Flutter                             | The URL to launch the demo index page in Browser for tests (passed via Dart define as DEMO_INDEX_URL). |
 
+Release builds with `SENTRY_AUTH_TOKEN` configured must upload debug symbols
+before publishing. The shared Fastlane `upload_sentry_symbols` lane runs the
+Dart plugin for Flutter and app-native symbols; for iOS, this includes the
+archive/dSYM paths used for Rust symbolication. The app dSYMs in
+`wallet_app/build/ios/archive/Runner.xcarchive` are retained as CI build
+artifacts. On Android, the release lane also explicitly uploads the unstripped
+Rust `libwallet_core.so` files from `wallet_app/android/app/src/main/jniLibs/**`.
+Symbol uploads include source context for Sentry stack traces. The mobile
+release builds keep line-table debug information only for these CI-side symbol
+artifacts; distributed app artifacts must remain stripped.
 
 ## Troubleshooting
 

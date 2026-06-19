@@ -137,7 +137,7 @@ sentry:
   # web_build_path: build/web # Not applicable
   upload_debug_symbols: true
   upload_source_maps: false
-  upload_sources: false
+  upload_sources: true
   wait_for_processing: true
   log_level: debug # Env. variable: SENTRY_LOG_LEVEL
   commits: false
