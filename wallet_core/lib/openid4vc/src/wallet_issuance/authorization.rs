@@ -534,7 +534,7 @@ mod tests {
 
         assert_matches!(
             error,
-            WalletIssuanceError::IssuerMetadataNoScope(config_ids) if config_ids.iter().eq([&config_id])
+            WalletIssuanceError::IssuerMetadataNoScope(config_ids) if config_ids == vec![config_id]
         );
     }
 

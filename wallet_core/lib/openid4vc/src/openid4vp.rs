@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 use std::string::FromUtf8Error;
@@ -599,12 +600,7 @@ impl NormalizedVpAuthorizationRequest {
         };
 
         // Check that various enums have the expected values
-        if !vp_auth_request
-            .oauth_request
-            .response_type
-            .iter()
-            .eq([&ResponseType::VpToken])
-        {
+        if vp_auth_request.oauth_request.response_type != HashSet::from([ResponseType::VpToken]) {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 expected: "vp_token",

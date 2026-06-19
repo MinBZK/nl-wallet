@@ -387,7 +387,6 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_types::credential_format::Format;
-    use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
@@ -664,7 +663,8 @@ mod tests {
 
         assert_matches!(
             error,
-            AuthorizeError::NoValidScope(scope) if scope.iter().map(AsRef::as_ref).sorted().eq(["scope1", "scope2"])
+            AuthorizeError::NoValidScope(scope)
+                if scope == HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()])
         );
     }
 
@@ -729,7 +729,7 @@ mod tests {
             Grant::AuthorizationCode {
                 request_scope,
                 wallet_code_challenge,
-            } if request_scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE])
+            } if request_scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
                 && wallet_code_challenge == code_challenge
         );
         assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
@@ -767,7 +767,8 @@ mod tests {
             Grant::AuthorizationCode {
                 request_scope,
                 wallet_code_challenge,
-            } if request_scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE]) && wallet_code_challenge == code_challenge
+            } if request_scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
+                && wallet_code_challenge == code_challenge
         );
         assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
     }
@@ -791,7 +792,7 @@ mod tests {
         assert_matches!(
             error,
             CompleteAuthorizationError::CredentialScopeMismatch(scope)
-                if scope.iter().map(AsRef::as_ref).eq([WALLET_SCOPE])
+                if scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
         );
     }
 

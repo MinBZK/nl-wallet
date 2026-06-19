@@ -229,7 +229,6 @@ pub struct AuthorizationResponse {
 mod tests {
     use std::collections::HashSet;
 
-    use itertools::Itertools;
     use jwt::nonce::Nonce;
     use serde_json::json;
     use serde_qs;
@@ -272,13 +271,9 @@ mod tests {
 
         assert_eq!(decoded.oauth_request.client_id, "client-123");
         assert_eq!(decoded.oauth_request.state.as_deref(), Some("state-abc"));
-        assert!(
-            decoded
-                .scope
-                .iter()
-                .map(AsRef::as_ref)
-                .sorted()
-                .eq(["openid", "profile"])
+        assert_eq!(
+            decoded.scope,
+            HashSet::from(["openid".parse().unwrap(), "profile".parse().unwrap()])
         );
         assert!(matches!(
             decoded.code_challenge,
