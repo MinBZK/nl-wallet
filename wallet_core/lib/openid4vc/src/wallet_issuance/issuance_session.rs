@@ -14,7 +14,6 @@ use futures::future::try_join_all;
 use futures::try_join;
 use http_utils::reqwest::HttpJsonClient;
 use itertools::Itertools;
-use jwt::wia::WiaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
@@ -543,7 +542,6 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         &mut self,
         trust_anchors: &TrustAnchors,
         wscd: &W,
-        include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd,
@@ -611,7 +609,6 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
                         proof: Some(proof),
-                        attestations: None, // We set this field below if necessary
                     };
 
                     Ok::<_, WalletIssuanceError>(((pubkey, id), cred_request))
@@ -621,21 +618,10 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
-        let mut wia = if include_wia {
-            Some(
-                wscd.issue_wia(aud, c_nonce)
-                    .await
-                    .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?,
-            )
-        } else {
-            None
-        };
-
         // The following two unwraps are safe because N > 0, see above.
         let responses = match credential_requests.len() {
             1 => {
-                let mut credential_request = credential_requests.pop().unwrap();
-                credential_request.attestations = wia.take();
+                let credential_request = credential_requests.pop().unwrap();
                 vec![
                     self.request_credential(credential_endpoint_url, &credential_request)
                         .await?,
@@ -643,7 +629,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
-                self.request_batch_credentials(credential_endpoint_url, credential_requests, wia.take())
+                self.request_batch_credentials(credential_endpoint_url, credential_requests)
                     .await?
             }
         };
@@ -780,7 +766,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         url: &Url,
         credential_requests: VecNonEmpty<CredentialRequest>,
-        wia_disclosure: Option<WiaDisclosure>,
     ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
@@ -789,10 +774,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .message_client
             .request_credentials(
                 url,
-                &CredentialRequests {
-                    credential_requests,
-                    attestations: wia_disclosure,
-                },
+                &CredentialRequests { credential_requests },
                 &dpop_header,
                 &access_token_header,
             )
@@ -1428,15 +1410,12 @@ mod tests {
     }
 
     /// Check consistency and validity of the input of the /(batch_)credential endpoints.
-    #[expect(clippy::too_many_arguments)]
     fn check_credential_endpoint_input(
         url: &Url,
         dpop_signing_key: &SigningKey,
         dpop_nonce: &str,
         dpop_header: &str,
         access_token_header: &str,
-        attestations: &Option<WiaDisclosure>,
-        use_wia: bool,
     ) {
         assert_eq!(access_token_header, "DPoP access_token".to_string());
 
@@ -1451,10 +1430,6 @@ mod tests {
                 Some(dpop_nonce),
             )
             .unwrap();
-
-        if use_wia != attestations.is_some() {
-            panic!("unexpected WIA usage");
-        }
     }
 
     enum TestNonceEndpoint {
@@ -1465,7 +1440,6 @@ mod tests {
 
     #[rstest]
     fn test_accept_issuance(
-        #[values(true, false)] use_wia: bool,
         #[values(true, false)] multiple_creds: bool,
         #[values(
             TestNonceEndpoint::Absent,
@@ -1508,8 +1482,6 @@ mod tests {
                         expected_dpop_nonce,
                         dpop_header,
                         access_token_header,
-                        &credential_requests.attestations,
-                        use_wia,
                     );
 
                     let credential_responses = credential_requests
@@ -1535,8 +1507,6 @@ mod tests {
                         expected_dpop_nonce,
                         dpop_header,
                         access_token_header,
-                        &credential_request.attestations,
-                        use_wia,
                     );
 
                     let response = signer.into_response_from_request(credential_request);
@@ -1550,7 +1520,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&trust_anchor, &wscd, use_wia)
+        .accept_issuance(&trust_anchor, &wscd)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -1588,7 +1558,7 @@ mod tests {
                 true,
             ),
         }
-        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
+        .accept_issuance(&trust_anchor, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1622,7 +1592,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec_nonempty![preview_data], &attestation_type, type_metadata, true),
         }
-        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
+        .accept_issuance(&trust_anchor, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1670,7 +1640,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, &attestation_type, type_metadata, true),
         }
-        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
+        .accept_issuance(&trust_anchor, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");

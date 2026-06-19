@@ -358,7 +358,6 @@ pub trait IssuanceSession {
         &mut self,
         trust_anchors: &TrustAnchors,
         wscd: &W,
-        include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd;

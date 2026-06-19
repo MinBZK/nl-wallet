@@ -173,7 +173,7 @@ pub enum CredentialRequestError {
     #[error("could not check proof nonce against nonce storage: {0}")]
     ProofNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("invalid nonce used in credential request proof, WIA or PoA")]
+    #[error("invalid nonce used in credential request proof")]
     InvalidNonce,
 
     #[error("JWT error: {0}")]
@@ -1211,11 +1211,8 @@ impl Session<AccessTokenIssued> {
             &issuer_data.metadata.credential_issuer,
         )?;
 
-        let wia_nonce = self.verify_wia(credential_request.attestations.as_ref(), issuer_data)?;
-
-        // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
-            .check_nonce_status_and_remove([&request_nonce].iter().copied().chain(wia_nonce.as_ref()))
+            .check_nonce_status_and_remove([request_nonce].iter())
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
 
@@ -1349,11 +1346,9 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
         }
 
-        let wia_nonce = self.verify_wia(credential_requests.attestations.as_ref(), issuer_data)?;
-
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
-            .check_nonce_status_and_remove(request_nonces.iter().chain(wia_nonce.as_ref()))
+            .check_nonce_status_and_remove(request_nonces.iter())
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
 
@@ -1715,10 +1710,6 @@ mod tests {
                 credential_request.proof = Some(invalidated_proof);
             }
 
-            if self.strip_wia {
-                credential_request.attestations.take();
-            }
-
             credential_request
         }
 
@@ -1730,10 +1721,6 @@ mod tests {
                 let mut requests = credential_requests.credential_requests.into_inner();
                 requests[0] = invalidated_request;
                 credential_requests.credential_requests = requests.try_into().unwrap();
-            }
-
-            if self.strip_wia {
-                credential_requests.attestations.take();
             }
 
             credential_requests
@@ -1874,7 +1861,7 @@ mod tests {
         .unwrap();
 
         let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-        session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap_err()
+        session.accept_issuance(&trust_anchors, &wscd).await.unwrap_err()
     }
 
     #[tokio::test]

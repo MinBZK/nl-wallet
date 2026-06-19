@@ -352,7 +352,7 @@ where
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
         let issuance_result = issuance_session
-            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd, true)
+            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 

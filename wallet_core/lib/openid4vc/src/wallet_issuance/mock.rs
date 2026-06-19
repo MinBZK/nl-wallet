@@ -136,7 +136,6 @@ impl IssuanceSession for MockIssuanceSession {
         &mut self,
         _: &TrustAnchors,
         _: &W,
-        _: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept()
     }

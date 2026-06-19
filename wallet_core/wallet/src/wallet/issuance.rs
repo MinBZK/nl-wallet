@@ -617,7 +617,7 @@ where
 
         info!("Signing nonce using Wallet Provider");
         let issuance_result = protocol_state
-            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd, pid_purpose.is_some())
+            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 

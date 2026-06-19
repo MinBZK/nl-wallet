@@ -324,10 +324,7 @@ async fn authorization_code_flow(
     assert_eq!(session.credential_previews().len(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
-    let issued_creds = session
-        .accept_issuance(&server.trust_anchors, &wscd, true)
-        .await
-        .unwrap();
+    let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
@@ -362,7 +359,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
     let issued_creds = session
-        .accept_issuance(&server.trust_anchors, &wscd, true)
+        .accept_issuance(&server.trust_anchors, &wscd)
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
@@ -411,7 +408,7 @@ async fn pre_authorized_code_flow(
 
     let copy_count = 4;
     let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-    let issued_creds = session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap();
+    let issued_creds = session.accept_issuance(&trust_anchors, &wscd).await.unwrap();
 
     verify_issued_credentials(
         issued_creds,
