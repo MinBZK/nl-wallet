@@ -94,8 +94,8 @@ pub struct TokenRequest {
     pub redirect_uri: Option<Url>,
 
     /// Section 3.3 of RFC 6749 states that the client may include a scope value when sending the Token Request to the
-    /// token endpoint. Note that, unlike to the Authorization Request, we make a semantic distinction between this
-    /// value not being included and the scope value set being empty.
+    /// token endpoint. Note that, unlike the Authorization Request, we make a semantic distinction between this value
+    /// not being included and the scope value set being empty.
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
     pub scope: Option<HashSet<Scope>>,
 

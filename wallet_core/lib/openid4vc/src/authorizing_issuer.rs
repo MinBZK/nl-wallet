@@ -787,7 +787,7 @@ mod tests {
                 "wallet-code-challenge".to_string(),
             )
             .await
-            .expect_err("copleting authorization should fail");
+            .expect_err("completing authorization should fail");
 
         assert_matches!(
             error,
