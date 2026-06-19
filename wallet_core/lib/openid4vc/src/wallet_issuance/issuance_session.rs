@@ -41,6 +41,11 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
+use super::IssuanceSession;
+use super::WalletIssuanceError;
+use super::credential::CredentialWithMetadata;
+use super::credential::IssuedCredential;
+use super::credential::IssuedCredentialCopies;
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
 use crate::ErrorResponse;
@@ -67,11 +72,6 @@ use crate::token::AccessToken;
 use crate::token::CredentialPreview;
 use crate::token::TokenRequest;
 use crate::token::TokenResponse;
-use crate::wallet_issuance::IssuanceSession;
-use crate::wallet_issuance::WalletIssuanceError;
-use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::credential::IssuedCredential;
-use crate::wallet_issuance::credential::IssuedCredentialCopies;
 
 #[derive(Debug)]
 pub struct HttpIssuanceSession<H = HttpVcMessageClient> {

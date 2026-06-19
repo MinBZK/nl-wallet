@@ -11,6 +11,10 @@ use serde_with::DeserializeFromStr;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
+use super::AuthorizationSession;
+use super::WalletIssuanceError;
+use super::issuance_session::HttpIssuanceSession;
+use super::issuance_session::HttpVcMessageClient;
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::authorization::AuthorizationResponse;
@@ -25,10 +29,6 @@ use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
-use crate::wallet_issuance::AuthorizationSession;
-use crate::wallet_issuance::WalletIssuanceError;
-use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
-use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
 
 #[derive(Debug, Clone, PartialEq, strum::EnumString, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]

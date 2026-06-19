@@ -30,6 +30,9 @@ use utils::single_unique::MultipleItemsFound;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
+use self::authorization::OAuthError;
+use self::credential::CredentialWithMetadata;
+use self::issuance_session::IssuanceTypeMetadata;
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
 use crate::ErrorResponse;
@@ -42,9 +45,6 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
-use crate::wallet_issuance::authorization::OAuthError;
-use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
