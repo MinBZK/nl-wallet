@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
+use attestation_types::claim_path::ClaimPath;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
@@ -18,9 +19,9 @@ use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
-use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -107,7 +108,7 @@ pub enum PinRecoverySession<AS, IS> {
         authorization_session: AS,
     },
     Issuance {
-        pid_config: PidAttributesConfiguration,
+        recovery_code_path: VecNonEmpty<ClaimPath>,
         pid_attestation_type: String,
         issuance_session: IS,
     },
@@ -237,12 +238,16 @@ where
         // the WP will reject our PIN recovery instructions.
         let pid_config = &config.pid_attributes;
         let pid_preview = Self::pid_preview(issuance_session.credential_previews(), pid_config)?;
+
         self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
 
+        let pid_attestation_type = pid_preview.credential_payload.attestation_type.clone();
+        let recovery_code_path = pid_config.recovery_code_path(&pid_attestation_type)?;
+
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
-            pid_config: pid_config.clone(),
-            pid_attestation_type: pid_preview.credential_payload.attestation_type.clone(),
+            recovery_code_path,
+            pid_attestation_type,
             issuance_session,
         }));
 
@@ -304,8 +309,8 @@ where
         }
 
         let Some(Session::PinRecovery(PinRecoverySession::Issuance {
-            pid_config,
-            pid_attestation_type: offered_pid,
+            recovery_code_path,
+            pid_attestation_type,
             mut issuance_session,
         })) = self.session.take()
         else {
@@ -387,7 +392,7 @@ where
         // Get an SD-JWT copy out of the PID we just received.
         let pid = issuance_result
             .into_iter()
-            .filter(|attestation| attestation.attestation_type == offered_pid)
+            .filter(|attestation| attestation.attestation_type == pid_attestation_type)
             .flat_map(|attestation| attestation.copies.into_inner().into_iter())
             .find_map(|copy| match copy {
                 IssuedCredential::MsoMdoc { .. } => None,
@@ -397,7 +402,7 @@ where
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(&pid_config.recovery_code_path(&offered_pid)?)
+            .disclose(&recovery_code_path)
             .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
             .finish()
             .into();
@@ -499,7 +504,6 @@ mod tests {
     use super::PinRecoverySession;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
-    use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
@@ -973,7 +977,7 @@ mod tests {
         ]);
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            recovery_code_path: vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
             pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
             issuance_session: pid_issuer,
         }));
