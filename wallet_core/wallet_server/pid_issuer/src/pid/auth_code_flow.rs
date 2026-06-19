@@ -414,7 +414,6 @@ where
     B: BrpClient,
     O: DigidClient,
 {
-    // TODO: Filter issuable documents based on format / attestation type pairs.
     let issuable_documents = authorizing_issuer
         .flow()
         .fetch_issuable_documents(digid_code, upstream_code_verifier, formats)
