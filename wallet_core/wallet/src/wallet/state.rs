@@ -230,7 +230,7 @@ where
         Ok(())
     }
 
-    pub(super) async fn check_accept_session_preconditions(
+    pub(super) async fn check_session_preconditions_and_get_registration_data(
         &mut self,
     ) -> Result<AttestedKeyRegistrationDataAndConfig<AKH>, CheckPreconditionsError>
     where

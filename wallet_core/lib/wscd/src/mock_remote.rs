@@ -34,6 +34,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::Poa;
 use crate::wscd::IssuanceResult;
 use crate::wscd::IssuanceWscd;
+use crate::wscd::WiaClient;
 
 pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
@@ -44,7 +45,6 @@ pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 #[derive(Debug)]
 pub struct MockRemoteWscd {
     pub disclosure: DisclosureMockRemoteWscd,
-    wia_keypair: Option<KeyPair>,
 }
 
 impl MockRemoteWscd {
@@ -57,14 +57,6 @@ impl MockRemoteWscd {
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             disclosure: DisclosureMockRemoteWscd::new_signing_keys(signing_keys),
-            wia_keypair: None,
-        }
-    }
-
-    pub fn new_with_wia_keypair(wia_keypair: KeyPair) -> Self {
-        Self {
-            wia_keypair: Some(wia_keypair),
-            ..Default::default()
         }
     }
 
@@ -185,6 +177,27 @@ impl IssuanceWscd for MockRemoteWscd {
             pops,
         })
     }
+}
+
+#[derive(Debug)]
+pub struct MockWiaClient {
+    wia_keypair: Option<KeyPair>,
+}
+
+impl MockWiaClient {
+    pub fn new() -> Self {
+        Self { wia_keypair: None }
+    }
+
+    pub fn new_with_wia_keypair(wia_keypair: KeyPair) -> Self {
+        Self {
+            wia_keypair: Some(wia_keypair),
+        }
+    }
+}
+
+impl WiaClient for MockWiaClient {
+    type Error = MockRemoteWscdError;
 
     async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
         let wia_key = SigningKey::random(&mut OsRng);

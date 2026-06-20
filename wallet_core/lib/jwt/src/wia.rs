@@ -101,7 +101,6 @@ impl JwtTyp for WiaClaims {
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
 pub struct WiaDisclosure(UnverifiedJwt<WiaClaims, HeaderWithX5c>, UnverifiedJwt<JwtPopClaims>);
 
-#[cfg(feature = "test")]
 impl WiaDisclosure {
     pub fn wia(&self) -> &UnverifiedJwt<WiaClaims, HeaderWithX5c> {
         &self.0

@@ -1824,7 +1824,6 @@ mod tests {
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
         trust_anchors: TrustAnchors,
-        wia_keypair: KeyPair,
     ) -> WalletIssuanceError {
         let session_token = message_client
             .issuer
@@ -1860,7 +1859,7 @@ mod tests {
         .await
         .unwrap();
 
-        let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
+        let wscd = MockRemoteWscd::new(vec![]);
         session.accept_issuance(&trust_anchors, &wscd).await.unwrap_err()
     }
 
@@ -1872,7 +1871,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
@@ -1887,7 +1886,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
@@ -1902,25 +1901,10 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
-        );
-    }
-
-    #[tokio::test]
-    async fn no_wia() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
-        let message_client = VcMessageClientStub {
-            strip_wia: true,
-            ..VcMessageClientStub::new(issuer)
-        };
-
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
-        assert_matches!(
-            result,
-            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
         );
     }
 

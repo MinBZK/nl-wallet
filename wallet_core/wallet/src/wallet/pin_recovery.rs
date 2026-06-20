@@ -41,6 +41,7 @@ use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::instruction::PinRecoveryRemoteEcdsaWscd;
 use crate::instruction::PinRecoveryWscd;
+use crate::instruction::RemoteWiaClient;
 use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
@@ -158,6 +159,23 @@ where
 
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
 
+        info!("Checking if registered");
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| PinRecoveryError::NotRegistered)?;
+
+        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
+            attested_key.to_owned(),
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            ),
+        ));
+
         info!("Fetching issuer metadata to discover authorization server");
         let authorization_session = self
             .issuance_discovery
@@ -165,6 +183,7 @@ where
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                &wia_client,
             )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
@@ -482,7 +501,6 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
-    use jwt::wia::WiaDisclosure;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
@@ -986,10 +1004,6 @@ mod tests {
             _aud: String,
             _nonce: Option<Nonce>,
         ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
-            unimplemented!()
-        }
-
-        async fn issue_wia(&self, _aud: String, _nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
             unimplemented!()
         }
     }

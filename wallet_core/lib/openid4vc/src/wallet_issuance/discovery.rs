@@ -8,6 +8,7 @@ use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
+use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
@@ -51,6 +52,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
+        wia_client: &impl WiaClient,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
         let (credential_configurations, credential_issuer, issuer_endpoints, flow, oauth_metadata) =
             self.resolve_credential_offer_flow(offer_uri).await?;
@@ -66,6 +68,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                     client_id,
                     redirect_uri,
                     issuer_state,
+                    wia_client,
                 )
                 .await?;
 
@@ -96,6 +99,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         offer_uri: &Url,
         client_id: String,
         redirect_uri: Url,
+        wia_client: &impl WiaClient,
     ) -> Result<Self::Authorization, WalletIssuanceError> {
         let (credential_configurations, credential_identifier, issuer_endpoints, flow, oauth_metadata) =
             self.resolve_credential_offer_flow(offer_uri).await?;
@@ -113,6 +117,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             client_id,
             redirect_uri,
             issuer_state,
+            wia_client,
         )
         .await
     }
@@ -462,6 +467,7 @@ mod test {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use wscd::mock_remote::MockWiaClient;
 
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
@@ -755,6 +761,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &trust_anchor,
+                &MockWiaClient::new(),
             )
             .await
             .expect("starting issuance should succeed");
@@ -780,7 +787,12 @@ mod test {
             ) => {
                 // Start issuance again, this time directly expecting the Authorization Code flow.
                 let second_auth_session = discovery
-                    .start_authorization_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), REDIRECT_URI.clone())
+                    .start_authorization_code_flow(
+                        &offer_url,
+                        MOCK_WALLET_CLIENT_ID.to_string(),
+                        REDIRECT_URI.clone(),
+                        &MockWiaClient::new(),
+                    )
                     .await
                     .expect("starting authorization code issuance should succeed");
 
@@ -831,7 +843,12 @@ mod test {
 
                 // Staring issuance while expecting an Authorization Code flow results in an error.
                 let error = discovery
-                    .start_authorization_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), REDIRECT_URI.clone())
+                    .start_authorization_code_flow(
+                        &offer_url,
+                        MOCK_WALLET_CLIENT_ID.to_string(),
+                        REDIRECT_URI.clone(),
+                        &MockWiaClient::new(),
+                    )
                     .await
                     .expect_err("staring authorization code issuance should fail");
 
@@ -868,6 +885,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -885,6 +903,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -907,6 +926,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -944,6 +964,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -977,6 +998,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -1011,6 +1033,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -1044,6 +1067,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &trust_anchor,
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -1081,6 +1105,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &trust_anchor,
+                &MockWiaClient::new(),
             )
             .await;
 
@@ -1116,6 +1141,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &trust_anchor,
+                &MockWiaClient::new(),
             )
             .await
             .expect_err("starting issuance should fail");
@@ -1143,6 +1169,7 @@ mod test {
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &trust_anchor,
+                &MockWiaClient::new(),
             )
             .await
             .expect("starting issuance should succeed");

@@ -29,6 +29,7 @@ use url::Url;
 use utils::single_unique::MultipleItemsFound;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
+use wscd::wscd::WiaClient;
 
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
@@ -296,6 +297,7 @@ pub trait IssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
+        wscd: &impl WiaClient,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
@@ -306,6 +308,7 @@ pub trait IssuanceDiscovery {
         offer_uri: &Url,
         client_id: String,
         redirect_uri: Url,
+        wscd: &impl WiaClient,
     ) -> Result<Self::Authorization, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an

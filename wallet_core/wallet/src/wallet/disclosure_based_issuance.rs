@@ -80,7 +80,8 @@ where
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
-        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) =
+            self.check_session_preconditions_and_get_registration_data().await?;
 
         info!("Checking if a disclosure session is present");
         let Some(Session::Disclosure(session)) = self.session.take() else {

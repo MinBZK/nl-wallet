@@ -60,9 +60,11 @@ use crate::errors::ChangePinError;
 use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
+use crate::instruction::RemoteWiaClient;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -304,10 +306,14 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
+    pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Generating OAuth URL, starting issuer discovery");
 
-        self.check_session_preconditions()?;
+        let (attested_key, registration_data, config) =
+            self.check_session_preconditions_and_get_registration_data().await?;
 
         info!("Checking if there is an active session");
         if self.session.is_some() {
@@ -331,7 +337,16 @@ where
             return Err(IssuanceError::NoPidPresent);
         }
 
-        let config = self.config_repository.get();
+        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
+            attested_key,
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            ),
+        ));
 
         info!("Fetching issuer metadata to discover authorization server");
         let authorization_session = self
@@ -340,6 +355,7 @@ where
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                &wia_client,
             )
             .await?;
 
@@ -395,18 +411,32 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn start_issuance_from_offer(&mut self, offer_uri: Url) -> Result<IssuanceStartResult, IssuanceError> {
+    pub async fn start_issuance_from_offer(&mut self, offer_uri: Url) -> Result<IssuanceStartResult, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Starting issuance from credential offer URI");
 
-        self.check_session_preconditions()?;
+        let (attested_key, registration_data, config) =
+            self.check_session_preconditions_and_get_registration_data().await?;
 
         if self.session.is_some() {
             return Err(IssuanceError::SessionState);
         }
 
-        let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
         let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
+
+        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
+            attested_key,
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            ),
+        ));
 
         let flow = self
             .issuance_discovery
@@ -415,6 +445,7 @@ where
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
                 trust_anchors,
+                &wia_client,
             )
             .await?;
 
@@ -594,7 +625,8 @@ where
     {
         info!("Accepting issuance");
 
-        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) =
+            self.check_session_preconditions_and_get_registration_data().await?;
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let remote_instruction_client = self

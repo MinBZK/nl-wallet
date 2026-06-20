@@ -59,6 +59,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
+use wscd::mock_remote::MockWiaClient;
 
 fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
     let ca = Ca::generate("localhost", Default::default()).unwrap();
@@ -254,6 +255,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer, attestation_count: 
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
             &server.trust_anchors,
+            &MockWiaClient::new(),
         )
         .await
         .unwrap();
@@ -323,7 +325,7 @@ async fn authorization_code_flow(
 
     assert_eq!(session.credential_previews().len(), attestation_count.get());
 
-    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
+    let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
 
     let copy_count = 4;
@@ -357,7 +359,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
-    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
+    let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
         .accept_issuance(&server.trust_anchors, &wscd)
         .await
@@ -395,6 +397,7 @@ async fn pre_authorized_code_flow(
             MOCK_WALLET_CLIENT_ID.to_string(),
             "https://wallet.example.com/callback".parse().unwrap(),
             &trust_anchors,
+            &MockWiaClient::new_with_wia_keypair(wia_keypair),
         )
         .await
         .unwrap();
@@ -407,7 +410,7 @@ async fn pre_authorized_code_flow(
     };
 
     let copy_count = 4;
-    let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
+    let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session.accept_issuance(&trust_anchors, &wscd).await.unwrap();
 
     verify_issued_credentials(
@@ -444,6 +447,7 @@ async fn reject_issuance() {
             MOCK_WALLET_CLIENT_ID.to_string(),
             "https://wallet.example.com/callback".parse().unwrap(),
             &trust_anchors,
+            &MockWiaClient::new(),
         )
         .await
         .unwrap();

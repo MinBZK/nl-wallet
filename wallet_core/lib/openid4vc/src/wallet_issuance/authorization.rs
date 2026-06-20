@@ -3,11 +3,14 @@ use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
+use jwt::wia::WIA_HEADER_NAME;
+use jwt::wia::WIA_POP_HEADER_NAME;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::wscd::WiaClient;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -131,6 +134,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         client_id: String,
         redirect_uri: Url,
         issuer_state: Option<String>,
+        wia_client: &impl WiaClient,
     ) -> Result<Self, WalletIssuanceError> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
@@ -143,13 +147,23 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
+        let wia = wia_client
+            .issue_wia(client_id.clone(), None)
+            .await
+            .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
+
         let par_endpoint = oauth_metadata
             .pushed_authorization_request_endpoint
             .as_ref()
             .ok_or(OAuthError::NoPushedAuthorizationEndpoint)?;
 
         let response = http_client
-            .post(par_endpoint.as_str(), |builder| builder.form(&par_request))
+            .post(par_endpoint.as_str(), |builder| {
+                builder
+                    .form(&par_request)
+                    .header(WIA_HEADER_NAME, wia.wia().serialization())
+                    .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+            })
             .await
             .map_err(WalletIssuanceError::ParHttp)?;
 
@@ -317,6 +331,7 @@ mod tests {
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
+    use wscd::mock_remote::MockWiaClient;
 
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
@@ -461,6 +476,7 @@ mod tests {
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             issuer_state.map(str::to_string),
+            &MockWiaClient::new(),
         )
         .await
         .unwrap();
