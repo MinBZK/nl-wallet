@@ -1,11 +1,11 @@
 import '../../../domain/model/event/wallet_event.dart';
 
 abstract class WalletEventRepository {
-  Future<List<WalletEvent>> getEvents();
+  Future<List<WalletEvent>> getEvents({bool removeDuplicatePidEvents = true});
 
   Future<List<WalletEvent>> getEventsForCard(String attestationId);
 
-  Stream<List<WalletEvent>> observeRecentEvents();
+  Stream<List<WalletEvent>> observeRecentEvents({bool removeDuplicatePidEvents = true});
 
   /// Returns most recent [DisclosureEvent] for card filtered by [EventStatus]
   Future<DisclosureEvent?> readMostRecentDisclosureEvent(String attestationId, EventStatus status);

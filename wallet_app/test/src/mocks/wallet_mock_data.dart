@@ -6,6 +6,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/help/help_content_repository.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_rendering.dart';
 import 'package:wallet/src/domain/model/card/status/card_status.dart';
@@ -22,6 +23,7 @@ import 'package:wallet/src/domain/model/help/help_topic_group.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
 import 'package:wallet/src/theme/dark_wallet_theme.dart';
@@ -80,7 +82,7 @@ abstract class WalletMockData {
     idleWarningTimeout: const Duration(seconds: 60),
     backgroundLockTimeout: const Duration(seconds: 600),
     staticAssetsBaseUrl: 'https://example.com/',
-    pidAttestationTypes: ['urn:eudi:pid:nl:1'],
+    pidAttestations: [const PidAttestation(attestationType: 'urn:eudi:pid:nl:1', format: .sdJwt)],
     maintenanceWindow: MaintenanceWindow(
       startDateTime: DateTime(2025, 1, 15, 10, 0),
       endDateTime: DateTime(2025, 1, 15, 11, 0),
@@ -92,6 +94,7 @@ abstract class WalletMockData {
   static WalletCard card = WalletCard(
     attestationId: 'id',
     attestationType: 'com.example.attestationType',
+    format: AttestationFormat.sdJwt,
     issuer: WalletMockData.organization,
     status: WalletMockData.status,
     metadata: [
@@ -124,6 +127,7 @@ abstract class WalletMockData {
   static WalletCard simpleRenderingCard = WalletCard(
     attestationId: 'id',
     attestationType: 'com.example.attestationType',
+    format: AttestationFormat.sdJwt,
     issuer: WalletMockData.organization,
     status: WalletMockData.status,
     metadata: [
@@ -141,6 +145,7 @@ abstract class WalletMockData {
   static WalletCard altCard = WalletCard(
     attestationId: 'id2',
     attestationType: 'com.example.alt.attestationType',
+    format: AttestationFormat.sdJwt,
     issuer: WalletMockData.organization,
     status: WalletMockData.status,
     metadata: [

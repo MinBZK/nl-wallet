@@ -5,6 +5,7 @@ import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/card/summary_mapper.dart';
 import '../attribute/attribute.dart';
 import '../organization.dart';
+import 'format/attestation_format.dart';
 import 'metadata/card_display_metadata.dart';
 import 'status/card_status.dart';
 
@@ -19,6 +20,9 @@ abstract class WalletCard with _$WalletCard {
 
     /// Type of document
     required String attestationType,
+
+    /// Format of the attestation (mdoc/sd-jwt)
+    required AttestationFormat format,
 
     /// Organization that issued this card
     required Organization issuer,

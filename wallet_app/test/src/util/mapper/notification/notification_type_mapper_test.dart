@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/util/mapper/notification/notification_type_mapper.dart';
@@ -20,6 +21,7 @@ void main() {
       WalletCard(
         attestationId: '',
         attestationType: '',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: .valid(validUntil: DateTime(2100)),
         attributes: [],

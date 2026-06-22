@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/feature/common/page/check_data_offering_page.dart';
 import 'package:wallet/src/feature/common/widget/button/confirm/confirm_buttons.dart';
@@ -126,6 +127,7 @@ void main() {
           offeredCard: WalletCard(
             attestationId: 'id',
             attestationType: 'com.example.attestationType',
+            format: AttestationFormat.sdJwt,
             issuer: WalletMockData.organization,
             status: WalletMockData.status,
             attributes: const [],

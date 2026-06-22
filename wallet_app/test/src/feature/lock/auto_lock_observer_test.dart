@@ -9,6 +9,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart';
 import 'package:wallet/src/feature/lock/auto_lock_observer.dart';
@@ -38,7 +39,7 @@ void main() {
       idleWarningTimeout: idleWarningTimeout,
       backgroundLockTimeout: backgroundLockTimeout,
       staticAssetsBaseUrl: 'https://example.org',
-      pidAttestationTypes: ['com.example.attestationType'],
+      pidAttestations: [PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
       maintenanceWindow: null,
       version: '1',
       environment: 'test',
