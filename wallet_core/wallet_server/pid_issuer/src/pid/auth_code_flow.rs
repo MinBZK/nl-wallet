@@ -44,6 +44,8 @@ use server_utils::keys::SecretKeyVariant;
 use server_utils::store::StoreConnection;
 use tracing::warn;
 use url::Url;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -251,21 +253,18 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         let attributes = insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
         // Create an `IssuableDocument` for each requested format.
-        let format_count = formats.len().get();
+        let format_count = formats.len();
         let issuable_documents = formats
-            .into_iter()
-            .zip(std::iter::repeat_n(attributes, format_count))
+            .into_nonempty_iter()
+            .zip(utils::vec_at_least::repeat_n(attributes, format_count))
             .map(|(format, attributes)| {
                 IssuableDocument::try_new_with_random_id(
                     CredentialType::new(format, PID_ATTESTATION_TYPE.to_string()),
                     attributes,
                 )
             })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| Error::InvalidIssuableDocuments)?
-            .try_into()
-            // Unforuntately the non-empty iterator does not support zip().
-            .expect("source iterator is non-empty");
+            .collect::<Result<_, _>>()
+            .map_err(|_| Error::InvalidIssuableDocuments)?;
 
         Ok(issuable_documents)
     }
