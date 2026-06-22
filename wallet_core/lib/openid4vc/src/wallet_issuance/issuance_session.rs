@@ -417,7 +417,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .iter()
             .map(|preview| preview.issuer_registration())
             .collect::<Result<Vec<_>, _>>()
-            .map_err(WalletIssuanceError::CredentialPreviewVerification)?
+            .map_err(WalletIssuanceError::PreviewIssuerRegistration)?
             .iter()
             .single_unique()
             .map_err(WalletIssuanceError::DifferentIssuerRegistrations)?

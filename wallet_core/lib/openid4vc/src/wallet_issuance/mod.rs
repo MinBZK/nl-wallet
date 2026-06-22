@@ -177,6 +177,9 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataNotFound(CredentialConfigurationId),
 
+    #[error("could not read issuer registration from preview: {0}")]
+    PreviewIssuerRegistration(#[source] CredentialPreviewError),
+
     #[error("error verifying credential preview: {0}")]
     CredentialPreviewVerification(#[source] CredentialPreviewError),
 
