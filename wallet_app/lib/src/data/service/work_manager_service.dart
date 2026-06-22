@@ -21,6 +21,9 @@ import '../../util/mapper/card/attribute/localized_labels_mapper.dart';
 import '../../util/mapper/card/card_mapper.dart';
 import '../../util/mapper/card/metadata_mapper.dart';
 import '../../util/mapper/card/status/card_status_mapper.dart';
+import '../../util/mapper/configuration/flutter_app_configuration_mapper.dart';
+import '../../util/mapper/configuration/maintenance_window_mapper.dart';
+import '../../util/mapper/configuration/pid_attestation_mapper.dart';
 import '../../util/mapper/image/image_mapper.dart';
 import '../../util/mapper/notification/app_notification_mapper.dart';
 import '../../util/mapper/notification/notification_display_target_mapper.dart';
@@ -131,6 +134,7 @@ Future<void> performRevocationCheckTask({bool initCore = true}) async {
     AppNotificationMapper(notificationTypeMapper, NotificationDisplayTargetMapper()),
     notificationTypeMapper,
     NotificationSettingsStoreImpl(SharedPreferences.getInstance),
+    FlutterAppConfigurationMapper(MaintenanceWindowMapper(), PidAttestationMapper()),
   );
   final activeLocaleProvider = await _localeProvider();
   final directNotificationsUsecase = SetDirectOsNotificationCallbackUsecaseImpl(

@@ -174,8 +174,8 @@ return dashboard();case _:
 /// @nodoc
 
 
-class Os implements NotificationDisplayTarget {
-  const Os({required this.notifyAt});
+class Os extends NotificationDisplayTarget {
+  const Os({required this.notifyAt}): super._();
   
 
  final  DateTime notifyAt;
@@ -240,8 +240,8 @@ as DateTime,
 /// @nodoc
 
 
-class Dashboard implements NotificationDisplayTarget {
-  const Dashboard();
+class Dashboard extends NotificationDisplayTarget {
+  const Dashboard(): super._();
   
 
 

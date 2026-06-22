@@ -31,11 +31,13 @@ import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/local_notification_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
+import 'package:wallet/src/data/source/wallet_datasource.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/data/store/notification_settings_store.dart';
 import 'package:wallet/src/data/store/revocation_code_store.dart';
 import 'package:wallet/src/domain/app_event/app_event_listener.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
@@ -121,7 +123,7 @@ import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' hide PidAttestation;
 import 'package:workmanager/workmanager.dart';
 
 import 'wallet_mocks.mocks.dart';
@@ -162,6 +164,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<WalletCardRepository>()])
 @GenerateNiceMocks([MockSpec<WalletEventRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
+@GenerateNiceMocks([MockSpec<WalletDataSource>()])
 /// Mock services
 @GenerateNiceMocks([MockSpec<ActiveLocaleProvider>()])
 @GenerateNiceMocks([MockSpec<AnnouncementService>()])
@@ -314,6 +317,7 @@ class Mocks {
     sl.registerFactory<WalletCardRepository>(MockWalletCardRepository.new);
     sl.registerFactory<WalletEventRepository>(MockWalletEventRepository.new);
     sl.registerFactory<WalletRepository>(MockWalletRepository.new);
+    sl.registerFactory<WalletDataSource>(MockWalletDataSource.new);
 
     // Services
     sl.registerFactory<ActiveLocaleProvider>(MockActiveLocaleProvider.new);
@@ -429,7 +433,7 @@ class Mocks {
           idleWarningTimeout: Duration(minutes: 1),
           backgroundLockTimeout: Duration(minutes: 1),
           staticAssetsBaseUrl: 'https://example.com/',
-          pidAttestationTypes: ['com.example.attestationType'],
+          pidAttestations: [PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
           maintenanceWindow: null,
           version: '1',
           environment: 'test',

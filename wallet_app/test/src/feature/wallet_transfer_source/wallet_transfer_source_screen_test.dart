@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
@@ -177,7 +178,7 @@ void main() {
                     idleLockTimeout: Duration.zero,
                     idleWarningTimeout: Duration.zero,
                     staticAssetsBaseUrl: 'https://example.org/',
-                    pidAttestationTypes: ['com.example.attestationType'],
+                    pidAttestations: [PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
                     maintenanceWindow: null,
                     version: '1337',
                     environment: 'test',

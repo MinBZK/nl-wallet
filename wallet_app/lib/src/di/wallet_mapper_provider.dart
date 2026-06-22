@@ -18,6 +18,7 @@ import '../domain/model/event/wallet_event.dart';
 import '../domain/model/help/topic_block.dart';
 import '../domain/model/notification/app_notification.dart';
 import '../domain/model/organization.dart';
+import '../domain/model/pid/pid_attestation.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/policy/organization_policy.dart';
 import '../domain/model/policy/policy.dart';
@@ -34,6 +35,7 @@ import '../util/mapper/card/status/card_status_mapper.dart';
 import '../util/mapper/close_proximity/close_proximity_disclosure_update_mapper.dart';
 import '../util/mapper/configuration/flutter_app_configuration_mapper.dart';
 import '../util/mapper/configuration/maintenance_window_mapper.dart';
+import '../util/mapper/configuration/pid_attestation_mapper.dart';
 import '../util/mapper/context_mapper.dart';
 import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
 import '../util/mapper/disclosure/disclosure_type_mapper.dart';
@@ -75,8 +77,11 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<(String, String)?, MaintenanceWindow?>>(
           create: (context) => MaintenanceWindowMapper(),
         ),
+        RepositoryProvider<Mapper<core.PidAttestation, PidAttestation>>(
+          create: (context) => PidAttestationMapper(),
+        ),
         RepositoryProvider<Mapper<core.FlutterConfiguration, FlutterAppConfiguration>>(
-          create: (context) => FlutterAppConfigurationMapper(context.read()),
+          create: (context) => FlutterAppConfigurationMapper(context.read(), context.read()),
         ),
 
         /// Card attribute mappers
