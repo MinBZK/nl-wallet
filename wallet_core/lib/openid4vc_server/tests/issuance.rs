@@ -621,7 +621,7 @@ fn dpop_header_for(token_url: &Url) -> String {
 }
 
 /// Plant an `AuthCodeIssued` session against the given authorizing_issuer, returning the
-/// issuer-generated code the caller can use to drive `/token`.
+/// issuer-generated code and PKCE code verifier the caller can use to drive `/token`.
 async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> (AuthorizationCode, String) {
     let documents = mock_issuable_documents(NonZeroUsize::MIN);
     let pkce_pair = S256PkcePair::generate();
