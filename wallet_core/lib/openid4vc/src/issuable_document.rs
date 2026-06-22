@@ -135,17 +135,21 @@ pub mod mock {
             .unwrap()
         }
 
-        pub fn new_mock_loyalty() -> Self {
+        pub fn new_mock_museum_maandkaart() -> Self {
             IssuableDocument::try_new_with_random_id(
-                CredentialKind::new(Format::MsoMdoc, "com.example.jum.bonuskaart".to_string()),
+                CredentialKind::new(Format::MsoMdoc, "com.example.museum_maandkaart".to_string()),
                 IndexMap::from([
                     (
-                        "branch".to_string(),
-                        Attribute::Single(AttributeValue::Text("Demodam".to_string())),
+                        "name".to_string(),
+                        Attribute::Single(AttributeValue::Text("Jan de Vries".to_string())),
                     ),
                     (
-                        "loyalty_number".to_string(),
-                        Attribute::Single(AttributeValue::Text("9876543210".to_string())),
+                        "member_number".to_string(),
+                        Attribute::Single(AttributeValue::Text("1234567890".to_string())),
+                    ),
+                    (
+                        "valid_year".to_string(),
+                        Attribute::Single(AttributeValue::Text("2026".to_string())),
                     ),
                 ])
                 .into(),

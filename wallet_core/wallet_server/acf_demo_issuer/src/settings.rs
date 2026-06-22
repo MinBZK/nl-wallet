@@ -30,8 +30,7 @@ pub struct AcfDemoIssuerSettings {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Usecase {
-    /// Determines how `/authorize` is handled for this usecase. Only [`UsecaseKind::Consent`] is
-    /// implemented (phase 1); [`UsecaseKind::Immediate`] is reserved for the public-QR variant.
+    /// Determines how `/authorize` is handled for this usecase.
     pub kind: UsecaseKind,
 
     /// The documents to issue for this usecase.
@@ -43,7 +42,7 @@ pub struct Usecase {
 pub enum UsecaseKind {
     /// `/authorize` redirects to a consent page; a callback completes the authorization.
     Consent,
-    /// `/authorize` mints the authorization code immediately (phase 2, not yet implemented).
+    /// `/authorize` mints the authorization code immediately, with no user interaction.
     Immediate,
 }
 

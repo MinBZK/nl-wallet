@@ -73,9 +73,6 @@ pub enum Error {
     #[error("unknown usecase: {0}")]
     UnknownUsecase(String),
 
-    #[error("usecase {0} is not configured for the consent flow")]
-    NotConsentUsecase(String),
-
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
 
@@ -162,25 +159,30 @@ impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
             .usecases
             .get(usecase_id)
             .ok_or_else(|| Error::UnknownUsecase(usecase_id.to_string()))?;
-        if !matches!(usecase.kind, UsecaseKind::Consent) {
-            return Err(Error::NotConsentUsecase(usecase_id.to_string()));
+
+        match usecase.kind {
+            UsecaseKind::Immediate => {
+                let documents = issuable_documents(usecase)?;
+                Ok(AuthorizeOutcome::Authorized(documents, context))
+            }
+            UsecaseKind::Consent => {
+                // Stash the wallet request under a random flow-state token, then redirect to the consent page.
+                let flow_state = random_string(FLOW_STATE_LENGTH);
+
+                let mut consent_url = self.consent_uri.clone();
+                consent_url
+                    .query_pairs_mut()
+                    .append_pair("state", &flow_state)
+                    .append_pair("usecase", usecase_id);
+
+                self.state_bridge_store
+                    .store(flow_state, context)
+                    .await
+                    .map_err(Error::StateBridge)?;
+
+                Ok(AuthorizeOutcome::RedirectTo(consent_url))
+            }
         }
-
-        // Stash the wallet request under a random flow-state token, then redirect to the consent page.
-        let flow_state = random_string(FLOW_STATE_LENGTH);
-
-        let mut consent_url = self.consent_uri.clone();
-        consent_url
-            .query_pairs_mut()
-            .append_pair("state", &flow_state)
-            .append_pair("usecase", usecase_id);
-
-        self.state_bridge_store
-            .store(flow_state, context)
-            .await
-            .map_err(Error::StateBridge)?;
-
-        Ok(AuthorizeOutcome::RedirectTo(consent_url))
     }
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
