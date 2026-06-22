@@ -218,15 +218,15 @@ where
         // The scope is part of `WalletAuthorizationContext` in order to store this in the session state in the next
         // step. Once there, it is used to compare against any scope that is requested as part of the Token Request.
         let credential_configs = self.issuer.credential_configs();
-        let credential_types = match context
+        let credential_kinds = match context
             .scope
             .iter()
             .flat_map(|scope| credential_configs.get_by_scope(scope))
-            .map(|(_id, config)| config.credential_type.clone())
+            .map(|(_id, config)| config.credential_kind.clone())
             .collect_vec()
             .try_into()
         {
-            Ok(credential_types) => credential_types,
+            Ok(credential_kinds) => credential_kinds,
             Err(_) => {
                 return Err(AuthorizeError::NoValidScope(context.scope));
             }
@@ -234,7 +234,7 @@ where
 
         let outcome = self
             .flow
-            .authorize(context, credential_types)
+            .authorize(context, credential_kinds)
             .await
             .map_err(|error| AuthorizeError::AuthorizationCodeFlow(Box::new(error)))?;
 
@@ -403,7 +403,7 @@ mod tests {
     use crate::authorization_code_flow::AuthorizeOutcome;
     use crate::authorization_code_flow::InvalidAuthorizationRequest;
     use crate::authorization_code_flow::WalletAuthorizationContext;
-    use crate::issuable_document::CredentialType;
+    use crate::issuable_document::CredentialKind;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -509,7 +509,7 @@ mod tests {
         async fn authorize(
             &self,
             _context: WalletAuthorizationContext,
-            _credential_types: VecNonEmpty<CredentialType>,
+            _credential_kinds: VecNonEmpty<CredentialKind>,
         ) -> Result<AuthorizeOutcome, Self::Error> {
             Ok(self.0.clone())
         }

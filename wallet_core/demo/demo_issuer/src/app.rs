@@ -268,11 +268,11 @@ async fn pre_authorized_usecase(
     let documents = data
         .iter()
         .map(|doc| {
-            let (credential_type, attributes) = doc.clone().into();
+            let (credential_kind, attributes) = doc.clone().into();
 
             let attributes = random_values(attributes, &mut OsRng);
 
-            IssuableDocument::try_new_with_random_id(credential_type, attributes)
+            IssuableDocument::try_new_with_random_id(credential_kind, attributes)
                 .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
         })
         .collect::<Result<Vec<_>>>()?
@@ -343,8 +343,8 @@ async fn attestation(
             docs.iter()
                 .cloned()
                 .map(|doc| {
-                    let (credential_type, attribute) = doc.into();
-                    IssuableDocument::try_new_with_random_id(credential_type, attribute)
+                    let (credential_kind, attribute) = doc.into();
+                    IssuableDocument::try_new_with_random_id(credential_kind, attribute)
                         .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
                 })
                 .collect::<Result<Vec<_>>>()

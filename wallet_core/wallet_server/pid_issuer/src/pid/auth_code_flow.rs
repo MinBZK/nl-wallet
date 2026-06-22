@@ -29,7 +29,7 @@ use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::authorizing_issuer::WalletRedirect;
-use openid4vc::issuable_document::CredentialType;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
@@ -68,7 +68,7 @@ const DIGID_CALLBACK_PATH: &str = "/digid/callback";
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("unsupported credential type(s) requested: {}", .0.iter().join(", "))]
-    UnsupportedCredentialType(Vec<CredentialType>),
+    UnsupportedCredentialType(Vec<CredentialKind>),
 
     #[error("DigiD error: {0}")]
     Digid(#[source] digid::Error),
@@ -259,7 +259,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             .zip(utils::vec_at_least::repeat_n(attributes, format_count))
             .map(|(format, attributes)| {
                 IssuableDocument::try_new_with_random_id(
-                    CredentialType::new(format, PID_ATTESTATION_TYPE.to_string()),
+                    CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string()),
                     attributes,
                 )
             })
@@ -280,16 +280,16 @@ where
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
-        credential_types: VecNonEmpty<CredentialType>,
+        credential_kinds: VecNonEmpty<CredentialKind>,
     ) -> Result<AuthorizeOutcome, Self::Error> {
         // Return an error if any of the attestation types are not the PID attestation type and retain only the
         // requested formats.
         let (formats, unsupported): (HashSet<_>, HashSet<_>) =
-            credential_types.into_iter().partition_map(|credential_type| {
-                if credential_type.attestation_type == PID_ATTESTATION_TYPE {
-                    Either::Left(credential_type.format)
+            credential_kinds.into_iter().partition_map(|credential_kind| {
+                if credential_kind.attestation_type == PID_ATTESTATION_TYPE {
+                    Either::Left(credential_kind.format)
                 } else {
-                    Either::Right(credential_type)
+                    Either::Right(credential_kind)
                 }
             });
 
@@ -471,7 +471,7 @@ mod tests {
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
-    use openid4vc::issuable_document::CredentialType;
+    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -683,10 +683,10 @@ mod tests {
             .authorize(
                 context,
                 vec_nonempty![
-                    CredentialType::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
-                    CredentialType::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                    CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
                     // Test deduplication.
-                    CredentialType::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())
                 ],
             )
             .await
@@ -739,9 +739,9 @@ mod tests {
             .authorize(
                 context,
                 vec_nonempty![
-                    CredentialType::new(Format::SdJwt, "foo".to_string()),
-                    CredentialType::new(Format::MsoMdoc, "bar".to_string()),
-                    CredentialType::new(Format::SdJwt, "not_supported".to_string())
+                    CredentialKind::new(Format::SdJwt, "foo".to_string()),
+                    CredentialKind::new(Format::MsoMdoc, "bar".to_string()),
+                    CredentialKind::new(Format::SdJwt, "not_supported".to_string())
                 ],
             )
             .await
@@ -752,7 +752,7 @@ mod tests {
             Error::UnsupportedCredentialType(unsupported)
                 if unsupported
                     .iter()
-                    .map(|credential_type| &credential_type.attestation_type)
+                    .map(|credential_kind| &credential_kind.attestation_type)
                     .sorted()
                     .eq(["bar", "foo", "not_supported"])
         )

@@ -12,7 +12,7 @@ use derive_more::Into;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use openid4vc::issuable_document::CredentialType;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use serde::Deserialize;
 use serde_valid::Validate;
@@ -57,7 +57,7 @@ pub type IssuableDocumentTemplates = VecNonEmpty<IssuableDocumentTemplate>;
 #[derive(Deserialize, Clone, Validate, Into)]
 pub struct IssuableDocumentTemplate {
     #[serde(flatten)]
-    credential_format: CredentialType,
+    credential_format: CredentialKind,
     #[validate(custom = IssuableDocument::validate_attributes)]
     attributes: Attributes,
 }

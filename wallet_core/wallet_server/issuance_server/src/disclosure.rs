@@ -174,7 +174,7 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_offer::CredentialOffer;
-    use openid4vc::issuable_document::CredentialType;
+    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
@@ -227,7 +227,7 @@ mod tests {
 
             Ok(vec![
                 IssuableDocument::try_new_with_random_id(
-                    CredentialType::new(Format::SdJwt, attestation.attestation_type.clone()),
+                    CredentialKind::new(Format::SdJwt, attestation.attestation_type.clone()),
                     IndexMap::from([(
                         "university".to_string(),
                         Attribute::Single(AttributeValue::Text("University".to_string())),
@@ -265,7 +265,7 @@ mod tests {
             .return_once(|| tokio::task::spawn(async {}).abort_handle());
 
         let config_params = CredentialConfigurationParameters {
-            credential_type: CredentialType::new(Format::SdJwt, "com.example.degree".to_string()),
+            credential_kind: CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
                 issuance_keypair.certificate().to_owned(),

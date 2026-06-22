@@ -15,7 +15,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
-use crate::issuable_document::CredentialType;
+use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::scope::Scope;
 
@@ -85,6 +85,6 @@ pub trait AuthorizationCodeFlow {
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
-        credential_types: VecNonEmpty<CredentialType>,
+        credential_kinds: VecNonEmpty<CredentialKind>,
     ) -> Result<AuthorizeOutcome, Self::Error>;
 }

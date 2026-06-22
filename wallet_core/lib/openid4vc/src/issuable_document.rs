@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Constructor, Serialize, Deserialize)]
 #[display("({format}): {attestation_type}")]
-pub struct CredentialType {
+pub struct CredentialKind {
     pub format: Format,
     pub attestation_type: String,
 }
@@ -38,7 +38,7 @@ pub struct CredentialType {
 pub struct IssuableDocument {
     pub id: Uuid,
     #[serde(flatten)]
-    pub credential_type: CredentialType,
+    pub credential_kind: CredentialKind,
     #[validate(custom = IssuableDocument::validate_attributes)]
     attributes: Attributes,
 }
@@ -46,23 +46,23 @@ pub struct IssuableDocument {
 impl IssuableDocument {
     pub fn try_new(
         id: Uuid,
-        credential_type: CredentialType,
+        credential_kind: CredentialKind,
         attributes: Attributes,
     ) -> Result<Self, serde_valid::validation::Error> {
         Self::validate_attributes(&attributes)?;
         let document = Self {
             id,
-            credential_type,
+            credential_kind,
             attributes,
         };
         Ok(document)
     }
 
     pub fn try_new_with_random_id(
-        credential_type: CredentialType,
+        credential_kind: CredentialKind,
         attributes: Attributes,
     ) -> Result<Self, serde_valid::validation::Error> {
-        Self::try_new(Uuid::new_v4(), credential_type, attributes)
+        Self::try_new(Uuid::new_v4(), credential_kind, attributes)
     }
 
     pub fn validate_attributes(attributes: &Attributes) -> Result<(), serde_valid::validation::Error> {
@@ -84,7 +84,7 @@ impl IssuableDocument {
         attestation_qualification: AttestationQualification,
     ) -> (Uuid, PreviewableCredentialPayload) {
         let payload = PreviewableCredentialPayload {
-            attestation_type: self.credential_type.attestation_type,
+            attestation_type: self.credential_kind.attestation_type,
             issuer: issuer_uri,
             expires: Some(valid_until.into()),
             not_before: Some(valid_from.into()),
@@ -110,7 +110,7 @@ pub mod mock {
     impl IssuableDocument {
         pub fn new_mock_degree(education: String) -> Self {
             IssuableDocument::try_new_with_random_id(
-                CredentialType::new(Format::SdJwt, "com.example.degree".to_string()),
+                CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),
                 IndexMap::from([
                     (
                         "university".to_string(),
@@ -137,7 +137,7 @@ pub mod mock {
 
         pub fn new_mock_loyalty() -> Self {
             IssuableDocument::try_new_with_random_id(
-                CredentialType::new(Format::MsoMdoc, "com.example.jum.bonuskaart".to_string()),
+                CredentialKind::new(Format::MsoMdoc, "com.example.jum.bonuskaart".to_string()),
                 IndexMap::from([
                     (
                         "branch".to_string(),
