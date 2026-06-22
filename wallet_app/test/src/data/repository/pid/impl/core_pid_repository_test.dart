@@ -9,6 +9,9 @@ import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.da
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/card/metadata_mapper.dart';
 import 'package:wallet/src/util/mapper/card/status/card_status_mapper.dart';
+import 'package:wallet/src/util/mapper/configuration/flutter_app_configuration_mapper.dart';
+import 'package:wallet/src/util/mapper/configuration/maintenance_window_mapper.dart';
+import 'package:wallet/src/util/mapper/configuration/pid_attestation_mapper.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
@@ -18,22 +21,27 @@ import '../../../../mocks/core_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
-  late TypedWalletCore core;
+  late MockTypedWalletCore core;
   late PidRepository pidRepository;
   late CardMapper cardMapper;
+  late FlutterAppConfigurationMapper configMapper;
 
   const kMockPidRenewalUrl = 'mock_pid_renewal_url';
 
   setUp(() {
-    core = Mocks.create();
+    core = Mocks.create<TypedWalletCore>() as MockTypedWalletCore;
+    when(core.observeConfig()).thenAnswer((_) => Stream.value(CoreMockData.flutterConfiguration));
     cardMapper = CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
       DisplayMetadataMapper(ImageMapper()),
       CardStatusMapper(),
     );
-    pidRepository = CorePidRepository(core, cardMapper);
+    configMapper = FlutterAppConfigurationMapper(MaintenanceWindowMapper(), PidAttestationMapper());
+    pidRepository = CorePidRepository(core, cardMapper, configMapper);
   });
+
+  tearDown(() => reset(core));
 
   group('Pid issuance', () {
     test('auth url should be fetched through the wallet_core', () async {

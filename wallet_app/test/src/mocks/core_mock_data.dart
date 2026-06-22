@@ -15,6 +15,16 @@ abstract class CoreMockData {
     validityStatus: ValidityStatus_Valid(validUntil: null),
   );
 
+  static const AttestationPresentation altAttestation = AttestationPresentation(
+    identity: AttestationIdentity_Ephemeral(),
+    attestationType: MockAttestationTypes.pid,
+    format: .MsoMdoc,
+    displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
+    issuer: organization,
+    attributes: [attestationAttributeName, attestationAttributeCity],
+    validityStatus: ValidityStatus_Valid(validUntil: '2050-06-08T19:46:03Z'),
+  );
+
   static const enDisplayMetadata = DisplayMetadata(locale: 'en', name: 'PID attestation', rendering: null);
   static const nlDisplayMetadata = DisplayMetadata(locale: 'nl', name: 'PID attestatie', rendering: null);
 
@@ -41,5 +51,15 @@ abstract class CoreMockData {
     dataSharedWithThirdParties: true,
     dataDeletionPossible: true,
     policyUrl: 'https://example.org',
+  );
+
+  static const FlutterConfiguration flutterConfiguration = FlutterConfiguration(
+    inactiveWarningTimeout: 0,
+    inactiveLockTimeout: 0,
+    backgroundLockTimeout: 0,
+    pidAttestations: [],
+    staticAssetsBaseUrl: '',
+    version: '0',
+    environment: 'test',
   );
 }

@@ -32,6 +32,10 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
     return WalletCard(
       attestationId: cardId,
       attestationType: input.attestationType,
+      format: switch (input.format) {
+        core.Format.MsoMdoc => .mdoc,
+        core.Format.SdJwt => .sdJwt,
+      },
       issuer: _organizationMapper.map(input.issuer),
       status: _cardStatusMapper.map(input),
       metadata: _displayMetadataMapper.mapList(input.displayMetadata),

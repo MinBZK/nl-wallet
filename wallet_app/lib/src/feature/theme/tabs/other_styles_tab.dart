@@ -6,6 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/format/attestation_format.dart';
 import '../../../domain/model/card/metadata/card_display_metadata.dart';
 import '../../../domain/model/card/metadata/card_rendering.dart';
 import '../../../domain/model/card/status/card_status.dart';
@@ -115,6 +116,7 @@ final _kSampleAttributes = [
 final _kSampleCard = WalletCard(
   attestationId: 'id',
   attestationType: 'attestationType',
+  format: AttestationFormat.sdJwt,
   issuer: _kSampleOrganization,
   status: _kSampleCardStatus,
   metadata: _kSampleCardMetaData,
@@ -124,6 +126,7 @@ final _kSampleCard = WalletCard(
 final _kAltSampleCard = WalletCard(
   attestationId: 'alt_id',
   attestationType: 'alt_attestationType',
+  format: AttestationFormat.sdJwt,
   issuer: _kSampleOrganization,
   status: _kSampleCardStatus,
   metadata: _kAltSampleCardMetaData,
@@ -571,6 +574,7 @@ class OtherStylesTab extends StatelessWidget {
           WalletCard(
             attestationId: 'id',
             attestationType: 'attestationType',
+            format: AttestationFormat.sdJwt,
             issuer: _kSampleOrganization,
             status: _kSampleCardStatus,
             metadata: _kSampleCardMetaData,
@@ -601,6 +605,7 @@ class OtherStylesTab extends StatelessWidget {
           WalletCard(
             attestationId: 'id',
             attestationType: 'attestationType',
+            format: AttestationFormat.sdJwt,
             issuer: _kSampleOrganization,
             status: _kSampleCardStatus,
             metadata: _kSampleCardMetaData,
@@ -686,6 +691,7 @@ class OtherStylesTab extends StatelessWidget {
         card: WalletCard(
           attestationId: 'row_id',
           attestationType: 'attestationType',
+          format: AttestationFormat.sdJwt,
           issuer: _kSampleOrganization,
           status: _kSampleCardStatus,
           metadata: _kSampleCardMetaData,

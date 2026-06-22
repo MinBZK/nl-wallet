@@ -67,7 +67,7 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<WalletRepository>(create: (context) => CoreWalletRepository(context.read(), context.read())),
         RepositoryProvider<PinRepository>(create: (context) => CorePinRepository(context.read(), context.read())),
         RepositoryProvider<WalletCardRepository>(
-          create: (context) => WalletCardRepositoryImpl(context.read()),
+          create: (context) => WalletCardRepositoryImpl(context.read(), context.read(), context.read()),
         ),
         RepositoryProvider<DataAttributeRepository>(create: (context) => DataAttributeRepositoryImpl(context.read())),
         RepositoryProvider<DisclosureRepository>(
@@ -113,13 +113,13 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => HelpContentRepositoryImpl(context.read()),
         ),
         RepositoryProvider<PidRepository>(
-          create: (context) => CorePidRepository(context.read(), context.read()),
+          create: (context) => CorePidRepository(context.read(), context.read(), context.read()),
         ),
         RepositoryProvider<UriRepository>(
           create: (context) => CoreUriRepository(context.read()),
         ),
         RepositoryProvider<WalletEventRepository>(
-          create: (context) => CoreWalletEventRepository(context.read(), context.read()),
+          create: (context) => CoreWalletEventRepository(context.read(), context.read(), context.read()),
         ),
         RepositoryProvider<BiometricRepository>(
           create: (context) => CoreBiometricRepository(context.read()),
@@ -150,6 +150,7 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<NotificationRepository>(
           create: (context) => NotificationRepositoryImpl(
+            context.read(),
             context.read(),
             context.read(),
             context.read(),

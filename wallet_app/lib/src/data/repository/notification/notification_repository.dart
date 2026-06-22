@@ -5,7 +5,7 @@ export '../../../domain/model/disclosure/start_disclosure_result.dart';
 /// Abstract class for managing notification-related data and operations.
 abstract class NotificationRepository {
   /// Observes a stream of [AppNotification]s.
-  Stream<List<AppNotification>> observeNotifications();
+  Stream<List<AppNotification>> observeNotifications({bool filterDuplicatePidNotifications = true});
 
   /// Retrieves the flag indicating whether the user should be asked to allow notifications.
   Future<bool?> getShowNotificationRequestFlag();
@@ -27,5 +27,8 @@ abstract class NotificationRepository {
   /// The [callback] receives:
   /// - [int] id: The unique identifier of the notification.
   /// - [NotificationType] type: The specific domain model representing the notification payload.
-  void setDirectNotificationCallback(Function(int, NotificationType) callback);
+  void setDirectNotificationCallback(
+    Function(int, NotificationType) callback, {
+    bool filterDuplicatePidNotifications = true,
+  });
 }

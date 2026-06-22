@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
@@ -73,6 +74,7 @@ void main() {
                   WalletCard(
                     attestationId: 'id',
                     attestationType: 'com.example.attestationType',
+                    format: AttestationFormat.sdJwt,
                     issuer: WalletMockData.organization,
                     status: WalletMockData.status,
                     metadata: WalletMockData.card.metadata,

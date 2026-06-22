@@ -1,0 +1,1 @@
+enum AttestationFormat { mdoc, sdJwt }
