@@ -324,8 +324,8 @@ mod tests {
         assert_matches!(session.grant, Grant::PreAuthorizedCode);
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
-        let preview_state = session.credential_previews.as_ref().first().unwrap();
-        assert_eq!(preview_state.credential_payload.attestation_type, mock_disclosed_type);
+        let (_config_id, document) = session.credential_ids_and_documents.as_ref().first().unwrap();
+        assert_eq!(document.credential_kind.attestation_type, mock_disclosed_type);
     }
 
     #[tokio::test]

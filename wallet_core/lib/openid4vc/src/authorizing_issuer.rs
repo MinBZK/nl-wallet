@@ -266,7 +266,7 @@ where
         request_scope: HashSet<Scope>,
         wallet_code_challenge: String,
     ) -> Result<AuthorizationCode, CompleteAuthorizationError> {
-        let credential_previews = self
+        let credential_ids_and_documents = self
             .issuer
             .validate_issuable_documents(issuable_documents)
             .map_err(CompleteAuthorizationError::IssuableDocument)?;
@@ -274,11 +274,11 @@ where
         let token = self
             .issuer
             .write_auth_code_issued_session(AuthCodeIssued {
-                credential_previews,
                 grant: Grant::AuthorizationCode {
                     request_scope,
                     wallet_code_challenge,
                 },
+                credential_ids_and_documents,
             })
             .await
             .map_err(CompleteAuthorizationError::SessionStore)?;
@@ -708,7 +708,7 @@ mod tests {
             } if request_scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
                 && wallet_code_challenge == code_challenge
         );
-        assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
+        assert_eq!(auth_code_issued.credential_ids_and_documents.len(), documents.len());
     }
 
     #[tokio::test]
@@ -746,7 +746,7 @@ mod tests {
             } if request_scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
                 && wallet_code_challenge == code_challenge
         );
-        assert_eq!(auth_code_issued.credential_previews.len(), documents.len());
+        assert_eq!(auth_code_issued.credential_ids_and_documents.len(), documents.len());
     }
 
     #[test]

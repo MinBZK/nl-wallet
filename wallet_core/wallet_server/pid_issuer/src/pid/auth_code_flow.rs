@@ -803,13 +803,13 @@ mod tests {
                 wallet_code_challenge
             } if request_scope == expected_scope && wallet_code_challenge == expected_code_challenge
         );
-        assert_eq!(auth_code_issued.credential_previews.len().get(), 2);
+        assert_eq!(auth_code_issued.credential_ids_and_documents.len().get(), 2);
         assert!(
             auth_code_issued
-                .credential_previews
+                .credential_ids_and_documents
                 .as_ref()
                 .iter()
-                .all(|preview_state| preview_state.credential_payload.attestation_type == PID_ATTESTATION_TYPE)
+                .all(|(_config_id, document)| document.credential_kind.attestation_type == PID_ATTESTATION_TYPE)
         );
     }
 

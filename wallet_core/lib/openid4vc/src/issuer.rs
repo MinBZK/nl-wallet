@@ -44,7 +44,6 @@ use tracing::warn;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 
 use crate::credential::Credential;
@@ -119,6 +118,15 @@ pub enum IssuanceError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum IssuableDocumentError {
+    #[error("credential type not offered in Credential Configurations: {0}")]
+    CredentialTypeNotOffered(CredentialKind),
+
+    #[error("attributes do not match type metadata: {0}")]
+    AttributesError(#[source] AttributesError),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum PreAuthorizedSessionError {
     #[error("issuable document is not valid: {0}")]
     IssuableDocument(#[source] IssuableDocumentError),
@@ -155,6 +163,9 @@ pub enum TokenRequestError {
 
     #[error("PKCE verification failed")]
     PkceVerificationFailed,
+
+    #[error("credential configuration not offered: {0}")]
+    CredentialConfigNotOffered(CredentialConfigurationId),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -253,8 +264,8 @@ pub enum CredentialPreviewError {
 /// `Grant::PreAuthorizedCode` (no PKCE) and `Grant::AuthorizationCode` (PKCE-verified at `/token`).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCodeIssued {
-    pub credential_previews: VecNonEmpty<CredentialPreviewState>,
     pub grant: Grant,
+    pub credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, strum::Display)]
@@ -373,18 +384,82 @@ pub struct IssuerData<K, L> {
 }
 
 impl<K, L> IssuerData<K, L> {
-    fn credential_configuration_for_preview_state(
+    fn get_checked_credential_config(
         &self,
-        preview_state: &CredentialPreviewState,
+        config_id: &CredentialConfigurationId,
+        format: Format,
+        attestation_type: &str,
     ) -> Option<&CredentialConfiguration<K, L>> {
         self.credential_configs
-            .get_by_configuration_id(&preview_state.credential_configuration_id)
+            .get_by_configuration_id(config_id)
             .and_then(|config| {
-                // Do a sanity check to see if the credential configuration has changed from the stored preview state.
-                (preview_state.format == config.credential_kind.format
-                    && preview_state.credential_payload.attestation_type == config.credential_kind.attestation_type)
+                // Do a sanity check to see if the credential configuration has changed since determining its id.
+                let credential_kind = &config.credential_kind;
+                (credential_kind.format == format && credential_kind.attestation_type == attestation_type)
                     .then_some(config)
             })
+    }
+
+    fn get_credential_config_for_preview(
+        &self,
+        state: &CredentialPreviewState,
+    ) -> Option<&CredentialConfiguration<K, L>> {
+        self.get_checked_credential_config(
+            &state.credential_configuration_id,
+            state.format,
+            &state.credential_payload.attestation_type,
+        )
+    }
+}
+
+impl CredentialPreviewState {
+    /// Convert the tuple of a [`CredentialConfigurationId`] and [`IssuableDocument`] to the state needed to both serve
+    /// previews and actually issue credentials by adding the required timestamps. This will return the passed
+    /// [`CredentialConfigurationId`] as the `Err` variant if the corresponding [`CredentialConfiguration`] cannot
+    /// be found.
+    fn try_new<K, L>(
+        config_id: CredentialConfigurationId,
+        issuable_document: IssuableDocument,
+        issuer_data: &IssuerData<K, L>,
+    ) -> Result<Self, CredentialConfigurationId> {
+        let Some(credential_config) = issuer_data.get_checked_credential_config(
+            &config_id,
+            issuable_document.credential_kind.format,
+            &issuable_document.credential_kind.attestation_type,
+        ) else {
+            return Err(config_id);
+        };
+
+        // Note that we rely in the `IssuableDocument` being validated against the Credential Configuration's metadata
+        // when the session was created. Since the issuer state may be persisted in a database, it could be that the
+        // Credential Configuration has changed since then. However, we rely on the sanity check when retrieving the
+        // Credential Configuration and the fact that the metadata should never actually change.
+        //
+        // If this does occur for some reason, it is still the Wallet's responisibility to check the metadata on
+        // reception of the issued credentials.
+
+        // Truncate the current time to only include the date part, so that all issued credentials on a single
+        // day have the same `nbf` and `exp` field
+        let now = utc_now_truncated_to_days();
+        let valid_until = now.add(credential_config.valid_days);
+
+        let format = issuable_document.credential_kind.format;
+        let (batch_id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(
+            now,
+            valid_until,
+            credential_config.issuer_uri.clone(),
+            credential_config.attestation_qualification,
+        );
+
+        let preview_state = Self {
+            credential_configuration_id: config_id,
+            format,
+            batch_size: issuer_data.batch_size,
+            credential_payload,
+            batch_id,
+        };
+
+        Ok(preview_state)
     }
 }
 
@@ -539,69 +614,30 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum IssuableDocumentError {
-    #[error("attributes do not match type metadata: {0}")]
-    AttributesError(#[source] AttributesError),
-
-    #[error("credential type not offered in Credential Configurations: {0}")]
-    CredentialTypeNotOffered(CredentialKind),
-}
-
-fn credential_preview_state_for_issuable_document<K, L>(
-    credential_configurations: &CredentialConfigurations<K, L>,
-    document: IssuableDocument,
-    batch_size: NonZeroU8,
-) -> Result<CredentialPreviewState, IssuableDocumentError> {
-    let (credential_config_id, credential_config) = credential_configurations
-        .get_by_credential_kind(&document.credential_kind)
-        .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(document.credential_kind.clone()))?;
-
-    document
-        .validate_with_metadata(credential_config.metadata.normalized())
-        .map_err(IssuableDocumentError::AttributesError)?;
-
-    // Truncate the current time to only include the date part, so that all issued credentials on a single
-    // day have the same `nbf` and `exp` field
-    let now = utc_now_truncated_to_days();
-    let valid_until = now.add(credential_config.valid_days);
-
-    let format = document.credential_kind.format;
-    let (batch_id, credential_payload) = document.into_id_and_previewable_credential_payload(
-        now,
-        valid_until,
-        credential_config.issuer_uri.clone(),
-        credential_config.attestation_qualification,
-    );
-
-    let state = CredentialPreviewState {
-        credential_configuration_id: credential_config_id.clone(),
-        format,
-        batch_size,
-        credential_payload,
-        batch_id,
-    };
-
-    Ok(state)
-}
-
 impl<K, L, S, N> Issuer<K, L, S, N> {
-    /// Process a collection of [`IssuableDocument`]s and validate them against the Credential Configurations in order
-    /// to create a [`CredentialPreviewState`] for each. This is called both for Pre-Authorized sessions (by
+    /// Process each [`IssuableDocument`] in a collection by finding the corresponding [`CredentialConfiguration`],
+    /// validating it against that configuration's metadata and returning it along with the
+    /// [`CredentialConfigurationId`]. This is called both for Pre-Authorized sessions (by
     /// `Isser::new_preauthorized_session()`) and Authorization Code sessions (by
     /// `AuthorizingIssuer::complete_authorization()`).
     pub(crate) fn validate_issuable_documents(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
-    ) -> Result<VecNonEmpty<CredentialPreviewState>, IssuableDocumentError> {
+    ) -> Result<VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>, IssuableDocumentError> {
         issuable_documents
             .into_nonempty_iter()
             .map(|document| {
-                credential_preview_state_for_issuable_document(
-                    &self.issuer_data.credential_configs,
-                    document,
-                    self.issuer_data.batch_size,
-                )
+                let (credential_config_id, credential_config) = self
+                    .issuer_data
+                    .credential_configs
+                    .get_by_credential_kind(&document.credential_kind)
+                    .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(document.credential_kind.clone()))?;
+
+                document
+                    .validate_with_metadata(credential_config.metadata.normalized())
+                    .map_err(IssuableDocumentError::AttributesError)?;
+
+                Ok((credential_config_id.clone(), document))
             })
             .collect()
     }
@@ -617,24 +653,20 @@ where
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
     ) -> Result<CredentialOffer, PreAuthorizedSessionError> {
-        let credential_previews = self
+        let credential_ids_and_documents = self
             .validate_issuable_documents(issuable_documents)
             .map_err(PreAuthorizedSessionError::IssuableDocument)?;
 
-        let config_ids = VecNonEmptyUnique::from(
-            credential_previews
-                .nonempty_iter()
-                .map(|preview_state| &preview_state.credential_configuration_id)
-                .collect::<VecNonEmpty<_>>(),
-        )
-        .into_nonempty_iter()
-        .cloned()
-        .collect();
+        let config_ids = credential_ids_and_documents
+            .nonempty_iter()
+            .map(|(config_id, _document)| config_id)
+            .cloned()
+            .collect();
 
         let token = self
             .write_auth_code_issued_session(AuthCodeIssued {
-                credential_previews,
                 grant: Grant::PreAuthorizedCode,
+                credential_ids_and_documents,
             })
             .await
             .map_err(PreAuthorizedSessionError::SessionStore)?;
@@ -762,16 +794,15 @@ where
         &self,
         state: &CredentialPreviewState,
     ) -> Result<CredentialPreview, CredentialPreviewError> {
-        let config_id = state.credential_configuration_id.clone();
         let credential_config = self
             .issuer_data
-            .credential_configuration_for_preview_state(state)
+            .get_credential_config_for_preview(state)
             .ok_or_else(|| {
                 CredentialPreviewError::MissingCredentialConfiguration(state.credential_configuration_id.clone())
             })?;
 
         let preview = CredentialPreview {
-            config_id,
+            config_id: state.credential_configuration_id.clone(),
             format: state.format,
             batch_size: state.batch_size,
             credential_payload: state.credential_payload.clone(),
@@ -812,6 +843,7 @@ where
                 &self.issuer_data.accepted_wallet_client_ids,
                 dpop,
                 &self.issuer_data.server_url,
+                &self.issuer_data,
             );
 
         let (response, next) = match result {
@@ -1013,30 +1045,38 @@ impl Grant {
 }
 
 impl Session<AuthCodeIssued> {
-    fn process_token_request(
+    fn process_token_request<K, L>(
         self,
         token_request: &TokenRequest,
         accepted_wallet_client_ids: &[String],
         dpop: Dpop,
         server_url: &BaseUrl,
+        issuer_data: &IssuerData<K, L>,
     ) -> ProcessTokenRequest {
-        let result = self.validate_and_build_token_response(token_request, dpop, server_url);
+        let result = self.validate_and_build_token_response(token_request, dpop, server_url, issuer_data);
 
         self.finalize_token_response(accepted_wallet_client_ids, result)
     }
 
-    fn validate_and_build_token_response(
+    fn validate_and_build_token_response<K, L>(
         &self,
         token_request: &TokenRequest,
         dpop: Dpop,
         server_url: &BaseUrl,
-    ) -> Result<(TokenResponse, VerifyingKey, String), TokenRequestError> {
+        issuer_data: &IssuerData<K, L>,
+    ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
         let session_data = self.session_data();
 
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
 
-        build_token_response(token_request, dpop, server_url)
+        build_token_response(
+            token_request.code(),
+            dpop,
+            server_url,
+            session_data.credential_ids_and_documents.clone(),
+            issuer_data,
+        )
     }
 
     /// Apply the state transition on a `Session<AuthCodeIssued>` based on the result of
@@ -1045,11 +1085,10 @@ impl Session<AuthCodeIssued> {
     fn finalize_token_response(
         self,
         accepted_wallet_client_ids: &[String],
-        result: Result<(TokenResponse, VerifyingKey, String), TokenRequestError>,
+        result: Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
-            Ok((token_response, dpop_pubkey, dpop_nonce)) => {
-                let credential_previews = self.state.data.credential_previews.clone();
+            Ok((token_response, credential_previews, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(AccessTokenIssued {
                     access_token: token_response.access_token.clone(),
                     accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
@@ -1070,21 +1109,29 @@ impl Session<AuthCodeIssued> {
 /// Verify DPoP, build credential previews from the supplied (pre-provisioned) issuables, and
 /// generate a fresh access token + DPoP nonce. Shared by the pre-authorized-code and
 /// authorization-code token-request paths.
-fn build_token_response(
-    token_request: &TokenRequest,
+fn build_token_response<K, L>(
+    token_request_auth_code: &AuthorizationCode,
     dpop: Dpop,
     server_url: &BaseUrl,
-) -> Result<(TokenResponse, VerifyingKey, String), TokenRequestError> {
+    credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
+    issuer_data: &IssuerData<K, L>,
+) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-    let code = token_request.code().clone();
+    let preview_states = credential_ids_and_documents
+        .into_nonempty_iter()
+        .map(|(config_id, document)| {
+            CredentialPreviewState::try_new(config_id, document, issuer_data)
+                .map_err(TokenRequestError::CredentialConfigNotOffered)
+        })
+        .collect::<Result<_, _>>()?;
 
     let dpop_nonce = random_string(32);
-    let token_response = TokenResponse::new(AccessToken::new(&code));
+    let token_response = TokenResponse::new(AccessToken::new(token_request_auth_code));
 
-    Ok((token_response, dpop_public_key, dpop_nonce))
+    Ok((token_response, preview_states, dpop_public_key, dpop_nonce))
 }
 
 impl From<Session<AccessTokenIssued>> for SessionState<IssuanceData> {
@@ -1250,11 +1297,9 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::InvalidNonce);
         }
 
-        let credential_config = issuer_data
-            .credential_configuration_for_preview_state(preview)
-            .ok_or_else(|| {
-                CredentialRequestError::MissingCredentialConfiguration(preview.credential_configuration_id.clone())
-            })?;
+        let credential_config = issuer_data.get_credential_config_for_preview(preview).ok_or_else(|| {
+            CredentialRequestError::MissingCredentialConfiguration(preview.credential_configuration_id.clone())
+        })?;
 
         let status_claim = credential_config
             .status_list
@@ -1359,13 +1404,9 @@ impl Session<AccessTokenIssued> {
                     .try_into()
                     .unwrap(); // ok because `batch_size` has a `NonZeroU8` value in `CredentialPreviewContent`.
 
-                let credential_config = issuer_data
-                    .credential_configuration_for_preview_state(preview)
-                    .ok_or_else(|| {
-                        CredentialRequestError::MissingCredentialConfiguration(
-                            preview.credential_configuration_id.clone(),
-                        )
-                    })?;
+                let credential_config = issuer_data.get_credential_config_for_preview(preview).ok_or_else(|| {
+                    CredentialRequestError::MissingCredentialConfiguration(preview.credential_configuration_id.clone())
+                })?;
 
                 Ok((preview, credential_config, format_pubkeys))
             })
@@ -1574,18 +1615,12 @@ mod tests {
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-    use attestation_types::qualification::AttestationQualification;
-    use chrono::Days;
     use chrono::Timelike;
     use crypto::server_keys::KeyPair;
-    use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
-    use token_status_list::status_list_service::mock::MockStatusListService;
     use tracing_test::traced_test;
     use url::Url;
     use wscd::mock_remote::MockRemoteWscd;
@@ -1597,7 +1632,6 @@ mod tests {
     use crate::credential::CredentialRequests;
     use crate::credential::CredentialResponse;
     use crate::credential::CredentialResponses;
-    use crate::credential_configurations::CredentialConfigurationParameters;
     use crate::dpop::Dpop;
     use crate::issuable_document::IssuableDocument;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -1611,6 +1645,7 @@ mod tests {
     use crate::test::MockIssuer;
     use crate::test::mock_issuable_documents;
     use crate::test::setup_mock_issuer;
+    use crate::test::setup_mock_issuer_attestation_types_and_metadata;
     use crate::token::AccessToken;
     use crate::token::TokenRequest;
     use crate::token::TokenResponse;
@@ -1623,32 +1658,24 @@ mod tests {
     #[error("MyError")]
     struct MyError;
 
-    #[test]
-    fn test_credential_preview_from_issuable_document() {
+    // Note that this needs to be async because `Issuer::try_new()` requires a tokio reactor.
+    #[tokio::test]
+    async fn test_credential_preview_state_try_new() {
+        let (_, metadata) = TypeMetadataDocuments::degree_example();
+        let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
+            Arc::new(MemorySessionStore::default()),
+        );
+
         let document = IssuableDocument::new_mock_degree("Education".to_string());
 
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
-        let config_params = CredentialConfigurationParameters {
-            credential_kind: document.credential_kind.clone(),
-            key_pair: KeyPair::new_from_signing_key(
-                issuance_keypair.private_key().to_owned(),
-                issuance_keypair.certificate().to_owned(),
-            )
-            .unwrap(),
-            status_list: Arc::new(MockStatusListService::new()),
-            valid_days: Days::new(1),
-            issuer_uri: "https://example.com".parse().unwrap(),
-            attestation_qualification: AttestationQualification::default(),
-            metadata_documents: TypeMetadataDocuments::degree_example().1,
-        };
-        let credential_configs =
-            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)].into())
-                .unwrap();
-
-        let CredentialPreviewState { credential_payload, .. } =
-            credential_preview_state_for_issuable_document(&credential_configs, document, NonZeroU8::MIN)
-                .expect("creating credential preview for issuable document should succeed");
+        let CredentialPreviewState { credential_payload, .. } = CredentialPreviewState::try_new(
+            "com.example.degree_dc+sd-jwt".to_string().into(),
+            document,
+            &issuer.issuer_data,
+        )
+        .unwrap();
 
         assert_eq!(credential_payload.not_before.unwrap().as_ref().second(), 0);
         assert_eq!(credential_payload.not_before.unwrap().as_ref().minute(), 0);
