@@ -1014,6 +1014,7 @@ mod tests {
     use wscd::mock_remote::MockRemoteWscd;
 
     use super::*;
+    use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -1029,9 +1030,8 @@ mod tests {
         ca: &Ca,
         trust_anchors: &TrustAnchors,
         issuer_metadata: IssuerMetadata,
-        preview_payloads: Vec<PreviewableCredentialPayload>,
+        preview_payloads: Vec<(Format, PreviewableCredentialPayload)>,
         type_metadata: TypeMetadata,
-        format: Format,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, &IssuerRegistration::new_mock()).unwrap();
 
@@ -1058,7 +1058,7 @@ mod tests {
             .return_once(move |_url, _request, _access_token| {
                 let previews = preview_payloads
                     .into_iter()
-                    .map(|preview_payload| CredentialPreview {
+                    .map(|(format, preview_payload)| CredentialPreview {
                         config_id: config_id.clone(),
                         format,
                         batch_size: NonZeroU8::MIN,
@@ -1103,12 +1103,18 @@ mod tests {
         let session = test_start_issuance(
             &ca,
             &TrustAnchors::from(&ca),
-            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE, config_id),
-            vec![PreviewableCredentialPayload::nl_pid_example(
-                &MockTimeGenerator::default(),
+            IssuerMetadata::new_mock(
+                "https://example.com".parse().unwrap(),
+                vec![(
+                    config_id,
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                )],
+            ),
+            vec![(
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            Format::MsoMdoc,
         )
         .expect("starting issuance session should succeed");
 
@@ -1138,14 +1144,16 @@ mod tests {
             &TrustAnchors::from(&other_ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
-                PID_ATTESTATION_TYPE,
-                "config_id".to_string().into(),
+                vec![(
+                    "config_id".to_string().into(),
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                )],
             ),
-            vec![PreviewableCredentialPayload::example_family_name(
-                &MockTimeGenerator::default(),
+            vec![(
+                Format::SdJwt,
+                PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            Format::MsoMdoc,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1166,15 +1174,16 @@ mod tests {
             &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
-                PID_ATTESTATION_TYPE,
-                "config_id".to_string().into(),
+                vec![(
+                    "config_id".to_string().into(),
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                )],
             ),
-            vec![PreviewableCredentialPayload::example_empty(
-                PID_ATTESTATION_TYPE,
-                &MockTimeGenerator::default(),
+            vec![(
+                Format::SdJwt,
+                PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default()),
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
-            Format::MsoMdoc,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1189,8 +1198,10 @@ mod tests {
         let config_id: CredentialConfigurationId = "config_id".to_string().into();
         let issuer_metadata = IssuerMetadata::new_mock(
             "https://example.com".parse().unwrap(),
-            PID_ATTESTATION_TYPE,
-            config_id.clone(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
         );
         let type_metadata_uri = IssuerUrl::try_new("https://metadata.example.com").unwrap();
         let mut config = issuer_metadata.credential_configurations_supported[&config_id].clone();
@@ -1205,11 +1216,11 @@ mod tests {
             &ca,
             &TrustAnchors::from(&ca),
             issuer_metadata,
-            vec![PreviewableCredentialPayload::nl_pid_example(
-                &MockTimeGenerator::default(),
+            vec![(
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            Format::SdJwt,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1226,10 +1237,22 @@ mod tests {
         different_org.organization.display_name = LocalizedStrings::from(vec![("en", "different org name")]);
         let different_issuance_key = generate_pid_issuer_mock_with_registration(&ca, &different_org).unwrap();
 
-        let config_id: CredentialConfigurationId = "config_id".to_string().into();
+        let config_id_mdoc: CredentialConfigurationId = "config_id_mdoc".to_string().into();
+        let config_id_sd_jwt: CredentialConfigurationId = "config_id_sd_jwt".to_string().into();
         let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
-        let issuer_metadata =
-            IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE, config_id.clone());
+        let issuer_metadata = IssuerMetadata::new_mock(
+            issuer_identifier.clone(),
+            vec![
+                (
+                    config_id_mdoc.clone(),
+                    CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+                ),
+                (
+                    config_id_sd_jwt.clone(),
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                ),
+            ],
+        );
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
 
         let credential_configs: VecNonEmpty<_> = issuer_metadata
@@ -1251,7 +1274,7 @@ mod tests {
             });
         mock_msg_client
             .expect_request_type_metadata()
-            .return_once(move |_url| Ok(TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example()).2));
+            .returning(|_url| Ok(TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example()).2));
         mock_msg_client
             .expect_request_credential_preview()
             .return_once(move |_url, _request, _access_token| {
@@ -1259,14 +1282,14 @@ mod tests {
 
                 let previews = vec_nonempty![
                     CredentialPreview {
-                        config_id: config_id.clone(),
+                        config_id: config_id_mdoc.clone(),
                         format: Format::MsoMdoc,
                         batch_size: NonZeroU8::MIN,
                         credential_payload: preview_payload.clone(),
                         issuer_certificate: issuance_key.certificate().clone(),
                     },
                     CredentialPreview {
-                        config_id: config_id.clone(),
+                        config_id: config_id_sd_jwt.clone(),
                         format: Format::SdJwt,
                         batch_size: NonZeroU8::MIN,
                         credential_payload: preview_payload,
@@ -1306,7 +1329,13 @@ mod tests {
         let issuer_identifier = "https://issuer.example.com".parse().unwrap();
 
         let config_id = credential_previews.first().config_id.clone();
-        let mut issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, attestation_type, config_id.clone());
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            issuer_identifier,
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, attestation_type.to_string()),
+            )],
+        );
         if !has_nonce_endpoint {
             issuer_metadata.endpoints.nonce_endpoint = None;
         }

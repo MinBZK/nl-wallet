@@ -309,6 +309,7 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
 
+    use attestation_types::credential_format::Format;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
@@ -330,6 +331,7 @@ mod tests {
     use super::ParErrorCode;
     use crate::AuthorizationErrorCode;
     use crate::ErrorResponse;
+    use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
@@ -358,7 +360,13 @@ mod tests {
 
     fn create_session() -> HttpAuthorizationSession<MockPkcePair> {
         let config_id: CredentialConfigurationId = "config_id".to_string().into();
-        let issuer_metadata = IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id.clone());
+        let issuer_metadata = IssuerMetadata::new_mock(
+            ISSUER_URL.parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
         HttpAuthorizationSession {
@@ -462,7 +470,13 @@ mod tests {
         });
 
         let config_id: CredentialConfigurationId = "config_id".to_string().into();
-        let issuer_metadata = IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test", config_id);
+        let issuer_metadata = IssuerMetadata::new_mock(
+            server.base_url().parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             issuer_metadata
@@ -500,7 +514,13 @@ mod tests {
 
         let auth_endpoints = authorization_endpoints(issuer_identifier.as_base_url());
 
-        let mut issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, "test", config_id.clone());
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            issuer_identifier,
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
 
         for config in issuer_metadata.credential_configurations_supported.values_mut() {
             config.scope = None;
@@ -627,7 +647,13 @@ mod tests {
     #[tokio::test]
     async fn test_persist_and_restore() {
         let config_id: CredentialConfigurationId = "config_id".to_string().into();
-        let issuer_metadata = IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id);
+        let issuer_metadata = IssuerMetadata::new_mock(
+            ISSUER_URL.parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
         let persisted = HttpAuthorizationSessionData {
             credential_configurations: issuer_metadata
                 .credential_configurations_supported
