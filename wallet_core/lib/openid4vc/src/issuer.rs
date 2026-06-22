@@ -281,13 +281,13 @@ pub enum Grant {
 pub struct AccessTokenIssued {
     pub access_token: AccessToken,
     pub accepted_wallet_client_ids: Vec<String>,
-    pub credential_previews: VecNonEmpty<CredentialPreviewState>,
+    pub prepared_credentials: VecNonEmpty<PreparedCredential>,
     pub dpop_public_key: VerifyingKey,
     pub dpop_nonce: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CredentialPreviewState {
+pub struct PreparedCredential {
     pub credential_configuration_id: CredentialConfigurationId,
     pub format: Format,
     pub batch_size: NonZeroU8,
@@ -400,19 +400,19 @@ impl<K, L> IssuerData<K, L> {
             })
     }
 
-    fn get_credential_config_for_preview(
+    fn get_credential_config_for_prepared_credential(
         &self,
-        state: &CredentialPreviewState,
+        credential: &PreparedCredential,
     ) -> Option<&CredentialConfiguration<K, L>> {
         self.get_checked_credential_config(
-            &state.credential_configuration_id,
-            state.format,
-            &state.credential_payload.attestation_type,
+            &credential.credential_configuration_id,
+            credential.format,
+            &credential.credential_payload.attestation_type,
         )
     }
 }
 
-impl CredentialPreviewState {
+impl PreparedCredential {
     /// Convert the tuple of a [`CredentialConfigurationId`] and [`IssuableDocument`] to the state needed to both serve
     /// previews and actually issue credentials by adding the required timestamps. This will return the passed
     /// [`CredentialConfigurationId`] as the `Err` variant if the corresponding [`CredentialConfiguration`] cannot
@@ -451,7 +451,7 @@ impl CredentialPreviewState {
             credential_config.attestation_qualification,
         );
 
-        let preview_state = Self {
+        let credential = Self {
             credential_configuration_id: config_id,
             format,
             batch_size: issuer_data.batch_size,
@@ -459,7 +459,7 @@ impl CredentialPreviewState {
             batch_id,
         };
 
-        Ok(preview_state)
+        Ok(credential)
     }
 }
 
@@ -773,12 +773,10 @@ where
                 // Return previews only for the types that are actually in the session; silently ignore IDs that appear
                 // in the requested_attestation_types but are not part of this session.
                 session_data
-                    .credential_previews
+                    .prepared_credentials
                     .iter()
-                    .filter(|preview_state| {
-                        requested_configuration_ids.contains(&preview_state.credential_configuration_id)
-                    })
-                    .map(|state| self.credential_preview_from_state(state))
+                    .filter(|credential| requested_configuration_ids.contains(&credential.credential_configuration_id))
+                    .map(|state| self.credential_preview_for_credential(state))
                     .collect::<Result<Vec<_>, _>>()?
             }
         };
@@ -790,22 +788,22 @@ where
         })
     }
 
-    fn credential_preview_from_state(
+    fn credential_preview_for_credential(
         &self,
-        state: &CredentialPreviewState,
+        credential: &PreparedCredential,
     ) -> Result<CredentialPreview, CredentialPreviewError> {
         let credential_config = self
             .issuer_data
-            .get_credential_config_for_preview(state)
+            .get_credential_config_for_prepared_credential(credential)
             .ok_or_else(|| {
-                CredentialPreviewError::MissingCredentialConfiguration(state.credential_configuration_id.clone())
+                CredentialPreviewError::MissingCredentialConfiguration(credential.credential_configuration_id.clone())
             })?;
 
         let preview = CredentialPreview {
-            config_id: state.credential_configuration_id.clone(),
-            format: state.format,
-            batch_size: state.batch_size,
-            credential_payload: state.credential_payload.clone(),
+            config_id: credential.credential_configuration_id.clone(),
+            format: credential.format,
+            batch_size: credential.batch_size,
+            credential_payload: credential.credential_payload.clone(),
             issuer_certificate: credential_config.key_pair.certificate().clone(),
         };
 
@@ -1064,7 +1062,7 @@ impl Session<AuthCodeIssued> {
         dpop: Dpop,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
-    ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
+    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
         let session_data = self.session_data();
 
         session_data.grant.verify_grant_type(token_request)?;
@@ -1085,14 +1083,14 @@ impl Session<AuthCodeIssued> {
     fn finalize_token_response(
         self,
         accepted_wallet_client_ids: &[String],
-        result: Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError>,
+        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
-            Ok((token_response, credential_previews, dpop_pubkey, dpop_nonce)) => {
+            Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(AccessTokenIssued {
                     access_token: token_response.access_token.clone(),
                     accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
-                    credential_previews,
+                    prepared_credentials,
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
                 });
@@ -1106,7 +1104,7 @@ impl Session<AuthCodeIssued> {
     }
 }
 
-/// Verify DPoP, build credential previews from the supplied (pre-provisioned) issuables, and
+/// Verify DPoP, prepare credentials from the supplied (pre-provisioned) issuables, and
 /// generate a fresh access token + DPoP nonce. Shared by the pre-authorized-code and
 /// authorization-code token-request paths.
 fn build_token_response<K, L>(
@@ -1115,15 +1113,15 @@ fn build_token_response<K, L>(
     server_url: &BaseUrl,
     credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
     issuer_data: &IssuerData<K, L>,
-) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
+) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-    let preview_states = credential_ids_and_documents
+    let prepared_credentials = credential_ids_and_documents
         .into_nonempty_iter()
         .map(|(config_id, document)| {
-            CredentialPreviewState::try_new(config_id, document, issuer_data)
+            PreparedCredential::try_new(config_id, document, issuer_data)
                 .map_err(TokenRequestError::CredentialConfigNotOffered)
         })
         .collect::<Result<_, _>>()?;
@@ -1131,7 +1129,7 @@ fn build_token_response<K, L>(
     let dpop_nonce = random_string(32);
     let token_response = TokenResponse::new(AccessToken::new(token_request_auth_code));
 
-    Ok((token_response, preview_states, dpop_public_key, dpop_nonce))
+    Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))
 }
 
 impl From<Session<AccessTokenIssued>> for SessionState<IssuanceData> {
@@ -1265,13 +1263,13 @@ impl Session<AccessTokenIssued> {
         // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
         let requested_format = credential_request.credential_type.as_ref().format();
         let offered_creds = session_data
-            .credential_previews
+            .prepared_credentials
             .iter()
-            .filter(|preview| preview.format == requested_format)
+            .filter(|credential| credential.format == requested_format)
             .collect_vec();
 
-        let preview = match (offered_creds.first(), offered_creds.len()) {
-            (Some(preview), 1) => Ok(*preview),
+        let credential = match (offered_creds.first(), offered_creds.len()) {
+            (Some(credential), 1) => Ok(*credential),
             (_, 0) => Err(CredentialRequestError::CredentialTypeNotOffered(
                 credential_request.credential_type.as_ref().to_string(),
             )),
@@ -1297,20 +1295,26 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::InvalidNonce);
         }
 
-        let credential_config = issuer_data.get_credential_config_for_preview(preview).ok_or_else(|| {
-            CredentialRequestError::MissingCredentialConfiguration(preview.credential_configuration_id.clone())
-        })?;
+        let credential_config = issuer_data
+            .get_credential_config_for_prepared_credential(credential)
+            .ok_or_else(|| {
+                CredentialRequestError::MissingCredentialConfiguration(credential.credential_configuration_id.clone())
+            })?;
 
         let status_claim = credential_config
             .status_list
-            .obtain_status_claims(preview.batch_id, preview.credential_payload.expires, NonZeroUsize::MIN)
+            .obtain_status_claims(
+                credential.batch_id,
+                credential.credential_payload.expires,
+                NonZeroUsize::MIN,
+            )
             .await
             .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
             .into_first();
 
         let credential_response = CredentialResponse::new(
             requested_format,
-            preview.credential_payload.clone(),
+            credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             &holder_pubkey,
             credential_config,
@@ -1369,12 +1373,12 @@ impl Session<AccessTokenIssued> {
         self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "batch_credential")?;
 
         let mut request_nonces = Vec::with_capacity(credential_requests.credential_requests.as_ref().len());
-        let previews_and_holder_pubkeys = session_data
-            .credential_previews
+        let credentials_and_holder_pubkeys = session_data
+            .prepared_credentials
             .iter()
-            .map(|preview| {
-                // For every preview collect for every copy the verified key
-                let format_pubkeys: VecNonEmpty<_> = (0..preview.batch_size.get())
+            .map(|credential| {
+                // For every credential collect for every copy the verified key
+                let format_pubkeys: VecNonEmpty<_> = (0..credential.batch_size.get())
                     .map(|_| {
                         let cred_req = credential_requests
                             .credential_requests
@@ -1384,9 +1388,9 @@ impl Session<AccessTokenIssued> {
 
                         // Verify the assumption that the order of the incoming requests matches exactly
                         // that of the flattened batch_size by matching the requested format.
-                        if preview.format != cred_req.credential_type.as_ref().format() {
+                        if credential.format != cred_req.credential_type.as_ref().format() {
                             return Err(CredentialRequestError::CredentialTypeMismatch {
-                                offered: preview.format,
+                                offered: credential.format,
                                 requested: cred_req.credential_type.as_ref().format(),
                             });
                         }
@@ -1404,11 +1408,15 @@ impl Session<AccessTokenIssued> {
                     .try_into()
                     .unwrap(); // ok because `batch_size` has a `NonZeroU8` value in `CredentialPreviewContent`.
 
-                let credential_config = issuer_data.get_credential_config_for_preview(preview).ok_or_else(|| {
-                    CredentialRequestError::MissingCredentialConfiguration(preview.credential_configuration_id.clone())
-                })?;
+                let credential_config = issuer_data
+                    .get_credential_config_for_prepared_credential(credential)
+                    .ok_or_else(|| {
+                        CredentialRequestError::MissingCredentialConfiguration(
+                            credential.credential_configuration_id.clone(),
+                        )
+                    })?;
 
-                Ok((preview, credential_config, format_pubkeys))
+                Ok((credential, credential_config, format_pubkeys))
             })
             .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
@@ -1429,21 +1437,21 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::InvalidNonce);
         }
 
-        // Obtain a status claim for every attestation copy, linked to a single batch id per preview
-        let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
-            |(preview, credential_config, format_pubkeys)| async move {
+        // Obtain a status claim for every attestation copy, linked to a single batch id per credential
+        let status_claims = try_join_all(credentials_and_holder_pubkeys.iter().map(
+            |(credential, credential_config, format_pubkeys)| async move {
                 let claims = credential_config
                     .status_list
                     .obtain_status_claims(
-                        preview.batch_id,
-                        preview.credential_payload.expires,
+                        credential.batch_id,
+                        credential.credential_payload.expires,
                         format_pubkeys.len(),
                     )
                     .await
                     .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?;
                 if claims.len() != format_pubkeys.len() {
                     return Err(CredentialRequestError::IncorrectNumberOfStatusClaims(
-                        preview.credential_payload.attestation_type.clone(),
+                        credential.credential_payload.attestation_type.clone(),
                     ));
                 }
                 Ok(claims)
@@ -1454,15 +1462,15 @@ impl Session<AccessTokenIssued> {
         // Make sure all credentials are issued with the same `issued_at` timestamp
         let issued_at = utc_now_truncated_to_days();
         let credential_responses = try_join_all(
-            previews_and_holder_pubkeys
+            credentials_and_holder_pubkeys
                 .iter()
                 // The claims size is explicitly checked to be equal to the number of copies
                 .zip_eq(status_claims)
-                .flat_map(|((preview, credential_config, format_pubkeys), claims)| {
+                .flat_map(|((credential, credential_config, format_pubkeys), claims)| {
                     format_pubkeys.into_iter().zip(claims.into_inner()).map(|(key, claim)| {
                         CredentialResponse::new(
-                            preview.format,
-                            preview.credential_payload.clone(),
+                            credential.format,
+                            credential.credential_payload.clone(),
                             issued_at,
                             key,
                             credential_config,
@@ -1660,7 +1668,7 @@ mod tests {
 
     // Note that this needs to be async because `Issuer::try_new()` requires a tokio reactor.
     #[tokio::test]
-    async fn test_credential_preview_state_try_new() {
+    async fn test_prepared_credential_try_new() {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
         let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             "https://example.com/".parse().unwrap(),
@@ -1670,7 +1678,7 @@ mod tests {
 
         let document = IssuableDocument::new_mock_degree("Education".to_string());
 
-        let CredentialPreviewState { credential_payload, .. } = CredentialPreviewState::try_new(
+        let PreparedCredential { credential_payload, .. } = PreparedCredential::try_new(
             "com.example.degree_dc+sd-jwt".to_string().into(),
             document,
             &issuer.issuer_data,
