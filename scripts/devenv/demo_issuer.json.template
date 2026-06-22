@@ -32,6 +32,19 @@
         }
       ]
     },
+    "museum_maandkaart": {
+      "data": [
+        {
+          "format": "mso_mdoc",
+          "attestation_type": "com.example.museum_maandkaart",
+          "attributes": {
+            "name": "Frouke Jansen",
+            "member_number": "{{INSERT_RANDOM_VALUE}}",
+            "valid_year": "2026"
+          }
+        }
+      ]
+    },
     "university_mdoc": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER}",
       "data": {

@@ -68,7 +68,7 @@ fn main() {
         );
     }
 
-    for entry in ["housing", "insurance", "university", "loyalty"] {
+    for entry in ["housing", "insurance", "university", "loyalty", "museum_maandkaart"] {
         combine_usecase_css(entry, profile, Path::new(&manifest_dir));
     }
 }

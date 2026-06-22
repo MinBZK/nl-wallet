@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="../static/css/housing.css" />
 {% when "loyalty" %}
     <link rel="stylesheet" href="../static/css/loyalty.css" />
+{% when "museum_maandkaart" %}
+    <link rel="stylesheet" href="../static/css/museum_maandkaart.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
@@ -33,6 +35,8 @@
         {% include "housing.askama" %}
     {% when "loyalty" %}
       {% include "loyalty.askama" %}
+    {% when "museum_maandkaart" %}
+      {% include "museum_maandkaart.askama" %}
     {% else %}
         <nl-wallet-button
             text={{ base.trans.add_to_nl_wallet }}
