@@ -421,6 +421,10 @@ pub enum CredentialFormat {
 }
 
 impl CredentialFormat {
+    pub fn is_supported(&self) -> bool {
+        self.attestation_type().is_some()
+    }
+
     pub fn attestation_type(&self) -> Option<&str> {
         match self {
             Self::MsoMdoc { doctype, .. } => Some(doctype),

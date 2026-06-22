@@ -125,20 +125,21 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         redirect_uri: Url,
         issuer_state: Option<String>,
     ) -> Result<Self, WalletIssuanceError> {
-        // Include the scope values for each Credential Configuration that was present in the Credential Offer and
-        // return an error if any of them do not include a scope. According to HAIP:
+        // Include the scope values for each Credential Configuration with a supported credential format that was
+        // present in the Credential Offer and return an error if any of them do not include a scope. According
+        // to HAIP:
         //
         // "For Grant Type authorization_code, the Issuer MUST include a scope value in order to allow the Wallet to
         // identify the desired Credential Type. The Wallet MUST use that value in the scope Authorization parameter."
         //
         // Source: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.2>
-        let (scope, no_scope_config_ids): (_, Vec<_>) =
-            credential_configurations
-                .iter()
-                .partition_map(|(id, config)| match &config.scope {
-                    Some(scope) => Either::Left(scope.clone()),
-                    None => Either::Right(id.clone()),
-                });
+        let (scope, no_scope_config_ids): (_, Vec<_>) = credential_configurations
+            .iter()
+            .filter(|(_id, config)| config.format.is_supported())
+            .partition_map(|(id, config)| match &config.scope {
+                Some(scope) => Either::Left(scope.clone()),
+                None => Either::Right(id.clone()),
+            });
 
         if !no_scope_config_ids.is_empty() {
             return Err(WalletIssuanceError::IssuerMetadataNoScope(no_scope_config_ids));
