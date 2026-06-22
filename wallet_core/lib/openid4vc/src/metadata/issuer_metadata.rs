@@ -4,6 +4,7 @@ use std::num::NonZeroU64;
 use std::ops::Not;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use attestation_types::data_uri::DataUri;
 use derive_more::AsRef;
 use derive_more::Display;
@@ -29,6 +30,7 @@ use utils::vec_nonempty;
 
 use crate::cose::CoseAlgorithmIdentifier;
 use crate::cose::KnownCoseAlgorithmIdentifier;
+use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
@@ -422,13 +424,21 @@ pub enum CredentialFormat {
 
 impl CredentialFormat {
     pub fn is_supported(&self) -> bool {
-        self.attestation_type().is_some()
+        !matches!(self, Self::Other { .. })
     }
 
     pub fn attestation_type(&self) -> Option<&str> {
         match self {
             Self::MsoMdoc { doctype, .. } => Some(doctype),
             Self::SdJwt { vct, .. } => Some(vct),
+            Self::Other { .. } => None,
+        }
+    }
+
+    pub fn credential_kind(&self) -> Option<CredentialKind> {
+        match self {
+            Self::MsoMdoc { doctype, .. } => Some(CredentialKind::new(Format::MsoMdoc, doctype.to_string())),
+            Self::SdJwt { vct, .. } => Some(CredentialKind::new(Format::SdJwt, vct.to_string())),
             Self::Other { .. } => None,
         }
     }

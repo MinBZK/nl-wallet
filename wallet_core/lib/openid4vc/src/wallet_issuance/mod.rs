@@ -41,6 +41,7 @@ use crate::ErrorResponse;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
+use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -176,6 +177,17 @@ pub enum WalletIssuanceError {
     #[error("type metadata for `{0}` not found")]
     #[category(critical)]
     TypeMetadataNotFound(CredentialConfigurationId),
+
+    #[error("received unknown credential config id(s) in preview: {}", .0.iter().join(", "))]
+    #[category(critical)]
+    UnknownPreviewCredentialConfig(Vec<CredentialConfigurationId>),
+
+    #[error(
+        "format / attestation type received in preview does not match credential config for id(s): {}",
+        .0.iter().map(|(id, expected, received)| format!("{id} - expected: {expected} received: {received}")).join(", ")
+    )]
+    #[category(critical)]
+    PreviewCredentialConfigMismatch(Vec<(CredentialConfigurationId, CredentialKind, CredentialKind)>),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
