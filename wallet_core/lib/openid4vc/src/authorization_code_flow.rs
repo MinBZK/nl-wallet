@@ -27,6 +27,8 @@ use crate::scope::Scope;
 pub struct WalletAuthorizationContext {
     pub redirect_uri: Url,
     pub state: Option<String>,
+    // Note that the "scope" value has already been used to select issuable credentials and is at this point only
+    // present in the state in order to validate any "scope" that is received in the Token Request.
     pub scope: HashSet<Scope>,
     pub code_challenge: String,
 }
