@@ -68,9 +68,6 @@ pub const CONSENT_PATH: &str = "consent";
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("only S256 code_challenge_method is supported")]
-    UnsupportedCodeChallenge,
-
     #[error("authorization request did not carry an issuer_state, cannot determine the usecase")]
     MissingIssuerState,
 
