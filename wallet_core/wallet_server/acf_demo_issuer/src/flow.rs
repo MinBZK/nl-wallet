@@ -28,6 +28,7 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use crypto::utils::random_string;
+use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
@@ -64,7 +65,7 @@ use crate::translations::Words;
 const FLOW_STATE_LENGTH: usize = 32;
 
 /// Path (relative to the issuer's public URL) of the consent page served by this flow.
-pub const CONSENT_PATH: &str = "consent";
+const CONSENT_PATH: &str = "consent";
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -108,10 +109,14 @@ pub struct DemoAuthorizationCodeFlow {
 }
 
 impl DemoAuthorizationCodeFlow {
-    pub fn new(store_connection: StoreConnection, consent_uri: Url, usecases: HashMap<String, Usecase>) -> Self {
+    pub fn new(
+        store_connection: StoreConnection,
+        consent_base_url: &BaseUrl,
+        usecases: HashMap<String, Usecase>,
+    ) -> Self {
         Self {
             state_bridge_store: Arc::new(IssuerStateBridgeStore::new(store_connection)),
-            consent_uri,
+            consent_uri: consent_base_url.join(CONSENT_PATH),
             usecases,
         }
     }
@@ -433,7 +438,7 @@ mod tests {
         DemoAuthorizationCodeFlow,
     >;
 
-    const CONSENT_URI: &str = "https://issuer.example.com/consent";
+    const CONSENT_BASE_URL: &str = "https://issuer.example.com/";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
     const WALLET_SCOPE: &str = "wallet-scope";
@@ -464,7 +469,11 @@ mod tests {
     }
 
     fn flow() -> DemoAuthorizationCodeFlow {
-        DemoAuthorizationCodeFlow::new(StoreConnection::Memory, CONSENT_URI.parse().unwrap(), test_usecases())
+        DemoAuthorizationCodeFlow::new(
+            StoreConnection::Memory,
+            &CONSENT_BASE_URL.parse().unwrap(),
+            test_usecases(),
+        )
     }
 
     fn authorizing_issuer_with_flow(

@@ -7,7 +7,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use acf_demo_issuer::flow::CONSENT_PATH;
 use acf_demo_issuer::flow::DemoAuthorizationCodeFlow;
 use acf_demo_issuer::settings::AcfDemoIssuerSettings;
 use android_attest::android_crl::RevocationStatusList;
@@ -1099,18 +1098,21 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings, h
     let serve_status_lists = settings.authorizing_issuer_settings.issuer_settings.status_lists.serve;
 
     let usecases = settings.usecases;
-    let consent_uri = public_url.as_base_url().join(CONSENT_PATH);
+    let consent_base_url = public_url.as_base_url();
 
     let (issuer, _, _, server_settings) = settings
         .authorizing_issuer_settings
         .into_authorizing_issuer(hsm, |store_connection| {
-            Ok::<_, Infallible>(DemoAuthorizationCodeFlow::new(store_connection, consent_uri, usecases))
+            Ok::<_, Infallible>(DemoAuthorizationCodeFlow::new(
+                store_connection,
+                consent_base_url,
+                usecases,
+            ))
         })
         .await
         .unwrap();
 
     let issuer = Arc::new(issuer);
-    let auth_flow_router = DemoAuthorizationCodeFlow::callback_router(Arc::clone(&issuer));
 
     tokio::spawn(
         async move {
@@ -1118,7 +1120,6 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings, h
                 public_listener,
                 internal_listener,
                 issuer,
-                auth_flow_router,
                 server_settings,
                 serve_status_lists,
                 [],
