@@ -2,14 +2,14 @@ services:
   postgres:
     container_name: postgres
     image: docker.io/library/postgres
-    ports:
-      - "${DB_PORT}:5432"
-    network_mode: bridge
     environment:
       # POSTGRES_HOST_AUTH_METHOD=trust is recommended only for development.
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    network_mode: bridge
     volumes:
       - postgres:/var/lib/postgresql
       - ./sql:/docker-entrypoint-initdb.d
@@ -38,6 +38,18 @@ services:
     ports:
       - "5010:5010"
     network_mode: bridge
+
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:latest
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=${KC_USERNAME}
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_PASSWORD}
+    ports:
+      - "8080:8080"
+    network_mode: bridge
+    command:
+      - start-dev
 
 networks:
   default:
