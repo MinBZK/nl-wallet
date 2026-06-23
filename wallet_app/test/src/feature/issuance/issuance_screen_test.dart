@@ -113,6 +113,16 @@ void main() {
       await screenMatchesGolden('check_organization.dark.landscape');
     });
 
+    testGoldens('IssuanceAuthenticateWithIssuer - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceAuthenticateWithIssuer(authUrl: 'https://example.org'),
+        ),
+      );
+      await screenMatchesGolden('authenticate_with_issuer.light');
+    });
+
     testGoldens('ltc5 IssuanceMissingAttributes Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(

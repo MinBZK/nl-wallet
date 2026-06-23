@@ -62,6 +62,7 @@ import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_use
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
@@ -200,6 +201,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
 @GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<ConfirmWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<ContinueIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePidIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CreatePinRecoveryRedirectUriUseCase>()])
@@ -354,6 +356,7 @@ class Mocks {
     sl.registerFactory<CheckPinUseCase>(MockCheckPinUseCase.new);
     sl.registerFactory<CompletePinRecoveryUseCase>(MockCompletePinRecoveryUseCase.new);
     sl.registerFactory<ConfirmWalletTransferUseCase>(MockConfirmWalletTransferUseCase.new);
+    sl.registerFactory<ContinueIssuanceUseCase>(MockContinueIssuanceUseCase.new);
     sl.registerFactory<ContinuePidIssuanceUseCase>(MockContinuePidIssuanceUseCase.new);
     sl.registerFactory<ContinuePinRecoveryUseCase>(MockContinuePinRecoveryUseCase.new);
     sl.registerFactory<CreatePinRecoveryRedirectUriUseCase>(MockCreatePinRecoveryRedirectUriUseCase.new);

@@ -1,6 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'issuance_type.dart';
+export 'issuance_type.dart';
+
 part 'issuance_screen_argument.freezed.dart';
+
 part 'issuance_screen_argument.g.dart';
 
 @freezed
@@ -11,6 +15,7 @@ abstract class IssuanceScreenArgument with _$IssuanceScreenArgument {
     required bool isQrCode,
     @Default(false) bool isRefreshFlow,
     String? uri,
+    required IssuanceType issuanceType,
   }) = _IssuanceScreenArgument;
 
   factory IssuanceScreenArgument.fromJson(Map<String, dynamic> json) => _$IssuanceScreenArgumentFromJson(json);

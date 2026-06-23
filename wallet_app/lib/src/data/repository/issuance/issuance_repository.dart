@@ -6,7 +6,11 @@ export '../../../domain/model/disclosure/start_disclosure_result.dart';
 abstract class IssuanceRepository {
   Future<StartIssuanceResult> startIssuance(String disclosureUri, {required bool isQrCode});
 
+  Future<StartIssuanceResult> startIssuanceFromOffer(String disclosureUri, {required bool isQrCode});
+
   Future<List<WalletCard>> discloseForIssuance(String pin, List<int> selectedIndices);
+
+  Future<List<WalletCard>> continueIssuance(String uri);
 
   Future<void> acceptIssuance(String pin, Iterable<WalletCard> cards);
 }

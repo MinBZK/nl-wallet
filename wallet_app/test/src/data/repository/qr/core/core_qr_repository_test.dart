@@ -78,10 +78,21 @@ void main() {
         mockWalletCore.identifyUri(testUri),
       ).thenAnswer((realInvocation) async => IdentifyUriResult.DisclosureBasedIssuance);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
-      expect(result, NavigationRequest.issuance(argument: const IssuanceScreenArgument(uri: testUri, isQrCode: true)));
+      expect(
+        result,
+        NavigationRequest.issuance(
+          argument: const IssuanceScreenArgument(uri: testUri, isQrCode: true, issuanceType: .disclosureBasedIssuance),
+        ),
+      );
       expect(
         result.argument,
-        const IssuanceScreenArgument(uri: testUri, isQrCode: true, isRefreshFlow: false, mockSessionId: null),
+        const IssuanceScreenArgument(
+          uri: testUri,
+          isQrCode: true,
+          isRefreshFlow: false,
+          mockSessionId: null,
+          issuanceType: .disclosureBasedIssuance,
+        ),
         reason: 'The IssuanceScreenArgument should contain the testUri and isQrCode=true flag',
       );
     });

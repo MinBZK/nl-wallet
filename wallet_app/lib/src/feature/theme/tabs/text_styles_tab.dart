@@ -160,6 +160,7 @@ class TextStylesTab extends StatelessWidget {
               uri:
                   'walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE%22%2C%22type%22%3A%22issue%22%7D',
               isQrCode: false,
+              issuanceType: .disclosureBasedIssuance,
             ),
           );
           context.read<NavigationService>().handleNavigationRequest(request);
@@ -173,6 +174,36 @@ class TextStylesTab extends StatelessWidget {
 
   List<Widget> _buildSigningScenarios(BuildContext context) {
     return [
+      SecondaryButton(
+        onPressed: () {
+          final request = NavigationRequest.issuance(
+            argument: const IssuanceScreenArgument(
+              uri: 'walletdebuginteraction://deeplink#%7B%22id%22%3A%22PRE_AUTH%22%2C%22type%22%3A%22offer%22%7D',
+              isQrCode: false,
+              issuanceType: .credentialOffer,
+            ),
+          );
+          context.read<NavigationService>().handleNavigationRequest(request);
+        },
+        icon: const Icon(Icons.lock),
+        text: const Text('offer (pre-auth)'),
+      ),
+      const SizedBox(height: 12),
+      SecondaryButton(
+        onPressed: () {
+          final request = NavigationRequest.issuance(
+            argument: const IssuanceScreenArgument(
+              uri: 'walletdebuginteraction://deeplink#%7B%22id%22%3A%22AUTH%22%2C%22type%22%3A%22offer%22%7D',
+              isQrCode: false,
+              issuanceType: .credentialOffer,
+            ),
+          );
+          context.read<NavigationService>().handleNavigationRequest(request);
+        },
+        icon: const Icon(Icons.login),
+        text: const Text('offer (auth)'),
+      ),
+      const SizedBox(height: 12),
       SecondaryButton(
         onPressed: () {
           final request = NavigationRequest.sign(

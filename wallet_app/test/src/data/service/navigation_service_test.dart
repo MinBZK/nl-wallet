@@ -119,7 +119,7 @@ void main() {
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
       final navigationRequest = NavigationRequest.issuance(
-        argument: const IssuanceScreenArgument(isQrCode: false, uri: '/mock'),
+        argument: const IssuanceScreenArgument(isQrCode: false, uri: '/mock', issuanceType: .disclosureBasedIssuance),
       );
       await service.handleNavigationRequest(navigationRequest);
 

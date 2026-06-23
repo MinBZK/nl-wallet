@@ -62,9 +62,9 @@ void main() {
       );
       final expectedAttributes = cardMapper.map(testAttestation).attributes;
 
-      when(core.continuePidIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testAttestation]);
+      when(core.continueIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testAttestation]);
       expect(await pidRepository.continuePidIssuance(mockContinueUri), expectedAttributes);
-      verify(core.continuePidIssuance(mockContinueUri));
+      verify(core.continueIssuance(mockContinueUri));
     });
 
     test('accept offered pid should be propagated to the core', () async {

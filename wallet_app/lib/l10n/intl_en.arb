@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-06-04T14:02:38+02:00",
+    "@@last_modified": "2026-06-12T13:42:07+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -840,6 +840,9 @@
     "invariantErrorScreenTitle": "NL Wallet is not working",
     "invariantErrorScreenWhatCanYouDoBullets": "Close this app.\nOpen NL Wallet again.",
     "invariantErrorScreenWhatCanYouDoTitle": "What can you do?",
+    "issuanceAuthenticateExternallyCta": "Log in",
+    "issuanceAuthenticateExternallyDescription": "Log in to retrieve the cards.",
+    "issuanceAuthenticateExternallyTitle": "Authenticate",
     "issuanceCheckCardPageConfirmCta": "Yes, next",
     "issuanceCheckCardPageOverline": "Card {current} of {total}",
     "@issuanceCheckCardPageOverline": {

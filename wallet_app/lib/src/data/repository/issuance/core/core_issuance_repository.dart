@@ -72,14 +72,31 @@ class CoreIssuanceRepository implements IssuanceRepository {
   }
 
   @override
+  Future<StartIssuanceResult> startIssuanceFromOffer(String issuanceUri, {bool isQrCode = false}) async {
+    final result = await _walletCore.startIssuanceFromOffer(issuanceUri);
+    switch (result) {
+      case core.IssuanceStartResult_AuthorizationUrl(field0: final authUrl):
+        return StartIssuanceAuthorizationRequired(authUrl);
+      case core.IssuanceStartResult_Previews(field0: final cards):
+        return StartIssuancePreAuthorizedOffer(_attestationMapper.mapList(cards));
+    }
+  }
+
+  @override
   Future<List<WalletCard>> discloseForIssuance(String pin, List<int> selectedIndices) async {
     final result = await _walletCore.continueDisclosureBasedIssuance(pin, selectedIndices);
     switch (result) {
-      case core.DisclosureBasedIssuanceResult_Ok():
-        return _attestationMapper.mapList(result.field0);
+      case core.DisclosureBasedIssuanceResult_Ok(field0: final cards):
+        return _attestationMapper.mapList(cards);
       case core.DisclosureBasedIssuanceResult_InstructionError():
         throw result.error;
     }
+  }
+
+  @override
+  Future<List<WalletCard>> continueIssuance(String uri) async {
+    final result = await _walletCore.continueIssuance(uri);
+    return _attestationMapper.mapList(result);
   }
 
   @override

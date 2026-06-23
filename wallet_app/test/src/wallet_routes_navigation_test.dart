@@ -41,6 +41,7 @@ import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart'
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
 import 'package:wallet/src/domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
+import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
@@ -162,7 +163,7 @@ Object? _getMockArgumentsForRoute(String routeName) {
     case WalletRoutes.historyDetailRoute:
       return HistoryDetailScreenArgument(walletEvent: WalletMockData.issuanceEvent).toMap();
     case WalletRoutes.issuanceRoute:
-      return const IssuanceScreenArgument(isQrCode: false, uri: 'uri').toJson();
+      return const IssuanceScreenArgument(isQrCode: false, uri: 'uri', issuanceType: .disclosureBasedIssuance).toJson();
     case WalletRoutes.loginDetailRoute:
       return LoginDetailScreenArgument(
         organization: WalletMockData.organization,
@@ -238,6 +239,7 @@ List<SingleChildWidget> _getUseCaseProviders() {
     RepositoryProvider<CompletePinRecoveryUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ContinuePidIssuanceUseCase>(create: (c) => Mocks.create()),
+    RepositoryProvider<ContinueIssuanceUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ContinuePinRecoveryUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<CreatePinRecoveryRedirectUriUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<CreateWalletUseCase>(create: (c) => Mocks.create()),

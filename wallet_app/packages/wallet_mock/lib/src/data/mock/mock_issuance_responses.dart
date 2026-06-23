@@ -65,6 +65,22 @@ final kIssuanceResponses = [
     policy: _kMockIssuancePolicy,
     attestations: [kMockVOGWalletCard],
   ),
+  IssuanceResponse(
+    id: 'PRE-AUTH-FLOW',
+    relyingParty: kOrganizations[kSupermarketId]!,
+    requestedAttributes: [],
+    requestPurpose: [const LocalizedString(language: 'nl', value: '')],
+    policy: _kMockIssuancePolicy,
+    attestations: [kMockLoyaltyCard],
+  ),
+  IssuanceResponse(
+    id: 'AUTH-FLOW',
+    relyingParty: kOrganizations[kSupermarketId]!,
+    requestedAttributes: [],
+    requestPurpose: [const LocalizedString(language: 'nl', value: 'Authenticatie')],
+    policy: _kMockIssuancePolicy,
+    attestations: [kMockLoyaltyCard],
+  ),
 ];
 
 // region RequestedAttributes
