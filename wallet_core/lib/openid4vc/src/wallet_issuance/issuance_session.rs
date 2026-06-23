@@ -502,6 +502,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         }
 
         // Check that for all previews the format and attestation type matches the offered credential configuration.
+        // TODO (PVW-5993 or PVW-5558 or PVW-5557): Perform this check when fetching the actual credentials instead.
         let mismatched_preview_config_ids = previews_credential_kinds
             .into_iter()
             .filter(|(preview, expected)| {
