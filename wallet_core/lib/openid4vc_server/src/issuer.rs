@@ -4,6 +4,7 @@ use std::sync::Arc;
 use axum::Form;
 use axum::Json;
 use axum::Router;
+use axum::extract::FromRequestParts;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
@@ -25,6 +26,11 @@ use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
+use derive_more::From;
+use http::request::Parts;
+use jwt::wia::Wia;
+use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaPop;
 use openid4vc::AuthorizeErrorCode;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
@@ -307,6 +313,8 @@ async fn credential_offer<K, L, S, N, PAS, AF>(
 
 async fn pushed_authorization_request<K, L, S, N, PAS, AF>(
     State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
+    WiaHeader(wia): WiaHeader,
+    WiaPopHeader(wia_pop): WiaPopHeader,
     Form(authorization_request): Form<VciAuthorizationRequest>,
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
@@ -314,7 +322,7 @@ where
 {
     let response = state
         .authorizing_issuer
-        .process_pushed_authorization_request(authorization_request)
+        .process_pushed_authorization_request(authorization_request, &WiaDisclosure::new(wia, wia_pop))
         .await
         .inspect_err(|error| warn!("processing pushed authorization request failed: {error}"))?;
 
@@ -337,6 +345,51 @@ where
         .inspect_err(|error| warn!("processing authorization request failed: {error}"))?;
 
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
+}
+
+#[derive(Debug, Clone, From)]
+struct WiaHeader(Wia);
+
+impl<S: Send + Sync> FromRequestParts<S> for WiaHeader {
+    type Rejection = ErrorResponse<ParErrorCode>;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let wia: Wia = parse_from_header("oauth-client-attestation", parts)?;
+        Ok(wia.into())
+    }
+}
+
+#[derive(Debug, Clone, From)]
+struct WiaPopHeader(WiaPop);
+
+impl<S: Send + Sync> FromRequestParts<S> for WiaPopHeader {
+    type Rejection = ErrorResponse<ParErrorCode>;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let wia_pop: WiaPop = parse_from_header("oauth-client-attestation-pop", parts)?;
+        Ok(wia_pop.into())
+    }
+}
+
+fn parse_from_header<T: FromStr>(name: &str, parts: &mut Parts) -> Result<T, ErrorResponse<ParErrorCode>> {
+    let jws = parts
+        .headers
+        .get(name)
+        .ok_or_else(|| wia_error_response("missing WIA or WIA header".to_string()))?
+        .to_str()
+        .map_err(|_| wia_error_response("WIA or WIA header contained non-UTF bytes".to_string()))?
+        .parse()
+        .map_err(|_| wia_error_response("WIA or WIA failed to parse as JWT".to_string()))?;
+
+    Ok(jws)
+}
+
+fn wia_error_response(error_description: String) -> ErrorResponse<ParErrorCode> {
+    ErrorResponse {
+        error: ParErrorCode::InvalidClientAttestation,
+        error_description: Some(error_description),
+        error_uri: None,
+    }
 }
 
 static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");

@@ -1,6 +1,5 @@
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
-use jwt::wia::WiaError;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
@@ -109,7 +108,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_))
                 | CredentialRequestError::UseBatchIssuance
                 | CredentialRequestError::WrongNumberOfCredentialRequests
-                | CredentialRequestError::MissingWia
                 | CredentialRequestError::CredentialTypeMismatch { .. } => {
                     CredentialErrorCode::InvalidCredentialRequest
                 }
@@ -118,16 +116,15 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                     CredentialErrorCode::UnknownCredentialConfiguration
                 }
 
-                CredentialRequestError::MissingProofNonce
-                | CredentialRequestError::Wia(WiaError::MissingNonce)
-                | CredentialRequestError::InvalidNonce => CredentialErrorCode::InvalidNonce,
+                CredentialRequestError::MissingProofNonce | CredentialRequestError::InvalidNonce => {
+                    CredentialErrorCode::InvalidNonce
+                }
 
                 // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
                 CredentialRequestError::InvalidProofJwt(_)
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::InvalidProofPublicKey(_)
-                | CredentialRequestError::MissingCredentialRequestPoP
-                | CredentialRequestError::Wia(_) => CredentialErrorCode::InvalidProof,
+                | CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
 
                 // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
@@ -225,6 +222,10 @@ pub enum ParErrorCode {
     InvalidClient,
     InvalidRequest,
     ServerError,
+
+    /// Invalid Client Attestation / WIA.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    InvalidClientAttestation,
 }
 
 impl From<ParError> for ErrorResponse<ParErrorCode> {
@@ -233,6 +234,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
         ErrorResponse {
             error: match err {
                 ParError::UnknownClient(_) => ParErrorCode::InvalidClient,
+                ParError::Wia(_) => ParErrorCode::InvalidClientAttestation,
                 ParError::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
                 ParError::Store(_) => ParErrorCode::ServerError,
             },
@@ -245,7 +247,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
 impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::InvalidClient | Self::InvalidClientAttestation => StatusCode::UNAUTHORIZED,
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }

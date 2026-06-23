@@ -98,8 +98,11 @@ impl JwtTyp for WiaClaims {
     const TYP: &'static str = WIA_JWT_TYP;
 }
 
+pub type Wia = UnverifiedJwt<WiaClaims, HeaderWithX5c>;
+pub type WiaPop = UnverifiedJwt<JwtPopClaims>;
+
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WiaDisclosure(UnverifiedJwt<WiaClaims, HeaderWithX5c>, UnverifiedJwt<JwtPopClaims>);
+pub struct WiaDisclosure(Wia, WiaPop);
 
 impl WiaDisclosure {
     pub fn wia(&self) -> &UnverifiedJwt<WiaClaims, HeaderWithX5c> {

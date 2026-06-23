@@ -179,7 +179,7 @@ impl IssuanceWscd for MockRemoteWscd {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MockWiaClient {
     wia_keypair: Option<KeyPair>,
 }

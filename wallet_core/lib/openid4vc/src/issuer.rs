@@ -191,9 +191,6 @@ pub enum CredentialRequestError {
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 
-    #[error("missing WIA")]
-    MissingWia,
-
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
@@ -202,9 +199,6 @@ pub enum CredentialRequestError {
 
     #[error("error converting CredentialPayload to SD-JWT: {0}")]
     SdJwtConversion(#[from] CredentialPayloadIntoSignedSdJwtError),
-
-    #[error("error verifying WIA: {0}")]
-    Wia(#[from] WiaError),
 
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -863,6 +857,26 @@ where
     }
 }
 
+impl<K, L, S, N> Issuer<K, L, S, N> {
+    pub(super) fn verify_wia(&self, wia_disclosure: &WiaDisclosure) -> Result<Option<Nonce>, WiaError> {
+        let issuer_identifier = self.issuer_data.metadata.credential_issuer.as_ref();
+
+        self.issuer_data
+            .wia_config
+            .as_ref()
+            .map(|wia_config| {
+                let (_, wia_nonce) = wia_disclosure.verify(
+                    &wia_config.wia_trust_anchors,
+                    issuer_identifier,
+                    self.issuer_data.accepted_wallet_client_ids.as_ref(),
+                )?;
+
+                Ok(wia_nonce)
+            })
+            .transpose()
+    }
+}
+
 impl TryFrom<SessionState<IssuanceData>> for Session<AuthCodeIssued> {
     type Error = IssuanceError;
 
@@ -1143,30 +1157,6 @@ impl Session<AccessTokenIssued> {
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         Ok(())
-    }
-
-    fn verify_wia<K, L>(
-        &self,
-        attestations: Option<&WiaDisclosure>,
-        issuer_data: &IssuerData<K, L>,
-    ) -> Result<Option<Nonce>, CredentialRequestError> {
-        let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
-
-        issuer_data
-            .wia_config
-            .as_ref()
-            .map(|wia_config| {
-                let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
-
-                let (_, wia_nonce) = wia_disclosure.verify(
-                    &wia_config.wia_trust_anchors,
-                    issuer_identifier,
-                    &self.state.data.accepted_wallet_client_ids,
-                )?;
-
-                Ok::<_, CredentialRequestError>(wia_nonce)
-            })
-            .transpose()
     }
 
     async fn process_credential_inner<K, L, N>(

@@ -24,6 +24,7 @@ disclosure = ["dep:ring"]
 
 [dependencies]
 axum = { workspace = true, features = ["form", "json"] }
+derive_more = { workspace = true, features = ["from"] }
 http.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }

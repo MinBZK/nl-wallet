@@ -255,7 +255,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer, attestation_count: 
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
             &server.trust_anchors,
-            &MockWiaClient::new(),
+            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
         )
         .await
         .unwrap();
