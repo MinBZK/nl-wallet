@@ -160,6 +160,50 @@ async fn test_acf_demo_issuer_wallet_issuance() {
     );
 }
 
+/// Full wallet-driven issuance for the loyalty card use case, which uses [`UsecaseKind::Immediate`]:
+/// no consent page is shown — `/authorize` resolves the PAR and redirects the user-agent directly
+/// to the wallet's redirect URI with the authorization code.
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
+    let db_setup = DbSetup::create_clean().await;
+    let pin: Pin = "112233".into();
+
+    let wallet = setup_wallet_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let acf = setup_auth_code_env(&db_setup).await;
+    let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
+
+    let offer_uri = create_auth_code_credential_offer(&acf.public, "loyalty", "com.example.jum.bonuskaart");
+
+    let IssuanceStartResult::AuthorizationUrl(authorization_url) = wallet
+        .start_issuance_from_offer(offer_uri)
+        .await
+        .expect("should start issuance from offer")
+    else {
+        panic!("expected an authorization URL for the auth-code flow");
+    };
+
+    // For Immediate usecases, /authorize skips the consent page and redirects straight to the wallet.
+    let redirect_uri = follow_authorization_redirects(authorization_url).await;
+    let previews = wallet
+        .continue_issuance(redirect_uri)
+        .await
+        .expect("should continue issuance after immediate authorization");
+
+    assert_eq!(previews.len(), 1);
+    assert_eq!(previews.first().unwrap().attestation_type, "com.example.jum.bonuskaart");
+
+    wallet.accept_issuance(pin).await.expect("should accept issuance");
+
+    let attestations = wallet_attestations(&mut wallet).await;
+    assert!(
+        attestations
+            .iter()
+            .any(|attestation| attestation.attestation_type == "com.example.jum.bonuskaart"),
+        "the issued loyalty attestation should be present in the wallet",
+    );
+}
+
 /// Build the static authorization-code credential offer the demo issuer's QR encodes: a by-value
 /// `openid-credential-offer://` URL carrying the configured credential configuration and the
 /// `issuer_state` that selects the usecase. Mirrors `demo_issuer`'s `authorization_code_usecase`.

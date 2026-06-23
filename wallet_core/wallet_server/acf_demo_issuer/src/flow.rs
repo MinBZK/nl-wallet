@@ -162,7 +162,7 @@ impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
 
         match usecase.kind {
             UsecaseKind::Immediate => {
-                let documents = issuable_documents(usecase)?;
+                let documents = issuable_documents(usecase);
                 Ok(AuthorizeOutcome::Authorized(documents, context))
             }
             UsecaseKind::Consent => {
@@ -591,12 +591,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn authorize_non_consent_usecase() {
+    async fn authorize_immediate_usecase() {
         let flow = flow_with_usecases(usecases_with_kind(UsecaseKind::Immediate));
         let context = test_context(Some(USECASE_ID.to_string()));
 
-        let error = flow.authorize(context, credential_kinds()).await.unwrap_err();
+        let outcome = flow.authorize(context, credential_kinds()).await.unwrap();
 
-        assert_matches!(error, Error::NotConsentUsecase(usecase) if usecase == USECASE_ID);
+        let AuthorizeOutcome::Authorized(documents, _) = outcome else {
+            panic!("expected an Authorized outcome");
+        };
+        assert_eq!(documents.len().get(), 1);
+        assert!(
+            documents
+                .iter()
+                .all(|doc| doc.credential_kind.attestation_type == ATTESTATION_TYPE)
+        );
     }
 }
