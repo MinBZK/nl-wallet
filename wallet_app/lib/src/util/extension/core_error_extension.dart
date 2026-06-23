@@ -62,8 +62,8 @@ extension CoreErrorExtension on CoreError {
     return RelyingPartyError(sourceError: error, organizationName: organizationName);
   }
 
-  Never _handleStateError(CoreStateError error) {
-    Fimber.e('StateError detected!', ex: this);
-    throw StateError(toString());
+  ApplicationError _handleStateError(CoreStateError error) {
+    Fimber.e('Invariant violation, mapping to ApplicationStateError', ex: this);
+    return ApplicationStateError(sourceError: error);
   }
 }

@@ -182,10 +182,12 @@ void main() {
       expect(applicationError.sourceError, coreError);
     });
 
-    test('CoreStateError throws StateError', () async {
+    test('CoreStateError maps to ApplicationStateError (no longer crashes)', () async {
       const coreError = CoreStateError('description');
+      final applicationError = await coreError.asApplicationError();
 
-      expect(() async => coreError.asApplicationError(), throwsA(isA<StateError>()));
+      expect(applicationError, isA<ApplicationStateError>());
+      expect(applicationError.sourceError, coreError);
     });
   });
 }

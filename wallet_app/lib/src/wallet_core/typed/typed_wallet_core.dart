@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
@@ -212,13 +211,14 @@ class TypedWalletCore {
       final String coreErrorJson = _extractErrorJson(ex)!;
       final error = _errorMapper.map(coreErrorJson);
       if (error is CoreStateError) {
+        // Invariant violation (programming error / panic). Report it, then fall through so the error
+        // listener can navigate to the invariant error screen instead of crashing the app.
         Fimber.e(
-          'StateError detected, this indicates a programming error. Crashing...',
+          'StateError detected, this indicates a programming error.',
           ex: error,
           stacktrace: stackTrace,
         );
         await Sentry.captureException(error, stackTrace: stackTrace);
-        exit(0);
       }
       // Use microtask so the listener triggers after the error is returned. (crucial to allow downstream navigation)
       unawaited(Future.microtask(() => _errorListener?.call(error)));
