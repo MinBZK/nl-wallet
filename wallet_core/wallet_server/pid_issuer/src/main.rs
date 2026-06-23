@@ -5,7 +5,7 @@ use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
-use pid_issuer::pid::digid::DigidMetadataCache;
+use pid_issuer::pid::digid::DigidMetadataClient;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use server_utils::keys::SecretKeyVariant;
@@ -29,7 +29,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings)?;
+    let digid_metadata_client = DigidMetadataClient::try_new(settings.digid.client_settings)?;
     let brp_client = HttpBrpClient::new(settings.brp_server);
     let recovery_code_secret_key = SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?;
     let digid_client_id = settings.digid.client_id;
@@ -49,7 +49,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                 brp_client,
                 &bsn_privkey,
                 digid_client_id,
-                digid_metadata_cache,
+                digid_metadata_client,
                 recovery_code_secret_key,
                 store_connection,
                 &callback_base_url,

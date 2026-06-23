@@ -57,7 +57,7 @@ use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::pid::digid;
 use crate::pid::digid::DigidClient;
-use crate::pid::digid::DigidMetadataCache;
+use crate::pid::digid::DigidMetadataClient;
 use crate::pid::digid::HttpDigidClient;
 
 const ISSUER_STATE_LENGTH: usize = 32;
@@ -149,14 +149,14 @@ impl UpstreamOidcAuthorizationCodeFlow {
         brp_client: HttpBrpClient,
         bsn_privkey: &Key,
         client_id: impl Into<String>,
-        digid_metadata_cache: DigidMetadataCache,
+        digid_metadata_client: DigidMetadataClient,
         recovery_code_secret_key: SecretKeyVariant,
         store_connection: StoreConnection,
         callback_base_url: &BaseUrl,
     ) -> Result<Self, Error> {
         let client_id: String = client_id.into();
         let digid_client =
-            HttpDigidClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_cache).map_err(Error::Digid)?;
+            HttpDigidClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_client).map_err(Error::Digid)?;
 
         Ok(Self::new(
             brp_client,
