@@ -33,6 +33,18 @@ class IssuanceLoadInProgress extends IssuanceState {
   final FlowProgress? stepperProgress;
 }
 
+class IssuanceAuthenticateWithIssuer extends IssuanceState {
+  final String authUrl;
+
+  const IssuanceAuthenticateWithIssuer({required this.authUrl});
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [authUrl, ...super.props];
+}
+
 class IssuanceCheckOrganization extends IssuanceState {
   final Organization organization;
   final List<DiscloseCardRequest> cardRequests;

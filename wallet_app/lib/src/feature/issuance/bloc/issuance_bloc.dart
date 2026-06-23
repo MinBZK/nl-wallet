@@ -15,16 +15,19 @@ import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../domain/usecase/issuance/continue_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/list_extension.dart';
+import '../argument/issuance_screen_argument.dart';
 
 part 'issuance_event.dart';
 part 'issuance_state.dart';
 
 class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final StartIssuanceUseCase _startIssuanceUseCase;
+  final ContinueIssuanceUseCase _continueIssuanceUseCase;
   final CancelSessionUseCase _cancelSessionUseCase;
 
   StartIssuanceResult? _startIssuanceResult;
@@ -41,6 +44,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
 
   IssuanceBloc(
     this._startIssuanceUseCase,
+    this._continueIssuanceUseCase,
     this._cancelSessionUseCase,
   ) : super(const IssuanceInitial()) {
     on<IssuanceSessionStarted>(_onSessionStarted);
@@ -54,13 +58,18 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceCardToggled>(_onIssuanceCardToggled);
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
     on<IssuanceAlternativeCardSelected>(_onAlternativeCardSelected);
+    on<IssuanceSessionContinued>(_onSessionContinued);
   }
 
   Future<void> _onSessionStarted(IssuanceSessionStarted event, Emitter<IssuanceState> emit) async {
     // Cancel any potential ongoing (disclosure based) issuance session, needed for when the user taps an issuance
     // deeplink during an active issuance (or disclosure) session (e.g. by switching back to the browser).
     await _cancelSessionUseCase.invoke();
-    final startResult = await _startIssuanceUseCase.invoke(event.issuanceUri, isQrCode: event.isQrCode);
+    final startResult = await _startIssuanceUseCase.invoke(
+      event.issuanceUri,
+      isQrCode: event.isQrCode,
+      type: event.type,
+    );
 
     /// Handle [error]/[ready to disclose]/[missing attributes] cases.
     await startResult.process(
@@ -84,6 +93,10 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
                 missingAttributes: result.missingAttributes,
               ),
             );
+          case StartIssuanceAuthorizationRequired(:final authUrl):
+            emit(IssuanceAuthenticateWithIssuer(authUrl: authUrl));
+          case StartIssuancePreAuthorizedOffer():
+            emit(IssuanceReviewCards.init(cards: result.previews));
         }
       },
     );
@@ -113,7 +126,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         );
         emit(
           IssuanceCheckOrganization(
-            organization: startIssuanceResult.relyingParty,
+            organization: startIssuanceResult.relyingParty!,
             policy: (startIssuanceResult as StartIssuanceReadyToDisclose).policy,
             cardRequests: _cardRequestsSelectionCache ?? startIssuanceResult.cardRequests,
             purpose: startIssuanceResult.requestPurpose,
@@ -140,10 +153,14 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
       case StartIssuanceMissingAttributes():
         emit(
           IssuanceMissingAttributes(
-            organization: _startIssuanceResult!.relyingParty,
+            organization: _startIssuanceResult!.relyingParty!,
             missingAttributes: result.missingAttributes,
           ),
         );
+      case StartIssuanceAuthorizationRequired():
+      case StartIssuancePreAuthorizedOffer():
+        final error = UnsupportedError('Can not navigate with ${result.runtimeType} result from $state state');
+        await _handleApplicationError(GenericError('Unexpected flow', sourceError: error), emit);
     }
   }
 
@@ -163,7 +180,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
     if (event.cards.isEmpty) {
-      emit(IssuanceNoCardsRetrieved(organization: issuance.relyingParty));
+      assert(issuance.relyingParty != null, 'Relying party should be available after disclosing successfully');
+      emit(IssuanceNoCardsRetrieved(organization: issuance.relyingParty!));
     } else {
       emit(IssuanceReviewCards.init(cards: event.cards));
     }
@@ -241,11 +259,20 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     );
   }
 
+  Future<void> _onSessionContinued(IssuanceSessionContinued event, Emitter<IssuanceState> emit) async {
+    final result = await _continueIssuanceUseCase.invoke(event.authorizationUri);
+    await result.process(
+      onSuccess: (cards) => emit(IssuanceReviewCards.init(cards: cards)),
+      onError: (error) => _handleApplicationError(error, emit),
+    );
+  }
+
   @override
   Future<void> close() async {
     _startIssuanceResult = null;
     _cardRequestsSelectionCache = null;
-    await _cancelSessionUseCase.invoke();
+    // If state == IssuanceAuthenticateWithIssuer this is the old (about to be replaced) IssuanceBloc.
+    if (state is! IssuanceAuthenticateWithIssuer) await _cancelSessionUseCase.invoke();
     await super.close();
   }
 }

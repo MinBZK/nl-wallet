@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-06-04T14:02:38+02:00",
+    "@@last_modified": "2026-06-12T13:42:07+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -836,6 +836,9 @@
     "invariantErrorScreenTitle": "NL Wallet werkt niet",
     "invariantErrorScreenWhatCanYouDoBullets": "Sluit deze app.\nOpen NL Wallet opnieuw.",
     "invariantErrorScreenWhatCanYouDoTitle": "Wat kun je doen?",
+    "issuanceAuthenticateExternallyCta": "Inloggen",
+    "issuanceAuthenticateExternallyDescription": "Log in om de kaarten op te halen.",
+    "issuanceAuthenticateExternallyTitle": "Inloggen",
     "issuanceCheckCardPageConfirmCta": "Ja, volgende",
     "issuanceCheckCardPageOverline": "Kaart {current} van {total}",
     "@issuanceCheckCardPageOverline": {

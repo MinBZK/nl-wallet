@@ -111,11 +111,14 @@ class TypedWalletCore {
 
   Future<core.IdentifyUriResult> identifyUri(String uri) => call(() => core.identifyUri(uri: uri));
 
-  Future<List<core.AttestationPresentation>> continuePidIssuance(String uri) =>
+  Future<List<core.AttestationPresentation>> continueIssuance(String uri) =>
       call(() => core.continueIssuance(uri: uri));
 
   Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin, List<int> selectedIndices) =>
       call(() => core.continueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin));
+
+  Future<core.IssuanceStartResult> startIssuanceFromOffer(String offerUri) =>
+      call(() => core.startIssuanceFromOffer(offerUri: offerUri));
 
   /// Accept offered attestations
   Future<core.WalletInstructionResult> acceptIssuance(String pin) => call(() => core.acceptIssuance(pin: pin));

@@ -55,6 +55,8 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<String?> crateApiFullCancelSession() async {
+    if (_disclosureManager.hasActiveDisclosureSession) return _disclosureManager.cancelDisclosure().then((_) => null);
+    if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.cancelIssuance();
     return null;
   }
 
@@ -129,13 +131,16 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) async => kPidAttestations;
+  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) async {
+    if (uri.contains('mock') && _issuanceManager.hasActiveIssuanceSession) {
+      return _issuanceManager.sessionAttestations!;
+    }
+    return kPidAttestations;
+  }
 
   @override
-  Future<IssuanceStartResult> crateApiFullStartIssuanceFromOffer({required String offerUri}) {
-    // TODO(PVW-5980): implement crateApiFullStartIssuanceFromOffer
-    throw UnimplementedError();
-  }
+  Future<IssuanceStartResult> crateApiFullStartIssuanceFromOffer({required String offerUri}) =>
+      _issuanceManager.startIssuanceFromOffer(offerUri);
 
   @override
   Future<String> crateApiFullCreatePidIssuanceRedirectUri() async => MockConstants.pidIssuanceRedirectUri;
@@ -150,6 +155,7 @@ class WalletCoreMock implements WalletCoreApi {
     if (type == 'verify') return IdentifyUriResult.Disclosure;
     if (type == 'issue') return IdentifyUriResult.DisclosureBasedIssuance;
     if (type == 'sign') throw UnsupportedError('Sign not yet supported');
+    if (type == 'offer') return IdentifyUriResult.CredentialOffer;
     throw UnsupportedError('Unsupported uri: $uri');
   }
 

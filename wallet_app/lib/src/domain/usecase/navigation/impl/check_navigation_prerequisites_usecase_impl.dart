@@ -24,6 +24,9 @@ class CheckNavigationPrerequisitesUseCaseImpl extends CheckNavigationPrerequisit
         case NavigationPrerequisite.walletInReadyState:
           final inReadyState = await _walletRepository.getWalletState() is WalletStateReady;
           if (!inReadyState) return false;
+        case NavigationPrerequisite.walletInIssuanceState:
+          final inIssuanceState = await _walletRepository.getWalletState() is WalletStateInIssuanceFlow;
+          if (!inIssuanceState) return false;
       }
     }
     return true;

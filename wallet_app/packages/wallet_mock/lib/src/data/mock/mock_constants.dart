@@ -20,4 +20,5 @@ class MockAttestationTypes {
   static const certificateOfConduct = 'com.example.certificate_of_conduct';
   static const bscDiploma = 'com.example.bsc_diploma';
   static const mscDiploma = 'com.example.msc_diploma';
+  static const loyalty = 'com.example.loyalty';
 }

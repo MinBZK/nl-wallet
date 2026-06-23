@@ -60,15 +60,19 @@ class CoreQrRepository implements QrRepository {
           argument: DisclosureScreenArgument(type: .remote(rawValue, isQrCode: true)),
         );
       case IdentifyUriResult.DisclosureBasedIssuance:
-        return NavigationRequest.issuance(argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true));
+        return NavigationRequest.issuance(
+          argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true, issuanceType: .disclosureBasedIssuance),
+        );
       case IdentifyUriResult.Transfer:
         return NavigationRequest.walletTransferSource(rawValue);
       case IdentifyUriResult.CredentialOffer:
-        // TODO(PVW-5980): Handle this case.
-        throw UnimplementedError();
+        return NavigationRequest.issuance(
+          argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true, issuanceType: .credentialOffer),
+        );
       case IdentifyUriResult.GenericIssuance:
-        // TODO(PVW-5980): Handle this case.
-        throw UnimplementedError();
+        return NavigationRequest.continueIssuance(
+          argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true, issuanceType: .authorizationCallback),
+        );
     }
   }
 }

@@ -149,6 +149,23 @@ final kMockVOGWalletCard = AttestationPresentation(
   issuer: kOrganizations[kRvigId]!,
 );
 
+final kMockLoyaltyCard = AttestationPresentation(
+  identity: const AttestationIdentity.ephemeral(),
+  attestationType: MockAttestationTypes.loyalty,
+  format: Format.MsoMdoc,
+  displayMetadata: _buildDisplayMetaData(
+    englishTitle: 'Loyalty card',
+    dutchTitle: 'Superkaart',
+    englishSummary: 'Local Supermarket',
+    dutchSummary: 'Buurtsuper',
+    textColor: _kDarkBlue,
+    bgColor: '#FFD700',
+  ),
+  validityStatus: kValidityStatus,
+  attributes: kLoyaltyAttributes,
+  issuer: kOrganizations[kPharmacyId]!,
+);
+
 List<DisplayMetadata> _buildDisplayMetaData({
   required String englishTitle,
   required String dutchTitle,

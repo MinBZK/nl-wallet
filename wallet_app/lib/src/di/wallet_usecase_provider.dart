@@ -47,6 +47,8 @@ import '../domain/usecase/help/get_help_categories_usecase.dart';
 import '../domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import '../domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
 import '../domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
+import '../domain/usecase/issuance/continue_issuance_usecase.dart';
+import '../domain/usecase/issuance/impl/continue_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/start_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../domain/usecase/maintenance/impl/observe_maintenance_state_usecase_impl.dart';
@@ -290,6 +292,9 @@ class WalletUseCaseProvider extends StatelessWidget {
     ),
     RepositoryProvider<ContinuePidIssuanceUseCase>(
       create: (context) => ContinuePidIssuanceUseCaseImpl(context.read()),
+    ),
+    RepositoryProvider<ContinueIssuanceUseCase>(
+      create: (context) => ContinueIssuanceUseCaseImpl(context.read()),
     ),
     RepositoryProvider<AcceptOfferedPidUseCase>(
       create: (context) => AcceptOfferedPidUseCaseImpl(context.read()),

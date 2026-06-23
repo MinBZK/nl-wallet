@@ -96,6 +96,21 @@ abstract class NavigationRequest with _$NavigationRequest {
     navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
   );
 
+  factory NavigationRequest.continueIssuance({
+    required IssuanceScreenArgument argument,
+  }) => NavigationRequest.generic(
+    WalletRoutes.issuanceRoute,
+    removeUntil: WalletRoutes.dashboardRoute,
+    argument: argument,
+    navigatePrerequisites: [
+      NavigationPrerequisite.walletUnlocked,
+      NavigationPrerequisite.walletInitialized,
+      NavigationPrerequisite.pidInitialized,
+      NavigationPrerequisite.walletInIssuanceState,
+    ],
+    preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
+  );
+
   factory NavigationRequest.sign({
     required SignScreenArgument argument,
   }) => NavigationRequest.generic(

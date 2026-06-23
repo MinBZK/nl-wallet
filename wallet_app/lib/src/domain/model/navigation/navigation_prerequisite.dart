@@ -9,6 +9,9 @@ enum NavigationPrerequisite {
   /// The wallet must be in a ready state (see [WalletState]) before proceeding.
   walletInReadyState,
 
+  /// The wallet must be in the issuance state (see [WalletState]) before proceeding.
+  walletInIssuanceState,
+
   /// The PID must be initialized before proceeding.
   pidInitialized,
 }

@@ -31,15 +31,19 @@ class CoreUriRepository implements UriRepository {
       case IdentifyUriResult.Disclosure:
         return NavigationRequest.disclosure(argument: DisclosureScreenArgument(type: .remote(uri, isQrCode: false)));
       case IdentifyUriResult.DisclosureBasedIssuance:
-        return NavigationRequest.issuance(argument: IssuanceScreenArgument(uri: uri, isQrCode: false));
+        return NavigationRequest.issuance(
+          argument: IssuanceScreenArgument(uri: uri, isQrCode: false, issuanceType: .disclosureBasedIssuance),
+        );
       case IdentifyUriResult.Transfer:
         return NavigationRequest.walletTransferSource(uri);
       case IdentifyUriResult.CredentialOffer:
-        // TODO(PVW-5980): Handle this case.
-        throw UnimplementedError();
+        return NavigationRequest.issuance(
+          argument: IssuanceScreenArgument(uri: uri, isQrCode: false, issuanceType: .credentialOffer),
+        );
       case IdentifyUriResult.GenericIssuance:
-        // TODO(PVW-5980): Handle this case.
-        throw UnimplementedError();
+        return NavigationRequest.continueIssuance(
+          argument: IssuanceScreenArgument(uri: uri, isQrCode: false, issuanceType: .authorizationCallback),
+        );
     }
   }
 }

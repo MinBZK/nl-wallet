@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/domain/model/wallet_state.dart';
 import 'package:wallet/src/domain/usecase/navigation/impl/check_navigation_prerequisites_usecase_impl.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
@@ -49,6 +50,30 @@ void main() {
     test('Conditions are met when pidInitialized is required and wallet contains pid', () async {
       when(mockWalletRepository.containsPid()).thenAnswer((_) async => true);
       final result = await usecase.invoke([NavigationPrerequisite.pidInitialized]);
+      expect(result, isTrue);
+    });
+
+    test('Conditions are NOT met when walletInReadyState is required and wallet is NOT in ready state', () async {
+      when(mockWalletRepository.getWalletState()).thenAnswer((_) async => const WalletStateEmpty());
+      final result = await usecase.invoke([NavigationPrerequisite.walletInReadyState]);
+      expect(result, isFalse);
+    });
+
+    test('Conditions are met when walletInReadyState is required and wallet is in ready state', () async {
+      when(mockWalletRepository.getWalletState()).thenAnswer((_) async => const WalletStateReady());
+      final result = await usecase.invoke([NavigationPrerequisite.walletInReadyState]);
+      expect(result, isTrue);
+    });
+
+    test('Conditions are NOT met when walletInIssuanceState is required and wallet is NOT in issuance state', () async {
+      when(mockWalletRepository.getWalletState()).thenAnswer((_) async => const WalletStateReady());
+      final result = await usecase.invoke([NavigationPrerequisite.walletInIssuanceState]);
+      expect(result, isFalse);
+    });
+
+    test('Conditions are met when walletInIssuanceState is required and wallet is in issuance state', () async {
+      when(mockWalletRepository.getWalletState()).thenAnswer((_) async => const WalletStateInIssuanceFlow());
+      final result = await usecase.invoke([NavigationPrerequisite.walletInIssuanceState]);
       expect(result, isTrue);
     });
 

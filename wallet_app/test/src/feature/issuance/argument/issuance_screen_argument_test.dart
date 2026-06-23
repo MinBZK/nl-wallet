@@ -13,6 +13,7 @@ void main() {
           isRefreshFlow: true,
           uri: 'https://example.org',
           isQrCode: false,
+          issuanceType: .disclosureBasedIssuance,
         );
         final serialized = expected.toJson();
         final result = IssuanceScreenArgument.fromJson(serialized);
@@ -23,14 +24,22 @@ void main() {
 
   group('IssuanceScreen.getArgument', () {
     test('returns argument when passed directly', () {
-      const expected = IssuanceScreenArgument(isQrCode: true, mockSessionId: '123');
+      const expected = IssuanceScreenArgument(
+        isQrCode: true,
+        mockSessionId: '123',
+        issuanceType: .disclosureBasedIssuance,
+      );
       const settings = RouteSettings(arguments: expected);
       final result = IssuanceScreen.getArgument(settings);
       expect(result, expected);
     });
 
     test('returns argument when passed as json map', () {
-      const expected = IssuanceScreenArgument(isQrCode: true, mockSessionId: '123');
+      const expected = IssuanceScreenArgument(
+        isQrCode: true,
+        mockSessionId: '123',
+        issuanceType: .disclosureBasedIssuance,
+      );
       final settings = RouteSettings(arguments: expected.toJson());
       final result = IssuanceScreen.getArgument(settings);
       expect(result, expected);

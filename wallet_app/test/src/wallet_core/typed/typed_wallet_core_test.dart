@@ -376,7 +376,7 @@ void main() {
     });
 
     test('continuePidIssuance is passed on to core', () async {
-      await typedWalletCore.continuePidIssuance('uri');
+      await typedWalletCore.continueIssuance('uri');
       verify(core.crateApiFullContinueIssuance(uri: 'uri')).called(1);
     });
 
@@ -567,7 +567,7 @@ void main() {
 
     test('continuePidIssuance', () async {
       when(core.crateApiFullContinueIssuance(uri: 'https://example.org')).thenThrow(ffiException);
-      expect(() => typedWalletCore.continuePidIssuance('https://example.org'), throwsA(isA<CoreError>()));
+      expect(() => typedWalletCore.continueIssuance('https://example.org'), throwsA(isA<CoreError>()));
     });
 
     test('continueDisclosureBasedIssuance', () async {

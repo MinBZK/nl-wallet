@@ -38,7 +38,7 @@ class CorePidRepository extends PidRepository with PidFilterMixin {
 
   @override
   Future<List<DataAttribute>> continuePidIssuance(String uri) async {
-    final result = await _walletCore.continuePidIssuance(uri);
+    final result = await _walletCore.continueIssuance(uri);
     final cards = result.map(_cardMapper.map).toList();
     final filteredCards = await filterDuplicatePidCards(cards);
     return filteredCards.map((attestation) => attestation.attributes).flattened.toList();

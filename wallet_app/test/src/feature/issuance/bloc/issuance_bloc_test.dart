@@ -28,11 +28,13 @@ final _kDefaultReadyToDiscloseResponse = StartIssuanceReadyToDisclose(
 void main() {
   final MockStartIssuanceUseCase startIssuanceUseCase = MockStartIssuanceUseCase();
   final MockCancelSessionUseCase cancelSessionUseCase = MockCancelSessionUseCase();
+  final MockContinueIssuanceUseCase continueIssuanceUseCase = MockContinueIssuanceUseCase();
 
   setUp(() {});
 
   IssuanceBloc createBloc({bool isRefreshFlow = false}) => IssuanceBloc(
     startIssuanceUseCase,
+    continueIssuanceUseCase,
     cancelSessionUseCase,
   );
 
@@ -46,7 +48,7 @@ void main() {
     'ltc5 IssuanceGenericError is emitted when issuance can not be initiated',
     build: () => createBloc(isRefreshFlow: true),
     setUp: () => when(
-      startIssuanceUseCase.invoke(any),
+      startIssuanceUseCase.invoke(any, type: anyNamed('type')),
     ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     act: (bloc) => bloc.add(const IssuanceSessionStarted('https://example.org')),
     expect: () => [
@@ -59,7 +61,7 @@ void main() {
     'ltc5 verify happy path - cross device',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(
           StartIssuanceReadyToDisclose(
             relyingParty: WalletMockData.organization,
@@ -99,7 +101,7 @@ void main() {
     'ltc5 verify happy path - same device',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -125,10 +127,96 @@ void main() {
   );
 
   blocTest(
+    'ltc5 verify happy path - pre-authorized offer',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
+        (_) async => Result.success(
+          StartIssuancePreAuthorizedOffer([WalletMockData.card]),
+        ),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(IssuanceApproveCards(cards: [WalletMockData.card]));
+      bloc.add(const IssuancePinForIssuanceConfirmed());
+      await Future.delayed(const Duration(milliseconds: 10));
+    },
+    expect: () => [
+      isA<IssuanceReviewCards>(),
+      isA<IssuanceProvidePinForIssuance>(),
+      isA<IssuanceLoadInProgress>(),
+      isA<IssuanceCompleted>().having((it) => it.addedCards, 'added cards should match', [WalletMockData.card]),
+    ],
+  );
+
+  blocTest(
+    'ltc5 verify happy path - authorization required',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
+        (_) async => const Result.success(
+          StartIssuanceAuthorizationRequired('https://example.org/auth'),
+        ),
+      );
+      when(continueIssuanceUseCase.invoke(any)).thenAnswer(
+        (_) async => Result.success([WalletMockData.card]),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(const IssuanceSessionContinued('https://example.org/callback'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(IssuanceApproveCards(cards: [WalletMockData.card]));
+      bloc.add(const IssuancePinForIssuanceConfirmed());
+      await Future.delayed(const Duration(milliseconds: 10));
+    },
+    expect: () => [
+      isA<IssuanceAuthenticateWithIssuer>().having(
+        (it) => it.authUrl,
+        'auth url should match',
+        'https://example.org/auth',
+      ),
+      isA<IssuanceReviewCards>(),
+      isA<IssuanceProvidePinForIssuance>(),
+      isA<IssuanceLoadInProgress>(),
+      isA<IssuanceCompleted>().having((it) => it.addedCards, 'added cards should match', [WalletMockData.card]),
+    ],
+  );
+
+  blocTest(
+    'ltc5 verify authorization failed',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
+        (_) async => const Result.success(
+          StartIssuanceAuthorizationRequired('https://example.org/auth'),
+        ),
+      );
+      when(continueIssuanceUseCase.invoke(any)).thenAnswer(
+        (_) async => const Result.error(GenericError('auth failed', sourceError: 'test')),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(const IssuanceSessionContinued('https://example.org/callback'));
+      await Future.delayed(const Duration(milliseconds: 10));
+    },
+    expect: () => [
+      isA<IssuanceAuthenticateWithIssuer>(),
+      isA<IssuanceLoadInProgress>(),
+      isA<IssuanceError>(),
+    ],
+  );
+
+  blocTest(
     'ltc5 verify missing attributes path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(
           StartIssuanceMissingAttributes(
             relyingParty: WalletMockData.organization,
@@ -155,7 +243,7 @@ void main() {
     'ltc5 verify IssuanceNoCardsRetrieved is emitted when pin disclosure does not result in cards',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -179,7 +267,7 @@ void main() {
     'ltc5 verify back press from confirm pin for disclosure',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -200,7 +288,7 @@ void main() {
     'ltc5 verify back press from confirm pin for issuance',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -227,7 +315,7 @@ void main() {
     'ltc5 verify decline sharing attributes to organization path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -245,7 +333,7 @@ void main() {
     'ltc5 verify disclosure failed with network error path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -268,7 +356,7 @@ void main() {
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       clearInteractions(cancelSessionUseCase);
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -301,7 +389,7 @@ void main() {
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       clearInteractions(cancelSessionUseCase);
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -329,7 +417,7 @@ void main() {
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       clearInteractions(cancelSessionUseCase);
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -360,7 +448,7 @@ void main() {
     'ltc5 verify accepting zero cards results in error',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },
@@ -386,7 +474,7 @@ void main() {
     'ltc5 verify navigation back and forth between check organization and pin input maintains custom selection',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
     },

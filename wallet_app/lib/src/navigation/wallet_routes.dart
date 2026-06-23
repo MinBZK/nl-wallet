@@ -411,10 +411,20 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
     final IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
-        return IssuanceBloc(
-          context.read(),
-          context.read(),
-        )..add(IssuanceSessionStarted(argument.uri!, isQrCode: argument.isQrCode));
+        final event = switch (argument.issuanceType) {
+          IssuanceType.disclosureBasedIssuance => IssuanceSessionStarted(
+            argument.uri!,
+            isQrCode: argument.isQrCode,
+            type: argument.issuanceType,
+          ),
+          IssuanceType.credentialOffer => IssuanceSessionStarted(
+            argument.uri!,
+            isQrCode: argument.isQrCode,
+            type: argument.issuanceType,
+          ),
+          IssuanceType.authorizationCallback => IssuanceSessionContinued(argument.uri!),
+        };
+        return IssuanceBloc(context.read(), context.read(), context.read())..add(event);
       },
       child: const IssuanceScreen(),
     );
