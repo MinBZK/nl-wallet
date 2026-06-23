@@ -3,7 +3,6 @@ name = "acf_demo_issuer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-exclude = ["resources"]
 
 [lints]
 workspace = true
@@ -22,8 +21,6 @@ required-features = ["integration_test"]
 [features]
 # Allow Credential Issuer Identifiers to contain "http://".
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
-# Enable mock issuance helpers (used by the integration test suite).
-mock = ["openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.

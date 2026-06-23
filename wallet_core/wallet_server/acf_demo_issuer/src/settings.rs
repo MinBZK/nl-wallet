@@ -33,18 +33,16 @@ pub struct AcfDemoIssuerSettings {
 pub struct Usecase {
     /// Determines how `/authorize` is handled for this usecase. Only [`UsecaseKind::Consent`] is
     /// implemented (phase 1); [`UsecaseKind::Immediate`] is reserved for the public-QR variant.
-    #[serde(default)]
     pub kind: UsecaseKind,
 
     /// The documents to issue for this usecase.
     pub documents: VecNonEmpty<IssuableDocumentTemplate>,
 }
 
-#[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UsecaseKind {
     /// `/authorize` redirects to a consent page; a callback completes the authorization.
-    #[default]
     Consent,
     /// `/authorize` mints the authorization code immediately (phase 2, not yet implemented).
     Immediate,
