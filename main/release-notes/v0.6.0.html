@@ -348,6 +348,10 @@ Pre-authorized Code flow.</p></li>
 (PAR) for the PID issuance flow.</p></li>
 <li><p>The wallet supports retrieving a Credential Offer from a URI that is
 passed using the <code class="docutils literal notranslate"><span class="pre">credential_offer_uri</span></code> query parameter.</p></li>
+<li><p>The wallet includes the correct <code class="docutils literal notranslate"><span class="pre">scope</span></code> value in the Authorization
+Request it sends in the Authorization Code flow, as retrieved from the
+Issuer Metadata. The Issuer issues credentials based on these particular
+<code class="docutils literal notranslate"><span class="pre">scope</span></code> values.</p></li>
 </ul>
 </li>
 <li><p>The well-known path is now derived according to spec for Credential Issuer
