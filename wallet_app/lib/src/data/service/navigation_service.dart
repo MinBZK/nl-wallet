@@ -54,6 +54,10 @@ class NavigationService extends AppEventListener {
       await Future.delayed(kAppBlockedNavigationDelay);
       final navRequest = NavigationRequest.appBlocked(reason: error.revocationData.revocationReason);
       await _navigate(navRequest);
+    } else if (error is CoreStateError) {
+      Fimber.d('Invariant violation detected, navigating to the invariant error screen.');
+      await Future.delayed(kAppBlockedNavigationDelay);
+      await _navigate(NavigationRequest.invariantError(code: error.description));
     }
   }
 

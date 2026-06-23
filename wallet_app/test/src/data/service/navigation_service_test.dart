@@ -274,6 +274,25 @@ void main() {
       ).called(1);
     });
 
+    test('When CoreStateError is received, navigate to the invariant error screen', () async {
+      // Allow navigation (empty prerequisites for invariantError)
+      when(mockCheckNavigationPrerequisitesUseCase.invoke([])).thenAnswer((_) async => true);
+
+      const error = CoreStateError('boom');
+
+      await service.onCoreError(error);
+
+      final expectedRequest = NavigationRequest.invariantError(code: 'boom');
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          expectedRequest.destination,
+          any,
+          arguments: expectedRequest.argument,
+        ),
+      ).called(1);
+    });
+
     test('When other CoreError is received, do nothing', () async {
       const error = CoreGenericError('Some error');
 

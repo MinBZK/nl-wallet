@@ -18,6 +18,7 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../theme/dark_wallet_theme.dart';
 import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -64,6 +65,7 @@ import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
+import '../../error/invariant/argument/invariant_error_screen_argument.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
 import '../../revocation/widget/revocation_code_text.dart';
 import '../theme_screen.dart';
@@ -355,6 +357,17 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () => ErrorScreen.show(context, const SessionError(state: .expired, sourceError: 'test')),
           child: const Text('Session Expired Screen'),
+        ),
+        const ThemeSectionSubHeader(title: 'Invariant Error Screen'),
+        TextButton(
+          onPressed: () => Navigator.pushNamed(
+            context,
+            WalletRoutes.invariantErrorRoute,
+            arguments: const InvariantErrorScreenArgument(
+              code: 'panicked at wallet_core/src/lib.rs: invariant violated (design preview)',
+            ).toJson(),
+          ),
+          child: const Text('Invariant Error Screen'),
         ),
       ],
     );

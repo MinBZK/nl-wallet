@@ -23,12 +23,17 @@ import 'src/feature/update/update_checker.dart';
 import 'src/util/helper/onboarding_helper.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
+import 'src/wallet_error_handler.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Propagate uncaught errors
+  final errorHandler = WalletErrorHandler(_navigatorKey);
+  PlatformDispatcher.instance.onError = errorHandler.handleError;
 
   if (Environment.hasSentryDsn) {
     await SentryFlutter.init(configureSentry, appRunner: initializeAndRun);
