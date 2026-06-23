@@ -60,7 +60,7 @@ use crate::settings::UsecaseKind;
 use crate::translations::TRANSLATIONS;
 use crate::translations::Words;
 
-/// Length of the random flow-state token keying a [`ConsentFlowEntry`] in the state-bridge store.
+/// Length of the random flow-state token used as key in the state-bridge store.
 const FLOW_STATE_LENGTH: usize = 32;
 
 /// Path (relative to the issuer's public URL) of the consent page served by this flow.
