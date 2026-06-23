@@ -397,7 +397,8 @@ async fn test_disclosure_aki_ok() {
         .credential_configurations
         .into_iter()
         .find(|(_, config_settings)| {
-            config_settings.format == Format::SdJwt && config_settings.attestation_type == *PID_ATTESTATION_TYPE
+            config_settings.credential_kind.format == Format::SdJwt
+                && config_settings.credential_kind.attestation_type == *PID_ATTESTATION_TYPE
         })
         .unwrap()
         .1

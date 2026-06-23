@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use attestation_data::attributes::Attribute;
@@ -19,6 +20,8 @@ use hsm::service::HsmError;
 use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
+use itertools::Either;
+use itertools::Itertools;
 use jwk_simple::Key;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -26,10 +29,12 @@ use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::authorizing_issuer::WalletRedirect;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
+use openid4vc::scope::Scope;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
@@ -39,6 +44,8 @@ use server_utils::keys::SecretKeyVariant;
 use server_utils::store::StoreConnection;
 use tracing::warn;
 use url::Url;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -60,6 +67,9 @@ const DIGID_CALLBACK_PATH: &str = "/digid/callback";
 /// Errors raised by [`UpstreamOidcAuthorizationCodeFlow`] on either half of the flow.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("unsupported credential type(s) requested: {}", .0.iter().join(", "))]
+    UnsupportedCredentialType(Vec<CredentialKind>),
+
     #[error("DigiD error: {0}")]
     Digid(#[source] digid::Error),
 
@@ -104,6 +114,7 @@ pub enum Error {
 struct StateBridgeEntry {
     context: WalletAuthorizationContext,
     upstream_code_verifier: String,
+    formats: VecNonEmpty<Format>,
 }
 
 /// Query parameters sent by the upstream provider when redirecting the user back to the issuer's
@@ -222,6 +233,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         &self,
         upstream_code: AuthorizationCode,
         upstream_code_verifier: String,
+        formats: VecNonEmpty<Format>,
     ) -> Result<VecNonEmpty<IssuableDocument>, Error>
     where
         B: BrpClient,
@@ -240,16 +252,19 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         let person = persons.persons.remove(0);
         let attributes = insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
-        let issuable_documents = vec_nonempty![
-            IssuableDocument::try_new_with_random_id(
-                Format::SdJwt,
-                PID_ATTESTATION_TYPE.to_string(),
-                attributes.clone(),
-            )
-            .map_err(|_| Error::InvalidIssuableDocuments)?,
-            IssuableDocument::try_new_with_random_id(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string(), attributes)
-                .map_err(|_| Error::InvalidIssuableDocuments)?,
-        ];
+        // Create an `IssuableDocument` for each requested format.
+        let format_count = formats.len();
+        let issuable_documents = formats
+            .into_nonempty_iter()
+            .zip(utils::vec_at_least::repeat_n(attributes, format_count))
+            .map(|(format, attributes)| {
+                IssuableDocument::try_new_with_random_id(
+                    CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string()),
+                    attributes,
+                )
+            })
+            .collect::<Result<_, _>>()
+            .map_err(|_| Error::InvalidIssuableDocuments)?;
 
         Ok(issuable_documents)
     }
@@ -262,7 +277,31 @@ where
 {
     type Error = Error;
 
-    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
+    async fn authorize(
+        &self,
+        context: WalletAuthorizationContext,
+        credential_kinds: VecNonEmpty<CredentialKind>,
+    ) -> Result<AuthorizeOutcome, Self::Error> {
+        // Return an error if any of the attestation types are not the PID attestation type and retain only the
+        // requested formats.
+        let (formats, unsupported): (HashSet<_>, HashSet<_>) =
+            credential_kinds.into_iter().partition_map(|credential_kind| {
+                if credential_kind.attestation_type == PID_ATTESTATION_TYPE {
+                    Either::Left(credential_kind.format)
+                } else {
+                    Either::Right(credential_kind)
+                }
+            });
+
+        if !unsupported.is_empty() {
+            return Err(Error::UnsupportedCredentialType(unsupported.into_iter().collect()));
+        }
+
+        let formats = formats.into_iter().collect_vec().try_into().expect(
+            "deduplicated formats from non-emtpy formats and types should never be empty when there are no \
+             unsupported attestation types",
+        );
+
         // Generate the upstream PKCE pair and the random `issuer_state` we'll use as `state` in
         // the upstream redirect. The upstream provider will echo it back to our callback.
         let upstream_pkce = S256PkcePair::generate();
@@ -284,6 +323,7 @@ where
         let entry = StateBridgeEntry {
             context,
             upstream_code_verifier: upstream_pkce.into_code_verifier(),
+            formats,
         };
         self.state_bridge_store
             .store(issuer_state, entry)
@@ -332,16 +372,25 @@ where
     let StateBridgeEntry {
         context,
         upstream_code_verifier,
+        formats,
     } = entry;
     let WalletAuthorizationContext {
         redirect_uri,
         state,
+        scope,
         code_challenge,
     } = context;
 
-    let result = complete_digid_callback(&authorizing_issuer, code_challenge, upstream_code_verifier, code)
-        .await
-        .inspect_err(|error| warn!("digid callback: completion failed: {error}"));
+    let result = complete_digid_callback(
+        &authorizing_issuer,
+        scope,
+        code_challenge,
+        upstream_code_verifier,
+        formats,
+        code,
+    )
+    .await
+    .inspect_err(|error| warn!("digid callback: completion failed: {error}"));
 
     let url = WalletRedirect::new(redirect_uri, state).into_redirect_url(result.as_ref(), "server_error");
 
@@ -353,8 +402,10 @@ where
 /// writes the `AuthCodeIssued` session, and returns the code.
 async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
+    request_scope: HashSet<Scope>,
     code_challenge: String,
     upstream_code_verifier: String,
+    formats: VecNonEmpty<Format>,
     digid_code: AuthorizationCode,
 ) -> Result<AuthorizationCode, Error>
 where
@@ -364,11 +415,11 @@ where
 {
     let issuable_documents = authorizing_issuer
         .flow()
-        .fetch_issuable_documents(digid_code, upstream_code_verifier)
+        .fetch_issuable_documents(digid_code, upstream_code_verifier, formats)
         .await?;
 
     authorizing_issuer
-        .complete_authorization(issuable_documents, code_challenge)
+        .complete_authorization(issuable_documents, request_scope, code_challenge)
         .await
         .map_err(Error::CompleteAuthorization)
 }
@@ -402,19 +453,25 @@ async fn insert_recovery_code(mut attributes: Attributes, secret_key: &SecretKey
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
-    use std::num::NonZeroUsize;
+    use std::collections::HashSet;
+    use std::fs;
+    use std::path::Path;
     use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
+    use attestation_types::credential_format::Format;
     use indexmap::IndexMap;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
+    use itertools::Itertools;
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
+    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -422,20 +479,23 @@ mod tests {
     use openid4vc::par::PAR_TTL;
     use openid4vc::pkce::PkcePair;
     use openid4vc::pkce::S256PkcePair;
+    use openid4vc::scope::Scope;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionToken;
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
-    use openid4vc::test::setup_mock_issuer;
+    use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
     use openid4vc::token::AuthorizationCode;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use server_utils::keys::SecretKeyVariant;
     use server_utils::settings::SecretKey;
     use server_utils::store::StoreConnection;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use utils::path::prefix_local_path;
     use utils::vec_nonempty;
 
     use super::DIGID_CALLBACK_PATH;
@@ -463,7 +523,18 @@ mod tests {
     const CALLBACK_BASE_URL: &str = "https://issuer.example.com/";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_STATE: &str = "wallet-state";
+    const WALLET_SCOPE: &str = "wallet-scope";
     const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
+
+    static NL_PID_METADATA: LazyLock<TypeMetadataDocuments> = LazyLock::new(|| {
+        TypeMetadataDocuments::new(vec_nonempty![
+            fs::read(prefix_local_path(Path::new("resources/test/metadata/eudi_pid_1.json"))).unwrap(),
+            fs::read(prefix_local_path(Path::new(
+                "resources/test/metadata/eudi_pid_nl_1.json"
+            )))
+            .unwrap()
+        ])
+    });
 
     fn recovery_code_secret_key() -> SecretKeyVariant {
         SecretKeyVariant::from_settings(
@@ -497,19 +568,33 @@ mod tests {
     /// Wrap a flow in an [`AuthorizingIssuer`] backed by an in-memory issuer + session store, so the
     /// callback path (which writes a session via `complete_authorization`) can be exercised. Returns
     /// the session store so tests can read the written session back.
+    ///
+    /// Note that the [`AuthorizingIssuer`] needs to be configured with the real PID SD-JWT VC Type Metadata, as
+    /// completing the callback will lead to the [`IssuableDocument`]s being validated against it.
     fn authorizing_issuer_with_flow(
         flow: UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient>,
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
-        let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, _) = setup_mock_issuer(issuer_identifier, NonZeroUsize::MIN, Arc::clone(&sessions));
-        let par_store = MemoryStore::new(PAR_TTL);
+
+        let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+            IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap(),
+            vec![
+                (Format::SdJwt, PID_ATTESTATION_TYPE.to_string(), NL_PID_METADATA.clone()),
+                (
+                    Format::MsoMdoc,
+                    PID_ATTESTATION_TYPE.to_string(),
+                    NL_PID_METADATA.clone(),
+                ),
+            ],
+            Arc::clone(&sessions),
+        );
         let authorizing_issuer = AuthorizingIssuer::new(
             Arc::new(issuer),
-            par_store,
+            MemoryStore::new(PAR_TTL),
             flow,
             vec_nonempty![WALLET_REDIRECT_URI.parse().unwrap()],
         );
+
         (authorizing_issuer, sessions)
     }
 
@@ -519,6 +604,7 @@ mod tests {
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
+            HashSet::from([WALLET_SCOPE.parse().unwrap()]),
             &S256PkcePair::generate(),
         )
     }
@@ -528,9 +614,15 @@ mod tests {
             context: WalletAuthorizationContext {
                 redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                 state: Some(WALLET_STATE.to_string()),
+                // Match the credential config id / scope configured in the mock issuer.
+                scope: HashSet::from([
+                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
+                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
+                ]),
                 code_challenge: WALLET_CODE_CHALLENGE.to_string(),
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
+            formats: vec_nonempty![Format::MsoMdoc, Format::SdJwt],
         }
     }
 
@@ -587,7 +679,18 @@ mod tests {
         let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
         let wallet_code_challenge = context.code_challenge.clone();
 
-        let outcome = flow.authorize(context).await.unwrap();
+        let outcome = flow
+            .authorize(
+                context,
+                vec_nonempty![
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                    CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+                    // Test deduplication.
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())
+                ],
+            )
+            .await
+            .unwrap();
         let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
             panic!("authorize should redirect the user-agent to the upstream provider");
         };
@@ -611,6 +714,48 @@ mod tests {
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
         assert_eq!(entry.context.code_challenge, wallet_code_challenge);
         assert!(!entry.upstream_code_verifier.is_empty());
+        assert!(
+            entry
+                .formats
+                .iter()
+                .map(ToString::to_string)
+                .sorted()
+                .eq(["dc+sd-jwt", "mso_mdoc"])
+        );
+    }
+
+    #[tokio::test]
+    async fn test_authorize_error_unsupported_attestation_type() {
+        let bridge = memory_bridge_store();
+        let flow = flow_with_clients(
+            MockBrpClient::from_fixture("frouke"),
+            MockDigidClient::default(),
+            Arc::clone(&bridge),
+        );
+
+        let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
+
+        let error = flow
+            .authorize(
+                context,
+                vec_nonempty![
+                    CredentialKind::new(Format::SdJwt, "foo".to_string()),
+                    CredentialKind::new(Format::MsoMdoc, "bar".to_string()),
+                    CredentialKind::new(Format::SdJwt, "not_supported".to_string())
+                ],
+            )
+            .await
+            .expect_err("starting authorization flow should fail");
+
+        assert_matches!(
+            error,
+            Error::UnsupportedCredentialType(unsupported)
+                if unsupported
+                    .iter()
+                    .map(|credential_kind| &credential_kind.attestation_type)
+                    .sorted()
+                    .eq(["bar", "foo", "not_supported"])
+        )
     }
 
     #[tokio::test]
@@ -624,12 +769,18 @@ mod tests {
         let StateBridgeEntry {
             context,
             upstream_code_verifier,
+            formats,
         } = state_bridge_entry();
+
+        let expected_scope = context.scope.clone();
+        let expected_code_challenge = context.code_challenge.clone();
 
         let code = complete_digid_callback(
             &authorizing_issuer,
+            context.scope,
             context.code_challenge,
             upstream_code_verifier,
+            formats,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
@@ -645,19 +796,20 @@ mod tests {
         let IssuanceData::AuthCodeIssued(auth_code_issued) = session.data else {
             panic!("expected an AuthCodeIssued session");
         };
-        assert_eq!(
+        assert_matches!(
             auth_code_issued.grant,
             Grant::AuthorizationCode {
-                wallet_code_challenge: WALLET_CODE_CHALLENGE.to_string()
-            }
+                request_scope,
+                wallet_code_challenge
+            } if request_scope == expected_scope && wallet_code_challenge == expected_code_challenge
         );
-        assert_eq!(auth_code_issued.issuable_documents.len().get(), 2);
+        assert_eq!(auth_code_issued.credential_ids_and_documents.len().get(), 2);
         assert!(
             auth_code_issued
-                .issuable_documents
+                .credential_ids_and_documents
                 .as_ref()
                 .iter()
-                .all(|doc| doc.attestation_type == PID_ATTESTATION_TYPE)
+                .all(|(_config_id, document)| document.credential_kind.attestation_type == PID_ATTESTATION_TYPE)
         );
     }
 
@@ -672,12 +824,15 @@ mod tests {
         let StateBridgeEntry {
             context,
             upstream_code_verifier,
+            formats,
         } = state_bridge_entry();
 
         let error = complete_digid_callback(
             &authorizing_issuer,
+            context.scope,
             context.code_challenge,
             upstream_code_verifier,
+            formats,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await

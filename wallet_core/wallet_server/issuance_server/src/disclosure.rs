@@ -13,8 +13,8 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
-use openid4vc::issuer::IssuanceError;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer::PreAuthorizedSessionError;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
@@ -95,8 +95,8 @@ pub enum IssuanceResultHandlerError {
     #[error("no attestations to issue")]
     NoIssuableAttestations,
 
-    #[error("issuance error: {0}")]
-    Issuer(#[source] IssuanceError),
+    #[error("could not create Pre-Authorized credential offer: {0}")]
+    PreAuthorizedSession(#[source] PreAuthorizedSessionError),
 
     #[error("credential offer URL serialization failed: {0}")]
     CredentialOfferSerialization(#[source] serde_json::Error),
@@ -139,9 +139,9 @@ where
 
         let credential_offer = self
             .issuer
-            .pre_authorized_offer_from_documents(to_issue)
+            .new_preauthorized_session(to_issue)
             .await
-            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::Issuer(e)))?;
+            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::PreAuthorizedSession(e)))?;
 
         let query_params = HashMap::from([CredentialOfferContainer::new_offer(credential_offer).into_query_pair()]);
         Ok(query_params)
@@ -174,6 +174,7 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_offer::CredentialOffer;
+    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
@@ -226,11 +227,10 @@ mod tests {
 
             Ok(vec![
                 IssuableDocument::try_new_with_random_id(
-                    Format::SdJwt,
-                    attestation.attestation_type.clone(),
+                    CredentialKind::new(Format::SdJwt, attestation.attestation_type.clone()),
                     IndexMap::from([(
-                        "attr_name".to_string(),
-                        Attribute::Single(AttributeValue::Text("attrvalue".to_string())),
+                        "university".to_string(),
+                        Attribute::Single(AttributeValue::Text("University".to_string())),
                     )])
                     .into(),
                 )
@@ -265,8 +265,7 @@ mod tests {
             .return_once(|| tokio::task::spawn(async {}).abort_handle());
 
         let config_params = CredentialConfigurationParameters {
-            format: Format::SdJwt,
-            attestation_type: "com.example.degree".to_string(),
+            credential_kind: CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
                 issuance_keypair.certificate().to_owned(),
@@ -325,8 +324,8 @@ mod tests {
         assert_matches!(session.grant, Grant::PreAuthorizedCode);
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
-        let issuable = session.issuable_documents.as_ref().first().unwrap();
-        assert_eq!(issuable.attestation_type, mock_disclosed_type);
+        let (_config_id, document) = session.credential_ids_and_documents.as_ref().first().unwrap();
+        assert_eq!(document.credential_kind.attestation_type, mock_disclosed_type);
     }
 
     #[tokio::test]

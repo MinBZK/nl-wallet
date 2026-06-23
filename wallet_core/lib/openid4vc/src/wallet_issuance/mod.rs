@@ -1,4 +1,5 @@
 pub mod authorization;
+mod authorization_endpoints;
 pub mod credential;
 pub mod discovery;
 pub mod issuance_session;
@@ -30,21 +31,23 @@ use utils::single_unique::MultipleItemsFound;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
+use self::authorization::OAuthError;
+use self::authorization_endpoints::AuthorizationEndpointsError;
+use self::credential::CredentialWithMetadata;
+use self::issuance_session::IssuanceTypeMetadata;
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
 use crate::ErrorResponse;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
+use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
-use crate::wallet_issuance::authorization::OAuthError;
-use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -87,6 +90,13 @@ pub enum WalletIssuanceError {
     #[error("attributes do not match type metadata: {0}")]
     #[category(pd)]
     AttributesVerification(#[from] AttributesError),
+
+    #[error(
+        "no OAuth scope value present in Issuer Metadata for Credential Configuration ID(s): {}",
+        .0.iter().join(", ")
+    )]
+    #[category(critical)]
+    IssuerMetadataNoScope(Vec<CredentialConfigurationId>),
 
     #[error("could not push authorization request to server: {0:?}")]
     #[category(expected)]
@@ -168,6 +178,20 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataNotFound(CredentialConfigurationId),
 
+    #[error("received unknown credential config id(s) in preview: {}", .0.iter().join(", "))]
+    #[category(critical)]
+    UnknownPreviewCredentialConfig(Vec<CredentialConfigurationId>),
+
+    #[error(
+        "format / attestation type received in preview does not match credential config for id(s): {}",
+        .0.iter().map(|(id, expected, received)| format!("{id} - expected: {expected} received: {received}")).join(", ")
+    )]
+    #[category(critical)]
+    PreviewCredentialConfigMismatch(Vec<(CredentialConfigurationId, CredentialKind, CredentialKind)>),
+
+    #[error("could not read issuer registration from preview: {0}")]
+    PreviewIssuerRegistration(#[source] CredentialPreviewError),
+
     #[error("error verifying credential preview: {0}")]
     CredentialPreviewVerification(#[source] CredentialPreviewError),
 
@@ -192,6 +216,9 @@ pub enum WalletIssuanceError {
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
     OauthDiscovery(#[source] WellKnownError),
+
+    #[error("not all authorization endpoints present: {0}")]
+    AuthorizationEndpoints(#[source] AuthorizationEndpointsError),
 
     #[error("error discovering Credential Issuer metadata: {0}")]
     #[category(expected)]

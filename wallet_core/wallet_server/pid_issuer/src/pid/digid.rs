@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+use std::sync::LazyLock;
+
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
-use indexmap::IndexSet;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
 use jwe::decryption::JweDecrypter;
@@ -17,9 +19,9 @@ use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::metadata::well_known::WellKnownPath;
 use openid4vc::pkce::S256PkcePair;
+use openid4vc::scope::Scope;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenRequestGrantType;
 use tokio::sync::OnceCell;
 use url::Url;
 
@@ -31,6 +33,8 @@ use crate::settings::DigidClientSettings;
 const EXPECTED_JWE_RSA_ALGORITHM: RsaAlgorithm = RsaAlgorithm::RsaOaep;
 const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A128CbcHs256;
 const EXPECTED_JWS_ALGORITHM: Algorithm = Algorithm::RS256;
+
+static OPENID_SCOPE: LazyLock<Scope> = LazyLock::new(|| "openid".parse().expect("\"openid\" is a valid scope"));
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -147,8 +151,14 @@ impl DigidClient for HttpDigidClient {
         pkce_pair: &S256PkcePair,
     ) -> Result<Url, Error> {
         // Create a new upstream authorization request
-        let mut vci_request = VciAuthorizationRequest::for_auth_code(client_id, redirect_uri, state, None, pkce_pair);
-        vci_request.scope = Some(IndexSet::from_iter([String::from("openid")]));
+        let vci_request = VciAuthorizationRequest::for_auth_code(
+            client_id,
+            redirect_uri,
+            state,
+            None,
+            HashSet::from([OPENID_SCOPE.clone()]),
+            pkce_pair,
+        );
 
         let oidc_request = OidcAuthorizationRequest {
             vci_request,
@@ -165,12 +175,8 @@ impl DigidClient for HttpDigidClient {
     async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error> {
         let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
 
-        let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode { code },
-            client_id: Some(self.client_id.clone()),
-            code_verifier: Some(code_verifier),
-            redirect_uri: Some(redirect_uri),
-        };
+        let token_request =
+            TokenRequest::new_authorization_code(code, self.client_id.clone(), redirect_uri, code_verifier);
 
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             self.cache.http_client(),

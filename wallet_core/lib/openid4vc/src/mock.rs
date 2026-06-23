@@ -1,10 +1,11 @@
-use std::collections::HashMap;
 use std::iter;
 
+use attestation_types::credential_format::Format;
 use dcql::disclosure::ExtendingVctRetriever;
 use indexmap::IndexSet;
 pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
+use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 // Re-exported for convenience
@@ -15,8 +16,8 @@ use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
-use crate::token::TokenRequestGrantType;
 
 pub struct ExtendingVctRetrieverStub;
 impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
@@ -33,6 +34,7 @@ impl AuthorizationServerMetadata {
         let auth_url = issuer_url.join("/authorize");
         let token_url = issuer_url.join("/issuance/token");
         let jwks_url = issuer_url.join("/jwks.json");
+        let par_url = issuer_url.join("/par");
 
         Self {
             authorization_endpoint: Some(auth_url),
@@ -44,6 +46,7 @@ impl AuthorizationServerMetadata {
                 ["code", "code id_token", "id_token", "id_token token"].map(str::to_string),
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
+            pushed_authorization_request_endpoint: Some(par_url),
 
             ..AuthorizationServerMetadata::new(issuer_identifier, token_url)
         }
@@ -53,17 +56,44 @@ impl AuthorizationServerMetadata {
 impl IssuerMetadata {
     pub fn new_mock(
         issuer_identifier: IssuerIdentifier,
-        attestation_type: &str,
-        config_id: CredentialConfigurationId,
+        credential_configs: Vec<(CredentialConfigurationId, CredentialKind)>,
     ) -> IssuerMetadata {
         let issuer_url = issuer_identifier.as_issuer_url();
         let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
         let batch_credential_endpoint = issuer_url.join_issuer_url("/issuance/batch_credential");
         let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
         let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
-        let type_metadata_uri = issuer_url
-            .join_issuer_url("/issuance/type_metadata")
-            .join_config_id(&config_id);
+
+        let credential_configurations_supported = credential_configs
+            .into_iter()
+            .map(|(config_id, credential_kind)| {
+                let scope = format!("{config_id}_scope").parse().unwrap();
+                let type_metadata_uri = issuer_url
+                    .join_issuer_url("/issuance/type_metadata")
+                    .join_config_id(&config_id);
+
+                let config = match credential_kind.format {
+                    Format::MsoMdoc => CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
+                        credential_kind.attestation_type,
+                        scope,
+                        vec![ProofType::Jwt],
+                        vec![],
+                        vec![],
+                        type_metadata_uri,
+                    ),
+                    Format::SdJwt => CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
+                        credential_kind.attestation_type,
+                        scope,
+                        vec![ProofType::Jwt],
+                        vec![],
+                        vec![],
+                        type_metadata_uri,
+                    ),
+                };
+
+                (config_id, config)
+            })
+            .collect();
 
         IssuerMetadata {
             credential_issuer: issuer_identifier,
@@ -82,40 +112,17 @@ impl IssuerMetadata {
                 batch_size: AtLeastTwoU64::try_new(10.try_into().unwrap()).unwrap(),
             }),
             display: None,
-            credential_configurations_supported: HashMap::from_iter(vec![(
-                config_id,
-                CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
-                    attestation_type.to_string(),
-                    vec![ProofType::Jwt],
-                    vec![],
-                    vec![],
-                    type_metadata_uri,
-                ),
-            )]),
+            credential_configurations_supported,
         }
     }
 }
 
 impl TokenRequest {
-    pub fn new_mock() -> TokenRequest {
-        TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                pre_authorized_code: "123".to_string().into(),
-            },
-            code_verifier: None,
-            client_id: None,
-            redirect_uri: None,
-        }
+    pub fn new_mock() -> Self {
+        Self::new_mock_with_pre_authorized_code("123".to_string().into())
     }
 
-    pub fn new_mock_with_pre_authorized_code(pre_authorized_code: String) -> TokenRequest {
-        TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                pre_authorized_code: pre_authorized_code.into(),
-            },
-            code_verifier: None,
-            client_id: None,
-            redirect_uri: None,
-        }
+    pub fn new_mock_with_pre_authorized_code(pre_authorized_code: AuthorizationCode) -> Self {
+        TokenRequest::new_pre_authorized(pre_authorized_code, "mock_client_id".to_string())
     }
 }

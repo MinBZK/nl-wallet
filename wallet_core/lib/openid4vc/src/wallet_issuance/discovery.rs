@@ -14,6 +14,7 @@ use super::IssuanceDiscovery;
 use super::IssuanceFlow;
 use super::WalletIssuanceError;
 use super::authorization::HttpAuthorizationSession;
+use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use crate::credential_offer::CredentialOffer;
@@ -29,7 +30,6 @@ use crate::metadata::well_known;
 use crate::metadata::well_known::WellKnownPath;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
-use crate::token::TokenRequestGrantType;
 
 pub struct HttpIssuanceDiscovery {
     http_client: HttpJsonClient,
@@ -52,17 +52,20 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        let (credential_configurations, credential_issuer, issuer_endpoints, flow, oauth_metadata) =
+        let (credential_configurations, credential_issuer, issuer_endpoints, flow) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
         let issuance_flow = match flow {
-            CredentialOfferFlow::AuthorizationCode { issuer_state } => {
+            CredentialOfferFlow::AuthorizationCode {
+                issuer_state,
+                auth_endpoints,
+            } => {
                 let authorization_session = HttpAuthorizationSession::create(
                     self.http_client.clone(),
                     credential_configurations,
                     credential_issuer,
                     issuer_endpoints,
-                    oauth_metadata,
+                    auth_endpoints,
                     client_id,
                     redirect_uri,
                     issuer_state,
@@ -71,14 +74,17 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
                 IssuanceFlow::AuthorizationCode { authorization_session }
             }
-            CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } => {
+            CredentialOfferFlow::PreAuthorizedCode {
+                pre_authorized_code,
+                token_endpoint,
+            } => {
                 let issuance_session = self
                     .create_issuance_session(
                         pre_authorized_code,
                         credential_configurations,
                         credential_issuer,
                         issuer_endpoints,
-                        oauth_metadata,
+                        &token_endpoint,
                         client_id,
                         issuer_trust_anchors,
                     )
@@ -97,10 +103,14 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
     ) -> Result<Self::Authorization, WalletIssuanceError> {
-        let (credential_configurations, credential_identifier, issuer_endpoints, flow, oauth_metadata) =
+        let (credential_configurations, credential_identifier, issuer_endpoints, flow) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
-        let CredentialOfferFlow::AuthorizationCode { issuer_state } = flow else {
+        let CredentialOfferFlow::AuthorizationCode {
+            issuer_state,
+            auth_endpoints,
+        } = flow
+        else {
             return Err(WalletIssuanceError::CredentialOfferNoAuthorizationCode);
         };
 
@@ -109,7 +119,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             credential_configurations,
             credential_identifier,
             issuer_endpoints,
-            oauth_metadata,
+            auth_endpoints,
             client_id,
             redirect_uri,
             issuer_state,
@@ -123,10 +133,14 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
-        let (credential_configurations, credential_identifier, issuer_endpoints, flow, oauth_metadata) =
+        let (credential_configurations, credential_identifier, issuer_endpoints, flow) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
-        let CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } = flow else {
+        let CredentialOfferFlow::PreAuthorizedCode {
+            pre_authorized_code,
+            token_endpoint,
+        } = flow
+        else {
             return Err(WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
         };
 
@@ -135,7 +149,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             credential_configurations,
             credential_identifier,
             issuer_endpoints,
-            oauth_metadata,
+            &token_endpoint,
             client_id,
             issuer_trust_anchors,
         )
@@ -160,14 +174,21 @@ struct NormalizedCredentialOffer {
 
 #[derive(Debug)]
 enum CredentialOfferGrant {
-    GrantWithFlow { flow: CredentialOfferFlow },
+    AuthorizationCode { issuer_state: Option<String> },
+    PreAuthorizedCode { pre_authorized_code: AuthorizationCode },
     NoKnownGrant,
 }
 
 #[derive(Debug)]
 enum CredentialOfferFlow {
-    AuthorizationCode { issuer_state: Option<String> },
-    PreAuthorizedCode { pre_authorized_code: AuthorizationCode },
+    AuthorizationCode {
+        issuer_state: Option<String>,
+        auth_endpoints: AuthorizationEndpoints,
+    },
+    PreAuthorizedCode {
+        pre_authorized_code: AuthorizationCode,
+        token_endpoint: Url,
+    },
 }
 
 impl NormalizedCredentialOffer {
@@ -188,10 +209,8 @@ impl NormalizedCredentialOffer {
                     return Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported);
                 }
 
-                let grant = CredentialOfferGrant::GrantWithFlow {
-                    flow: CredentialOfferFlow::PreAuthorizedCode {
-                        pre_authorized_code: pre_authorized_code.pre_authorized_code,
-                    },
+                let grant = CredentialOfferGrant::PreAuthorizedCode {
+                    pre_authorized_code: pre_authorized_code.pre_authorized_code,
                 };
 
                 (grant, pre_authorized_code.authorization_server)
@@ -201,10 +220,8 @@ impl NormalizedCredentialOffer {
                 pre_authorized_code: None,
                 ..
             }) => {
-                let grant = CredentialOfferGrant::GrantWithFlow {
-                    flow: CredentialOfferFlow::AuthorizationCode {
-                        issuer_state: authorization_code.issuer_state,
-                    },
+                let grant = CredentialOfferGrant::AuthorizationCode {
+                    issuer_state: authorization_code.issuer_state,
                 };
 
                 (grant, authorization_code.authorization_server)
@@ -229,6 +246,65 @@ impl NormalizedCredentialOffer {
         };
 
         Ok(normalized)
+    }
+}
+
+impl CredentialOfferFlow {
+    /// Determine which flow to use based on the preferred Grant present in the Credential Offer, combined with the
+    /// OAuth metadata, while extracting the relevant portions of that metadata.
+    fn try_from_offer_grant(
+        offer_grant: CredentialOfferGrant,
+        oauth_metadata: AuthorizationServerMetadata,
+    ) -> Result<Self, WalletIssuanceError> {
+        let flow = match offer_grant {
+            CredentialOfferGrant::AuthorizationCode { issuer_state } => {
+                let auth_endpoints = oauth_metadata
+                    .try_into()
+                    .map_err(WalletIssuanceError::AuthorizationEndpoints)?;
+
+                Self::AuthorizationCode {
+                    issuer_state,
+                    auth_endpoints,
+                }
+            }
+            CredentialOfferGrant::PreAuthorizedCode { pre_authorized_code } => Self::PreAuthorizedCode {
+                pre_authorized_code,
+                token_endpoint: oauth_metadata.token_endpoint,
+            },
+            CredentialOfferGrant::NoKnownGrant => {
+                // According to the OpenID4VCI 1.0 specification:
+                // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
+                //
+                // "If grants is not present or is empty, the Wallet MUST determine the Grant Types the Credential
+                // Issuer's Authorization Server supports using the respective metadata. "
+                //
+                // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
+                // for the Authorization Code grant type here and use that if the Authorization Server supports it.
+                if !oauth_metadata
+                    .grant_types_supported
+                    .as_ref()
+                    .map(|grant_types| grant_types.contains("authorization_code"))
+                    // RFC 8414 says about the "grant_types" field:
+                    // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
+                    //
+                    // If omitted, the default value is "["authorization_code", "implicit"]".
+                    .unwrap_or(true)
+                {
+                    return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
+                }
+
+                let auth_endpoints = oauth_metadata
+                    .try_into()
+                    .map_err(WalletIssuanceError::AuthorizationEndpoints)?;
+
+                Self::AuthorizationCode {
+                    issuer_state: None,
+                    auth_endpoints,
+                }
+            }
+        };
+
+        Ok(flow)
     }
 }
 
@@ -315,7 +391,6 @@ impl HttpIssuanceDiscovery {
             IssuerIdentifier,
             IssuerEndpoints,
             CredentialOfferFlow,
-            AuthorizationServerMetadata,
         ),
         WalletIssuanceError,
     > {
@@ -363,41 +438,9 @@ impl HttpIssuanceDiscovery {
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
-        let flow = match credential_offer.grant {
-            CredentialOfferGrant::GrantWithFlow { flow } => flow,
-            CredentialOfferGrant::NoKnownGrant => {
-                // According to the OpenID4VCI 1.0 specification:
-                // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
-                //
-                // "If grants is not present or is empty, the Wallet MUST determine the Grant Types the Credential
-                // Issuer's Authorization Server supports using the respective metadata. "
-                //
-                // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
-                // for the Authorization Code grant type here and use that if the Authorization Server supports it.
-                if !oauth_metadata
-                    .grant_types_supported
-                    .as_ref()
-                    .map(|grant_types| grant_types.contains("authorization_code"))
-                    // RFC 8414 says about the "grant_types" field:
-                    // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
-                    //
-                    // If omitted, the default value is "["authorization_code", "implicit"]".
-                    .unwrap_or(true)
-                {
-                    return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
-                }
+        let flow = CredentialOfferFlow::try_from_offer_grant(credential_offer.grant, oauth_metadata)?;
 
-                CredentialOfferFlow::AuthorizationCode { issuer_state: None }
-            }
-        };
-
-        Ok((
-            credential_configs,
-            credential_issuer,
-            issuer_endpoints,
-            flow,
-            oauth_metadata,
-        ))
+        Ok((credential_configs, credential_issuer, issuer_endpoints, flow))
     }
 
     #[expect(clippy::too_many_arguments, reason = "internal helper method")]
@@ -407,25 +450,20 @@ impl HttpIssuanceDiscovery {
         credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
-        oauth_metadata: AuthorizationServerMetadata,
+        token_endpoint: &Url,
         client_id: String,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
 
-        let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-            code_verifier: None,
-            client_id: Some(client_id),
-            redirect_uri: None,
-        };
+        let token_request = TokenRequest::new_pre_authorized(pre_authorized_code, client_id);
 
         HttpIssuanceSession::create(
             message_client,
             credential_configurations,
             credential_issuer,
             issuer_endpoints,
-            &oauth_metadata.token_endpoint,
+            token_endpoint,
             token_request,
             issuer_trust_anchors,
         )
@@ -476,7 +514,6 @@ mod test {
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
     use crate::token::TokenResponse;
-    use crate::token::TokenType;
     use crate::wallet_issuance::AuthorizationSession;
     use crate::wallet_issuance::IssuanceFlow;
     use crate::wallet_issuance::IssuanceSession;
@@ -509,7 +546,11 @@ mod test {
                 CONFIG_ID.as_ref(): {
                     "format": "mso_mdoc",
                     "doctype": PID_ATTESTATION_TYPE,
-                    "type_metadata_uri": issuer_identifier.as_issuer_url().join_issuer_url("/issuance/type_metadata").join_config_id(&CONFIG_ID),
+                    "scope": "pid_scope",
+                    "type_metadata_uri": issuer_identifier
+                                            .as_issuer_url()
+                                            .join_issuer_url("/issuance/type_metadata")
+                                            .join_config_id(&CONFIG_ID),
                 }
             },
         });
@@ -610,14 +651,7 @@ mod test {
             credential_previews: vec_nonempty![preview],
         };
 
-        let token_response = TokenResponse {
-            access_token: "mock_access_token".to_string().into(),
-            token_type: TokenType::DPoP,
-            refresh_token: None,
-            scope: None,
-            expires_in: None,
-            authorization_details: None,
-        };
+        let token_response = TokenResponse::new("mock_access_token".to_string().into());
 
         let issuer_identifier = httpmock_issuer_add_metadata(
             &server,

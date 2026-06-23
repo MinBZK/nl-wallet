@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -12,13 +13,14 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use openid4vc::authorization::PushedAuthorizationResponse;
-use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::pkce::PkcePair;
+use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::AlwaysAuthorizingFlow;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
@@ -29,7 +31,7 @@ use openid4vc::test::mock_issuable_document_with_attrs;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::mock_type_metadata;
 use openid4vc::test::mock_type_metadata_with_required_attr;
-use openid4vc::test::setup_mock_authorizing_issuer_from_type_metadata;
+use openid4vc::test::setup_mock_authorizing_issuer_from_sd_jwt_metadata;
 use openid4vc::test::setup_mock_issuer;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::CredentialPreview;
@@ -87,7 +89,6 @@ struct AuthCodeFlowServer {
 struct PreAuthCodeFlowServer {
     issuer: Arc<MockIssuer<TimeGenerator>>,
     trust_anchors: TrustAnchors,
-    issuer_identifier: IssuerIdentifier,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
 }
@@ -115,7 +116,7 @@ async fn start_auth_code_flow_server_with(
     let sessions = Arc::new(MemorySessionStore::default());
 
     let flow = AlwaysAuthorizingFlow::new(documents);
-    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_type_metadata(
+    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_sd_jwt_metadata(
         issuer_identifier.clone(),
         type_metadata,
         sessions,
@@ -155,8 +156,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let (issuer, trust_anchors, wia_keypair) =
-        setup_mock_issuer(issuer_identifier.clone(), attestation_count, sessions);
+    let (issuer, trust_anchors, wia_keypair) = setup_mock_issuer(issuer_identifier, attestation_count, sessions);
     let issuer = Arc::new(issuer);
 
     // Pre-authorized-code flow mounts the issuance endpoints standalone.
@@ -173,32 +173,9 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
     PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        issuer_identifier,
         wia_keypair,
         tls_trust_anchor,
     }
-}
-
-fn make_credential_offer_url(
-    issuer_identifier: IssuerIdentifier,
-    attestation_count: NonZeroUsize,
-    pre_authorized_code: Option<AuthorizationCode>,
-) -> Url {
-    let config_ids = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
-        .iter()
-        .map(|attestation_type| attestation_type.to_string().into())
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
-
-    let credential_offer = match pre_authorized_code {
-        None => CredentialOffer::new_authorization(issuer_identifier, config_ids, None),
-        Some(pre_authorized_code) => {
-            CredentialOffer::new_pre_authorized(issuer_identifier, config_ids, pre_authorized_code)
-        }
-    };
-
-    CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url()
 }
 
 fn verify_issued_credentials(
@@ -235,8 +212,9 @@ fn verify_issued_credentials(
 
 /// Simulate wallet issuance, by going through discovery, the `/authorize` redirect (playing the user-agent)
 /// and the wallet redirect, returning the issuance session holding the credential previews.
-async fn start_issuance_session(server: &AuthCodeFlowServer, attestation_count: NonZeroUsize) -> HttpIssuanceSession {
-    let credential_offer_url = make_credential_offer_url(server.issuer_identifier.clone(), attestation_count, None);
+async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSession {
+    let credential_offer = server.authorizing_issuer.authorization_code_credential_offer();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
     let redirect_uri = Url::parse("https://wallet.example.com/callback").unwrap();
 
     let discovery = HttpIssuanceDiscovery::new(
@@ -319,7 +297,7 @@ async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
     let server = start_auth_code_flow_server(attestation_count).await;
-    let mut session = start_issuance_session(&server, attestation_count).await;
+    let mut session = start_issuance_session(&server).await;
 
     assert_eq!(session.credential_previews().len(), attestation_count.get());
 
@@ -352,7 +330,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     )];
     let server = start_auth_code_flow_server_with(vec![type_metadata], documents).await;
 
-    let mut session = start_issuance_session(&server, NonZeroUsize::MIN).await;
+    let mut session = start_issuance_session(&server).await;
 
     let previews = session.credential_previews();
     assert_eq!(previews.len(), 1);
@@ -377,16 +355,14 @@ async fn pre_authorized_code_flow(
     let PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        issuer_identifier,
         wia_keypair,
         tls_trust_anchor,
+        ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
-
-    let credential_offer_url =
-        make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
+    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
@@ -427,15 +403,13 @@ async fn reject_issuance() {
     let PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        issuer_identifier,
         tls_trust_anchor,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
-
-    let offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
+    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
@@ -443,7 +417,7 @@ async fn reject_issuance() {
 
     let flow = discovery
         .start(
-            &offer_url,
+            &credential_offer_url,
             MOCK_WALLET_CLIENT_ID.to_string(),
             "https://wallet.example.com/callback".parse().unwrap(),
             &trust_anchors,
@@ -464,7 +438,7 @@ async fn reject_issuance() {
 #[tokio::test]
 async fn par_rejects_unknown_client_id() {
     let AuthCodeFlowServer {
-        issuer_identifier,
+        authorizing_issuer,
         tls_trust_anchor,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
@@ -473,7 +447,15 @@ async fn par_rejects_unknown_client_id() {
         .build()
         .unwrap();
 
-    let par_url = format!("{}issuance/par", issuer_identifier.as_base_url().as_ref().as_str());
+    let par_url = format!(
+        "{}issuance/par",
+        authorizing_issuer
+            .issuer()
+            .issuer_identifier()
+            .as_base_url()
+            .as_ref()
+            .as_str()
+    );
     let response = http_client
         .post(&par_url)
         .form(&[
@@ -639,13 +621,24 @@ fn dpop_header_for(token_url: &Url) -> String {
 }
 
 /// Plant an `AuthCodeIssued` session against the given authorizing_issuer, returning the
-/// issuer-generated code the caller can use to drive `/token`.
-async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> AuthorizationCode {
+/// issuer-generated code and PKCE code verifier the caller can use to drive `/token`.
+async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> (AuthorizationCode, String) {
     let documents = mock_issuable_documents(NonZeroUsize::MIN);
-    authorizing_issuer
-        .complete_authorization(documents, "irrelevant-challenge".to_string())
+    let pkce_pair = S256PkcePair::generate();
+
+    let code = authorizing_issuer
+        .complete_authorization(
+            documents,
+            HashSet::from([
+                "com.example.pid_dc+sd-jwt".parse().unwrap(),
+                "other_scope".parse().unwrap(),
+            ]),
+            pkce_pair.code_challenge().to_string(),
+        )
         .await
-        .unwrap()
+        .unwrap();
+
+    (code, pkce_pair.into_code_verifier())
 }
 
 #[tokio::test]
@@ -657,7 +650,7 @@ async fn token_rejects_missing_code_verifier() {
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
-    let code = plant_authorized_session(&authorizing_issuer).await;
+    let (code, _code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -669,9 +662,10 @@ async fn token_rejects_missing_code_verifier() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        code_verifier: None,
         client_id: None,
         redirect_uri: None,
+        scope: None,
+        code_verifier: None,
     };
 
     let response = http_client
@@ -696,7 +690,7 @@ async fn token_rejects_unknown_code_verifier() {
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
-    let code = plant_authorized_session(&authorizing_issuer).await;
+    let (code, _code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -708,9 +702,10 @@ async fn token_rejects_unknown_code_verifier() {
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
         client_id: None,
         redirect_uri: None,
+        scope: None,
+        code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
     };
 
     let response = http_client
@@ -738,7 +733,7 @@ async fn token_rejects_grant_type_mismatch() {
     // Plant an authorization-code session, then try to redeem its code using the pre-authorized-code
     // grant. The code is placed in the `pre-authorized_code` field so the session is still found, and
     // the grant-type mismatch is what the handler must reject.
-    let code = plant_authorized_session(&authorizing_issuer).await;
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -752,9 +747,10 @@ async fn token_rejects_grant_type_mismatch() {
         grant_type: TokenRequestGrantType::PreAuthorizedCode {
             pre_authorized_code: code,
         },
-        code_verifier: None,
         client_id: None,
         redirect_uri: None,
+        scope: None,
+        code_verifier: Some(code_verifier),
     };
 
     let response = http_client
@@ -768,4 +764,69 @@ async fn token_rejects_grant_type_mismatch() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
     assert!(body.contains("unsupported_grant_type"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn token_rejects_scope_mismatch() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    // Reducing the scope in the Token Request should result in an "invalid_scope" error response.
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: None,
+        redirect_uri: None,
+        scope: Some(HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()])),
+        code_verifier: Some(code_verifier),
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_scope"), "unexpected body: {body}");
+
+    // However, including exactly the same scope as in the Authorization Request should be allowed.
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: None,
+        redirect_uri: None,
+        scope: Some(HashSet::from([
+            "com.example.pid_dc+sd-jwt".parse().unwrap(),
+            "other_scope".parse().unwrap(),
+        ])),
+        code_verifier: Some(code_verifier),
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
 }
