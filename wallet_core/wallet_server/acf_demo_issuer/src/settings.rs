@@ -2,17 +2,15 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use attestation_data::attributes::Attributes;
-use attestation_types::credential_format::Format;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use derive_more::Into;
 use issuer_common::settings::AuthorizingIssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::server_state::SessionStoreTimeouts;
 use serde::Deserialize;
-use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
@@ -49,20 +47,18 @@ pub enum UsecaseKind {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, Deserialize, Into)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct IssuableDocumentTemplate {
-    #[serde_as(as = "DisplayFromStr")]
-    format: Format,
-    attestation_type: String,
-    attributes: Attributes,
+    #[serde(flatten)]
+    pub credential_kind: CredentialKind,
+    pub attributes: Attributes,
 }
 
 impl IssuableDocumentTemplate {
     #[cfg(test)]
-    pub(crate) fn new(format: Format, attestation_type: String, attributes: Attributes) -> Self {
+    pub(crate) fn new(credential_kind: CredentialKind, attributes: Attributes) -> Self {
         Self {
-            format,
-            attestation_type,
+            credential_kind,
             attributes,
         }
     }

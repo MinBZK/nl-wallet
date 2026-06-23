@@ -54,6 +54,7 @@ use utils::vec_at_least::VecNonEmpty;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::Language;
 
+use crate::settings::IssuableDocumentTemplate;
 use crate::settings::Usecase;
 use crate::settings::UsecaseKind;
 use crate::translations::TRANSLATIONS;
@@ -141,8 +142,11 @@ fn issuable_documents(usecase: &Usecase) -> Result<VecNonEmpty<IssuableDocument>
         .documents
         .nonempty_iter()
         .map(|template| {
-            let (format, attestation_type, attributes) = template.clone().into();
-            IssuableDocument::try_new_with_random_id(CredentialKind::new(format, attestation_type), attributes)
+            let IssuableDocumentTemplate {
+                credential_kind,
+                attributes,
+            } = template.clone();
+            IssuableDocument::try_new_with_random_id(credential_kind, attributes)
                 .map_err(Error::InvalidIssuableDocuments)
         })
         .collect::<Result<VecNonEmpty<_>, _>>()?;
@@ -254,9 +258,12 @@ where
         .into_iter()
         .flat_map(|uc| uc.documents.as_ref())
         .map(|doc| {
-            let (_, attestation_type, attributes) = doc.clone().into();
+            let IssuableDocumentTemplate {
+                credential_kind,
+                attributes,
+            } = doc.clone();
             DocumentPreview {
-                attestation_type,
+                attestation_type: credential_kind.attestation_type,
                 attributes: flatten_attributes(&attributes),
             }
         })
@@ -395,6 +402,7 @@ mod tests {
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
+    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -444,7 +452,10 @@ mod tests {
         }))
         .into();
 
-        let template = IssuableDocumentTemplate::new(Format::SdJwt, ATTESTATION_TYPE.to_string(), attributes);
+        let template = IssuableDocumentTemplate::new(
+            CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string()),
+            attributes,
+        );
 
         HashMap::from([(
             USECASE_ID.to_string(),
