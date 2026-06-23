@@ -8,7 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     #[sea_orm(unique)]
-    pub issuer_state: String,
+    pub bridge_key: String,
     #[sea_orm(column_type = "JsonBinary")]
     pub entry: Json,
     pub expires_at: DateTimeWithTimeZone,
