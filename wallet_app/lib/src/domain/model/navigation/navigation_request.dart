@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../feature/blocked/argument/app_blocked_screen_argument.dart';
 import '../../../feature/card/detail/argument/card_detail_screen_argument.dart';
 import '../../../feature/disclosure/argument/disclosure_screen_argument.dart';
+import '../../../feature/error/invariant/argument/invariant_error_screen_argument.dart';
 import '../../../feature/issuance/argument/issuance_screen_argument.dart';
 import '../../../feature/sign/argument/sign_screen_argument.dart';
 import '../../../navigation/wallet_routes.dart';
@@ -133,5 +134,12 @@ abstract class NavigationRequest with _$NavigationRequest {
     removeUntil: WalletRoutes.splashRoute,
     navigatePrerequisites: [],
     argument: AppBlockedScreenArgument(reason: reason).toJson(),
+  );
+
+  factory NavigationRequest.invariantError({String? code}) => NavigationRequest.generic(
+    WalletRoutes.invariantErrorRoute,
+    removeUntil: WalletRoutes.splashRoute,
+    navigatePrerequisites: [],
+    argument: InvariantErrorScreenArgument(code: code).toJson(),
   );
 }

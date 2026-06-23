@@ -69,7 +69,7 @@ class QrActionSheet extends StatelessWidget {
   static Future<void> show(BuildContext context) {
     return showModalBottomSheet<void>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled,
+      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       isScrollControlled: true,
       builder: (BuildContext context) {
         return const WalletScrollbar(

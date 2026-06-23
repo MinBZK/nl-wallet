@@ -65,9 +65,11 @@ class CheckPinError extends ApplicationError {
 /// Hardware unsupported error, indicates the device does not meet the requirements
 class HardwareUnsupportedError extends ApplicationError {
   const HardwareUnsupportedError({required super.sourceError});
+}
 
-  @override
-  List<Object?> get props => [...super.props];
+/// Unrecoverable wallet_core invariant violation (programming error / panic)
+class ApplicationStateError extends ApplicationError {
+  const ApplicationStateError({required super.sourceError});
 }
 
 class SessionError extends ApplicationError {
