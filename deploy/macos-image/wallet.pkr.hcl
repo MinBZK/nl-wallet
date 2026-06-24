@@ -9,13 +9,13 @@ packer {
 
 variable "vm_base_name" {
   type = string
-  # macos-tahoe-xcode:26.2
-  default = "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:1f7b38002dcfc2927a2e33a405a44867e3d140d92fa295f9e89c018edfe4214a"
+  # macos-tahoe-xcode:26.5
+  default = "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:61f6e857a3d65dd2f8daf9c51c7b837fa458bcc9181ae8556e645b534dab6bf6"
 }
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.3.7"
+  default = "tahoe-wallet:0.3.8"
 }
 
 source "tart-cli" "tart" {
@@ -23,7 +23,7 @@ source "tart-cli" "tart" {
   vm_name      = "${var.vm_name}"
   cpu_count    = 4
   memory_gb    = 8
-  disk_size_gb = 120
+  disk_size_gb = 140
   headless     = true
   ssh_password = "admin"
   ssh_username = "admin"
