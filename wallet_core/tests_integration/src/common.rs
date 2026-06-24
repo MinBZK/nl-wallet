@@ -1055,10 +1055,6 @@ pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
 
     settings.authorizing_issuer_settings.wallet_redirect_uris = vec_nonempty![wallet_issuance_redirect_uri()];
 
-    // The demo issuer issues generic (non-PID) attestations, for which the wallet does not present a
-    // WIA, so it must not require one (regardless of what a stale rendered config carries).
-    settings.authorizing_issuer_settings.wia_trust_anchors = None;
-
     let server_settings = &mut settings.authorizing_issuer_settings.issuer_settings.server_settings;
     server_settings.storage.url = db_url;
     server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();

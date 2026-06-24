@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -68,16 +67,9 @@ pub struct AuthorizingIssuerSettings {
     /// Request. Validated by [`AuthorizingIssuer`] at `/par`.
     pub wallet_redirect_uris: VecNonEmpty<Url>,
 
-    /// Trust anchors for verifying the wallet attestation (Wallet Instance Attestation). Mandatory in
-    /// OpenID4VCI 1.0, but the wallet only presents a WIA during PID issuance so far; issuers whose flow
-    /// does not yet yield a WIA (e.g. the demo issuer) leave this unset and do not require one. Once the
-    /// wallet presents a WIA for every flow this should become required again.
-    #[debug(skip)]
-    #[serde(default)]
-    pub wia_trust_anchors: Option<TrustAnchors>,
-
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+    // TODO (PVW-5550): add mandatory wia_trust_anchors config
 }
 
 impl AuthorizingIssuerSettings {
@@ -110,14 +102,11 @@ impl AuthorizingIssuerSettings {
     {
         let Self {
             wallet_redirect_uris,
-            wia_trust_anchors,
             issuer_settings,
         } = self;
 
-        let wia_config = wia_trust_anchors.map(|wia_trust_anchors| WiaConfig { wia_trust_anchors });
-
         let (issuer, database_checkers, store_connection, server_settings) =
-            issuer_settings.into_issuer(hsm, wia_config).await?;
+            issuer_settings.into_issuer(hsm, None).await?;
 
         let par_store = IssuerParStore::new(store_connection.clone());
         let flow =
