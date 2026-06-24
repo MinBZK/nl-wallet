@@ -1,5 +1,6 @@
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use zeroize::Zeroize;
 
 use crate::pin::key::Pin;
 
@@ -26,7 +27,8 @@ const MIN_UNIQUE_DIGITS: usize = 2;
 const RADIX: usize = 10;
 
 /// This function will check whether the pin has a valid length.
-fn pin_length_should_be_correct(pin: &str) -> Result<(), PinValidationError> {
+fn pin_length_should_be_correct(pin: &Pin) -> Result<(), PinValidationError> {
+    let pin: &str = pin.as_ref();
     if pin.len() != EXACT_LENGTH {
         Err(PinValidationError::InvalidLength)
     } else {
@@ -36,7 +38,8 @@ fn pin_length_should_be_correct(pin: &str) -> Result<(), PinValidationError> {
 
 /// This function will convert a pin to a vector of digits.
 /// It will return an error when non-digits are detected.
-fn parse_pin_to_digits(pin: &str) -> Result<Vec<u8>, PinValidationError> {
+fn parse_pin_to_digits(pin: &Pin) -> Result<Vec<u8>, PinValidationError> {
+    let pin: &str = pin.as_ref();
     let digit_options: Vec<Option<u32>> = pin.chars().map(|c| c.to_digit(RADIX as u32)).collect();
     if digit_options.iter().any(|c| c.is_none()) {
         Err(PinValidationError::NonDigits)
@@ -93,11 +96,14 @@ fn pin_should_not_be_ascending_or_descending(digits: &[u8]) -> Result<(), PinVal
 /// This function will check whether a pin is not too simple.
 #[sentry_capture_error]
 pub fn validate_pin(pin: &Pin) -> Result<(), PinValidationError> {
-    let pin = pin.as_ref();
     pin_length_should_be_correct(pin)?;
-    let digits = parse_pin_to_digits(pin)?;
+
+    let mut digits = parse_pin_to_digits(pin)?;
     pin_should_contain_enough_unique_digits(&digits)?;
     pin_should_not_be_ascending_or_descending(&digits)?;
+
+    digits.zeroize();
+
     Ok(())
 }
 
