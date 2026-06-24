@@ -181,7 +181,6 @@ pub async fn setup_wallet_and_default_env(
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
-        pacf_issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
 }
@@ -229,7 +228,6 @@ pub struct IssuerUrl {
 pub struct IssuerData {
     pub pid_issuer: IssuerUrl,
     pub issuance_server: IssuerUrl,
-    pub pacf_issuance_server: IssuerUrl,
     pub degree_client_ids: DegreeClientIds,
 }
 
@@ -299,12 +297,10 @@ pub async fn setup_env_default(
         verification_server_settings(db_setup.verification_server_url()),
         pid_issuer_settings(db_setup.pid_issuer_url()),
         issuance_server_settings(db_setup.issuance_server_url()),
-        pacf_issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
 }
 
-#[expect(clippy::too_many_arguments, reason = "integration test setup function")]
 pub async fn setup_env(
     (static_settings, static_root_ca): (StaticSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
@@ -317,7 +313,6 @@ pub async fn setup_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-    pacf_issuance_server_settings: PacfIssuanceServerSettings,
 ) -> (
     ConfigServerConfiguration,
     MockDeviceConfig,
@@ -362,8 +357,6 @@ pub async fn setup_env(
 
     let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm.clone())).await;
 
-    let pacf_issuance_server_url = start_pacf_issuance_server(pacf_issuance_server_settings, Some(hsm.clone())).await;
-
     let recovery_code_secret_key =
         SecretKeyVariant::from_settings(pid_issuer_settings.recovery_code.clone(), Some(hsm.clone()))
             .expect("could not initialize recovery code secret key");
@@ -388,7 +381,6 @@ pub async fn setup_env(
 
     let issuer_data = IssuerData {
         issuance_server: issuance_server_url,
-        pacf_issuance_server: pacf_issuance_server_url,
         pid_issuer: pid_issuer_url,
         degree_client_ids,
     };
@@ -529,7 +521,6 @@ where
 }
 
 /// Create an instance of [`Wallet`].
-#[expect(clippy::too_many_arguments, reason = "integration test setup function")]
 pub async fn setup_wallet_and_env(
     db_setup: &DbSetup,
     vendor: WalletDeviceVendor,
@@ -542,7 +533,6 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-    pacf_issuance_config: PacfIssuanceServerSettings,
 ) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
     let (config_server_config, mock_device_config, wallet_config, issuer_data, verifier_server_urls) = setup_env(
         static_server_settings(),
@@ -551,7 +541,6 @@ pub async fn setup_wallet_and_env(
         verification_server_settings(db_setup.verification_server_url()),
         issuer_config,
         issuance_config,
-        pacf_issuance_config,
     )
     .await;
 
@@ -598,13 +587,13 @@ pub async fn setup_wallet_env(db_setup: &DbSetup, vendor: WalletDeviceVendor) ->
 /// Start just the pre-authorized-code issuer (`pacf_issuance_server`). Its keys are software-backed, so
 /// no HSM is required.
 pub async fn setup_pre_auth_env(db_setup: &DbSetup) -> IssuerUrl {
-    start_pacf_issuance_server(pacf_issuance_server_settings(db_setup.issuance_server_url()), None).await
+    start_pacf_issuance_server(pacf_issuance_server_settings(db_setup.issuance_server_url())).await
 }
 
 /// Start just the authorization-code-flow issuer (`acf_demo_issuer`). Its keys are software-backed, so
 /// no HSM is required.
 pub async fn setup_auth_code_env(db_setup: &DbSetup) -> IssuerUrl {
-    start_acf_demo_issuer_server(acf_demo_issuer_settings(db_setup.acf_demo_issuer_url()), None).await
+    start_acf_demo_issuer_server(acf_demo_issuer_settings(db_setup.acf_demo_issuer_url())).await
 }
 
 /// Build the static authorization-code credential offer the demo issuer's QR encodes: a by-value
@@ -1009,7 +998,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     }
 }
 
-pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
+pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
@@ -1021,7 +1010,7 @@ pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings
 
     let serve_status_lists = settings.0.status_lists.serve;
 
-    let (issuer, _, _, server_settings) = settings.0.into_issuer(hsm.clone(), None).await.unwrap();
+    let (issuer, _, _, server_settings) = settings.0.into_issuer(None, None).await.unwrap();
 
     let issuer = Arc::new(issuer);
 
@@ -1082,7 +1071,7 @@ pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
     settings
 }
 
-pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
+pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
@@ -1100,7 +1089,7 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings, h
 
     let (issuer, _, _, server_settings) = settings
         .authorizing_issuer_settings
-        .into_authorizing_issuer(hsm, |store_connection| {
+        .into_authorizing_issuer(None, |store_connection| {
             Ok::<_, Infallible>(DemoAuthorizationCodeFlow::new(
                 store_connection,
                 consent_base_url,
