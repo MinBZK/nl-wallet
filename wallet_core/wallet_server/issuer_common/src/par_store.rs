@@ -6,12 +6,15 @@ use openid4vc::store::MemoryStore;
 use openid4vc::store::Store;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
+use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseConnection;
+use sea_orm::DbBackend;
 use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::NotSet;
 use sea_orm::QueryFilter;
 use sea_orm::Set;
+use sea_orm::Statement;
 use server_utils::store::StoreConnection;
 use tracing::info;
 use utils::generator::Generator;
@@ -19,6 +22,9 @@ use utils::generator::TimeGenerator;
 
 use crate::entity::prelude::*;
 use crate::entity::pushed_authorization_request;
+
+/// Maximum rows deleted per statement during cleanup, to bound lock duration and DB load.
+const CLEANUP_BATCH_SIZE: u64 = 1_000;
 
 #[derive(Debug, thiserror::Error)]
 pub enum IssuerParStoreError {
@@ -150,16 +156,43 @@ where
     async fn cleanup(&self) -> Result<(), Self::Error> {
         match &self.backend {
             ParStoreBackend::Postgres(connection) => {
-                // TODO (PVW-5911): limit the number of deleted rows by selecting ids (using FOR UPDATE SKIP LOCKED)
-                // and then delete
-                let result = PushedAuthorizationRequest::delete_many()
-                    .filter(pushed_authorization_request::Column::ExpiresAt.lte(self.now()))
-                    .exec(connection)
-                    .await
-                    .map_err(IssuerParStoreError::DbCleanup)?;
+                let now = self.now();
+                let mut total_deleted: u64 = 0;
 
-                if result.rows_affected > 0 {
-                    info!("Deleted {} expired PAR request(s) from storage", result.rows_affected);
+                // Delete in bounded batches so a single statement never holds a large lock or scans
+                // the whole backlog. `FOR UPDATE SKIP LOCKED` skips rows currently locked by a
+                // concurrent `consume`; the loop drains the rest, stopping once a batch removes
+                // fewer rows than the limit (nothing left to delete).
+                loop {
+                    let result = connection
+                        .execute(Statement::from_sql_and_values(
+                            DbBackend::Postgres,
+                            r#"
+                            WITH rows_to_delete AS (
+                                SELECT id
+                                FROM pushed_authorization_request
+                                WHERE expires_at <= $1
+                                ORDER BY expires_at
+                                LIMIT $2
+                                FOR UPDATE SKIP LOCKED
+                            )
+                            DELETE FROM pushed_authorization_request par
+                            USING rows_to_delete
+                            WHERE par.id = rows_to_delete.id
+                            "#,
+                            [now.into(), (CLEANUP_BATCH_SIZE as i64).into()],
+                        ))
+                        .await
+                        .map_err(IssuerParStoreError::DbCleanup)?;
+
+                    total_deleted += result.rows_affected();
+                    if result.rows_affected() < CLEANUP_BATCH_SIZE {
+                        break;
+                    }
+                }
+
+                if total_deleted > 0 {
+                    info!("Deleted {total_deleted} expired PAR request(s) from storage");
                 }
 
                 Ok(())
