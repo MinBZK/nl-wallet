@@ -141,6 +141,9 @@ pub enum TokenRequestError {
 
     #[error("credential type in format \"{0}\" not offered: {1}")]
     CredentialTypeNotOffered(Format, String),
+
+    #[error("error verifying WIA: {0}")]
+    Wia(#[source] WiaError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -716,6 +719,7 @@ where
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
+        wia_disclosure: WiaDisclosure,
     ) -> Result<(TokenResponse, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
@@ -735,6 +739,8 @@ where
                 &self.issuer_data.server_url,
                 &self.issuer_data.credential_configs,
                 self.issuer_data.batch_size,
+                wia_disclosure,
+                self.issuer_data.wia_config.as_ref(),
             );
 
         let (response, next) = match result {
@@ -947,6 +953,8 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
+        wia_disclosure: WiaDisclosure,
+        wia_config: Option<&WiaConfig>,
     ) -> ProcessTokenRequest {
         let result = self.validate_and_build_token_response(
             token_request,
@@ -954,6 +962,9 @@ impl Session<AuthCodeIssued> {
             server_url,
             credential_configurations,
             batch_size,
+            wia_disclosure,
+            wia_config,
+            accepted_wallet_client_ids,
         );
 
         self.finalize_token_response(accepted_wallet_client_ids, result)
@@ -966,11 +977,26 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
+        wia_disclosure: WiaDisclosure,
+        wia_config: Option<&WiaConfig>,
+        accepted_wallet_client_ids: &[String],
     ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
         let session_data = self.session_data();
 
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
+
+        wia_config
+            .map(|wia_config| {
+                wia_disclosure
+                    .verify(
+                        &wia_config.wia_trust_anchors,
+                        server_url.as_ref().as_str(),
+                        accepted_wallet_client_ids,
+                    )
+                    .map_err(TokenRequestError::Wia)
+            })
+            .transpose()?;
 
         build_token_response(
             token_request,

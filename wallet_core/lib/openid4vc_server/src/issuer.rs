@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -26,7 +27,7 @@ use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
-use derive_more::From;
+use derive_more::Into;
 use http::request::Parts;
 use jwt::wia::Wia;
 use jwt::wia::WiaDisclosure;
@@ -285,6 +286,8 @@ where
 
 async fn token<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
+    wia_header: WiaHeader<TokenErrorCode>,
+    wia_pop_header: WiaPopHeader<TokenErrorCode>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
@@ -294,7 +297,11 @@ where
 {
     let (response, dpop_nonce) = state
         .issuer
-        .process_token_request(token_request, dpop)
+        .process_token_request(
+            token_request,
+            dpop,
+            WiaDisclosure::new(wia_header.into(), wia_pop_header.into()),
+        )
         .await
         .inspect_err(|error| warn!("processing token request failed: {error}"))?;
 
@@ -313,8 +320,8 @@ async fn credential_offer<K, L, S, N, PAS, AF>(
 
 async fn pushed_authorization_request<K, L, S, N, PAS, AF>(
     State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
-    WiaHeader(wia): WiaHeader,
-    WiaPopHeader(wia_pop): WiaPopHeader,
+    wia_header: WiaHeader<ParErrorCode>,
+    wia_pop_header: WiaPopHeader<ParErrorCode>,
     Form(authorization_request): Form<VciAuthorizationRequest>,
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
@@ -322,7 +329,10 @@ where
 {
     let response = state
         .authorizing_issuer
-        .process_pushed_authorization_request(authorization_request, &WiaDisclosure::new(wia, wia_pop))
+        .process_pushed_authorization_request(
+            authorization_request,
+            &WiaDisclosure::new(wia_header.into(), wia_pop_header.into()),
+        )
         .await
         .inspect_err(|error| warn!("processing pushed authorization request failed: {error}"))?;
 
@@ -347,49 +357,73 @@ where
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
 }
 
-#[derive(Debug, Clone, From)]
-struct WiaHeader(Wia);
+#[derive(Debug, Clone, Into)]
+struct WiaHeader<E>(#[into] Wia, PhantomData<E>);
 
-impl<S: Send + Sync> FromRequestParts<S> for WiaHeader {
-    type Rejection = ErrorResponse<ParErrorCode>;
+#[derive(Debug, Clone, Into)]
+struct WiaPopHeader<E>(#[into] WiaPop, PhantomData<E>);
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let wia: Wia = parse_from_header("oauth-client-attestation", parts)?;
-        Ok(wia.into())
+trait WiaRejection: Sized + Send + Sync + 'static {
+    fn invalid_client_attestation(description: String) -> ErrorResponse<Self>;
+}
+
+impl WiaRejection for ParErrorCode {
+    fn invalid_client_attestation(description: String) -> ErrorResponse<Self> {
+        ErrorResponse {
+            error: Self::InvalidClientAttestation,
+            error_description: Some(description),
+            error_uri: None,
+        }
     }
 }
 
-#[derive(Debug, Clone, From)]
-struct WiaPopHeader(WiaPop);
-
-impl<S: Send + Sync> FromRequestParts<S> for WiaPopHeader {
-    type Rejection = ErrorResponse<ParErrorCode>;
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let wia_pop: WiaPop = parse_from_header("oauth-client-attestation-pop", parts)?;
-        Ok(wia_pop.into())
+impl WiaRejection for TokenErrorCode {
+    fn invalid_client_attestation(description: String) -> ErrorResponse<Self> {
+        ErrorResponse {
+            error: Self::InvalidClientAttestation,
+            error_description: Some(description),
+            error_uri: None,
+        }
     }
 }
 
-fn parse_from_header<T: FromStr>(name: &str, parts: &mut Parts) -> Result<T, ErrorResponse<ParErrorCode>> {
-    let jws = parts
+impl<S, E> FromRequestParts<S> for WiaHeader<E>
+where
+    S: Send + Sync,
+    E: WiaRejection,
+    ErrorResponse<E>: IntoResponse,
+{
+    type Rejection = ErrorResponse<E>;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let wia = parse_from_header::<Wia, E>(WIA_HEADER_NAME, parts)?;
+        Ok(Self(wia, PhantomData))
+    }
+}
+
+impl<S, E> FromRequestParts<S> for WiaPopHeader<E>
+where
+    S: Send + Sync,
+    E: WiaRejection,
+    ErrorResponse<E>: IntoResponse,
+{
+    type Rejection = ErrorResponse<E>;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let wia_pop = parse_from_header::<WiaPop, E>(WIA_POP_HEADER_NAME, parts)?;
+        Ok(Self(wia_pop, PhantomData))
+    }
+}
+
+fn parse_from_header<T: FromStr, E: WiaRejection>(name: &str, parts: &mut Parts) -> Result<T, ErrorResponse<E>> {
+    parts
         .headers
         .get(name)
-        .ok_or_else(|| wia_error_response("missing WIA or WIA header".to_string()))?
+        .ok_or_else(|| E::invalid_client_attestation(format!("missing header '{name}'")))?
         .to_str()
-        .map_err(|_| wia_error_response("WIA or WIA header contained non-UTF bytes".to_string()))?
+        .map_err(|_| E::invalid_client_attestation(format!("header '{name}' contains non-UTF-8 bytes")))?
         .parse()
-        .map_err(|_| wia_error_response("WIA or WIA failed to parse as JWT".to_string()))?;
-
-    Ok(jws)
-}
-
-fn wia_error_response(error_description: String) -> ErrorResponse<ParErrorCode> {
-    ErrorResponse {
-        error: ParErrorCode::InvalidClientAttestation,
-        error_description: Some(error_description),
-        error_uri: None,
-    }
+        .map_err(|_| E::invalid_client_attestation(format!("header '{name}' is not a valid JWT")))
 }
 
 static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");

@@ -178,6 +178,10 @@ pub enum TokenErrorCode {
     UnsupportedGrantType,
     InvalidScope,
 
+    /// Invalid Client Attestation / WIA.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    InvalidClientAttestation,
+
     /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
     /// This error type is not defined in the specs, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
@@ -200,6 +204,7 @@ impl From<TokenRequestError> for TokenErrorCode {
             TokenRequestError::SessionNotFound
             | TokenRequestError::MissingCodeVerifier
             | TokenRequestError::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
+            TokenRequestError::Wia(_) => TokenErrorCode::InvalidClientAttestation,
         }
     }
 }
@@ -303,7 +308,7 @@ impl ErrorStatusCode for TokenErrorCode {
             | Self::UnauthorizedClient
             | Self::UnsupportedGrantType
             | Self::InvalidScope => StatusCode::BAD_REQUEST,
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::InvalidClient | Self::InvalidClientAttestation => StatusCode::UNAUTHORIZED,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
         }
