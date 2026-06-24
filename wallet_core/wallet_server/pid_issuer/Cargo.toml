@@ -73,6 +73,7 @@ token_status_list.path = "../../lib/token_status_list"
 
 [dev-dependencies]
 httpmock.workspace = true
+josekit.workspace = true
 jsonwebtoken.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
