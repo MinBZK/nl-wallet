@@ -36,7 +36,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Release
       - ASPNETCORE_URLS=http://+:5010
     ports:
-      - "5010:5010"
+      - "${GBA_HC_MOCK_PORT}:5010"
     network_mode: bridge
 
   keycloak:
@@ -46,7 +46,8 @@ services:
       - KC_BOOTSTRAP_ADMIN_USERNAME=${KC_USERNAME}
       - KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_PASSWORD}
     ports:
-      - "8080:8080"
+      - "${KC_PORT_HTTP}:8080"
+      - "${KC_PORT_HTTPS}:8443"
     network_mode: bridge
     command:
       - start-dev

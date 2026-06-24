@@ -34,6 +34,8 @@ export DIGID_CONNECTOR_VERSION=${DIGID_CONNECTOR_VERSION:-"v4.0.3"}
 
 export KC_USERNAME="${KC_USERNAME:-keycloak}"
 export KC_PASSWORD="${KC_PASSWORD:-keycloak}"
+export KC_PORT_HTTP="${KC_PORT_HTTP:-8080}"
+export KC_PORT_HTTPS="${KC_PORT_HTTPS:-8443}"
 
 # Set to `10.0.2.2` for android or to `localhost` for ios
 # export SERVICES_HOST=10.0.2.2
@@ -62,6 +64,7 @@ export VERIFICATION_SERVER_IS_PORT=3012
 
 export BRP_SERVER_PORT=3013
 export GBA_HC_CONV_PORT=3014
+export GBA_HC_MOCK_PORT=5010
 
 # In rootless Docker, `host-gateway` resolves to the docker0 bridge IP inside rootlesskit's
 # isolated network namespace and cannot reach services on the real host. Use the host's actual
