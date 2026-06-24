@@ -1165,7 +1165,7 @@ pub async fn do_pid_issuance_with_purpose(
         .await
         .expect("Could not continue pid issuance");
     wallet
-        .accept_issuance(pin.into())
+        .accept_issuance(pin)
         .await
         .expect("Could not accept pid issuance");
     wallet
@@ -1206,11 +1206,11 @@ pub async fn do_degree_issuance(
         .unwrap();
 
     let attestation_previews = wallet
-        .continue_disclosure_based_issuance(&[0], pin.clone().into())
+        .continue_disclosure_based_issuance(&[0], pin.clone())
         .await
         .unwrap();
 
-    wallet.accept_issuance(pin.into()).await.unwrap();
+    wallet.accept_issuance(pin).await.unwrap();
 
     attestation_previews
 }

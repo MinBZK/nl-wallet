@@ -75,7 +75,7 @@ pub struct PinKey<'a> {
 
 impl PinKey<'_> {
     pub fn verifying_key(&self) -> Result<VerifyingKey, PinKeyError> {
-        let signing_key = pin_private_key(&self.salt, &self.pin)?;
+        let signing_key = pin_private_key(self.salt, self.pin)?;
         let verifying_key = *signing_key.verifying_key();
 
         Ok(verifying_key)
@@ -90,7 +90,7 @@ impl EcdsaKey for PinKey<'_> {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, PinKeyError> {
-        let key = pin_private_key(&self.salt, &self.pin)?;
+        let key = pin_private_key(self.salt, self.pin)?;
         let signature = p256::ecdsa::signature::Signer::sign(&key, msg);
 
         Ok(signature)

@@ -439,7 +439,7 @@ async fn assert_wallet_revoked(
 ) {
     // Checking the PIN sends a CheckPin instruction; the wallet provider informs us we are revoked.
     assert_matches!(
-        wallet.check_pin(pin.into()).await,
+        wallet.check_pin(pin).await,
         Err(WalletUnlockError::Instruction(InstructionError::AccountRevoked(actual))) if actual == revocation_data
     );
 
