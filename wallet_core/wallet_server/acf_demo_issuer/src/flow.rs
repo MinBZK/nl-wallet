@@ -436,10 +436,10 @@ mod tests {
         }))
         .into();
 
-        let template = IssuableDocumentTemplate::new(
-            CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string()),
+        let template = IssuableDocumentTemplate {
+            credential_kind: CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string()),
             attributes,
-        );
+        };
 
         HashMap::from([(
             USECASE_ID.to_string(),

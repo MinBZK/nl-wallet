@@ -32,7 +32,6 @@ dependencies = [
  "p256",
  "serde",
  "serde_valid",
- "serde_with",
  "server_utils",
  "status_lists",
  "thiserror 2.0.17",
