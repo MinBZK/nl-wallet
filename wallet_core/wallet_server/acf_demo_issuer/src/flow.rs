@@ -394,6 +394,8 @@ mod tests {
     use attestation_types::credential_format::Format;
     use indexmap::IndexMap;
     use openid4vc::authorization::VciAuthorizationRequest;
+    use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
+    use openid4vc::authorization_code_flow::AuthorizeOutcome;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
     use openid4vc::issuable_document::CredentialKind;
@@ -407,15 +409,19 @@ mod tests {
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionToken;
     use openid4vc::store::MemoryStore;
+    use openid4vc::store::Store;
     use openid4vc::test::MOCK_ATTRS;
     use openid4vc::test::mock_type_metadata;
     use openid4vc::test::setup_mock_issuer_from_sd_jwt_metadata;
     use p256::ecdsa::SigningKey;
     use server_utils::store::StoreConnection;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::CONSENT_PATH;
     use super::DemoAuthorizationCodeFlow;
+    use super::Error;
     use super::complete_consent;
     use crate::settings::IssuableDocumentTemplate;
     use crate::settings::Usecase;
@@ -437,7 +443,8 @@ mod tests {
     const USECASE_ID: &str = "diploma";
     const ATTESTATION_TYPE: &str = "com.example.diploma";
 
-    fn test_usecases() -> HashMap<String, Usecase> {
+    /// A single usecase keyed by [`USECASE_ID`] with the given `kind` and one SD-JWT document.
+    fn usecases_with_kind(kind: UsecaseKind) -> HashMap<String, Usecase> {
         let attributes: Attributes = IndexMap::from_iter(MOCK_ATTRS.map(|(key, val)| {
             (
                 key.to_string(),
@@ -454,18 +461,36 @@ mod tests {
         HashMap::from([(
             USECASE_ID.to_string(),
             Usecase {
-                kind: UsecaseKind::Consent,
+                kind,
                 documents: vec_nonempty![template],
             },
         )])
     }
 
+    fn test_usecases() -> HashMap<String, Usecase> {
+        usecases_with_kind(UsecaseKind::Consent)
+    }
+
+    fn flow_with_usecases(usecases: HashMap<String, Usecase>) -> DemoAuthorizationCodeFlow {
+        DemoAuthorizationCodeFlow::new(StoreConnection::Memory, &CONSENT_BASE_URL.parse().unwrap(), usecases)
+    }
+
     fn flow() -> DemoAuthorizationCodeFlow {
-        DemoAuthorizationCodeFlow::new(
-            StoreConnection::Memory,
-            &CONSENT_BASE_URL.parse().unwrap(),
-            test_usecases(),
-        )
+        flow_with_usecases(test_usecases())
+    }
+
+    fn test_context(issuer_state: Option<String>) -> WalletAuthorizationContext {
+        WalletAuthorizationContext {
+            redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
+            scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
+            state: None,
+            code_challenge: WALLET_CODE_CHALLENGE.to_string(),
+            issuer_state,
+        }
+    }
+
+    fn credential_kinds() -> VecNonEmpty<CredentialKind> {
+        vec_nonempty![CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string())]
     }
 
     fn authorizing_issuer_with_flow(
@@ -492,13 +517,7 @@ mod tests {
     async fn complete_consent_happy_path() {
         let (authorizing_issuer, sessions) = authorizing_issuer_with_flow(flow());
 
-        let context = WalletAuthorizationContext {
-            redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
-            scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
-            state: None,
-            code_challenge: WALLET_CODE_CHALLENGE.to_string(),
-            issuer_state: Some(USECASE_ID.to_string()),
-        };
+        let context = test_context(Some(USECASE_ID.to_string()));
 
         let code = complete_consent(&authorizing_issuer, &context).await.unwrap();
 
@@ -527,5 +546,64 @@ mod tests {
                 .iter()
                 .all(|(_config_id, doc)| doc.credential_kind.attestation_type == ATTESTATION_TYPE)
         );
+    }
+
+    #[tokio::test]
+    async fn authorize_happy_path() {
+        let flow = flow();
+        let context = test_context(Some(USECASE_ID.to_string()));
+
+        let outcome = flow.authorize(context, credential_kinds()).await.unwrap();
+
+        // The user-agent is redirected to the local consent page, carrying the flow-state token and the usecase.
+        let AuthorizeOutcome::RedirectTo(url) = outcome else {
+            panic!("expected a RedirectTo outcome");
+        };
+        assert_eq!(url.path(), format!("/{CONSENT_PATH}"));
+        let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
+        assert_eq!(params.get("usecase").map(String::as_str), Some(USECASE_ID));
+        let flow_state = params.get("state").expect("redirect should carry a state token");
+
+        // The wallet's request was stashed under that flow-state token.
+        let stored = flow
+            .state_bridge_store
+            .consume(flow_state.as_str())
+            .await
+            .unwrap()
+            .expect("the wallet context should have been stored under the flow-state token");
+        assert_eq!(stored.redirect_uri, WALLET_REDIRECT_URI.parse().unwrap());
+        assert_eq!(stored.issuer_state.as_deref(), Some(USECASE_ID));
+        assert_eq!(stored.code_challenge, WALLET_CODE_CHALLENGE);
+        assert_eq!(stored.scope, HashSet::from([WALLET_SCOPE.parse().unwrap()]));
+    }
+
+    #[tokio::test]
+    async fn authorize_missing_issuer_state() {
+        let flow = flow();
+        let context = test_context(None);
+
+        let error = flow.authorize(context, credential_kinds()).await.unwrap_err();
+
+        assert_matches!(error, Error::MissingIssuerState);
+    }
+
+    #[tokio::test]
+    async fn authorize_unknown_usecase() {
+        let flow = flow();
+        let context = test_context(Some("nonexistent".to_string()));
+
+        let error = flow.authorize(context, credential_kinds()).await.unwrap_err();
+
+        assert_matches!(error, Error::UnknownUsecase(usecase) if usecase == "nonexistent");
+    }
+
+    #[tokio::test]
+    async fn authorize_non_consent_usecase() {
+        let flow = flow_with_usecases(usecases_with_kind(UsecaseKind::Immediate));
+        let context = test_context(Some(USECASE_ID.to_string()));
+
+        let error = flow.authorize(context, credential_kinds()).await.unwrap_err();
+
+        assert_matches!(error, Error::NotConsentUsecase(usecase) if usecase == USECASE_ID);
     }
 }
