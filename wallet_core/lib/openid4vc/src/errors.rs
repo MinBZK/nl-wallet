@@ -206,9 +206,9 @@ impl From<TokenRequestError> for TokenErrorCode {
                 TokenErrorCode::InvalidGrant
             }
 
-            TokenRequestError::MissingClientId
-            | TokenRequestError::UnknownClient(_)
-            | TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidClient,
+            TokenRequestError::MissingClientId | TokenRequestError::UnknownClient(_) => TokenErrorCode::InvalidClient,
+
+            TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
 
             TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
 

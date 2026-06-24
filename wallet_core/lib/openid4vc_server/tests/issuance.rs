@@ -936,9 +936,9 @@ async fn token_rejects_differing_client_id() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_client"), "unexpected body: {body}");
+    assert!(body.contains("invalid_grant"), "unexpected body: {body}");
 }
 
 #[tokio::test]
