@@ -82,6 +82,7 @@ use utils::vec_nonempty;
 use verification_server::settings::VerifierSettings;
 use wallet::AttestationPresentation;
 use wallet::PidIssuancePurpose;
+use wallet::Pin;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::WalletRepositories;
@@ -1091,18 +1092,18 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
     wait_for_server(base_url, None).await;
 }
 
-pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) -> WalletWithStorage {
+pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: Pin) -> WalletWithStorage {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
 
     // Register with a valid PIN.
-    wallet.register(pin.into()).await.expect("Could not register wallet");
+    wallet.register(pin.clone()).await.expect("Could not register wallet");
 
     // The registration should now be loaded.
     assert!(wallet.has_registration());
 
     // Registering again should result in an error.
-    assert!(wallet.register(pin.into()).await.is_err());
+    assert!(wallet.register(pin).await.is_err());
 
     wallet
 }
@@ -1139,17 +1140,17 @@ pub async fn follow_authorization_redirects(authorization_url: Url) -> Url {
     }
 }
 
-pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
+pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: Pin) -> WalletWithStorage {
     do_pid_issuance_with_purpose(wallet, pin, PidIssuancePurpose::Enrollment).await
 }
 
-pub async fn do_pid_renewal(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
+pub async fn do_pid_renewal(wallet: WalletWithStorage, pin: Pin) -> WalletWithStorage {
     do_pid_issuance_with_purpose(wallet, pin, PidIssuancePurpose::Renewal).await
 }
 
 pub async fn do_pid_issuance_with_purpose(
     mut wallet: WalletWithStorage,
-    pin: String,
+    pin: Pin,
     purpose: PidIssuancePurpose,
 ) -> WalletWithStorage {
     let redirect_uri = wallet
@@ -1170,7 +1171,7 @@ pub async fn do_pid_issuance_with_purpose(
     wallet
 }
 
-pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> WalletWithStorage {
+pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: Pin) -> WalletWithStorage {
     let redirect_uri = wallet
         .create_pin_recovery_redirect_uri()
         .await
@@ -1183,7 +1184,7 @@ pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> 
         .await
         .expect("Could not continue pin recovery");
     wallet
-        .complete_pin_recovery(new_pin.into())
+        .complete_pin_recovery(new_pin)
         .await
         .expect("Could not complete pin recovery");
     wallet
@@ -1191,7 +1192,7 @@ pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> 
 
 pub async fn do_degree_issuance(
     wallet: &mut WalletWithStorage,
-    pin: String,
+    pin: Pin,
     issuance_server_url: &IssuerIdentifier,
     client_ids: &DegreeClientIds,
     format: Format,

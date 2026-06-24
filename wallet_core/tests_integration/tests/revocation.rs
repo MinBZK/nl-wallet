@@ -13,18 +13,19 @@ use status_lists::postgres::revocation_helper::BatchIsRevoked;
 use tests_integration::common::*;
 use token_status_list::verification::verifier::RevocationStatus;
 use wallet::AttestationPresentation;
+use wallet::Pin;
 use wallet::errors::DisclosureError;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_revocation_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     let (mut wallet, _, issuance_urls) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet.stop_background_revocation_checks();
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin).await;
 
     assert_revokeable(&mut wallet, PID_ATTESTATION_TYPE, issuance_urls.pid_issuer.internal).await;
 
@@ -48,7 +49,7 @@ async fn test_revocation_pid_ok() {
 #[serial(hsm)]
 async fn test_revocation_degree_ok() {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     let (settings, _, trust_anchor, tls_config) = issuance_server_settings(db_setup.issuance_server_url());
     let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
@@ -67,13 +68,13 @@ async fn test_revocation_degree_ok() {
     )
     .await;
     wallet.stop_background_revocation_checks();
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
 
     // Perform issuance of university degrees based on the PID.
     let _ = do_degree_issuance(
         &mut wallet,
-        pin.to_owned(),
+        pin,
         &issuance_urls.issuance_server.public,
         &issuance_urls.degree_client_ids,
         Format::SdJwt,

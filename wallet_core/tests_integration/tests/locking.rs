@@ -6,6 +6,7 @@ use rstest::rstest;
 use serial_test::serial;
 use tests_integration::common::*;
 use tokio::time::sleep;
+use wallet::Pin;
 use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 
@@ -16,21 +17,21 @@ async fn ltc37_test_unlock_ok(
     #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
 ) {
     let db_setup = DbSetup::create().await;
-    let pin = "112234";
+    let pin: Pin = "112234".into();
 
     let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, vendor).await;
-    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     wallet.lock();
     assert!(wallet.is_locked());
 
-    wallet.unlock(pin.into()).await.expect("Should unlock wallet");
+    wallet.unlock(pin.clone()).await.expect("Should unlock wallet");
     assert!(!wallet.is_locked());
 
     wallet.lock();
 
     // Test multiple instructions
-    wallet.unlock(pin.into()).await.expect("Should unlock wallet");
+    wallet.unlock(pin).await.expect("Should unlock wallet");
     assert!(!wallet.is_locked());
 }
 
@@ -38,7 +39,7 @@ async fn ltc37_test_unlock_ok(
 #[serial(hsm)]
 async fn ltc47_test_block() {
     let db_setup = DbSetup::create().await;
-    let pin = "112234";
+    let pin: Pin = "112234".into();
 
     let (mut settings, wp_root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
     settings.pin_policy.rounds = 1;
@@ -92,10 +93,10 @@ async fn ltc47_test_block() {
 #[serial(hsm)]
 async fn ltc46_test_unlock_error() {
     let db_setup = DbSetup::create().await;
-    let pin = "112234";
+    let pin: Pin = "112234".into();
 
     let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
-    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     wallet.lock();
     assert!(wallet.is_locked());
@@ -212,6 +213,6 @@ async fn ltc46_test_unlock_error() {
 
     sleep(Duration::from_millis(400)).await;
 
-    wallet.unlock(pin.into()).await.expect("should unlock wallet");
+    wallet.unlock(pin).await.expect("should unlock wallet");
     assert!(!wallet.is_locked());
 }

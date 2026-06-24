@@ -18,6 +18,7 @@ use tests_integration::common::*;
 use utils::vec_nonempty;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureUriSource;
+use wallet::Pin;
 use wallet::openid4vc::SessionType;
 
 #[rstest]
@@ -27,19 +28,19 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     #[values(Format::MsoMdoc, Format::SdJwt)] pid_format: Format,
 ) {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     // Start with a wallet that contains the PID.
     let (mut wallet, disclosure_urls, issuance_data) =
         setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
 
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
 
     // Perform issuance of university degrees based on this PID.
     let attestation_previews = do_degree_issuance(
         &mut wallet,
-        pin.to_owned(),
+        pin.clone(),
         &issuance_data.issuance_server.public,
         &issuance_data.degree_client_ids,
         pid_format,
@@ -144,7 +145,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     };
 
     let return_url = wallet
-        .accept_disclosure(&[msc_index], pin.into())
+        .accept_disclosure(&[msc_index], pin)
         .await
         .expect("Could not accept disclosure");
 
@@ -204,7 +205,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
 ) {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     let (issuance_server_settings, _, di_trust_anchor, di_tls_config) =
         issuance_server_settings(db_setup.issuance_server_url());
@@ -219,8 +220,8 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     )
     .await;
 
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
 
     let _proposal = wallet
         .start_disclosure(
@@ -236,7 +237,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
 
     // If the issuer has no attestations to issue, we receive an empty vec and no error.
     let attestations = wallet
-        .continue_disclosure_based_issuance(&[0], pin.into())
+        .continue_disclosure_based_issuance(&[0], pin)
         .await
         .unwrap();
     assert!(attestations.is_empty());

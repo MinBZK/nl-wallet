@@ -7,15 +7,16 @@ use serial_test::serial;
 use tests_integration::common::*;
 use utils::vec_nonempty;
 use wallet::IssuanceStartResult;
+use wallet::Pin;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_pre_authorized_code_issuance() {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     let (mut wallet, _, issuance_data) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
-    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     // Create a pre-authorized issuance session on the issuance server.
     let documents = vec_nonempty![IssuableDocument::new_mock_loyalty()];
@@ -45,7 +46,7 @@ async fn test_pre_authorized_code_issuance() {
 
     // Accept the issuance with the wallet PIN.
     wallet
-        .accept_issuance(pin.into())
+        .accept_issuance(pin)
         .await
         .expect("should accept issuance");
 

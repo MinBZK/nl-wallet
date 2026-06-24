@@ -12,13 +12,14 @@ use tests_integration::common::setup_env_default;
 use tests_integration::common::setup_file_wallet;
 use tests_integration::common::universal_link;
 use tests_integration::common::wallet_attestations;
+use wallet::Pin;
 use wallet::TransferSessionState;
 use wallet::errors::ChangePinError;
 use wallet::errors::InstructionError;
 
 struct WalletData {
     pub wallet: WalletWithStorage,
-    pub pin: String,
+    pub pin: Pin,
     pub tempdir: TempDir,
 }
 
@@ -36,8 +37,8 @@ async fn assert_state(expected_state: TransferSessionState, wallet: &mut WalletW
 }
 
 async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
-    let source_wallet_pin = "112233";
-    let destination_wallet_pin = "332211";
+    let source_wallet_pin: Pin = "112233".into();
+    let destination_wallet_pin: Pin = "332211".into();
 
     let source_tempdir = TempDir::new().unwrap();
     let destination_tempdir = TempDir::new().unwrap();
@@ -51,8 +52,8 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
         source_tempdir.path().to_path_buf(),
     )
     .await;
-    source = do_wallet_registration(source, source_wallet_pin).await;
-    source = do_pid_issuance(source, String::from(source_wallet_pin)).await;
+    source = do_wallet_registration(source, source_wallet_pin.clone()).await;
+    source = do_pid_issuance(source, source_wallet_pin.clone()).await;
     source
         .start_disclosure(
             &universal_link(
@@ -65,10 +66,10 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
         .await
         .unwrap();
     source
-        .continue_disclosure_based_issuance(&[0], source_wallet_pin.into())
+        .continue_disclosure_based_issuance(&[0], source_wallet_pin.clone())
         .await
         .unwrap();
-    source.accept_issuance(source_wallet_pin.into()).await.unwrap();
+    source.accept_issuance(source_wallet_pin.clone()).await.unwrap();
 
     let mut destination = setup_file_wallet(
         config_server_config,
@@ -77,18 +78,18 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
         destination_tempdir.path().to_path_buf(),
     )
     .await;
-    destination = do_wallet_registration(destination, destination_wallet_pin).await;
-    destination = do_pid_issuance(destination, String::from(destination_wallet_pin)).await;
+    destination = do_wallet_registration(destination, destination_wallet_pin.clone()).await;
+    destination = do_pid_issuance(destination, destination_wallet_pin.clone()).await;
 
     (
         WalletData {
             wallet: source,
-            pin: String::from(source_wallet_pin),
+            pin: source_wallet_pin,
             tempdir: source_tempdir,
         },
         WalletData {
             wallet: destination,
-            pin: String::from(destination_wallet_pin),
+            pin: destination_wallet_pin,
             tempdir: destination_tempdir,
         },
     )
@@ -121,7 +122,7 @@ async fn ltc62_test_wallet_transfer() {
 
     // Other instructions are not allowed during transfer
     let err = destination
-        .begin_change_pin(destination_wallet_pin.clone().into(), String::from("565656").into())
+        .begin_change_pin(destination_wallet_pin.clone(), "565656".into())
         .await
         .expect_err("should fail during transfer");
     assert_matches!(
@@ -129,7 +130,7 @@ async fn ltc62_test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
     let err = source
-        .begin_change_pin(source_wallet_pin.clone().into(), String::from("565656").into())
+        .begin_change_pin(source_wallet_pin.clone(), "565656".into())
         .await
         .expect_err("should fail during transfer");
     assert_matches!(
@@ -137,7 +138,7 @@ async fn ltc62_test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
 
-    source.confirm_transfer(source_wallet_pin.clone().into()).await.unwrap();
+    source.confirm_transfer(source_wallet_pin.clone()).await.unwrap();
 
     assert_states(TransferSessionState::Confirmed, &mut destination, &mut source).await;
 
@@ -207,7 +208,7 @@ async fn ltc64_test_wallet_transfer_canceled_from_destination() {
 
     assert_states(TransferSessionState::Paired, &mut destination, &mut source).await;
 
-    source.confirm_transfer(source_wallet_pin.clone().into()).await.unwrap();
+    source.confirm_transfer(source_wallet_pin.clone()).await.unwrap();
 
     assert_states(TransferSessionState::Confirmed, &mut destination, &mut source).await;
 
