@@ -21,20 +21,10 @@ void main() {
     handler = WalletErrorHandler(navigatorKey);
   });
 
-  test('handleError reports it as handled and navigates to the invariant error screen', () async {
+  test('handleError reports it as handled and navigates to the invariant error screen', () {
     final handled = handler.handleError(Exception('boom'), StackTrace.current);
 
     expect(handled, isTrue);
-    verifyNever(
-      navigatorState.pushNamedAndRemoveUntil(
-        any,
-        any,
-        arguments: anyNamed('arguments'),
-      ),
-    );
-
-    await Future<void>.delayed(Duration.zero);
-
     verify(
       navigatorState.pushNamedAndRemoveUntil(
         WalletRoutes.invariantErrorRoute,
@@ -55,11 +45,9 @@ void main() {
     expect(throwableMechanism.mechanism.handled, isFalse);
   });
 
-  test('navigates to the invariant error screen on every handled error', () async {
+  test('navigates to the invariant error screen on every handled error', () {
     handler.handleError(Exception('first'), StackTrace.current);
     handler.handleError(Exception('second'), StackTrace.current);
-
-    await Future<void>.delayed(Duration.zero);
 
     verify(
       navigatorState.pushNamedAndRemoveUntil(any, any, arguments: anyNamed('arguments')),

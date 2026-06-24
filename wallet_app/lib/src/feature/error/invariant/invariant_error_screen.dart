@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
@@ -98,10 +97,7 @@ class InvariantErrorScreen extends StatelessWidget {
           primaryButton: PrimaryButton(
             text: Text.rich(context.l10n.invariantErrorScreenStartAgainCta.toTextSpan(context)),
             icon: const Icon(Icons.replay_outlined),
-            onPressed: () async {
-              if (Sentry.isEnabled) {
-                await Sentry.close();
-              }
+            onPressed: () {
               // Crash to force a clean restart; the core is in an unrecoverable state.
               // TODO(PVW-5914): replace with a proper wallet_core/app restart once the spike concludes.
               exit(1);
