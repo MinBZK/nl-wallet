@@ -37,7 +37,6 @@ itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_valid.workspace = true
 serde_with.workspace = true
-strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }
 tower.workspace = true

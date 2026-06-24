@@ -35,7 +35,6 @@ dependencies = [
  "serde_with",
  "server_utils",
  "status_lists",
- "strum 0.28.0",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
