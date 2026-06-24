@@ -24,9 +24,9 @@ use crate::issuer::AuthRequestValues;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletAuthorizationContext {
     pub state: Option<String>,
-
-    // Note that the "scope" value has already been used to select issuable credentials and is at this point only
-    // present in the state in order to validate any "scope" that is received in the Token Request.
+    // Represents those values present in the inciting Authorization Request that an implementor of
+    // [`AuthorizationCodeFlow`] will need to pass to `AuthorizingIssuer::complete_authorization()`. These values are
+    // then retained in the `AuthCodeIssued` statue of the `Issuer`.
     #[serde(flatten)]
     pub request_values: AuthRequestValues,
 }

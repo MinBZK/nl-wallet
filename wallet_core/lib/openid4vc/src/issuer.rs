@@ -291,11 +291,14 @@ pub struct AuthCodeIssued {
     pub credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
 }
 
+/// Values present in the (pushed) Authorization Request that initiated the Authorization Code Flow.
 #[derive(Debug, Clone, PartialEq, Eq, Constructor, Serialize, Deserialize)]
 pub struct AuthRequestValues {
     pub client_id: String,
     pub redirect_uri: Url,
     pub code_challenge: String,
+    // Note that the "scope" value has already been used to select issuable credentials and is at this point only
+    // present in the state in order to validate any "scope" that is received in the Token Request.
     pub scope: HashSet<Scope>,
 }
 
