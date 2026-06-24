@@ -440,6 +440,7 @@ async fn build_wallet_environment(
     .unwrap();
     served_wallet_config.update_policy_server.http_config =
         TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca.clone()]).unwrap();
+    served_wallet_config.version += 1;
 
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
 
@@ -451,9 +452,6 @@ async fn build_wallet_environment(
     };
 
     let mut wallet_config = default_wallet_config();
-    if let Some(pid_credential_offer) = pid_credential_offer {
-        wallet_config.pid_credential_offer = pid_credential_offer;
-    }
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
