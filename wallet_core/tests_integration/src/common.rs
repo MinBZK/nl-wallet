@@ -599,9 +599,13 @@ pub async fn setup_auth_code_env(db_setup: &DbSetup) -> IssuerUrl {
 /// Build the static authorization-code credential offer the demo issuer's QR encodes: a by-value
 /// `openid-credential-offer://` URL carrying the configured credential configuration and the
 /// `issuer_state` that selects the usecase. Mirrors `demo_issuer`'s `authorization_code_usecase`.
-pub fn create_auth_code_credential_offer(acf_demo_issuer_url: &IssuerIdentifier, issuer_state: &str) -> Url {
+pub fn create_auth_code_credential_offer(
+    acf_demo_issuer_url: &IssuerIdentifier,
+    issuer_state: &str,
+    credential_configuration_id: &str,
+) -> Url {
     let credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId> =
-        vec_nonempty![CredentialConfigurationId::from("com.example.insurance".to_string())].into();
+        vec_nonempty![CredentialConfigurationId::from(credential_configuration_id.to_string())].into();
 
     let offer = CredentialOffer::new_authorization(
         acf_demo_issuer_url.clone(),

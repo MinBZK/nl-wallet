@@ -120,7 +120,7 @@ async fn test_acf_demo_issuer_wallet_issuance() {
     let mut wallet = do_wallet_registration(wallet, pin).await;
 
     // The demo issuer's QR: a static auth-code offer selecting the insurance usecase via issuer_state.
-    let offer_uri = create_auth_code_credential_offer(&acf.public, ISSUER_STATE);
+    let offer_uri = create_auth_code_credential_offer(&acf.public, ISSUER_STATE, "com.example.insurance");
 
     // Starting issuance pushes the PAR and returns the authorize URL for the user-agent to open.
     let IssuanceStartResult::AuthorizationUrl(authorization_url) = wallet
