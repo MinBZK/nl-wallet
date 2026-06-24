@@ -1196,8 +1196,6 @@ mod tests {
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
-    use crate::AuthorizationErrorCode;
-    use crate::VpAuthorizationErrorCode;
     use crate::cose::KnownCoseAlgorithmIdentifier;
     use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
@@ -1236,19 +1234,6 @@ mod tests {
         assert_eq!(
             NormalizedVpAuthorizationRequest::sha256_thumbprint_bytes(&jwk),
             expected_thumbprint
-        );
-    }
-
-    #[test]
-    fn test_vp_authorization_error_code_serialization() {
-        assert_eq!(
-            serde_json::from_str::<VpAuthorizationErrorCode>(r#""invalid_request""#).unwrap(),
-            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
-        );
-
-        assert_eq!(
-            serde_json::from_str::<VpAuthorizationErrorCode>(r#""vp_formats_not_supported""#).unwrap(),
-            VpAuthorizationErrorCode::VpFormatsNotSupported,
         );
     }
 

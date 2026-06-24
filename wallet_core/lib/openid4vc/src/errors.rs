@@ -1,11 +1,14 @@
+use std::fmt::Display;
+use std::str::FromStr;
+
 use http::StatusCode;
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use jwt::wia::WiaError;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
+use serde_with::DisplayFromStr;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
@@ -28,9 +31,12 @@ use crate::verifier::SessionStatusError;
 use crate::verifier::WithRedirectUri;
 
 /// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
+#[serde_as]
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ErrorResponse<T> {
+    #[serde_as(as = "DisplayFromStr")]
+    #[serde(bound(serialize = "T: Display", deserialize = "T: FromStr, T::Err: Display"))]
     pub error: T,
     pub error_description: Option<String>,
     pub error_uri: Option<Url>,
@@ -40,7 +46,10 @@ pub struct ErrorResponse<T> {
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizationErrorResponse<T> {
-    #[serde(flatten)]
+    #[serde(
+        flatten,
+        bound(serialize = "T: Display", deserialize = "T: FromStr, T::Err: Display")
+    )]
     pub error_response: ErrorResponse<T>,
     pub state: Option<String>,
 }
@@ -56,7 +65,10 @@ impl<T> AuthorizationErrorResponse<T> {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DisclosureErrorResponse<T> {
-    #[serde(flatten)]
+    #[serde(
+        flatten,
+        bound(serialize = "T: Display", deserialize = "T: FromStr, T::Err: Display")
+    )]
     pub error_response: ErrorResponse<T>,
     pub redirect_uri: Option<Url>,
 }
@@ -86,7 +98,7 @@ pub trait ErrorStatusCode {
 // OpenID4VCI Error Codes
 
 /// Wire-format error codes for the authorization endpoint.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum AuthorizeErrorCode {
     InvalidClient,
@@ -133,7 +145,7 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
 }
 
 /// Wire-format error codes for the Pushed Authorization Request endpoint.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
     InvalidClient,
@@ -175,7 +187,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
 
 /// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.3>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum TokenErrorCode {
     InvalidRequest,
@@ -254,7 +266,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
 }
 
 /// Error codes for the credential preview endpoint.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum CredentialPreviewErrorCode {
     InvalidRequest,
@@ -300,7 +312,7 @@ impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> 
 }
 
 /// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3.1>.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum CredentialErrorCode {
     InvalidCredentialRequest,
@@ -400,7 +412,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
 
 // OpenID4VP Error Codes
 
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum GetRequestErrorCode {
     InvalidRequest,
@@ -462,7 +474,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#name-error-response>
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum PostAuthResponseErrorCode {
     InvalidRequest,
@@ -528,7 +540,7 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
 /// See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.5
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
     InvalidClient,
@@ -542,7 +554,7 @@ pub enum VpAuthorizationErrorCode {
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum AuthorizationErrorCode {
     InvalidRequest,
@@ -720,7 +732,7 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
 // Other OAuth error codes
 
 /// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum AuthBearerErrorCode {
     InvalidRequest,
@@ -736,11 +748,11 @@ pub enum AuthBearerErrorCode {
 #[cfg(feature = "axum")]
 mod axum {
     use std::fmt::Debug;
+    use std::fmt::Display;
 
     use axum::Json;
     use axum::response::IntoResponse;
     use axum::response::Response;
-    use serde::Serialize;
     use tracing::warn;
 
     use super::DisclosureErrorResponse;
@@ -749,7 +761,7 @@ mod axum {
 
     impl<T> IntoResponse for ErrorResponse<T>
     where
-        T: ErrorStatusCode + Serialize + Debug,
+        T: ErrorStatusCode + Display + Debug,
     {
         fn into_response(self) -> Response {
             warn!("Responding with error body: {:?}", &self);
@@ -760,7 +772,7 @@ mod axum {
 
     impl<T> IntoResponse for DisclosureErrorResponse<T>
     where
-        T: ErrorStatusCode + Serialize + Debug,
+        T: ErrorStatusCode + Display + Debug,
     {
         fn into_response(self) -> Response {
             warn!("Responding with error body: {:?}", &self);

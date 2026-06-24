@@ -1,3 +1,6 @@
+use std::fmt::Display;
+use std::str::FromStr;
+
 use futures::TryFutureExt;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::urls::BaseUrl;
@@ -7,7 +10,6 @@ use reqwest::ClientBuilder;
 use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::ACCEPT;
-use serde::de::DeserializeOwned;
 use url::Url;
 
 use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
@@ -39,7 +41,8 @@ impl HttpVpMessageClient {
 
     async fn get_body_from_response<T>(response: Response) -> Result<String, VpMessageClientError>
     where
-        T: DeserializeOwned,
+        T: FromStr,
+        T::Err: Display,
         DisclosureErrorResponse<T>: Into<VpMessageClientError>,
     {
         // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -58,7 +61,8 @@ impl HttpVpMessageClient {
     /// the spec requires an empty JSON object, i.e. `{}`.
     async fn handle_vp_response<T>(response: Response) -> Result<Option<Url>, VpMessageClientError>
     where
-        T: DeserializeOwned,
+        T: FromStr,
+        T::Err: Display,
         DisclosureErrorResponse<T>: Into<VpMessageClientError>,
     {
         let response_body = Self::get_body_from_response(response).await?;

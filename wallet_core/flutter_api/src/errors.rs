@@ -3,6 +3,8 @@ use std::fmt::Display;
 
 use anyhow::Chain;
 use serde::Serialize;
+use serde_with::DisplayFromStr;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 use wallet::AccountRevokedData;
@@ -253,9 +255,11 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
     None
 }
 
+#[serde_as]
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize)]
 struct IssuanceErrorData {
+    #[serde_as(as = "Option<DisplayFromStr>")]
     redirect_error: Option<AuthorizationErrorCode>,
     organization_name: Option<LocalizedStrings>,
     revocation_data: Option<AccountRevokedData>,
