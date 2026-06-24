@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -17,15 +16,13 @@ use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
 use tokio::sync::RwLock;
-use tokio::task::JoinHandle;
-use tokio::time;
-use tokio::time::MissedTickBehavior;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
 use tracing::warn;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::spawn::start_recurring_task;
 use uuid::Uuid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -114,7 +111,7 @@ where
 
         info!("wallet revocation status background job started");
 
-        let handle = spawn_periodic_task(check_frequency, move || {
+        let handle = start_recurring_task(check_frequency, move || {
             let ctx = ctx.clone();
             let config = config_repo.get();
             async move {
@@ -284,27 +281,9 @@ where
     }
 }
 
-fn spawn_periodic_task<F, Fut>(check_interval: Duration, task: F) -> JoinHandle<()>
-where
-    F: Fn() -> Fut + Send + 'static,
-    Fut: Future<Output = ()> + Send,
-{
-    tokio::spawn(async move {
-        let mut interval = time::interval(check_interval);
-        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
-        loop {
-            interval.tick().await;
-            task().await;
-        }
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
-    use std::sync::atomic::AtomicU64;
-    use std::sync::atomic::Ordering;
-    use std::time::Duration;
 
     use attestation_data::validity::ValidityWindow;
     use attestation_types::status_claim::StatusClaim;
@@ -316,7 +295,6 @@ mod tests {
     use token_status_list::status_list_token::mock::create_status_list_token;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use token_status_list::verification::verifier::RevocationStatus;
-    use tokio::time;
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
@@ -481,127 +459,5 @@ mod tests {
             *notification_count.lock(),
             "expected exactly 1 notification for the revoked attestation, non-revoked should not trigger"
         );
-    }
-
-    #[tokio::test]
-    async fn should_check_revocation_periodically() {
-        time::pause();
-
-        let counter = Arc::new(AtomicU64::new(0));
-        let counter_clone = Arc::clone(&counter);
-
-        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
-            let counter = Arc::clone(&counter_clone);
-            async move {
-                counter.fetch_add(1, Ordering::SeqCst);
-            }
-        });
-
-        assert_eq!(0, counter.load(Ordering::SeqCst));
-
-        for _ in 0..10 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-        assert!(counter.load(Ordering::SeqCst) >= 1);
-
-        for _ in 0..20 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-        assert!(counter.load(Ordering::SeqCst) >= 3, "Expected at least 3 checks");
-
-        abort_handle.abort();
-    }
-
-    #[tokio::test]
-    async fn should_stop_checking_after_abort() {
-        time::pause();
-
-        let counter = Arc::new(AtomicU64::new(0));
-        let counter_clone = Arc::clone(&counter);
-
-        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
-            let counter = Arc::clone(&counter_clone);
-            async move {
-                counter.fetch_add(1, Ordering::SeqCst);
-            }
-        });
-
-        for _ in 0..30 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-        let count_before_abort = counter.load(Ordering::SeqCst);
-        assert!(count_before_abort > 0);
-
-        abort_handle.abort();
-
-        for _ in 0..30 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-        assert_eq!(
-            count_before_abort,
-            counter.load(Ordering::SeqCst),
-            "Count should not change after abort"
-        );
-    }
-
-    #[tokio::test]
-    async fn should_fire_on_first_tick_immediately() {
-        time::pause();
-
-        let counter = Arc::new(AtomicU64::new(0));
-        let counter_clone = Arc::clone(&counter);
-
-        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
-            let counter = Arc::clone(&counter_clone);
-            async move {
-                counter.fetch_add(1, Ordering::SeqCst);
-            }
-        });
-
-        // Advance 5 times by 1ms (5ms total, well under the 100ms interval). tokio's
-        // Interval fires its first tick immediately at t=0, so the first advance gives
-        // the spawned task a chance to run and increment the counter exactly once.
-        for _ in 0..5 {
-            time::advance(Duration::from_millis(1)).await;
-        }
-        assert_eq!(1, counter.load(Ordering::SeqCst));
-
-        abort_handle.abort();
-    }
-
-    #[tokio::test]
-    async fn should_not_fire_between_ticks() {
-        time::pause();
-
-        let counter = Arc::new(AtomicU64::new(0));
-        let counter_clone = Arc::clone(&counter);
-
-        let abort_handle = spawn_periodic_task(Duration::from_millis(100), move || {
-            let counter = Arc::clone(&counter_clone);
-            async move {
-                counter.fetch_add(1, Ordering::SeqCst);
-            }
-        });
-
-        // Advance to 150ms in small steps: first tick (t=0) and second tick (t=100ms)
-        // should both have fired, giving count >= 2.
-        for _ in 0..15 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-        let count = counter.load(Ordering::SeqCst);
-        assert!(count >= 2);
-
-        // Advance 40ms more (total 190ms, still before the third tick at t=200ms).
-        // Count must not increase.
-        for _ in 0..4 {
-            time::advance(Duration::from_millis(10)).await;
-        }
-        assert_eq!(
-            count,
-            counter.load(Ordering::SeqCst),
-            "task must not fire between ticks"
-        );
-
-        abort_handle.abort();
     }
 }
