@@ -177,7 +177,7 @@ pub enum TokenErrorCode {
     ServerError,
 
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    // Note that this is never to be used by the issuer.
     #[strum(default)]
     Other(String),
 }
@@ -191,8 +191,7 @@ impl ErrorStatusCode for TokenErrorCode {
             | Self::UnsupportedGrantType
             | Self::InvalidScope => StatusCode::BAD_REQUEST,
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -247,7 +246,7 @@ pub enum CredentialPreviewErrorCode {
     ServerError,
 
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    // Note that this is never to be used by the issuer.
     #[strum(default)]
     Other(String),
 }
@@ -257,8 +256,7 @@ impl ErrorStatusCode for CredentialPreviewErrorCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -306,7 +304,7 @@ pub enum CredentialErrorCode {
     ServerError,
 
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    // Note that this is never to be used by the issuer.
     #[strum(default)]
     Other(String),
 }
@@ -322,10 +320,9 @@ impl ErrorStatusCode for CredentialErrorCode {
             | Self::InvalidEncryptionParameters
             | Self::CredentialRequestDenied
             | Self::InvalidRequest => StatusCode::BAD_REQUEST,
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
             Self::InsufficientScope => StatusCode::FORBIDDEN,
-            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
