@@ -78,7 +78,6 @@ impl ServerSettings for AcfDemoIssuerSettings {
             .set_default("public_url", "http://localhost:8001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
-            .set_default("status_lists.serve", false)?
             .set_default("status_lists.list_size", 100_000)?
             .set_default("status_lists.create_threshold_ratio", 0.1)?
             .set_default("status_lists.expiry_in_hours", 24)?

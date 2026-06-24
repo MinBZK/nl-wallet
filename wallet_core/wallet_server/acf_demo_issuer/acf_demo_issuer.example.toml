@@ -52,7 +52,7 @@ list_size = 100_000
 create_threshold_ratio = 0.1
 expiry_in_hours = 24
 refresh_threshold_ratio = 0.25
-serve = false
+serve = true
 
 # Usecases. Each is keyed by the `issuer_state` value used in the credential offer.
 #
