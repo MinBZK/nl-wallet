@@ -72,8 +72,8 @@ impl Pin {
     }
 }
 
-impl<'a> From<&'a str> for Pin {
-    fn from(value: &'a str) -> Self {
+impl From<&str> for Pin {
+    fn from(value: &str) -> Self {
         value.to_string().into()
     }
 }
