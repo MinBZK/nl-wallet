@@ -1,7 +1,7 @@
+use http::StatusCode;
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use jwt::wia::WiaError;
-use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;

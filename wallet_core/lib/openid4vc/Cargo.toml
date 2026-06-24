@@ -59,6 +59,7 @@ derive_more = { workspace = true, features = [
 ] }
 futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
+http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 jwk-simple.workspace = true
