@@ -54,7 +54,6 @@ pub async fn serve(
     .await
 }
 
-#[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve_with_listeners(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
