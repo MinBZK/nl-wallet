@@ -5585,6 +5585,7 @@ dependencies = [
  "hex",
  "hsm",
  "http_utils",
+ "httpmock",
  "indexmap 2.12.1",
  "issuer_common",
  "itertools 0.14.0",
