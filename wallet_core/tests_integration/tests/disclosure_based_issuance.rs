@@ -236,9 +236,6 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
         .unwrap();
 
     // If the issuer has no attestations to issue, we receive an empty vec and no error.
-    let attestations = wallet
-        .continue_disclosure_based_issuance(&[0], pin)
-        .await
-        .unwrap();
+    let attestations = wallet.continue_disclosure_based_issuance(&[0], pin).await.unwrap();
     assert!(attestations.is_empty());
 }

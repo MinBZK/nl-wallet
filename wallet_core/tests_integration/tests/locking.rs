@@ -39,7 +39,7 @@ async fn ltc37_test_unlock_ok(
 #[serial(hsm)]
 async fn ltc47_test_block() {
     let db_setup = DbSetup::create().await;
-    let pin: Pin = "112234".into();
+    let correct_pin: Pin = "112234".into();
 
     let (mut settings, wp_root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
     settings.pin_policy.rounds = 1;
@@ -56,13 +56,14 @@ async fn ltc47_test_block() {
         pacf_issuance_server_settings(db_setup.pacf_issuance_server_url()),
     )
     .await;
-    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_wallet_registration(wallet, correct_pin.clone()).await;
 
     wallet.lock();
     assert!(wallet.is_locked());
 
+    let wrong_pin = "555555".into();
     let result = wallet
-        .unlock("555555".into())
+        .unlock(wrong_pin)
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -74,17 +75,15 @@ async fn ltc47_test_block() {
     );
     assert!(wallet.is_locked());
 
+    let another_wrong_pin = "555556".into();
     let result = wallet
-        .unlock("555556".into())
+        .unlock(another_wrong_pin)
         .await
         .expect_err("invalid pin should block wallet");
     assert_matches!(result, WalletUnlockError::Instruction(InstructionError::Blocked));
     assert!(wallet.is_locked());
 
-    let result = wallet
-        .unlock("112234".into())
-        .await
-        .expect_err("wallet should be blocked");
+    let result = wallet.unlock(correct_pin).await.expect_err("wallet should be blocked");
     assert_matches!(result, WalletUnlockError::Instruction(InstructionError::Blocked));
     assert!(wallet.is_locked());
 }
@@ -93,16 +92,19 @@ async fn ltc47_test_block() {
 #[serial(hsm)]
 async fn ltc46_test_unlock_error() {
     let db_setup = DbSetup::create().await;
-    let pin: Pin = "112234".into();
+    let correct_pin: Pin = "112234".into();
+    let wrong_pin_1: Pin = "555555".into();
+    let wrong_pin_2: Pin = "555556".into();
+    let wrong_pin_3: Pin = "555557".into();
 
     let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
-    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_wallet_registration(wallet, correct_pin.clone()).await;
 
     wallet.lock();
     assert!(wallet.is_locked());
 
     let r1 = wallet
-        .unlock("555555".into())
+        .unlock(wrong_pin_1)
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -115,7 +117,7 @@ async fn ltc46_test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r2 = wallet
-        .unlock("555556".into())
+        .unlock(wrong_pin_2)
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -128,7 +130,7 @@ async fn ltc46_test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r3 = wallet
-        .unlock("555557".into())
+        .unlock(wrong_pin_3.clone())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -144,7 +146,7 @@ async fn ltc46_test_unlock_error() {
     sleep(Duration::from_millis(200)).await;
 
     let r4 = wallet
-        .unlock("555557".into())
+        .unlock(wrong_pin_3.clone())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -154,7 +156,7 @@ async fn ltc46_test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r5 = wallet
-        .unlock("555557".into())
+        .unlock(wrong_pin_3.clone())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(r5, WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis: t }) if t < 200);
@@ -163,7 +165,7 @@ async fn ltc46_test_unlock_error() {
     sleep(Duration::from_millis(200)).await;
 
     let r6 = wallet
-        .unlock("555557".into())
+        .unlock(wrong_pin_3.clone())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -176,7 +178,7 @@ async fn ltc46_test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r7 = wallet
-        .unlock("555557".into())
+        .unlock(wrong_pin_3.clone())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -189,7 +191,7 @@ async fn ltc46_test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r8 = wallet
-        .unlock("555557".into())
+        .unlock(wrong_pin_3.clone())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -201,18 +203,18 @@ async fn ltc46_test_unlock_error() {
     );
     assert!(wallet.is_locked());
 
-    let r8 = wallet
-        .unlock("555557".into())
+    let r9 = wallet
+        .unlock(wrong_pin_3)
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
-        r8,
+        r9,
         WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis: 400 })
     );
     assert!(wallet.is_locked());
 
     sleep(Duration::from_millis(400)).await;
 
-    wallet.unlock(pin).await.expect("should unlock wallet");
+    wallet.unlock(correct_pin).await.expect("should unlock wallet");
     assert!(!wallet.is_locked());
 }

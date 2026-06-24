@@ -45,10 +45,7 @@ async fn test_pre_authorized_code_issuance() {
     assert_eq!(previews.len(), 1);
 
     // Accept the issuance with the wallet PIN.
-    wallet
-        .accept_issuance(pin)
-        .await
-        .expect("should accept issuance");
+    wallet.accept_issuance(pin).await.expect("should accept issuance");
 
     // Check that every preview attestation is present in the wallet database after issuance.
     let attestations = wallet_attestations(&mut wallet).await;
