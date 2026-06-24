@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
 import 'package:wallet/src/wallet_error_handler.dart';
 
@@ -31,6 +32,17 @@ void main() {
         arguments: anyNamed('arguments'),
       ),
     ).called(1);
+  });
+
+  test('marks fatal Dart error events as unhandled PlatformDispatcher errors', () {
+    final error = Exception('boom');
+    final event = createFatalDartErrorEvent(error);
+    final throwableMechanism = event.throwableMechanism as ThrowableMechanism;
+
+    expect(event.level, SentryLevel.fatal);
+    expect(throwableMechanism.throwable, same(error));
+    expect(throwableMechanism.mechanism.type, 'PlatformDispatcher.onError');
+    expect(throwableMechanism.mechanism.handled, isFalse);
   });
 
   test('navigates to the invariant error screen on every handled error', () {

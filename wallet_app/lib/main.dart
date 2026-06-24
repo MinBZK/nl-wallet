@@ -56,6 +56,9 @@ FutureOr<void> initializeAndRun() async {
 }
 
 void configureSentry(SentryFlutterOptions options) {
+  // WalletErrorHandler reports PlatformDispatcher errors, so skip Sentry's duplicate handled event.
+  options.integrations.whereType<OnErrorIntegration>().toList().forEach(options.removeIntegration);
+
   options
     ..dsn = Environment.sentryDsn
     ..environment = Environment.sentryEnvironment
