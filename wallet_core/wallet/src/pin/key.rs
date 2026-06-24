@@ -62,13 +62,11 @@ impl From<PinKeyError> for p256::ecdsa::Error {
 }
 
 #[derive(Clone, ZeroizeOnDrop, From, AsRef)]
-pub struct Pin {
-    pin: String,
-}
+pub struct Pin(String);
 
 impl Pin {
     pub fn as_str(&self) -> &str {
-        &self.pin
+        &self.0
     }
 }
 
