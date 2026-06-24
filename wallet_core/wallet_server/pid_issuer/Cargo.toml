@@ -72,11 +72,14 @@ status_lists = { path = "../../lib/status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 
 [dev-dependencies]
+httpmock.workspace = true
+josekit.workspace = true
 jsonwebtoken.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
+http_utils = { path = "../../lib/http_utils", features = ["httpmock"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["mock", "test"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
