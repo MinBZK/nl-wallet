@@ -238,7 +238,7 @@ impl SessionEncryption {
             Some(ciphertext) => {
                 let mut counters = self.counters.lock();
                 let iv = session_iv(self.role.decryption_iv_identifier(), counters.decrypted_counter);
-                let plaintext = decrypt_session_data(self.sk_remote.as_ref(), iv, ciphertext.as_ref())?;
+                let plaintext = decrypt_session_data(&self.sk_remote, iv, ciphertext.as_ref())?;
                 counters.decrypted_counter += 1;
                 Some(plaintext)
             }
@@ -278,7 +278,7 @@ impl SessionEncryption {
     fn encrypt_payload(&self, plaintext: &[u8]) -> Result<ByteBuf, SessionEncryptionError> {
         let mut counters = self.counters.lock();
         let iv = session_iv(self.role.encryption_iv_identifier(), counters.encrypted_counter);
-        let ciphertext = encrypt_session_data(self.sk_self.as_ref(), iv, plaintext)?;
+        let ciphertext = encrypt_session_data(&self.sk_self, iv, plaintext)?;
         counters.encrypted_counter += 1;
 
         Ok(ByteBuf::from(ciphertext))
@@ -322,15 +322,17 @@ fn session_transcript_salt(session_transcript: &SessionTranscript) -> Result<Vec
     Ok(sha256(cbor_serialize(&transcript_bytes)?.as_slice()))
 }
 
-fn encrypt_session_data(key: &[u8], iv: [u8; 12], plaintext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
-    let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
+fn encrypt_session_data(key: &KeyBytes, iv: [u8; 12], plaintext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
+    let cipher =
+        Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
     cipher
         .encrypt(Nonce::from_slice(&iv), plaintext)
         .map_err(|_| SessionEncryptionError::EncryptionFailed)
 }
 
-fn decrypt_session_data(key: &[u8], iv: [u8; 12], ciphertext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
-    let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
+fn decrypt_session_data(key: &KeyBytes, iv: [u8; 12], ciphertext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
+    let cipher =
+        Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
     cipher
         .decrypt(Nonce::from_slice(&iv), ciphertext)
         .map_err(|_| SessionEncryptionError::DecryptionFailed)
