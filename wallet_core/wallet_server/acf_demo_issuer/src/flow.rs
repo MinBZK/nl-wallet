@@ -340,7 +340,7 @@ where
         }
     };
 
-    let result = complete_consent(flow, authorizing_issuer.as_ref(), &context)
+    let result = complete_consent(authorizing_issuer.as_ref(), &context)
         .await
         .inspect_err(|error| warn!("consent callback: completion failed: {error}"));
 
@@ -354,7 +354,6 @@ where
 /// [`AuthorizingIssuer::complete_authorization`], ensuring a session is created keyed by a new authorization_code
 /// containing the documents.
 async fn complete_consent<K, L, S, N, PAS>(
-    flow: &DemoAuthorizationCodeFlow,
     authorizing_issuer: &DemoAuthorizingIssuer<K, L, S, N, PAS>,
     context: &WalletAuthorizationContext,
 ) -> Result<AuthorizationCode, Error>
@@ -364,7 +363,8 @@ where
     // The usecase is identified by the `issuer_state` the wallet echoed back from the offer; `authorize`
     // already validated it is present, but re-resolve it here as the single source of truth for the session.
     let usecase_id = context.issuer_state.as_deref().ok_or(Error::MissingIssuerState)?;
-    let usecase = flow
+    let usecase = authorizing_issuer
+        .flow()
         .usecases
         .get(usecase_id)
         .ok_or_else(|| Error::UnknownUsecase(usecase_id.to_string()))?;
@@ -500,9 +500,7 @@ mod tests {
             issuer_state: Some(USECASE_ID.to_string()),
         };
 
-        let code = complete_consent(authorizing_issuer.flow(), &authorizing_issuer, &context)
-            .await
-            .unwrap();
+        let code = complete_consent(&authorizing_issuer, &context).await.unwrap();
 
         // An AuthCodeIssued session was written, keyed by the generated code, carrying the configured
         // document and the wallet's PKCE challenge.
