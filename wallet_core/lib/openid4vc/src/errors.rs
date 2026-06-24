@@ -581,14 +581,14 @@ pub enum VerificationErrorCode {
 }
 
 impl HttpJsonErrorType for VerificationErrorCode {
-    fn title(&self) -> String {
+    fn title(&self) -> Option<&'static str> {
         match self {
-            Self::ServerError => "Internal server error occurred".to_string(),
-            Self::InvalidRequest => "Invalid request".to_string(),
-            Self::UnknownSession => "Unknown session".to_string(),
-            Self::Nonce => "Redirect URI nonce incorrect or missing".to_string(),
-            Self::SessionState => "Session is not in the required state".to_string(),
-            Self::Other(other) => other.clone(),
+            Self::ServerError => Some("Internal server error occurred"),
+            Self::InvalidRequest => Some("Invalid request"),
+            Self::UnknownSession => Some("Unknown session"),
+            Self::Nonce => Some("Redirect URI nonce incorrect or missing"),
+            Self::SessionState => Some("Session is not in the required state"),
+            Self::Other(_) => None,
         }
     }
 
