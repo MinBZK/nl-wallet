@@ -44,7 +44,7 @@ build {
       "source ~/.zprofile",
       "rbenv version | grep -v system | xargs -n1 rbenv uninstall -f",
       "rbenv install 3.3.8",
-      "rbenv global 3.3.8"
+      "rbenv global 3.3.8",
     ]
   }
 
@@ -61,7 +61,7 @@ build {
       "flutter doctor --android-licenses",
       "flutter precache --ios",
       "dart pub global activate junitreport 2.0.2",
-      "echo 'export PATH=\"$HOME/.pub-cache/bin:$PATH\"' >> ~/.zprofile"
+      "echo 'export PATH=\"$HOME/.pub-cache/bin:$PATH\"' >> ~/.zprofile",
     ]
   }
 
@@ -70,13 +70,16 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "brew install rustup",
-      "rustup-init -y --default-toolchain 1.96.0 --profile minimal --component clippy",
+      "echo 'export PATH=\"$(brew --prefix rustup)/bin:$PATH\"' >> ~/.zprofile",
     ]
   }
 
   provisioner "shell" {
     inline = [
       "source ~/.zprofile",
+      "set -eux",
+      "rustup toolchain install 1.96.0 --profile minimal --component clippy",
+      "rustup default 1.96.0",
       "cargo install cargo-expand --locked --version 1.0.121",
       "cargo install lcov2xml --locked --version 1.0.9",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
