@@ -86,20 +86,27 @@ pub trait ErrorStatusCode {
 // OpenID4VCI Error Codes
 
 /// Wire-format error codes for the authorization endpoint.
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum AuthorizeErrorCode {
     InvalidClient,
     InvalidRequest,
     ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer.
+    #[strum(default)]
+    Other(String),
 }
 
 impl ErrorStatusCode for AuthorizeErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
+
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -126,20 +133,27 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
 }
 
 /// Wire-format error codes for the Pushed Authorization Request endpoint.
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
     InvalidClient,
     InvalidRequest,
     ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer.
+    #[strum(default)]
+    Other(String),
 }
 
 impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
+
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -161,7 +175,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
 
 /// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.3>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum TokenErrorCode {
     InvalidRequest,
@@ -185,12 +199,14 @@ pub enum TokenErrorCode {
 impl ErrorStatusCode for TokenErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::InvalidRequest
-            | Self::InvalidGrant
-            | Self::UnauthorizedClient
-            | Self::UnsupportedGrantType
-            | Self::InvalidScope => StatusCode::BAD_REQUEST,
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
+
+            Self::InvalidGrant | Self::UnauthorizedClient | Self::UnsupportedGrantType | Self::InvalidScope => {
+                StatusCode::BAD_REQUEST
+            }
+
             Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -255,7 +271,9 @@ impl ErrorStatusCode for CredentialPreviewErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
+
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
+
             Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -282,7 +300,7 @@ impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> 
 }
 
 /// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3.1>.
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum CredentialErrorCode {
     InvalidCredentialRequest,
@@ -320,8 +338,11 @@ impl ErrorStatusCode for CredentialErrorCode {
             | Self::InvalidEncryptionParameters
             | Self::CredentialRequestDenied
             | Self::InvalidRequest => StatusCode::BAD_REQUEST,
+
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
+
             Self::InsufficientScope => StatusCode::FORBIDDEN,
+
             Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -379,7 +400,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
 
 // OpenID4VP Error Codes
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum GetRequestErrorCode {
     InvalidRequest,
@@ -389,20 +410,25 @@ pub enum GetRequestErrorCode {
     UnknownSession,
 
     ServerError,
+
+    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the verifier.
+    #[strum(default)]
+    Other(String),
 }
 
 impl ErrorStatusCode for GetRequestErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            GetRequestErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            GetRequestErrorCode::ExpiredSession
-            | GetRequestErrorCode::CancelledSession
-            | GetRequestErrorCode::UnknownSession => StatusCode::NOT_FOUND,
-            GetRequestErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
             // Per RFC 7235 we MUST include a `WWW-Authenticate` HTTP header with this, but we can't do that
             // conveniently here. It seems this header is often skipped, and we use it internally here, we skip it too.
-            GetRequestErrorCode::ExpiredEphemeralId => StatusCode::UNAUTHORIZED,
+            Self::ExpiredEphemeralId => StatusCode::UNAUTHORIZED,
+
+            Self::ExpiredSession | Self::CancelledSession | Self::UnknownSession => StatusCode::NOT_FOUND,
+
+            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -436,7 +462,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#name-error-response>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum PostAuthResponseErrorCode {
     InvalidRequest,
@@ -449,17 +475,25 @@ pub enum PostAuthResponseErrorCode {
     /// An NL Wallet specific error code, meaning the following: in a disclosure based issuance session,
     /// the issuer found no attestations to issue.
     NoIssuableAttestations,
+
+    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the verifier.
+    #[strum(default)]
+    Other(String),
 }
 
 impl ErrorStatusCode for PostAuthResponseErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            PostAuthResponseErrorCode::ExpiredSession
-            | PostAuthResponseErrorCode::CancelledSession
-            | PostAuthResponseErrorCode::UnknownSession
-            | PostAuthResponseErrorCode::NoIssuableAttestations => StatusCode::NOT_FOUND,
-            PostAuthResponseErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            PostAuthResponseErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+
+            Self::ExpiredSession | Self::CancelledSession | Self::UnknownSession => StatusCode::NOT_FOUND,
+
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+
+            Self::NoIssuableAttestations => StatusCode::NOT_FOUND,
+
+            Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -502,6 +536,7 @@ pub enum VpAuthorizationErrorCode {
     InvalidRequestUriMethod,
     InvalidTransactionData,
     WalletUnavailable,
+
     #[strum(default)]
     AuthorizationError(AuthorizationErrorCode),
 }
@@ -517,6 +552,9 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
+
+    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the verifier.
     #[strum(default)]
     Other(String),
 }
@@ -527,7 +565,7 @@ pub enum AuthorizationErrorCode {
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
 /// Error codes sent to the Relying Party when an error occurs when handling their request.
-#[derive(Debug, Clone, Copy, strum::Display, EnumString)]
+#[derive(Debug, Clone, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
     ServerError,
@@ -535,27 +573,39 @@ pub enum VerificationErrorCode {
     UnknownSession,
     Nonce,
     SessionState,
+
+    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
+    // Note that this is never to be used by a verifier.
+    #[strum(default)]
+    Other(String),
 }
 
 impl HttpJsonErrorType for VerificationErrorCode {
     fn title(&self) -> String {
         match self {
-            VerificationErrorCode::ServerError => "Internal server error occurred".to_string(),
-            VerificationErrorCode::InvalidRequest => "Invalid request".to_string(),
-            VerificationErrorCode::UnknownSession => "Unknown session".to_string(),
-            VerificationErrorCode::Nonce => "Redirect URI nonce incorrect or missing".to_string(),
-            VerificationErrorCode::SessionState => "Session is not in the required state".to_string(),
+            Self::ServerError => "Internal server error occurred".to_string(),
+            Self::InvalidRequest => "Invalid request".to_string(),
+            Self::UnknownSession => "Unknown session".to_string(),
+            Self::Nonce => "Redirect URI nonce incorrect or missing".to_string(),
+            Self::SessionState => "Session is not in the required state".to_string(),
+            Self::Other(other) => other.clone(),
         }
     }
 
     fn status_code(&self) -> StatusCode {
         match self {
-            VerificationErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            VerificationErrorCode::UnknownSession => StatusCode::NOT_FOUND,
-            VerificationErrorCode::InvalidRequest | VerificationErrorCode::SessionState => StatusCode::BAD_REQUEST,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+
+            Self::UnknownSession => StatusCode::NOT_FOUND,
 
             // See the other comment on `StatusCode::UNAUTHORIZED`
-            VerificationErrorCode::Nonce => StatusCode::UNAUTHORIZED,
+            Self::Nonce => StatusCode::UNAUTHORIZED,
+
+            Self::SessionState => StatusCode::BAD_REQUEST,
+
+            Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -670,12 +720,17 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
 // Other OAuth error codes
 
 /// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Clone, Debug, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum AuthBearerErrorCode {
     InvalidRequest,
     InvalidToken,
     InsufficientScope,
+
+    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
+    // Note that this is never to be used by a server.
+    #[strum(default)]
+    Other(String),
 }
 
 #[cfg(feature = "axum")]
