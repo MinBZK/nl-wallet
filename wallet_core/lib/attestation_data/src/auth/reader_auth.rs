@@ -12,7 +12,7 @@ use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use x509_parser::der_parser::Oid;
-use x509_parser::der_parser::asn1_rs::oid;
+use x509_parser::der_parser::oid;
 
 use crate::auth::LocalizedStrings;
 use crate::auth::Organization;

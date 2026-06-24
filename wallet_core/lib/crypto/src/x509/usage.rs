@@ -1,7 +1,7 @@
 use derive_more::Display;
-use x509_parser::asn1_rs::Oid;
-use x509_parser::asn1_rs::oid;
 use x509_parser::certificate::X509Certificate;
+use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::oid;
 use x509_parser::error::X509Error;
 use x509_parser::extensions::ExtendedKeyUsage;
 

@@ -2,8 +2,8 @@ use crypto::x509::BorrowingCertificateExtension;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
-use x509_parser::oid_registry::Oid;
-use x509_parser::oid_registry::asn1_rs::oid;
+use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::oid;
 
 use crate::auth::Organization;
 use crate::x509::CertificateType;
