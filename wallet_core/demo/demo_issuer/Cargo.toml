@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-# Allow the configured acf_demo_issuer credential-offer URL to use "http://" (local development only).
+# Allow credential-offer URLs to use "http://" (local development only).
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 
 [dependencies]
