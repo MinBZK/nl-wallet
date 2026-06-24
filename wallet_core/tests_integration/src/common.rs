@@ -36,13 +36,10 @@ use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
 use jwt::SignedJwt;
-use openid4vc::credential_offer::CredentialOffer;
-use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
@@ -84,7 +81,6 @@ use tracing::info_span;
 use update_policy_server::settings::Settings as UpsSettings;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
 use verification_server::settings::VerifierSettings;
 use wallet::AttestationPresentation;
@@ -594,61 +590,6 @@ pub async fn setup_pre_auth_env(db_setup: &DbSetup) -> IssuerUrl {
 /// no HSM is required.
 pub async fn setup_auth_code_env(db_setup: &DbSetup) -> IssuerUrl {
     start_acf_demo_issuer_server(acf_demo_issuer_settings(db_setup.acf_demo_issuer_url())).await
-}
-
-/// Build the static authorization-code credential offer the demo issuer's QR encodes: a by-value
-/// `openid-credential-offer://` URL carrying the configured credential configuration and the
-/// `issuer_state` that selects the usecase. Mirrors `demo_issuer`'s `authorization_code_usecase`.
-pub fn create_auth_code_credential_offer(
-    acf_demo_issuer_url: &IssuerIdentifier,
-    issuer_state: &str,
-    credential_configuration_id: &str,
-) -> Url {
-    let credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId> =
-        vec_nonempty![CredentialConfigurationId::from(credential_configuration_id.to_string())].into();
-
-    let offer = CredentialOffer::new_authorization(
-        acf_demo_issuer_url.clone(),
-        credential_configuration_ids,
-        Some(issuer_state.to_string()),
-    );
-
-    CredentialOfferContainer::new_offer(offer).to_credential_offer_url()
-}
-
-/// Drive the acf demo issuer's consent flow the way a browser would: follow the wallet's authorize URL
-/// to the consent page, submit consent, and return the wallet-facing redirect (carrying the
-/// issuer-minted code + the wallet's `state`) that [`Wallet::continue_issuance`] expects. The acf
-/// analogue of [`fake_digid_auth`](crate::fake_digid::fake_digid_auth), but without the upstream
-/// SAML/DigiD hops.
-pub async fn fake_consent_auth(authorization_url: Url) -> Url {
-    let client = default_reqwest_client_builder()
-        .redirect(Policy::none())
-        .build()
-        .unwrap();
-
-    // The wallet's authorize URL (PAR already pushed) redirects to the issuer's consent page.
-    let authorize_response = client.get(authorization_url).send().await.unwrap();
-    let consent_url: Url = authorize_response
-        .headers()
-        .get(header::LOCATION)
-        .expect("authorize should redirect to the consent page")
-        .to_str()
-        .unwrap()
-        .parse()
-        .expect("failed to parse consent page url");
-
-    // Submit consent. The handler generates the authorization code, writes the `AuthCodeIssued` session and
-    // redirects back to the wallet's redirect_uri with the code and echoed state.
-    let consent_response = client.post(consent_url).send().await.unwrap();
-    consent_response
-        .headers()
-        .get(header::LOCATION)
-        .expect("consent submission should redirect back to the wallet")
-        .to_str()
-        .unwrap()
-        .parse()
-        .expect("failed to parse wallet redirect url")
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
