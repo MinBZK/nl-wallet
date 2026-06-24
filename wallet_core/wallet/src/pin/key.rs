@@ -62,19 +62,9 @@ impl From<PinKeyError> for p256::ecdsa::Error {
 }
 
 #[derive(Clone, ZeroizeOnDrop, From, AsRef)]
+#[as_ref(forward)]
+#[from(String, &str)]
 pub struct Pin(String);
-
-impl Pin {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl From<&str> for Pin {
-    fn from(value: &str) -> Self {
-        value.to_string().into()
-    }
-}
 
 /// All PIN data needed to compute signatures. Implements [`Signer<Signature>`] such that the ECDSA private key is
 /// guaranteed to be dropped from memory when [`PinKey::try_sign()`] returns.
@@ -125,7 +115,7 @@ fn pin_private_key(salt: &KeyBytes, pin: &Pin) -> Result<SigningKey, Unspecified
     // vulnerabilities. Instead, we use the following constant-time algorithm: we just reduce the severity of the modulo
     // bias effect to negligibility by making the output of hkdf() sufficienfly larger.
     // Making it larger by 8 bytes, i.e. 32 bits, is conventional.
-    let hkdf = hkdf(salt.as_ref(), b"", pin.as_str(), 256 / 8 + 8)?;
+    let hkdf = hkdf(salt.as_ref(), b"", pin.as_ref(), 256 / 8 + 8)?;
     let key_bytes = bytes_to_ecdsa_privkey_bytes(hkdf);
 
     // We need to use `SecretKey::from_bytes`, which places a copy of the private key bytes on the stack
