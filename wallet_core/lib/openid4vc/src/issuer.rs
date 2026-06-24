@@ -252,7 +252,7 @@ pub enum CredentialRequestError {
     SdJwtConversion(#[from] CredentialPayloadIntoSignedSdJwtError),
 
     #[error("error verifying WIA: {0}")]
-    Wia(#[from] WiaError),
+    Wia(#[source] WiaError),
 
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -410,6 +410,11 @@ pub struct IssuerData<K, L> {
     metadata: IssuerMetadata,
 }
 
+pub struct WiaConfig {
+    /// Public key of the WIA issuer.
+    pub wia_trust_anchors: TrustAnchors,
+}
+
 impl<K, L> IssuerData<K, L> {
     fn get_checked_credential_config(
         &self,
@@ -440,6 +445,43 @@ impl<K, L> IssuerData<K, L> {
 
     fn accepted_wallet_client_ids_vec(&self) -> Vec<&String> {
         self.accepted_wallet_client_ids.iter().collect()
+    }
+
+    fn verify_wia(&self, attestations: Option<&WiaDisclosure>) -> Result<Option<Nonce>, CredentialRequestError> {
+        let wia_nonce = self
+            .wia_config
+            .as_ref()
+            .map(|wia_config| {
+                wia_config.verify_wia(
+                    attestations,
+                    &self.metadata.credential_issuer,
+                    &self.accepted_wallet_client_ids_vec(),
+                )
+            })
+            .transpose()?;
+
+        Ok(wia_nonce)
+    }
+}
+
+impl WiaConfig {
+    fn verify_wia(
+        &self,
+        attestations: Option<&WiaDisclosure>,
+        issuer_identifier: &IssuerIdentifier,
+        accepted_wallet_client_ids: &[impl ToString],
+    ) -> Result<Nonce, CredentialRequestError> {
+        let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
+
+        let (_wia_pubkey, wia_nonce) = wia_disclosure
+            .verify(
+                &self.wia_trust_anchors,
+                issuer_identifier.as_ref(),
+                accepted_wallet_client_ids,
+            )
+            .map_err(CredentialRequestError::Wia)?;
+
+        Ok(wia_nonce)
     }
 }
 
@@ -492,11 +534,6 @@ impl PreparedCredential {
 
         Ok(credential)
     }
-}
-
-pub struct WiaConfig {
-    /// Public key of the WIA issuer.
-    pub wia_trust_anchors: TrustAnchors,
 }
 
 impl<K, L, S, N> Drop for Issuer<K, L, S, N> {
@@ -1315,29 +1352,6 @@ impl Session<AccessTokenIssued> {
         Ok(())
     }
 
-    fn verify_wia<K, L>(
-        attestations: Option<&WiaDisclosure>,
-        issuer_data: &IssuerData<K, L>,
-    ) -> Result<Option<Nonce>, CredentialRequestError> {
-        let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
-
-        issuer_data
-            .wia_config
-            .as_ref()
-            .map(|wia_config| {
-                let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
-
-                let (_, wia_nonce) = wia_disclosure.verify(
-                    &wia_config.wia_trust_anchors,
-                    issuer_identifier,
-                    &issuer_data.accepted_wallet_client_ids_vec(),
-                )?;
-
-                Ok::<_, CredentialRequestError>(wia_nonce)
-            })
-            .transpose()
-    }
-
     async fn process_credential_inner<K, L, N>(
         &self,
         credential_request: CredentialRequest,
@@ -1380,7 +1394,7 @@ impl Session<AccessTokenIssued> {
             &issuer_data.metadata.credential_issuer,
         )?;
 
-        let wia_nonce = Self::verify_wia(credential_request.attestations.as_ref(), issuer_data)?;
+        let wia_nonce = issuer_data.verify_wia(credential_request.attestations.as_ref())?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
@@ -1522,7 +1536,7 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
         }
 
-        let wia_nonce = Self::verify_wia(credential_requests.attestations.as_ref(), issuer_data)?;
+        let wia_nonce = issuer_data.verify_wia(credential_requests.attestations.as_ref())?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
