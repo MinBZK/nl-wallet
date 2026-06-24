@@ -194,8 +194,8 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   if [[ "${USE_SINGLE_CA}" == 1 && -n "${USE_SINGLE_CA_PATH}" && -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" ]]; then
     echo -e "${INFO}Using single CA for digid-connector${NC}"
     mkdir -p "${DIGID_CONNECTOR_PATH}/secrets"
-    ln -sf "${USE_SINGLE_CA_PATH}/ca.crt.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt"
-    ln -sf "${USE_SINGLE_CA_PATH}/ca.key.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
+    cp -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt"
+    cp -f "${USE_SINGLE_CA_PATH}/ca.key.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
   fi
 
   # Create an RDO max container.
