@@ -15,8 +15,6 @@ use std::sync::Arc;
 
 use askama::Template;
 use askama_web::WebTemplate;
-use attestation_data::attributes::Attribute;
-use attestation_data::attributes::Attributes;
 use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
@@ -195,25 +193,6 @@ struct DocumentPreview {
     attributes: Vec<(String, String)>,
 }
 
-fn collect_attributes(prefix: &str, attr: &Attribute, out: &mut Vec<(String, String)>) {
-    match attr {
-        Attribute::Single(value) => out.push((prefix.to_string(), value.to_string())),
-        Attribute::Nested(map) => {
-            for (key, child) in map {
-                collect_attributes(&format!("{prefix}.{key}"), child, out);
-            }
-        }
-    }
-}
-
-fn flatten_attributes(attrs: &Attributes) -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    for (key, attr) in attrs.as_ref() {
-        collect_attributes(key, attr, &mut out);
-    }
-    out
-}
-
 struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
@@ -260,7 +239,11 @@ where
             } = doc.clone();
             DocumentPreview {
                 attestation_type: credential_kind.attestation_type,
-                attributes: flatten_attributes(&attributes),
+                attributes: attributes
+                    .flattened()
+                    .into_iter()
+                    .map(|(path, value)| (path.as_ref().join("."), value.to_string()))
+                    .collect(),
             }
         })
         .collect();
