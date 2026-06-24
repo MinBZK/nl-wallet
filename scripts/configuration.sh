@@ -22,6 +22,7 @@ GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
 DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
+DOCKER_COMPOSE_FILE="${SCRIPTS_DIR}/docker-compose.yml"
 
 # source user variables
 [[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"

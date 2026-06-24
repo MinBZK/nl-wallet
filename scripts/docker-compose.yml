@@ -45,10 +45,14 @@ services:
     environment:
       - KC_BOOTSTRAP_ADMIN_USERNAME=${KC_USERNAME}
       - KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_PASSWORD}
+      - KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/data/certs/keycloak.crt
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/data/certs/keycloak.key
     ports:
       - "${KC_PORT_HTTP}:8080"
       - "${KC_PORT_HTTPS}:8443"
     network_mode: bridge
+    volumes:
+      - keycloak:/opt/keycloak/data
     command:
       - start-dev
 
@@ -60,3 +64,5 @@ networks:
 volumes:
   postgres:
     name: postgres
+  keycloak:
+    name: keycloak

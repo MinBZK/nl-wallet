@@ -63,8 +63,8 @@ have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
 # Check if openssl is "real" OpenSSL
 check_openssl
 
-# Only check for docker if we build rdo-max
-if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+# Only check for docker if we configure rdo-max or keycloak
+if [[ -z "${SKIP_DIGID_CONNECTOR:-}" || -z "${SKIP_KEYCLOAK:-}" ]]; then
     have docker
 fi
 
@@ -234,6 +234,23 @@ else
     # Set a fake RSA private key so that parsing the settings succeeds.
     BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
     export BSN_PRIVKEY
+fi
+
+########################################################################
+# Configure keycloak
+########################################################################
+
+echo -e "${SECTION}Configure keycloak${NC}"
+
+if [[ -z "${SKIP_KEYCLOAK:-}" ]]; then
+  # Generate our certificates, USE_SINGLE_CA aware.
+  generate_or_reuse_root_ca "${TARGET_DIR}/keycloak" "keycloak"
+  generate_ssl_key_pair_with_san "${TARGET_DIR}/keycloak" "keycloak" "${TARGET_DIR}/keycloak/ca.crt.pem" "${TARGET_DIR}/keycloak/ca.key.pem"
+
+  # Place our certificates, use container service user (1000, keycloak).
+  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'mkdir -p /opt/keycloak/data/certs'
+  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/certs/keycloak.crt' < "${TARGET_DIR}/keycloak/keycloak.crt"
+  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/certs/keycloak.key' < "${TARGET_DIR}/keycloak/keycloak.key"
 fi
 
 ########################################################################
