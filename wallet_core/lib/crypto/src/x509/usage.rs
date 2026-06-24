@@ -8,7 +8,7 @@ use x509_parser::extensions::ExtendedKeyUsage;
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
 /// being verified.
-#[derive(derive_more::Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
@@ -23,7 +23,7 @@ const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
 // The .128 is made up, the real child node is TBD
 const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
 
-#[derive(thiserror::Error, derive_more::Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum CertificateUsageError {
     #[error("X509 coding error: {0}")]
     X509Error(#[from] X509Error),

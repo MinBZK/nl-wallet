@@ -4,7 +4,7 @@ use derive_more::Display;
 /// A distinguished name encoded in a canonical, OID-registry-independent format.
 /// This type is specifically designed for database persistence and comparison.
 /// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
-#[derive(derive_more::Debug, Clone, Eq, PartialEq, Hash, Display, Constructor)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Display, Constructor, From, Into)]
 #[cfg_attr(feature = "persistence", derive(sea_orm::DeriveValueType))]
 pub struct DistinguishedName(String);
 

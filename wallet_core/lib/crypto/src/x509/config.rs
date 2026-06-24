@@ -3,7 +3,7 @@ use chrono::Utc;
 
 use crate::x509::CertificateUsage;
 
-#[derive(derive_more::Debug, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CertificateConfiguration {
     pub not_before: Option<DateTime<Utc>>,
     pub not_after: Option<DateTime<Utc>>,
