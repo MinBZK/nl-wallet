@@ -81,9 +81,6 @@ pub enum Error {
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
 
-    #[error("error building issuable documents: {0}")]
-    InvalidIssuableDocuments(#[source] serde_valid::validation::Error),
-
     #[error("error completing authorization: {0}")]
     CompleteAuthorization(#[source] CompleteAuthorizationError),
 }
@@ -139,8 +136,8 @@ impl DemoAuthorizationCodeFlow {
 }
 
 /// Build the [`IssuableDocument`]s configured for a usecase.
-fn issuable_documents(usecase: &Usecase) -> Result<VecNonEmpty<IssuableDocument>, Error> {
-    let documents = usecase
+fn issuable_documents(usecase: &Usecase) -> VecNonEmpty<IssuableDocument> {
+    usecase
         .documents
         .nonempty_iter()
         .map(|template| {
@@ -148,12 +145,9 @@ fn issuable_documents(usecase: &Usecase) -> Result<VecNonEmpty<IssuableDocument>
                 credential_kind,
                 attributes,
             } = template.clone();
-            IssuableDocument::try_new_with_random_id(credential_kind, attributes)
-                .map_err(Error::InvalidIssuableDocuments)
+            IssuableDocument::try_new_with_random_id(credential_kind, attributes).expect("attributes cannot be empty")
         })
-        .collect::<Result<VecNonEmpty<_>, _>>()?;
-
-    Ok(documents)
+        .collect()
 }
 
 impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
@@ -375,11 +369,9 @@ where
         .get(usecase_id)
         .ok_or_else(|| Error::UnknownUsecase(usecase_id.to_string()))?;
 
-    let issuable_documents = issuable_documents(usecase)?;
-
     let code = authorizing_issuer
         .complete_authorization(
-            issuable_documents,
+            issuable_documents(usecase),
             context.scope.clone(),
             context.code_challenge.clone(),
         )
