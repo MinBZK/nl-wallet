@@ -998,8 +998,6 @@ pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
     let mut settings =
         AcfDemoIssuerSettings::new("acf_demo_issuer.toml", "acf_demo_issuer").expect("Could not read settings");
 
-    settings.authorizing_issuer_settings.wallet_redirect_uris = vec_nonempty![wallet_issuance_redirect_uri()];
-
     let server_settings = &mut settings.authorizing_issuer_settings.issuer_settings.server_settings;
     server_settings.storage.url = db_url;
     server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
