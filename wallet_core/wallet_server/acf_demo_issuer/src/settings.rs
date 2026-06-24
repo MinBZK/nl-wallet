@@ -9,8 +9,10 @@ use config::File;
 use issuer_common::settings::AuthorizingIssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
 use openid4vc::issuable_document::CredentialKind;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::server_state::SessionStoreTimeouts;
 use serde::Deserialize;
+use serde_valid::Validate;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
@@ -45,10 +47,11 @@ pub enum UsecaseKind {
     Immediate,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Validate, Deserialize)]
 pub struct IssuableDocumentTemplate {
     #[serde(flatten)]
     pub credential_kind: CredentialKind,
+    #[validate(custom = IssuableDocument::validate_attributes)]
     pub attributes: Attributes,
 }
 
