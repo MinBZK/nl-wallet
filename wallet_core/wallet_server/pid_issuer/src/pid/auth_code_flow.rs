@@ -129,8 +129,8 @@ struct DigidCallbackQuery {
 ///
 /// Owns:
 /// - upstream OIDC discovery cache + client (for the authorize-endpoint URL and the `/userinfo`-based BSN exchange);
-/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`) to the
-///   wallet's original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
+/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`) to the wallet's
+///   original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
 /// - the BRP client (BSN → person attributes) and the recovery-code HMAC key;
 /// - the issuer's own callback URL, used both as the upstream `redirect_uri` and as the `redirect_uri` parameter of the
 ///   upstream `/token` exchange.
