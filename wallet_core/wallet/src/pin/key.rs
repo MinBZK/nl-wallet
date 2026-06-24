@@ -87,7 +87,7 @@ pub struct PinKey<'a> {
 
 impl PinKey<'_> {
     pub fn verifying_key(&self) -> Result<VerifyingKey, PinKeyError> {
-        let signing_key = pin_private_key(self.salt.as_ref(), self.pin.as_ref())?;
+        let signing_key = pin_private_key(&self.salt, &self.pin)?;
         let verifying_key = *signing_key.verifying_key();
 
         Ok(verifying_key)
@@ -102,7 +102,7 @@ impl EcdsaKey for PinKey<'_> {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, PinKeyError> {
-        let key = pin_private_key(self.salt.as_ref(), self.pin.as_ref())?;
+        let key = pin_private_key(&self.salt, &self.pin)?;
         let signature = p256::ecdsa::signature::Signer::sign(&key, msg);
 
         Ok(signature)
@@ -112,7 +112,7 @@ impl EcdsaKey for PinKey<'_> {
 impl EphemeralEcdsaKey for PinKey<'_> {}
 
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
-fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRingError> {
+fn pin_private_key(salt: &KeyBytes, pin: &Pin) -> Result<SigningKey, UnspecifiedRingError> {
     // The `salt` parameter is really the IKM (input key material) of the HKDF, see the comment in `new_pin_salt()`.
     // The reason for length 256 / 8 + 8 is as follows. The private key must be a random number between 1 and q - 1,
     // where q is the (prime) order of the ECDSA elliptic curve (its amount of elements). But hkdf() takes bytes not
@@ -127,7 +127,7 @@ fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRing
     // vulnerabilities. Instead, we use the following constant-time algorithm: we just reduce the severity of the modulo
     // bias effect to negligibility by making the output of hkdf() sufficienfly larger.
     // Making it larger by 8 bytes, i.e. 32 bits, is conventional.
-    let hkdf = hkdf(salt, b"", pin, 256 / 8 + 8)?;
+    let hkdf = hkdf(salt.as_ref(), b"", pin.as_str(), 256 / 8 + 8)?;
     let key_bytes = bytes_to_ecdsa_privkey_bytes(hkdf);
 
     // We need to use `SecretKey::from_bytes`, which places a copy of the private key bytes on the stack
@@ -242,11 +242,11 @@ mod tests {
     fn test_pin_private_key() {
         let salt = new_pin_salt();
 
-        let privkey = pin_private_key(salt.as_ref(), "123456").expect("Cannot create private key from PIN");
-        let same = pin_private_key(salt.as_ref(), "123456").expect("Cannot create private key from PIN");
+        let privkey = pin_private_key(&salt, &"123456".into()).expect("Cannot create private key from PIN");
+        let same = pin_private_key(&salt, &"123456".into()).expect("Cannot create private key from PIN");
         let different_salt =
-            pin_private_key(random_bytes(32).as_ref(), "123456").expect("Cannot create private key from PIN");
-        let different_pin = pin_private_key(salt.as_ref(), "654321").expect("Cannot create private key from PIN");
+            pin_private_key(&random_bytes(32).into(), &"123456".into()).expect("Cannot create private key from PIN");
+        let different_pin = pin_private_key(&salt, &"654321".into()).expect("Cannot create private key from PIN");
 
         assert_eq!(privkey, same);
         assert_ne!(privkey, different_salt);
