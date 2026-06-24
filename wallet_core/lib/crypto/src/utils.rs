@@ -31,7 +31,7 @@ pub fn sha256(bts: &[u8]) -> Vec<u8> {
 
 /// Key material. Zeroed on drop to prevent it from lingering in memory.
 #[derive(Debug, Clone, From, ZeroizeOnDrop)]
-pub struct KeyBytes(#[debug("<KeyBytes>")] Vec<u8>);
+pub struct KeyBytes(#[debug("<redacted>")] Vec<u8>);
 
 impl AsRef<[u8]> for KeyBytes {
     fn as_ref(&self) -> &[u8] {
@@ -56,4 +56,17 @@ pub fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> R
         .fill(bts.as_mut_slice())?;
 
     Ok(bts.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::KeyBytes;
+
+    #[test]
+    fn key_bytes_is_not_debugged() {
+        let keybytes: KeyBytes = b"foobar".to_vec().into();
+        let debug = format!("{keybytes:?}");
+
+        assert_eq!(debug, "KeyBytes(<redacted>)".to_string());
+    }
 }
