@@ -23,7 +23,7 @@ semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["rt", "time"] }
 uuid = { workspace = true, features = ["v4"] }
 
 parking_lot = { workspace = true, optional = true }
@@ -35,3 +35,4 @@ built = { workspace = true, features = ["chrono", "git2"] }
 parking_lot.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
