@@ -240,8 +240,8 @@ pub struct MockDeviceConfig {
     pub google_ca: MockCaChain,
 }
 
-impl Default for MockDeviceConfig {
-    fn default() -> Self {
+impl MockDeviceConfig {
+    fn generate() -> Self {
         Self {
             app_identifier: AppIdentifier::new_mock(),
             environment: AttestationEnvironment::Development,
@@ -325,7 +325,7 @@ pub async fn setup_env(
     IssuerData,
     DisclosureUrls,
 ) {
-    let mock_device_config = MockDeviceConfig::default();
+    let mock_device_config = MockDeviceConfig::generate();
     wp_settings.ios = mock_device_config.ios_wp_settings();
     wp_settings.android.root_public_keys = mock_device_config.android_root_public_keys();
 
@@ -571,7 +571,7 @@ pub async fn setup_wallet_and_env(
 /// server — and return a registered-capable in-memory [`Wallet`]. Independent of any issuer; compose
 /// with a `setup_*_env` (e.g. [`setup_pre_auth_env`]) for the issuer side of a flow.
 pub async fn setup_wallet_env(db_setup: &DbSetup, vendor: WalletDeviceVendor) -> WalletWithStorage {
-    let mock_device_config = MockDeviceConfig::default();
+    let mock_device_config = MockDeviceConfig::generate();
 
     let (mut wp_settings, wp_root_ca) =
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
