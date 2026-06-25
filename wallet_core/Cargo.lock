@@ -9,6 +9,54 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
+name = "acf_demo_issuer"
+version = "0.6.0-dev"
+dependencies = [
+ "anyhow",
+ "askama",
+ "askama_web",
+ "attestation_data",
+ "attestation_types",
+ "axum",
+ "config",
+ "crypto",
+ "derive_more",
+ "health_checkers",
+ "hsm",
+ "http_utils",
+ "indexmap 2.12.1",
+ "issuer_common",
+ "itertools 0.14.0",
+ "openid4vc",
+ "openid4vc_server",
+ "p256",
+ "serde",
+ "serde_valid",
+ "server_utils",
+ "status_lists",
+ "thiserror 2.0.17",
+ "token_status_list",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "url",
+ "utils",
+ "utoipa-swagger-ui",
+ "web_utils",
+]
+
+[[package]]
+name = "acf_demo_issuer_migrations"
+version = "0.6.0-dev"
+dependencies = [
+ "async-trait",
+ "issuer_common_migrations",
+ "sea-orm-migration",
+ "tokio",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1903,6 +1951,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 name = "db_test"
 version = "0.6.0-dev"
 dependencies = [
+ "acf_demo_issuer_migrations",
  "async-dropper",
  "async-trait",
  "audit_log_migrations",
@@ -8336,6 +8385,7 @@ dependencies = [
 name = "tests_integration"
 version = "0.6.0-dev"
 dependencies = [
+ "acf_demo_issuer",
  "android_attest",
  "apple_app_attest",
  "attestation_data",

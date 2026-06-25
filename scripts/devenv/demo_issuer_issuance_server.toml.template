@@ -4,7 +4,6 @@ reader_trust_anchors = ["${READER_CA_CRT}"]
 
 metadata = [
     "${ISSUER_METADATA_DEGREE_PATH}",
-    "${ISSUER_METADATA_INSURANCE_PATH}",
     "${ISSUER_METADATA_HOUSING_PATH}"
 ]
 
@@ -79,39 +78,6 @@ publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_TSL}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_TSL}"
-
-[disclosure_settings.insurance]
-private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_INSURANCE_READER}"
-certificate = "${DEMO_ISSUER_CRT_INSURANCE_READER}"
-
-[[disclosure_settings.insurance.dcql_query.credentials]]
-id = "my_credential"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid:nl:1" }
-claims = [
-    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
-]
-
-[disclosure_settings.insurance.attestation_url_config]
-base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/insurance/"
-trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
-
-[credential_configurations."com.example.insurance_mdoc"]
-format = "mso_mdoc"
-attestation_type = "com.example.insurance"
-valid_days = 365
-private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
-certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
-
-[credential_configurations."com.example.insurance_mdoc".status_list]
-group_name = "com.example.insurance_mdoc"
-context_path = "/tsl"
-publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
-private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
-certificate = "${DEMO_ISSUER_CRT_INSURANCE_TSL}"
 
 [disclosure_settings.housing]
 private_key_type = "software"

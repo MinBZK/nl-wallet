@@ -20,10 +20,14 @@ use crate::issuer::AuthRequestValues;
 /// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an
 /// [`AuthorizationCodeFlow`] must retain to complete the authorization later: the wallet's
 /// `redirect_uri` and `state` (to build the wallet-facing redirect), the `scope` values and its PKCE `code_challenge`
-/// (which the `/token` handler verifies the wallet's `code_verifier` against).
+/// (which the `/token` handler verifies the wallet's `code_verifier` against) and the `issuer_state`
+/// the wallet echoes back from the credential offer (which a flow may use to identify the context set up during
+/// previous process steps).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletAuthorizationContext {
     pub state: Option<String>,
+    pub issuer_state: Option<String>,
+
     // Represents those values present in the inciting Authorization Request that an implementor of
     // [`AuthorizationCodeFlow`] will need to pass to `AuthorizingIssuer::complete_authorization()`. These values are
     // then retained in the `AuthCodeIssued` statue of the `Issuer`.
@@ -49,6 +53,7 @@ impl WalletAuthorizationContext {
 
         Ok(Self {
             state: request.oauth_request.state,
+            issuer_state: request.issuer_state,
             request_values: AuthRequestValues {
                 client_id: request.oauth_request.client_id,
                 redirect_uri: request.redirect_uri.into_inner(),

@@ -236,7 +236,9 @@ where
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
             AuthorizeOutcome::Authorized(issuables, context) => {
-                let WalletAuthorizationContext { state, request_values } = context;
+                let WalletAuthorizationContext {
+                    state, request_values, ..
+                } = context;
                 let redirect_uri = request_values.redirect_uri.clone();
 
                 let code = self
@@ -670,6 +672,7 @@ mod tests {
                         WALLET_CODE_CHALLENGE.to_string(),
                         HashSet::from([WALLET_SCOPE.parse().unwrap()]),
                     ),
+                    issuer_state: None,
                 },
             ),
         );

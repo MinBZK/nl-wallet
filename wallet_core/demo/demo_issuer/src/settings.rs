@@ -14,10 +14,13 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use serde::Deserialize;
 use serde_valid::Validate;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -26,6 +29,9 @@ pub struct Settings {
     pub issuance_server_tls_config: Option<TlsServerConfig>,
     pub issuance_server_url: BaseUrl,
     pub pacf_issuance_server_url: BaseUrl,
+    /// Base URL (Credential Issuer Identifier) of the acf_demo_issuer, used to build static
+    /// authorization-code credential offers.
+    pub acf_demo_issuer_url: IssuerIdentifier,
     pub universal_link_base_url: BaseUrl,
     pub help_base_url: BaseUrl,
     pub structured_logging: bool,
@@ -49,6 +55,15 @@ pub enum Usecase {
         data: HashMap<AttributeValue, IssuableDocumentTemplates>,
         client_id: String,
         disclosed: Disclosed,
+    },
+    /// Authorization-code flow: a static credential offer pointing at the acf_demo_issuer. The offer
+    /// carries no secret and no per-session code, so the same QR serves every wallet (each binds via
+    /// its own PKCE during `/authorize`). The usecase is identified to the issuer by `issuer_state`,
+    /// defaulting to this usecase's id when omitted.
+    AuthorizationCode {
+        credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId>,
+        #[serde(default)]
+        issuer_state: Option<String>,
     },
 }
 

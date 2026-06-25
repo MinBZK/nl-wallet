@@ -17,12 +17,7 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .auto_increment(),
                     )
-                    .col(
-                        ColumnDef::new(StateBridge::IssuerState)
-                            .string()
-                            .not_null()
-                            .unique_key(),
-                    )
+                    .col(ColumnDef::new(StateBridge::BridgeKey).string().not_null().unique_key())
                     .col(ColumnDef::new(StateBridge::Entry).json_binary().not_null())
                     .col(
                         ColumnDef::new(StateBridge::ExpiresAt)
@@ -41,7 +36,7 @@ impl MigrationTrait for Migration {
 enum StateBridge {
     Table,
     Id,
-    IssuerState,
+    BridgeKey,
     Entry,
     ExpiresAt,
 }

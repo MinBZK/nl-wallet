@@ -106,9 +106,9 @@ pub enum Error {
 
 /// One state-bridge entry, written at `/authorize` and consumed by the upstream callback handler.
 ///
-/// Linked to the upstream provider by the `issuer_state` random string we send as `state` in the
-/// upstream redirect, which the upstream then echoes back to our callback. Carries everything the
-/// callback needs to (a) complete the upstream `/token` + `/userinfo` exchange and (b) build the
+/// Linked to the upstream provider by a random `bridge_key` we send as `state` in the upstream
+/// redirect, which the upstream then echoes back to our callback. Carries everything the callback
+/// needs to (a) complete the upstream `/token` + `/userinfo` exchange and (b) build the
 /// wallet-facing redirect.
 #[derive(Serialize, Deserialize)]
 struct StateBridgeEntry {
@@ -129,8 +129,8 @@ struct DigidCallbackQuery {
 ///
 /// Owns:
 /// - upstream OIDC discovery cache + client (for the authorize-endpoint URL and the `/userinfo`-based BSN exchange);
-/// - the state-bridge store linking the issuer-generated `issuer_state` (sent to the upstream as `state`) to the
-///   wallet's original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
+/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`) to the wallet's
+///   original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
 /// - the BRP client (BSN → person attributes) and the recovery-code HMAC key;
 /// - the issuer's own callback URL, used both as the upstream `redirect_uri` and as the `redirect_uri` parameter of the
 ///   upstream `/token` exchange.
@@ -302,17 +302,17 @@ where
              unsupported attestation types",
         );
 
-        // Generate the upstream PKCE pair and the random `issuer_state` we'll use as `state` in
+        // Generate the upstream PKCE pair and a random `bridge_key` we'll use as `state` in
         // the upstream redirect. The upstream provider will echo it back to our callback.
         let upstream_pkce = S256PkcePair::generate();
-        let issuer_state = random_string(ISSUER_STATE_LENGTH);
+        let upstream_state = random_string(ISSUER_STATE_LENGTH);
 
         let redirect_url = self
             .digid_client
             .authorization_request(
                 self.client_id.clone(),
                 self.callback_url.clone(),
-                issuer_state.clone(),
+                upstream_state.clone(),
                 &upstream_pkce,
             )
             .await
@@ -326,7 +326,7 @@ where
             formats,
         };
         self.state_bridge_store
-            .store(issuer_state, entry)
+            .store(upstream_state, entry)
             .await
             .map_err(Error::StateBridge)?;
 
@@ -360,7 +360,7 @@ where
     let entry: StateBridgeEntry = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Some(entry)) => entry,
         Ok(None) => {
-            warn!("digid callback: unknown or expired issuer_state");
+            warn!("digid callback: unknown or expired bridge key");
             return (StatusCode::BAD_REQUEST, "unknown or expired state").into_response();
         }
         Err(error) => {
@@ -370,7 +370,9 @@ where
     };
 
     let StateBridgeEntry {
-        context: WalletAuthorizationContext { state, request_values },
+        context: WalletAuthorizationContext {
+            state, request_values, ..
+        },
         upstream_code_verifier,
         formats,
     } = entry;
@@ -608,6 +610,7 @@ mod tests {
         StateBridgeEntry {
             context: WalletAuthorizationContext {
                 state: Some(WALLET_STATE.to_string()),
+                issuer_state: None,
                 request_values: AuthRequestValues::new(
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     WALLET_REDIRECT_URI.parse().unwrap(),
@@ -693,19 +696,19 @@ mod tests {
         };
 
         // The flow asked the digid client for the upstream redirect, handing it the issuer's
-        // callback URL and a generated `issuer_state` as the upstream `state`; the mock client
-        // echoes both back in the redirect URL, and that same `issuer_state` keys the bridge entry.
+        // callback URL and a generated `bridge_key` as the upstream `state`; the mock client
+        // echoes both back in the redirect URL, and that same `bridge_key` keys the bridge entry.
         assert_eq!(redirect_url.path(), DIGID_CALLBACK_PATH);
         let query_params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-        let issuer_state = query_params
+        let upstream_state = query_params
             .get("state")
-            .expect("upstream redirect should carry the issuer_state as state");
+            .expect("upstream redirect should carry the bridge key as state");
 
         let entry: StateBridgeEntry = bridge
-            .consume(issuer_state.as_str())
+            .consume(upstream_state.as_str())
             .await
             .unwrap()
-            .expect("a bridge entry should be stored under the issuer_state");
+            .expect("a bridge entry should be stored under the bridge key");
 
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
         assert_eq!(entry.context.request_values.client_id, MOCK_WALLET_CLIENT_ID);
