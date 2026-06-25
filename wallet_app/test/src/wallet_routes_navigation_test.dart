@@ -35,6 +35,7 @@ import 'package:wallet/src/domain/usecase/close_proximity/start_close_proximity_
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
+import 'package:wallet/src/domain/usecase/event/get_wallet_events_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
@@ -249,6 +250,7 @@ List<SingleChildWidget> _getUseCaseProviders() {
     RepositoryProvider<GetHelpCategoriesUseCase>(create: (c) => GetHelpCategoriesUseCaseImpl(c.read())),
     RepositoryProvider<GetHelpTopicBlocksUseCase>(create: (c) => GetHelpTopicBlocksUseCaseImpl(c.read())),
     RepositoryProvider<GetMostRecentWalletEventUseCase>(create: (c) => Mocks.create()),
+    RepositoryProvider<GetWalletEventsForPidUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetPidCardsUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetPidIssuanceUrlUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetPidRenewalUrlUseCase>(create: (c) => Mocks.create()),
