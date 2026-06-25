@@ -337,6 +337,7 @@ where
 mod tests {
     use std::assert_matches;
     use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
@@ -358,13 +359,14 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::Pin;
     use crate::account_provider::AccountProviderResponseError;
     use crate::wallet::test::TestWallet;
     use crate::wallet::test::TestWalletInMemoryStorage;
     use crate::wallet::test::valid_certificate;
     use crate::wallet::test::valid_certificate_claims;
 
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     async fn test_register_success(wallet: &mut TestWalletInMemoryStorage) {
         // The wallet should report that it is currently unregistered and locked.
@@ -459,7 +461,7 @@ mod tests {
             });
 
         // Register the wallet with a valid PIN.
-        wallet.register(PIN.into()).await.expect("Could not register wallet");
+        wallet.register(PIN.clone()).await.expect("Could not register wallet");
 
         // The wallet should now report that it is registered and unlocked.
         assert!(wallet.has_registration());
@@ -535,7 +537,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -568,7 +570,7 @@ mod tests {
             .return_once(|_| Err(AccountProviderResponseError::Status(StatusCode::INTERNAL_SERVER_ERROR).into()));
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -597,7 +599,7 @@ mod tests {
         wallet.key_holder.error_scenario = error_scenario;
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -657,7 +659,7 @@ mod tests {
         wallet.key_holder.error_scenario = KeyHolderErrorScenario::RetryableAttestationError;
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -693,7 +695,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -727,7 +729,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -777,7 +779,7 @@ mod tests {
             });
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -818,7 +820,7 @@ mod tests {
         expect_register_with_random_pubkey(&mut wallet);
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -857,7 +859,7 @@ mod tests {
             .returning(|_| Err(StorageError::AlreadyOpened));
 
         let error = wallet
-            .register(PIN.into())
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 

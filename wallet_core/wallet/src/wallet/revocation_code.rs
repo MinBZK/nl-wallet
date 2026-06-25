@@ -119,6 +119,7 @@ where
 mod test {
     use std::assert_matches;
     use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use crypto::utils::random_bytes;
     use update_policy_model::update_policy::VersionState;
@@ -132,13 +133,14 @@ mod test {
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_wp_result;
     use super::RevocationCodeError;
+    use crate::Pin;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
     use crate::instruction::InstructionError;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
 
-    const PIN: &str = "293847";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "293847".into());
 
     #[tokio::test]
     async fn test_wallet_get_revocation_code_before_pid() {
@@ -224,7 +226,7 @@ mod test {
             .return_once(|_, _: Instruction<CheckPin>| Ok(create_wp_result(())));
 
         let _ = wallet
-            .get_revocation_code_with_pin(PIN.into())
+            .get_revocation_code_with_pin(PIN.clone())
             .await
             .expect("retrieving revocation code using PIN should succeed");
     }
@@ -236,7 +238,7 @@ mod test {
         wallet.update_policy_repository.state = VersionState::Block;
 
         let error = wallet
-            .get_revocation_code_with_pin(PIN.into())
+            .get_revocation_code_with_pin(PIN.clone())
             .await
             .expect_err("retrieving revocation code using PIN should not succeed when the wallet is blocked");
 
@@ -278,7 +280,7 @@ mod test {
             });
 
         let error = wallet
-            .get_revocation_code_with_pin(PIN.into())
+            .get_revocation_code_with_pin(PIN.clone())
             .await
             .expect_err("retrieving revocation code using PIN should not succeed when using an incorrect PIN");
 

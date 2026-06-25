@@ -854,6 +854,7 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
     use std::ops::Add;
+    use std::sync::LazyLock;
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -888,6 +889,7 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::Pin;
     use crate::WalletEvent;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
@@ -1750,7 +1752,7 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     fn sd_jwt_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
         let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
@@ -1881,7 +1883,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect("Could not accept PID issuance");
 
@@ -1948,7 +1950,7 @@ mod tests {
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1967,7 +1969,7 @@ mod tests {
 
         // Accepting PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1993,7 +1995,7 @@ mod tests {
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2050,7 +2052,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2145,7 +2147,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2178,7 +2180,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2234,7 +2236,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2396,7 +2398,7 @@ mod tests {
         }));
 
         let error = wallet
-            .accept_issuance(PIN.into())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 

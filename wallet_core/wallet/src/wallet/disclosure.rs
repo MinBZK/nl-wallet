@@ -1074,6 +1074,7 @@ mod tests {
     use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
     use super::is_request_for_recovery_code;
+    use crate::Pin;
     use crate::attestation::AttestationIdentity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
@@ -1093,7 +1094,7 @@ mod tests {
 
     static DISCLOSURE_URI: LazyLock<Url> =
         LazyLock::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
     static RETURN_URL: LazyLock<Url> = LazyLock::new(|| Url::from_str("https://example.com/return/here").unwrap());
     static DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS: LazyLock<NormalizedCredentialRequests> = LazyLock::new(|| {
         NormalizedCredentialRequests::new_mock_mdoc_from_slices(
@@ -1583,7 +1584,7 @@ mod tests {
 
         // Accept the disclosure, selecting the contents of `pid2` and `address1`.
         let return_url = wallet
-            .accept_disclosure(&[1, 0], PIN.into())
+            .accept_disclosure(&[1, 0], PIN.clone())
             .await
             .expect("accepting disclosure should succeed");
 
@@ -2453,7 +2454,7 @@ mod tests {
         let event_count = monitor_event_count(&mut wallet).await;
 
         let accept_return_url = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect("accepting disclosure should succeed");
 
@@ -2477,7 +2478,7 @@ mod tests {
 
         // Accepting disclosure on a blocked wallet should result in an error.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2496,7 +2497,7 @@ mod tests {
 
         // Accepting disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2521,7 +2522,7 @@ mod tests {
 
         // Accepting disclosure on a locked wallet should result in an error.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2542,7 +2543,7 @@ mod tests {
 
         // Accepting disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2567,7 +2568,7 @@ mod tests {
 
         // Accepting disclosure on a wallet that has a disclosure based issuance session should result in an error.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2598,7 +2599,7 @@ mod tests {
 
         // Accepting disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2622,7 +2623,7 @@ mod tests {
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant query index should result in a panic.
-        let _ = wallet.accept_disclosure(&[0, 0], PIN.into()).await;
+        let _ = wallet.accept_disclosure(&[0, 0], PIN.clone()).await;
     }
 
     #[tokio::test]
@@ -2641,7 +2642,7 @@ mod tests {
 
         // Accepting disclosure on a wallet while selecting a non-existant
         // attestation proposal should result in a panic.
-        let _ = wallet.accept_disclosure(&[1], PIN.into()).await;
+        let _ = wallet.accept_disclosure(&[1], PIN.clone()).await;
     }
 
     // TODO (PVW-3844): Add tests for continuing a PIN change when accepting disclosure.
@@ -2677,7 +2678,7 @@ mod tests {
         // Accepting disclosure on a wallet with a faulty database should result
         // in an error, the disclosure session should not be removed.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2826,7 +2827,7 @@ mod tests {
 
         // Accepting disclosure when the verifier responds with an invalid request error should result in an error.
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2898,7 +2899,7 @@ mod tests {
             .returning(move || Ok(vec![]));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -3030,7 +3031,7 @@ mod tests {
             });
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -3208,7 +3209,7 @@ mod tests {
         });
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -3278,7 +3279,7 @@ mod tests {
         });
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.into())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting disclosure should not succeed");
 
