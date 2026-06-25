@@ -11,6 +11,7 @@ test-ios:
       junit: fastlane/test_output/report.junit
     paths:
       - "fastlane/test_output/*"
+      - "wallet_core/wallet/platform_support/ios/*.xcactivitylog"
       - "wallet_core/wallet/platform_support/ios/compile_platform_support.log"
   script:
     - bundle install
@@ -18,6 +19,7 @@ test-ios:
   after_script:
     - deploy/bin/store-artifact.sh fastlane/test_output/report.junit qt/quality-time/junit-results/ios.xml
     - deploy/bin/store-artifact.sh fastlane/test_output/cobertura.xml qt/quality-time/ios-cobertura.xml
+    - find $HOME/Library/Developer/Xcode/DerivedData/PlatformSupport-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_core/wallet/platform_support/ios/
 
 ### iOS Building
 .build-ios-app:
