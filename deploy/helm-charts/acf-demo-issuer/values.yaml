@@ -149,7 +149,8 @@ walletRedirectUris: []
 ## @section Metadata parameters
 ## @param metadata List of SD-JWT Type Metadata filenames to mount and pass to the server
 ##
-metadata: []
+metadata:
+  - com_example_insurance_metadata.json
 
 ## @section Migration parameters
 ## Parameters for the migration configuration
