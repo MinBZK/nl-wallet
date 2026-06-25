@@ -7,6 +7,8 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::par_store::IssuerParStore;
 use itertools::Itertools;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
+use openid4vc::cleanup::CLEANUP_INTERVAL;
+use openid4vc::cleanup::start_cleanup_task;
 use openid4vc::issuer::IssuanceData;
 use openid4vc_server::issuer::create_authorization_router;
 use openid4vc_server::issuer::create_issuance_router;
@@ -71,6 +73,10 @@ where
 {
     let status_list_services =
         VecNonEmpty::try_from(authorizing_issuer.issuer().status_lists().cloned().collect_vec())?;
+
+    // Periodically remove expired PAR requests, state-bridge entries, sessions and proof nonces for
+    // as long as the server runs; the guard aborts the task when this function returns.
+    let _cleanup_task = start_cleanup_task(CLEANUP_INTERVAL, Arc::clone(&authorizing_issuer));
 
     let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
     let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
