@@ -1,6 +1,8 @@
+use std::error::Error;
 use std::fmt::Display;
 use std::str::FromStr;
 
+use derive_more::Constructor;
 use http::StatusCode;
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
@@ -75,6 +77,50 @@ impl<T> AuthorizationErrorResponse<T> {
     }
 }
 
+/// Describes an error that occured at a HTTP(S) endpoint that is meant to be returned in a 303 See Other redirect.
+#[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RedirectErrorResponse<T> {
+    #[serde(flatten, bound(serialize = "T: Display"))]
+    pub auth_error_response: AuthorizationErrorResponse<T>,
+    #[serde(skip)]
+    pub redirect_uri: Url,
+}
+
+/// Wraps an [`Error`] type that can be returned in a HTTP(S) redirect.
+#[derive(Debug, thiserror::Error, Constructor)]
+#[error("{error}")]
+pub struct RedirectError<E>
+where
+    E: Error,
+{
+    #[source]
+    pub error: E,
+    pub redirect_uri: Url,
+    pub state: Option<String>,
+}
+
+impl<E, T> From<RedirectError<E>> for RedirectErrorResponse<T>
+where
+    E: Error + Into<T>,
+{
+    fn from(value: RedirectError<E>) -> Self {
+        let RedirectError {
+            error,
+            redirect_uri,
+            state,
+        } = value;
+
+        Self {
+            auth_error_response: AuthorizationErrorResponse {
+                error_response: ErrorResponse::from(error),
+                state,
+            },
+            redirect_uri,
+        }
+    }
+}
+
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
 /// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
@@ -96,7 +142,7 @@ impl<T> DisclosureErrorResponse<T> {
 
 impl<E, T> From<WithRedirectUri<E>> for DisclosureErrorResponse<T>
 where
-    E: Into<ErrorResponse<T>> + std::error::Error,
+    E: Into<ErrorResponse<T>> + Error,
 {
     fn from(value: WithRedirectUri<E>) -> Self {
         DisclosureErrorResponse {
@@ -754,12 +800,14 @@ mod axum {
 
     use axum::Json;
     use axum::response::IntoResponse;
+    use axum::response::Redirect;
     use axum::response::Response;
     use tracing::warn;
 
     use super::DisclosureErrorResponse;
     use super::ErrorResponse;
     use super::ErrorStatusCode;
+    use super::RedirectErrorResponse;
 
     impl<T> IntoResponse for ErrorResponse<T>
     where
@@ -772,6 +820,22 @@ mod axum {
         }
     }
 
+    impl<T> IntoResponse for RedirectErrorResponse<T>
+    where
+        T: Display + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error redirect: {:?}", &self);
+
+            let query = serde_qs::to_string(&self).expect("encoding redirect error query string should never fail");
+
+            let mut redirect_uri = self.redirect_uri;
+            redirect_uri.set_query(Some(&query));
+
+            Redirect::to(redirect_uri.as_str()).into_response()
+        }
+    }
+
     impl<T> IntoResponse for DisclosureErrorResponse<T>
     where
         T: ErrorStatusCode + Display + Debug,
@@ -781,5 +845,45 @@ mod axum {
 
             (self.error_response.error.status_code(), Json(self)).into_response()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use derive_more::Display;
+
+    use super::RedirectError;
+    use super::RedirectErrorResponse;
+
+    #[test]
+    fn test_redirect_error_serialization() {
+        #[derive(Debug, thiserror::Error)]
+        #[error("{0}")]
+        struct ExampleError(String);
+
+        #[derive(Display)]
+        #[display("something_happened")]
+        struct ExampleErrorCode;
+
+        impl From<ExampleError> for ExampleErrorCode {
+            fn from(_: ExampleError) -> Self {
+                Self
+            }
+        }
+
+        let example_error = ExampleError("Something happened".to_string());
+        let redirect_uri = "http://example.com/redirect".parse().unwrap();
+        let state = "wallet_state".to_string();
+
+        let redirect_error = RedirectError::new(example_error, redirect_uri, Some(state));
+        let error_response = RedirectErrorResponse::<ExampleErrorCode>::from(redirect_error);
+
+        let query = serde_qs::to_string(&error_response)
+            .expect("encoding redirect error response to query string should succeed");
+
+        assert_eq!(
+            query,
+            "error=something_happened&error_description=Something%20happened&state=wallet_state"
+        );
     }
 }
