@@ -154,14 +154,24 @@ impl From<AuthorizeError> for AuthorizeErrorCode {
     }
 }
 
-/// Wire-format error codes for the Pushed Authorization Request endpoint.
+/// The list of error codes that can result from the PAR POST request.
+///
+/// According to <https://datatracker.ietf.org/doc/html/rfc9126#section-2.3>, these can be taken either from
+/// <https://datatracker.ietf.org/doc/html/rfc6749#section-5.2> or
+/// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1>, i.e. the token endpoint error codes or the
+/// authorization endpoint error codes.
+///
+/// This type represents a selection among these error codes, containing only those that the issuer returns. Any other
+/// error code that a third-party issuer sends to the wallet will use the `Other` variant.
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
+    // Token error code.
     InvalidClient,
+    // Both token and authorization error code.
     InvalidRequest,
+    // Authorization error code.
     ServerError,
-
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
     // Note that this is never to be used by the issuer.
     #[strum(default)]
