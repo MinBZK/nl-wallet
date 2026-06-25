@@ -20,6 +20,7 @@ use aes_gcm::Aes256Gcm;
 use aes_gcm::Nonce;
 use aes_gcm::aead::Aead;
 use aes_gcm::aead::KeyInit;
+use crypto::utils::KeyBytes;
 use crypto::utils::hkdf;
 use crypto::utils::sha256;
 use p256::PublicKey;
@@ -168,8 +169,8 @@ impl Default for SessionCounters {
 #[derive(Debug)]
 pub struct SessionEncryption {
     role: SessionRole,
-    sk_self: Vec<u8>,
-    sk_remote: Vec<u8>,
+    sk_self: KeyBytes,
+    sk_remote: KeyBytes,
     counters: Mutex<SessionCounters>,
 }
 
@@ -321,15 +322,17 @@ fn session_transcript_salt(session_transcript: &SessionTranscript) -> Result<Vec
     Ok(sha256(cbor_serialize(&transcript_bytes)?.as_slice()))
 }
 
-fn encrypt_session_data(key: &[u8], iv: [u8; 12], plaintext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
-    let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
+fn encrypt_session_data(key: &KeyBytes, iv: [u8; 12], plaintext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
+    let cipher =
+        Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
     cipher
         .encrypt(Nonce::from_slice(&iv), plaintext)
         .map_err(|_| SessionEncryptionError::EncryptionFailed)
 }
 
-fn decrypt_session_data(key: &[u8], iv: [u8; 12], ciphertext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
-    let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
+fn decrypt_session_data(key: &KeyBytes, iv: [u8; 12], ciphertext: &[u8]) -> Result<Vec<u8>, SessionEncryptionError> {
+    let cipher =
+        Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
     cipher
         .decrypt(Nonce::from_slice(&iv), ciphertext)
         .map_err(|_| SessionEncryptionError::DecryptionFailed)

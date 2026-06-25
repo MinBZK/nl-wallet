@@ -1,3 +1,4 @@
+use crypto::utils::KeyBytes;
 use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JwePublicKey;
 use serde::Deserialize;
@@ -28,7 +29,7 @@ pub struct KeyData {
 pub struct RegistrationData {
     pub attested_key_identifier: String,
     #[serde_as(as = "Base64")]
-    pub pin_salt: Vec<u8>,
+    pub pin_salt: KeyBytes,
     pub wallet_id: String,
     #[serde_as(as = "DisplayFromStr")]
     pub revocation_code: RevocationCode,

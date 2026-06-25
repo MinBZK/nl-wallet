@@ -98,7 +98,7 @@ async fn create_wallet() -> Result<(), WalletInitError> {
 
 #[flutter_api_error]
 pub fn is_valid_pin(pin: String) -> anyhow::Result<PinValidationResult> {
-    let result = wallet::validate_pin(&pin).into();
+    let result = wallet::validate_pin(&pin.into()).into();
 
     Ok(result)
 }
@@ -217,7 +217,7 @@ pub async fn clear_recent_history_stream() {
 pub async fn unlock_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.unlock(pin).await.try_into()?;
+    let result = wallet.unlock(pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -232,7 +232,7 @@ pub async fn lock_wallet() {
 pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.check_pin(pin).await.try_into()?;
+    let result = wallet.check_pin(pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -241,7 +241,10 @@ pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
 pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.begin_change_pin(old_pin, new_pin).await.try_into()?;
+    let result = wallet
+        .begin_change_pin(old_pin.into(), new_pin.into())
+        .await
+        .try_into()?;
 
     Ok(result)
 }
@@ -250,7 +253,7 @@ pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<Wall
 pub async fn continue_change_pin(pin: &str) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.continue_change_pin(pin).await.try_into()?;
+    let result = wallet.continue_change_pin(&pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -263,7 +266,7 @@ pub async fn has_registration() -> bool {
 pub async fn register(pin: &str) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.register(pin).await?;
+    wallet.register(pin.into()).await?;
 
     Ok(())
 }
@@ -321,7 +324,7 @@ pub async fn continue_pin_recovery(uri: String) -> anyhow::Result<()> {
 pub async fn complete_pin_recovery(pin: String) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.complete_pin_recovery(pin).await?;
+    wallet.complete_pin_recovery(pin.into()).await?;
 
     Ok(())
 }
@@ -375,7 +378,7 @@ pub async fn continue_issuance(uri: String) -> anyhow::Result<Vec<AttestationPre
 pub async fn accept_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_issuance(pin).await.try_into()?;
+    let result = wallet.accept_issuance(pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -384,7 +387,7 @@ pub async fn accept_issuance(pin: String) -> anyhow::Result<WalletInstructionRes
 pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<PidIssuanceResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_issuance(pin).await.try_into()?;
+    let result = wallet.accept_issuance(pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -449,7 +452,10 @@ pub async fn accept_disclosure(selected_indices: Vec<u16>, pin: String) -> anyho
 
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_disclosure(&selected_indices, pin).await.try_into()?;
+    let result = wallet
+        .accept_disclosure(&selected_indices, pin.into())
+        .await
+        .try_into()?;
 
     Ok(result)
 }
@@ -464,7 +470,7 @@ pub async fn continue_disclosure_based_issuance(
     let mut wallet = wallet().write().await;
 
     let result = wallet
-        .continue_disclosure_based_issuance(&selected_indices, pin)
+        .continue_disclosure_based_issuance(&selected_indices, pin.into())
         .await
         .try_into()?;
 
@@ -527,7 +533,7 @@ pub async fn pair_wallet_transfer(uri: String) -> anyhow::Result<()> {
 pub async fn confirm_wallet_transfer(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.confirm_transfer(pin).await.try_into()?;
+    let result = wallet.confirm_transfer(pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -615,7 +621,7 @@ pub async fn get_registration_revocation_code() -> anyhow::Result<String> {
 pub async fn get_revocation_code(pin: String) -> anyhow::Result<RevocationCodeResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.get_revocation_code_with_pin(pin).await.try_into()?;
+    let result = wallet.get_revocation_code_with_pin(pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -624,7 +630,7 @@ pub async fn get_revocation_code(pin: String) -> anyhow::Result<RevocationCodeRe
 pub async fn delete_attestation(pin: String, attestation_id: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.delete_attestation(pin, attestation_id).await.try_into()?;
+    let result = wallet.delete_attestation(pin.into(), attestation_id).await.try_into()?;
 
     Ok(result)
 }

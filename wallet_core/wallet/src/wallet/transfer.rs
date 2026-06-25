@@ -34,6 +34,7 @@ use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientParameters;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -250,7 +251,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn confirm_transfer(&mut self, pin: String) -> Result<(), TransferError> {
+    pub async fn confirm_transfer(&mut self, pin: Pin) -> Result<(), TransferError> {
         info!("Confirming wallet transfer");
 
         self.validate_transfer_allowed()?;
@@ -1039,7 +1040,7 @@ mod tests {
             .return_once(move |_, _: Instruction<ConfirmTransfer>| Ok(wp_result));
 
         source_wallet
-            .confirm_transfer(String::from("12345"))
+            .confirm_transfer("12345".into())
             .await
             .expect("Wallet confirm should have succeeded");
 

@@ -502,7 +502,7 @@ mod tests {
 
         // The registration data should now be available.
         let (_, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
-        assert_eq!(registration_data.pin_salt, pin_salt);
+        assert_eq!(registration_data.pin_salt.as_ref(), pin_salt.as_ref());
     }
 
     #[tokio::test]

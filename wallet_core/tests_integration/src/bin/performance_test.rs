@@ -20,6 +20,7 @@ use tracing::instrument;
 use url::Url;
 use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
+use wallet::Pin;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::WalletRepositories;
@@ -93,9 +94,9 @@ async fn main() {
     .await
     .expect("Could not create test wallet");
 
-    let pin = "123344";
+    let pin: Pin = "123344".into();
 
-    wallet.register(pin).await.expect("Could not register wallet");
+    wallet.register(pin.clone()).await.expect("Could not register wallet");
 
     let authorization_url = wallet
         .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
@@ -110,7 +111,7 @@ async fn main() {
         .expect("Could not continue pid issuance");
 
     wallet
-        .accept_issuance(pin.to_owned())
+        .accept_issuance(pin.clone())
         .await
         .expect("Could not accept pid issuance");
 
@@ -165,7 +166,7 @@ async fn main() {
     assert_eq!(proposal.attestation_options.len().get(), 1);
 
     let return_url = wallet
-        .accept_disclosure(&[0], pin.to_owned())
+        .accept_disclosure(&[0], pin)
         .await
         .expect("Could not accept disclosure");
 

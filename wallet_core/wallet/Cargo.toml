@@ -69,6 +69,7 @@ trait-variant.workspace = true
 url.workspace = true
 uuid = { workspace = true, features = ["v4", "v7"] }
 zstd.workspace = true
+zeroize = { workspace = true, features = ["zeroize_derive"] }
 
 mockall = { workspace = true, optional = true }
 

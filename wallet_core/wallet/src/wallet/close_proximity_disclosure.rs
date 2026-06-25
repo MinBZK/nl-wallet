@@ -64,6 +64,7 @@ use crate::errors::InstructionError;
 use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::RemoteEcdsaWscd;
+use crate::pin::key::Pin as WalletPin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
@@ -481,7 +482,7 @@ where
         &mut self,
         close_proximity_session: CloseProximityDisclosureSession,
         selected_indices: &[usize],
-        pin: String,
+        pin: WalletPin,
         attested_key_registration_data_and_config: AttestedKeyRegistrationDataAndConfig<AKH>,
     ) -> Result<(), DisclosureError>
     where
@@ -844,6 +845,7 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
@@ -914,6 +916,7 @@ mod tests {
     use super::verify_device_request;
     use crate::DisclosureAttestationOptions;
     use crate::DisclosureProposalPresentation;
+    use crate::Pin;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
     use crate::attestation::mock::EmptyPresentationConfig;
@@ -1826,7 +1829,7 @@ mod tests {
     }
 
     // The PIN used in accept_disclosure tests.
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     /// Creates a `CloseProximityDisclosureSession` in the `DisclosureProposed` state and installs
     /// it as `wallet.session`. Returns the `VerifierCertificate` stored inside the session so that
@@ -2077,7 +2080,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let result = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect("accepting close proximity disclosure should succeed");
 
@@ -2115,7 +2118,7 @@ mod tests {
         });
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting close proximity disclosure should report the disconnect");
 
@@ -2160,7 +2163,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2201,7 +2204,7 @@ mod tests {
 
         assert!(
             wallet
-                .accept_disclosure(&[0], PIN.to_string())
+                .accept_disclosure(&[0], PIN.clone())
                 .await
                 .expect("accepting close proximity disclosure should succeed")
                 .is_none()
@@ -2236,7 +2239,7 @@ mod tests {
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         let error = wallet
-            .accept_disclosure(&[0], "whatever".to_string())
+            .accept_disclosure(&[0], "whatever".into())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2279,7 +2282,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2332,7 +2335,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 
@@ -2378,7 +2381,7 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         let error = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[0], PIN.clone())
             .await
             .expect_err("accepting close proximity disclosure should not succeed");
 

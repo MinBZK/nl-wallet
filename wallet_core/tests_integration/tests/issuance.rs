@@ -8,17 +8,18 @@ use pid_issuer::pid::constants::PID_RECOVERY_CODE;
 use serial_test::serial;
 use tests_integration::common::*;
 use wallet::AttestationPresentation;
+use wallet::Pin;
 use wallet::attestation_data::AttributeValue;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc1_test_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
 
     let attestations = wallet_attestations(&mut wallet).await;
 
@@ -38,7 +39,7 @@ async fn ltc1_test_pid_ok() {
     assert!(formats.contains(&Format::SdJwt));
 
     // After the wallet is enrolled and has a PID, the PID can be renewed.
-    wallet = do_pid_renewal(wallet, pin.to_owned()).await;
+    wallet = do_pid_renewal(wallet, pin).await;
 
     let attestations = wallet_attestations(&mut wallet).await;
 

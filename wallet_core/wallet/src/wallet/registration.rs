@@ -31,6 +31,7 @@ use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
 use crate::errors::AccountProviderResponseError;
 use crate::errors::UpdatePolicyError;
+use crate::pin::key::Pin;
 use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
 use crate::pin::validation::PinValidationError;
@@ -130,7 +131,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn register(&mut self, pin: &str) -> Result<(), WalletRegistrationError>
+    pub async fn register(&mut self, pin: Pin) -> Result<(), WalletRegistrationError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -159,7 +160,7 @@ where
 
         // Make sure the PIN adheres to the requirements.
         // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
-        validate_pin(pin).map_err(WalletRegistrationError::InvalidPin)?;
+        validate_pin(&pin).map_err(WalletRegistrationError::InvalidPin)?;
 
         info!("Requesting challenge from account server");
 
@@ -242,7 +243,10 @@ where
         // Create a registration message and double sign it with the challenge.
         // Generate a new PIN salt and derive the private key from the provided PIN.
         let pin_salt = pin_key::new_pin_salt();
-        let pin_key = PinKey { pin, salt: &pin_salt };
+        let pin_key = PinKey {
+            pin: &pin,
+            salt: &pin_salt,
+        };
 
         // Sign the registration message based on the attestation type.
         let (registration_message, attested_key) = match key_with_attestation {
@@ -333,6 +337,7 @@ where
 mod tests {
     use std::assert_matches;
     use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
@@ -354,13 +359,14 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::Pin;
     use crate::account_provider::AccountProviderResponseError;
     use crate::wallet::test::TestWallet;
     use crate::wallet::test::TestWalletInMemoryStorage;
     use crate::wallet::test::valid_certificate;
     use crate::wallet::test::valid_certificate_claims;
 
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     async fn test_register_success(wallet: &mut TestWalletInMemoryStorage) {
         // The wallet should report that it is currently unregistered and locked.
@@ -455,7 +461,7 @@ mod tests {
             });
 
         // Register the wallet with a valid PIN.
-        wallet.register(PIN).await.expect("Could not register wallet");
+        wallet.register(PIN.clone()).await.expect("Could not register wallet");
 
         // The wallet should now report that it is registered and unlocked.
         assert!(wallet.has_registration());
@@ -531,7 +537,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -545,7 +551,7 @@ mod tests {
 
         // Try to register with an insecure PIN.
         let error = wallet
-            .register("123456")
+            .register("123456".into())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -564,7 +570,7 @@ mod tests {
             .return_once(|_| Err(AccountProviderResponseError::Status(StatusCode::INTERNAL_SERVER_ERROR).into()));
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -593,7 +599,7 @@ mod tests {
         wallet.key_holder.error_scenario = error_scenario;
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -653,7 +659,7 @@ mod tests {
         wallet.key_holder.error_scenario = KeyHolderErrorScenario::RetryableAttestationError;
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -689,7 +695,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -723,7 +729,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -773,7 +779,7 @@ mod tests {
             });
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -814,7 +820,7 @@ mod tests {
         expect_register_with_random_pubkey(&mut wallet);
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -853,7 +859,7 @@ mod tests {
             .returning(|_| Err(StorageError::AlreadyOpened));
 
         let error = wallet
-            .register(PIN)
+            .register(PIN.clone())
             .await
             .expect_err("Wallet registration should have resulted in error");
 

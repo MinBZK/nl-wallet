@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crypto::utils::KeyBytes;
 use tokio::sync::RwLock;
 use wallet_account::messages::registration::WalletCertificate;
 
@@ -34,7 +35,7 @@ where
     async fn change_pin(
         &self,
         current_registration_data: RegistrationData,
-        new_pin_salt: Vec<u8>,
+        new_pin_salt: KeyBytes,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError> {
         let mut storage = self.write().await;
@@ -56,6 +57,7 @@ mod tests {
     use super::*;
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
+    use crate::pin::key::new_pin_salt;
     use crate::storage::MockHardwareDatabaseStorage;
 
     #[tokio::test]
@@ -80,17 +82,17 @@ mod tests {
 
         let registration_data = RegistrationData {
             attested_key_identifier: "key_id".to_string(),
-            pin_salt: b"pin_salt_1234_old".to_vec(),
+            pin_salt: new_pin_salt(),
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
             revocation_code: RevocationCode::new_random(),
         };
-        let new_pin_salt = b"pin_salt_1234_new".to_vec();
+        let new_pin_salt = new_pin_salt();
         let new_wallet_certificate = "this.isa.jwt_new".parse().unwrap();
 
         assert_matches!(
             change_pin_storage
-                .change_pin(registration_data, new_pin_salt, new_wallet_certificate)
+                .change_pin(registration_data, new_pin_salt.clone(), new_wallet_certificate)
                 .await,
             Ok(())
         );
@@ -102,7 +104,7 @@ mod tests {
                 .await
                 .expect("database error")
                 .expect("no registation data found");
-            assert_eq!(actual.pin_salt, b"pin_salt_1234_new");
+            assert_eq!(actual.pin_salt.as_ref(), new_pin_salt.as_ref());
         }
     }
 }
