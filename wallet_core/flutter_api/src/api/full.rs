@@ -103,6 +103,24 @@ pub fn is_valid_pin(pin: String) -> anyhow::Result<PinValidationResult> {
     Ok(result)
 }
 
+pub async fn clear_sentry_breadcrumb_callback() {
+    error_category::sentry::clear_breadcrumb_sink();
+}
+
+pub async fn set_sentry_breadcrumb_callback(
+    callback: impl Fn(String) -> DartFnFuture<()> + Send + Sync + 'static,
+) -> anyhow::Result<()> {
+    let callback = Arc::new(callback);
+    error_category::sentry::set_breadcrumb_sink(Arc::new(move |message| {
+        let callback = Arc::clone(&callback);
+        tokio::spawn(async move {
+            callback(message).await;
+        });
+    }));
+
+    Ok(())
+}
+
 pub async fn set_lock_stream(sink: StreamSink<bool>) {
     wallet().write().await.set_lock_callback(Box::new(move |locked| {
         let _ = sink.add(locked);

@@ -81,7 +81,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -643715260;
+  int get rustContentHash => -591652018;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -128,6 +128,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<void> crateApiFullClearRecentHistoryStream();
 
   Future<void> crateApiFullClearScheduledNotificationsStream();
+
+  Future<void> crateApiFullClearSentryBreadcrumbCallback();
 
   Future<void> crateApiFullClearVersionStateStream();
 
@@ -211,6 +213,8 @@ abstract class WalletCoreApi extends BaseApi {
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream();
 
   Stream<List<AppNotification>> crateApiFullSetScheduledNotificationsStream();
+
+  Future<void> crateApiFullSetSentryBreadcrumbCallback({required FutureOr<void> Function(String) callback});
 
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream();
 
@@ -646,6 +650,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullClearScheduledNotificationsStreamConstMeta => const TaskConstMeta(
     debugName: "clear_scheduled_notifications_stream",
+    argNames: [],
+  );
+
+  @override
+  Future<void> crateApiFullClearSentryBreadcrumbCallback() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__clear_sentry_breadcrumb_callback(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiFullClearSentryBreadcrumbCallbackConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullClearSentryBreadcrumbCallbackConstMeta => const TaskConstMeta(
+    debugName: "clear_sentry_breadcrumb_callback",
     argNames: [],
   );
 
@@ -1594,6 +1621,30 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
+  Future<void> crateApiFullSetSentryBreadcrumbCallback({required FutureOr<void> Function(String) callback}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_DartFn_Inputs_String_Output_unit_AnyhowException(callback);
+          return wire.wire__crate__api__full__set_sentry_breadcrumb_callback(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullSetSentryBreadcrumbCallbackConstMeta,
+        argValues: [callback],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullSetSentryBreadcrumbCallbackConstMeta => const TaskConstMeta(
+    debugName: "set_sentry_breadcrumb_callback",
+    argNames: ["callback"],
+  );
+
+  @override
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream() {
     final sink = RustStreamSink<FlutterVersionState>();
     unawaited(
@@ -1791,6 +1842,40 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     argNames: [],
   );
 
+  Future<void> Function(int, dynamic) encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 = dco_decode_String(rawArg0);
+
+      Box<void>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_unit(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
   Future<void> Function(int, dynamic)
   encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
@@ -1887,6 +1972,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return SanitizedSvgImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  FutureOr<void> Function(String) dco_decode_DartFn_Inputs_String_Output_unit_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
   }
 
   @protected
@@ -4091,6 +4182,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  PlatformPointer cst_encode_DartFn_Inputs_String_Output_unit_AnyhowException(FutureOr<void> Function(String) raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_DartOpaque(encode_DartFn_Inputs_String_Output_unit_AnyhowException(raw));
+  }
+
+  @protected
   PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
   ) {
@@ -4235,6 +4332,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize((self as SanitizedSvgImpl).frbInternalSseEncode(move: false), serializer);
+  }
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(encode_DartFn_Inputs_String_Output_unit_AnyhowException(self), serializer);
   }
 
   @protected

@@ -7,6 +7,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 
 import '../../util/mapper/mapper.dart';
+import '../../util/sentry_breadcrumbs.dart';
 import '../error/core_error.dart';
 
 /// A callback function used to handle errors emitted by the [TypedWalletCore].
@@ -105,7 +106,11 @@ class TypedWalletCore {
 
   Stream<List<core.AppNotification>> observeNotifications() => _notifications.stream;
 
-  Future<String> createPidIssuanceRedirectUri() => call(core.createPidIssuanceRedirectUri);
+  Future<String> createPidIssuanceRedirectUri() => _callWithFlowBreadcrumb(
+    'issuance.start',
+    failureCode: 'issuance.fail.start',
+    runnable: core.createPidIssuanceRedirectUri,
+  );
 
   Future<String> createPidRenewalRedirectUri() => call(core.createPidRenewalRedirectUri);
 
@@ -121,15 +126,27 @@ class TypedWalletCore {
       call(() => core.startIssuanceFromOffer(offerUri: offerUri));
 
   /// Accept offered attestations
-  Future<core.WalletInstructionResult> acceptIssuance(String pin) => call(() => core.acceptIssuance(pin: pin));
+  Future<core.WalletInstructionResult> acceptIssuance(String pin) => _callWithFlowBreadcrumb(
+    'issuance.accept',
+    failureCode: 'issuance.fail.accept',
+    runnable: () => core.acceptIssuance(pin: pin),
+  );
 
   /// Accept offered PID
-  Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => call(() => core.acceptPidIssuance(pin: pin));
+  Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => _callWithFlowBreadcrumb(
+    'issuance.accept',
+    failureCode: 'issuance.fail.accept',
+    runnable: () => core.acceptPidIssuance(pin: pin),
+  );
 
   Future<core.StartDisclosureResult> startDisclosure(
     String uri, {
     bool isQrCode = false,
-  }) => call(() => core.startDisclosure(uri: uri, isQrCode: isQrCode));
+  }) => _callWithFlowBreadcrumb(
+    'disclosure.start',
+    failureCode: 'disclosure.fail.start',
+    runnable: () => core.startDisclosure(uri: uri, isQrCode: isQrCode),
+  );
 
   Future<String> startCloseProximityDisclosure({
     required FutureOr<void> Function(core.CloseProximityDisclosureFlutterUpdate) callback,
@@ -137,10 +154,18 @@ class TypedWalletCore {
 
   Future<core.StartDisclosureResult> continueCloseProximityDisclosure() => call(core.continueCloseProximityDisclosure);
 
-  Future<String?> cancelSession() => call(core.cancelSession);
+  Future<String?> cancelSession() => _callWithFlowBreadcrumb(
+    'session.cancel',
+    failureCode: 'session.fail.cancel',
+    runnable: core.cancelSession,
+  );
 
   Future<core.AcceptDisclosureResult> acceptDisclosure(String pin, List<int> selectedIndices) =>
-      call(() => core.acceptDisclosure(selectedIndices: selectedIndices, pin: pin));
+      _callWithFlowBreadcrumb(
+        'disclosure.accept',
+        failureCode: 'disclosure.fail.accept',
+        runnable: () => core.acceptDisclosure(selectedIndices: selectedIndices, pin: pin),
+      );
 
   Stream<List<core.AttestationPresentation>> observeCards() => _attestations.stream;
 
@@ -172,7 +197,11 @@ class TypedWalletCore {
 
   Future<void> cancelPinRecovery() => call(core.cancelPinRecovery);
 
-  Future<String> initWalletTransfer() => call(core.initWalletTransfer);
+  Future<String> initWalletTransfer() => _callWithFlowBreadcrumb(
+    'wallet_transfer.start',
+    failureCode: 'wallet_transfer.fail.start',
+    runnable: core.initWalletTransfer,
+  );
 
   Future<void> pairWalletTransfer(String uri) => call(() => core.pairWalletTransfer(uri: uri));
 
@@ -202,6 +231,22 @@ class TypedWalletCore {
       return await runnable();
     } catch (exception, stacktrace) {
       throw await _handleCoreException(exception, stackTrace: stacktrace);
+    }
+  }
+
+  Future<T> _callWithFlowBreadcrumb<T>(
+    String code, {
+    String? failureCode,
+    required Future<T> Function() runnable,
+  }) async {
+    await SentryBreadcrumbs.flow(code);
+    try {
+      return await call(runnable);
+    } catch (_) {
+      if (failureCode != null) {
+        await SentryBreadcrumbs.flow(failureCode);
+      }
+      rethrow;
     }
   }
 

@@ -50,6 +50,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   );
 
   @protected
+  FutureOr<void> Function(String) dco_decode_DartFn_Inputs_String_Output_unit_AnyhowException(dynamic raw);
+
+  @protected
   FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate)
   dco_decode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(dynamic raw);
 
@@ -1783,6 +1786,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(SanitizedSvg raw);
 
   @protected
+  PlatformPointer cst_encode_DartFn_Inputs_String_Output_unit_AnyhowException(FutureOr<void> Function(String) raw);
+
+  @protected
   PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
   );
@@ -1855,6 +1861,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
     SanitizedSvg self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) self,
     SseSerializer serializer,
   );
 
@@ -2457,6 +2469,17 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__clear_scheduled_notifications_stream =
       _wire__crate__api__full__clear_scheduled_notifications_streamPtr.asFunction<void Function(int)>();
+
+  void wire__crate__api__full__clear_sentry_breadcrumb_callback(int port_) {
+    return _wire__crate__api__full__clear_sentry_breadcrumb_callback(port_);
+  }
+
+  late final _wire__crate__api__full__clear_sentry_breadcrumb_callbackPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__clear_sentry_breadcrumb_callback',
+      );
+  late final _wire__crate__api__full__clear_sentry_breadcrumb_callback =
+      _wire__crate__api__full__clear_sentry_breadcrumb_callbackPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__clear_version_state_stream(int port_) {
     return _wire__crate__api__full__clear_version_state_stream(port_);
@@ -3061,6 +3084,24 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__set_scheduled_notifications_stream =
       _wire__crate__api__full__set_scheduled_notifications_streamPtr
           .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__full__set_sentry_breadcrumb_callback(
+    int port_,
+    ffi.Pointer<ffi.Void> callback,
+  ) {
+    return _wire__crate__api__full__set_sentry_breadcrumb_callback(
+      port_,
+      callback,
+    );
+  }
+
+  late final _wire__crate__api__full__set_sentry_breadcrumb_callbackPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<ffi.Void>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__set_sentry_breadcrumb_callback',
+      );
+  late final _wire__crate__api__full__set_sentry_breadcrumb_callback =
+      _wire__crate__api__full__set_sentry_breadcrumb_callbackPtr
+          .asFunction<void Function(int, ffi.Pointer<ffi.Void>)>();
 
   void wire__crate__api__full__set_version_state_stream(
     int port_,

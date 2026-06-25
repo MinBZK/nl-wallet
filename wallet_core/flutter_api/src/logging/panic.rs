@@ -1,10 +1,13 @@
 use std::panic;
 
 use backtrace::Backtrace;
+use error_category::sentry::add_breadcrumb;
 use tracing::error;
 
 pub fn init_panic_logger() {
     panic::set_hook(Box::new(|panic_info| {
+        add_breadcrumb("rust.panic");
+
         // Invoke the Sentry panic handler, since this one replaces the previous error panic handler.
         sentry::integrations::panic::panic_handler(panic_info);
 

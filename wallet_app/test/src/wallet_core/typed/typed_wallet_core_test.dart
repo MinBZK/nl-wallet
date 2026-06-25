@@ -60,6 +60,7 @@ void main() {
       verify(core.crateApiFullClearRecentHistoryStream()).called(1);
       verify(core.crateApiFullClearScheduledNotificationsStream()).called(1);
       verify(core.crateApiFullClearDirectNotificationsCallback()).called(1);
+      verify(core.crateApiFullClearSentryBreadcrumbCallback()).called(1);
 
       // Make sure wallet starts out locked
       verify(core.crateApiFullLockWallet()).called(1);

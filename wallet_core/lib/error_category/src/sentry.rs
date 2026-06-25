@@ -1,5 +1,9 @@
 use std::error::Error;
+use std::sync::Arc;
+use std::sync::OnceLock;
+use std::sync::RwLock;
 
+use sentry::Breadcrumb;
 use sentry::Level;
 use sentry::parse_type_from_debug;
 use sentry::protocol::Event;
@@ -7,6 +11,89 @@ use sentry::protocol::Exception;
 
 use crate::Category;
 use crate::ErrorCategory;
+
+const WALLET_NATIVE_BREADCRUMB_CATEGORY: &str = "wallet.native";
+const WALLET_FLOW_BREADCRUMB_CATEGORY: &str = "wallet.flow";
+
+type BreadcrumbSink = Arc<dyn Fn(String) + Send + Sync + 'static>;
+
+static BREADCRUMB_SINK: OnceLock<RwLock<Option<BreadcrumbSink>>> = OnceLock::new();
+
+fn breadcrumb_sink() -> &'static RwLock<Option<BreadcrumbSink>> {
+    BREADCRUMB_SINK.get_or_init(|| RwLock::new(None))
+}
+
+pub fn set_breadcrumb_sink(sink: BreadcrumbSink) {
+    match breadcrumb_sink().write() {
+        Ok(mut stored_sink) => *stored_sink = Some(sink),
+        Err(error) => {
+            tracing::warn!("could not install breadcrumb sink: {error}");
+        }
+    }
+}
+
+pub fn clear_breadcrumb_sink() {
+    let Some(sink) = BREADCRUMB_SINK.get() else {
+        return;
+    };
+
+    match sink.write() {
+        Ok(mut stored_sink) => *stored_sink = None,
+        Err(error) => {
+            tracing::warn!("could not clear breadcrumb sink: {error}");
+        }
+    }
+}
+
+fn emit_breadcrumb_to_sink(message: &str) {
+    let Some(sink) = BREADCRUMB_SINK.get() else {
+        return;
+    };
+
+    let sink = match sink.read() {
+        Ok(stored_sink) => stored_sink.clone(),
+        Err(error) => {
+            tracing::warn!("could not read breadcrumb sink: {error}");
+            None
+        }
+    };
+
+    if let Some(sink) = sink {
+        sink(message.to_owned());
+    }
+}
+
+pub fn add_breadcrumb(message: impl Into<String>) {
+    let message = message.into();
+    if !is_allowed_breadcrumb_message(&message) {
+        tracing::warn!("dropping Sentry breadcrumb with invalid message code");
+        return;
+    }
+
+    sentry::add_breadcrumb(Breadcrumb {
+        category: Some(WALLET_NATIVE_BREADCRUMB_CATEGORY.to_owned()),
+        message: Some(message.clone()),
+        level: Level::Info,
+        ..Default::default()
+    });
+    emit_breadcrumb_to_sink(&message);
+}
+
+fn is_curated_breadcrumb(breadcrumb: &Breadcrumb) -> bool {
+    breadcrumb.category.as_deref().is_some_and(|category| {
+        category == WALLET_FLOW_BREADCRUMB_CATEGORY || category == WALLET_NATIVE_BREADCRUMB_CATEGORY
+    }) && breadcrumb.message.as_deref().is_some_and(is_allowed_breadcrumb_message)
+}
+
+fn is_allowed_breadcrumb_message(message: &str) -> bool {
+    !message.is_empty()
+        && message.split('.').all(|part| {
+            !part.is_empty()
+                && part
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+        })
+}
 
 /// Create a sentry [`Event`] from an [`ErrorCategory`].
 /// A tag `category` with the string representation of the [`ErrorCategory`] is added to the event, so
@@ -20,6 +107,9 @@ pub fn classify_mask_and_capture<T: ErrorCategory + Error + ?Sized>(error: &T) {
     let category = error.category();
     if category == Category::Unexpected {
         tracing::error!("unexpected error, this should never occur in the Wallet: {error}");
+    }
+    if category != Category::Expected {
+        add_breadcrumb(format!("rust.error.{category}"));
     }
     let mut event = event_from_error(error);
     event
@@ -62,8 +152,9 @@ pub fn filter_and_scrub_sensitive_data(mut event: Event) -> Option<Event> {
 }
 
 /// Scrub sensitive data.
-/// By default breadcrumb, transaction and request data is removed as these might be filled automatically by
-/// the `sentry` crate and/or some of its integrations.
+/// By default transaction and request data is removed as these might be filled automatically by
+/// the `sentry` crate and/or some of its integrations. Breadcrumb retention is curated so only
+/// wallet-owned `wallet.*` breadcrumbs remain.
 /// If `sensitive_messages` is true, the value of exception messages is removed, these contain the error
 /// descriptions according to the `Display` implementation of each `Error`.
 trait Scrub {
@@ -75,7 +166,7 @@ trait Scrub {
 ///
 /// According to the docs, in general sensitive data can appear in the following areas:
 /// - stacktraces: Rust stacktraces do not contain sensitive data
-/// - breadcrumbs: By default Rust does not fill breadcrumbs, although it can be done manually or via logging/tracing
+/// - breadcrumbs: keep only curated `wallet.*` breadcrumbs and strip their payload data
 /// - contextual information: Inspection showed no sensitive information, the following are detected for the Wallet
 ///   - device: arch
 ///   - os: name, version, kernel_version
@@ -84,7 +175,12 @@ trait Scrub {
 /// - request: Rust can fill this for tower services, this is not configured for the Wallet
 impl Scrub for Event<'_> {
     fn scrub(&mut self, sensitive_messages: bool) {
-        self.breadcrumbs = Default::default();
+        self.breadcrumbs.values.retain(is_curated_breadcrumb);
+        self.breadcrumbs.iter_mut().for_each(|breadcrumb| {
+            breadcrumb.data = Default::default();
+            breadcrumb.ty = Default::default();
+            breadcrumb.level = Level::Info;
+        });
         self.transaction = None;
         self.request = None;
         if let Some(user) = self.user.as_mut() {
@@ -278,5 +374,53 @@ mod tests {
         assert!(format!("{event:?}").contains(ERROR_MSG));
         let category = event.tags.get("category");
         assert_eq!(category, Some(&expected_tag));
+    }
+
+    #[rstest]
+    #[case("issuance.start", true)]
+    #[case("wallet_transfer.fail.start", true)]
+    #[case("issuance", true)]
+    #[case("issuance..start", false)]
+    #[case("Issuance.start", false)]
+    #[case("issuance start", false)]
+    #[case("", false)]
+    fn test_breadcrumb_message_validation(#[case] message: &str, #[case] expected: bool) {
+        assert_eq!(is_allowed_breadcrumb_message(message), expected);
+    }
+
+    #[test]
+    fn test_scrub_keeps_only_curated_breadcrumbs() {
+        let mut event = Event::default();
+        event.breadcrumbs.values = vec![
+            Breadcrumb {
+                category: Some("wallet.flow".to_owned()),
+                message: Some("issuance.start".to_owned()),
+                level: Level::Warning,
+                ..Default::default()
+            },
+            Breadcrumb {
+                category: Some("wallet.flow".to_owned()),
+                message: Some("Issuance.start".to_owned()),
+                ..Default::default()
+            },
+            Breadcrumb {
+                category: Some("wallet.other".to_owned()),
+                message: Some("issuance.start".to_owned()),
+                ..Default::default()
+            },
+            Breadcrumb {
+                category: Some("http".to_owned()),
+                message: Some("request".to_owned()),
+                ..Default::default()
+            },
+        ];
+
+        event.scrub(false);
+
+        assert_eq!(event.breadcrumbs.values.len(), 1);
+        let breadcrumb = event.breadcrumbs.values.first().expect("breadcrumb should be retained");
+        assert_eq!(breadcrumb.category.as_deref(), Some("wallet.flow"));
+        assert_eq!(breadcrumb.message.as_deref(), Some("issuance.start"));
+        assert_eq!(breadcrumb.level, Level::Info);
     }
 }

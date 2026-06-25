@@ -4598,6 +4598,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i80.WalletCoreApi {
           as _i11.Future<void>);
 
   @override
+  _i11.Future<void> crateApiFullClearSentryBreadcrumbCallback() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullClearSentryBreadcrumbCallback, []),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
+          )
+          as _i11.Future<void>);
+
+  @override
   _i11.Future<void> crateApiFullClearVersionStateStream() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullClearVersionStateStream, []),
@@ -5191,6 +5200,19 @@ class MockWalletCoreApi extends _i1.Mock implements _i80.WalletCoreApi {
             returnValueForMissingStub: _i11.Stream<List<_i19.AppNotification>>.empty(),
           )
           as _i11.Stream<List<_i19.AppNotification>>);
+
+  @override
+  _i11.Future<void> crateApiFullSetSentryBreadcrumbCallback({
+    required _i11.FutureOr<void> Function(String)? callback,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullSetSentryBreadcrumbCallback, [], {
+              #callback: callback,
+            }),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
+          )
+          as _i11.Future<void>);
 
   @override
   _i11.Stream<_i19.FlutterVersionState> crateApiFullSetVersionStateStream() =>
