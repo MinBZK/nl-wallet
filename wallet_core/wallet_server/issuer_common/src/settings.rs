@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::num::NonZeroU8;
 use std::path::PathBuf;
@@ -143,7 +144,7 @@ pub struct IssuerSettings {
     /// implementation).
     /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
     /// JWTs.
-    pub wallet_client_ids: Vec<String>,
+    pub wallet_client_ids: HashSet<String>,
 
     /// The maximum amount of copies of a credential that the holder can request.
     pub batch_size: NonZeroU8,
@@ -624,6 +625,7 @@ impl StatusListAttestationSettings {
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::num::NonZeroU8;
     use std::num::NonZeroU16;
 
@@ -695,7 +697,7 @@ mod tests {
                 let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
                 (vct, (metadata, metadata_bytes))
             }])),
-            wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
             server_settings: Settings {
                 wallet_server: Server {

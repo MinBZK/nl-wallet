@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
@@ -247,7 +248,7 @@ where
     let issuer = MockIssuer::try_new(
         issuer_identifier,
         NonZeroU8::new(4).unwrap(),
-        vec![MOCK_WALLET_CLIENT_ID.to_string()],
+        HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         config_params,
         Some(WiaConfig {
             wia_trust_anchors: trust_anchors.clone(),

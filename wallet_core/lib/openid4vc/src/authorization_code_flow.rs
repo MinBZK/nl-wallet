@@ -6,8 +6,6 @@
 //! [`AuthorizingIssuer`](crate::authorizing_issuer::AuthorizingIssuer) is generic over this trait and delegates both
 //! endpoints to the configured impl.
 
-use std::collections::HashSet;
-
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -17,7 +15,7 @@ use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
-use crate::scope::Scope;
+use crate::issuer::AuthRequestValues;
 
 /// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an
 /// [`AuthorizationCodeFlow`] must retain to complete the authorization later: the wallet's
@@ -25,12 +23,12 @@ use crate::scope::Scope;
 /// (which the `/token` handler verifies the wallet's `code_verifier` against).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletAuthorizationContext {
-    pub redirect_uri: Url,
     pub state: Option<String>,
-    // Note that the "scope" value has already been used to select issuable credentials and is at this point only
-    // present in the state in order to validate any "scope" that is received in the Token Request.
-    pub scope: HashSet<Scope>,
-    pub code_challenge: String,
+    // Represents those values present in the inciting Authorization Request that an implementor of
+    // [`AuthorizationCodeFlow`] will need to pass to `AuthorizingIssuer::complete_authorization()`. These values are
+    // then retained in the `AuthCodeIssued` statue of the `Issuer`.
+    #[serde(flatten)]
+    pub request_values: AuthRequestValues,
 }
 
 /// Reasons a [`VciAuthorizationRequest`] cannot be accepted into a [`WalletAuthorizationContext`].
@@ -50,10 +48,13 @@ impl WalletAuthorizationContext {
         };
 
         Ok(Self {
-            redirect_uri: request.redirect_uri.into_inner(),
             state: request.oauth_request.state,
-            scope: request.scope,
-            code_challenge,
+            request_values: AuthRequestValues {
+                client_id: request.oauth_request.client_id,
+                redirect_uri: request.redirect_uri.into_inner(),
+                code_challenge,
+                scope: request.scope,
+            },
         })
     }
 }
