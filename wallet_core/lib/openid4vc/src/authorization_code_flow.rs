@@ -93,4 +93,10 @@ pub trait AuthorizationCodeFlow {
         context: WalletAuthorizationContext,
         credential_kinds: VecNonEmpty<CredentialKind>,
     ) -> Result<AuthorizeOutcome, Self::Error>;
+
+    /// Cleanup of any expiring state this flow owns. Called periodically by the authorization-phase cleanup task.
+    /// Defaults to a no-op for flows that have no expiring state of their own.
+    fn cleanup(&self) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        async { Ok(()) }
+    }
 }

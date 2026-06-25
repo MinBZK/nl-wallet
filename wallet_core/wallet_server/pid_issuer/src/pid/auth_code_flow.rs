@@ -332,6 +332,10 @@ where
 
         Ok(AuthorizeOutcome::RedirectTo(redirect_url))
     }
+
+    async fn cleanup(&self) -> Result<(), Self::Error> {
+        self.state_bridge_store.cleanup().await.map_err(Error::StateBridge)
+    }
 }
 
 /// `GET /digid/callback`: termination point for the upstream OIDC redirect. Exchanges the upstream
