@@ -129,7 +129,7 @@ impl WiaDisclosure {
         &self,
         trust_anchors: &TrustAnchors,
         expected_aud: &str,
-        accepted_wallet_client_ids: &[String],
+        accepted_wallet_client_ids: &[impl ToString],
     ) -> Result<(VerifyingKey, Nonce), WiaError> {
         let (_, verified_wia_claims) = self
             .0
@@ -284,7 +284,7 @@ mod tests {
         );
 
         let (_, nonce) = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
             .unwrap();
 
         assert!(!nonce.as_ref().is_empty());
@@ -303,7 +303,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -321,7 +321,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -339,7 +339,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &["other-client".to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &["other-client"])
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -357,7 +357,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
             .unwrap_err();
 
         assert_matches!(error, WiaError::MissingNonce);
@@ -379,7 +379,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
             .unwrap_err();
 
         assert_matches!(

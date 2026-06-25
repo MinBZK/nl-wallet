@@ -30,6 +30,7 @@ use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthCodeIssued;
+use crate::issuer::AuthRequestValues;
 use crate::issuer::Grant;
 use crate::issuer::IssuableDocumentError;
 use crate::issuer::IssuanceData;
@@ -176,7 +177,7 @@ where
     /// [`AuthorizationCodeFlow`], and translate the [`AuthorizeOutcome`] into the URL
     /// the wallet should be redirected to.
     pub async fn process_authorize(&self, request_uri: &str, client_id: &str) -> Result<Url, AuthorizeError> {
-        if !self.issuer.accepted_wallet_client_ids().any(|id| id == client_id) {
+        if !self.issuer.accepted_wallet_client_ids().contains(client_id) {
             return Err(AuthorizeError::UnknownClient(client_id.to_string()));
         }
 
@@ -212,6 +213,7 @@ where
         // step. Once there, it is used to compare against any scope that is requested as part of the Token Request.
         let credential_configs = self.issuer.credential_configs();
         let credential_kinds = match context
+            .request_values
             .scope
             .iter()
             .flat_map(|scope| credential_configs.get_by_scope(scope))
@@ -221,7 +223,7 @@ where
         {
             Ok(credential_kinds) => credential_kinds,
             Err(_) => {
-                return Err(AuthorizeError::NoValidScope(context.scope));
+                return Err(AuthorizeError::NoValidScope(context.request_values.scope));
             }
         };
 
@@ -235,15 +237,12 @@ where
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
             AuthorizeOutcome::Authorized(issuables, context) => {
                 let WalletAuthorizationContext {
-                    redirect_uri,
-                    state,
-                    scope,
-                    code_challenge,
-                    ..
+                    state, request_values, ..
                 } = context;
+                let redirect_uri = request_values.redirect_uri.clone();
 
                 let code = self
-                    .complete_authorization(issuables, scope, code_challenge)
+                    .complete_authorization(issuables, request_values)
                     .await
                     .map_err(AuthorizeError::CompleteAuthorization)?;
 
@@ -264,8 +263,7 @@ where
     pub async fn complete_authorization(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
-        request_scope: HashSet<Scope>,
-        wallet_code_challenge: String,
+        auth_request_values: AuthRequestValues,
     ) -> Result<AuthorizationCode, CompleteAuthorizationError> {
         let credential_ids_and_documents = self
             .issuer
@@ -275,10 +273,7 @@ where
         let token = self
             .issuer
             .write_auth_code_issued_session(AuthCodeIssued {
-                grant: Grant::AuthorizationCode {
-                    request_scope,
-                    wallet_code_challenge,
-                },
+                grant: Grant::AuthorizationCode(auth_request_values),
                 credential_ids_and_documents,
             })
             .await
@@ -381,6 +376,7 @@ mod tests {
     use crate::authorization_code_flow::InvalidAuthorizationRequest;
     use crate::authorization_code_flow::WalletAuthorizationContext;
     use crate::issuable_document::CredentialKind;
+    use crate::issuer::AuthRequestValues;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -403,6 +399,7 @@ mod tests {
     const OTHER_CLIENT_ID: &str = "definitely-not-the-wallet";
     const REQUEST_URI: &str = "urn:ietf:params:oauth:request_uri:test";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
+    const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
     const WALLET_STATE: &str = "wallet-state";
     // Match the credential config id / scope configured in the mock issuer.
     const WALLET_SCOPE: &str = "com.example.pid_dc+sd-jwt";
@@ -663,16 +660,18 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_builds_wallet_redirect_for_issued_code() {
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
-        let code_challenge = "wallet-code-challenge".to_string();
         let (authorizing_issuer, sessions) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
             AuthorizeOutcome::Authorized(
                 documents.clone(),
                 WalletAuthorizationContext {
-                    redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                     state: Some(WALLET_STATE.to_string()),
-                    scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
-                    code_challenge: code_challenge.clone(),
+                    request_values: AuthRequestValues::new(
+                        MOCK_WALLET_CLIENT_ID.to_string(),
+                        WALLET_REDIRECT_URI.parse().unwrap(),
+                        WALLET_CODE_CHALLENGE.to_string(),
+                        HashSet::from([WALLET_SCOPE.parse().unwrap()]),
+                    ),
                     issuer_state: None,
                 },
             ),
@@ -704,11 +703,16 @@ mod tests {
         };
         assert_matches!(
             auth_code_issued.grant,
-            Grant::AuthorizationCode {
-                request_scope,
-                wallet_code_challenge,
-            } if request_scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
-                && wallet_code_challenge == code_challenge
+            Grant::AuthorizationCode(
+                AuthRequestValues {
+                    client_id,
+                    redirect_uri,
+                    code_challenge,
+                    scope,
+            }) if client_id == MOCK_WALLET_CLIENT_ID
+                && redirect_uri.as_str() == WALLET_REDIRECT_URI
+                && code_challenge == WALLET_CODE_CHALLENGE
+                && scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
         );
         assert_eq!(auth_code_issued.credential_ids_and_documents.len(), documents.len());
     }
@@ -719,13 +723,16 @@ mod tests {
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
-        let code_challenge = "wallet-code-challenge".to_string();
 
         let code = authorizing_issuer
             .complete_authorization(
                 documents.clone(),
-                HashSet::from([WALLET_SCOPE.parse().unwrap()]),
-                code_challenge.clone(),
+                AuthRequestValues::new(
+                    MOCK_WALLET_CLIENT_ID.to_string(),
+                    WALLET_REDIRECT_URI.parse().unwrap(),
+                    WALLET_CODE_CHALLENGE.to_string(),
+                    HashSet::from([WALLET_SCOPE.parse().unwrap()]),
+                ),
             )
             .await
             .unwrap();
@@ -742,11 +749,16 @@ mod tests {
         };
         assert_matches!(
             auth_code_issued.grant,
-            Grant::AuthorizationCode {
-                request_scope,
-                wallet_code_challenge,
-            } if request_scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
-                && wallet_code_challenge == code_challenge
+            Grant::AuthorizationCode(
+                AuthRequestValues {
+                    client_id,
+                    redirect_uri,
+                    code_challenge,
+                    scope,
+            }) if client_id == MOCK_WALLET_CLIENT_ID
+                && redirect_uri.as_str() == WALLET_REDIRECT_URI
+                && code_challenge == WALLET_CODE_CHALLENGE
+                && scope == HashSet::from([WALLET_SCOPE.parse().unwrap()])
         );
         assert_eq!(auth_code_issued.credential_ids_and_documents.len(), documents.len());
     }

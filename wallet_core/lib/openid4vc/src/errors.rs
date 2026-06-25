@@ -194,14 +194,29 @@ pub enum TokenErrorCode {
 impl From<TokenRequestError> for TokenErrorCode {
     fn from(err: TokenRequestError) -> Self {
         match err {
-            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
-            | TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
+            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
+
+            TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+
             TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+
             TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
-            TokenRequestError::SessionNotFound
-            | TokenRequestError::MissingCodeVerifier
-            | TokenRequestError::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
+
+            TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
+                TokenErrorCode::InvalidGrant
+            }
+
+            TokenRequestError::MissingClientId | TokenRequestError::UnknownClient(_) => TokenErrorCode::InvalidClient,
+
+            TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
+
             TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
+
+            TokenRequestError::MissingRedirectUri | TokenRequestError::RedirectUriMismatch { .. } => {
+                TokenErrorCode::InvalidRequest
+            }
+
+            TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
         }
     }
 }

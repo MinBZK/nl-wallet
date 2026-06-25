@@ -41,7 +41,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::sync::RwLock;
-use tokio::task::JoinHandle;
+use tokio::task::AbortHandle;
 
 use self::attestations::AttestationsCallback;
 pub use self::close_proximity_disclosure::CloseProximityDisclosureError;
@@ -190,5 +190,5 @@ pub struct Wallet<
     recent_history_callback: Option<RecentHistoryCallback>,
     scheduled_notifications_callback: Arc<Mutex<Option<ScheduledNotificationsCallback>>>,
     direct_notifications_callback: Arc<Mutex<Option<DirectNotificationsCallback>>>,
-    revocation_status_job_handle: Option<JoinHandle<()>>,
+    revocation_status_job_handle: Option<AbortHandle>,
 }

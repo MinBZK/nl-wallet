@@ -327,8 +327,8 @@ where
         .await
         .inspect_err(|error| warn!("consent callback: completion failed: {error}"));
 
-    let url =
-        WalletRedirect::new(context.redirect_uri, context.state).into_redirect_url(result.as_ref(), "server_error");
+    let url = WalletRedirect::new(context.request_values.redirect_uri, context.state)
+        .into_redirect_url(result.as_ref(), "server_error");
 
     (StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response()
 }
@@ -353,11 +353,7 @@ where
         .ok_or_else(|| Error::UnknownUsecase(usecase_id.to_string()))?;
 
     let code = authorizing_issuer
-        .complete_authorization(
-            issuable_documents(usecase),
-            context.scope.clone(),
-            context.code_challenge.clone(),
-        )
+        .complete_authorization(issuable_documents(usecase), context.request_values.clone())
         .await
         .map_err(Error::CompleteAuthorization)?;
 
@@ -382,6 +378,7 @@ mod tests {
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
     use openid4vc::issuable_document::CredentialKind;
+    use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -420,6 +417,7 @@ mod tests {
     >;
 
     const CONSENT_BASE_URL: &str = "https://issuer.example.com/";
+    const WALLET_CLIENT_ID: &str = "wallet-client-id";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
     const WALLET_SCOPE: &str = "wallet-scope";
@@ -464,11 +462,14 @@ mod tests {
 
     fn test_context(issuer_state: Option<String>) -> WalletAuthorizationContext {
         WalletAuthorizationContext {
-            redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
-            scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
             state: None,
-            code_challenge: WALLET_CODE_CHALLENGE.to_string(),
             issuer_state,
+            request_values: AuthRequestValues {
+                client_id: WALLET_CLIENT_ID.to_string(),
+                redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
+                scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
+                code_challenge: WALLET_CODE_CHALLENGE.to_string(),
+            },
         }
     }
 
@@ -516,10 +517,9 @@ mod tests {
         };
         assert_matches!(
             auth_code_issued.grant,
-            Grant::AuthorizationCode {
-                request_scope,
-                wallet_code_challenge,
-            } if request_scope == HashSet::from([WALLET_SCOPE.parse::<Scope>().unwrap()]) && wallet_code_challenge == WALLET_CODE_CHALLENGE
+            Grant::AuthorizationCode(request)
+                if request.scope == HashSet::from([WALLET_SCOPE.parse::<Scope>().unwrap()])
+                    && request.code_challenge == WALLET_CODE_CHALLENGE
         );
         assert_eq!(auth_code_issued.credential_ids_and_documents.len().get(), 1);
         assert!(
@@ -554,10 +554,14 @@ mod tests {
             .await
             .unwrap()
             .expect("the wallet context should have been stored under the flow-state token");
-        assert_eq!(stored.redirect_uri, WALLET_REDIRECT_URI.parse().unwrap());
         assert_eq!(stored.issuer_state.as_deref(), Some(USECASE_ID));
-        assert_eq!(stored.code_challenge, WALLET_CODE_CHALLENGE);
-        assert_eq!(stored.scope, HashSet::from([WALLET_SCOPE.parse().unwrap()]));
+        assert_eq!(stored.request_values.client_id, WALLET_CLIENT_ID);
+        assert_eq!(stored.request_values.redirect_uri, WALLET_REDIRECT_URI.parse().unwrap());
+        assert_eq!(stored.request_values.code_challenge, WALLET_CODE_CHALLENGE);
+        assert_eq!(
+            stored.request_values.scope,
+            HashSet::from([WALLET_SCOPE.parse().unwrap()])
+        );
     }
 
     #[tokio::test]

@@ -31,10 +31,10 @@ use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::authorizing_issuer::WalletRedirect;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
-use openid4vc::scope::Scope;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
@@ -370,23 +370,17 @@ where
     };
 
     let StateBridgeEntry {
-        context,
+        context: WalletAuthorizationContext {
+            state, request_values, ..
+        },
         upstream_code_verifier,
         formats,
     } = entry;
-
-    let WalletAuthorizationContext {
-        redirect_uri,
-        state,
-        scope,
-        code_challenge,
-        ..
-    } = context;
+    let redirect_uri = request_values.redirect_uri.clone();
 
     let result = complete_digid_callback(
         &authorizing_issuer,
-        scope,
-        code_challenge,
+        request_values,
         upstream_code_verifier,
         formats,
         code,
@@ -404,8 +398,7 @@ where
 /// writes the `AuthCodeIssued` session, and returns the code.
 async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
-    request_scope: HashSet<Scope>,
-    code_challenge: String,
+    auth_request_values: AuthRequestValues,
     upstream_code_verifier: String,
     formats: VecNonEmpty<Format>,
     digid_code: AuthorizationCode,
@@ -421,7 +414,7 @@ where
         .await?;
 
     authorizing_issuer
-        .complete_authorization(issuable_documents, request_scope, code_challenge)
+        .complete_authorization(issuable_documents, auth_request_values)
         .await
         .map_err(Error::CompleteAuthorization)
 }
@@ -474,9 +467,11 @@ mod tests {
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
     use openid4vc::issuable_document::CredentialKind;
+    use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
+    use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::par::PAR_TTL;
     use openid4vc::pkce::PkcePair;
@@ -602,7 +597,7 @@ mod tests {
 
     fn wallet_request() -> VciAuthorizationRequest {
         VciAuthorizationRequest::for_auth_code(
-            CLIENT_ID.to_string(),
+            MOCK_WALLET_CLIENT_ID.to_string(),
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
@@ -614,15 +609,17 @@ mod tests {
     fn state_bridge_entry() -> StateBridgeEntry {
         StateBridgeEntry {
             context: WalletAuthorizationContext {
-                redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                 state: Some(WALLET_STATE.to_string()),
-                // Match the credential config id / scope configured in the mock issuer.
-                scope: HashSet::from([
-                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
-                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
-                ]),
-                code_challenge: WALLET_CODE_CHALLENGE.to_string(),
                 issuer_state: None,
+                request_values: AuthRequestValues::new(
+                    MOCK_WALLET_CLIENT_ID.to_string(),
+                    WALLET_REDIRECT_URI.parse().unwrap(),
+                    WALLET_CODE_CHALLENGE.to_string(),
+                    HashSet::from([
+                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
+                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
+                    ]),
+                ),
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
             formats: vec_nonempty![Format::MsoMdoc, Format::SdJwt],
@@ -680,7 +677,7 @@ mod tests {
         );
 
         let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
-        let wallet_code_challenge = context.code_challenge.clone();
+        let wallet_code_challenge = context.request_values.code_challenge.clone();
 
         let outcome = flow
             .authorize(
@@ -713,9 +710,14 @@ mod tests {
             .unwrap()
             .expect("a bridge entry should be stored under the bridge key");
 
-        assert_eq!(entry.context.redirect_uri.as_str(), WALLET_REDIRECT_URI);
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
-        assert_eq!(entry.context.code_challenge, wallet_code_challenge);
+        assert_eq!(entry.context.request_values.client_id, MOCK_WALLET_CLIENT_ID);
+        assert_eq!(entry.context.request_values.redirect_uri.as_str(), WALLET_REDIRECT_URI);
+        assert_eq!(entry.context.request_values.code_challenge, wallet_code_challenge);
+        assert_eq!(
+            entry.context.request_values.scope,
+            HashSet::from([WALLET_SCOPE.parse().unwrap()])
+        );
         assert!(!entry.upstream_code_verifier.is_empty());
         assert!(
             entry
@@ -775,13 +777,11 @@ mod tests {
             formats,
         } = state_bridge_entry();
 
-        let expected_scope = context.scope.clone();
-        let expected_code_challenge = context.code_challenge.clone();
+        let expected_auth_request_values = context.request_values.clone();
 
         let code = complete_digid_callback(
             &authorizing_issuer,
-            context.scope,
-            context.code_challenge,
+            context.request_values,
             upstream_code_verifier,
             formats,
             AuthorizationCode::from("upstream-code".to_string()),
@@ -801,10 +801,7 @@ mod tests {
         };
         assert_matches!(
             auth_code_issued.grant,
-            Grant::AuthorizationCode {
-                request_scope,
-                wallet_code_challenge
-            } if request_scope == expected_scope && wallet_code_challenge == expected_code_challenge
+            Grant::AuthorizationCode(auth_request_values) if auth_request_values == expected_auth_request_values
         );
         assert_eq!(auth_code_issued.credential_ids_and_documents.len().get(), 2);
         assert!(
@@ -832,8 +829,7 @@ mod tests {
 
         let error = complete_digid_callback(
             &authorizing_issuer,
-            context.scope,
-            context.code_challenge,
+            context.request_values,
             upstream_code_verifier,
             formats,
             AuthorizationCode::from("upstream-code".to_string()),

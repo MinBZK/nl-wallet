@@ -151,6 +151,7 @@ where
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::collections::HashSet;
     use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::sync::Arc;
@@ -281,7 +282,7 @@ mod tests {
         Issuer::try_new(
             "https://example.com".parse().unwrap(),
             NonZeroU8::MIN,
-            vec![],
+            HashSet::new(),
             [("credential_config_id".to_string().into(), config_params)].into(),
             None,
             sessions,
