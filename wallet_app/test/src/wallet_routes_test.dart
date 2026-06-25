@@ -10,6 +10,16 @@ void main() {
       expect(routes, hasLength(1));
       expect(routes.first, isA<MaterialPageRoute>());
       expect(routes.first, isNot(isA<SecuredPageRoute>()));
+      expect(routes.first.settings.name, WalletRoutes.splashRoute);
+    });
+
+    test('.isKnownRoute should only accept route names from the central route table', () {
+      for (final routeName in WalletRoutes.allRoutes) {
+        expect(WalletRoutes.isKnownRoute(routeName), isTrue);
+      }
+
+      expect(WalletRoutes.isKnownRoute('/unknown'), isFalse);
+      expect(WalletRoutes.isKnownRoute(null), isFalse);
     });
 
     test('.routeFactory should throw UnsupportedError for unknown route', () {
