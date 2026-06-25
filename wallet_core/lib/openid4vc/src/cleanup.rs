@@ -1,11 +1,25 @@
+use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::task::AbortHandle;
+use tracing::warn;
 use utils::spawn::start_recurring_task;
 
 /// Interval between [`PeriodicCleanup`] tasks removing expired/stale data.
 pub const CLEANUP_INTERVAL: Duration = Duration::from_secs(5 * 60);
+
+/// Run a single cleanup, logging any error in a uniform format. Lets [`PeriodicCleanup`] implementations compose
+/// heterogeneous, fallible cleanups as infallible `()` futures: a single store's failure is logged but never aborts the
+/// others.
+pub async fn log_cleanup_error<E>(what: &str, cleanup: impl Future<Output = Result<(), E>>)
+where
+    E: Display,
+{
+    if let Err(error) = cleanup.await {
+        warn!("error during {what} cleanup: {error}");
+    }
+}
 
 /// Implemented by types that own expiring storage and can remove the stale entries on demand. This
 /// separates *what* to clean (the implementation) from *when* to clean (the scheduler below): an

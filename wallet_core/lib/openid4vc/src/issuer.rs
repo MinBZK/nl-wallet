@@ -20,7 +20,6 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use derive_more::Constructor;
 use derive_more::Debug;
-use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::join;
 use http_utils::urls::BaseUrl;
@@ -40,7 +39,6 @@ use serde::Serialize;
 use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
-use tracing::warn;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -48,6 +46,7 @@ use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 use crate::cleanup::PeriodicCleanup;
+use crate::cleanup::log_cleanup_error;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -664,12 +663,8 @@ where
     /// [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
     async fn cleanup(&self) {
         let _ = join!(
-            self.sessions.cleanup().inspect_err(|error| {
-                warn!("error during session cleanup: {error}");
-            }),
-            self.proof_nonce_store.remove_expired_nonces().inspect_err(|error| {
-                warn!("error during proof nonce cleanup: {error}");
-            })
+            log_cleanup_error("session", self.sessions.cleanup()),
+            log_cleanup_error("proof nonce", self.proof_nonce_store.remove_expired_nonces()),
         );
     }
 }

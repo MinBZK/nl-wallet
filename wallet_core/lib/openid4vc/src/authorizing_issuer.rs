@@ -14,11 +14,9 @@ use std::fmt::Display;
 use std::sync::Arc;
 
 use derive_more::Constructor;
-use futures::TryFutureExt;
 use futures::join;
 use itertools::Itertools;
 use serde::Serialize;
-use tracing::warn;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -31,6 +29,7 @@ use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::cleanup::PeriodicCleanup;
+use crate::cleanup::log_cleanup_error;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthCodeIssued;
@@ -152,12 +151,8 @@ where
     async fn cleanup(&self) {
         let _ = join!(
             self.issuer.cleanup(),
-            self.par_store.cleanup().inspect_err(|error| {
-                warn!("error during PAR store cleanup: {error}");
-            }),
-            self.flow.cleanup().inspect_err(|error| {
-                warn!("error during authorization-code flow cleanup: {error}");
-            })
+            log_cleanup_error("PAR store", self.par_store.cleanup()),
+            log_cleanup_error("authorization-code flow", self.flow.cleanup()),
         );
     }
 }
