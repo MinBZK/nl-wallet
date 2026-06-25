@@ -9,6 +9,7 @@
 # - verification_server
 # - issuance_server
 # - pid_issuer
+# - acf_demo_issuer
 # - wallet_provider
 # - wallet
 
@@ -51,6 +52,7 @@ Where:
     is, issuance_server:        Start the issuance_server.
     pis, pacf_issuance_server:  Start the pacf_issuance_server.
     pi, pid_issuer:             Start the pid_issuer.
+    acf, acf_demo_issuer:       Start the acf_demo_issuer.
     drp, demo_relying_party:    Start the demo_relying_party.
     di, demo_issuer:            Start the demo_issuer.
     dx, demo_index:             Start the demo_index.
@@ -91,6 +93,7 @@ VERIFICATION_SERVER=1
 ISSUANCE_SERVER=1
 PACF_ISSUANCE_SERVER=1
 PID_ISSUER=1
+ACF_DEMO_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
 STATIC_SERVER=1
@@ -140,6 +143,10 @@ do
             ;;
         pi|pid_issuer)
             PID_ISSUER=0
+            shift # past argument
+            ;;
+        acf|acf_demo_issuer)
+            ACF_DEMO_ISSUER=0
             shift # past argument
             ;;
         drp|demo_relying_party)
@@ -197,6 +204,7 @@ do
             ISSUANCE_SERVER=0
             PACF_ISSUANCE_SERVER=0
             PID_ISSUER=0
+            ACF_DEMO_ISSUER=0
             WALLET_PROVIDER=0
             STATIC_SERVER=0
             UPDATE_POLICY_SERVER=0
@@ -215,6 +223,7 @@ do
             ISSUANCE_SERVER=0
             PACF_ISSUANCE_SERVER=0
             PID_ISSUER=0
+            ACF_DEMO_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
             STATIC_SERVER=0
@@ -370,7 +379,7 @@ then
     if [[ $START == '0' ]]
     then
         echo -e "${INFO}Start ${ORANGE}demo_issuer${NC}"
-        RUST_LOG=debug cargo run --package demo_issuer --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --package demo_issuer --features "allow_insecure_url" --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
 
         echo -e "demo_issuer logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer.log${NC}"
     fi
@@ -407,6 +416,40 @@ then
         RUST_LOG=debug cargo run --package pid_issuer --features "allow_insecure_url,test_internal_ui" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
+    fi
+fi
+
+########################################################################
+# Manage acf_demo_issuer
+########################################################################
+
+if [[ $ACF_DEMO_ISSUER == '0' ]]
+then
+    echo
+    echo -e "${SECTION}Manage acf_demo_issuer${NC}"
+
+    cd "${ACF_DEMO_ISSUER_DIR}"
+
+    if [[ $STOP == '0' ]]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}acf_demo_issuer${NC}"
+        pkill -f 'acf_demo_issuer$' || true
+    fi
+    if [[ $START == '0' ]]
+    then
+        pushd "${WALLET_CORE_DIR}"
+        echo -e "${INFO}Running acf_demo_issuer database migrations${NC}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/acf_demo_issuer" cargo run --package acf_demo_issuer_migrations --bin acf_demo_issuer_migrations -- fresh
+        popd
+
+        echo -e "${INFO}Cleaning status lists for acf_demo_issuer${NC}"
+        rm -rf "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
+        mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
+
+        echo -e "${INFO}Start ${ORANGE}acf_demo_issuer${NC}"
+        RUST_LOG=debug cargo run --package acf_demo_issuer --features "allow_insecure_url,test_internal_ui" --bin acf_demo_issuer > "${TARGET_DIR}/acf_demo_issuer.log" 2>&1 &
+
+        echo -e "acf_demo_issuer logs can be found at ${CYAN}${TARGET_DIR}/acf_demo_issuer.log${NC}"
     fi
 fi
 

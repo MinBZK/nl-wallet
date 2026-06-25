@@ -9,6 +9,7 @@ part of 'wallet_card.dart';
 _WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => _WalletCard(
   attestationId: json['attestationId'] as String?,
   attestationType: json['attestationType'] as String,
+  format: $enumDecode(_$AttestationFormatEnumMap, json['format']),
   issuer: Organization.fromJson(json['issuer'] as Map<String, dynamic>),
   status: CardStatus.fromJson(json['status'] as Map<String, dynamic>),
   attributes: (json['attributes'] as List<dynamic>)
@@ -24,8 +25,14 @@ _WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => _WalletCard(
 Map<String, dynamic> _$WalletCardToJson(_WalletCard instance) => <String, dynamic>{
   'attestationId': instance.attestationId,
   'attestationType': instance.attestationType,
+  'format': _$AttestationFormatEnumMap[instance.format]!,
   'issuer': instance.issuer.toJson(),
   'status': instance.status.toJson(),
   'attributes': instance.attributes.map((e) => e.toJson()).toList(),
   'metadata': instance.metadata.map((e) => e.toJson()).toList(),
+};
+
+const _$AttestationFormatEnumMap = {
+  AttestationFormat.mdoc: 'mdoc',
+  AttestationFormat.sdJwt: 'sdJwt',
 };

@@ -6,6 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/format/attestation_format.dart';
 import '../../../domain/model/card/metadata/card_display_metadata.dart';
 import '../../../domain/model/card/metadata/card_rendering.dart';
 import '../../../domain/model/card/status/card_status.dart';
@@ -17,6 +18,7 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../theme/dark_wallet_theme.dart';
 import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -63,6 +65,7 @@ import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
+import '../../error/invariant/argument/invariant_error_screen_argument.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
 import '../../revocation/widget/revocation_code_text.dart';
 import '../theme_screen.dart';
@@ -115,6 +118,7 @@ final _kSampleAttributes = [
 final _kSampleCard = WalletCard(
   attestationId: 'id',
   attestationType: 'attestationType',
+  format: AttestationFormat.sdJwt,
   issuer: _kSampleOrganization,
   status: _kSampleCardStatus,
   metadata: _kSampleCardMetaData,
@@ -124,6 +128,7 @@ final _kSampleCard = WalletCard(
 final _kAltSampleCard = WalletCard(
   attestationId: 'alt_id',
   attestationType: 'alt_attestationType',
+  format: AttestationFormat.sdJwt,
   issuer: _kSampleOrganization,
   status: _kSampleCardStatus,
   metadata: _kAltSampleCardMetaData,
@@ -353,6 +358,17 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () => ErrorScreen.show(context, const SessionError(state: .expired, sourceError: 'test')),
           child: const Text('Session Expired Screen'),
         ),
+        const ThemeSectionSubHeader(title: 'Invariant Error Screen'),
+        TextButton(
+          onPressed: () => Navigator.pushNamed(
+            context,
+            WalletRoutes.invariantErrorRoute,
+            arguments: const InvariantErrorScreenArgument(
+              code: 'panicked at wallet_core/src/lib.rs: invariant violated (design preview)',
+            ).toJson(),
+          ),
+          child: const Text('Invariant Error Screen'),
+        ),
       ],
     );
   }
@@ -571,6 +587,7 @@ class OtherStylesTab extends StatelessWidget {
           WalletCard(
             attestationId: 'id',
             attestationType: 'attestationType',
+            format: AttestationFormat.sdJwt,
             issuer: _kSampleOrganization,
             status: _kSampleCardStatus,
             metadata: _kSampleCardMetaData,
@@ -601,6 +618,7 @@ class OtherStylesTab extends StatelessWidget {
           WalletCard(
             attestationId: 'id',
             attestationType: 'attestationType',
+            format: AttestationFormat.sdJwt,
             issuer: _kSampleOrganization,
             status: _kSampleCardStatus,
             metadata: _kSampleCardMetaData,
@@ -686,6 +704,7 @@ class OtherStylesTab extends StatelessWidget {
         card: WalletCard(
           attestationId: 'row_id',
           attestationType: 'attestationType',
+          format: AttestationFormat.sdJwt,
           issuer: _kSampleOrganization,
           status: _kSampleCardStatus,
           metadata: _kSampleCardMetaData,

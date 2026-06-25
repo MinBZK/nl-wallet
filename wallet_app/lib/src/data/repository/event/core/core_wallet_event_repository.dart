@@ -1,21 +1,30 @@
 import 'package:collection/collection.dart';
 import 'package:wallet_core/core.dart' as core;
 
+import '../../../../domain/model/configuration/flutter_app_configuration.dart';
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../util/mapper/mapper.dart';
+import '../../../../util/mixin/pid_filter_mixin.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_event_repository.dart';
 
-class CoreWalletEventRepository extends WalletEventRepository {
+class CoreWalletEventRepository extends WalletEventRepository with PidFilterMixin {
   final TypedWalletCore _walletCore;
   final Mapper<core.WalletEvent, WalletEvent> _walletEventMapper;
+  final Mapper<core.FlutterConfiguration, FlutterAppConfiguration> _flutterAppConfigurationMapper;
 
-  CoreWalletEventRepository(this._walletCore, this._walletEventMapper);
+  CoreWalletEventRepository(this._walletCore, this._walletEventMapper, this._flutterAppConfigurationMapper);
 
   @override
-  Future<List<WalletEvent>> getEvents() async {
+  AppConfigurationProvider get configProvider =>
+      () async => _flutterAppConfigurationMapper.map(await _walletCore.observeConfig().first);
+
+  @override
+  Future<List<WalletEvent>> getEvents({bool removeDuplicatePidEvents = true}) async {
     final coreEvents = await _walletCore.getHistory();
-    return _walletEventMapper.mapList(coreEvents);
+    final events = _walletEventMapper.mapList(coreEvents);
+    if (!removeDuplicatePidEvents) return events;
+    return filterDuplicatePidEvents(events);
   }
 
   @override
@@ -41,5 +50,9 @@ class CoreWalletEventRepository extends WalletEventRepository {
   }
 
   @override
-  Stream<List<WalletEvent>> observeRecentEvents() => _walletCore.observeRecentHistory().map(_walletEventMapper.mapList);
+  Stream<List<WalletEvent>> observeRecentEvents({bool removeDuplicatePidEvents = true}) {
+    final recentEventsStream = _walletCore.observeRecentHistory().map(_walletEventMapper.mapList);
+    if (!removeDuplicatePidEvents) return recentEventsStream;
+    return recentEventsStream.asyncMap(filterDuplicatePidEvents);
+  }
 }

@@ -38,6 +38,7 @@ const _$NavigationPrerequisiteEnumMap = {
   NavigationPrerequisite.walletUnlocked: 'walletUnlocked',
   NavigationPrerequisite.walletInitialized: 'walletInitialized',
   NavigationPrerequisite.walletInReadyState: 'walletInReadyState',
+  NavigationPrerequisite.walletInIssuanceState: 'walletInIssuanceState',
   NavigationPrerequisite.pidInitialized: 'pidInitialized',
 };
 

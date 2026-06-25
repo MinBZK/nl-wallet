@@ -1,6 +1,7 @@
 {
   "issuance_server_url": "http://${SERVICES_HOST}:${ISSUANCE_SERVER_PORT}",
   "pacf_issuance_server_url": "http://${SERVICES_HOST}:${PACF_ISSUANCE_SERVER_IS_PORT}",
+  "acf_demo_issuer_url": "http://${SERVICES_HOST}:${ACF_DEMO_ISSUER_PORT}/",
   "help_base_url": "https://example.com/",
   "webserver": {
     "ip": "0.0.0.0",
@@ -15,6 +16,10 @@
     "key": "${DEMO_ISSUER_ATTESTATION_SERVER_KEY}"
   },
   "usecases": {
+    "insurance_acf": {
+      "credential_configuration_ids": ["com.example.insurance"],
+      "issuer_state": "insurance"
+    },
     "loyalty": {
       "data": [
         {
@@ -143,28 +148,6 @@
       "disclosed": {
         "credential_type": "urn:eudi:pid:nl:1",
         "path": ["bsn"]
-      }
-    },
-    "insurance": {
-      "client_id": "${DEMO_ISSUER_CLIENT_ID_INSURANCE_READER}",
-      "data": {
-        "999991772": [
-          {
-            "format": "mso_mdoc",
-            "attestation_type": "com.example.insurance",
-            "attributes": {
-              "product": "Health Insurance",
-              "coverage": "Basic",
-              "start_date": "2025-01-01",
-              "duration": "365",
-              "customer_number": "283728"
-            }
-          }
-        ]
-      },
-      "disclosed": {
-        "credential_type": "urn:eudi:pid:nl:1",
-        "path": ["urn:eudi:pid:nl:1", "bsn"]
       }
     },
     "housing": {

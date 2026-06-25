@@ -1,8 +1,10 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::ops::Not;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use attestation_types::data_uri::DataUri;
 use derive_more::AsRef;
 use derive_more::Display;
@@ -28,16 +30,24 @@ use utils::vec_nonempty;
 
 use crate::cose::CoseAlgorithmIdentifier;
 use crate::cose::KnownCoseAlgorithmIdentifier;
+use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::well_known::WellKnownMetadata;
+use crate::scope::Scope;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
 #[as_ref(str)]
 pub struct CredentialConfigurationId(String);
+
+impl Borrow<str> for CredentialConfigurationId {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -301,7 +311,7 @@ pub struct CredentialConfiguration {
     /// absent, the only way to request the Credential is using authorization_details [RFC9396] - in this case, the
     /// OAuth Authorization Server metadata for one of the Authorization Servers found from the Credential Issuer's
     /// Metadata must contain an `authorization_details_types_supported` that contains `openid_credential`.
-    pub scope: Option<String>,
+    pub scope: Option<Scope>,
 
     /// Combines the presence or absence of the `cryptographic_binding_methods_supported` and `proof_types_supported`
     /// fields.
@@ -322,6 +332,7 @@ pub struct CredentialConfiguration {
 impl CredentialConfiguration {
     pub fn new_mdoc_ecdsa_p256_sha256(
         doctype: String,
+        scope: Scope,
         proof_types: Vec<ProofType>,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
@@ -329,6 +340,7 @@ impl CredentialConfiguration {
     ) -> Self {
         Self::new_ecdsa_p256_sha256(
             CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
+            scope,
             CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types),
             vc_display,
             vc_claims,
@@ -338,6 +350,7 @@ impl CredentialConfiguration {
 
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
+        scope: Scope,
         proof_types: Vec<ProofType>,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
@@ -345,6 +358,7 @@ impl CredentialConfiguration {
     ) -> Self {
         Self::new_ecdsa_p256_sha256(
             CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
+            scope,
             CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types),
             vc_display,
             vc_claims,
@@ -354,6 +368,7 @@ impl CredentialConfiguration {
 
     fn new_ecdsa_p256_sha256(
         format: CredentialFormat,
+        scope: Scope,
         cryptographic_binding: CryptographicBinding,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
@@ -361,7 +376,7 @@ impl CredentialConfiguration {
     ) -> Self {
         Self {
             format,
-            scope: None,
+            scope: Some(scope),
             cryptographic_binding: Some(cryptographic_binding),
             credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
             type_metadata_uri: Some(type_metadata_uri),
@@ -408,10 +423,22 @@ pub enum CredentialFormat {
 }
 
 impl CredentialFormat {
+    pub fn is_supported(&self) -> bool {
+        !matches!(self, Self::Other { .. })
+    }
+
     pub fn attestation_type(&self) -> Option<&str> {
         match self {
             Self::MsoMdoc { doctype, .. } => Some(doctype),
             Self::SdJwt { vct, .. } => Some(vct),
+            Self::Other { .. } => None,
+        }
+    }
+
+    pub fn credential_kind(&self) -> Option<CredentialKind> {
+        match self {
+            Self::MsoMdoc { doctype, .. } => Some(CredentialKind::new(Format::MsoMdoc, doctype.to_string())),
+            Self::SdJwt { vct, .. } => Some(CredentialKind::new(Format::SdJwt, vct.to_string())),
             Self::Other { .. } => None,
         }
     }
@@ -966,7 +993,10 @@ mod tests {
                     .unwrap_or_default()
                     .eq(&[JwsAlgorithm::ES256])
         );
-        assert_eq!(config.scope.as_deref(), Some("SD_JWT_VC_example_in_OpenID4VCI"));
+        assert_eq!(
+            config.scope.as_ref().map(AsRef::as_ref),
+            Some("SD_JWT_VC_example_in_OpenID4VCI")
+        );
 
         let binding = config
             .cryptographic_binding

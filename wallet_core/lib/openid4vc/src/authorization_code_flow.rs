@@ -13,17 +13,26 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
+use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
+use crate::issuer::AuthRequestValues;
 
 /// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an
 /// [`AuthorizationCodeFlow`] must retain to complete the authorization later: the wallet's
-/// `redirect_uri` and `state` (to build the wallet-facing redirect) and its PKCE `code_challenge`
-/// (which the `/token` handler verifies the wallet's `code_verifier` against).
+/// `redirect_uri` and `state` (to build the wallet-facing redirect), the `scope` values and its PKCE `code_challenge`
+/// (which the `/token` handler verifies the wallet's `code_verifier` against) and the `issuer_state`
+/// the wallet echoes back from the credential offer (which a flow may use to identify the context set up during
+/// previous process steps).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletAuthorizationContext {
-    pub redirect_uri: Url,
     pub state: Option<String>,
-    pub code_challenge: String,
+    pub issuer_state: Option<String>,
+
+    // Represents those values present in the inciting Authorization Request that an implementor of
+    // [`AuthorizationCodeFlow`] will need to pass to `AuthorizingIssuer::complete_authorization()`. These values are
+    // then retained in the `AuthCodeIssued` statue of the `Issuer`.
+    #[serde(flatten)]
+    pub request_values: AuthRequestValues,
 }
 
 /// Reasons a [`VciAuthorizationRequest`] cannot be accepted into a [`WalletAuthorizationContext`].
@@ -43,9 +52,14 @@ impl WalletAuthorizationContext {
         };
 
         Ok(Self {
-            redirect_uri: request.redirect_uri.into_inner(),
             state: request.oauth_request.state,
-            code_challenge,
+            issuer_state: request.issuer_state,
+            request_values: AuthRequestValues {
+                client_id: request.oauth_request.client_id,
+                redirect_uri: request.redirect_uri.into_inner(),
+                code_challenge,
+                scope: request.scope,
+            },
         })
     }
 }
@@ -70,8 +84,13 @@ pub enum AuthorizeOutcome {
 pub trait AuthorizationCodeFlow {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    /// Called after the `openid4vc` layer has consumed the PAR entry, resolved the original authorization
-    /// request and extracted the wallet-side [`WalletAuthorizationContext`]. The implementation
-    /// decides how the user authenticates and returns the protocol-level outcome.
-    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error>;
+    /// Called after the `openid4vc` layer has consumed the PAR entry, resolved the original authorization request and
+    /// extracted the wallet-side [`WalletAuthorizationContext`]. The implementation decides how the user authenticates
+    /// and returns the protocol-level outcome. Part of the contract of this method is that any `IssuableDocument` that
+    /// is returned (directly or indirectly) adheres to the requested combinations of format and attestation type.
+    async fn authorize(
+        &self,
+        context: WalletAuthorizationContext,
+        credential_kinds: VecNonEmpty<CredentialKind>,
+    ) -> Result<AuthorizeOutcome, Self::Error>;
 }

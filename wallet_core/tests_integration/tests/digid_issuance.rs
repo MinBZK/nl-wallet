@@ -20,7 +20,7 @@ use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
-use pid_issuer::pid::digid::DigidMetadataCache;
+use pid_issuer::pid::digid::DigidMetadataClient;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
@@ -66,7 +66,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
-    let digid_metadata_cache = DigidMetadataCache::try_new(pid_settings.digid.client_settings.clone()).unwrap();
+    let digid_metadata_cache = DigidMetadataClient::try_new(pid_settings.digid.client_settings.clone()).unwrap();
     let store_connection = StoreConnection::try_new(
         pid_settings
             .authorizing_issuer_settings

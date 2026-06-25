@@ -20,6 +20,7 @@ final Map<String, Organization> kOrganizations = {
   kBankId: _kBankOrganization,
   kMonkeyBikeId: _kMonkeyBikeOrganization,
   kPharmacyId: _kPharmacyOrganization,
+  kSupermarketId: _kSupermarket,
 };
 
 const kRvigId = 'rvig';
@@ -39,6 +40,7 @@ const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
 const kPharmacyId = 'pharmacy';
 const kSampleCityTheHague = 'Den Haag';
+const kSupermarketId = 'supermarket';
 
 const _kRvigOrganizationName = 'Rijksdienst voor Identiteits­gegevens';
 final _kRvigOrganization = Organization(
@@ -313,4 +315,16 @@ final _kPharmacyOrganization = Organization(
   city: kSampleCityTheHague.untranslated,
   countryCode: 'nl',
   webUrl: 'https://denoordapotheek.nl',
+);
+
+final _kSupermarket = Organization(
+  legalName: 'De Buurt Super'.untranslated,
+  displayName: 'BuurtSuper'.untranslated,
+  category: 'Supermarkt'.untranslated,
+  description: 'Al meer dan 25 jaar jouw betrouwbare supermarkt.'.untranslated,
+  image: const Image.asset(path: MockAssets.logo_ecommerce),
+  kvk: '1337-1337',
+  city: kSampleCityTheHague.untranslated,
+  countryCode: 'nl',
+  webUrl: 'https://example.org',
 );

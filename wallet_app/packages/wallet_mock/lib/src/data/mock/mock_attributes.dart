@@ -339,3 +339,12 @@ final kMockVOGDataAttributes = [
     svgId: 'mock_expiryDate',
   ),
 ];
+
+final kLoyaltyAttributes = [
+  const AttestationAttribute(
+    labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Type')],
+    value: AttributeValue.number(value: 75342234723),
+    key: 'mock_loyalty',
+    svgId: 'mock_loyalty',
+  ),
+];

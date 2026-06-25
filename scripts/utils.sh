@@ -174,7 +174,16 @@ function generate_or_reuse_root_ca {
             DATE_TO="$(date --date='+1 year' "$DATE_FORMAT")"
         fi
 
-        openssl req -x509 -sha256 -nodes -newkey rsa:2048 -subj "/CN=$2" -addext "keyUsage=critical,keyCertSign,cRLSign" -addext "basicConstraints=critical,CA:TRUE,pathlen:0" -not_before "$DATE_FROM" -not_after "$DATE_TO" -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem"
+        openssl req \
+            -x509 \
+            -newkey ec -pkeyopt ec_paramgen_curve:prime256v1  \
+            -nodes \
+            -sha256 \
+            -subj "/CN=$2" \
+            -addext "keyUsage=critical,keyCertSign,cRLSign" \
+            -addext "basicConstraints=critical,CA:TRUE,pathlen:0" \
+            -not_before "$DATE_FROM" -not_after "$DATE_TO" \
+            -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem"
         openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in "$1/ca.key.pem" -out "$1/ca.key.der"
         openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
         openssl pkcs12 -export -out "$1/ca.pfx" -inkey "$1/ca.key.pem" -in "$1/ca.crt.pem" -password pass:
@@ -195,7 +204,7 @@ function generate_or_reuse_root_ca {
 function generate_ssl_key_pair_with_san {
     echo -e "${INFO}Generating SSL private key and CSR${NC}"
     openssl req \
-            -newkey rsa:2048 \
+            -newkey ec -pkeyopt ec_paramgen_curve:prime256v1  \
             -subj "/C=US/CN=localhost" \
             -nodes \
             -sha256 \
@@ -216,7 +225,7 @@ function generate_ssl_key_pair_with_san {
             -extfile "${DEVENV}/openssl-san.cfg" > /dev/null
 
     echo -e "${INFO}Exporting SSL public key${NC}"
-    openssl rsa \
+    openssl ec \
             -in "$1/$2.key" \
             -pubout > "$1/$2.pub"
 

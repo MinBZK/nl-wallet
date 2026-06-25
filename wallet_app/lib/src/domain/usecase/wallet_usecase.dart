@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:fimber/fimber.dart';
 import 'package:wallet_core/core.dart';
 
@@ -32,10 +30,10 @@ abstract class WalletUseCase {
     } else if (ex is WalletInstructionError) {
       final checkPinResult = ex.asCheckPinResult();
       return CheckPinError(checkPinResult, sourceError: ex);
-    } else if (ex is StateError) {
-      Fimber.e('StateErrors indicate programming errors and should not be handled gracefully', ex: ex);
-      exit(1);
     }
+    // Note: StateErrors (invariant violations / programming errors) used to crash the app here via
+    // exit(1). They now fall through to a GenericError; the invariant error screen is driven by the
+    // core error listener and the global WalletErrorHandler instead.
     return GenericError(ex.toString(), sourceError: ex);
   }
 }

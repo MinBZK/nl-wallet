@@ -41,7 +41,12 @@ void main() {
         mockWalletCore.identifyUri(testUri),
       ).thenAnswer((realInvocation) async => IdentifyUriResult.DisclosureBasedIssuance);
       final result = await uriRepository.processUri(Uri.parse(testUri));
-      expect(result, NavigationRequest.issuance(argument: const IssuanceScreenArgument(uri: testUri, isQrCode: false)));
+      expect(
+        result,
+        NavigationRequest.issuance(
+          argument: const IssuanceScreenArgument(uri: testUri, isQrCode: false, issuanceType: .disclosureBasedIssuance),
+        ),
+      );
     });
 
     test('Pid Renewal uri should result in a PidRenewalNavigationRequest', () async {

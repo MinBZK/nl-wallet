@@ -469,10 +469,42 @@ where
     }
 }
 
+#[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
+pub struct RepeatN<T: Clone> {
+    inner: std::iter::RepeatN<T>,
+}
+
+pub fn repeat_n<T: Clone>(value: T, count: NonZeroUsize) -> RepeatN<T> {
+    RepeatN {
+        inner: std::iter::repeat_n(value, count.get()),
+    }
+}
+
+impl<T: Clone> NonEmptyIterator for RepeatN<T> {}
+
+impl<T: Clone> IntoIterator for RepeatN<T> {
+    type Item = T;
+
+    type IntoIter = std::iter::RepeatN<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner
+    }
+}
+
+impl<T: Clone + Debug> Debug for RepeatN<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
     use std::collections::HashSet;
+    use std::num::NonZeroUsize;
     use std::panic;
+    use std::rc::Rc;
 
     use nonempty_collections::IntoNonEmptyIterator;
     use nonempty_collections::NonEmptyIterator;
@@ -484,6 +516,7 @@ mod tests {
     use super::VecAtLeastTwoUnique;
     use super::VecNonEmpty;
     use super::VecNonEmptyUnique;
+    use super::repeat_n;
 
     #[test]
     #[should_panic]
@@ -622,9 +655,60 @@ mod tests {
     }
 
     #[test]
-    fn test_nonempty_iter_unique() {
-        let vec = vec_nonempty![1, 1, 2, 3];
-        let vec_unique = vec.into_nonempty_iter().collect::<VecNonEmptyUnique<_>>();
-        assert_eq!(vec_unique.0, vec![1, 2, 3]);
+    fn test_repeat_n() {
+        let repeated = repeat_n("item", NonZeroUsize::new(3).unwrap())
+            .into_iter()
+            .collect::<Vec<_>>();
+
+        assert_eq!(repeated, vec!["item", "item", "item"]);
+    }
+
+    #[test]
+    fn test_repeat_n_is_nonempty_iterator() {
+        let repeated = repeat_n(42, NonZeroUsize::MIN).collect::<VecNonEmpty<_>>();
+
+        assert_eq!(repeated, vec_nonempty![42]);
+    }
+
+    #[test]
+    fn test_repeat_n_zips_with_nonempty_iterator() {
+        let vec = vec_nonempty![1, 2, 3];
+
+        let zipped = vec
+            .into_nonempty_iter()
+            .zip(repeat_n("item", NonZeroUsize::new(3).unwrap()))
+            .collect::<VecNonEmpty<_>>();
+
+        assert_eq!(zipped, vec_nonempty![(1, "item"), (2, "item"), (3, "item")]);
+    }
+
+    #[test]
+    fn test_repeat_n_does_not_clone_last_item() {
+        #[derive(Debug)]
+        struct CloneCounter {
+            clone_count: Rc<Cell<usize>>,
+        }
+
+        impl Clone for CloneCounter {
+            fn clone(&self) -> Self {
+                self.clone_count.set(self.clone_count.get() + 1);
+
+                Self {
+                    clone_count: Rc::clone(&self.clone_count),
+                }
+            }
+        }
+
+        let clone_count = Rc::new(Cell::new(0));
+        let item = CloneCounter {
+            clone_count: Rc::clone(&clone_count),
+        };
+
+        let repeated = repeat_n(item, NonZeroUsize::new(3).unwrap())
+            .into_iter()
+            .collect::<Vec<_>>();
+
+        assert_eq!(repeated.len(), 3);
+        assert_eq!(clone_count.get(), 2);
     }
 }

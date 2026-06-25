@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  {{- with .Values.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 6 }}
+  {{- with .Values.deployment }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 8 }}
+        {{- if .Values.extraPodLabels }}
+        {{- toYaml .Values.extraPodLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      containers:
+        - name: {{ include "common.names.fullname" . }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
+          volumeMounts:
+            - name: private-keys
+              mountPath: /acf_demo_issuer.toml
+              subPath: acf_demo_issuer.toml
+            {{- range .Values.metadata }}
+            - name: metadata
+              mountPath: /{{ . }}
+              subPath: {{ . }}
+            {{- end }}
+            - name: status-lists
+              mountPath: /status-lists
+          env:
+            - name: ACF_DEMO_ISSUER__INTERNAL_SERVER__IP
+              value: "0.0.0.0"
+            - name: ACF_DEMO_ISSUER__PUBLIC_URL
+              value: {{ include "common.urls.combineDomainAndContext" (list (first .Values.httpRoute.hostnames) .Values.httpRoute.contextPath) }}
+            - name: ACF_DEMO_ISSUER__STRUCTURED_LOGGING
+              value: "true"
+            - name: ACF_DEMO_ISSUER__ISSUER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: issuer_trust_anchors
+            - name: ACF_DEMO_ISSUER__WALLET_REDIRECT_URIS
+              value: {{ join "," .Values.walletRedirectUris | quote }}
+            - name: ACF_DEMO_ISSUER__BATCH_SIZE
+              value: {{ .Values.batchSize | quote }}
+            - name: ACF_DEMO_ISSUER__METADATA
+              value: {{ join "," .Values.metadata | quote }}
+            - name: ACF_DEMO_ISSUER__STORAGE__URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: url
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+      volumes:
+        - name: private-keys
+          secret:
+            secretName: nl-wallet-acf-demo-issuer-private-keys
+        {{- if .Values.metadata }}
+        - name: metadata
+          configMap:
+            name: nl-wallet-acf-demo-issuer-metadata
+        {{- end }}
+        - name: status-lists
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}

@@ -1,5 +1,6 @@
+use std::collections::HashSet;
+
 use chrono::Duration;
-use indexmap::IndexSet;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
@@ -15,6 +16,7 @@ use utils::spec::SpecForbidden;
 use utils::spec::SpecOptional;
 
 use crate::pkce::PkcePair;
+use crate::scope::Scope;
 
 /// The shared [OAuth2 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
 /// authorization request — whether for OpenID4VCI issuance or OpenID4VP presentation — must carry.
@@ -25,7 +27,7 @@ use crate::pkce::PkcePair;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthorizationRequestBase {
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, ResponseType>")]
-    pub response_type: IndexSet<ResponseType>,
+    pub response_type: HashSet<ResponseType>,
 
     pub client_id: String,
     pub state: Option<String>,
@@ -38,7 +40,7 @@ pub struct AuthorizationRequestBase {
 impl AuthorizationRequestBase {
     pub fn for_vp(client_id: String, state: Option<String>) -> Self {
         Self {
-            response_type: ResponseType::VpToken.into(),
+            response_type: HashSet::from([ResponseType::VpToken]),
             client_id,
             state,
             _request_uri: SpecForbidden,
@@ -65,8 +67,9 @@ pub struct VciAuthorizationRequest {
     #[serde(flatten)]
     pub code_challenge: PkceCodeChallenge,
 
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
-    pub scope: Option<IndexSet<String>>,
+    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, Scope>")]
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub scope: HashSet<Scope>,
 
     /// String value identifying a certain processing context at the Credential Issuer. A value for this parameter is
     /// typically passed in a Credential Offer from the Credential Issuer to the Wallet. This request parameter is used
@@ -82,11 +85,12 @@ impl VciAuthorizationRequest {
         redirect_uri: Url,
         state: String,
         issuer_state: Option<String>,
+        scope: HashSet<Scope>,
         pkce_pair: &P,
     ) -> Self {
         Self {
             oauth_request: AuthorizationRequestBase {
-                response_type: ResponseType::Code.into(),
+                response_type: HashSet::from([ResponseType::Code]),
                 client_id,
                 state: Some(state),
                 _request_uri: SpecForbidden,
@@ -96,7 +100,7 @@ impl VciAuthorizationRequest {
                 code_challenge: String::from(pkce_pair.code_challenge()),
             },
             authorization_details: None,
-            scope: None,
+            scope,
             issuer_state,
         }
     }
@@ -185,12 +189,6 @@ pub enum ResponseType {
     IdToken,
 }
 
-impl From<ResponseType> for IndexSet<ResponseType> {
-    fn from(value: ResponseType) -> Self {
-        IndexSet::from([value])
-    }
-}
-
 /// Format-specific data for the [`AuthorizationDetails`].
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "format", rename_all = "snake_case")]
@@ -229,7 +227,8 @@ pub struct AuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
+    use std::collections::HashSet;
+
     use jwt::nonce::Nonce;
     use serde_json::json;
     use serde_qs;
@@ -244,13 +243,11 @@ mod tests {
     use crate::authorization::VciAuthorizationRequest;
 
     fn example_vci_request() -> VciAuthorizationRequest {
-        let mut scope = IndexSet::new();
-        scope.insert("openid".to_string());
-        scope.insert("profile".to_string());
+        let scope = HashSet::from(["openid".parse().unwrap(), "profile".parse().unwrap()]);
 
         VciAuthorizationRequest {
             oauth_request: AuthorizationRequestBase {
-                response_type: ResponseType::Code.into(),
+                response_type: HashSet::from([ResponseType::Code]),
                 client_id: "client-123".to_string(),
                 state: Some("state-abc".to_string()),
                 _request_uri: SpecForbidden,
@@ -260,7 +257,7 @@ mod tests {
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: "challenge-xyz".to_string(),
             },
-            scope: Some(scope),
+            scope,
             issuer_state: Some("state-xyz".to_string()),
         }
     }
@@ -275,8 +272,8 @@ mod tests {
         assert_eq!(decoded.oauth_request.client_id, "client-123");
         assert_eq!(decoded.oauth_request.state.as_deref(), Some("state-abc"));
         assert_eq!(
-            decoded.scope.unwrap().iter().cloned().collect::<Vec<_>>(),
-            vec!["openid", "profile"]
+            decoded.scope,
+            HashSet::from(["openid".parse().unwrap(), "profile".parse().unwrap()])
         );
         assert!(matches!(
             decoded.code_challenge,

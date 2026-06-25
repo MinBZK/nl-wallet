@@ -1,13 +1,12 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -24,6 +23,7 @@ use itertools::Itertools;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::credential_configurations::CredentialConfigurationParameters;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WiaConfig;
@@ -68,12 +68,9 @@ pub struct AuthorizingIssuerSettings {
     /// Request. Validated by [`AuthorizingIssuer`] at `/par`.
     pub wallet_redirect_uris: VecNonEmpty<Url>,
 
-    /// Trust anchors for verifying the wallet attestation (Wallet Instance Attestation).
-    #[debug(skip)]
-    pub wia_trust_anchors: TrustAnchors,
-
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+    // TODO (PVW-5550): add mandatory wia_trust_anchors config
 }
 
 impl AuthorizingIssuerSettings {
@@ -106,14 +103,11 @@ impl AuthorizingIssuerSettings {
     {
         let Self {
             wallet_redirect_uris,
-            wia_trust_anchors,
             issuer_settings,
         } = self;
 
-        let wia_config = WiaConfig { wia_trust_anchors };
-
         let (issuer, database_checkers, store_connection, server_settings) =
-            issuer_settings.into_issuer(hsm, Some(wia_config)).await?;
+            issuer_settings.into_issuer(hsm, None).await?;
 
         let par_store = IssuerParStore::new(store_connection.clone());
         let flow =
@@ -143,7 +137,7 @@ pub struct IssuerSettings {
     /// implementation).
     /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
     /// JWTs.
-    pub wallet_client_ids: Vec<String>,
+    pub wallet_client_ids: HashSet<String>,
 
     /// The maximum amount of copies of a credential that the holder can request.
     pub batch_size: NonZeroU8,
@@ -165,8 +159,8 @@ pub struct CredentialConfigurationsSettings(
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CredentialConfigurationSettings {
-    pub format: Format,
-    pub attestation_type: String,
+    #[serde(flatten)]
+    pub credential_kind: CredentialKind,
 
     #[serde(flatten)]
     #[debug(skip)]
@@ -322,7 +316,7 @@ impl CredentialConfigurationsSettings {
                         };
 
                         let metadata_documents = metadata_by_vct
-                            .to_metadata_documents(&settings.attestation_type)
+                            .to_metadata_documents(&settings.credential_kind.attestation_type)
                             .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
 
                         let key_pair = settings
@@ -338,8 +332,7 @@ impl CredentialConfigurationsSettings {
                             .map_err(CredentialConfigurationsSettingsError::StatusList)?;
 
                         let params = CredentialConfigurationParameters {
-                            format: settings.format,
-                            attestation_type: settings.attestation_type,
+                            credential_kind: settings.credential_kind,
                             key_pair,
                             status_list,
                             valid_days: Days::new(settings.valid_days),
@@ -625,6 +618,7 @@ impl StatusListAttestationSettings {
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::num::NonZeroU8;
     use std::num::NonZeroU16;
 
@@ -640,6 +634,7 @@ mod tests {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
+    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -674,8 +669,7 @@ mod tests {
             credential_configurations: HashMap::from([(
                 "pid_sdjwt".to_string().into(),
                 CredentialConfigurationSettings {
-                    attestation_type: "com.example.pid".to_string(),
-                    format: Format::SdJwt,
+                    credential_kind: CredentialKind::new(Format::SdJwt, "com.example.pid".to_string()),
                     keypair,
                     valid_days: 365,
                     status_list: StatusListAttestationSettings {
@@ -696,7 +690,7 @@ mod tests {
                 let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
                 (vct, (metadata, metadata_bytes))
             }])),
-            wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
             server_settings: Settings {
                 wallet_server: Server {
@@ -767,8 +761,7 @@ mod tests {
         settings.credential_configurations = HashMap::from([(
             "no_registration_sdjwt".to_string().into(),
             CredentialConfigurationSettings {
-                attestation_type: "com.example.no_registration".to_string(),
-                format: Format::SdJwt,
+                credential_kind: CredentialKind::new(Format::SdJwt, "com.example.no_registration".to_string()),
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 status_list: StatusListAttestationSettings {

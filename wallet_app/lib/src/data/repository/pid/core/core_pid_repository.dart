@@ -1,22 +1,31 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
+import '../../../../domain/model/configuration/flutter_app_configuration.dart';
 import '../../../../util/mapper/mapper.dart';
+import '../../../../util/mixin/pid_filter_mixin.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../pid_repository.dart';
 
-class CorePidRepository extends PidRepository {
+class CorePidRepository extends PidRepository with PidFilterMixin {
   final TypedWalletCore _walletCore;
   final Mapper<AttestationPresentation, WalletCard> _cardMapper;
+  final Mapper<core.FlutterConfiguration, FlutterAppConfiguration> _flutterAppConfigurationMapper;
 
   CorePidRepository(
     this._walletCore,
     this._cardMapper,
+    this._flutterAppConfigurationMapper,
   );
+
+  @override
+  AppConfigurationProvider get configProvider =>
+      () async => _flutterAppConfigurationMapper.map(await _walletCore.observeConfig().first);
 
   @override
   Future<String> getPidIssuanceUrl() => _walletCore.createPidIssuanceRedirectUri();
@@ -26,8 +35,10 @@ class CorePidRepository extends PidRepository {
 
   @override
   Future<List<DataAttribute>> continuePidIssuance(String uri) async {
-    final result = await _walletCore.continuePidIssuance(uri);
-    return result.map(_cardMapper.map).map((attestation) => attestation.attributes).flattened.toList();
+    final result = await _walletCore.continueIssuance(uri);
+    final cards = result.map(_cardMapper.map).toList();
+    final filteredCards = await filterDuplicatePidCards(cards);
+    return filteredCards.map((attestation) => attestation.attributes).flattened.toList();
   }
 
   @override

@@ -9,6 +9,7 @@ import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/domain/model/configuration/maintenance_window.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/help/help_category.dart';
@@ -17,6 +18,7 @@ import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as 
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/model/pin/check_pin_result.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
@@ -62,6 +64,8 @@ void _setupMockitoDummies() {
 
   // Configuration
   provideDummy<FlutterAppConfiguration>(WalletMockData.flutterAppConfiguration);
+  provideDummy<PidAttestation>(const PidAttestation(attestationType: 'pid', format: .sdJwt));
+  provideDummy<MaintenanceWindow>(MaintenanceWindow(startDateTime: DateTime(2000), endDateTime: DateTime(2001)));
 
   // Organization and policy dummies
   provideDummy<Organization>(WalletMockData.organization);

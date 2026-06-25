@@ -1,0 +1,127 @@
+{
+  "vct": "urn:eudi:pid:1",
+  "name": "PID credential",
+  "description": "Working version of the PID credential",
+  "display": [
+    {
+      "locale": "en-US",
+      "name": "Personal data",
+      "description": "The personal data credential"
+    }
+  ],
+  "claims": [
+    {
+      "path": ["family_name"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Name",
+          "description": "Family name of the person, including any prefixes"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["given_name"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "First name",
+          "description": "First name of the person"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["birthdate"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Birth date",
+          "description": "Birth date of the person"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["age_over_18"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Over 18",
+          "description": "Whether the person is over 18"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["nationalities"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Nationalities",
+          "description": "List of nationalities of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "country"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Country",
+          "description": "Country of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "locality"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "City",
+          "description": "City of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "postal_code"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Postal code",
+          "description": "Postal code of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "street_address"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Street",
+          "description": "Street of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "house_number"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "House number",
+          "description": "House number of the address"
+        }
+      ],
+      "sd": "always"
+    }
+  ]
+}

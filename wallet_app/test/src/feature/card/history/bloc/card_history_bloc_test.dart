@@ -11,10 +11,14 @@ import '../../../../mocks/wallet_mocks.mocks.dart';
 void main() {
   late MockGetWalletCardUseCase getWalletCardUseCase;
   late MockGetWalletEventsForCardUseCase getWalletEventsForCardUseCase;
+  late MockGetWalletEventsForPidUseCase getWalletEventsForPidUseCase;
+  late MockCheckIsPidUseCase checkIsPidUseCase;
 
   setUp(() {
     getWalletCardUseCase = MockGetWalletCardUseCase();
     getWalletEventsForCardUseCase = MockGetWalletEventsForCardUseCase();
+    getWalletEventsForPidUseCase = MockGetWalletEventsForPidUseCase();
+    checkIsPidUseCase = MockCheckIsPidUseCase();
   });
 
   blocTest(
@@ -22,28 +26,64 @@ void main() {
     build: () => CardHistoryBloc(
       getWalletCardUseCase,
       getWalletEventsForCardUseCase,
+      getWalletEventsForPidUseCase,
+      checkIsPidUseCase,
     ),
-    verify: (bloc) {
-      expect(bloc.state, CardHistoryInitial());
-    },
+    verify: (bloc) => expect(bloc.state, CardHistoryInitial()),
   );
 
   blocTest(
-    'verify success state',
+    'verify success state for non-PID card',
     build: () => CardHistoryBloc(
       getWalletCardUseCase,
       getWalletEventsForCardUseCase,
+      getWalletEventsForPidUseCase,
+      checkIsPidUseCase,
     ),
     setUp: () {
       when(
         getWalletCardUseCase.invoke(WalletMockData.card.attestationType),
       ).thenAnswer((_) async => Result.success(WalletMockData.card));
       when(
+        checkIsPidUseCase.invoke(WalletMockData.card),
+      ).thenAnswer((_) async => const Result.success(false));
+      when(
         getWalletEventsForCardUseCase.invoke(WalletMockData.card.attestationType),
       ).thenAnswer((_) => Future.value(const Result.success([])));
     },
     act: (bloc) => bloc.add(CardHistoryLoadTriggered(WalletMockData.card.attestationType)),
     expect: () => [const CardHistoryLoadInProgress(), CardHistoryLoadSuccess(WalletMockData.card, const [])],
+    verify: (_) {
+      verify(getWalletEventsForCardUseCase.invoke(WalletMockData.card.attestationType)).called(1);
+      verifyNever(getWalletEventsForPidUseCase.invoke());
+    },
+  );
+
+  blocTest(
+    'verify success state for PID card',
+    build: () => CardHistoryBloc(
+      getWalletCardUseCase,
+      getWalletEventsForCardUseCase,
+      getWalletEventsForPidUseCase,
+      checkIsPidUseCase,
+    ),
+    setUp: () {
+      when(
+        getWalletCardUseCase.invoke(WalletMockData.card.attestationType),
+      ).thenAnswer((_) async => Result.success(WalletMockData.card));
+      when(
+        checkIsPidUseCase.invoke(WalletMockData.card),
+      ).thenAnswer((_) async => const Result.success(true));
+      when(
+        getWalletEventsForPidUseCase.invoke(),
+      ).thenAnswer((_) => Future.value(const Result.success([])));
+    },
+    act: (bloc) => bloc.add(CardHistoryLoadTriggered(WalletMockData.card.attestationType)),
+    expect: () => [const CardHistoryLoadInProgress(), CardHistoryLoadSuccess(WalletMockData.card, const [])],
+    verify: (_) {
+      verify(getWalletEventsForPidUseCase.invoke()).called(1);
+      verifyNever(getWalletEventsForCardUseCase.invoke(any));
+    },
   );
 
   blocTest(
@@ -51,6 +91,8 @@ void main() {
     build: () => CardHistoryBloc(
       getWalletCardUseCase,
       getWalletEventsForCardUseCase,
+      getWalletEventsForPidUseCase,
+      checkIsPidUseCase,
     ),
     setUp: () {
       when(

@@ -7,39 +7,66 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
-  test('StartIssuanceReadyToDisclose', () {
-    final StartIssuanceResult issuance = StartIssuanceReadyToDisclose(
+  test('Verify relyingParty getter works as expected for all variants', () {
+    const authRequired = StartIssuanceResult.authorizationRequired('https://example.com');
+    expect(authRequired.relyingParty, isNull);
+
+    final preAuthOffer = StartIssuanceResult.preAuthorizedOffer([WalletMockData.card]);
+    expect(preAuthOffer.relyingParty, WalletMockData.organization);
+
+    final preAuthOfferEmpty = const StartIssuanceResult.preAuthorizedOffer([]);
+    expect(preAuthOfferEmpty.relyingParty, isNull);
+
+    final readyToDisclose = StartIssuanceResult.readyToDisclose(
       relyingParty: WalletMockData.organization,
-      policy: WalletMockData.policy,
+      originUrl: 'https://example.com',
+      requestPurpose: 'purpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
-      cardRequests: [],
-      originUrl: 'url',
-      requestPurpose: 'test'.untranslated,
       type: DisclosureType.regular,
+      cardRequests: [],
+      policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
     );
-    expect(issuance, isA<StartIssuanceReadyToDisclose>());
-    expect(issuance.relyingParty, WalletMockData.organization);
-    expect(issuance.sessionType, DisclosureSessionType.crossDevice);
-    expect(issuance.originUrl, 'url');
-    expect(issuance.requestPurpose, 'test'.untranslated);
-    expect(issuance.sharedDataWithOrganizationBefore, isFalse);
+    expect(readyToDisclose.relyingParty, WalletMockData.organization);
+
+    final missingAttributes = StartIssuanceResult.missingAttributes(
+      relyingParty: WalletMockData.organization,
+      originUrl: 'https://example.com',
+      requestPurpose: 'purpose'.untranslated,
+      sessionType: DisclosureSessionType.crossDevice,
+      missingAttributes: [],
+      sharedDataWithOrganizationBefore: false,
+    );
+    expect(missingAttributes.relyingParty, WalletMockData.organization);
   });
 
-  test('StartIssuanceMissingAttributes', () {
-    final StartIssuanceResult issuance = StartIssuanceMissingAttributes(
+  test('verify sessionType getter works as expected for all variants', () {
+    const authRequired = StartIssuanceResult.authorizationRequired('https://example.com');
+    expect(authRequired.sessionType, isNull);
+
+    final preAuthOffer = StartIssuanceResult.preAuthorizedOffer([WalletMockData.card]);
+    expect(preAuthOffer.sessionType, isNull);
+
+    final readyToDisclose = StartIssuanceResult.readyToDisclose(
       relyingParty: WalletMockData.organization,
+      originUrl: 'https://example.com',
+      requestPurpose: 'purpose'.untranslated,
+      sessionType: DisclosureSessionType.crossDevice,
+      type: DisclosureType.regular,
+      cardRequests: [],
+      policy: WalletMockData.policy,
+      sharedDataWithOrganizationBefore: false,
+    );
+    expect(readyToDisclose.sessionType, DisclosureSessionType.crossDevice);
+
+    final missingAttributes = StartIssuanceResult.missingAttributes(
+      relyingParty: WalletMockData.organization,
+      originUrl: 'https://example.com',
+      requestPurpose: 'purpose'.untranslated,
       sessionType: DisclosureSessionType.sameDevice,
       missingAttributes: [],
-      originUrl: 'originUrl',
-      requestPurpose: 'test'.untranslated,
-      sharedDataWithOrganizationBefore: true,
+      sharedDataWithOrganizationBefore: false,
     );
-    expect(issuance, isA<StartIssuanceMissingAttributes>());
-    expect(issuance.relyingParty, WalletMockData.organization);
-    expect(issuance.originUrl, 'originUrl');
-    expect(issuance.sessionType, DisclosureSessionType.sameDevice);
-    expect(issuance.requestPurpose, 'test'.untranslated);
-    expect(issuance.sharedDataWithOrganizationBefore, isTrue);
+    expect(missingAttributes.sessionType, DisclosureSessionType.sameDevice);
   });
 }

@@ -1,0 +1,22 @@
+[package]
+name = "acf_demo_issuer_migrations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[[bin]]
+name = "acf_demo_issuer_migrations"
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+issuer_common_migrations.path = "../../issuer_common/migrations"

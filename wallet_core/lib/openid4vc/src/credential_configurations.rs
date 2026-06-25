@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -7,7 +6,6 @@ use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::server_keys::KeyPair;
 use derive_more::Debug;
-use derive_more::From;
 use http_utils::urls::HttpsUri;
 use itertools::Either;
 use itertools::Itertools;
@@ -18,30 +16,38 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::vec_at_least::VecNonEmptyUnique;
 
+use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
+use crate::scope::Scope;
+use crate::scope::ScopeInvalid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsError {
     #[error("no credential configuration parameters provided")]
     NoConfigurations,
 
+    #[error("could not use credential configuration ID as scope: {0}")]
+    Scope(#[source] ScopeInvalid),
+
     #[error("could not parse SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadata(#[source] TypeMetadataChainError),
 
     #[error(
         "multiple credential configurations for the same combination of format and attestation type: {}",
-        .0.values().map(|config_ids| config_ids.iter().join(", ")).join(" / ")
+        .0
+            .iter()
+            .map(|(format_type, config_ids)| format!("{format_type} - {}", config_ids.iter().join(", ")))
+            .join(" / ")
     )]
-    DuplicateFormatAndAttestationType(HashMap<(Format, String), HashSet<CredentialConfigurationId>>),
+    DuplicateFormatAndAttestationType(HashMap<CredentialKind, HashSet<CredentialConfigurationId>>),
 }
 
 #[derive(Debug)]
 pub struct CredentialConfigurationParameters<K, L> {
-    pub format: Format,
-    pub attestation_type: String,
+    pub credential_kind: CredentialKind,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub status_list: L,
@@ -59,8 +65,8 @@ pub struct CredentialConfigurationParameters<K, L> {
 /// the attestation.
 #[derive(Debug)]
 pub(crate) struct CredentialConfiguration<K, L> {
-    pub format: Format,
-    pub attestation_type: String,
+    pub credential_kind: CredentialKind,
+    pub scope: Scope,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub status_list: L,
@@ -80,10 +86,10 @@ pub(crate) struct CredentialConfigurationMetadata {
 
 impl<K, L> CredentialConfiguration<K, L> {
     /// Create a new [`CredentialConfiguration`] and decode and validate the type metadata documents.
-    pub fn try_new(
+    fn try_new(
+        config_id: CredentialConfigurationId,
         CredentialConfigurationParameters {
-            format,
-            attestation_type,
+            credential_kind,
             key_pair,
             status_list,
             valid_days,
@@ -91,12 +97,16 @@ impl<K, L> CredentialConfiguration<K, L> {
             attestation_qualification,
             metadata_documents,
         }: CredentialConfigurationParameters<K, L>,
-    ) -> Result<Self, TypeMetadataChainError> {
-        let metadata = CredentialConfigurationMetadata::try_new(&attestation_type, metadata_documents)?;
+    ) -> Result<Self, CredentialConfigurationsError> {
+        // Use the Credential Configuration ID as the scope value.
+        let scope = Scope::try_new(String::from(config_id)).map_err(CredentialConfigurationsError::Scope)?;
+
+        let metadata = CredentialConfigurationMetadata::try_new(&credential_kind.attestation_type, metadata_documents)
+            .map_err(CredentialConfigurationsError::TypeMetadata)?;
 
         let config = Self {
-            format,
-            attestation_type,
+            credential_kind,
+            scope,
             status_list,
             key_pair,
             valid_days,
@@ -138,10 +148,10 @@ impl CredentialConfigurationMetadata {
 }
 
 /// Static credential configurations indexed by their identifier.
-#[derive(Debug, From)]
+#[derive(Debug)]
 pub(crate) struct CredentialConfigurations<K, L> {
     configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K, L>>,
-    ids_by_format_and_attestation_type: HashMap<(Format, Cow<'static, str>), CredentialConfigurationId>,
+    ids_by_credential_kind: HashMap<CredentialKind, CredentialConfigurationId>,
 }
 
 impl<K, L> CredentialConfigurations<K, L> {
@@ -152,43 +162,38 @@ impl<K, L> CredentialConfigurations<K, L> {
             return Err(CredentialConfigurationsError::NoConfigurations);
         }
 
-        let mut ids_by_format_and_attestation_type = HashMap::<_, Vec<_>>::new();
+        let mut ids_by_credential_kind = HashMap::<_, Vec<_>>::new();
 
         let configs_by_id = config_params
             .into_iter()
             .map(|(config_id, params)| {
-                let format_and_attestation_type = (params.format, params.attestation_type.clone());
-                ids_by_format_and_attestation_type
-                    .entry(format_and_attestation_type)
+                ids_by_credential_kind
+                    .entry(params.credential_kind.clone())
                     .or_default()
                     .push(config_id.clone());
 
-                let config =
-                    CredentialConfiguration::try_new(params).map_err(CredentialConfigurationsError::TypeMetadata)?;
+                let config = CredentialConfiguration::try_new(config_id.clone(), params)?;
 
                 Ok((config_id, config))
             })
             .try_collect()?;
 
-        let (ids_by_format_and_attestation_type, duplicate_format_and_attestation_type) =
-            ids_by_format_and_attestation_type
-                .into_iter()
-                .partition_map::<_, HashMap<_, _>, _, _, _>(|((format, attestation_type), ids)| {
-                    match ids.into_iter().exactly_one() {
-                        Ok(id) => Either::Left(((format, Cow::Owned(attestation_type)), id)),
-                        Err(ids) => Either::Right(((format, attestation_type), ids.collect())),
-                    }
-                });
+        let (ids_by_credential_kind, duplicate_credential_kind) = ids_by_credential_kind
+            .into_iter()
+            .partition_map::<_, HashMap<_, _>, _, _, _>(|(credential_kind, ids)| match ids.into_iter().exactly_one() {
+                Ok(id) => Either::Left((credential_kind, id)),
+                Err(ids) => Either::Right((credential_kind, ids.collect())),
+            });
 
-        if !duplicate_format_and_attestation_type.is_empty() {
+        if !duplicate_credential_kind.is_empty() {
             return Err(CredentialConfigurationsError::DuplicateFormatAndAttestationType(
-                duplicate_format_and_attestation_type,
+                duplicate_credential_kind,
             ));
         }
 
         let credential_configurations = Self {
             configs_by_id,
-            ids_by_format_and_attestation_type,
+            ids_by_credential_kind,
         };
 
         Ok(credential_configurations)
@@ -213,13 +218,19 @@ impl<K, L> CredentialConfigurations<K, L> {
         self.configs_by_id.get(config_id)
     }
 
-    pub fn get_by_format_and_attestation_type(
+    pub fn get_by_scope(&self, scope: &Scope) -> Option<(&CredentialConfigurationId, &CredentialConfiguration<K, L>)> {
+        // The `CredentialConfigurations::try_new()` constructor (which is the only way to create
+        // `CredentialConfigurations`) guarantees that the Credential Configuration ID is used as the scope, so we can
+        // use it as a shortcut.
+        self.configs_by_id.get_key_value(scope.as_ref())
+    }
+
+    pub fn get_by_credential_kind(
         &self,
-        format: Format,
-        attestation_type: &str,
+        credential_kind: &CredentialKind,
     ) -> Option<(&CredentialConfigurationId, &CredentialConfiguration<K, L>)> {
-        self.ids_by_format_and_attestation_type
-            .get(&(format, Cow::Borrowed(attestation_type)))
+        self.ids_by_credential_kind
+            .get(credential_kind)
             .and_then(|id| self.configs_by_id.get_key_value(id))
     }
 
@@ -230,22 +241,27 @@ impl<K, L> CredentialConfigurations<K, L> {
         self.configs_by_id
             .iter()
             .map(|(config_id, config)| {
+                let attestation_type = config.credential_kind.attestation_type.clone();
+                let scope = config.scope.clone();
+
                 // TODO (PVW-5548): Add "attestation" proof type.
                 let proof_types = vec![ProofType::Jwt];
                 let display = config.metadata.normalized.display().to_vec();
                 let claims = config.metadata.normalized.claims().to_vec();
                 let type_metadata_uri = type_metadata_base_url.join_config_id(config_id);
 
-                let credential_configuration = match config.format {
+                let credential_configuration = match config.credential_kind.format {
                     Format::MsoMdoc => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
-                        config.attestation_type.clone(),
+                        attestation_type,
+                        scope,
                         proof_types,
                         display,
                         claims,
                         type_metadata_uri,
                     ),
                     Format::SdJwt => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
-                        config.attestation_type.clone(),
+                        attestation_type,
+                        scope,
                         proof_types,
                         display,
                         claims,
@@ -278,6 +294,7 @@ mod tests {
     use super::CredentialConfigurationParameters;
     use super::CredentialConfigurations;
     use super::CredentialConfigurationsError;
+    use crate::issuable_document::CredentialKind;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::ProofType;
@@ -295,8 +312,7 @@ mod tests {
                 let (_, metadata_documents) = TypeMetadataDocuments::degree_example();
 
                 let params = CredentialConfigurationParameters {
-                    format,
-                    attestation_type: "com.example.degree".to_string(),
+                    credential_kind: CredentialKind::new(format, "com.example.degree".to_string()),
                     key_pair,
                     status_list: MockStatusListService::new(),
                     valid_days: Days::new(1),
@@ -320,24 +336,36 @@ mod tests {
         let config = configs
             .get_by_configuration_id(&"degree_mso_mdoc".to_string().into())
             .expect("configuration should exist");
-        assert_eq!(config.format, Format::MsoMdoc);
+        assert_eq!(config.credential_kind.format, Format::MsoMdoc);
 
         let config = configs
             .get_by_configuration_id(&"degree_dc+sd-jwt".to_string().into())
             .expect("configuration should exist");
-        assert_eq!(config.format, Format::SdJwt);
+        assert_eq!(config.credential_kind.format, Format::SdJwt);
 
         let (id, config) = configs
-            .get_by_format_and_attestation_type(Format::MsoMdoc, "com.example.degree")
+            .get_by_scope(&"degree_mso_mdoc".parse().unwrap())
+            .expect("configuration should exist");
+        assert_eq!(*id, "degree_mso_mdoc".to_string().into());
+        assert_eq!(config.credential_kind.format, Format::MsoMdoc);
+
+        let (id, config) = configs
+            .get_by_scope(&"degree_dc+sd-jwt".parse().unwrap())
+            .expect("configuration should exist");
+        assert_eq!(*id, "degree_dc+sd-jwt".to_string().into());
+        assert_eq!(config.credential_kind.format, Format::SdJwt);
+
+        let (id, config) = configs
+            .get_by_credential_kind(&CredentialKind::new(Format::MsoMdoc, "com.example.degree".to_string()))
             .expect("configuration should exist");
         assert_eq!(id.as_ref(), "degree_mso_mdoc");
-        assert_eq!(config.format, Format::MsoMdoc);
+        assert_eq!(config.credential_kind.format, Format::MsoMdoc);
 
         let (id, config) = configs
-            .get_by_format_and_attestation_type(Format::SdJwt, "com.example.degree")
+            .get_by_credential_kind(&CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()))
             .expect("configuration should exist");
         assert_eq!(id.as_ref(), "degree_dc+sd-jwt");
-        assert_eq!(config.format, Format::SdJwt);
+        assert_eq!(config.credential_kind.format, Format::SdJwt);
 
         let type_metadata_base_url = "https://example.com".parse().unwrap();
         let metadata_configs = configs.to_credential_configurations_supported(&type_metadata_base_url);
@@ -345,7 +373,7 @@ mod tests {
 
         assert_matches!(
             &metadata_configs
-                .get(&"degree_mso_mdoc".to_string().into())
+                .get("degree_mso_mdoc")
                 .expect("metadata configuration should exist")
                 .format,
             CredentialFormat::MsoMdoc { doctype, .. } if doctype == "com.example.degree"
@@ -353,7 +381,7 @@ mod tests {
 
         assert_matches!(
             &metadata_configs
-                .get(&"degree_dc+sd-jwt".to_string().into())
+                .get("degree_dc+sd-jwt")
                 .expect("metadata configuration should exist")
                 .format,
             CredentialFormat::SdJwt { vct, .. } if vct == "com.example.degree"
@@ -413,7 +441,7 @@ mod tests {
     fn test_credential_configurations_try_new_error_type_metadata() {
         let mut params = credential_configuration_parameters();
         for params in params.values_mut() {
-            params.attestation_type = "foobar".to_string();
+            params.credential_kind.attestation_type = "foobar".to_string();
         }
 
         let error = CredentialConfigurations::try_new(params)
@@ -423,17 +451,31 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_configurations_try_new_error_duplicate_format_and_attestation_type() {
+    fn test_credential_configurations_try_new_error_scope() {
+        let mut params = credential_configuration_parameters();
+
+        // Change one of the Credential Configuration IDs to an empty string.
+        let config = params.remove("degree_mso_mdoc").unwrap();
+        params.insert("".to_string().into(), config);
+
+        let error = CredentialConfigurations::try_new(params)
+            .expect_err("creating credential configurations from parameters should fail");
+
+        assert_matches!(error, CredentialConfigurationsError::Scope(_));
+    }
+
+    #[test]
+    fn test_credential_configurations_try_new_error_duplicate_credential_kind() {
         let mut params = credential_configuration_parameters();
         for params in params.values_mut() {
-            params.format = Format::SdJwt;
+            params.credential_kind.format = Format::SdJwt;
         }
 
         let error = CredentialConfigurations::try_new(params)
             .expect_err("creating credential configurations from parameters should fail");
 
         let duplicate_configs = HashMap::from([(
-            (Format::SdJwt, "com.example.degree".to_string()),
+            CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),
             HashSet::from([
                 "degree_mso_mdoc".to_string().into(),
                 "degree_dc+sd-jwt".to_string().into(),

@@ -13,6 +13,7 @@ _IssuanceScreenArgument _$IssuanceScreenArgumentFromJson(
   isQrCode: json['isQrCode'] as bool,
   isRefreshFlow: json['isRefreshFlow'] as bool? ?? false,
   uri: json['uri'] as String?,
+  issuanceType: $enumDecode(_$IssuanceTypeEnumMap, json['issuanceType']),
 );
 
 Map<String, dynamic> _$IssuanceScreenArgumentToJson(
@@ -22,4 +23,11 @@ Map<String, dynamic> _$IssuanceScreenArgumentToJson(
   'isQrCode': instance.isQrCode,
   'isRefreshFlow': instance.isRefreshFlow,
   'uri': instance.uri,
+  'issuanceType': _$IssuanceTypeEnumMap[instance.issuanceType]!,
+};
+
+const _$IssuanceTypeEnumMap = {
+  IssuanceType.disclosureBasedIssuance: 'disclosureBasedIssuance',
+  IssuanceType.credentialOffer: 'credentialOffer',
+  IssuanceType.authorizationCallback: 'authorizationCallback',
 };

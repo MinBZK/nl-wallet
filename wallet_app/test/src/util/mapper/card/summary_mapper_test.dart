@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -23,6 +24,7 @@ void main() {
       final input = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         metadata: [const CardDisplayMetadata(language: Locale('en'), name: 'name')],
@@ -36,6 +38,7 @@ void main() {
       final input = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         metadata: const [
@@ -51,6 +54,7 @@ void main() {
       final input = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         metadata: const [
@@ -78,6 +82,7 @@ void main() {
       final input = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         metadata: const [
@@ -110,6 +115,7 @@ void main() {
       final input = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         metadata: const [
@@ -130,6 +136,7 @@ void main() {
       final input = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         metadata: const [
@@ -156,6 +163,7 @@ void main() {
       final input = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         metadata: const [

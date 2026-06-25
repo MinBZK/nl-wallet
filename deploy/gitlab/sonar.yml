@@ -46,8 +46,8 @@ sonar-flutter:
       artifacts: true
     - job: test-flutter-ui
       artifacts: true
-    - job: dependency-check
-      artifacts: true
+    # - job: dependency-check
+    #   artifacts: true
   script:
     - cd wallet_app
     - flutter pub get --enforce-lockfile

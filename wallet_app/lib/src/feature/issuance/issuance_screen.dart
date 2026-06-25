@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../environment.dart';
 import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/result/application_error.dart';
 import '../../domain/usecase/pin/disclose_for_issuance_usecase.dart';
@@ -25,6 +26,7 @@ import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/secondary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
@@ -101,6 +103,7 @@ class IssuanceScreen extends StatelessWidget {
     return BlocConsumer<IssuanceBloc, IssuanceState>(
       listener: (context, state) {
         context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
+        if (state is IssuanceAuthenticateWithIssuer) _launchCredentialOfferAuth(context, state.authUrl);
         if (state is IssuanceExternalScannerError) {
           Navigator.maybePop(context).then((popped) {
             if (context.mounted) ScanWithWalletDialog.show(context);
@@ -111,6 +114,7 @@ class IssuanceScreen extends StatelessWidget {
         final Widget result = switch (state) {
           IssuanceInitial() => _buildLoadingRequestPage(context),
           IssuanceLoadInProgress() => _buildLoadingCardsPage(context),
+          IssuanceAuthenticateWithIssuer(:final authUrl) => _buildAuthenticateWithIssuer(context, authUrl),
           IssuanceCheckOrganization() => _buildCheckOrganizationPage(context, state),
           IssuanceMissingAttributes() => _buildMissingAttributes(context, state),
           IssuanceReviewCards() => _buildReviewCardsPage(context, state),
@@ -357,6 +361,7 @@ class IssuanceScreen extends StatelessWidget {
     return switch (state) {
       IssuanceInitial() => context.l10n.issuanceLoadingRequestTitle,
       IssuanceLoadInProgress() => context.l10n.issuanceLoadingCardsTitle,
+      IssuanceAuthenticateWithIssuer() => context.l10n.issuanceAuthenticateExternallyTitle,
       IssuanceCheckOrganization() => OrganizationApprovePage.resolveTitle(
         context,
         ApprovalPurpose.issuance,
@@ -397,6 +402,32 @@ class IssuanceScreen extends StatelessWidget {
       default:
         Fimber.d('No ReportingOptions provided for $state');
         return <ReportingOption>[];
+    }
+  }
+
+  Widget _buildAuthenticateWithIssuer(BuildContext context, String authUrl) {
+    return TerminalPage(
+      title: context.l10n.issuanceAuthenticateExternallyTitle,
+      description: context.l10n.issuanceAuthenticateExternallyDescription,
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.issuanceAuthenticateExternallyCta),
+        icon: const Icon(Icons.lock_outline),
+        onPressed: () => context.bloc.add(const IssuanceSessionContinued('mock')),
+      ),
+      secondaryButton: SecondaryButton(
+        text: Text(context.l10n.generalStop),
+        icon: const Icon(Icons.close_outlined),
+        onPressed: () => context.bloc.add(const IssuanceStopRequested()),
+      ),
+      illustration: const PageIllustration(asset: WalletAssets.svg_url_check),
+    );
+  }
+
+  void _launchCredentialOfferAuth(BuildContext context, String authUrl) {
+    if (authUrl == 'mock://auth_url' && Environment.mockRepositories) {
+      // Await user tapping 'auth'
+    } else {
+      launchUrlStringCatching(authUrl);
     }
   }
 }

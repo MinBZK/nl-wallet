@@ -3,6 +3,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
@@ -437,6 +438,7 @@ void main() {
       final inputCard = WalletCard(
         attestationId: 'id',
         attestationType: 'com.example.docType',
+        format: AttestationFormat.sdJwt,
         issuer: WalletMockData.organization,
         status: WalletMockData.status,
         attributes: const [],

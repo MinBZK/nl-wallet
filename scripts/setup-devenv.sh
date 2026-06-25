@@ -413,13 +413,9 @@ export DEMO_ISSUER_KEY_UNIVERSITY_TSL
 DEMO_ISSUER_CRT_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_TSL
 
-generate_demo_issuer_key_pairs insurance
-DEMO_ISSUER_KEY_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_INSURANCE_READER
-DEMO_ISSUER_CRT_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_INSURANCE_READER
-DEMO_ISSUER_CLIENT_ID_INSURANCE_READER="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/insurance.reader.crt.der" | base64_url_encode)"
-export DEMO_ISSUER_CLIENT_ID_INSURANCE_READER
+# The insurance usecase is issued through the authorization-code flow (acf_demo_issuer), which performs
+# no disclosure, so it only needs issuer and TSL key pairs (no reader cert).
+generate_demo_issuer_issuance_key_pairs insurance
 DEMO_ISSUER_KEY_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_INSURANCE_ISSUER
 DEMO_ISSUER_CRT_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.crt.der" ${BASE64})
@@ -467,9 +463,10 @@ render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_ind
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${PID_ISSUER_DIR}"
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.json" "${PACF_ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.insurance.json" "${ACF_DEMO_ISSUER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
 export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
@@ -493,11 +490,16 @@ render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DI
 render_template "${DEVENV}/demo_issuer_pacf_issuance_server.toml.template" "${PACF_ISSUANCE_SERVER_DIR}/pacf_issuance_server.toml"
 render_template "${DEVENV}/demo_issuer_pacf_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pacf_issuance_server.toml"
 
+# And the acf_demo_issuer config
+render_template "${DEVENV}/acf_demo_issuer.toml.template" "${ACF_DEMO_ISSUER_DIR}/acf_demo_issuer.toml"
+render_template "${DEVENV}/acf_demo_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/acf_demo_issuer.toml"
+
 # Ensure the status_lists dirs exists
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

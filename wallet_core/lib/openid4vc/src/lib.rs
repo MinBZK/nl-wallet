@@ -5,6 +5,7 @@ pub mod credential_offer;
 pub mod issuer_identifier;
 pub mod metadata;
 pub mod par;
+pub mod scope;
 pub mod token;
 
 // Cryptographic tools.

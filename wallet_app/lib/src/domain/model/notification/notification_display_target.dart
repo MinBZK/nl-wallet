@@ -4,6 +4,8 @@ part 'notification_display_target.freezed.dart';
 
 @freezed
 sealed class NotificationDisplayTarget with _$NotificationDisplayTarget {
+  const NotificationDisplayTarget._();
+
   const factory NotificationDisplayTarget.os({
     required DateTime notifyAt,
   }) = Os;

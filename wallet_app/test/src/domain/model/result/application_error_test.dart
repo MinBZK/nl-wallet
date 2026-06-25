@@ -115,6 +115,22 @@ void main() {
       });
     });
 
+    group('ApplicationStateError', () {
+      test('props match', () {
+        expect(
+          ApplicationStateError(sourceError: sourceError),
+          ApplicationStateError(sourceError: sourceError),
+        );
+      });
+
+      test('props do not match', () {
+        expect(
+          ApplicationStateError(sourceError: sourceError),
+          isNot(ApplicationStateError(sourceError: sourceError2)),
+        );
+      });
+    });
+
     group('SessionError', () {
       test('props match', () {
         expect(

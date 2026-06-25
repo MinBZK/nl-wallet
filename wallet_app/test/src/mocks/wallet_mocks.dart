@@ -31,11 +31,13 @@ import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/local_notification_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
+import 'package:wallet/src/data/source/wallet_datasource.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/data/store/notification_settings_store.dart';
 import 'package:wallet/src/data/store/revocation_code_store.dart';
 import 'package:wallet/src/domain/app_event/app_event_listener.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
@@ -55,11 +57,13 @@ import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.d
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
+import 'package:wallet/src/domain/usecase/event/get_wallet_events_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
@@ -121,7 +125,7 @@ import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' hide PidAttestation;
 import 'package:workmanager/workmanager.dart';
 
 import 'wallet_mocks.mocks.dart';
@@ -162,6 +166,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<WalletCardRepository>()])
 @GenerateNiceMocks([MockSpec<WalletEventRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
+@GenerateNiceMocks([MockSpec<WalletDataSource>()])
 /// Mock services
 @GenerateNiceMocks([MockSpec<ActiveLocaleProvider>()])
 @GenerateNiceMocks([MockSpec<AnnouncementService>()])
@@ -197,6 +202,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
 @GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<ConfirmWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<ContinueIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePidIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CreatePinRecoveryRedirectUriUseCase>()])
@@ -221,6 +227,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<GetWalletCardUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletEventsForCardUseCase>()])
+@GenerateNiceMocks([MockSpec<GetWalletEventsForPidUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletEventsUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletStateUseCase>()])
 @GenerateNiceMocks([MockSpec<InitWalletTransferUseCase>()])
@@ -314,6 +321,7 @@ class Mocks {
     sl.registerFactory<WalletCardRepository>(MockWalletCardRepository.new);
     sl.registerFactory<WalletEventRepository>(MockWalletEventRepository.new);
     sl.registerFactory<WalletRepository>(MockWalletRepository.new);
+    sl.registerFactory<WalletDataSource>(MockWalletDataSource.new);
 
     // Services
     sl.registerFactory<ActiveLocaleProvider>(MockActiveLocaleProvider.new);
@@ -350,6 +358,7 @@ class Mocks {
     sl.registerFactory<CheckPinUseCase>(MockCheckPinUseCase.new);
     sl.registerFactory<CompletePinRecoveryUseCase>(MockCompletePinRecoveryUseCase.new);
     sl.registerFactory<ConfirmWalletTransferUseCase>(MockConfirmWalletTransferUseCase.new);
+    sl.registerFactory<ContinueIssuanceUseCase>(MockContinueIssuanceUseCase.new);
     sl.registerFactory<ContinuePidIssuanceUseCase>(MockContinuePidIssuanceUseCase.new);
     sl.registerFactory<ContinuePinRecoveryUseCase>(MockContinuePinRecoveryUseCase.new);
     sl.registerFactory<CreatePinRecoveryRedirectUriUseCase>(MockCreatePinRecoveryRedirectUriUseCase.new);
@@ -374,6 +383,7 @@ class Mocks {
     sl.registerFactory<GetWalletCardUseCase>(MockGetWalletCardUseCase.new);
     sl.registerFactory<GetWalletCardsUseCase>(MockGetWalletCardsUseCase.new);
     sl.registerFactory<GetWalletEventsForCardUseCase>(MockGetWalletEventsForCardUseCase.new);
+    sl.registerFactory<GetWalletEventsForPidUseCase>(MockGetWalletEventsForPidUseCase.new);
     sl.registerFactory<GetWalletEventsUseCase>(MockGetWalletEventsUseCase.new);
     sl.registerFactory<GetWalletStateUseCase>(MockGetWalletStateUseCase.new);
     sl.registerFactory<InitWalletTransferUseCase>(MockInitWalletTransferUseCase.new);
@@ -429,7 +439,7 @@ class Mocks {
           idleWarningTimeout: Duration(minutes: 1),
           backgroundLockTimeout: Duration(minutes: 1),
           staticAssetsBaseUrl: 'https://example.com/',
-          pidAttestationTypes: ['com.example.attestationType'],
+          pidAttestations: [PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
           maintenanceWindow: null,
           version: '1',
           environment: 'test',

@@ -32,6 +32,8 @@ class IssuanceManager {
     ),
   );
 
+  List<AttestationPresentation>? get sessionAttestations => _activeIssuanceResponse?.attestations;
+
   IssuanceManager(this._pinManager, this._wallet, this._eventLog);
 
   Future<StartDisclosureResult> startIssuance(String uri) async {
@@ -142,5 +144,20 @@ class IssuanceManager {
     _activeIssuanceResponse = null;
     _itemsHaveBeenDisclosed = false;
     return null;
+  }
+
+  Future<IssuanceStartResult> startIssuanceFromOffer(String offerUri) async {
+    final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(offerUri).fragment));
+    final offerId = jsonPayload['id'] as String;
+    switch (offerId) {
+      case 'PRE_AUTH':
+        _activeIssuanceResponse = kIssuanceResponses.firstWhere((it) => it.id == 'PRE-AUTH-FLOW');
+        return IssuanceStartResult.previews(_activeIssuanceResponse!.attestations);
+      case 'AUTH':
+        _activeIssuanceResponse = kIssuanceResponses.firstWhere((it) => it.id == 'AUTH-FLOW');
+        return const IssuanceStartResult.authorizationUrl('mock://auth_url');
+      default:
+        throw UnsupportedError('No offer for $offerUri');
+    }
   }
 }

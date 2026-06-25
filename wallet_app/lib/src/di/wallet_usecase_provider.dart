@@ -37,9 +37,11 @@ import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import '../domain/usecase/event/get_wallet_events_for_card_usecase.dart';
+import '../domain/usecase/event/get_wallet_events_pid_usecase.dart';
 import '../domain/usecase/event/get_wallet_events_usecase.dart';
 import '../domain/usecase/event/impl/get_most_recent_wallet_event_usecase_impl.dart';
 import '../domain/usecase/event/impl/get_wallet_events_for_card_usecase_impl.dart';
+import '../domain/usecase/event/impl/get_wallet_events_for_pid_usecase_impl.dart';
 import '../domain/usecase/event/impl/get_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/impl/observe_recent_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/observe_recent_wallet_events_usecase.dart';
@@ -47,6 +49,8 @@ import '../domain/usecase/help/get_help_categories_usecase.dart';
 import '../domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import '../domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
 import '../domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
+import '../domain/usecase/issuance/continue_issuance_usecase.dart';
+import '../domain/usecase/issuance/impl/continue_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/start_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../domain/usecase/maintenance/impl/observe_maintenance_state_usecase_impl.dart';
@@ -291,6 +295,9 @@ class WalletUseCaseProvider extends StatelessWidget {
     RepositoryProvider<ContinuePidIssuanceUseCase>(
       create: (context) => ContinuePidIssuanceUseCaseImpl(context.read()),
     ),
+    RepositoryProvider<ContinueIssuanceUseCase>(
+      create: (context) => ContinueIssuanceUseCaseImpl(context.read()),
+    ),
     RepositoryProvider<AcceptOfferedPidUseCase>(
       create: (context) => AcceptOfferedPidUseCaseImpl(context.read()),
     ),
@@ -344,6 +351,9 @@ class WalletUseCaseProvider extends StatelessWidget {
     ),
     RepositoryProvider<GetWalletEventsForCardUseCase>(
       create: (context) => GetWalletEventsForCardUseCaseImpl(context.read()),
+    ),
+    RepositoryProvider<GetWalletEventsForPidUseCase>(
+      create: (context) => GetWalletEventsForPidUseCaseImpl(context.read(), context.read(), context.read()),
     ),
   ];
 

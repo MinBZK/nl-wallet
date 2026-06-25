@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/feature/common/widget/flutter_app_configuration_provider.dart';
 
 void main() {
@@ -9,7 +10,7 @@ void main() {
     idleLockTimeout: Duration(seconds: 10),
     backgroundLockTimeout: Duration(seconds: 20),
     staticAssetsBaseUrl: 'https://example.com/',
-    pidAttestationTypes: ['com.example.attestationType'],
+    pidAttestations: [PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
     maintenanceWindow: null,
     version: '0',
     environment: 'test',
@@ -22,7 +23,7 @@ void main() {
         idleLockTimeout: Duration(seconds: 10),
         backgroundLockTimeout: Duration(seconds: 20),
         staticAssetsBaseUrl: 'https://example.com/',
-        pidAttestationTypes: ['com.example.attestationType'],
+        pidAttestations: [PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
         maintenanceWindow: null,
         version: '0',
         environment: 'test',
@@ -37,7 +38,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
-        pidAttestationTypes: ['com.example.attestationType'],
+        pidAttestations: [const PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
         maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
@@ -47,7 +48,7 @@ void main() {
         idleLockTimeout: const Duration(hours: 1337),
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
-        pidAttestationTypes: ['com.example.attestationType'],
+        pidAttestations: [const PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
         maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
@@ -57,7 +58,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: const Duration(hours: 1337),
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
-        pidAttestationTypes: ['com.example.attestationType'],
+        pidAttestations: [const PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
         maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
@@ -67,7 +68,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: 'https://other.example.com/',
-        pidAttestationTypes: ['com.example.attestationType'],
+        pidAttestations: [const PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
         maintenanceWindow: null,
         version: defaultMockConfig.version,
         environment: defaultMockConfig.environment,
@@ -77,7 +78,7 @@ void main() {
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
-        pidAttestationTypes: ['com.example.attestationType'],
+        pidAttestations: [const PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
         maintenanceWindow: null,
         version: '1337',
         environment: defaultMockConfig.environment,
@@ -116,7 +117,7 @@ void main() {
       idleLockTimeout: Duration(seconds: 8),
       backgroundLockTimeout: Duration(seconds: 5),
       staticAssetsBaseUrl: 'https://example.com/',
-      pidAttestationTypes: ['com.example.attestationType'],
+      pidAttestations: [PidAttestation(attestationType: 'com.example.attestationType', format: .sdJwt)],
       maintenanceWindow: null,
       version: '0',
       environment: 'test',

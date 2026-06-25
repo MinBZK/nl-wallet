@@ -9,6 +9,54 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
+name = "acf_demo_issuer"
+version = "0.6.0-dev"
+dependencies = [
+ "anyhow",
+ "askama",
+ "askama_web",
+ "attestation_data",
+ "attestation_types",
+ "axum",
+ "config",
+ "crypto",
+ "derive_more",
+ "health_checkers",
+ "hsm",
+ "http_utils",
+ "indexmap 2.12.1",
+ "issuer_common",
+ "itertools 0.14.0",
+ "openid4vc",
+ "openid4vc_server",
+ "p256",
+ "serde",
+ "serde_valid",
+ "server_utils",
+ "status_lists",
+ "thiserror 2.0.17",
+ "token_status_list",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "url",
+ "utils",
+ "utoipa-swagger-ui",
+ "web_utils",
+]
+
+[[package]]
+name = "acf_demo_issuer_migrations"
+version = "0.6.0-dev"
+dependencies = [
+ "async-trait",
+ "issuer_common_migrations",
+ "sea-orm-migration",
+ "tokio",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1905,6 +1953,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 name = "db_test"
 version = "0.6.0-dev"
 dependencies = [
+ "acf_demo_issuer_migrations",
  "async-dropper",
  "async-trait",
  "audit_log_migrations",
@@ -2013,7 +2062,6 @@ dependencies = [
  "serde",
  "serde_qs",
  "serde_valid",
- "serde_with",
  "server_utils",
  "strum 0.28.0",
  "tokio",
@@ -2653,9 +2701,9 @@ dependencies = [
 
 [[package]]
 name = "flutter_rust_bridge"
-version = "2.11.1"
+version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dde126295b2acc5f0a712e265e91b6fdc0ed38767496483e592ae7134db83725"
+checksum = "a0884853aae8a6517b5b58cf36f55da487f2fe110e1686938eb29b6640aae4a5"
 dependencies = [
  "allo-isolate",
  "anyhow",
@@ -2678,9 +2726,9 @@ dependencies = [
 
 [[package]]
 name = "flutter_rust_bridge_macros"
-version = "2.11.1"
+version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5f0420326b13675321b194928bb7830043b68cf8b810e1c651285c747abb080"
+checksum = "6b5ce32f35f710ced8c5aa557f023f1a624e737b5460cee2b70fcd3a8df09e1b"
 dependencies = [
  "hex",
  "md-5",
@@ -5588,9 +5636,11 @@ dependencies = [
  "hex",
  "hsm",
  "http_utils",
+ "httpmock",
  "indexmap 2.12.1",
  "issuer_common",
  "itertools 0.14.0",
+ "josekit",
  "jsonwebtoken",
  "jwe",
  "jwk-simple",
@@ -5601,6 +5651,7 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
  "serde_qs",
@@ -8337,6 +8388,7 @@ dependencies = [
 name = "tests_integration"
 version = "0.6.0-dev"
 dependencies = [
+ "acf_demo_issuer",
  "android_attest",
  "apple_app_attest",
  "attestation_data",

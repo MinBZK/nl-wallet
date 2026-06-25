@@ -18,6 +18,8 @@ then
         adb reverse tcp:${DEMO_INDEX_PORT} tcp:${DEMO_INDEX_PORT}
         adb reverse tcp:${DEMO_ISSUER_PORT} tcp:${DEMO_ISSUER_PORT}
         adb reverse tcp:${ISSUANCE_SERVER_PORT} tcp:${ISSUANCE_SERVER_PORT}
+        adb reverse tcp:${PACF_ISSUANCE_SERVER_PORT} tcp:${PACF_ISSUANCE_SERVER_PORT}
+        adb reverse tcp:${ACF_DEMO_ISSUER_PORT} tcp:${ACF_DEMO_ISSUER_PORT}
         adb reverse tcp:${DEMO_RP_PORT} tcp:${DEMO_RP_PORT}
         adb reverse tcp:${VERIFICATION_SERVER_PORT} tcp:${VERIFICATION_SERVER_PORT}
         adb reverse tcp:${RDO_MAX_PORT} tcp:${RDO_MAX_PORT}

@@ -50,11 +50,11 @@ enum StateBridgeStoreBackend<E> {
 }
 
 /// Stores the state-bridge entries that link a downstream wallet authorization request
-/// (kept in the entry) to the issuer-generated `issuer_state` sent to the upstream OIDC provider.
-/// The configured [`AuthorizationCodeFlow`](openid4vc::authorization_code_flow::AuthorizationCodeFlow)
-/// impl writes one entry at `/authorize` and consumes it from its upstream-callback handler.
-/// The store is generic over the entry type and serializes it to/from JSON internally; the entry's
-/// shape is private to the AF impl.
+/// (kept in the entry) to a flow-generated `bridge_key` used to correlate the two sides of
+/// the authorization flow. The configured
+/// [`AuthorizationCodeFlow`](openid4vc::authorization_code_flow::AuthorizationCodeFlow) impl writes one entry at
+/// `/authorize` and consumes it from its callback handler. The store is generic over the entry type and serializes it
+/// to/from JSON internally; the entry's shape is private to the AF impl.
 #[derive(Debug)]
 pub struct IssuerStateBridgeStore<E, T = TimeGenerator> {
     backend: StateBridgeStoreBackend<E>,
@@ -104,14 +104,14 @@ where
 {
     type Error = IssuerStateBridgeStoreError;
 
-    async fn store(&self, issuer_state: String, entry: E) -> Result<(), Self::Error> {
+    async fn store(&self, bridge_key: String, entry: E) -> Result<(), Self::Error> {
         match &self.backend {
             StateBridgeStoreBackend::Postgres(connection) => {
                 let expires_at = self.now() + STATE_BRIDGE_ENTRY_TTL;
 
                 state_bridge::ActiveModel {
                     id: NotSet,
-                    issuer_state: Set(issuer_state),
+                    bridge_key: Set(bridge_key),
                     entry: Set(serde_json::to_value(entry).map_err(IssuerStateBridgeStoreError::Serialize)?),
                     expires_at: Set(expires_at.into()),
                 }
@@ -122,18 +122,18 @@ where
                 Ok(())
             }
             StateBridgeStoreBackend::Memory(memory_store) => {
-                memory_store.store_inner(issuer_state, entry);
+                memory_store.store_inner(bridge_key, entry);
                 Ok(())
             }
         }
     }
 
-    async fn consume(&self, issuer_state: impl Into<String> + Send) -> Result<Option<E>, Self::Error> {
-        let issuer_state = issuer_state.into();
+    async fn consume(&self, bridge_key: impl Into<String> + Send) -> Result<Option<E>, Self::Error> {
+        let bridge_key = bridge_key.into();
         match &self.backend {
             StateBridgeStoreBackend::Postgres(connection) => {
                 let deleted = StateBridge::delete_many()
-                    .filter(state_bridge::Column::IssuerState.eq(issuer_state.as_str()))
+                    .filter(state_bridge::Column::BridgeKey.eq(bridge_key.as_str()))
                     .exec_with_returning(connection)
                     .await
                     .map_err(IssuerStateBridgeStoreError::DbConsume)?;
@@ -146,7 +146,7 @@ where
                     _ => Ok(None),
                 }
             }
-            StateBridgeStoreBackend::Memory(memory_store) => Ok(memory_store.consume_inner(&issuer_state)),
+            StateBridgeStoreBackend::Memory(memory_store) => Ok(memory_store.consume_inner(&bridge_key)),
         }
     }
 

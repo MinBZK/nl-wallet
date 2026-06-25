@@ -135,7 +135,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 }
 
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialRequestError::IssuanceError(IssuanceError::AttestationTypeNotConfigured { .. })
                 | CredentialRequestError::MissingCredentialConfiguration(_)
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MdocConversion(_)
@@ -195,14 +194,29 @@ pub enum TokenErrorCode {
 impl From<TokenRequestError> for TokenErrorCode {
     fn from(err: TokenRequestError) -> Self {
         match err {
-            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
-            | TokenRequestError::AttributesError(_)
-            | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
+            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
+
+            TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+
             TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+
             TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
-            TokenRequestError::SessionNotFound
-            | TokenRequestError::MissingCodeVerifier
-            | TokenRequestError::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
+
+            TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
+                TokenErrorCode::InvalidGrant
+            }
+
+            TokenRequestError::MissingClientId | TokenRequestError::UnknownClient(_) => TokenErrorCode::InvalidClient,
+
+            TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
+
+            TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
+
+            TokenRequestError::MissingRedirectUri | TokenRequestError::RedirectUriMismatch { .. } => {
+                TokenErrorCode::InvalidRequest
+            }
+
+            TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
         }
     }
 }
@@ -269,10 +283,9 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
                 AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => {
                     AuthorizeErrorCode::InvalidClient
                 }
-                AuthorizeError::UnknownRequestUri(_) => AuthorizeErrorCode::InvalidRequest,
-                AuthorizeError::InvalidAuthorizationRequest(e) => match e {
-                    InvalidAuthorizationRequest::UnsupportedCodeChallenge => AuthorizeErrorCode::InvalidRequest,
-                },
+                AuthorizeError::UnknownRequestUri(_)
+                | AuthorizeError::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge)
+                | AuthorizeError::NoValidScope(_) => AuthorizeErrorCode::InvalidRequest,
                 AuthorizeError::ParStore(_)
                 | AuthorizeError::AuthorizationCodeFlow(_)
                 | AuthorizeError::CompleteAuthorization(_) => AuthorizeErrorCode::ServerError,

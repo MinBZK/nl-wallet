@@ -36,6 +36,7 @@ import '../feature/demo/demo_screen.dart';
 import '../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
+import '../feature/error/invariant/invariant_error_screen.dart';
 import '../feature/forgot_pin/forgot_pin_screen.dart';
 import '../feature/help/argument/help_topic_screen_argument.dart';
 import '../feature/help/bloc/help_overview_bloc.dart';
@@ -128,6 +129,7 @@ class WalletRoutes {
     forgotPinRoute,
     updateInfoRoute,
     appBlockedRoute,
+    invariantErrorRoute,
   ];
 
   @visibleForTesting
@@ -154,6 +156,7 @@ class WalletRoutes {
   static const historyDetailRoute = '/history';
   static const introductionPrivacyRoute = '/introduction/privacy';
   static const introductionRoute = '/introduction';
+  static const invariantErrorRoute = '/invariant_error';
   static const issuanceRoute = '/issuance';
   static const loginDetailRoute = '/login_detail';
   static const menuRoute = '/menu';
@@ -234,6 +237,7 @@ class WalletRoutes {
     WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
     WalletRoutes.manageNotificationsRoute: (_) => _createManageNotificationsScreenBuilder,
     WalletRoutes.appBlockedRoute: _createAppBlockedScreenBuilder,
+    WalletRoutes.invariantErrorRoute: _createInvariantErrorScreenBuilder,
     WalletRoutes.qrPresentRoute: _createQrPresentScreenBuilder,
   };
 
@@ -357,7 +361,8 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
     final String attestationId = CardHistoryScreen.getArguments(settings);
     return BlocProvider<CardHistoryBloc>(
       create: (context) =>
-          CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(attestationId)),
+          CardHistoryBloc(context.read(), context.read(), context.read(), context.read())
+            ..add(CardHistoryLoadTriggered(attestationId)),
       child: const CardHistoryScreen(),
     );
   };
@@ -407,10 +412,20 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
     final IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
-        return IssuanceBloc(
-          context.read(),
-          context.read(),
-        )..add(IssuanceSessionStarted(argument.uri!, isQrCode: argument.isQrCode));
+        final event = switch (argument.issuanceType) {
+          IssuanceType.disclosureBasedIssuance => IssuanceSessionStarted(
+            argument.uri!,
+            isQrCode: argument.isQrCode,
+            type: argument.issuanceType,
+          ),
+          IssuanceType.credentialOffer => IssuanceSessionStarted(
+            argument.uri!,
+            isQrCode: argument.isQrCode,
+            type: argument.issuanceType,
+          ),
+          IssuanceType.authorizationCallback => IssuanceSessionContinued(argument.uri!),
+        };
+        return IssuanceBloc(context.read(), context.read(), context.read())..add(event);
       },
       child: const IssuanceScreen(),
     );
@@ -722,6 +737,13 @@ WidgetBuilder _createAppBlockedScreenBuilder(RouteSettings settings) {
       create: (BuildContext context) => AppBlockedBloc(context.read())..add(AppBlockedLoadTriggered(reason: reason)),
       child: const AppBlockedScreen(),
     );
+  };
+}
+
+WidgetBuilder _createInvariantErrorScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final code = InvariantErrorScreen.getArgument(settings)?.code;
+    return InvariantErrorScreen(code: code);
   };
 }
 
