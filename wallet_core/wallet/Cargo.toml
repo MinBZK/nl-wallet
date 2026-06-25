@@ -110,7 +110,7 @@ rand_core.workspace = true
 rstest.workspace = true
 serial_test.workspace = true
 ssri.workspace = true
-tokio = { workspace = true, features = ["macros", "test-util"] }
+tokio = { workspace = true, features = ["macros"] }
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
 attestation_types.path = "../lib/attestation_types"

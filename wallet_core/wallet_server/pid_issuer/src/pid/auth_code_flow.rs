@@ -31,10 +31,10 @@ use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::authorizing_issuer::WalletRedirect;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
-use openid4vc::scope::Scope;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
@@ -57,7 +57,7 @@ use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::pid::digid;
 use crate::pid::digid::DigidClient;
-use crate::pid::digid::DigidMetadataCache;
+use crate::pid::digid::DigidMetadataClient;
 use crate::pid::digid::HttpDigidClient;
 
 const ISSUER_STATE_LENGTH: usize = 32;
@@ -106,9 +106,9 @@ pub enum Error {
 
 /// One state-bridge entry, written at `/authorize` and consumed by the upstream callback handler.
 ///
-/// Linked to the upstream provider by the `issuer_state` random string we send as `state` in the
-/// upstream redirect, which the upstream then echoes back to our callback. Carries everything the
-/// callback needs to (a) complete the upstream `/token` + `/userinfo` exchange and (b) build the
+/// Linked to the upstream provider by a random `bridge_key` we send as `state` in the upstream
+/// redirect, which the upstream then echoes back to our callback. Carries everything the callback
+/// needs to (a) complete the upstream `/token` + `/userinfo` exchange and (b) build the
 /// wallet-facing redirect.
 #[derive(Serialize, Deserialize)]
 struct StateBridgeEntry {
@@ -129,8 +129,8 @@ struct DigidCallbackQuery {
 ///
 /// Owns:
 /// - upstream OIDC discovery cache + client (for the authorize-endpoint URL and the `/userinfo`-based BSN exchange);
-/// - the state-bridge store linking the issuer-generated `issuer_state` (sent to the upstream as `state`) to the
-///   wallet's original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
+/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`) to the wallet's
+///   original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
 /// - the BRP client (BSN → person attributes) and the recovery-code HMAC key;
 /// - the issuer's own callback URL, used both as the upstream `redirect_uri` and as the `redirect_uri` parameter of the
 ///   upstream `/token` exchange.
@@ -149,14 +149,14 @@ impl UpstreamOidcAuthorizationCodeFlow {
         brp_client: HttpBrpClient,
         bsn_privkey: &Key,
         client_id: impl Into<String>,
-        digid_metadata_cache: DigidMetadataCache,
+        digid_metadata_client: DigidMetadataClient,
         recovery_code_secret_key: SecretKeyVariant,
         store_connection: StoreConnection,
         callback_base_url: &BaseUrl,
     ) -> Result<Self, Error> {
         let client_id: String = client_id.into();
         let digid_client =
-            HttpDigidClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_cache).map_err(Error::Digid)?;
+            HttpDigidClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_client).map_err(Error::Digid)?;
 
         Ok(Self::new(
             brp_client,
@@ -302,17 +302,17 @@ where
              unsupported attestation types",
         );
 
-        // Generate the upstream PKCE pair and the random `issuer_state` we'll use as `state` in
+        // Generate the upstream PKCE pair and a random `bridge_key` we'll use as `state` in
         // the upstream redirect. The upstream provider will echo it back to our callback.
         let upstream_pkce = S256PkcePair::generate();
-        let issuer_state = random_string(ISSUER_STATE_LENGTH);
+        let upstream_state = random_string(ISSUER_STATE_LENGTH);
 
         let redirect_url = self
             .digid_client
             .authorization_request(
                 self.client_id.clone(),
                 self.callback_url.clone(),
-                issuer_state.clone(),
+                upstream_state.clone(),
                 &upstream_pkce,
             )
             .await
@@ -326,7 +326,7 @@ where
             formats,
         };
         self.state_bridge_store
-            .store(issuer_state, entry)
+            .store(upstream_state, entry)
             .await
             .map_err(Error::StateBridge)?;
 
@@ -360,7 +360,7 @@ where
     let entry: StateBridgeEntry = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Some(entry)) => entry,
         Ok(None) => {
-            warn!("digid callback: unknown or expired issuer_state");
+            warn!("digid callback: unknown or expired bridge key");
             return (StatusCode::BAD_REQUEST, "unknown or expired state").into_response();
         }
         Err(error) => {
@@ -370,21 +370,17 @@ where
     };
 
     let StateBridgeEntry {
-        context,
+        context: WalletAuthorizationContext {
+            state, request_values, ..
+        },
         upstream_code_verifier,
         formats,
     } = entry;
-    let WalletAuthorizationContext {
-        redirect_uri,
-        state,
-        scope,
-        code_challenge,
-    } = context;
+    let redirect_uri = request_values.redirect_uri.clone();
 
     let result = complete_digid_callback(
         &authorizing_issuer,
-        scope,
-        code_challenge,
+        request_values,
         upstream_code_verifier,
         formats,
         code,
@@ -402,8 +398,7 @@ where
 /// writes the `AuthCodeIssued` session, and returns the code.
 async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
-    request_scope: HashSet<Scope>,
-    code_challenge: String,
+    auth_request_values: AuthRequestValues,
     upstream_code_verifier: String,
     formats: VecNonEmpty<Format>,
     digid_code: AuthorizationCode,
@@ -419,7 +414,7 @@ where
         .await?;
 
     authorizing_issuer
-        .complete_authorization(issuable_documents, request_scope, code_challenge)
+        .complete_authorization(issuable_documents, auth_request_values)
         .await
         .map_err(Error::CompleteAuthorization)
 }
@@ -472,9 +467,11 @@ mod tests {
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
     use openid4vc::issuable_document::CredentialKind;
+    use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
+    use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::par::PAR_TTL;
     use openid4vc::pkce::PkcePair;
@@ -600,7 +597,7 @@ mod tests {
 
     fn wallet_request() -> VciAuthorizationRequest {
         VciAuthorizationRequest::for_auth_code(
-            CLIENT_ID.to_string(),
+            MOCK_WALLET_CLIENT_ID.to_string(),
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
@@ -612,14 +609,17 @@ mod tests {
     fn state_bridge_entry() -> StateBridgeEntry {
         StateBridgeEntry {
             context: WalletAuthorizationContext {
-                redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
                 state: Some(WALLET_STATE.to_string()),
-                // Match the credential config id / scope configured in the mock issuer.
-                scope: HashSet::from([
-                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
-                    Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
-                ]),
-                code_challenge: WALLET_CODE_CHALLENGE.to_string(),
+                issuer_state: None,
+                request_values: AuthRequestValues::new(
+                    MOCK_WALLET_CLIENT_ID.to_string(),
+                    WALLET_REDIRECT_URI.parse().unwrap(),
+                    WALLET_CODE_CHALLENGE.to_string(),
+                    HashSet::from([
+                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
+                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
+                    ]),
+                ),
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
             formats: vec_nonempty![Format::MsoMdoc, Format::SdJwt],
@@ -677,7 +677,7 @@ mod tests {
         );
 
         let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
-        let wallet_code_challenge = context.code_challenge.clone();
+        let wallet_code_challenge = context.request_values.code_challenge.clone();
 
         let outcome = flow
             .authorize(
@@ -696,23 +696,28 @@ mod tests {
         };
 
         // The flow asked the digid client for the upstream redirect, handing it the issuer's
-        // callback URL and a generated `issuer_state` as the upstream `state`; the mock client
-        // echoes both back in the redirect URL, and that same `issuer_state` keys the bridge entry.
+        // callback URL and a generated `bridge_key` as the upstream `state`; the mock client
+        // echoes both back in the redirect URL, and that same `bridge_key` keys the bridge entry.
         assert_eq!(redirect_url.path(), DIGID_CALLBACK_PATH);
         let query_params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-        let issuer_state = query_params
+        let upstream_state = query_params
             .get("state")
-            .expect("upstream redirect should carry the issuer_state as state");
+            .expect("upstream redirect should carry the bridge key as state");
 
         let entry: StateBridgeEntry = bridge
-            .consume(issuer_state.as_str())
+            .consume(upstream_state.as_str())
             .await
             .unwrap()
-            .expect("a bridge entry should be stored under the issuer_state");
+            .expect("a bridge entry should be stored under the bridge key");
 
-        assert_eq!(entry.context.redirect_uri.as_str(), WALLET_REDIRECT_URI);
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
-        assert_eq!(entry.context.code_challenge, wallet_code_challenge);
+        assert_eq!(entry.context.request_values.client_id, MOCK_WALLET_CLIENT_ID);
+        assert_eq!(entry.context.request_values.redirect_uri.as_str(), WALLET_REDIRECT_URI);
+        assert_eq!(entry.context.request_values.code_challenge, wallet_code_challenge);
+        assert_eq!(
+            entry.context.request_values.scope,
+            HashSet::from([WALLET_SCOPE.parse().unwrap()])
+        );
         assert!(!entry.upstream_code_verifier.is_empty());
         assert!(
             entry
@@ -772,13 +777,11 @@ mod tests {
             formats,
         } = state_bridge_entry();
 
-        let expected_scope = context.scope.clone();
-        let expected_code_challenge = context.code_challenge.clone();
+        let expected_auth_request_values = context.request_values.clone();
 
         let code = complete_digid_callback(
             &authorizing_issuer,
-            context.scope,
-            context.code_challenge,
+            context.request_values,
             upstream_code_verifier,
             formats,
             AuthorizationCode::from("upstream-code".to_string()),
@@ -798,10 +801,7 @@ mod tests {
         };
         assert_matches!(
             auth_code_issued.grant,
-            Grant::AuthorizationCode {
-                request_scope,
-                wallet_code_challenge
-            } if request_scope == expected_scope && wallet_code_challenge == expected_code_challenge
+            Grant::AuthorizationCode(auth_request_values) if auth_request_values == expected_auth_request_values
         );
         assert_eq!(auth_code_issued.credential_ids_and_documents.len().get(), 2);
         assert!(
@@ -829,8 +829,7 @@ mod tests {
 
         let error = complete_digid_callback(
             &authorizing_issuer,
-            context.scope,
-            context.code_challenge,
+            context.request_values,
             upstream_code_verifier,
             formats,
             AuthorizationCode::from("upstream-code".to_string()),

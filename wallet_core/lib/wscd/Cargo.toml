@@ -51,5 +51,6 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_types = { path = "../attestation_types", features = ["mock"] }
-crypto = { path = "../crypto", features = ["mock"] }
+crypto = { path = "../crypto", features = ["mock", "generate"] }
 jwt = { path = "../jwt", features = ["mock"] }
+utils = { path = "../utils", features = ["mock_time"] }

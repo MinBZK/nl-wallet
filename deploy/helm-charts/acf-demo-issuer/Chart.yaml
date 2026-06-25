@@ -1,0 +1,14 @@
+apiVersion: v2
+name: acf-demo-issuer
+description: A Helm chart for the NL Wallet ACF demo issuer
+
+type: application
+
+version: 0.1.0
+
+appVersion: ""
+
+dependencies:
+  - name: sp-common
+    repository: "file://../sp-common"
+    version: 1.x.x

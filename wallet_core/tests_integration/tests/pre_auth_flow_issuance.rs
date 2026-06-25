@@ -14,8 +14,9 @@ async fn test_pre_authorized_code_issuance() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
-    let (mut wallet, _, issuance_data) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
-    wallet = do_wallet_registration(wallet, pin).await;
+    let wallet = setup_wallet_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let pacf_issuance_server = setup_pre_auth_env(&db_setup).await;
+    let mut wallet = do_wallet_registration(wallet, pin).await;
 
     // Create a pre-authorized issuance session on the issuance server.
     let documents = vec_nonempty![IssuableDocument::new_mock_loyalty()];
@@ -23,7 +24,7 @@ async fn test_pre_authorized_code_issuance() {
     let offer_response = default_reqwest_client_builder()
         .build()
         .unwrap()
-        .post(issuance_data.pacf_issuance_server.internal.join("offer"))
+        .post(pacf_issuance_server.internal.join("offer"))
         .json(&OfferRequest { documents })
         .send()
         .await

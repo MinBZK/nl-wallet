@@ -47,7 +47,7 @@ pub enum UserInfoError {
     JweDecryption(#[source] JweStringDecryptionError),
 
     #[error("error verifying JWT: {0}")]
-    JwtError(#[from] jwt::error::JwtError),
+    JwtError(#[from] JwtError),
 
     #[error("config has no userinfo url")]
     NoUserinfoUrl,
@@ -170,15 +170,155 @@ mod tests {
     use std::assert_matches;
     use std::sync::LazyLock;
 
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
+    use http_utils::reqwest::HttpJsonClient;
+    use httpmock::Method::GET;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
+    use josekit::jwe::JweHeader;
+    use josekit::jwe::alg::rsaes::RsaesJweAlgorithm;
+    use josekit::jwk::Jwk as JosekitJwk;
+    use jwe::algorithm::EncryptionAlgorithm;
+    use jwe::algorithm::RsaAlgorithm;
+    use jwe::decryption::JweDecrypter;
+    use jwe::decryption::JweRsaPrivateKey;
     use jwt::Algorithm;
     use jwt::EncodingKey;
     use jwt::Header;
     use jwt::error::JwtError;
     use jwt::jwk::Jwk;
     use jwt::jwk::JwkSet;
+    use openid4vc::AuthBearerErrorCode;
+    use openid4vc::ErrorResponse;
+    use openid4vc::TokenErrorCode;
+    use openid4vc::issuer_identifier::IssuerIdentifier;
+    use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
+    use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
+    use openid4vc::token::AccessToken;
+    use openid4vc::token::AuthorizationCode;
+    use openid4vc::token::TokenRequest;
+    use openid4vc::token::TokenResponse;
     use serde_json::json;
+    use url::Url;
 
     use super::*;
+
+    fn create_token_request() -> TokenRequest {
+        TokenRequest::new_authorization_code(
+            AuthorizationCode::from("test-code".to_string()),
+            "test-client".to_string(),
+            "https://example.com/callback".parse::<Url>().unwrap(),
+            "test-verifier".to_string(),
+        )
+    }
+
+    fn create_metadata(server: &MockServer) -> OidcProviderMetadata {
+        let issuer_identifier: IssuerIdentifier = server.base_url().parse().unwrap();
+        OidcProviderMetadata::new(AuthorizationServerMetadata::new_mock(issuer_identifier))
+    }
+
+    #[tokio::test]
+    async fn request_userinfo_jwt_happy_path() {
+        let server = MockServer::start_async().await;
+        let metadata = create_metadata(&server);
+        let token_response = TokenResponse::new(AccessToken::from("test-access-token".to_string()));
+
+        let _token_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&token_response).unwrap());
+            })
+            .await;
+
+        let _userinfo_mock = server
+            .mock_async(|when, then| {
+                when.method(POST)
+                    .path("/userinfo")
+                    .header("Authorization", "Bearer test-access-token");
+                then.status(200).body("the.userinfo.jwt");
+            })
+            .await;
+
+        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
+
+        assert_eq!(result.unwrap(), "the.userinfo.jwt");
+    }
+
+    #[tokio::test]
+    async fn request_userinfo_jwt_token_endpoint_error() {
+        let server = MockServer::start_async().await;
+        let metadata = create_metadata(&server);
+        let error_response = ErrorResponse {
+            error: TokenErrorCode::InvalidRequest,
+            error_description: Some("invalid code".to_string()),
+            error_uri: None,
+        };
+
+        let _token_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token");
+                then.status(400)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&error_response).unwrap());
+            })
+            .await;
+
+        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
+
+        assert_matches!(result, Err(UserInfoError::RequestingAccessToken(_)));
+    }
+
+    #[tokio::test]
+    async fn request_userinfo_jwt_userinfo_endpoint_error() {
+        let server = MockServer::start_async().await;
+        let metadata = create_metadata(&server);
+        let token_response = TokenResponse::new(AccessToken::from("test-access-token".to_string()));
+        let error_response = ErrorResponse {
+            error: AuthBearerErrorCode::InvalidToken,
+            error_description: Some("token expired".to_string()),
+            error_uri: None,
+        };
+
+        let _token_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&token_response).unwrap());
+            })
+            .await;
+
+        let _userinfo_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/userinfo");
+                then.status(401)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&error_response).unwrap());
+            })
+            .await;
+
+        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
+
+        assert_matches!(result, Err(UserInfoError::RequestingUserInfo(_)));
+    }
+
+    #[tokio::test]
+    async fn request_userinfo_jwt_no_userinfo_url() {
+        let server = MockServer::start_async().await;
+        let issuer_identifier: IssuerIdentifier = server.base_url().parse().unwrap();
+        let token_endpoint = issuer_identifier.as_base_url().as_ref().join("/token").unwrap();
+        let metadata = OidcProviderMetadata::new(AuthorizationServerMetadata::new(issuer_identifier, token_endpoint));
+
+        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
+
+        assert_matches!(result, Err(UserInfoError::NoUserinfoUrl));
+    }
 
     // This value was captured from nl-rdo-max in a local dev environment.
     static JWS_PAYLOAD: LazyLock<serde_json::Value> = LazyLock::new(|| {
@@ -192,7 +332,7 @@ mod tests {
         })
     });
 
-    fn make_jws(include_kid: bool) -> (String, JwkSet) {
+    fn create_jws(include_kid: bool) -> (String, JwkSet) {
         let algoritm = Algorithm::HS256;
         let kid = "hmac_key_id";
 
@@ -263,7 +403,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_success() {
-        let (jws, jwks) = make_jws(true);
+        let (jws, jwks) = create_jws(true);
 
         let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
         let payload =
@@ -280,7 +420,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_missing_key_id() {
-        let (jws, jwks) = make_jws(false);
+        let (jws, jwks) = create_jws(false);
 
         let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
         let error =
@@ -294,7 +434,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_key_not_found() {
-        let (jws, mut jwks) = make_jws(true);
+        let (jws, mut jwks) = create_jws(true);
 
         jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
 
@@ -307,7 +447,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_wrong_aud() {
-        let (jws, jwks) = make_jws(true);
+        let (jws, jwks) = create_jws(true);
 
         let validation = userinfo_validation("wrong_aud", Algorithm::HS256);
         let error =
@@ -318,12 +458,78 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_wrong_alg() {
-        let (jws, jwks) = make_jws(true);
+        let (jws, jwks) = create_jws(true);
 
         let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS512);
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
         assert_matches!(error, UserInfoError::JwtError(_));
+    }
+
+    fn create_test_decrypter() -> JweDecrypter {
+        let jwk: jwk_simple::Key = serde_json::from_str(crate::pid::digid::TEST_RSA_JWK_JSON).unwrap();
+        let private_key = JweRsaPrivateKey::try_from_jwk(&jwk, RsaAlgorithm::RsaOaep).unwrap();
+        JweDecrypter::from_rsa_private_key(&private_key)
+    }
+
+    fn create_test_jwe(jws: &str) -> String {
+        let josekit_jwk = JosekitJwk::from_bytes(crate::pid::digid::TEST_RSA_JWK_JSON.as_bytes()).unwrap();
+        let encrypter = RsaesJweAlgorithm::RsaOaep.encrypter_from_jwk(&josekit_jwk).unwrap();
+
+        let mut header = JweHeader::new();
+        header.set_content_encryption(EncryptionAlgorithm::A128CbcHs256.to_string());
+        header.set_key_id(crate::pid::digid::TEST_RSA_KEY_ID);
+
+        josekit::jwe::serialize_compact(jws.as_bytes(), &header, &encrypter).unwrap()
+    }
+
+    #[tokio::test]
+    async fn request_userinfo_happy_path() {
+        let server = MockServer::start_async().await;
+        let metadata = create_metadata(&server);
+        let (jws, jwks) = create_jws(true);
+        let jwe = create_test_jwe(&jws);
+        let token_response = TokenResponse::new(AccessToken::from("test-access-token".to_string()));
+
+        let _token_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&token_response).unwrap());
+            })
+            .await;
+
+        let _userinfo_mock = server
+            .mock_async(|when, then| {
+                when.method(POST)
+                    .path("/userinfo")
+                    .header("Authorization", "Bearer test-access-token");
+                then.status(200).body(jwe);
+            })
+            .await;
+
+        let _jwks_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/jwks.json");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&jwks).unwrap());
+            })
+            .await;
+
+        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let result = request_userinfo::<UserInfo>(
+            &http_client,
+            &metadata,
+            create_token_request(),
+            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            &create_test_decrypter(),
+            (Algorithm::HS256, EncryptionAlgorithm::A128CbcHs256),
+        )
+        .await;
+
+        assert_eq!(result.unwrap().bsn, "999991772");
     }
 }

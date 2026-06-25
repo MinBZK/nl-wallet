@@ -8,8 +8,8 @@ import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/configuration/flutter_app_configuration.dart';
 import '../../../../util/mapper/mapper.dart';
+import '../../../../util/mixin/pid_filter_mixin.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
-import '../pid_filter_mixin.dart';
 import '../pid_repository.dart';
 
 class CorePidRepository extends PidRepository with PidFilterMixin {
@@ -24,11 +24,8 @@ class CorePidRepository extends PidRepository with PidFilterMixin {
   );
 
   @override
-  TypedWalletCore get walletCore => _walletCore;
-
-  @override
-  Mapper<core.FlutterConfiguration, FlutterAppConfiguration> get flutterAppConfigurationMapper =>
-      _flutterAppConfigurationMapper;
+  AppConfigurationProvider get configProvider =>
+      () async => _flutterAppConfigurationMapper.map(await _walletCore.observeConfig().first);
 
   @override
   Future<String> getPidIssuanceUrl() => _walletCore.createPidIssuanceRedirectUri();

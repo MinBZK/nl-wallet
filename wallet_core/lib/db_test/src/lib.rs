@@ -151,6 +151,7 @@ pub enum DbName {
     VerificationServer,
     WalletProvider,
     WalletProviderAuditLog,
+    AcfDemoIssuer,
 }
 
 impl DbName {
@@ -252,6 +253,10 @@ impl DbSetup {
 
     pub fn pacf_issuance_server_url(&self) -> Url {
         DbName::PacfIssuanceServer.url(self.connect_options.clone(), self.index)
+    }
+
+    pub fn acf_demo_issuer_url(&self) -> Url {
+        DbName::AcfDemoIssuer.url(self.connect_options.clone(), self.index)
     }
 
     pub fn server_utils_url(&self) -> Url {
@@ -519,6 +524,7 @@ async fn migrate(name: DbName, connect_options: PgConnectOptions) {
     match name {
         DbName::IssuanceServer => issuer_common_migrations::Migrator::up(&pool, None).await,
         DbName::PacfIssuanceServer => issuer_common_migrations::Migrator::up(&pool, None).await,
+        DbName::AcfDemoIssuer => acf_demo_issuer_migrations::Migrator::up(&pool, None).await,
         DbName::PidIssuer => pid_issuer_migrations::Migrator::up(&pool, None).await,
         DbName::VerificationServer => server_utils_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProvider => wallet_provider_migrations::Migrator::up(&pool, None).await,

@@ -155,7 +155,7 @@ test-sea-orm-generate-entity:
       variables:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_provider_audit_log,verification_server,issuance_server,pid_issuer"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_provider_audit_log,verification_server,issuance_server,pid_issuer,pacf_issuance_server,acf_demo_issuer"
   script:
     - ./scripts/migrate-db.sh fresh
     - ./scripts/generate-db-entity.sh

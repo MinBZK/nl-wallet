@@ -10,6 +10,10 @@ workspace = true
 [lib]
 doctest = false
 
+[features]
+# Allow credential-offer URLs to use "http://" (local development only).
+allow_insecure_url = ["openid4vc/allow_insecure_url"]
+
 [dependencies]
 anyhow.workspace = true
 askama.workspace = true

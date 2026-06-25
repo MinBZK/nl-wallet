@@ -27,7 +27,11 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use openid4vc::credential_offer::CredentialOffer;
+use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
@@ -46,6 +50,7 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 use web_utils::error::Result;
 use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;
@@ -62,6 +67,7 @@ struct ApplicationState {
     usecases: HashMap<String, Usecase>,
     issuance_server_url: BaseUrl,
     pacf_issuance_server_url: BaseUrl,
+    acf_demo_issuer_url: IssuerIdentifier,
     universal_link_base_url: BaseUrl,
     help_base_url: BaseUrl,
 }
@@ -88,6 +94,7 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         usecases: settings.usecases,
         issuance_server_url: settings.issuance_server_url,
         pacf_issuance_server_url: settings.pacf_issuance_server_url,
+        acf_demo_issuer_url: settings.acf_demo_issuer_url,
         universal_link_base_url: settings.universal_link_base_url,
         help_base_url: settings.help_base_url,
     });
@@ -229,7 +236,57 @@ async fn usecase(
                 state.help_base_url.clone().into_inner(),
             )
         }
+        Usecase::AuthorizationCode {
+            credential_configuration_ids,
+            issuer_state,
+        } => authorization_code_usecase(
+            &state.acf_demo_issuer_url,
+            &usecase_id,
+            credential_configuration_ids,
+            issuer_state.as_deref(),
+            language,
+            state.help_base_url.clone().into_inner(),
+        ),
     })
+}
+
+/// Builds a static authorization-code credential offer for the acf_demo_issuer and renders it as a QR.
+///
+/// Unlike [`pre_authorized_usecase`], this makes no request to any issuer: the auth-code offer carries
+/// no secret and no per-session code, so it can be constructed locally from configuration and the same
+/// QR serves every wallet (each binds to its own session via PKCE during `/authorize`).
+fn authorization_code_usecase(
+    acf_demo_issuer_url: &IssuerIdentifier,
+    usecase_id: &str,
+    credential_configuration_ids: &VecNonEmptyUnique<CredentialConfigurationId>,
+    issuer_state: Option<&str>,
+    selected_lang: Language,
+    help_base_url: Url,
+) -> Response {
+    // The issuer identifies the usecase by `issuer_state`; default it to this usecase's id.
+    let issuer_state = issuer_state.unwrap_or(usecase_id).to_string();
+
+    let offer = CredentialOffer::new_authorization(
+        acf_demo_issuer_url.clone(),
+        credential_configuration_ids.clone(),
+        Some(issuer_state),
+    );
+    let offer_url = CredentialOfferContainer::new_offer(offer).to_credential_offer_url();
+
+    UsecaseTemplate {
+        usecase: usecase_id,
+        same_device_ul: offer_url.clone(),
+        cross_device_ul: offer_url,
+        help_base_url,
+        wallet_web_sha256: &WALLET_WEB_JS_SHA256,
+        base: BaseTemplate {
+            selected_lang,
+            trans: &TRANSLATIONS[selected_lang],
+            available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
+        },
+    }
+    .into_response()
 }
 
 fn disclosure_based_usecase(

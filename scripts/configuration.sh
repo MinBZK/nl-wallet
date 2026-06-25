@@ -10,6 +10,7 @@ STATUS_LISTS_DIR="${WALLET_CORE_DIR}/lib/status_lists"
 PID_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/pid_issuer"
 ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/issuance_server"
 PACF_ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/pacf_issuance_server"
+ACF_DEMO_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/acf_demo_issuer"
 VERIFICATION_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/verification_server"
 WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 DEMO_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/demo/demo_relying_party"
@@ -67,6 +68,11 @@ export BRP_SERVER_PORT=3013
 export GBA_HC_CONV_PORT=3014
 export GBA_HC_MOCK_PORT=5010
 
+export REVOCATION_PORTAL_PORT=3020
+
+export ACF_DEMO_ISSUER_PORT=3030
+export ACF_DEMO_ISSUER_IS_PORT=3031
+
 # In rootless Docker, `host-gateway` resolves to the docker0 bridge IP inside rootlesskit's
 # isolated network namespace and cannot reach services on the real host. Use the host's actual
 # IP instead, derived from the kernel's preferred source address for outbound traffic.
@@ -75,8 +81,6 @@ if command -v docker > /dev/null && command -v ip > /dev/null && docker info 2>/
     DOCKER_HOST_GATEWAY=$(ip -j -4 route get 1.1.1.1 | jq -r '.[0].prefsrc')
     export DOCKER_HOST_GATEWAY
 fi
-
-export REVOCATION_PORTAL_PORT=3020
 
 export RDO_MAX_PORT=8006
 

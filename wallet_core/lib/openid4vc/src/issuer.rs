@@ -19,6 +19,7 @@ use chrono::Utc;
 use crypto::EcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
+use derive_more::Constructor;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
@@ -41,6 +42,7 @@ use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
 use tracing::warn;
+use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -141,6 +143,30 @@ pub enum TokenRequestError {
     #[error("issuance error: {0}")]
     IssuanceError(#[from] IssuanceError),
 
+    #[error("session not found for the supplied code")]
+    SessionNotFound,
+
+    #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
+    UnexpectedGrantType { expected: String, actual: String },
+
+    #[error("missing code_verifier")]
+    MissingCodeVerifier,
+
+    #[error("PKCE verification failed")]
+    PkceVerificationFailed,
+
+    #[error("received TokenRequest without \"client_id\"")]
+    MissingClientId,
+
+    #[error("unknown \"client_id\" in Token Request: {0}")]
+    UnknownClient(String),
+
+    #[error(
+        "\"client_id\" in Token Request does not match the one provided in Authorization Request: expected \
+         {expected}, got {actual}"
+    )]
+    ClientIdMismatch { expected: String, actual: String },
+
     #[error(
         "scope received in Token Request does not match scope requested in Authorization Request: \
          expected {}, received: {}",
@@ -152,17 +178,14 @@ pub enum TokenRequestError {
         actual: HashSet<Scope>,
     },
 
-    #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
-    UnexpectedGrantType { expected: String, actual: String },
+    #[error("missing redirect_uri in Authorization Code flow")]
+    MissingRedirectUri,
 
-    #[error("session not found for the supplied code")]
-    SessionNotFound,
-
-    #[error("missing code_verifier")]
-    MissingCodeVerifier,
-
-    #[error("PKCE verification failed")]
-    PkceVerificationFailed,
+    #[error(
+        "redirect_uri received in Token Request does not match the one in the Authorization Request: expected \
+         {expected}, received: {actual}"
+    )]
+    RedirectUriMismatch { expected: Box<Url>, actual: Box<Url> },
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
@@ -229,7 +252,7 @@ pub enum CredentialRequestError {
     SdJwtConversion(#[from] CredentialPayloadIntoSignedSdJwtError),
 
     #[error("error verifying WIA: {0}")]
-    Wia(#[from] WiaError),
+    Wia(#[source] WiaError),
 
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -268,19 +291,26 @@ pub struct AuthCodeIssued {
     pub credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, strum::Display)]
+/// Values present in the (pushed) Authorization Request that initiated the Authorization Code Flow.
+#[derive(Debug, Clone, PartialEq, Eq, Constructor, Serialize, Deserialize)]
+pub struct AuthRequestValues {
+    pub client_id: String,
+    pub redirect_uri: Url,
+    pub code_challenge: String,
+    // Note that the "scope" value has already been used to select issuable credentials and is at this point only
+    // present in the state in order to validate any "scope" that is received in the Token Request.
+    pub scope: HashSet<Scope>,
+}
+
+#[derive(Debug, Clone, strum::Display, Serialize, Deserialize)]
 pub enum Grant {
     PreAuthorizedCode,
-    AuthorizationCode {
-        request_scope: HashSet<Scope>,
-        wallet_code_challenge: String,
-    },
+    AuthorizationCode(AuthRequestValues),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessTokenIssued {
     pub access_token: AccessToken,
-    pub accepted_wallet_client_ids: Vec<String>,
     pub prepared_credentials: VecNonEmpty<PreparedCredential>,
     pub dpop_public_key: VerifyingKey,
     pub dpop_nonce: String,
@@ -372,7 +402,7 @@ pub struct IssuerData<K, L> {
     wia_config: Option<WiaConfig>,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
-    accepted_wallet_client_ids: Vec<String>,
+    accepted_wallet_client_ids: HashSet<String>,
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
@@ -381,6 +411,11 @@ pub struct IssuerData<K, L> {
     batch_size: NonZeroU8,
 
     metadata: IssuerMetadata,
+}
+
+pub struct WiaConfig {
+    /// Public key of the WIA issuer.
+    pub wia_trust_anchors: TrustAnchors,
 }
 
 impl<K, L> IssuerData<K, L> {
@@ -409,6 +444,47 @@ impl<K, L> IssuerData<K, L> {
             credential.format,
             &credential.credential_payload.attestation_type,
         )
+    }
+
+    fn accepted_wallet_client_ids_vec(&self) -> Vec<&String> {
+        self.accepted_wallet_client_ids.iter().collect()
+    }
+
+    fn verify_wia(&self, attestations: Option<&WiaDisclosure>) -> Result<Option<Nonce>, CredentialRequestError> {
+        let wia_nonce = self
+            .wia_config
+            .as_ref()
+            .map(|wia_config| {
+                wia_config.verify_wia(
+                    attestations,
+                    &self.metadata.credential_issuer,
+                    &self.accepted_wallet_client_ids_vec(),
+                )
+            })
+            .transpose()?;
+
+        Ok(wia_nonce)
+    }
+}
+
+impl WiaConfig {
+    fn verify_wia(
+        &self,
+        attestations: Option<&WiaDisclosure>,
+        issuer_identifier: &IssuerIdentifier,
+        accepted_wallet_client_ids: &[impl ToString],
+    ) -> Result<Nonce, CredentialRequestError> {
+        let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
+
+        let (_wia_pubkey, wia_nonce) = wia_disclosure
+            .verify(
+                &self.wia_trust_anchors,
+                issuer_identifier.as_ref(),
+                accepted_wallet_client_ids,
+            )
+            .map_err(CredentialRequestError::Wia)?;
+
+        Ok(wia_nonce)
     }
 }
 
@@ -463,11 +539,6 @@ impl PreparedCredential {
     }
 }
 
-pub struct WiaConfig {
-    /// Public key of the WIA issuer.
-    pub wia_trust_anchors: TrustAnchors,
-}
-
 impl<K, L, S, N> Drop for Issuer<K, L, S, N> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
@@ -491,8 +562,8 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
             .map(|config| &config.status_list)
     }
 
-    pub fn accepted_wallet_client_ids(&self) -> impl Iterator<Item = &str> {
-        self.issuer_data.accepted_wallet_client_ids.iter().map(String::as_str)
+    pub fn accepted_wallet_client_ids(&self) -> &HashSet<String> {
+        &self.issuer_data.accepted_wallet_client_ids
     }
 
     pub fn issuer_identifier(&self) -> &IssuerIdentifier {
@@ -521,7 +592,7 @@ where
     pub fn try_new(
         issuer_identifier: IssuerIdentifier,
         batch_size: NonZeroU8,
-        wallet_client_ids: Vec<String>,
+        wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
         wia_config: Option<WiaConfig>,
         sessions: Arc<S>,
@@ -836,13 +907,7 @@ where
 
         let result = Session::<AuthCodeIssued>::try_from(session)
             .map_err(TokenRequestError::IssuanceError)?
-            .process_token_request(
-                &token_request,
-                &self.issuer_data.accepted_wallet_client_ids,
-                dpop,
-                &self.issuer_data.server_url,
-                &self.issuer_data,
-            );
+            .process_token_request(&token_request, dpop, &self.issuer_data.server_url, &self.issuer_data);
 
         let (response, next) = match result {
             Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
@@ -999,22 +1064,7 @@ impl Grant {
     fn verify_grant_type(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
         match (self, &token_request.grant_type) {
             (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. }) => Ok(()),
-            (Grant::AuthorizationCode { request_scope, .. }, TokenRequestGrantType::AuthorizationCode { .. }) => {
-                // The client has the option of further restricting the requested scope as included in the Authorization
-                // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
-                // we check that the scope in the Token Request is exactly the same as what was included in the
-                // Authorization Request.
-                if let Some(scope) = token_request.scope.as_ref()
-                    && scope != request_scope
-                {
-                    return Err(TokenRequestError::ScopeMismatch {
-                        expected: request_scope.clone(),
-                        actual: scope.clone(),
-                    });
-                }
-
-                Ok(())
-            }
+            (Grant::AuthorizationCode(_), TokenRequestGrantType::AuthorizationCode { .. }) => Ok(()),
             _ => Err(TokenRequestError::UnexpectedGrantType {
                 expected: self.to_string(),
                 actual: token_request.grant_type.to_string(),
@@ -1026,19 +1076,105 @@ impl Grant {
     /// passes unconditionally; `AuthorizationCode` requires a `code_verifier` whose S256 challenge
     /// matches the one captured at `/authorize`.
     fn verify_pkce(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
-        let Grant::AuthorizationCode {
-            wallet_code_challenge, ..
-        } = self
-        else {
+        let Grant::AuthorizationCode(AuthRequestValues { code_challenge, .. }) = self else {
             // Pre-authorized-code grant: no PKCE to verify.
             return Ok(());
         };
 
         match token_request.code_verifier.as_deref() {
             None => Err(TokenRequestError::MissingCodeVerifier),
-            Some(verifier) if S256PkcePair::challenge_for(verifier) == *wallet_code_challenge => Ok(()),
+            Some(verifier) if S256PkcePair::challenge_for(verifier) == *code_challenge => Ok(()),
             Some(_) => Err(TokenRequestError::PkceVerificationFailed),
         }
+    }
+
+    /// Verify that the [`TokenRequest`] contains a `client_id` and:
+    ///
+    /// - In the Pre-Authorized flow, check that `client_id` is one of the allowed IDs.
+    /// - In the Authorization Code flow, check that the `client_id` is exactly the same as the one provided in the
+    ///   Authorization Request.
+    fn verify_client_id(
+        &self,
+        token_request: &TokenRequest,
+        accepted_wallet_client_ids: &HashSet<String>,
+    ) -> Result<(), TokenRequestError> {
+        // Although according to RFC 6749 the `client_id` in a Token Request is optional, HAIP states as follows:
+        //
+        // "Wallets MUST use, and Issuers MUST require, an OAuth2 Client authentication mechanism at OAuth2 Endpoints
+        // that support client authentication (such as the PAR and Token Endpoints)."
+        //
+        // Source: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.4.1>
+        let client_id = token_request
+            .client_id
+            .as_ref()
+            .ok_or(TokenRequestError::MissingClientId)?;
+
+        match self {
+            Grant::PreAuthorizedCode => {
+                if !accepted_wallet_client_ids.contains(client_id) {
+                    return Err(TokenRequestError::UnknownClient(client_id.clone()));
+                }
+            }
+            Grant::AuthorizationCode(AuthRequestValues {
+                client_id: auth_client_id,
+                ..
+            }) => {
+                if client_id != auth_client_id {
+                    return Err(TokenRequestError::ClientIdMismatch {
+                        expected: auth_client_id.clone(),
+                        actual: client_id.clone(),
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Verify the `scope` of the [`TokenRequest`] when in the Authorization Code flow, if it is present.
+    fn verify_scope(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+        if let Grant::AuthorizationCode(AuthRequestValues {
+            scope: request_scope, ..
+        }) = self
+        {
+            // The client has the option of further restricting the requested scope as included in the Authorization
+            // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
+            // we check that the scope in the Token Request is exactly the same as what was included in the
+            // Authorization Request.
+            if let Some(scope) = token_request.scope.as_ref()
+                && scope != request_scope
+            {
+                return Err(TokenRequestError::ScopeMismatch {
+                    expected: request_scope.clone(),
+                    actual: scope.clone(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Verify the `redirect_uri` of the [`TokenRequest`] when in the Authorization Code flow.
+    fn verify_redirect_uri(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+        if let Grant::AuthorizationCode(AuthRequestValues {
+            redirect_uri: request_redirect_uri,
+            ..
+        }) = self
+        {
+            let redirect_uri = token_request
+                .redirect_uri
+                .as_ref()
+                .ok_or(TokenRequestError::MissingRedirectUri)?;
+
+            if redirect_uri != request_redirect_uri {
+                return Err(TokenRequestError::RedirectUriMismatch {
+                    expected: Box::new(request_redirect_uri.clone()),
+                    actual: Box::new(redirect_uri.clone()),
+                });
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -1046,14 +1182,13 @@ impl Session<AuthCodeIssued> {
     fn process_token_request<K, L>(
         self,
         token_request: &TokenRequest,
-        accepted_wallet_client_ids: &[String],
         dpop: Dpop,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
     ) -> ProcessTokenRequest {
         let result = self.validate_and_build_token_response(token_request, dpop, server_url, issuer_data);
 
-        self.finalize_token_response(accepted_wallet_client_ids, result)
+        self.finalize_token_response(result)
     }
 
     fn validate_and_build_token_response<K, L>(
@@ -1067,6 +1202,11 @@ impl Session<AuthCodeIssued> {
 
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
+        session_data
+            .grant
+            .verify_client_id(token_request, &issuer_data.accepted_wallet_client_ids)?;
+        session_data.grant.verify_scope(token_request)?;
+        session_data.grant.verify_redirect_uri(token_request)?;
 
         build_token_response(
             token_request.code(),
@@ -1082,14 +1222,12 @@ impl Session<AuthCodeIssued> {
     /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
     fn finalize_token_response(
         self,
-        accepted_wallet_client_ids: &[String],
         result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
             Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(AccessTokenIssued {
                     access_token: token_response.access_token.clone(),
-                    accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
                     prepared_credentials,
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
@@ -1217,30 +1355,6 @@ impl Session<AccessTokenIssued> {
         Ok(())
     }
 
-    fn verify_wia<K, L>(
-        &self,
-        attestations: Option<&WiaDisclosure>,
-        issuer_data: &IssuerData<K, L>,
-    ) -> Result<Option<Nonce>, CredentialRequestError> {
-        let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
-
-        issuer_data
-            .wia_config
-            .as_ref()
-            .map(|wia_config| {
-                let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
-
-                let (_, wia_nonce) = wia_disclosure.verify(
-                    &wia_config.wia_trust_anchors,
-                    issuer_identifier,
-                    &self.state.data.accepted_wallet_client_ids,
-                )?;
-
-                Ok::<_, CredentialRequestError>(wia_nonce)
-            })
-            .transpose()
-    }
-
     async fn process_credential_inner<K, L, N>(
         &self,
         credential_request: CredentialRequest,
@@ -1279,11 +1393,11 @@ impl Session<AccessTokenIssued> {
         }?;
 
         let (holder_pubkey, request_nonce) = credential_request.verify(
-            &issuer_data.accepted_wallet_client_ids,
+            &issuer_data.accepted_wallet_client_ids_vec(),
             &issuer_data.metadata.credential_issuer,
         )?;
 
-        let wia_nonce = self.verify_wia(credential_request.attestations.as_ref(), issuer_data)?;
+        let wia_nonce = issuer_data.verify_wia(credential_request.attestations.as_ref())?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
@@ -1396,7 +1510,7 @@ impl Session<AccessTokenIssued> {
                         }
 
                         let (key, nonce) = cred_req.verify(
-                            &issuer_data.accepted_wallet_client_ids,
+                            &issuer_data.accepted_wallet_client_ids_vec(),
                             &issuer_data.metadata.credential_issuer,
                         )?;
 
@@ -1425,7 +1539,7 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
         }
 
-        let wia_nonce = self.verify_wia(credential_requests.attestations.as_ref(), issuer_data)?;
+        let wia_nonce = issuer_data.verify_wia(credential_requests.attestations.as_ref())?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store

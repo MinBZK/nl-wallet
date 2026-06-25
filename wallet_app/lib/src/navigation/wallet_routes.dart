@@ -361,7 +361,8 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
     final String attestationId = CardHistoryScreen.getArguments(settings);
     return BlocProvider<CardHistoryBloc>(
       create: (context) =>
-          CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(attestationId)),
+          CardHistoryBloc(context.read(), context.read(), context.read(), context.read())
+            ..add(CardHistoryLoadTriggered(attestationId)),
       child: const CardHistoryScreen(),
     );
   };

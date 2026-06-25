@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::num::NonZeroU8;
 use std::path::PathBuf;
@@ -6,7 +7,6 @@ use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -68,12 +68,9 @@ pub struct AuthorizingIssuerSettings {
     /// Request. Validated by [`AuthorizingIssuer`] at `/par`.
     pub wallet_redirect_uris: VecNonEmpty<Url>,
 
-    /// Trust anchors for verifying the wallet attestation (Wallet Instance Attestation).
-    #[debug(skip)]
-    pub wia_trust_anchors: TrustAnchors,
-
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+    // TODO (PVW-5550): add mandatory wia_trust_anchors config
 }
 
 impl AuthorizingIssuerSettings {
@@ -106,14 +103,11 @@ impl AuthorizingIssuerSettings {
     {
         let Self {
             wallet_redirect_uris,
-            wia_trust_anchors,
             issuer_settings,
         } = self;
 
-        let wia_config = WiaConfig { wia_trust_anchors };
-
         let (issuer, database_checkers, store_connection, server_settings) =
-            issuer_settings.into_issuer(hsm, Some(wia_config)).await?;
+            issuer_settings.into_issuer(hsm, None).await?;
 
         let par_store = IssuerParStore::new(store_connection.clone());
         let flow =
@@ -143,7 +137,7 @@ pub struct IssuerSettings {
     /// implementation).
     /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
     /// JWTs.
-    pub wallet_client_ids: Vec<String>,
+    pub wallet_client_ids: HashSet<String>,
 
     /// The maximum amount of copies of a credential that the holder can request.
     pub batch_size: NonZeroU8,
@@ -624,6 +618,7 @@ impl StatusListAttestationSettings {
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::num::NonZeroU8;
     use std::num::NonZeroU16;
 
@@ -695,7 +690,7 @@ mod tests {
                 let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
                 (vct, (metadata, metadata_bytes))
             }])),
-            wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
             server_settings: Settings {
                 wallet_server: Server {
