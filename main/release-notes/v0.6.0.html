@@ -293,6 +293,9 @@ listed in <code class="docutils literal notranslate"><span class="pre">schema.re
 <li><p>The <code class="docutils literal notranslate"><span class="pre">schema</span></code> is now dropped from the metadata.</p></li>
 </ul>
 </li>
+<li><p>A new service <code class="docutils literal notranslate"><span class="pre">acf_demo_issuer</span></code> has been added. It is a standalone issuer
+server that issues credentials using the Authorization Code Flow, and requires
+its own configuration file and database.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -329,6 +332,9 @@ invariant/unexpected fatal error.</p></li>
 PidAttestations from FlutterConfiguration. This results in no longer showing
 duplicate PID cards in the UI.</p></li>
 <li><p>Add support for credential offer based issuance flow in wallet_app.</p></li>
+<li><p>There is now support for Generic Issuance using the Authorization Code Flow.
+This is demonstrated by the new service <code class="docutils literal notranslate"><span class="pre">acf_demo_issuer</span></code>, which can issue an
+insurance attestation including a user consent page.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
@@ -349,10 +355,10 @@ Pre-authorized Code flow.</p></li>
 (PAR) for the PID issuance flow.</p></li>
 <li><p>The wallet supports retrieving a Credential Offer from a URI that is
 passed using the <code class="docutils literal notranslate"><span class="pre">credential_offer_uri</span></code> query parameter.</p></li>
-<li><p>The wallet includes the correct <code class="docutils literal notranslate"><span class="pre">scope</span></code> value in the Authorization
-Request it sends in the Authorization Code flow, as retrieved from the
-Issuer Metadata. The Issuer issues credentials based on these particular
-<code class="docutils literal notranslate"><span class="pre">scope</span></code> values.</p></li>
+<li><p>The wallet includes the correct <code class="docutils literal notranslate"><span class="pre">scope</span></code> value in the Authorization Request
+it sends in the Authorization Code flow, as retrieved from the Issuer
+Metadata. The Issuer issues credentials based on these particular <code class="docutils literal notranslate"><span class="pre">scope</span></code>
+values.</p></li>
 </ul>
 </li>
 <li><p>The well-known path is now derived according to spec for Credential Issuer
