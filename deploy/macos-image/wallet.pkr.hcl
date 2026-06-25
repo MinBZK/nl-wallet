@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.3.8"
+  default = "tahoe-wallet:0.3.9"
 }
 
 source "tart-cli" "tart" {
