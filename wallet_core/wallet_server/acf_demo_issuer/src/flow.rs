@@ -20,9 +20,9 @@ use axum::extract::Query;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
 use axum::http::StatusCode;
-use axum::http::header;
 use axum::middleware;
 use axum::response::IntoResponse;
+use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
 use crypto::utils::random_string;
@@ -321,7 +321,7 @@ struct ConsentSubmitQuery {
 async fn consent_submit<K, L, S, N, PAS>(
     State(authorizing_issuer): State<ConsentCallbackIssuer<K, L, S, N, PAS>>,
     Query(ConsentSubmitQuery { state }): Query<ConsentSubmitQuery>,
-) -> Result<Response, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
+) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
@@ -375,7 +375,7 @@ where
 
     let url = RedirectQuery::encode(redirect_uri, &code, state.as_deref());
 
-    Ok((StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response())
+    Ok(Redirect::to(url.as_str()))
 }
 
 /// Build the configured documents for the entry's usecase and hand them to the `openid4vc` layer's

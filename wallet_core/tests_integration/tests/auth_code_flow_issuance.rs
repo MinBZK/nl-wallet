@@ -89,7 +89,7 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
 
     assert_eq!(
         authorize_response.status(),
-        StatusCode::FOUND,
+        StatusCode::SEE_OTHER,
         "authorize should redirect to the consent page"
     );
     let location = authorize_response

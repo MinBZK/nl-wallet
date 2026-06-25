@@ -11,9 +11,7 @@ use axum::http::HeaderMap;
 use axum::http::HeaderName;
 use axum::http::HeaderValue;
 use axum::http::StatusCode;
-use axum::http::header;
-use axum::response::IntoResponse;
-use axum::response::Response;
+use axum::response::Redirect;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
@@ -325,7 +323,7 @@ where
 async fn authorize<K, L, S, N, PAS, AF>(
     State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
     Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
-) -> Result<Response, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
+) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     S: SessionStore<IssuanceData>,
     PAS: Store<String, VciAuthorizationRequest>,
@@ -337,7 +335,7 @@ where
         .await
         .inspect_err(|error| warn!("processing authorization request failed: {error}"))?;
 
-    Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
+    Ok(Redirect::to(redirect_url.as_str()))
 }
 
 static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");

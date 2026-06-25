@@ -278,7 +278,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
         .send()
         .await
         .unwrap();
-    assert_eq!(authorize_response.status(), StatusCode::FOUND);
+    assert_eq!(authorize_response.status(), StatusCode::SEE_OTHER);
 
     let received_redirect: Url = authorize_response
         .headers()

@@ -11,9 +11,7 @@ use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::http::header;
-use axum::response::IntoResponse;
-use axum::response::Response;
+use axum::response::Redirect;
 use axum::routing::get;
 use crypto::utils::random_string;
 use hsm::service::HsmError;
@@ -373,7 +371,7 @@ type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B = HttpBrpClient, O = Http
 async fn digid_callback<K, L, S, N, PAS, B, O>(
     State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>>,
     Query(DigidCallbackQuery { code, state }): Query<DigidCallbackQuery>,
-) -> Result<Response, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
+) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
@@ -437,7 +435,7 @@ where
 
     let url = RedirectQuery::encode(redirect_uri, &code, state.as_deref());
 
-    Ok((StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response())
+    Ok(Redirect::to(url.as_str()))
 }
 
 /// Exchange the upstream `code` for the issuable documents, then hand them to the `openid4vc` layer's
