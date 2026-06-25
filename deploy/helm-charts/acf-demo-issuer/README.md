@@ -16,7 +16,7 @@
 
 | Name           | Description        | Value |
 | -------------- | ------------------ | ----- |
-| `replicaCount` | Number of replicas | `2`   |
+| `replicaCount` | Number of replicas | `1`   |
 
 ### Image parameters
 
@@ -112,26 +112,19 @@
 
 | Name        | Description                                                        | Value |
 | ----------- | ------------------------------------------------------------------ | ----- |
-| `batchSize` | The maximum amount of credentials a holder will be able to request | `4`   |
-
-### DigiD parameters
-
-| Name            | Description                     | Value |
-| --------------- | ------------------------------- | ----- |
-| `digidClientId` | Client ID for the DigiD service | `nil` |
-| `digidBaseUrl`  | Base URL for the DigiD service  | `nil` |
-
-### WIA trust anchors
-
-| Name              | Description       | Value |
-| ----------------- | ----------------- | ----- |
-| `wiaTrustAnchors` | the trust anchors | `[]`  |
+| `batchSize` | The maximum amount of credentials a holder will be able to request | `10`  |
 
 ### Wallet redirect uris
 
 | Name                 | Description          | Value |
 | -------------------- | -------------------- | ----- |
 | `walletRedirectUris` | wallet redirect uris | `[]`  |
+
+### Metadata parameters
+
+| Name       | Description                                                            | Value                                     |
+| ---------- | ---------------------------------------------------------------------- | ----------------------------------------- |
+| `metadata` | List of SD-JWT Type Metadata filenames to mount and pass to the server | `["com_example_insurance_metadata.json"]` |
 
 ### Migration parameters
 
@@ -145,4 +138,3 @@
 | Name                           | Description                                        | Value |
 | ------------------------------ | -------------------------------------------------- | ----- |
 | `persistence.storageClassName` | Storage class name for the persistent volume claim | `nfs` |
-

@@ -124,9 +124,11 @@ probes:
 ## @param issuanceServerBaseUrl Base URL of the issuance server
 ## @param universalLinkBaseUrl Base URL for universal links
 ## @param helpBaseUrl Base URL for the help link in wallet web
+## @param acfDemoIssuerUrl Public URL (Credential Issuer Identifier) of the acf_demo_issuer
 issuanceServerBaseUrl: null
 universalLinkBaseUrl: null
 helpBaseUrl: null
+acfDemoIssuerUrl: null
 
 ## @section Logging
 ## @param logRequests Log request and response headers and bodies
