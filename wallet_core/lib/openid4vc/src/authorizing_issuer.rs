@@ -14,8 +14,11 @@ use std::fmt::Display;
 use std::sync::Arc;
 
 use derive_more::Constructor;
+use futures::TryFutureExt;
+use futures::join;
 use itertools::Itertools;
 use serde::Serialize;
+use tracing::warn;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -27,6 +30,7 @@ use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorization_code_flow::WalletAuthorizationContext;
+use crate::cleanup::PeriodicCleanup;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthCodeIssued;
@@ -35,6 +39,7 @@ use crate::issuer::Grant;
 use crate::issuer::IssuableDocumentError;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
+use crate::nonce::store::NonceStore;
 use crate::par;
 use crate::par::PAR_TTL;
 use crate::scope::Scope;
@@ -129,6 +134,31 @@ impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
 
     pub fn flow(&self) -> &AF {
         &self.flow
+    }
+}
+
+impl<K, L, S, N, PAS, AF> PeriodicCleanup for AuthorizingIssuer<K, L, S, N, PAS, AF>
+where
+    K: Send + Sync,
+    L: Send + Sync,
+    S: SessionStore<IssuanceData> + Send + Sync,
+    N: NonceStore + Send + Sync,
+    PAS: Store<String, VciAuthorizationRequest> + Send + Sync,
+    AF: AuthorizationCodeFlow + Send + Sync,
+{
+    /// Remove expired entries from the stores this authorization-phase issuer owns (the PAR store
+    /// and the flow's own storage) plus those of the inner [`Issuer`] (sessions and proof nonces).
+    /// Scheduled by the server via [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
+    async fn cleanup(&self) {
+        let _ = join!(
+            self.issuer.cleanup(),
+            self.par_store.cleanup().inspect_err(|error| {
+                warn!("error during PAR store cleanup: {error}");
+            }),
+            self.flow.cleanup().inspect_err(|error| {
+                warn!("error during authorization-code flow cleanup: {error}");
+            })
+        );
     }
 }
 
