@@ -10,7 +10,6 @@
 
 use std::collections::HashSet;
 use std::error::Error;
-use std::fmt::Display;
 use std::sync::Arc;
 
 use derive_more::Constructor;
@@ -22,6 +21,7 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::RedirectError;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
@@ -60,26 +60,34 @@ pub enum ParError {
     Store(#[source] Box<dyn Error + Send + Sync + 'static>),
 }
 
-/// Errors that can occur during processing of an authorization request.
+/// Errors that can occur during calls to the `authorize` endpoint, before the PAR has been retrieved from storage.
 #[derive(Debug, thiserror::Error)]
 pub enum AuthorizeError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
 
-    #[error("expected client_id from Authorization Request: {expected}, but was: {actual}")]
-    MismatchedClient { expected: String, actual: String },
+    #[error("consuming PAR request failed: {0}")]
+    ParStore(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("request_uri not found or expired: {0}")]
     UnknownRequestUri(String),
 
+    #[error("expected client_id from Authorization Request: {expected}, but was: {actual}")]
+    MismatchedClient { expected: String, actual: String },
+
+    #[error("{0}")]
+    AuthorizationRequest(RedirectError<AuthorizationRequestError>),
+}
+
+/// Errors that can occur during calls to the `authorize` endpoint, after the PAR has been retrieved from storage and
+/// the `redirect_uri` is known.
+#[derive(Debug, thiserror::Error)]
+pub enum AuthorizationRequestError {
     #[error("invalid authorization request: {0}")]
     InvalidAuthorizationRequest(#[source] InvalidAuthorizationRequest),
 
     #[error("none of the scopes requested reference a known credential configuration: {}", .0.iter().join(" "))]
     NoValidScope(HashSet<Scope>),
-
-    #[error("consuming PAR request failed: {0}")]
-    ParStore(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("authorization code flow error: {0}")]
     AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
@@ -222,11 +230,40 @@ where
             });
         }
 
+        let url = self
+            .process_stored_authorization_request(authorization_request)
+            .await
+            .map_err(AuthorizeError::AuthorizationRequest)?;
+
+        Ok(url)
+    }
+
+    /// Process a PAR that was retrieved from storage. Any error is returned along with the `redirect_uri` and optional
+    /// `state` from the PAR, so that the error can be added to the `redirect_uri` and returned to the wallet.
+    ///
+    /// Note that this should be a 303 (See Other) redirect, as the 302 (Found) status code is deprecated and has
+    /// security issues related to method alternation. For OAuth, status code 303 seems a little more approprate than
+    /// 307 (Temporary Redirect), as this forces the client to make a GET request and not re-post any body.
+    async fn process_stored_authorization_request(
+        &self,
+        authorization_request: VciAuthorizationRequest,
+    ) -> Result<Url, RedirectError<AuthorizationRequestError>> {
+        let redirect_uri = authorization_request.redirect_uri.as_ref().clone();
+        let state = authorization_request.oauth_request.state.clone();
+
         // Extract the wallet-side parameters the flow must retain (rejecting an unsupported
         // code_challenge_method here, for every flow at once). Keep the redirect_uri + state so we
         // can build the wallet-facing redirect ourselves on the IssuedCode path.
-        let context = WalletAuthorizationContext::try_from_request(authorization_request)
-            .map_err(AuthorizeError::InvalidAuthorizationRequest)?;
+        let context = match WalletAuthorizationContext::try_from_request(authorization_request) {
+            Ok(context) => context,
+            Err(error) => {
+                return Err(RedirectError::new(
+                    AuthorizationRequestError::InvalidAuthorizationRequest(error),
+                    redirect_uri,
+                    state,
+                ));
+            }
+        };
 
         // OpenID4VCI states: "Credential Issuers MUST ignore unknown scope values in a request."
         // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.2>
@@ -250,30 +287,42 @@ where
         {
             Ok(credential_kinds) => credential_kinds,
             Err(_) => {
-                return Err(AuthorizeError::NoValidScope(context.request_values.scope));
+                return Err(RedirectError::new(
+                    AuthorizationRequestError::NoValidScope(context.request_values.scope),
+                    redirect_uri,
+                    state,
+                ));
             }
         };
 
-        let outcome = self
-            .flow
-            .authorize(context, credential_kinds)
-            .await
-            .map_err(|error| AuthorizeError::AuthorizationCodeFlow(Box::new(error)))?;
+        let outcome = match self.flow.authorize(context, credential_kinds).await {
+            Ok(outcome) => outcome,
+            Err(error) => {
+                return Err(RedirectError::new(
+                    AuthorizationRequestError::AuthorizationCodeFlow(Box::new(error)),
+                    redirect_uri,
+                    state,
+                ));
+            }
+        };
 
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
-            AuthorizeOutcome::Authorized(issuables, context) => {
-                let WalletAuthorizationContext {
-                    state, request_values, ..
-                } = context;
-                let redirect_uri = request_values.redirect_uri.clone();
+            AuthorizeOutcome::Authorized(issuables, WalletAuthorizationContext { request_values, .. }) => {
+                let code = match self.complete_authorization(issuables, request_values).await {
+                    Ok(code) => code,
+                    Err(error) => {
+                        return Err(RedirectError::new(
+                            AuthorizationRequestError::CompleteAuthorization(error),
+                            redirect_uri,
+                            state,
+                        ));
+                    }
+                };
 
-                let code = self
-                    .complete_authorization(issuables, request_values)
-                    .await
-                    .map_err(AuthorizeError::CompleteAuthorization)?;
+                let url = RedirectQuery::encode(redirect_uri, &code, state.as_deref());
 
-                Ok(WalletRedirect::new(redirect_uri, state).into_authorization_code_url(&code))
+                Ok(url)
             }
         }
     }
@@ -310,70 +359,31 @@ where
     }
 }
 
-/// The wallet-facing redirect target (`redirect_uri` plus the wallet's original `state`), which can be turned into
-/// either a success or an error redirect.
-#[derive(Debug, Clone, Constructor)]
-pub struct WalletRedirect {
-    redirect_uri: Url,
-    state: Option<String>,
+/// Represents the contents of the query parameters of a successful redirect back to the wallet, i.e. the `code` and
+/// optional `state` parameter, echoing the `state` from the Authorization Request.
+#[derive(Debug, Serialize)]
+pub struct RedirectQuery<'a> {
+    code: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    state: Option<&'a str>,
 }
 
-impl WalletRedirect {
-    pub fn into_authorization_code_url(self, code: &AuthorizationCode) -> Url {
-        #[derive(Serialize)]
-        struct RedirectQuery<'a> {
-            code: &'a str,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            state: Option<&'a str>,
-        }
-
-        let Self {
-            mut redirect_uri,
-            state,
-        } = self;
-
-        let query = serde_qs::to_string(&RedirectQuery {
+impl<'a> RedirectQuery<'a> {
+    pub fn encode(redirect_uri: Url, code: &'a AuthorizationCode, state: Option<&'a str>) -> Url {
+        let query = Self {
             code: code.as_ref(),
-            state: state.as_deref(),
-        })
-        .expect("encoding wallet authorization code redirect query string should never fail");
-
-        redirect_uri.set_query(Some(&query));
-        redirect_uri
-    }
-
-    pub fn into_error_url(self, error: &str, error_description: impl Display) -> Url {
-        #[derive(Serialize)]
-        struct RedirectErrorQuery<'a> {
-            error: &'a str,
-            error_description: &'a str,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            state: Option<&'a str>,
-        }
-
-        let Self {
-            mut redirect_uri,
             state,
-        } = self;
-        let error_description = error_description.to_string();
+        };
 
-        let query = serde_qs::to_string(&RedirectErrorQuery {
-            error,
-            error_description: &error_description,
-            state: state.as_deref(),
-        })
-        .expect("encoding wallet error redirect query string should never fail");
-
-        redirect_uri.set_query(Some(&query));
-        redirect_uri
+        query.append_to_uri(redirect_uri)
     }
 
-    /// Resolve a completion result into the final wallet-facing success or error redirect URL.
-    pub fn into_redirect_url(self, result: Result<&AuthorizationCode, impl Display>, error_code: &str) -> Url {
-        match result {
-            Ok(code) => self.into_authorization_code_url(code),
-            Err(error) => self.into_error_url(error_code, error),
-        }
+    fn append_to_uri(&self, mut redirect_uri: Url) -> Url {
+        let query = serde_qs::to_string(&self).expect("encoding redirect query to query string should never fail");
+
+        redirect_uri.set_query(Some(&query));
+
+        redirect_uri
     }
 }
 
@@ -392,10 +402,12 @@ mod tests {
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::AuthorizationRequestError;
     use super::AuthorizeError;
     use super::AuthorizingIssuer;
     use super::ParError;
-    use super::WalletRedirect;
+    use super::RedirectQuery;
+    use crate::RedirectError;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::VciAuthorizationRequest;
     use crate::authorization_code_flow::AuthorizationCodeFlow;
@@ -643,7 +655,15 @@ mod tests {
 
         assert_matches!(
             error,
-            AuthorizeError::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge)
+            AuthorizeError::AuthorizationRequest(
+                RedirectError {
+                error: AuthorizationRequestError::InvalidAuthorizationRequest(
+                    InvalidAuthorizationRequest::UnsupportedCodeChallenge
+                ),
+                redirect_uri,
+                state: Some(state),
+            }
+            ) if redirect_uri.as_str() == WALLET_REDIRECT_URI && state == WALLET_STATE
         );
     }
 
@@ -664,8 +684,15 @@ mod tests {
 
         assert_matches!(
             error,
-            AuthorizeError::NoValidScope(scope)
-                if scope == HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()])
+            AuthorizeError::AuthorizationRequest(
+                RedirectError {
+                error: AuthorizationRequestError::NoValidScope(scope),
+                redirect_uri,
+                state: Some(state),
+            }
+            ) if scope == HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]) &&
+                redirect_uri.as_str() == WALLET_REDIRECT_URI &&
+                state == WALLET_STATE
         );
     }
 
@@ -791,11 +818,10 @@ mod tests {
     }
 
     #[test]
-    fn into_authorization_code_url_omits_state_when_absent() {
+    fn redirect_query_encode_omits_state_when_absent() {
         let code = AuthorizationCode::from("the-code".to_string());
-        let wallet_redirect = WalletRedirect::new(WALLET_REDIRECT_URI.parse().unwrap(), None);
 
-        let url = wallet_redirect.into_authorization_code_url(&code);
+        let url = RedirectQuery::encode(WALLET_REDIRECT_URI.parse().unwrap(), &code, None);
 
         let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
         assert!(params.contains_key("code"));
@@ -803,31 +829,14 @@ mod tests {
     }
 
     #[test]
-    fn into_redirect_url_builds_code_url_on_success() {
+    fn redirect_query_encode_includes_state_when_present() {
         let code = AuthorizationCode::from("the-code".to_string());
-        let wallet_redirect = WalletRedirect::new(WALLET_REDIRECT_URI.parse().unwrap(), Some(WALLET_STATE.to_string()));
 
-        let url = wallet_redirect.into_redirect_url(Ok::<_, Infallible>(&code), "server_error");
+        let url = RedirectQuery::encode(WALLET_REDIRECT_URI.parse().unwrap(), &code, Some(WALLET_STATE));
 
         assert!(url.as_str().starts_with(WALLET_REDIRECT_URI));
         let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
         assert_eq!(params.get("code").map(String::as_str), Some("the-code"));
-        assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
-    }
-
-    #[test]
-    fn into_redirect_url_builds_error_redirect_on_failure() {
-        let wallet_redirect = WalletRedirect::new(WALLET_REDIRECT_URI.parse().unwrap(), Some(WALLET_STATE.to_string()));
-
-        let url = wallet_redirect.into_redirect_url(Err::<&AuthorizationCode, _>("something broke"), "server_error");
-
-        assert!(url.as_str().starts_with(WALLET_REDIRECT_URI));
-        let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
-        assert_eq!(params.get("error").map(String::as_str), Some("server_error"));
-        assert_eq!(
-            params.get("error_description").map(String::as_str),
-            Some("something broke")
-        );
         assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
     }
 }

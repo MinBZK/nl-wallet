@@ -9,6 +9,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use http::header;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
@@ -566,10 +567,13 @@ async fn authorize_rejects_unknown_request_uri() {
         .append_pair("request_uri", "urn:ietf:params:oauth:request_uri:not-stored");
     let response = http_client.get(authorize_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    // This should result in an error HTTP status code and plain-text body describing the error.
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
     let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_request"), "unexpected body: {body}");
-    assert!(body.contains("request_uri not found"), "unexpected body: {body}");
+    assert!(
+        body.contains("urn:ietf:params:oauth:request_uri:not-stored"),
+        "unexpected body: {body}"
+    );
 }
 
 #[tokio::test]
@@ -597,9 +601,10 @@ async fn authorize_rejects_unknown_client_id() {
         .append_pair("request_uri", "urn:ietf:params:oauth:request_uri:doesnt-matter");
     let response = http_client.get(authorize_url).send().await.unwrap();
 
+    // This should result in an error HTTP status code and plain-text body describing the error.
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_client"), "unexpected body: {body}");
+    assert!(body.contains("definitely-not-the-wallet"), "unexpected body: {body}");
 }
 
 #[tokio::test]
@@ -645,10 +650,36 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
         .append_pair("request_uri", &request_uri);
     let response = http_client.get(authorize_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_request"), "unexpected body: {body}");
-    assert!(body.contains("code_challenge_method"), "unexpected body: {body}");
+    // As the `redirect_uri` is known at the point the error occurred, it should result in a 303 redirect and the error
+    // details being transported as query parameters using said `redirect_uri`.
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+
+    let redirect_uri = response
+        .headers()
+        .get(header::LOCATION)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse::<Url>()
+        .unwrap();
+
+    assert!(
+        redirect_uri.as_str().starts_with(REDIRECT_URI),
+        "unexpected redirect URI: {redirect_uri}"
+    );
+
+    let query_pairs = redirect_uri.query_pairs().collect::<HashMap<_, _>>();
+
+    // The redirect URI returned does not contain "state" or "error_uri" parameters.
+    assert_eq!(query_pairs.len(), 2);
+    assert_eq!(query_pairs.get("error").map(AsRef::as_ref), Some("invalid_request"));
+    let error_description = query_pairs
+        .get("error_description")
+        .expect("redirect URI should contain error_description");
+    assert!(
+        error_description.contains("code_challenge_method"),
+        "unexpected error_description: {error_description}",
+    );
 }
 
 /// Builds a parseable DPoP header for `POST {token_url}`. The PKCE check in the `/token`

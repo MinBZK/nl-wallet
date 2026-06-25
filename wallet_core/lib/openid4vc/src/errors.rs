@@ -15,8 +15,9 @@ use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
 
-use crate::authorization_code_flow::InvalidAuthorizationRequest;
+use crate::authorizing_issuer::AuthorizationRequestError;
 use crate::authorizing_issuer::AuthorizeError;
+use crate::authorizing_issuer::CompleteAuthorizationError;
 use crate::authorizing_issuer::ParError;
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
@@ -121,6 +122,33 @@ where
     }
 }
 
+/// Describes an error that occured at a HTTP(S) endpoint that is meant to be returned either as a status code and
+/// plain-text body or in a 303 See Other redirect.
+#[derive(Debug, Clone)]
+pub enum BodyOrRedirectErrorResponse<T> {
+    Body { status_code: StatusCode, body_text: String },
+    Redirect(RedirectErrorResponse<T>),
+}
+
+impl<T> BodyOrRedirectErrorResponse<T> {
+    pub fn new_body(status_code: StatusCode, body_text: String) -> Self {
+        Self::Body { status_code, body_text }
+    }
+
+    pub fn new_redirect(redirect_response: RedirectErrorResponse<T>) -> Self {
+        Self::Redirect(redirect_response)
+    }
+}
+
+impl<E, T> From<RedirectError<E>> for BodyOrRedirectErrorResponse<T>
+where
+    E: Error + Into<T>,
+{
+    fn from(value: RedirectError<E>) -> Self {
+        Self::new_redirect(value.into())
+    }
+}
+
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
 /// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
@@ -158,44 +186,64 @@ pub trait ErrorStatusCode {
 
 // OpenID4VCI Error Codes
 
-/// Wire-format error codes for the authorization endpoint.
+/// The list of error codes that can result from an Authorization Request. Note that this is also used by OpenID4VP.
+///
+/// See: <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1>
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
-pub enum AuthorizeErrorCode {
-    InvalidClient,
+pub enum AuthorizationErrorCode {
     InvalidRequest,
+    UnauthorizedClient,
+    AccessDenied,
+    UnsupportedResponseType,
+    InvalidScope,
     ServerError,
+    TemporarilyUnavailable,
 
-    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer.
+    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the verifier.
     #[strum(default)]
     Other(String),
 }
 
-impl ErrorStatusCode for AuthorizeErrorCode {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode> {
+    fn from(value: AuthorizeError) -> Self {
+        let status_code = match value {
+            // The errors at the Authorization Endpoint that can occur before the PAR is retrieved and the
+            // `redirect_uri` is known are represented as HTTP status code and plain-text bodies.
+            AuthorizeError::UnknownClient(_) => StatusCode::UNAUTHORIZED,
+            AuthorizeError::ParStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthorizeError::UnknownRequestUri(_) => StatusCode::NOT_FOUND,
+            AuthorizeError::MismatchedClient { .. } => StatusCode::UNAUTHORIZED,
 
-            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            // Once the `redirect_uri` is known, convert the error to a 303 redirect instead.
+            AuthorizeError::AuthorizationRequest(redirect_error) => return Self::new_redirect(redirect_error.into()),
+        };
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        Self::new_body(status_code, value.to_string())
+    }
+}
+
+impl From<AuthorizationRequestError> for AuthorizationErrorCode {
+    fn from(value: AuthorizationRequestError) -> Self {
+        match value {
+            AuthorizationRequestError::InvalidAuthorizationRequest(_) => Self::InvalidRequest,
+
+            AuthorizationRequestError::NoValidScope(_) => Self::InvalidScope,
+
+            AuthorizationRequestError::AuthorizationCodeFlow(_) => Self::ServerError,
+
+            AuthorizationRequestError::CompleteAuthorization(error) => error.into(),
         }
     }
 }
 
-impl From<AuthorizeError> for AuthorizeErrorCode {
-    fn from(value: AuthorizeError) -> Self {
+impl From<CompleteAuthorizationError> for AuthorizationErrorCode {
+    fn from(value: CompleteAuthorizationError) -> Self {
         match value {
-            AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => Self::InvalidClient,
-
-            AuthorizeError::UnknownRequestUri(_)
-            | AuthorizeError::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge)
-            | AuthorizeError::NoValidScope(_) => Self::InvalidRequest,
-
-            AuthorizeError::ParStore(_)
-            | AuthorizeError::AuthorizationCodeFlow(_)
-            | AuthorizeError::CompleteAuthorization(_) => Self::ServerError,
+            CompleteAuthorizationError::IssuableDocument(_) | CompleteAuthorizationError::SessionStore(_) => {
+                Self::ServerError
+            }
         }
     }
 }
@@ -601,24 +649,6 @@ pub enum VpAuthorizationErrorCode {
     AuthorizationError(AuthorizationErrorCode),
 }
 
-/// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum AuthorizationErrorCode {
-    InvalidRequest,
-    UnauthorizedClient,
-    AccessDenied,
-    UnsupportedResponseType,
-    InvalidScope,
-    ServerError,
-    TemporarilyUnavailable,
-
-    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the verifier.
-    #[strum(default)]
-    Other(String),
-}
-
 // The RP error types and `VerificationErrorCode` are handled differently from the errors above:
 // instead of returning them as an `ErrorResponse`, they are returned as a `HttpJsonErrorBody`.
 // This is because the endpoints that return these errors are not part of a protocol from the
@@ -804,6 +834,7 @@ mod axum {
     use axum::response::Response;
     use tracing::warn;
 
+    use super::BodyOrRedirectErrorResponse;
     use super::DisclosureErrorResponse;
     use super::ErrorResponse;
     use super::ErrorStatusCode;
@@ -833,6 +864,22 @@ mod axum {
             redirect_uri.set_query(Some(&query));
 
             Redirect::to(redirect_uri.as_str()).into_response()
+        }
+    }
+
+    impl<T> IntoResponse for BodyOrRedirectErrorResponse<T>
+    where
+        T: Display + Debug,
+    {
+        fn into_response(self) -> Response {
+            match self {
+                Self::Body { status_code, body_text } => {
+                    warn!("Responding with error body ({status_code}): {body_text}");
+
+                    (status_code, body_text).into_response()
+                }
+                Self::Redirect(redirect_response) => redirect_response.into_response(),
+            }
         }
     }
 

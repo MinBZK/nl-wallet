@@ -25,7 +25,8 @@ use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
-use openid4vc::AuthorizeErrorCode;
+use openid4vc::AuthorizationErrorCode;
+use openid4vc::BodyOrRedirectErrorResponse;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
@@ -324,7 +325,7 @@ where
 async fn authorize<K, L, S, N, PAS, AF>(
     State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
     Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
-) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
+) -> Result<Response, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     S: SessionStore<IssuanceData>,
     PAS: Store<String, VciAuthorizationRequest>,

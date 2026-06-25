@@ -29,14 +29,18 @@ use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
+use openid4vc::AuthorizationErrorCode;
+use openid4vc::BodyOrRedirectErrorResponse;
+use openid4vc::RedirectError;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
-use openid4vc::authorizing_issuer::WalletRedirect;
+use openid4vc::authorizing_issuer::RedirectQuery;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
@@ -81,6 +85,18 @@ pub enum Error {
 
     #[error("error completing authorization: {0}")]
     CompleteAuthorization(#[source] CompleteAuthorizationError),
+}
+
+impl From<Error> for AuthorizationErrorCode {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::MissingIssuerState | Error::UnknownUsecase(_) | Error::NotConsentUsecase(_) => Self::InvalidRequest,
+
+            Error::StateBridge(_) => Self::ServerError,
+
+            Error::CompleteAuthorization(error) => error.into(),
+        }
+    }
 }
 
 /// The [`AuthorizingIssuer`] flavour parameterised over this flow, kept as an alias to keep handler
@@ -305,7 +321,7 @@ struct ConsentSubmitQuery {
 async fn consent_submit<K, L, S, N, PAS>(
     State(authorizing_issuer): State<ConsentCallbackIssuer<K, L, S, N, PAS>>,
     Query(ConsentSubmitQuery { state }): Query<ConsentSubmitQuery>,
-) -> Response
+) -> Result<Response, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
@@ -315,26 +331,51 @@ where
 {
     let flow = authorizing_issuer.flow();
 
+    // Since we cannot know the `redirect_uri` yet, the below errors are rendered as responses with plain-text bodies
+    // and an error HTTP status code.
     let context: WalletAuthorizationContext = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Some(context)) => context,
         Ok(None) => {
             warn!("consent submit: unknown or expired flow state");
-            return (StatusCode::BAD_REQUEST, "unknown or expired state").into_response();
+
+            return Err(BodyOrRedirectErrorResponse::new_body(
+                StatusCode::BAD_REQUEST,
+                "unknown or expired state".to_string(),
+            ));
         }
         Err(error) => {
             warn!("consent submit: state bridge consume failed: {error}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "state bridge error").into_response();
+
+            return Err(BodyOrRedirectErrorResponse::new_body(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "state bridge error".to_string(),
+            ));
         }
     };
 
-    let result = complete_consent(authorizing_issuer.as_ref(), &context)
-        .await
-        .inspect_err(|error| warn!("consent callback: completion failed: {error}"));
+    let redirect_uri = context.request_values.redirect_uri.clone();
+    let state = context.state;
 
-    let url = WalletRedirect::new(context.request_values.redirect_uri, context.state)
-        .into_redirect_url(result.as_ref(), "server_error");
+    let code = match complete_consent(
+        authorizing_issuer.as_ref(),
+        context.issuer_state,
+        context.request_values,
+    )
+    .await
+    {
+        Ok(code) => code,
+        Err(error) => {
+            warn!("consent callback: completion failed: {error}");
 
-    (StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response()
+            // Return any error from completing consent as a 303 redirect to the `redirect_uri`, including the `state`
+            // if it was present in the Authorization Request.
+            return Err(RedirectError::new(error, redirect_uri, state).into());
+        }
+    };
+
+    let url = RedirectQuery::encode(redirect_uri, &code, state.as_deref());
+
+    Ok((StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response())
 }
 
 /// Build the configured documents for the entry's usecase and hand them to the `openid4vc` layer's
@@ -342,22 +383,23 @@ where
 /// containing the documents.
 async fn complete_consent<K, L, S, N, PAS>(
     authorizing_issuer: &DemoAuthorizingIssuer<K, L, S, N, PAS>,
-    context: &WalletAuthorizationContext,
+    issuer_state: Option<String>,
+    request_values: AuthRequestValues,
 ) -> Result<AuthorizationCode, Error>
 where
     S: SessionStore<IssuanceData>,
 {
     // The usecase is identified by the `issuer_state` the wallet echoed back from the offer; `authorize`
     // already validated it is present, but re-resolve it here as the single source of truth for the session.
-    let usecase_id = context.issuer_state.as_deref().ok_or(Error::MissingIssuerState)?;
+    let usecase_id = issuer_state.ok_or(Error::MissingIssuerState)?;
     let usecase = authorizing_issuer
         .flow()
         .usecases
-        .get(usecase_id)
-        .ok_or_else(|| Error::UnknownUsecase(usecase_id.to_string()))?;
+        .get(&usecase_id)
+        .ok_or_else(|| Error::UnknownUsecase(usecase_id))?;
 
     let code = authorizing_issuer
-        .complete_authorization(issuable_documents(usecase), context.request_values.clone())
+        .complete_authorization(issuable_documents(usecase), request_values)
         .await
         .map_err(Error::CompleteAuthorization)?;
 
@@ -507,7 +549,9 @@ mod tests {
 
         let context = test_context(Some(USECASE_ID.to_string()));
 
-        let code = complete_consent(&authorizing_issuer, &context).await.unwrap();
+        let code = complete_consent(&authorizing_issuer, context.issuer_state, context.request_values)
+            .await
+            .unwrap();
 
         // An AuthCodeIssued session was written, keyed by the generated code, carrying the configured
         // document and the wallet's PKCE challenge.
