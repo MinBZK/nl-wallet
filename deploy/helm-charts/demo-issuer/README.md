@@ -97,11 +97,12 @@
 
 ### Urls
 
-| Name                    | Description                              | Value |
-| ----------------------- | ---------------------------------------- | ----- |
-| `issuanceServerBaseUrl` | Base URL of the issuance server          | `nil` |
-| `universalLinkBaseUrl`  | Base URL for universal links             | `nil` |
-| `helpBaseUrl`           | Base URL for the help link in wallet web | `nil` |
+| Name                    | Description                                                      | Value |
+| ----------------------- | ---------------------------------------------------------------- | ----- |
+| `issuanceServerBaseUrl` | Base URL of the issuance server                                  | `nil` |
+| `universalLinkBaseUrl`  | Base URL for universal links                                     | `nil` |
+| `helpBaseUrl`           | Base URL for the help link in wallet web                         | `nil` |
+| `acfDemoIssuerUrl`      | Public URL (Credential Issuer Identifier) of the acf_demo_issuer | `nil` |
 
 ### Logging
 
