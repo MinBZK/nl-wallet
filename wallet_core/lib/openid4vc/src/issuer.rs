@@ -268,9 +268,6 @@ pub enum CredentialPreviewError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
-    #[error("unknown credential identifier: {0}")]
-    UnknownCredentialIdentifier(String),
-
     #[error("missing credential configuration with identifier: {0}")]
     MissingCredentialConfiguration(CredentialConfigurationId),
 

@@ -42,6 +42,21 @@ pub struct ErrorResponse<T> {
     pub error_uri: Option<Url>,
 }
 
+impl<E, T> From<E> for ErrorResponse<T>
+where
+    E: Display + Into<T>,
+{
+    fn from(value: E) -> Self {
+        let error_description = Some(value.to_string());
+
+        Self {
+            error: value.into(),
+            error_description,
+            error_uri: None,
+        }
+    }
+}
+
 /// Wrapper of [`ErrorResponse`] that adds the optional `state` parameter used by authorization error responses.
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,23 +138,18 @@ impl ErrorStatusCode for AuthorizeErrorCode {
     }
 }
 
-impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
-    fn from(err: AuthorizeError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => {
-                    AuthorizeErrorCode::InvalidClient
-                }
-                AuthorizeError::UnknownRequestUri(_)
-                | AuthorizeError::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge)
-                | AuthorizeError::NoValidScope(_) => AuthorizeErrorCode::InvalidRequest,
-                AuthorizeError::ParStore(_)
-                | AuthorizeError::AuthorizationCodeFlow(_)
-                | AuthorizeError::CompleteAuthorization(_) => AuthorizeErrorCode::ServerError,
-            },
-            error_description: Some(description),
-            error_uri: None,
+impl From<AuthorizeError> for AuthorizeErrorCode {
+    fn from(value: AuthorizeError) -> Self {
+        match value {
+            AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => Self::InvalidClient,
+
+            AuthorizeError::UnknownRequestUri(_)
+            | AuthorizeError::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge)
+            | AuthorizeError::NoValidScope(_) => Self::InvalidRequest,
+
+            AuthorizeError::ParStore(_)
+            | AuthorizeError::AuthorizationCodeFlow(_)
+            | AuthorizeError::CompleteAuthorization(_) => Self::ServerError,
         }
     }
 }
@@ -170,17 +180,14 @@ impl ErrorStatusCode for ParErrorCode {
     }
 }
 
-impl From<ParError> for ErrorResponse<ParErrorCode> {
-    fn from(err: ParError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                ParError::UnknownClient(_) => ParErrorCode::InvalidClient,
-                ParError::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
-                ParError::Store(_) => ParErrorCode::ServerError,
-            },
-            error_description: Some(description),
-            error_uri: None,
+impl From<ParError> for ParErrorCode {
+    fn from(value: ParError) -> Self {
+        match value {
+            ParError::UnknownClient(_) => Self::InvalidClient,
+
+            ParError::InvalidRedirectUri(_) => Self::InvalidRequest,
+
+            ParError::Store(_) => Self::ServerError,
         }
     }
 }
@@ -227,40 +234,27 @@ impl ErrorStatusCode for TokenErrorCode {
 impl From<TokenRequestError> for TokenErrorCode {
     fn from(err: TokenRequestError) -> Self {
         match err {
-            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
+            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_)) => Self::ServerError,
 
-            TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+            TokenRequestError::SessionNotFound => Self::InvalidGrant,
 
-            TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+            TokenRequestError::IssuanceError(_) => Self::InvalidRequest,
 
-            TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
+            TokenRequestError::UnexpectedGrantType { .. } => Self::UnsupportedGrantType,
 
-            TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
-                TokenErrorCode::InvalidGrant
-            }
+            TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => Self::InvalidGrant,
 
-            TokenRequestError::MissingClientId | TokenRequestError::UnknownClient(_) => TokenErrorCode::InvalidClient,
+            TokenRequestError::MissingClientId | TokenRequestError::UnknownClient(_) => Self::InvalidClient,
 
-            TokenRequestError::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
+            TokenRequestError::ClientIdMismatch { .. } => Self::InvalidGrant,
 
-            TokenRequestError::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
+            TokenRequestError::ScopeMismatch { .. } => Self::InvalidScope,
 
             TokenRequestError::MissingRedirectUri | TokenRequestError::RedirectUriMismatch { .. } => {
-                TokenErrorCode::InvalidRequest
+                Self::InvalidRequest
             }
 
-            TokenRequestError::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
-        }
-    }
-}
-
-impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
-    fn from(err: TokenRequestError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: err.into(),
-            error_description: Some(description),
-            error_uri: None,
+            TokenRequestError::CredentialConfigNotOffered(_) => Self::ServerError,
         }
     }
 }
@@ -291,22 +285,18 @@ impl ErrorStatusCode for CredentialPreviewErrorCode {
     }
 }
 
-impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> {
-    fn from(err: CredentialPreviewError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                CredentialPreviewError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialPreviewError::MissingCredentialConfiguration(_) => CredentialPreviewErrorCode::ServerError,
-                CredentialPreviewError::IssuanceError(_)
-                | CredentialPreviewError::UnknownCredentialIdentifier(_)
-                | CredentialPreviewError::CredentialPreviewsNotFound => CredentialPreviewErrorCode::InvalidRequest,
-                CredentialPreviewError::MalformedToken | CredentialPreviewError::Unauthorized => {
-                    CredentialPreviewErrorCode::InvalidToken
-                }
-            },
-            error_description: Some(description),
-            error_uri: None,
+impl From<CredentialPreviewError> for CredentialPreviewErrorCode {
+    fn from(value: CredentialPreviewError) -> Self {
+        match value {
+            CredentialPreviewError::IssuanceError(IssuanceError::SessionStore(_)) => Self::ServerError,
+
+            CredentialPreviewError::IssuanceError(_) => Self::InvalidRequest,
+
+            CredentialPreviewError::MalformedToken | CredentialPreviewError::Unauthorized => Self::InvalidToken,
+
+            CredentialPreviewError::MissingCredentialConfiguration(_) => Self::ServerError,
+
+            CredentialPreviewError::CredentialPreviewsNotFound => Self::InvalidRequest,
         }
     }
 }
@@ -360,52 +350,55 @@ impl ErrorStatusCode for CredentialErrorCode {
     }
 }
 
-impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
-    fn from(err: CredentialRequestError) -> ErrorResponse<CredentialErrorCode> {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                CredentialRequestError::IssuanceError(IssuanceError::UnexpectedState)
-                | CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(_))
-                | CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_))
-                | CredentialRequestError::UseBatchIssuance
-                | CredentialRequestError::WrongNumberOfCredentialRequests
-                | CredentialRequestError::MissingWia
-                | CredentialRequestError::CredentialTypeMismatch { .. } => {
-                    CredentialErrorCode::InvalidCredentialRequest
-                }
+impl From<CredentialRequestError> for CredentialErrorCode {
+    fn from(value: CredentialRequestError) -> Self {
+        // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
+        // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
+        match value {
+            CredentialRequestError::IssuanceError(IssuanceError::UnexpectedState)
+            | CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(_))
+            | CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_)) => Self::InvalidCredentialRequest,
 
-                CredentialRequestError::CredentialTypeNotOffered(_) => {
-                    CredentialErrorCode::UnknownCredentialConfiguration
-                }
+            CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_)) => Self::ServerError,
 
-                CredentialRequestError::MissingProofNonce
-                | CredentialRequestError::Wia(WiaError::MissingNonce)
-                | CredentialRequestError::InvalidNonce => CredentialErrorCode::InvalidNonce,
+            CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => Self::InvalidToken,
 
-                // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
-                CredentialRequestError::InvalidProofJwt(_)
-                | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::InvalidProofPublicKey(_)
-                | CredentialRequestError::MissingCredentialRequestPoP
-                | CredentialRequestError::Wia(_) => CredentialErrorCode::InvalidProof,
+            CredentialRequestError::CredentialTypeNotOffered(_) => Self::UnknownCredentialConfiguration,
 
-                // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
-                CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
-                    CredentialErrorCode::InvalidToken
-                }
+            CredentialRequestError::UseBatchIssuance => Self::InvalidCredentialRequest,
 
-                CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialRequestError::MissingCredentialConfiguration(_)
-                | CredentialRequestError::JwkConversion(_)
-                | CredentialRequestError::MdocConversion(_)
-                | CredentialRequestError::SdJwtConversion(_)
-                | CredentialRequestError::IncorrectNumberOfStatusClaims(_)
-                | CredentialRequestError::ObtainStatusClaim(_)
-                | CredentialRequestError::ProofNonceStore(_) => CredentialErrorCode::ServerError,
-            },
-            error_description: Some(description),
-            error_uri: None,
+            CredentialRequestError::InvalidProofJwt(_) | CredentialRequestError::InvalidProofPublicKey(_) => {
+                Self::InvalidProof
+            }
+
+            CredentialRequestError::MissingProofNonce => Self::InvalidNonce,
+
+            CredentialRequestError::ProofNonceStore(_) => Self::ServerError,
+
+            CredentialRequestError::InvalidNonce => Self::InvalidNonce,
+
+            CredentialRequestError::Jwt(_) => Self::InvalidProof,
+
+            CredentialRequestError::MissingCredentialConfiguration(_) => Self::ServerError,
+
+            CredentialRequestError::CredentialTypeMismatch { .. }
+            | CredentialRequestError::WrongNumberOfCredentialRequests => Self::InvalidCredentialRequest,
+
+            CredentialRequestError::MissingCredentialRequestPoP => Self::InvalidProof,
+
+            CredentialRequestError::MissingWia => Self::InvalidCredentialRequest,
+
+            CredentialRequestError::JwkConversion(_)
+            | CredentialRequestError::MdocConversion(_)
+            | CredentialRequestError::SdJwtConversion(_) => Self::ServerError,
+
+            CredentialRequestError::Wia(WiaError::MissingNonce) => Self::InvalidNonce,
+
+            CredentialRequestError::Wia(_) => Self::InvalidProof,
+
+            CredentialRequestError::ObtainStatusClaim(_) | CredentialRequestError::IncorrectNumberOfStatusClaims(_) => {
+                Self::ServerError
+            }
         }
     }
 }
@@ -445,30 +438,32 @@ impl ErrorStatusCode for GetRequestErrorCode {
     }
 }
 
-impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
-    fn from(err: GetAuthRequestError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                GetAuthRequestError::ExpiredEphemeralId(_) => GetRequestErrorCode::ExpiredEphemeralId,
-                GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
-                    GetRequestErrorCode::ExpiredSession
-                }
-                GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
-                    GetRequestErrorCode::CancelledSession
-                }
-                GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
-                GetAuthRequestError::Jwt(_)
-                | GetAuthRequestError::ReturnUrlConfigurationMismatch
-                | GetAuthRequestError::UnknownUseCase(_)
-                | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
-                GetAuthRequestError::QueryParametersMissing
-                | GetAuthRequestError::QueryParametersDeserialization(_)
-                | GetAuthRequestError::InvalidEphemeralId(_)
-                | GetAuthRequestError::Session(SessionError::UnexpectedState(_)) => GetRequestErrorCode::InvalidRequest,
-            },
-            error_description: Some(description),
-            error_uri: None,
+impl From<GetAuthRequestError> for GetRequestErrorCode {
+    fn from(value: GetAuthRequestError) -> Self {
+        match value {
+            GetAuthRequestError::Session(SessionError::SessionStore(_)) => Self::ServerError,
+
+            GetAuthRequestError::Session(SessionError::UnknownSession(_)) => Self::UnknownSession,
+
+            GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
+                Self::CancelledSession
+            }
+
+            GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => Self::ExpiredSession,
+
+            GetAuthRequestError::Session(SessionError::UnexpectedState(_)) => Self::InvalidRequest,
+
+            GetAuthRequestError::InvalidEphemeralId(_) => Self::InvalidRequest,
+
+            GetAuthRequestError::ExpiredEphemeralId(_) => Self::ExpiredEphemeralId,
+
+            GetAuthRequestError::Jwt(_)
+            | GetAuthRequestError::ReturnUrlConfigurationMismatch
+            | GetAuthRequestError::UnknownUseCase(_) => Self::ServerError,
+
+            GetAuthRequestError::QueryParametersMissing | GetAuthRequestError::QueryParametersDeserialization(_) => {
+                Self::InvalidRequest
+            }
         }
     }
 }
@@ -510,30 +505,27 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
     }
 }
 
-impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
-    fn from(err: PostAuthResponseError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
-                    PostAuthResponseErrorCode::ExpiredSession
-                }
-                PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
-                    PostAuthResponseErrorCode::CancelledSession
-                }
-                PostAuthResponseError::Session(SessionError::SessionStore(_))
-                | PostAuthResponseError::ResponseEncoding(_) => PostAuthResponseErrorCode::ServerError,
-                PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
-                    PostAuthResponseErrorCode::UnknownSession
-                }
-                PostAuthResponseError::AuthResponse(_)
-                | PostAuthResponseError::Session(SessionError::UnexpectedState(_)) => {
-                    PostAuthResponseErrorCode::InvalidRequest
-                }
-                PostAuthResponseError::HandlingDisclosureResult(err) => err.as_ref().to_error_code(),
-            },
-            error_description: Some(description),
-            error_uri: None,
+impl From<PostAuthResponseError> for PostAuthResponseErrorCode {
+    fn from(value: PostAuthResponseError) -> Self {
+        match value {
+            PostAuthResponseError::Session(SessionError::SessionStore(_)) => Self::ServerError,
+
+            PostAuthResponseError::Session(SessionError::UnknownSession(_)) => Self::UnknownSession,
+
+            PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
+                Self::CancelledSession
+            }
+
+            PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
+                Self::ExpiredSession
+            }
+
+            PostAuthResponseError::Session(SessionError::UnexpectedState(_))
+            | PostAuthResponseError::AuthResponse(_) => Self::InvalidRequest,
+
+            PostAuthResponseError::HandlingDisclosureResult(err) => err.as_ref().to_error_code(),
+
+            PostAuthResponseError::ResponseEncoding(_) => Self::ServerError,
         }
     }
 }

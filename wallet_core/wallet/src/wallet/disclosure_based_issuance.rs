@@ -179,6 +179,7 @@ mod tests {
     use indexmap::IndexMap;
     use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
+    use openid4vc::ErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
@@ -383,10 +384,11 @@ mod tests {
                     DataDisclosed::Disclosed,
                     VpSessionError::Client(VpClientError::Request(
                         DisclosureErrorResponse {
-                            error_response: PostAuthResponseError::HandlingDisclosureResult(
-                                DisclosureResultHandlerError::new(MockError),
-                            )
-                            .into(),
+                            error_response: ErrorResponse::<PostAuthResponseErrorCode>::from(
+                                PostAuthResponseError::HandlingDisclosureResult(DisclosureResultHandlerError::new(
+                                    MockError,
+                                )),
+                            ),
                             redirect_uri: None,
                         }
                         .into(),
