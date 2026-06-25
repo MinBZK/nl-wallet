@@ -20,7 +20,7 @@ cargo install cargo-expand --locked --version 1.0.121
 cargo install cargo-llvm-cov --locked --version 0.8.7
 cargo install cargo-hack --locked --version 0.6.44
 cargo install cargo-nextest --locked --version 0.9.137
-cargo install flutter_rust_bridge_codegen --locked --version 2.11.1
+cargo install flutter_rust_bridge_codegen --locked --version 2.12.0
 cargo install lcov2xml --locked --version 1.0.9
 cargo install sea-orm-cli --locked --version 1.1.19 --no-default-features \
     --features sqlx-postgres,runtime-tokio-rustls,cli,codegen
