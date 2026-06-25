@@ -48,6 +48,7 @@ use tracing::warn;
 use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::spawn::start_recurring_task;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
@@ -63,7 +64,6 @@ use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::VpResponse;
-use crate::recurring_task::start_recurring_task;
 use crate::return_url::ReturnUrlTemplate;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
