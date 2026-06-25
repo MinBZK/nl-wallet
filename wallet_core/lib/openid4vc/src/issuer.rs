@@ -4,7 +4,6 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::ops::Add;
 use std::sync::Arc;
-use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
@@ -43,12 +42,12 @@ use tokio::task::AbortHandle;
 use tracing::info;
 use tracing::warn;
 use url::Url;
-use utils::spawn::start_recurring_task;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
+use crate::cleanup::PeriodicCleanup;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -92,9 +91,6 @@ use crate::token::CredentialPreview;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
-
-/// The cleanup task that removes stale sessions runs every so often.
-const CLEANUP_INTERVAL: Duration = Duration::from_secs(120);
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
@@ -392,7 +388,6 @@ pub struct Issuer<K, L, S, N> {
     issuer_data: IssuerData<K, L>,
     sessions: Arc<S>,
     proof_nonce_store: Arc<N>,
-    cleanup_task: AbortHandle,
     status_list_refresh_tasks: Vec<AbortHandle>,
 }
 
@@ -542,8 +537,6 @@ impl PreparedCredential {
 impl<K, L, S, N> Drop for Issuer<K, L, S, N> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
-        self.cleanup_task.abort();
-
         for task in &self.status_list_refresh_tasks {
             task.abort();
         }
@@ -643,24 +636,6 @@ where
 
         let proof_nonce_store = Arc::new(proof_nonce_store);
 
-        let task_sessions = Arc::clone(&sessions);
-        let task_nonce_store = Arc::clone(&proof_nonce_store);
-        let cleanup_task = start_recurring_task(CLEANUP_INTERVAL, move || {
-            let task_sessions = Arc::clone(&task_sessions);
-            let task_nonce_store = Arc::clone(&task_nonce_store);
-
-            async move {
-                let _ = join!(
-                    task_sessions.cleanup().inspect_err(|error| {
-                        warn!("error during session cleanup: {error}");
-                    }),
-                    task_nonce_store.remove_expired_nonces().inspect_err(|error| {
-                        warn!("error during proof nonce cleanup: {error}");
-                    })
-                );
-            }
-        });
-
         let status_list_refresh_tasks = issuer_data
             .credential_configs
             .configurations()
@@ -671,11 +646,31 @@ where
             issuer_data,
             sessions,
             proof_nonce_store,
-            cleanup_task,
             status_list_refresh_tasks,
         };
 
         Ok(issuer)
+    }
+}
+
+impl<K, L, S, N> PeriodicCleanup for Issuer<K, L, S, N>
+where
+    K: Send + Sync,
+    L: Send + Sync,
+    S: SessionStore<IssuanceData> + Send + Sync,
+    N: NonceStore + Send + Sync,
+{
+    /// Remove expired sessions and proof nonces. Scheduled by the server via
+    /// [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
+    async fn cleanup(&self) {
+        let _ = join!(
+            self.sessions.cleanup().inspect_err(|error| {
+                warn!("error during session cleanup: {error}");
+            }),
+            self.proof_nonce_store.remove_expired_nonces().inspect_err(|error| {
+                warn!("error during proof nonce cleanup: {error}");
+            })
+        );
     }
 }
 
@@ -1749,6 +1744,8 @@ mod tests {
 
     use super::*;
     use crate::CredentialErrorCode;
+    use crate::cleanup::CLEANUP_INTERVAL;
+    use crate::cleanup::start_cleanup_task;
     use crate::credential::CredentialRequest;
     use crate::credential::CredentialRequestProof;
     use crate::credential::CredentialRequests;
@@ -2139,6 +2136,9 @@ mod tests {
             .pre_authorized_code
             .unwrap()
             .pre_authorized_code;
+
+        // The Issuer doesn't schedules its own cleanup; start one explicitly so the expired session gets purged.
+        let _cleanup_task = start_cleanup_task(CLEANUP_INTERVAL, Arc::new(issuer));
 
         test_memory_store_with_cleanup_task(sessions, code.into(), &mock_time, CLEANUP_INTERVAL).await;
     }
