@@ -8,6 +8,7 @@ use itertools::Itertools;
 use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::oid;
 use x509_parser::error::X509Error;
+use x509_parser::x509::AttributeTypeAndValue;
 use x509_parser::x509::X509Name;
 
 pub const DN_TYPE_ORGANIZATION_IDENTIFIER_OID: &Oid = &oid!(1.3.6.1.1.15);
@@ -23,6 +24,26 @@ pub struct DistinguishedName {
     pub country_name: String,
     pub organization_name: String,
     pub organization_identifier: String,
+}
+
+impl DistinguishedName {
+    fn parse_attribute_type_and_value<'a>(
+        name: &'static str,
+        attributes: impl Iterator<Item = &'a AttributeTypeAndValue<'a>>,
+    ) -> Result<String, DistinguishedNameError> {
+        let attribute_values = attributes
+            .map(|attr| attr.as_str().map_err(DistinguishedNameError::X509Error))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        match attribute_values.as_slice() {
+            [value] => Ok((*value).to_string()),
+            [] => Err(DistinguishedNameError::MissingX509Name { name })?,
+            _ => Err(DistinguishedNameError::MultipleX509Names {
+                name,
+                values: attribute_values.into_iter().map(ToString::to_string).collect(),
+            })?,
+        }
+    }
 }
 
 #[derive(Debug, Clone, thiserror::Error)]
@@ -41,63 +62,14 @@ impl TryFrom<&X509Name<'_>> for DistinguishedName {
     type Error = DistinguishedNameError;
 
     fn try_from(value: &X509Name<'_>) -> Result<Self, Self::Error> {
-        let common_names = value
-            .iter_common_name()
-            .map(|attr| attr.as_str().map_err(DistinguishedNameError::X509Error))
-            .collect::<Result<Vec<_>, _>>()?;
-        let common_name = match common_names.as_slice() {
-            [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::MissingX509Name { name: "CN" })?,
-            _ => Err(DistinguishedNameError::MultipleX509Names {
-                name: "CN",
-                values: common_names.into_iter().map(ToString::to_string).collect(),
-            })?,
-        };
-
-        let country_names = value
-            .iter_country()
-            .map(|attr| attr.as_str().map_err(DistinguishedNameError::X509Error))
-            .collect::<Result<Vec<_>, _>>()?;
-        let country_name = match country_names.as_slice() {
-            [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::MissingX509Name { name: "C" })?,
-            _ => Err(DistinguishedNameError::MultipleX509Names {
-                name: "C",
-                values: country_names.into_iter().map(ToString::to_string).collect(),
-            })?,
-        };
-
-        let organization_names = value
-            .iter_organization()
-            .map(|attr| attr.as_str().map_err(DistinguishedNameError::X509Error))
-            .collect::<Result<Vec<_>, _>>()?;
-        let organization_name = match organization_names.as_slice() {
-            [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::MissingX509Name { name: "O" })?,
-            _ => Err(DistinguishedNameError::MultipleX509Names {
-                name: "O",
-                values: organization_names.into_iter().map(ToString::to_string).collect(),
-            })?,
-        };
-
-        let organization_identifiers = value
-            .iter_by_oid(DN_TYPE_ORGANIZATION_IDENTIFIER_OID)
-            .map(|attr| attr.as_str().map_err(DistinguishedNameError::X509Error))
-            .collect::<Result<Vec<_>, _>>()?;
-        let organization_identifier = match organization_identifiers.as_slice() {
-            [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::MissingX509Name { name: "OID" })?,
-            _ => Err(DistinguishedNameError::MultipleX509Names {
-                name: "OID",
-                values: organization_identifiers.into_iter().map(ToString::to_string).collect(),
-            })?,
-        };
-
         Ok(Self {
-            common_name,
-            country_name,
-            organization_name,
-            organization_identifier,
+            common_name: Self::parse_attribute_type_and_value("CN", value.iter_common_name())?,
+            country_name: Self::parse_attribute_type_and_value("C", value.iter_country())?,
+            organization_name: Self::parse_attribute_type_and_value("O", value.iter_organization())?,
+            organization_identifier: Self::parse_attribute_type_and_value(
+                "OID",
+                value.iter_by_oid(DN_TYPE_ORGANIZATION_IDENTIFIER_OID),
+            )?,
         })
     }
 }
