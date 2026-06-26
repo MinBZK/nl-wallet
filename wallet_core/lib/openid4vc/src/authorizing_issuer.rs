@@ -21,6 +21,8 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::AuthorizationErrorCode;
+use crate::BoxedErrorWithCode;
 use crate::RedirectError;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
@@ -90,7 +92,7 @@ pub enum AuthorizationRequestError {
     NoValidScope(HashSet<Scope>),
 
     #[error("authorization code flow error: {0}")]
-    AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
+    AuthorizationCodeFlow(#[source] BoxedErrorWithCode<AuthorizationErrorCode>),
 
     #[error("error completing authorization for the authorized outcome: {0}")]
     CompleteAuthorization(#[source] CompleteAuthorizationError),
@@ -299,7 +301,7 @@ where
             Ok(outcome) => outcome,
             Err(error) => {
                 return Err(RedirectError::new(
-                    AuthorizationRequestError::AuthorizationCodeFlow(Box::new(error)),
+                    AuthorizationRequestError::AuthorizationCodeFlow(BoxedErrorWithCode::new(error)),
                     redirect_uri,
                     state,
                 ));
@@ -407,6 +409,8 @@ mod tests {
     use super::AuthorizingIssuer;
     use super::ParError;
     use super::RedirectQuery;
+    use crate::AuthorizationErrorCode;
+    use crate::ErrorWithCode;
     use crate::RedirectError;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::VciAuthorizationRequest;
@@ -516,8 +520,20 @@ mod tests {
     #[derive(Debug, Clone)]
     struct FixedOutcomeFlow(AuthorizeOutcome);
 
+    #[derive(Debug, thiserror::Error)]
+    #[error(transparent)]
+    struct FixedOutcomeFlowError(Infallible);
+
+    impl ErrorWithCode for FixedOutcomeFlowError {
+        type ErrorCode = AuthorizationErrorCode;
+
+        fn error_code(&self) -> Self::ErrorCode {
+            unreachable!()
+        }
+    }
+
     impl AuthorizationCodeFlow for FixedOutcomeFlow {
-        type Error = Infallible;
+        type Error = FixedOutcomeFlowError;
 
         async fn authorize(
             &self,

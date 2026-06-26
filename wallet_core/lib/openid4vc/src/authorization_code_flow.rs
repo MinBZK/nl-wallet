@@ -11,6 +11,8 @@ use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::AuthorizationErrorCode;
+use crate::ErrorWithCode;
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::issuable_document::CredentialKind;
@@ -82,7 +84,7 @@ pub enum AuthorizeOutcome {
 
 #[trait_variant::make(Send)]
 pub trait AuthorizationCodeFlow {
-    type Error: std::error::Error + Send + Sync + 'static;
+    type Error: ErrorWithCode<ErrorCode = AuthorizationErrorCode> + Send + Sync + 'static;
 
     /// Called after the `openid4vc` layer has consumed the PAR entry, resolved the original authorization request and
     /// extracted the wallet-side [`WalletAuthorizationContext`]. The implementation decides how the user authenticates

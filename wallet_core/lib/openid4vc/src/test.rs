@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -17,6 +16,7 @@ use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use derive_more::Constructor;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
@@ -33,6 +33,8 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::AuthorizationErrorCode;
+use crate::ErrorWithCode;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
@@ -128,24 +130,43 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
         .unwrap()
 }
 
-/// Test-only implementation of [`AuthorizationCodeFlow`] for the auth-code path. `authorize`
-/// just returns [`AuthorizeOutcome::Authorized`] with the preconfigured documents, so the `openid4vc` layer
-/// immediately writes the `AuthCodeIssued` session and redirects the user-agent straight back to
-/// the wallet with the issuer-generated code.
+/// Test-only implementation of [`AuthorizationCodeFlow`] for the auth-code path. `authorize` either returns
+/// [`AuthorizeOutcome::Authorized`] with the preconfigured documents, so the `openid4vc` layer immediately writes the
+/// `AuthCodeIssued` session and redirects the user-agent straight back to the wallet with the issuer-generated code, or
+/// it returns an error that converts to [`AuthorizationErrorCode`], which is also encoded in a redirect back to the
+/// wallet.
 #[derive(derive_more::Constructor)]
 pub struct AlwaysAuthorizingFlow {
-    documents: VecNonEmpty<IssuableDocument>,
+    authorize_result: Result<VecNonEmpty<IssuableDocument>, AuthorizationErrorCode>,
+}
+
+#[derive(Debug, thiserror::Error, Constructor)]
+#[error("AlwaysAuthorizingFlowError")]
+pub struct AlwaysAuthorizingFlowError(AuthorizationErrorCode);
+
+impl ErrorWithCode for AlwaysAuthorizingFlowError {
+    type ErrorCode = AuthorizationErrorCode;
+
+    fn error_code(&self) -> Self::ErrorCode {
+        let Self(inner) = self;
+
+        inner.clone()
+    }
 }
 
 impl AuthorizationCodeFlow for AlwaysAuthorizingFlow {
-    type Error = Infallible;
+    type Error = AlwaysAuthorizingFlowError;
 
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
         _credential_kinds: VecNonEmpty<CredentialKind>,
     ) -> Result<AuthorizeOutcome, Self::Error> {
-        Ok(AuthorizeOutcome::Authorized(self.documents.clone(), context))
+        let documents = self.authorize_result.clone().map_err(AlwaysAuthorizingFlowError)?;
+
+        let outcome = AuthorizeOutcome::Authorized(documents.clone(), context);
+
+        Ok(outcome)
     }
 }
 

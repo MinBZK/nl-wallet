@@ -276,7 +276,7 @@ impl ErrorWithCode for AuthorizationRequestError {
 
             Self::NoValidScope(_) => AuthorizationErrorCode::InvalidScope,
 
-            Self::AuthorizationCodeFlow(_) => AuthorizationErrorCode::ServerError,
+            Self::AuthorizationCodeFlow(error) => error.error_code(),
 
             Self::CompleteAuthorization(error) => error.error_code(),
         }
