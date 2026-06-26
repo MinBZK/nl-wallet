@@ -511,7 +511,7 @@ impl From<CredentialRequestError> for CredentialErrorCode {
 
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
-pub enum GetRequestErrorCode {
+pub enum GetAuthRequestErrorCode {
     InvalidRequest,
     ExpiredEphemeralId,
     ExpiredSession,
@@ -526,7 +526,7 @@ pub enum GetRequestErrorCode {
     Other(String),
 }
 
-impl ErrorStatusCode for GetRequestErrorCode {
+impl ErrorStatusCode for GetAuthRequestErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
@@ -542,7 +542,7 @@ impl ErrorStatusCode for GetRequestErrorCode {
     }
 }
 
-impl From<GetAuthRequestError> for GetRequestErrorCode {
+impl From<GetAuthRequestError> for GetAuthRequestErrorCode {
     fn from(value: GetAuthRequestError) -> Self {
         match value {
             GetAuthRequestError::Session(SessionError::SessionStore(_)) => Self::ServerError,

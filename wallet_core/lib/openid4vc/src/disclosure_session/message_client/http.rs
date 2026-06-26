@@ -17,7 +17,7 @@ use super::VpMessageClient;
 use super::VpMessageClientError;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::DisclosureErrorResponse;
-use crate::errors::GetRequestErrorCode;
+use crate::errors::GetAuthRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::VpAuthorizationRequest;
@@ -96,7 +96,7 @@ impl VpMessageClient for HttpVpMessageClient {
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
-                let jwt = Self::get_body_from_response::<GetRequestErrorCode>(response)
+                let jwt = Self::get_body_from_response::<GetAuthRequestErrorCode>(response)
                     .await?
                     .parse()?;
 

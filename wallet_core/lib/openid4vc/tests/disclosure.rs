@@ -54,7 +54,7 @@ use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
 use mdoc::holder::disclosure::PartialMdoc;
 use openid4vc::AuthorizationErrorResponse;
-use openid4vc::GetRequestErrorCode;
+use openid4vc::GetAuthRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VpAuthorizationErrorCode;
 use openid4vc::disclosure_session::DisclosableAttestations;
@@ -653,7 +653,7 @@ async fn test_client_and_server_cancel_after_created() {
     assert_matches!(
         error,
         VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthGetResponse(error)))
-            if error.error_response.error == GetRequestErrorCode::CancelledSession
+            if error.error_response.error == GetAuthRequestErrorCode::CancelledSession
     );
 }
 

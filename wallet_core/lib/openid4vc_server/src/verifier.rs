@@ -28,7 +28,7 @@ use http_utils::urls::CorsOrigin;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use openid4vc::DisclosureErrorResponse;
-use openid4vc::GetRequestErrorCode;
+use openid4vc::GetAuthRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
@@ -222,7 +222,7 @@ async fn retrieve_request<S, US, UC, K, C>(
     State(state): State<Arc<ApplicationState<S, US, C>>>,
     Path(identifier): Path<String>,
     Form(wallet_request): Form<WalletRequest>,
-) -> Result<RequestUriRespone, DisclosureErrorResponse<GetRequestErrorCode>>
+) -> Result<RequestUriRespone, DisclosureErrorResponse<GetAuthRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
     US: UseCases<Key = K, UseCase = UC>,
