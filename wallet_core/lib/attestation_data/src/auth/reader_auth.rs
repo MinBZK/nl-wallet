@@ -84,7 +84,7 @@ impl ReaderRegistration {
         Ok(())
     }
 
-    #[cfg(feature = "mock")]
+    #[cfg(any(test, feature = "mock"))]
     pub fn to_certificate_configuration(
         &self,
     ) -> Result<crypto::x509::CertificateConfiguration, crypto::x509::CertificateError> {
