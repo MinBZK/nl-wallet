@@ -183,10 +183,6 @@ mod tests {
     use crate::x509::DistinguishedName;
     use crate::x509::DistinguishedNameError;
     use crate::x509::NO_SAN;
-    use crate::x509::test::assert_x509_common_name;
-    use crate::x509::test::assert_x509_country_name;
-    use crate::x509::test::assert_x509_organization_identifier;
-    use crate::x509::test::assert_x509_organization_name;
 
     const CN_OID: &Oid = &oid!(2.5.4.3);
     const C_OID: &Oid = &oid!(2.5.4.6);
@@ -364,5 +360,29 @@ mod tests {
         assert_x509_country_name(x509_cert.subject(), &dn.country_name);
         assert_x509_organization_name(x509_cert.subject(), &dn.organization_name);
         assert_x509_organization_identifier(x509_cert.subject(), &dn.organization_identifier);
+    }
+
+    fn assert_x509_common_name(x509name: &X509Name, common_name: &str) {
+        itertools::assert_equal(x509name.iter_common_name().map(|a| a.as_str().unwrap()), [common_name]);
+    }
+
+    fn assert_x509_country_name(x509name: &X509Name, country_name: &str) {
+        itertools::assert_equal(x509name.iter_country().map(|a| a.as_str().unwrap()), [country_name]);
+    }
+
+    fn assert_x509_organization_name(x509name: &X509Name, organization_name: &str) {
+        itertools::assert_equal(
+            x509name.iter_organization().map(|a| a.as_str().unwrap()),
+            [organization_name],
+        );
+    }
+
+    fn assert_x509_organization_identifier(x509name: &X509Name, organization_identifier: &str) {
+        itertools::assert_equal(
+            x509name
+                .iter_by_oid(DN_TYPE_ORGANIZATION_IDENTIFIER_OID)
+                .map(|a| a.as_str().unwrap()),
+            [organization_identifier],
+        );
     }
 }

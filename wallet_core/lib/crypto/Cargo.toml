@@ -21,8 +21,6 @@ generate = ["dep:time", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 mock = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 mock_secure_keys = []
-# Include test functions
-test = []
 
 [dependencies]
 aes-gcm.workspace = true

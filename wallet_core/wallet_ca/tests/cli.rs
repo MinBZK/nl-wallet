@@ -14,10 +14,6 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::SubjectAltNameUri;
-use crypto::x509::test::assert_x509_common_name;
-use crypto::x509::test::assert_x509_country_name;
-use crypto::x509::test::assert_x509_organization_identifier;
-use crypto::x509::test::assert_x509_organization_name;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
@@ -141,15 +137,11 @@ fn assert_generated_certificate(
     assert_eq!(crt_pem.label, "CERTIFICATE");
     let crt = crt_pem.parse_x509()?;
 
-    assert_x509_common_name(crt.issuer(), &expected_issuer_dn.common_name);
-    assert_x509_country_name(crt.issuer(), &expected_issuer_dn.country_name);
-    assert_x509_organization_name(crt.issuer(), &expected_issuer_dn.organization_name);
-    assert_x509_organization_identifier(crt.issuer(), &expected_issuer_dn.organization_identifier);
+    let issuer_dn = DistinguishedName::try_from(crt.issuer())?;
+    assert_eq!(&issuer_dn, expected_issuer_dn);
 
-    assert_x509_common_name(crt.subject(), &expected_subject_dn.common_name);
-    assert_x509_country_name(crt.subject(), &expected_subject_dn.country_name);
-    assert_x509_organization_name(crt.subject(), &expected_subject_dn.organization_name);
-    assert_x509_organization_identifier(crt.subject(), &expected_subject_dn.organization_identifier);
+    let subject_dn = DistinguishedName::try_from(crt.subject())?;
+    assert_eq!(&subject_dn, expected_subject_dn);
 
     // verify SAN URI
     if let Some(expected_san_uri) = expected_san_uri {

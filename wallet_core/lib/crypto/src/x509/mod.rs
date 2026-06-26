@@ -53,8 +53,6 @@ mod dn;
 mod key_identifier;
 #[cfg(any(test, feature = "generate"))]
 mod san;
-#[cfg(any(test, feature = "test"))]
-pub mod test;
 mod usage;
 
 #[cfg(any(test, feature = "generate"))]

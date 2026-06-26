@@ -39,4 +39,4 @@ rand_core.workspace = true
 time.workspace = true
 
 attestation_data = { path = "../lib/attestation_data", features = ["mock"] }
-crypto = { path = "../lib/crypto", features = ["generate", "mock", "test"] }
+crypto = { path = "../lib/crypto", features = ["generate", "mock"] }
