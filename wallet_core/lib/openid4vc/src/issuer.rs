@@ -339,7 +339,7 @@ pub struct Issuer<K, L, S, N> {
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, L> {
     credential_configs: CredentialConfigurations<K, L>,
-    wia_config: Option<WiaConfig>,
+    wia_config: WiaConfig,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
     accepted_wallet_client_ids: Vec<String>,
@@ -440,7 +440,7 @@ where
         batch_size: NonZeroU8,
         wallet_client_ids: Vec<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
-        wia_config: Option<WiaConfig>,
+        wia_config: WiaConfig,
         sessions: Arc<S>,
         proof_nonce_store: N,
     ) -> Result<Self, CredentialConfigurationsError> {
@@ -859,18 +859,12 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
     pub(super) fn verify_wia(&self, wia_disclosure: &WiaDisclosure) -> Result<(), WiaError> {
         let issuer_identifier = self.issuer_data.metadata.credential_issuer.as_ref();
 
-        self.issuer_data
-            .wia_config
-            .as_ref()
-            .map(|wia_config| {
-                wia_disclosure.verify(
-                    &wia_config.wia_trust_anchors,
-                    issuer_identifier,
-                    self.issuer_data.accepted_wallet_client_ids.as_ref(),
-                    None,
-                )
-            })
-            .transpose()?;
+        wia_disclosure.verify(
+            &self.issuer_data.wia_config.wia_trust_anchors,
+            issuer_identifier,
+            self.issuer_data.accepted_wallet_client_ids.as_ref(),
+            None,
+        )?;
 
         Ok(())
     }
@@ -961,20 +955,14 @@ impl Session<AuthCodeIssued> {
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
 
-        issuer_data
-            .wia_config
-            .as_ref()
-            .map(|wia_config| {
-                wia_disclosure
-                    .verify(
-                        &wia_config.wia_trust_anchors,
-                        issuer_data.metadata.issuer_identifier().as_ref(),
-                        &issuer_data.accepted_wallet_client_ids,
-                        None,
-                    )
-                    .map_err(TokenRequestError::Wia)
-            })
-            .transpose()?;
+        wia_disclosure
+            .verify(
+                &issuer_data.wia_config.wia_trust_anchors,
+                issuer_data.metadata.issuer_identifier().as_ref(),
+                &issuer_data.accepted_wallet_client_ids,
+                None,
+            )
+            .map_err(TokenRequestError::Wia)?;
 
         build_token_response(
             token_request,

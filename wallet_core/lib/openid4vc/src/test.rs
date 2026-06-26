@@ -225,9 +225,9 @@ where
         NonZeroU8::new(4).unwrap(),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         config_params,
-        Some(WiaConfig {
+        WiaConfig {
             wia_trust_anchors: trust_anchors.clone(),
-        }),
+        },
         sessions,
         MemoryNonceStore::new(),
     )

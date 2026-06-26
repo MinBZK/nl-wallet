@@ -833,7 +833,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     let serve_status_lists = settings.issuer_settings.status_lists.serve;
 
     let (issuer, _, store_connection, server_settings) =
-        settings.issuer_settings.into_issuer(hsm.clone(), None).await.unwrap();
+        settings.issuer_settings.into_issuer(hsm.clone()).await.unwrap();
 
     let issuer = Arc::new(issuer);
 
@@ -892,7 +892,7 @@ pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings
 
     let serve_status_lists = settings.0.status_lists.serve;
 
-    let (issuer, _, _, server_settings) = settings.0.into_issuer(hsm.clone(), None).await.unwrap();
+    let (issuer, _, _, server_settings) = settings.0.into_issuer(hsm.clone()).await.unwrap();
 
     let issuer = Arc::new(issuer);
 
