@@ -1,6 +1,5 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/services.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../../../../l10n/generated/app_localizations.dart';
@@ -30,21 +29,23 @@ class RequestBiometricsUsecaseImpl extends RequestBiometricsUseCase {
         l10n,
       );
       if (authenticated) return const Result.success(BiometricAuthenticationResult.success);
-    } on PlatformException catch (e) {
+    } on LocalAuthException catch (e) {
       final canCheckBiometrics = await _localAuthentication.canCheckBiometrics;
-      if (e.code == auth_error.notAvailable) {
+      if (e.code == LocalAuthExceptionCode.noBiometricHardware ||
+          e.code == LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable) {
         Fimber.e('Not available. Supports biometrics: $canCheckBiometrics', ex: e);
         // "if" check to cover issue where android reports not available due to incorrect system setting (https://github.com/flutter/flutter/issues/96646)
         if (canCheckBiometrics && _targetPlatform == TargetPlatform.android) {
           return const Result.success(BiometricAuthenticationResult.setupRequired);
         }
-      } else if (e.code == auth_error.notEnrolled) {
+      } else if (e.code == LocalAuthExceptionCode.noBiometricsEnrolled) {
         Fimber.e('Not enrolled. Supports biometrics: $canCheckBiometrics', ex: e);
         return const Result.success(BiometricAuthenticationResult.setupRequired);
-      } else if (e.code == auth_error.lockedOut || e.code == auth_error.permanentlyLockedOut) {
+      } else if (e.code == LocalAuthExceptionCode.temporaryLockout ||
+          e.code == LocalAuthExceptionCode.biometricLockout) {
         return const Result.success(BiometricAuthenticationResult.lockedOut);
       } else {
-        Fimber.e('Other PlatformException', ex: e);
+        Fimber.e('Other LocalAuthException', ex: e);
         return Result.error(GenericError(_kDefaultErrorMessage, sourceError: e));
       }
     } catch (ex) {
