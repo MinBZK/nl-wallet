@@ -182,6 +182,10 @@ impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
 
         Ok(AuthorizeOutcome::RedirectTo(consent_url))
     }
+
+    async fn cleanup(&self) -> Result<(), Self::Error> {
+        self.state_bridge_store.cleanup().await.map_err(Error::StateBridge)
+    }
 }
 
 // Bundled CSS — placeholder in dev, full bundle in release. Dev builds are served via ServeDir.
