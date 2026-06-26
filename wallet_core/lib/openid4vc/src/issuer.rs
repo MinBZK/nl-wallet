@@ -864,22 +864,23 @@ where
 }
 
 impl<K, L, S, N> Issuer<K, L, S, N> {
-    pub(super) fn verify_wia(&self, wia_disclosure: &WiaDisclosure) -> Result<Option<Nonce>, WiaError> {
+    pub(super) fn verify_wia(&self, wia_disclosure: &WiaDisclosure) -> Result<(), WiaError> {
         let issuer_identifier = self.issuer_data.metadata.credential_issuer.as_ref();
 
         self.issuer_data
             .wia_config
             .as_ref()
             .map(|wia_config| {
-                let (_, wia_nonce) = wia_disclosure.verify(
+                wia_disclosure.verify(
                     &wia_config.wia_trust_anchors,
                     issuer_identifier,
                     self.issuer_data.accepted_wallet_client_ids.as_ref(),
-                )?;
-
-                Ok(wia_nonce)
+                    None,
+                )
             })
-            .transpose()
+            .transpose()?;
+
+        Ok(())
     }
 }
 
@@ -994,6 +995,7 @@ impl Session<AuthCodeIssued> {
                         &wia_config.wia_trust_anchors,
                         server_url.as_ref().as_str(),
                         accepted_wallet_client_ids,
+                        None,
                     )
                     .map_err(TokenRequestError::Wia)
             })

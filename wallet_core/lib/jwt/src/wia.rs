@@ -119,8 +119,8 @@ impl WiaDisclosure {
 
 #[derive(Debug, thiserror::Error)]
 pub enum WiaError {
-    #[error("nonce is missing from WIA payload")]
-    MissingNonce,
+    #[error("incorrect nonce")]
+    IncorrectNonce,
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[source] JwkConversionError),
     #[error("JWT error: {0}")]
@@ -135,7 +135,8 @@ impl WiaDisclosure {
         trust_anchors: &TrustAnchors,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
-    ) -> Result<(VerifyingKey, Nonce), WiaError> {
+        expected_nonce: Option<&Nonce>,
+    ) -> Result<VerifyingKey, WiaError> {
         let (_, verified_wia_claims) = self
             .0
             .parse_and_verify_against_trust_anchors(
@@ -160,9 +161,11 @@ impl WiaDisclosure {
             .parse_and_verify(EcdsaDecodingKey::from(&wia_pubkey), &validations)
             .map_err(WiaError::Jwt)?;
 
-        let nonce = wia_disclosure_claims.nonce.ok_or(WiaError::MissingNonce)?;
+        if wia_disclosure_claims.nonce.as_ref() != expected_nonce {
+            return Err(WiaError::IncorrectNonce);
+        }
 
-        Ok((wia_pubkey, nonce))
+        Ok(wia_pubkey)
     }
 }
 
@@ -215,6 +218,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
+    use rstest::rstest;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -277,22 +281,26 @@ mod tests {
         .into()
     }
 
+    #[rstest]
     #[test]
-    fn verify_valid() {
+    fn verify_valid(#[values(Some(Nonce::new_random()), None)] nonce: Option<Nonce>) {
         let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
 
         let disclosure = WiaDisclosure::new(
             make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
+            make_pop(&holder_key, nonce.clone(), AUD),
         );
 
-        let (_, nonce) = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+        let _ = disclosure
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID.to_string()],
+                nonce.as_ref(),
+            )
             .unwrap();
-
-        assert!(!nonce.as_ref().is_empty());
     }
 
     #[test]
@@ -301,14 +309,20 @@ mod tests {
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let wrong_key = SigningKey::random(&mut OsRng);
+        let nonce = Some(Nonce::new_random());
 
         let disclosure = WiaDisclosure::new(
             make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&wrong_key, Some(Nonce::new_random()), AUD),
+            make_pop(&wrong_key, nonce.clone(), AUD),
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID.to_string()],
+                nonce.as_ref(),
+            )
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -319,14 +333,20 @@ mod tests {
         let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
+        let nonce = Some(Nonce::new_random());
 
         let disclosure = WiaDisclosure::new(
             make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&holder_key, Some(Nonce::new_random()), "https://wrong.example.com/"),
+            make_pop(&holder_key, nonce.clone(), "https://wrong.example.com/"),
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID.to_string()],
+                nonce.as_ref(),
+            )
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -337,14 +357,20 @@ mod tests {
         let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
+        let nonce = Some(Nonce::new_random());
 
         let disclosure = WiaDisclosure::new(
             make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
+            make_pop(&holder_key, nonce.clone(), AUD),
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &["other-client".to_string()])
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &["other-client".to_string()],
+                nonce.as_ref(),
+            )
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -362,10 +388,15 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID.to_string()],
+                Some(&Nonce::new_random()),
+            )
             .unwrap_err();
 
-        assert_matches!(error, WiaError::MissingNonce);
+        assert_matches!(error, WiaError::IncorrectNonce);
     }
 
     #[test]
@@ -373,6 +404,7 @@ mod tests {
         let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
+        let nonce = Some(Nonce::new_random());
 
         let disclosure = WiaDisclosure::new(
             make_wia(
@@ -380,11 +412,16 @@ mod tests {
                 holder_key.verifying_key(),
                 &MockTimeGenerator::new(Utc::now() + TimeDelta::weeks(1)), // WIA will be valid in a week from now
             ),
-            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
+            make_pop(&holder_key, nonce.clone(), AUD),
         );
 
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID.to_string()],
+                nonce.as_ref(),
+            )
             .unwrap_err();
 
         assert_matches!(
