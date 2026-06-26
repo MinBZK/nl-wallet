@@ -165,6 +165,7 @@ mod tests {
             writer.extend_from_slice(&[0x0C, value_bytes.len() as u8]);
             writer.extend_from_slice(value_bytes);
         }
+        assert!(writer.len() < 0x100, "arguments are too large in bytes");
         writer[1] = writer.len() as u8 - 2;
         writer
     }

@@ -115,6 +115,7 @@ mod tests {
             der_bytes.extend_from_slice(&[0x06, bytes.len() as u8]);
             der_bytes.extend_from_slice(bytes);
         }
+        assert!(der_bytes.len() < 0x100, "arguments are too large in bytes");
         der_bytes[1] = der_bytes.len() as u8 - 2;
         der_bytes
     }
