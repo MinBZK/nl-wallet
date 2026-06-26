@@ -148,7 +148,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         );
 
         let wia = wia_client
-            .issue_wia(client_id.clone(), None)
+            .issue_wia(credential_issuer.to_string(), None)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
