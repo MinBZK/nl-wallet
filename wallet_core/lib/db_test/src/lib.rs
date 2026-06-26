@@ -207,12 +207,16 @@ impl DbSetup {
             .username(&DB_USERNAME)
             .password(&DB_PASSWORD)
             .database(&DB_DEFAULT_DATABASE);
-        let mut connection = tokio::time::timeout(Duration::from_secs(3), async {
+        let mut connection = tokio::time::timeout(Duration::from_secs(30), async {
             let mut interval = tokio::time::interval(Duration::from_millis(300));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
                 interval.tick().await;
-                if let Ok(connection) = PgConnection::connect_with(&connect_options).await {
+                // Per-attempt timeout: under a connection storm at container startup a handshake can
+                // stall, which would otherwise consume the whole budget instead of retrying.
+                if let Ok(Ok(connection)) =
+                    tokio::time::timeout(Duration::from_secs(3), PgConnection::connect_with(&connect_options)).await
+                {
                     // Wrap in dropper to ensure connection is closed on dropped and advisory locks are released
                     break AsyncDropper::new(connection.into());
                 }
