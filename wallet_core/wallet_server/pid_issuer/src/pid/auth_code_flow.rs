@@ -23,6 +23,7 @@ use itertools::Itertools;
 use jwk_simple::Key;
 use openid4vc::AuthorizationErrorCode;
 use openid4vc::BodyOrRedirectErrorResponse;
+use openid4vc::ErrorWithCode;
 use openid4vc::RedirectError;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -105,23 +106,25 @@ pub enum Error {
     CompleteAuthorization(#[source] CompleteAuthorizationError),
 }
 
-impl From<Error> for AuthorizationErrorCode {
-    fn from(value: Error) -> Self {
-        match value {
-            Error::UnsupportedCredentialType(_) => Self::InvalidScope,
+impl ErrorWithCode for Error {
+    type ErrorCode = AuthorizationErrorCode;
 
-            Error::Digid(_)
-            | Error::StateBridge(_)
-            | Error::NoAttributesFound
-            | Error::Brp(_)
-            | Error::InvalidIssuableDocuments
-            | Error::NoBsnFound
-            | Error::RetrievingBsn(_)
-            | Error::BsnUnexpectedType
-            | Error::Hmac(_)
-            | Error::InsertingRecoveryCode(_) => Self::ServerError,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::UnsupportedCredentialType(_) => AuthorizationErrorCode::InvalidScope,
 
-            Error::CompleteAuthorization(error) => error.into(),
+            Self::Digid(_)
+            | Self::StateBridge(_)
+            | Self::NoAttributesFound
+            | Self::Brp(_)
+            | Self::InvalidIssuableDocuments
+            | Self::NoBsnFound
+            | Self::RetrievingBsn(_)
+            | Self::BsnUnexpectedType
+            | Self::Hmac(_)
+            | Self::InsertingRecoveryCode(_) => AuthorizationErrorCode::ServerError,
+
+            Self::CompleteAuthorization(error) => error.error_code(),
         }
     }
 }

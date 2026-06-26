@@ -31,6 +31,7 @@ use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use openid4vc::AuthorizationErrorCode;
 use openid4vc::BodyOrRedirectErrorResponse;
+use openid4vc::ErrorWithCode;
 use openid4vc::RedirectError;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -87,14 +88,18 @@ pub enum Error {
     CompleteAuthorization(#[source] CompleteAuthorizationError),
 }
 
-impl From<Error> for AuthorizationErrorCode {
-    fn from(value: Error) -> Self {
-        match value {
-            Error::MissingIssuerState | Error::UnknownUsecase(_) | Error::NotConsentUsecase(_) => Self::InvalidRequest,
+impl ErrorWithCode for Error {
+    type ErrorCode = AuthorizationErrorCode;
 
-            Error::StateBridge(_) => Self::ServerError,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::MissingIssuerState | Self::UnknownUsecase(_) | Self::NotConsentUsecase(_) => {
+                AuthorizationErrorCode::InvalidRequest
+            }
 
-            Error::CompleteAuthorization(error) => error.into(),
+            Self::StateBridge(_) => AuthorizationErrorCode::ServerError,
+
+            Self::CompleteAuthorization(error) => error.error_code(),
         }
     }
 }

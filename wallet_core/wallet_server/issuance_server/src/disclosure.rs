@@ -9,6 +9,8 @@ use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use itertools::Itertools;
+use openid4vc::BoxedErrorWithCode;
+use openid4vc::ErrorWithCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
@@ -17,8 +19,6 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer::PreAuthorizedSessionError;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureResultHandler;
-use openid4vc::verifier::DisclosureResultHandlerError;
-use openid4vc::verifier::ToPostAuthResponseErrorCode;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -102,8 +102,10 @@ pub enum IssuanceResultHandlerError {
     CredentialOfferSerialization(#[source] serde_json::Error),
 }
 
-impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
-    fn to_error_code(&self) -> PostAuthResponseErrorCode {
+impl ErrorWithCode for IssuanceResultHandlerError {
+    type ErrorCode = PostAuthResponseErrorCode;
+
+    fn error_code(&self) -> Self::ErrorCode {
         match self {
             IssuanceResultHandlerError::NoIssuableAttestations => PostAuthResponseErrorCode::NoIssuableAttestations,
             _ => PostAuthResponseErrorCode::ServerError,
@@ -124,24 +126,24 @@ where
         &self,
         usecase_id: &str,
         disclosed: &UniqueIdVec<DisclosedAttestations>,
-    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
+    ) -> Result<HashMap<String, String>, BoxedErrorWithCode<PostAuthResponseErrorCode>> {
         let to_issue = self
             .attributes_fetcher
             .attributes(usecase_id, disclosed)
             .await
-            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttributesFetching(e.into())))?;
+            .map_err(|e| BoxedErrorWithCode::new(IssuanceResultHandlerError::AttributesFetching(e.into())))?;
 
         // Return a specific error code if there are no attestations to be issued so the wallet
         // can distinguish this case from other (error) cases.
         let to_issue: VecNonEmpty<_> = to_issue
             .try_into()
-            .map_err(|_| DisclosureResultHandlerError::new(IssuanceResultHandlerError::NoIssuableAttestations))?;
+            .map_err(|_| BoxedErrorWithCode::new(IssuanceResultHandlerError::NoIssuableAttestations))?;
 
         let credential_offer = self
             .issuer
             .new_preauthorized_session(to_issue)
             .await
-            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::PreAuthorizedSession(e)))?;
+            .map_err(|e| BoxedErrorWithCode::new(IssuanceResultHandlerError::PreAuthorizedSession(e)))?;
 
         let query_params = HashMap::from([CredentialOfferContainer::new_offer(credential_offer).into_query_pair()]);
         Ok(query_params)
@@ -172,6 +174,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
+    use openid4vc::ErrorWithCode;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_offer::CredentialOffer;
@@ -344,7 +347,7 @@ mod tests {
             .unwrap_err();
 
         assert!(matches!(
-            err.as_ref().to_error_code(),
+            err.error_code(),
             PostAuthResponseErrorCode::NoIssuableAttestations,
         ));
     }

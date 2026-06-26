@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -33,6 +34,50 @@ use crate::verifier::SessionStatus;
 use crate::verifier::SessionStatusError;
 use crate::verifier::WithRedirectUri;
 
+pub trait ErrorWithCode: Error {
+    type ErrorCode: Display;
+
+    fn error_code(&self) -> Self::ErrorCode;
+}
+
+/// A type that that wraps a `Box<dyn>` error and implements both the `Error` and `ToErrorCode` traits. This allows it
+/// to be used as an error source for `thiserror` error types.
+#[derive(Debug, derive_more::Display)]
+pub struct BoxedErrorWithCode<T>(Box<dyn ErrorWithCode<ErrorCode = T> + Send + Sync + 'static>);
+
+impl<T> BoxedErrorWithCode<T> {
+    pub fn new(error: impl ErrorWithCode<ErrorCode = T> + Send + Sync + 'static) -> Self {
+        Self(Box::new(error))
+    }
+}
+
+// Implement the `Error` trait manually, in order to  work around a limitation of `thiserror`'s `#[source]` annotation.
+// Unfortunately this annotation does not appear to work with boxed errors that are not `Box<dyn Error>`, but instead a
+// superset of traits.
+impl<T> Error for BoxedErrorWithCode<T>
+where
+    T: Debug,
+{
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        let Self(inner) = self;
+
+        Some(inner.as_ref())
+    }
+}
+
+impl<T> ErrorWithCode for BoxedErrorWithCode<T>
+where
+    T: Debug + Display,
+{
+    type ErrorCode = T;
+
+    fn error_code(&self) -> Self::ErrorCode {
+        let Self(inner) = self;
+
+        inner.error_code()
+    }
+}
+
 /// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[serde_as]
 #[skip_serializing_none]
@@ -47,14 +92,12 @@ pub struct ErrorResponse<T> {
 
 impl<E, T> From<E> for ErrorResponse<T>
 where
-    E: Display + Into<T>,
+    E: Display + ErrorWithCode<ErrorCode = T>,
 {
     fn from(value: E) -> Self {
-        let error_description = Some(value.to_string());
-
         Self {
-            error: value.into(),
-            error_description,
+            error: value.error_code(),
+            error_description: Some(value.to_string()),
             error_uri: None,
         }
     }
@@ -103,7 +146,7 @@ where
 
 impl<E, T> From<RedirectError<E>> for RedirectErrorResponse<T>
 where
-    E: Error + Into<T>,
+    E: Error + ErrorWithCode<ErrorCode = T>,
 {
     fn from(value: RedirectError<E>) -> Self {
         let RedirectError {
@@ -142,7 +185,7 @@ impl<T> BodyOrRedirectErrorResponse<T> {
 
 impl<E, T> From<RedirectError<E>> for BodyOrRedirectErrorResponse<T>
 where
-    E: Error + Into<T>,
+    E: Error + ErrorWithCode<ErrorCode = T>,
 {
     fn from(value: RedirectError<E>) -> Self {
         Self::new_redirect(value.into())
@@ -224,26 +267,28 @@ impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode
     }
 }
 
-impl From<AuthorizationRequestError> for AuthorizationErrorCode {
-    fn from(value: AuthorizationRequestError) -> Self {
-        match value {
-            AuthorizationRequestError::InvalidAuthorizationRequest(_) => Self::InvalidRequest,
+impl ErrorWithCode for AuthorizationRequestError {
+    type ErrorCode = AuthorizationErrorCode;
 
-            AuthorizationRequestError::NoValidScope(_) => Self::InvalidScope,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::InvalidAuthorizationRequest(_) => AuthorizationErrorCode::InvalidRequest,
 
-            AuthorizationRequestError::AuthorizationCodeFlow(_) => Self::ServerError,
+            Self::NoValidScope(_) => AuthorizationErrorCode::InvalidScope,
 
-            AuthorizationRequestError::CompleteAuthorization(error) => error.into(),
+            Self::AuthorizationCodeFlow(_) => AuthorizationErrorCode::ServerError,
+
+            Self::CompleteAuthorization(error) => error.error_code(),
         }
     }
 }
 
-impl From<CompleteAuthorizationError> for AuthorizationErrorCode {
-    fn from(value: CompleteAuthorizationError) -> Self {
-        match value {
-            CompleteAuthorizationError::IssuableDocument(_) | CompleteAuthorizationError::SessionStore(_) => {
-                Self::ServerError
-            }
+impl ErrorWithCode for CompleteAuthorizationError {
+    type ErrorCode = AuthorizationErrorCode;
+
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::IssuableDocument(_) | Self::SessionStore(_) => AuthorizationErrorCode::ServerError,
         }
     }
 }
@@ -284,14 +329,16 @@ impl ErrorStatusCode for ParErrorCode {
     }
 }
 
-impl From<ParError> for ParErrorCode {
-    fn from(value: ParError) -> Self {
-        match value {
-            ParError::UnknownClient(_) => Self::InvalidClient,
+impl ErrorWithCode for ParError {
+    type ErrorCode = ParErrorCode;
 
-            ParError::InvalidRedirectUri(_) => Self::InvalidRequest,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::UnknownClient(_) => ParErrorCode::InvalidClient,
 
-            ParError::Store(_) => Self::ServerError,
+            Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
+
+            Self::Store(_) => ParErrorCode::ServerError,
         }
     }
 }
@@ -335,30 +382,30 @@ impl ErrorStatusCode for TokenErrorCode {
     }
 }
 
-impl From<TokenRequestError> for TokenErrorCode {
-    fn from(err: TokenRequestError) -> Self {
-        match err {
-            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_)) => Self::ServerError,
+impl ErrorWithCode for TokenRequestError {
+    type ErrorCode = TokenErrorCode;
 
-            TokenRequestError::SessionNotFound => Self::InvalidGrant,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
 
-            TokenRequestError::IssuanceError(_) => Self::InvalidRequest,
+            Self::SessionNotFound => TokenErrorCode::InvalidGrant,
 
-            TokenRequestError::UnexpectedGrantType { .. } => Self::UnsupportedGrantType,
+            Self::IssuanceError(_) => TokenErrorCode::InvalidRequest,
 
-            TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => Self::InvalidGrant,
+            Self::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
 
-            TokenRequestError::MissingClientId | TokenRequestError::UnknownClient(_) => Self::InvalidClient,
+            Self::MissingCodeVerifier | Self::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
 
-            TokenRequestError::ClientIdMismatch { .. } => Self::InvalidGrant,
+            Self::MissingClientId | Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
 
-            TokenRequestError::ScopeMismatch { .. } => Self::InvalidScope,
+            Self::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
 
-            TokenRequestError::MissingRedirectUri | TokenRequestError::RedirectUriMismatch { .. } => {
-                Self::InvalidRequest
-            }
+            Self::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
 
-            TokenRequestError::CredentialConfigNotOffered(_) => Self::ServerError,
+            Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => TokenErrorCode::InvalidRequest,
+
+            Self::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
         }
     }
 }
@@ -389,18 +436,20 @@ impl ErrorStatusCode for CredentialPreviewErrorCode {
     }
 }
 
-impl From<CredentialPreviewError> for CredentialPreviewErrorCode {
-    fn from(value: CredentialPreviewError) -> Self {
-        match value {
-            CredentialPreviewError::IssuanceError(IssuanceError::SessionStore(_)) => Self::ServerError,
+impl ErrorWithCode for CredentialPreviewError {
+    type ErrorCode = CredentialPreviewErrorCode;
 
-            CredentialPreviewError::IssuanceError(_) => Self::InvalidRequest,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialPreviewErrorCode::ServerError,
 
-            CredentialPreviewError::MalformedToken | CredentialPreviewError::Unauthorized => Self::InvalidToken,
+            Self::IssuanceError(_) => CredentialPreviewErrorCode::InvalidRequest,
 
-            CredentialPreviewError::MissingCredentialConfiguration(_) => Self::ServerError,
+            Self::MalformedToken | CredentialPreviewError::Unauthorized => CredentialPreviewErrorCode::InvalidToken,
 
-            CredentialPreviewError::CredentialPreviewsNotFound => Self::InvalidRequest,
+            Self::MissingCredentialConfiguration(_) => CredentialPreviewErrorCode::ServerError,
+
+            Self::CredentialPreviewsNotFound => CredentialPreviewErrorCode::InvalidRequest,
         }
     }
 }
@@ -454,55 +503,54 @@ impl ErrorStatusCode for CredentialErrorCode {
     }
 }
 
-impl From<CredentialRequestError> for CredentialErrorCode {
-    fn from(value: CredentialRequestError) -> Self {
+impl ErrorWithCode for CredentialRequestError {
+    type ErrorCode = CredentialErrorCode;
+
+    fn error_code(&self) -> Self::ErrorCode {
         // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
         // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
-        match value {
-            CredentialRequestError::IssuanceError(IssuanceError::UnexpectedState)
-            | CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(_))
-            | CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_)) => Self::InvalidCredentialRequest,
+        match self {
+            Self::IssuanceError(IssuanceError::UnexpectedState)
+            | Self::IssuanceError(IssuanceError::UnknownSession(_))
+            | Self::IssuanceError(IssuanceError::DpopInvalid(_)) => CredentialErrorCode::InvalidCredentialRequest,
 
-            CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_)) => Self::ServerError,
+            Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialErrorCode::ServerError,
 
-            CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => Self::InvalidToken,
+            Self::Unauthorized | Self::MalformedToken => CredentialErrorCode::InvalidToken,
 
-            CredentialRequestError::CredentialTypeNotOffered(_) => Self::UnknownCredentialConfiguration,
+            Self::CredentialTypeNotOffered(_) => CredentialErrorCode::UnknownCredentialConfiguration,
 
-            CredentialRequestError::UseBatchIssuance => Self::InvalidCredentialRequest,
+            Self::UseBatchIssuance => CredentialErrorCode::InvalidCredentialRequest,
 
-            CredentialRequestError::InvalidProofJwt(_) | CredentialRequestError::InvalidProofPublicKey(_) => {
-                Self::InvalidProof
+            Self::InvalidProofJwt(_) | Self::InvalidProofPublicKey(_) => CredentialErrorCode::InvalidProof,
+
+            Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
+
+            Self::ProofNonceStore(_) => CredentialErrorCode::ServerError,
+
+            Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
+
+            Self::Jwt(_) => CredentialErrorCode::InvalidProof,
+
+            Self::MissingCredentialConfiguration(_) => CredentialErrorCode::ServerError,
+
+            Self::CredentialTypeMismatch { .. } | Self::WrongNumberOfCredentialRequests => {
+                CredentialErrorCode::InvalidCredentialRequest
             }
 
-            CredentialRequestError::MissingProofNonce => Self::InvalidNonce,
+            Self::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
 
-            CredentialRequestError::ProofNonceStore(_) => Self::ServerError,
+            Self::MissingWia => CredentialErrorCode::InvalidCredentialRequest,
 
-            CredentialRequestError::InvalidNonce => Self::InvalidNonce,
-
-            CredentialRequestError::Jwt(_) => Self::InvalidProof,
-
-            CredentialRequestError::MissingCredentialConfiguration(_) => Self::ServerError,
-
-            CredentialRequestError::CredentialTypeMismatch { .. }
-            | CredentialRequestError::WrongNumberOfCredentialRequests => Self::InvalidCredentialRequest,
-
-            CredentialRequestError::MissingCredentialRequestPoP => Self::InvalidProof,
-
-            CredentialRequestError::MissingWia => Self::InvalidCredentialRequest,
-
-            CredentialRequestError::JwkConversion(_)
-            | CredentialRequestError::MdocConversion(_)
-            | CredentialRequestError::SdJwtConversion(_) => Self::ServerError,
-
-            CredentialRequestError::Wia(WiaError::MissingNonce) => Self::InvalidNonce,
-
-            CredentialRequestError::Wia(_) => Self::InvalidProof,
-
-            CredentialRequestError::ObtainStatusClaim(_) | CredentialRequestError::IncorrectNumberOfStatusClaims(_) => {
-                Self::ServerError
+            Self::JwkConversion(_) | Self::MdocConversion(_) | Self::SdJwtConversion(_) => {
+                CredentialErrorCode::ServerError
             }
+
+            Self::Wia(WiaError::MissingNonce) => CredentialErrorCode::InvalidNonce,
+
+            Self::Wia(_) => CredentialErrorCode::InvalidProof,
+
+            Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims(_) => CredentialErrorCode::ServerError,
         }
     }
 }
@@ -542,31 +590,35 @@ impl ErrorStatusCode for GetAuthRequestErrorCode {
     }
 }
 
-impl From<GetAuthRequestError> for GetAuthRequestErrorCode {
-    fn from(value: GetAuthRequestError) -> Self {
-        match value {
-            GetAuthRequestError::Session(SessionError::SessionStore(_)) => Self::ServerError,
+impl ErrorWithCode for GetAuthRequestError {
+    type ErrorCode = GetAuthRequestErrorCode;
 
-            GetAuthRequestError::Session(SessionError::UnknownSession(_)) => Self::UnknownSession,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::Session(SessionError::SessionStore(_)) => GetAuthRequestErrorCode::ServerError,
 
-            GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
-                Self::CancelledSession
+            Self::Session(SessionError::UnknownSession(_)) => GetAuthRequestErrorCode::UnknownSession,
+
+            Self::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
+                GetAuthRequestErrorCode::CancelledSession
             }
 
-            GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => Self::ExpiredSession,
+            Self::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
+                GetAuthRequestErrorCode::ExpiredSession
+            }
 
-            GetAuthRequestError::Session(SessionError::UnexpectedState(_)) => Self::InvalidRequest,
+            Self::Session(SessionError::UnexpectedState(_)) => GetAuthRequestErrorCode::InvalidRequest,
 
-            GetAuthRequestError::InvalidEphemeralId(_) => Self::InvalidRequest,
+            Self::InvalidEphemeralId(_) => GetAuthRequestErrorCode::InvalidRequest,
 
-            GetAuthRequestError::ExpiredEphemeralId(_) => Self::ExpiredEphemeralId,
+            Self::ExpiredEphemeralId(_) => GetAuthRequestErrorCode::ExpiredEphemeralId,
 
-            GetAuthRequestError::Jwt(_)
-            | GetAuthRequestError::ReturnUrlConfigurationMismatch
-            | GetAuthRequestError::UnknownUseCase(_) => Self::ServerError,
+            Self::Jwt(_) | Self::ReturnUrlConfigurationMismatch | Self::UnknownUseCase(_) => {
+                GetAuthRequestErrorCode::ServerError
+            }
 
-            GetAuthRequestError::QueryParametersMissing | GetAuthRequestError::QueryParametersDeserialization(_) => {
-                Self::InvalidRequest
+            Self::QueryParametersMissing | Self::QueryParametersDeserialization(_) => {
+                GetAuthRequestErrorCode::InvalidRequest
             }
         }
     }
@@ -609,27 +661,30 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
     }
 }
 
-impl From<PostAuthResponseError> for PostAuthResponseErrorCode {
-    fn from(value: PostAuthResponseError) -> Self {
-        match value {
-            PostAuthResponseError::Session(SessionError::SessionStore(_)) => Self::ServerError,
+impl ErrorWithCode for PostAuthResponseError {
+    type ErrorCode = PostAuthResponseErrorCode;
 
-            PostAuthResponseError::Session(SessionError::UnknownSession(_)) => Self::UnknownSession,
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::Session(SessionError::SessionStore(_)) => PostAuthResponseErrorCode::ServerError,
 
-            PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
-                Self::CancelledSession
+            Self::Session(SessionError::UnknownSession(_)) => PostAuthResponseErrorCode::UnknownSession,
+
+            Self::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
+                PostAuthResponseErrorCode::CancelledSession
             }
 
-            PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
-                Self::ExpiredSession
+            Self::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
+                PostAuthResponseErrorCode::ExpiredSession
             }
 
-            PostAuthResponseError::Session(SessionError::UnexpectedState(_))
-            | PostAuthResponseError::AuthResponse(_) => Self::InvalidRequest,
+            Self::Session(SessionError::UnexpectedState(_)) | Self::AuthResponse(_) => {
+                PostAuthResponseErrorCode::InvalidRequest
+            }
 
-            PostAuthResponseError::HandlingDisclosureResult(err) => err.as_ref().to_error_code(),
+            Self::HandlingDisclosureResult(err) => err.error_code(),
 
-            PostAuthResponseError::ResponseEncoding(_) => Self::ServerError,
+            Self::ResponseEncoding(_) => PostAuthResponseErrorCode::ServerError,
         }
     }
 }
@@ -899,6 +954,7 @@ mod axum {
 mod tests {
     use derive_more::Display;
 
+    use super::ErrorWithCode;
     use super::RedirectError;
     use super::RedirectErrorResponse;
 
@@ -912,9 +968,11 @@ mod tests {
         #[display("something_happened")]
         struct ExampleErrorCode;
 
-        impl From<ExampleError> for ExampleErrorCode {
-            fn from(_: ExampleError) -> Self {
-                Self
+        impl ErrorWithCode for ExampleError {
+            type ErrorCode = ExampleErrorCode;
+
+            fn error_code(&self) -> Self::ErrorCode {
+                ExampleErrorCode
             }
         }
 
