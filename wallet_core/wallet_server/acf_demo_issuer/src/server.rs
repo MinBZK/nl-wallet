@@ -50,11 +50,10 @@ pub fn build_consent_csp(wallet_redirect_uris: &VecNonEmpty<Url>) -> String {
         .map(|uri| match uri.scheme() {
             "http" | "https" => uri.origin().ascii_serialization(),
             scheme => format!("{scheme}:"),
-        })
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>()
+        .sorted()
+        .dedup()
         .join(" ");
+
 
     format!(
         "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; form-action 'self' \
