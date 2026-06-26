@@ -67,6 +67,7 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+use crate::metadata::well_known::WellKnownMetadata;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
@@ -732,16 +733,7 @@ where
 
         let result = Session::<AuthCodeIssued>::try_from(session)
             .map_err(TokenRequestError::IssuanceError)?
-            .process_token_request(
-                &token_request,
-                &self.issuer_data.accepted_wallet_client_ids,
-                dpop,
-                &self.issuer_data.server_url,
-                &self.issuer_data.credential_configs,
-                self.issuer_data.batch_size,
-                &wia_disclosure,
-                self.issuer_data.wia_config.as_ref(),
-            );
+            .process_token_request(&token_request, dpop, &wia_disclosure, &self.issuer_data);
 
         let (response, next) = match result {
             Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
@@ -945,56 +937,39 @@ impl Grant {
 }
 
 impl Session<AuthCodeIssued> {
-    #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
     fn process_token_request<K, L>(
         self,
         token_request: &TokenRequest,
-        accepted_wallet_client_ids: &[String],
         dpop: Dpop,
-        server_url: &BaseUrl,
-        credential_configurations: &CredentialConfigurations<K, L>,
-        batch_size: NonZeroU8,
         wia_disclosure: &WiaDisclosure,
-        wia_config: Option<&WiaConfig>,
+        issuer_data: &IssuerData<K, L>,
     ) -> ProcessTokenRequest {
-        let result = self.validate_and_build_token_response(
-            token_request,
-            dpop,
-            server_url,
-            credential_configurations,
-            batch_size,
-            wia_disclosure,
-            wia_config,
-            accepted_wallet_client_ids,
-        );
+        let result = self.validate_and_build_token_response(token_request, dpop, wia_disclosure, issuer_data);
 
-        self.finalize_token_response(accepted_wallet_client_ids, result)
+        self.finalize_token_response(&issuer_data.accepted_wallet_client_ids, result)
     }
 
-    #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
     fn validate_and_build_token_response<K, L>(
         &self,
         token_request: &TokenRequest,
         dpop: Dpop,
-        server_url: &BaseUrl,
-        credential_configurations: &CredentialConfigurations<K, L>,
-        batch_size: NonZeroU8,
         wia_disclosure: &WiaDisclosure,
-        wia_config: Option<&WiaConfig>,
-        accepted_wallet_client_ids: &[String],
+        issuer_data: &IssuerData<K, L>,
     ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
         let session_data = self.session_data();
 
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
 
-        wia_config
+        issuer_data
+            .wia_config
+            .as_ref()
             .map(|wia_config| {
                 wia_disclosure
                     .verify(
                         &wia_config.wia_trust_anchors,
-                        server_url.as_ref().as_str(),
-                        accepted_wallet_client_ids,
+                        issuer_data.metadata.issuer_identifier().as_ref(),
+                        &issuer_data.accepted_wallet_client_ids,
                         None,
                     )
                     .map_err(TokenRequestError::Wia)
@@ -1004,10 +979,8 @@ impl Session<AuthCodeIssued> {
         build_token_response(
             token_request,
             dpop,
-            server_url,
-            credential_configurations,
-            batch_size,
             session_data.issuable_documents.clone(),
+            issuer_data,
         )
     }
 
@@ -1044,20 +1017,24 @@ impl Session<AuthCodeIssued> {
 fn build_token_response<K, L>(
     token_request: &TokenRequest,
     dpop: Dpop,
-    server_url: &BaseUrl,
-    credential_configurations: &CredentialConfigurations<K, L>,
-    batch_size: NonZeroU8,
     issuables: VecNonEmpty<IssuableDocument>,
+    issuer_data: &IssuerData<K, L>,
 ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
     let dpop_public_key = dpop
-        .verify(&server_url.join("token"), &Method::POST, None)
+        .verify(&issuer_data.server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
     let code = token_request.code().clone();
 
     let preview_states = issuables
         .into_nonempty_iter()
-        .map(|document| credential_preview_state_for_issuable_document(credential_configurations, document, batch_size))
+        .map(|document| {
+            credential_preview_state_for_issuable_document(
+                &issuer_data.credential_configs,
+                document,
+                issuer_data.batch_size,
+            )
+        })
         .collect::<Result<VecNonEmpty<_>, TokenRequestError>>()?;
 
     let dpop_nonce = random_string(32);
@@ -1689,7 +1666,6 @@ mod tests {
         wrong_access_token: bool,
         invalidate_dpop: bool,
         invalidate_pop: bool,
-        strip_wia: bool,
     }
 
     impl VcMessageClientStub {
@@ -1699,7 +1675,6 @@ mod tests {
                 wrong_access_token: false,
                 invalidate_dpop: false,
                 invalidate_pop: false,
-                strip_wia: false,
             }
         }
 
