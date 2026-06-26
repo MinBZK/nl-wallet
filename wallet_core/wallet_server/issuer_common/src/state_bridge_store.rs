@@ -165,7 +165,8 @@ where
                 // Delete in bounded batches so a single statement never holds a large lock or scans
                 // the whole backlog. `FOR UPDATE SKIP LOCKED` skips rows currently locked by a
                 // concurrent `consume`; the loop drains the rest, stopping once a batch removes
-                // fewer rows than the limit (nothing left to delete).
+                // fewer rows than the limit (nothing left to delete). This also enables running multiple pods that
+                // start concurrent cleanup tasks.
                 //
                 // We currently do not sleep between batches: with these short TTLs and the
                 // periodic cleanup cadence, each run only clears a small backlog, so throttling WAL
