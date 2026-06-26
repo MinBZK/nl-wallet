@@ -116,7 +116,7 @@ typedef struct wire_cst_organization {
   struct wire_cst_image *image;
   struct wire_cst_list_prim_u_8_strict *web_url;
   struct wire_cst_list_prim_u_8_strict *privacy_policy_url;
-  struct wire_cst_list_prim_u_8_strict *kvk;
+  struct wire_cst_list_prim_u_8_strict *identifier;
   struct wire_cst_list_localized_string *city;
   struct wire_cst_list_localized_string *category;
   struct wire_cst_list_localized_string *department;

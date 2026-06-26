@@ -11,7 +11,7 @@ pub struct Organization {
     pub image: Option<Image>,
     pub web_url: Option<String>,
     pub privacy_policy_url: Option<String>,
-    pub kvk: Option<String>,
+    pub identifier: Option<String>,
     pub city: Option<Vec<LocalizedString>>,
     pub category: Vec<LocalizedString>,
     pub department: Option<Vec<LocalizedString>>,
@@ -29,7 +29,7 @@ impl From<Box<wallet::attestation_data::Organization>> for Organization {
                     .inspect_err(|e| warn!("error converting logo, not showing: {e}"))
                     .ok()
             }),
-            kvk: value.kvk,
+            identifier: value.identifier,
             city: value.city.map(|city| LocalizedStrings(city).into()),
             category: LocalizedStrings(value.category).into(),
             department: value.department.map(|department| LocalizedStrings(department).into()),

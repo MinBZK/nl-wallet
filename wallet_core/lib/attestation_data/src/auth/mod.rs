@@ -29,6 +29,7 @@ impl From<Vec<(&str, &str)>> for LocalizedStrings {
 
 #[serde_as]
 #[skip_serializing_none]
+// TODO: Check if serde is still necessary when Issuer and Reader registrations are removed (PVW-5895,PVW-5870)
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Organization {
@@ -39,7 +40,9 @@ pub struct Organization {
     #[debug(skip)]
     pub logo: Option<Image>,
     pub web_url: Option<Url>,
-    pub kvk: Option<String>,
+    // TODO: Remove rename when Issuer and Reader registrations are removed (PVW-5895,PVW-5870)
+    #[serde(rename = "kvk")]
+    pub identifier: Option<String>,
     pub city: Option<LocalizedStrings>,
     pub department: Option<LocalizedStrings>,
     pub country_code: Option<String>,
@@ -61,7 +64,7 @@ pub mod mock {
                 ]
                 .into(),
                 category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-                kvk: Some("some-kvk".to_owned()),
+                identifier: Some("some-identifier".to_owned()),
                 city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
                 department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
                 country_code: Some("nl".to_owned()),

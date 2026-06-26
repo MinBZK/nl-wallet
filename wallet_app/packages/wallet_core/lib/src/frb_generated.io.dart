@@ -1471,7 +1471,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.image = cst_encode_opt_box_autoadd_image(apiObj.image);
     wireObj.web_url = cst_encode_opt_String(apiObj.webUrl);
     wireObj.privacy_policy_url = cst_encode_opt_String(apiObj.privacyPolicyUrl);
-    wireObj.kvk = cst_encode_opt_String(apiObj.kvk);
+    wireObj.identifier = cst_encode_opt_String(apiObj.identifier);
     wireObj.city = cst_encode_opt_list_localized_string(apiObj.city);
     wireObj.category = cst_encode_list_localized_string(apiObj.category);
     wireObj.department = cst_encode_opt_list_localized_string(apiObj.department);
@@ -3743,7 +3743,7 @@ final class wire_cst_organization extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> privacy_policy_url;
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> kvk;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> identifier;
 
   external ffi.Pointer<wire_cst_list_localized_string> city;
 

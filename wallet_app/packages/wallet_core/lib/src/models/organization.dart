@@ -15,7 +15,7 @@ class Organization {
   final Image? image;
   final String? webUrl;
   final String? privacyPolicyUrl;
-  final String? kvk;
+  final String? identifier;
   final List<LocalizedString>? city;
   final List<LocalizedString> category;
   final List<LocalizedString>? department;
@@ -28,7 +28,7 @@ class Organization {
     this.image,
     this.webUrl,
     this.privacyPolicyUrl,
-    this.kvk,
+    this.identifier,
     this.city,
     required this.category,
     this.department,
@@ -43,7 +43,7 @@ class Organization {
       image.hashCode ^
       webUrl.hashCode ^
       privacyPolicyUrl.hashCode ^
-      kvk.hashCode ^
+      identifier.hashCode ^
       city.hashCode ^
       category.hashCode ^
       department.hashCode ^
@@ -60,7 +60,7 @@ class Organization {
           image == other.image &&
           webUrl == other.webUrl &&
           privacyPolicyUrl == other.privacyPolicyUrl &&
-          kvk == other.kvk &&
+          identifier == other.identifier &&
           city == other.city &&
           category == other.category &&
           department == other.department &&

@@ -22,7 +22,7 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
     department: input.department == null ? null : _localizedStringMapper.map(input.department!),
     logo: input.image == null ? const AppAssetImage(WalletAssets.logo_rp_placeholder) : _imageMapper.map(input.image!),
     category: _localizedStringMapper.map(input.category),
-    kvk: input.kvk,
+    kvk: input.identifier,
     countryCode: input.countryCode,
     city: input.city == null ? null : _localizedStringMapper.map(input.city!),
     webUrl: input.webUrl,

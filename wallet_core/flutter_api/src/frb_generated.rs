@@ -2732,7 +2732,7 @@ impl SseDecode for crate::models::organization::Organization {
         let mut var_image = <Option<crate::models::image::Image>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
-        let mut var_kvk = <Option<String>>::sse_decode(deserializer);
+        let mut var_identifier = <Option<String>>::sse_decode(deserializer);
         let mut var_city = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
         let mut var_category = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_department = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
@@ -2744,7 +2744,7 @@ impl SseDecode for crate::models::organization::Organization {
             image: var_image,
             web_url: var_webUrl,
             privacy_policy_url: var_privacyPolicyUrl,
-            kvk: var_kvk,
+            identifier: var_identifier,
             city: var_city,
             category: var_category,
             department: var_department,
@@ -3825,7 +3825,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::organization::Organization
             self.image.into_into_dart().into_dart(),
             self.web_url.into_into_dart().into_dart(),
             self.privacy_policy_url.into_into_dart().into_dart(),
-            self.kvk.into_into_dart().into_dart(),
+            self.identifier.into_into_dart().into_dart(),
             self.city.into_into_dart().into_dart(),
             self.category.into_into_dart().into_dart(),
             self.department.into_into_dart().into_dart(),
@@ -5097,7 +5097,7 @@ impl SseEncode for crate::models::organization::Organization {
         <Option<crate::models::image::Image>>::sse_encode(self.image, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
-        <Option<String>>::sse_encode(self.kvk, serializer);
+        <Option<String>>::sse_encode(self.identifier, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.city, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.category, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.department, serializer);
@@ -6234,7 +6234,7 @@ mod io {
                 image: self.image.cst_decode(),
                 web_url: self.web_url.cst_decode(),
                 privacy_policy_url: self.privacy_policy_url.cst_decode(),
-                kvk: self.kvk.cst_decode(),
+                identifier: self.identifier.cst_decode(),
                 city: self.city.cst_decode(),
                 category: self.category.cst_decode(),
                 department: self.department.cst_decode(),
@@ -6792,7 +6792,7 @@ mod io {
                 image: core::ptr::null_mut(),
                 web_url: core::ptr::null_mut(),
                 privacy_policy_url: core::ptr::null_mut(),
-                kvk: core::ptr::null_mut(),
+                identifier: core::ptr::null_mut(),
                 city: core::ptr::null_mut(),
                 category: core::ptr::null_mut(),
                 department: core::ptr::null_mut(),
@@ -8107,7 +8107,7 @@ mod io {
         image: *mut wire_cst_image,
         web_url: *mut wire_cst_list_prim_u_8_strict,
         privacy_policy_url: *mut wire_cst_list_prim_u_8_strict,
-        kvk: *mut wire_cst_list_prim_u_8_strict,
+        identifier: *mut wire_cst_list_prim_u_8_strict,
         city: *mut wire_cst_list_localized_string,
         category: *mut wire_cst_list_localized_string,
         department: *mut wire_cst_list_localized_string,

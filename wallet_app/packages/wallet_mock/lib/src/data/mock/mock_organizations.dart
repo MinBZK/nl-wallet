@@ -68,7 +68,7 @@ final _kRvigOrganization = Organization(
   image: const Image.asset(path: MockAssets.logo_rijksoverheid),
   webUrl: 'https://www.rvig.nl/',
   privacyPolicyUrl: 'https://www.rvig.nl/over-deze-site/privacyverklaring-rijksdienst-voor-identiteitsgegevens',
-  kvk: '27373207',
+  identifier: 'NTRNL-27373207',
 );
 
 final _kRdwOrganization = Organization(
@@ -138,7 +138,7 @@ const _kMarketPlaceOrganization = Organization(
     LocalizedString(language: 'en', value: 'Zwolle, The Netherlands'),
     LocalizedString(language: 'nl', value: 'Zwolle, Nederland'),
   ],
-  kvk: '98765432',
+  identifier: 'NTRNL-98765432',
   countryCode: 'nl',
   webUrl: 'https://www.marktplek.nl',
   privacyPolicyUrl: 'https://www.marktplek.nl/privacy',
@@ -218,7 +218,7 @@ final _kMunicipalityAmsterdamOrganization = Organization(
   image: const Image.asset(path: MockAssets.logo_municipality_amsterdam),
   city: 'Amsterdam'.untranslated,
   countryCode: 'nl',
-  kvk: '34366966',
+  identifier: 'NTRNL-34366966',
   webUrl: 'https://www.amsterdam.nl',
   privacyPolicyUrl: 'https://www.amsterdam.nl/privacy',
 );
@@ -301,7 +301,7 @@ const _kMonkeyBikeOrganization = Organization(
     LocalizedString(language: 'nl', value: 'Groningen, Nederland'),
   ],
   webUrl: 'https://flitsbezorger-monkeybike.nl',
-  kvk: '3945-2932',
+  identifier: 'NTRNL-3945-2932',
 );
 
 final _kPharmacyOrganization = Organization(
@@ -311,7 +311,7 @@ final _kPharmacyOrganization = Organization(
   category: 'Apotheek'.untranslated,
   description: 'Al meer dan 25 jaar jouw betrouwbare apotheek.'.untranslated,
   image: const Image.asset(path: MockAssets.logo_zorgverzekeraar_z),
-  kvk: '1234-1234',
+  identifier: 'NTRNL-1234-1234',
   city: kSampleCityTheHague.untranslated,
   countryCode: 'nl',
   webUrl: 'https://denoordapotheek.nl',
@@ -323,7 +323,7 @@ final _kSupermarket = Organization(
   category: 'Supermarkt'.untranslated,
   description: 'Al meer dan 25 jaar jouw betrouwbare supermarkt.'.untranslated,
   image: const Image.asset(path: MockAssets.logo_ecommerce),
-  kvk: '1337-1337',
+  identifier: 'NTRNL-1337-1337',
   city: kSampleCityTheHague.untranslated,
   countryCode: 'nl',
   webUrl: 'https://example.org',
