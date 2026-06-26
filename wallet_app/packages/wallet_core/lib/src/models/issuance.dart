@@ -5,9 +5,9 @@
 
 import '../frb_generated.dart';
 import 'attestation.dart';
-import 'disclosure.dart';
 import 'image.dart';
 import 'localize.dart';
+import 'organization.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 import 'revocation.dart';

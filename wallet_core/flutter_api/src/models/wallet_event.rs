@@ -2,10 +2,10 @@ use itertools::Itertools;
 
 use super::attestation::AttestationPresentation;
 use super::disclosure::DisclosureType;
-use super::disclosure::Organization;
 use super::disclosure::RPLocalizedStrings;
 use super::disclosure::RequestPolicy;
 use super::localize::LocalizedString;
+use super::organization::Organization;
 
 pub enum WalletEvent {
     Disclosure {
