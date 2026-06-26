@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::task::AbortHandle;
+use tracing::error;
 use tracing::warn;
 use utils::spawn::start_recurring_task;
 
@@ -41,10 +42,11 @@ impl Drop for CleanupTaskHandle {
     }
 }
 
-/// Spawn a background task that calls [`PeriodicCleanup::cleanup`] on `target` every `interval`.
+/// Spawns a background task that calls [`PeriodicCleanup::cleanup`] on `target` every `interval`.
 ///
-/// The task is generic over the cleanup target, so scheduling is decoupled from the concrete
-/// issuer types. The returned [`CleanupTaskHandle`] must be retained for as long as cleanup should
+/// The task is generic over the cleanup target, so scheduling is decoupled from the concrete issuer types. Each tick
+/// runs in a child task so a panic in `cleanup` is contained: it is logged and the recurring task survives to the next
+/// tick instead of silently dying. The returned [`CleanupTaskHandle`] must be retained for as long as cleanup should
 /// keep running; dropping it aborts the task.
 pub fn start_cleanup_task<C>(interval: Duration, target: Arc<C>) -> CleanupTaskHandle
 where
@@ -52,7 +54,11 @@ where
 {
     CleanupTaskHandle(start_recurring_task(interval, move || {
         let target = Arc::clone(&target);
-        async move { target.cleanup().await }
+        async move {
+            if let Err(join_error) = tokio::spawn(async move { target.cleanup().await }).await {
+                error!("cleanup task panicked: {join_error}");
+            }
+        }
     }))
 }
 
@@ -110,6 +116,41 @@ mod tests {
             counter.0.load(Ordering::SeqCst),
             2,
             "no cleanups should run after the handle is dropped"
+        );
+    }
+
+    /// Panics on the first cleanup only; later ticks just count.
+    struct PanicOnFirstTick(AtomicUsize);
+
+    impl PeriodicCleanup for PanicOnFirstTick {
+        async fn cleanup(&self) {
+            if self.0.fetch_add(1, Ordering::SeqCst) == 0 {
+                panic!("cleanup boom");
+            }
+        }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn cleanup_task_survives_a_panicking_cleanup() {
+        let interval = Duration::from_secs(120);
+        let target = Arc::new(PanicOnFirstTick(AtomicUsize::new(0)));
+
+        let _handle = start_cleanup_task(interval, Arc::clone(&target));
+
+        async fn advance(duration: Duration) {
+            time::advance(duration).await;
+            tokio::task::yield_now().await;
+        }
+
+        // First tick panics (contained by the per-tick child task); the recurring task must keep
+        // running and clean up again on subsequent ticks.
+        advance(Duration::from_millis(1)).await;
+        advance(interval).await;
+        advance(interval).await;
+
+        assert!(
+            target.0.load(Ordering::SeqCst) >= 2,
+            "cleanup task should survive a panic and keep ticking"
         );
     }
 }
