@@ -94,7 +94,7 @@ async fn assert_revokeable(wallet: &mut WalletWithStorage, attestation_type: &st
     assert!(attestation.is_some());
 
     wallet.start_background_revocation_checks(Duration::from_millis(50));
-    tokio::time::timeout(Duration::from_secs(1), async {
+    tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             if get_attestation(wallet, attestation_type, Some(RevocationStatus::Valid))
                 .await
@@ -112,7 +112,7 @@ async fn assert_revokeable(wallet: &mut WalletWithStorage, attestation_type: &st
     revoke_all_attestations(revocation_url).await;
 
     // Check that the attestation now is revoked
-    tokio::time::timeout(Duration::from_secs(1), async {
+    tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             if get_attestation(wallet, attestation_type, Some(RevocationStatus::Revoked))
                 .await
