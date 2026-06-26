@@ -55,6 +55,10 @@ create-deployment-ont:
       artifacts: false
     - job: build-pacf-issuance-server-migrations-image
       artifacts: false
+    - job: build-acf-demo-server-image
+      artifacts: false
+    - job: build-acf-demo-server-migrations-image
+      artifacts: false
     - job: build-pid-issuer-image
       artifacts: false
     - job: build-pid-issuer-migrations-image

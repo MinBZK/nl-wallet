@@ -149,6 +149,24 @@ build-pacf-issuance-server-migrations-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/pacf_issuance_server/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-pacf-issuance-server-migrations
 
+build-acf-demo-server-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-acf-demo-issuer-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/acf_demo_issuer/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-acf-demo-issuer
+
+build-acf-demo-server-migrations-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-wallet-server-migrations-binaries
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/acf_demo_issuer/migrations/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-acf-demo-issuer-migrations
+
 build-pid-issuer-image:
   extends: .build-docker-image
   needs:
