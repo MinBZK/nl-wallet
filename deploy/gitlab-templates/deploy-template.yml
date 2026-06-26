@@ -108,7 +108,7 @@ acf-demo-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: acf-demo-issuer
     RELEASE_NAME: acf-demo-issuer
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/acf-demo-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/acf-demo-issuer.yaml"
 
 demo-rp-verification-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag

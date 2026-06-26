@@ -1027,6 +1027,11 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings) -
     let usecases = settings.usecases;
     let consent_base_url = public_url.as_base_url();
 
+    let csp_header: &'static str = Box::leak(
+        acf_demo_issuer::server::build_consent_csp(&settings.authorizing_issuer_settings.wallet_redirect_uris)
+            .into_boxed_str(),
+    );
+
     let (issuer, _, _, server_settings) = settings
         .authorizing_issuer_settings
         .into_authorizing_issuer(None, |store_connection| {
@@ -1050,6 +1055,7 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings) -
                 server_settings,
                 serve_status_lists,
                 [],
+                csp_header,
             )
             .await
             {
