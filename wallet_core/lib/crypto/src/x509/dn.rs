@@ -30,29 +30,11 @@ pub enum DistinguishedNameError {
     #[error("X509 parsing error: {0}")]
     X509Error(#[source] X509Error),
 
-    #[error("no common name")]
-    NoCommonName(),
+    #[error("no `{name}` attributes")]
+    MissingX509Name { name: &'static str },
 
-    #[error("multiple common names: {}", _0.iter().join(","))]
-    MultipleCommonNames(Vec<String>),
-
-    #[error("no country name")]
-    NoCountryName(),
-
-    #[error("multiple country names: {}", _0.iter().join(","))]
-    MultipleCountryNames(Vec<String>),
-
-    #[error("no organization name")]
-    NoOrganizationName(),
-
-    #[error("multiple organization names: {}", _0.iter().join(","))]
-    MultipleOrganizationNames(Vec<String>),
-
-    #[error("no organization identifier")]
-    NoOrganizationIdentifier(),
-
-    #[error("multiple organization identifiers: {}", _0.iter().join(","))]
-    MultipleOrganizationIdentifiers(Vec<String>),
+    #[error("multiple {name} attributes: {}", values.iter().join(","))]
+    MultipleX509Names { name: &'static str, values: Vec<String> },
 }
 
 impl TryFrom<&X509Name<'_>> for DistinguishedName {
@@ -65,10 +47,11 @@ impl TryFrom<&X509Name<'_>> for DistinguishedName {
             .collect::<Result<Vec<_>, _>>()?;
         let common_name = match common_names.as_slice() {
             [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::NoCommonName())?,
-            _ => Err(DistinguishedNameError::MultipleCommonNames(
-                common_names.into_iter().map(ToString::to_string).collect(),
-            ))?,
+            [] => Err(DistinguishedNameError::MissingX509Name { name: "CN" })?,
+            _ => Err(DistinguishedNameError::MultipleX509Names {
+                name: "CN",
+                values: common_names.into_iter().map(ToString::to_string).collect(),
+            })?,
         };
 
         let country_names = value
@@ -77,10 +60,11 @@ impl TryFrom<&X509Name<'_>> for DistinguishedName {
             .collect::<Result<Vec<_>, _>>()?;
         let country_name = match country_names.as_slice() {
             [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::NoCountryName())?,
-            _ => Err(DistinguishedNameError::MultipleCountryNames(
-                country_names.into_iter().map(ToString::to_string).collect(),
-            ))?,
+            [] => Err(DistinguishedNameError::MissingX509Name { name: "C" })?,
+            _ => Err(DistinguishedNameError::MultipleX509Names {
+                name: "C",
+                values: country_names.into_iter().map(ToString::to_string).collect(),
+            })?,
         };
 
         let organization_names = value
@@ -89,10 +73,11 @@ impl TryFrom<&X509Name<'_>> for DistinguishedName {
             .collect::<Result<Vec<_>, _>>()?;
         let organization_name = match organization_names.as_slice() {
             [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::NoOrganizationName())?,
-            _ => Err(DistinguishedNameError::MultipleOrganizationNames(
-                organization_names.into_iter().map(ToString::to_string).collect(),
-            ))?,
+            [] => Err(DistinguishedNameError::MissingX509Name { name: "O" })?,
+            _ => Err(DistinguishedNameError::MultipleX509Names {
+                name: "O",
+                values: organization_names.into_iter().map(ToString::to_string).collect(),
+            })?,
         };
 
         let organization_identifiers = value
@@ -101,10 +86,11 @@ impl TryFrom<&X509Name<'_>> for DistinguishedName {
             .collect::<Result<Vec<_>, _>>()?;
         let organization_identifier = match organization_identifiers.as_slice() {
             [name] => name.to_string(),
-            [] => Err(DistinguishedNameError::NoOrganizationIdentifier())?,
-            _ => Err(DistinguishedNameError::MultipleOrganizationIdentifiers(
-                organization_identifiers.into_iter().map(ToString::to_string).collect(),
-            ))?,
+            [] => Err(DistinguishedNameError::MissingX509Name { name: "OID" })?,
+            _ => Err(DistinguishedNameError::MultipleX509Names {
+                name: "OID",
+                values: organization_identifiers.into_iter().map(ToString::to_string).collect(),
+            })?,
         };
 
         Ok(Self {
@@ -172,6 +158,7 @@ impl AsRef<str> for CanonicalDistinguishedName {
 mod tests {
     use std::assert_matches;
 
+    use rstest::rstest;
     use x509_parser::asn1_rs::FromDer;
     use x509_parser::der_parser::Oid;
     use x509_parser::der_parser::oid;
@@ -241,76 +228,44 @@ mod tests {
         assert_eq!(dn.organization_identifier, "NTRNL-27381312");
     }
 
-    #[test]
-    fn test_dn_parsing_error_no_common_name() {
-        let name_der = create_x509_name_der(&[], &["NL"], &["ICTU"], &["NTRNL-27381312"]);
+    #[rstest]
+    #[case(&[], &["NL"], &["ICTU"], &["NTRNL-27381312"], "CN")]
+    #[case(&["test"], &[], &["ICTU"], &["NTRNL-27381312"], "C")]
+    #[case(&["test"], &["NL"], &[], &["NTRNL-27381312"], "O")]
+    #[case(&["test"], &["NL"], &["ICTU"], &[], "OID")]
+    fn test_dn_parsing_error_missing_x509_name(
+        #[case] common_names: &[&str],
+        #[case] country_names: &[&str],
+        #[case] organization_names: &[&str],
+        #[case] organization_ids: &[&str],
+        #[case] expected_name: &str,
+    ) {
+        let name_der = create_x509_name_der(common_names, country_names, organization_names, organization_ids);
         let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
 
         let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::NoCommonName());
+        assert_matches!(err, DistinguishedNameError::MissingX509Name{name} if expected_name == name);
     }
 
-    #[test]
-    fn test_dn_parsing_error_multiple_common_names() {
-        let name_der = create_x509_name_der(&["a", "b"], &["NL"], &["ICTU"], &["NTRNL-27381312"]);
+    #[rstest]
+    #[case(&["a", "b"], &["NL"], &["ICTU"], &["NTRNL-27381312"], "CN", ["a","b"])]
+    #[case(&["test"], &["NL", "DE"], &["ICTU"], &["NTRNL-27381312"], "C", ["NL", "DE"])]
+    #[case(&["test"], &["NL"], &["ICTU A", "ICTU B"], &["NTRNL-27381312"], "O", ["ICTU A", "ICTU B"])]
+    #[case(&["test"], &["NL"], &["ICTU"], &["B01", "B02"], "OID", ["B01", "B02"])]
+    fn test_dn_parsing_error_multiple_x509_names(
+        #[case] common_names: &[&str],
+        #[case] country_names: &[&str],
+        #[case] organization_names: &[&str],
+        #[case] organization_ids: &[&str],
+        #[case] expected_name: &str,
+        #[case] expected_values: [&str; 2],
+    ) {
+        let name_der = create_x509_name_der(common_names, country_names, organization_names, organization_ids);
         let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
 
         let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::MultipleCommonNames(names) if names == ["a", "b"]);
-    }
-
-    #[test]
-    fn test_dn_parsing_error_no_country_name() {
-        let name_der = create_x509_name_der(&["test"], &[], &["ICTU"], &["NTRNL-27381312"]);
-        let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
-
-        let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::NoCountryName());
-    }
-
-    #[test]
-    fn test_dn_parsing_error_multiple_country_names() {
-        let name_der = create_x509_name_der(&["test"], &["NL", "DE"], &["ICTU"], &["NTRNL-27381312"]);
-        let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
-
-        let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::MultipleCountryNames(names) if names == ["NL", "DE"]);
-    }
-
-    #[test]
-    fn test_dn_parsing_error_no_organization_name() {
-        let name_der = create_x509_name_der(&["test"], &["NL"], &[], &["NTRNL-27381312"]);
-        let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
-
-        let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::NoOrganizationName());
-    }
-
-    #[test]
-    fn test_dn_parsing_error_multiple_organization_names() {
-        let name_der = create_x509_name_der(&["test"], &["NL"], &["ICTU A", "ICTU B"], &["NTRNL-27381312"]);
-        let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
-
-        let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::MultipleOrganizationNames(names) if names == ["ICTU A", "ICTU B"]);
-    }
-
-    #[test]
-    fn test_dn_parsing_error_no_organization_identifier() {
-        let name_der = create_x509_name_der(&["test"], &["NL"], &["ICTU"], &[]);
-        let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
-
-        let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::NoOrganizationIdentifier());
-    }
-
-    #[test]
-    fn test_dn_parsing_error_multiple_organization_identifiers() {
-        let name_der = create_x509_name_der(&["test"], &["NL"], &["ICTU"], &["B01", "B02"]);
-        let (_, x509_name) = X509Name::from_der(&name_der).unwrap();
-
-        let err = DistinguishedName::try_from(&x509_name).expect_err("expected error");
-        assert_matches!(err, DistinguishedNameError::MultipleOrganizationIdentifiers(ids) if ids == ["B01", "B02"]);
+        let expected_values = expected_values.into_iter().map(ToString::to_string).collect_vec();
+        assert_matches!(err, DistinguishedNameError::MultipleX509Names{name, values} if expected_name == name && expected_values == values);
     }
 
     #[test]
