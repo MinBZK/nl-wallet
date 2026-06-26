@@ -145,9 +145,11 @@ where
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync,
     AF: AuthorizationCodeFlow + Send + Sync,
 {
-    /// Remove expired entries from the stores this authorization-phase issuer owns (the PAR store
-    /// and the flow's own storage) plus those of the inner [`Issuer`] (sessions and proof nonces).
-    /// Scheduled by the server via [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
+    /// Removes expired entries from every store beneath this authorization-phase issuer.
+    ///
+    /// Cleans the stores it owns directly (the PAR store and the flow's own storage) plus those of the inner
+    /// [`Issuer`] (sessions and proof nonces). Scheduled by the server via
+    /// [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
     async fn cleanup(&self) {
         let _ = join!(
             self.issuer.cleanup(),

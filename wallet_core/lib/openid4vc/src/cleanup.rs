@@ -9,9 +9,10 @@ use utils::spawn::start_recurring_task;
 /// Interval between [`PeriodicCleanup`] tasks removing expired/stale data.
 pub const CLEANUP_INTERVAL: Duration = Duration::from_secs(5 * 60);
 
-/// Run a single cleanup, logging any error in a uniform format. Lets [`PeriodicCleanup`] implementations compose
-/// heterogeneous, fallible cleanups as infallible `()` futures: a single store's failure is logged but never aborts the
-/// others.
+/// Runs a single cleanup, logging any error in a uniform format.
+///
+/// Lets [`PeriodicCleanup`] implementations compose heterogeneous, fallible cleanups as infallible `()` futures: a
+/// single store's failure is logged but never aborts the others.
 pub async fn log_cleanup_error<E>(what: &str, cleanup: impl Future<Output = Result<(), E>>)
 where
     E: Display,
@@ -21,10 +22,11 @@ where
     }
 }
 
-/// Implemented by types that own expiring storage and can remove the stale entries on demand. This
-/// separates *what* to clean (the implementation) from *when* to clean (the scheduler below): an
-/// outer type can clean its own stores plus those of any inner types it wraps. Implementations are
-/// responsible for logging their own errors, since the scheduler only drives the cadence.
+/// Removes stale entries from the expiring storage a type owns.
+///
+/// Separates *what* to clean (the implementation) from *when* to clean (the scheduler below): an outer type can clean
+/// its own stores plus those of any inner types it wraps. Implementations are responsible for logging their own errors,
+/// since the scheduler only drives the cadence.
 #[trait_variant::make(Send)]
 pub trait PeriodicCleanup {
     async fn cleanup(&self);

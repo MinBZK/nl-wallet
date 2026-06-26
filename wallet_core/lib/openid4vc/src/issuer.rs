@@ -659,8 +659,9 @@ where
     S: SessionStore<IssuanceData> + Send + Sync,
     N: NonceStore + Send + Sync,
 {
-    /// Remove expired sessions and proof nonces. Scheduled by the server via
-    /// [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
+    /// Removes expired sessions and proof nonces.
+    ///
+    /// Scheduled by the server via [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
     async fn cleanup(&self) {
         let _ = join!(
             log_cleanup_error("session", self.sessions.cleanup()),
