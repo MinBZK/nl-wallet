@@ -111,7 +111,9 @@ Future<bool> executeTask(String task, Map<String, dynamic>? inputData) async {
 Future<void> performRevocationCheckTask({bool initCore = true}) async {
   /// Initialize notification plugin
   final plugin = FlutterLocalNotificationsPlugin();
-  await plugin.initialize(const InitializationSettings(android: kAndroidInitSettings, iOS: kDarwinInitSettings));
+  await plugin.initialize(
+    settings: const InitializationSettings(android: kAndroidInitSettings, iOS: kDarwinInitSettings),
+  );
 
   /// Initialize wallet_core
   if (initCore) {
@@ -174,7 +176,13 @@ void _onDirectNotification(
     android: resolveAndroidDetails(provider, notification.channel),
     iOS: const DarwinNotificationDetails(presentAlert: true),
   );
-  plugin.show(notification.id, notification.title, notification.body, details, payload: notification.payload);
+  plugin.show(
+    id: notification.id,
+    title: notification.title,
+    body: notification.body,
+    notificationDetails: details,
+    payload: notification.payload,
+  );
 }
 
 /// Resolves the [AndroidNotificationDetails] for a given [channel].

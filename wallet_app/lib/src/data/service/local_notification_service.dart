@@ -50,7 +50,7 @@ class LocalNotificationService {
 
   Future<void> _initPlugin() async {
     await _plugin.initialize(
-      const InitializationSettings(android: kAndroidInitSettings, iOS: kDarwinInitSettings),
+      settings: const InitializationSettings(android: kAndroidInitSettings, iOS: kDarwinInitSettings),
       onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
     );
 
@@ -88,14 +88,14 @@ class LocalNotificationService {
     for (final notification in notifications) {
       await _plugin
           .zonedSchedule(
-            notification.id,
-            notification.title,
-            notification.body,
-            tz.TZDateTime.from(
+            id: notification.id,
+            title: notification.title,
+            body: notification.body,
+            scheduledDate: tz.TZDateTime.from(
               notification.notifyAt,
               tz.getLocation('Europe/Amsterdam'),
             ),
-            NotificationDetails(
+            notificationDetails: NotificationDetails(
               android: _resolveAndroidDetails(notification.channel),
               iOS: const DarwinNotificationDetails(presentAlert: true),
             ),
@@ -116,7 +116,13 @@ class LocalNotificationService {
       android: _resolveAndroidDetails(notification.channel),
       iOS: const DarwinNotificationDetails(presentAlert: true),
     );
-    _plugin.show(notification.id, notification.title, notification.body, details, payload: notification.payload);
+    _plugin.show(
+      id: notification.id,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: details,
+      payload: notification.payload,
+    );
   }
 
   AndroidNotificationDetails? _resolveAndroidDetails(NotificationChannel channel) {
