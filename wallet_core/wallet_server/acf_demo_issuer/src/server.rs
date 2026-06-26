@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -50,10 +49,10 @@ pub fn build_consent_csp(wallet_redirect_uris: &VecNonEmpty<Url>) -> String {
         .map(|uri| match uri.scheme() {
             "http" | "https" => uri.origin().ascii_serialization(),
             scheme => format!("{scheme}:"),
+        })
         .sorted()
         .dedup()
         .join(" ");
-
 
     format!(
         "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; form-action 'self' \
