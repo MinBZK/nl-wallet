@@ -9,7 +9,6 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../environment.dart';
 import '../../../data/service/navigation_service.dart';
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../domain/model/result/application_error.dart';
@@ -339,7 +338,7 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
   Widget _buildRelyingPartyErrorPage(BuildContext context, RelyingPartyError error) {
     return ErrorPage.relyingParty(
       context,
-      organizationName: error.organizationName?.l10nValue(context),
+      organizationName: error.organizationName,
       onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       style: .retry,
       useIssuanceStyle: true,

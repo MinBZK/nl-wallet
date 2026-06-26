@@ -2726,8 +2726,8 @@ impl SseDecode for Option<Vec<crate::models::localize::LocalizedString>> {
 impl SseDecode for crate::models::organization::Organization {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_legalName = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-        let mut var_displayName = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
+        let mut var_legalName = <String>::sse_decode(deserializer);
+        let mut var_displayName = <String>::sse_decode(deserializer);
         let mut var_description = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_image = <Option<crate::models::image::Image>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
@@ -2736,7 +2736,7 @@ impl SseDecode for crate::models::organization::Organization {
         let mut var_city = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
         let mut var_category = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_department = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
-        let mut var_countryCode = <Option<String>>::sse_decode(deserializer);
+        let mut var_countryCode = <String>::sse_decode(deserializer);
         return crate::models::organization::Organization {
             legal_name: var_legalName,
             display_name: var_displayName,
@@ -5091,8 +5091,8 @@ impl SseEncode for Option<Vec<crate::models::localize::LocalizedString>> {
 impl SseEncode for crate::models::organization::Organization {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.legal_name, serializer);
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.display_name, serializer);
+        <String>::sse_encode(self.legal_name, serializer);
+        <String>::sse_encode(self.display_name, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.description, serializer);
         <Option<crate::models::image::Image>>::sse_encode(self.image, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
@@ -5101,7 +5101,7 @@ impl SseEncode for crate::models::organization::Organization {
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.city, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.category, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.department, serializer);
-        <Option<String>>::sse_encode(self.country_code, serializer);
+        <String>::sse_encode(self.country_code, serializer);
     }
 }
 
@@ -8101,8 +8101,8 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_organization {
-        legal_name: *mut wire_cst_list_localized_string,
-        display_name: *mut wire_cst_list_localized_string,
+        legal_name: *mut wire_cst_list_prim_u_8_strict,
+        display_name: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_localized_string,
         image: *mut wire_cst_image,
         web_url: *mut wire_cst_list_prim_u_8_strict,

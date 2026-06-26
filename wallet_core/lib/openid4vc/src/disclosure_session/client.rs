@@ -300,7 +300,6 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::BorrowingCertificateExtension;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -498,12 +497,6 @@ mod tests {
         assert_eq!(
             disclosure_session.verifier_certificate().certificate(),
             verifier_session.key_pair.certificate()
-        );
-        assert_eq!(
-            *disclosure_session.verifier_certificate().registration(),
-            ReaderRegistration::from_certificate(disclosure_session.verifier_certificate().certificate())
-                .unwrap()
-                .unwrap(),
         );
         assert_eq!(
             disclosure_session.verifier_certificate().registration(),

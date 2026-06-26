@@ -1465,8 +1465,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_organization(Organization apiObj, wire_cst_organization wireObj) {
-    wireObj.legal_name = cst_encode_list_localized_string(apiObj.legalName);
-    wireObj.display_name = cst_encode_list_localized_string(apiObj.displayName);
+    wireObj.legal_name = cst_encode_String(apiObj.legalName);
+    wireObj.display_name = cst_encode_String(apiObj.displayName);
     wireObj.description = cst_encode_list_localized_string(apiObj.description);
     wireObj.image = cst_encode_opt_box_autoadd_image(apiObj.image);
     wireObj.web_url = cst_encode_opt_String(apiObj.webUrl);
@@ -1475,7 +1475,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.city = cst_encode_opt_list_localized_string(apiObj.city);
     wireObj.category = cst_encode_list_localized_string(apiObj.category);
     wireObj.department = cst_encode_opt_list_localized_string(apiObj.department);
-    wireObj.country_code = cst_encode_opt_String(apiObj.countryCode);
+    wireObj.country_code = cst_encode_String(apiObj.countryCode);
   }
 
   @protected
@@ -3731,9 +3731,9 @@ final class wire_cst_list_localized_string extends ffi.Struct {
 }
 
 final class wire_cst_organization extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_localized_string> legal_name;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> legal_name;
 
-  external ffi.Pointer<wire_cst_list_localized_string> display_name;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> display_name;
 
   external ffi.Pointer<wire_cst_list_localized_string> description;
 

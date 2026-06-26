@@ -202,7 +202,10 @@ pub mod mock {
         }
 
         pub fn new_mock() -> Self {
-            let organization = Organization::new_mock();
+            let mut organization = Organization::new_mock();
+            organization.display_name = "Cert relying party".to_string();
+            organization.legal_name = "Cert relying party B.V.".to_string();
+            organization.identifier = Some("NTRNL-87781674".to_string());
 
             ReaderRegistration {
                 purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]

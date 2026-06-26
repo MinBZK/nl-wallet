@@ -168,12 +168,12 @@ class DisclosureScreen extends StatelessWidget {
       final attributeLabel = requestedAttribute?.label.l10nValue(context) ?? '';
       description = context.l10n.disclosureRequestedAttributeDescription(
         attributeLabel,
-        state.relyingParty.displayName.l10nValue(context),
+        state.relyingParty.displayName,
       );
     } else {
       description = context.l10n.disclosureRequestedAttributesDescription(
         attributes.length,
-        state.relyingParty.displayName.l10nValue(context),
+        state.relyingParty.displayName,
       );
     }
     return OrganizationApprovePage(
@@ -235,7 +235,7 @@ class DisclosureScreen extends StatelessWidget {
           final stopped = await StopToResetPinDialog.show(
             context,
             state.isLoginFlow ? .login : .disclosure,
-            organizationName: state.relyingParty.displayName.l10nValue(context),
+            organizationName: state.relyingParty.displayName,
           );
           if (stopped && context.mounted) {
             context.bloc.add(const DisclosureStopRequested());
@@ -295,7 +295,7 @@ class DisclosureScreen extends StatelessWidget {
         Navigator.pop(context);
       },
       style: .close,
-      organizationName: context.bloc.relyingParty?.displayName.l10nValue(context),
+      organizationName: context.bloc.relyingParty?.displayName,
     );
   }
 
@@ -354,7 +354,7 @@ class DisclosureScreen extends StatelessWidget {
       ),
       DisclosureMissingAttributes() => context.l10n.missingAttributesPageTitle,
       DisclosureConfirmDataAttributes() => context.l10n.disclosureConfirmDataAttributesShareWithTitle(
-        state.relyingParty.displayName.l10nValue(context),
+        state.relyingParty.displayName,
       ),
       DisclosureSuccess() => context.l10n.disclosureSuccessPageTitle,
       DisclosureStopped() => context.l10n.disclosureStoppedPageTitle,
@@ -391,7 +391,7 @@ class DisclosureScreen extends StatelessWidget {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context, bloc.state);
-      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName.l10nValue(context);
+      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName;
 
       StopDescriptionType stopType = bloc.isLoginFlow ? StopDescriptionType.forLogin : StopDescriptionType.generic;
       stopType = context.bloc.state is DisclosureCheckUrl ? StopDescriptionType.forUrlCheck : stopType;

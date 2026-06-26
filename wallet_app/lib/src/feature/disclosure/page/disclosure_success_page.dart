@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/object_extension.dart';
 import '../../../wallet_assets.dart';
@@ -16,8 +15,8 @@ class DisclosureSuccessPage extends StatelessWidget {
   /// The visual style and messaging variant of the success page.
   final SuccessStyle style;
 
-  /// The localized name of the organization the data was shared with.
-  final LocalizedText organizationDisplayName;
+  /// The name of the organization the data was shared with.
+  final String organizationDisplayName;
 
   /// The URL to redirect the user back to, if applicable.
   final String? returnUrl;
@@ -40,7 +39,7 @@ class DisclosureSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orgName = organizationDisplayName.l10nValue(context);
+    final orgName = organizationDisplayName;
     final description = switch (style) {
       SuccessStyle.regular => context.l10n.disclosureSuccessPageDescription(orgName),
       SuccessStyle.login => context.l10n.disclosureSuccessPageDescriptionForLogin(orgName),

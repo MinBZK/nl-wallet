@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:wallet_core/core.dart';
 
 import 'data/redirect/redirect_error.dart';
 import 'data/revocation/revocation_data.dart';
@@ -78,7 +77,7 @@ class CoreDeniedDigidError extends CoreError {
 }
 
 class CoreRelyingPartyError extends CoreError {
-  final List<LocalizedString>? organizationName;
+  final String? organizationName;
 
   CoreRelyingPartyError(super.description, {super.data, this.organizationName})
     : assert(organizationName == null || organizationName.isNotEmpty, 'Do not provide an empty org. name');

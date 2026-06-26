@@ -262,9 +262,9 @@ pub enum WalletIssuanceError {
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
     SdJwtCredentialPayloadError(#[from] CredentialPayloadFromSdJwtError),
 
-    #[error("different issuer registrations found in credential previews")]
+    #[error("different issuers found in credential previews")]
     #[category(critical)]
-    DifferentIssuerRegistrations(#[source] MultipleItemsFound),
+    DifferentIssuers(#[source] MultipleItemsFound),
 
     #[error("missing query in credential offer URI")]
     #[category(critical)]

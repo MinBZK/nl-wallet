@@ -14,14 +14,8 @@
     "deleteable": false
   },
   "organization": {
-    "displayName": {
-      "nl": "MonkeyBike",
-      "en": "MonkeyBike"
-    },
-    "legalName": {
-      "nl": "MonkeyBike Bezorgdiensten B.V.",
-      "en": "MonkeyBike Bezorgdiensten B.V."
-    },
+    "displayName": "MonkeyBike",
+    "legalName": "MonkeyBike Bezorgdiensten B.V.",
     "description": {
       "nl": "Jouw boodschappen binnen 10 minuten thuisbezorgd.",
       "en": "Your groceries delivered to your home within 10 minutes."

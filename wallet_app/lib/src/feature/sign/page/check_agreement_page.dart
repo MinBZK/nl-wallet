@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/document.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -120,8 +119,8 @@ class CheckAgreementPage extends StatelessWidget {
           Expanded(
             child: Text(
               context.l10n.checkAgreementPageSignProvider(
-                organization.displayName.l10nValue(context),
-                trustProvider.displayName.l10nValue(context),
+                organization.displayName,
+                trustProvider.displayName,
               ),
               style: context.textTheme.bodyLarge,
             ),

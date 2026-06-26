@@ -9,8 +9,8 @@ import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class Organization {
-  final List<LocalizedString> legalName;
-  final List<LocalizedString> displayName;
+  final String legalName;
+  final String displayName;
   final List<LocalizedString> description;
   final Image? image;
   final String? webUrl;
@@ -19,7 +19,7 @@ class Organization {
   final List<LocalizedString>? city;
   final List<LocalizedString> category;
   final List<LocalizedString>? department;
-  final String? countryCode;
+  final String countryCode;
 
   const Organization({
     required this.legalName,
@@ -32,7 +32,7 @@ class Organization {
     this.city,
     required this.category,
     this.department,
-    this.countryCode,
+    required this.countryCode,
   });
 
   @override

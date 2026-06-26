@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../domain/model/attribute/attribute.dart';
 import '../../../../../domain/model/card/status/card_status.dart';
 import '../../../../../domain/model/card/wallet_card.dart';
 import '../../../../../domain/model/organization.dart';
@@ -119,7 +118,7 @@ class CardStatusMetadataCardDetailScreenFormatter implements CardStatusMetadataF
   @override
   Color? backgroundColor(BuildContext context, CardStatus status) => null;
 
-  String _formatIssuer(BuildContext context, Organization issuer) => issuer.displayName.l10nValue(context);
+  String _formatIssuer(BuildContext context, Organization issuer) => issuer.displayName;
 
   Color _getStatusWarningColor(BuildContext context) =>
       context.brightness == Brightness.light ? kStatusWarningColorLight : kStatusWarningColorDark;

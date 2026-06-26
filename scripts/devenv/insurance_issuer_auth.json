@@ -1,13 +1,7 @@
 {
   "organization": {
-    "displayName": {
-      "nl": "VerzekerAar",
-      "en": "InsurAnce"
-    },
-    "legalName": {
-      "nl": "VerzekerAar N.V.",
-      "en": "VerzekerAar N.V."
-    },
+    "displayName": "VerzekerAar",
+    "legalName": "VerzekerAar N.V.",
     "description": {
       "nl": "VerzekerAar is een voorbeeld-verzekeraar.",
       "en": "InsurAnce is an exemplar insurance company."

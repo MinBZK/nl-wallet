@@ -1,7 +1,6 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 
-import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/result/application_error.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/navigator_state_extension.dart';
@@ -76,12 +75,11 @@ class ErrorPage extends StatelessWidget {
           organizationName: organizationName,
         );
       case RelyingPartyError():
-        final organizationName = error.organizationName?.l10nValue(context);
         return ErrorPage.relyingParty(
           context,
           onPrimaryActionPressed: onPrimaryActionPressed,
           style: style,
-          organizationName: organizationName,
+          organizationName: error.organizationName,
         );
       case HardwareUnsupportedError():
         Fimber.i('Hardware unsupported, primary action always defaults to resetToSplash');

@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:wallet_core/core.dart';
 
 import '../core_error.dart';
 import '../core_error_mapper.dart';
@@ -20,17 +19,10 @@ abstract class CoreErrorData with _$CoreErrorData {
     @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) RedirectError? redirectError,
     @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) SessionType? sessionType,
     @JsonKey(name: 'can_retry') bool? canRetry,
-    @JsonKey(name: 'organization_name') Map<String, dynamic>? organizationName,
+    @JsonKey(name: 'organization_name') String? organizationName,
   }) = _CoreErrorData;
 
   const CoreErrorData._();
 
   factory CoreErrorData.fromJson(Map<String, dynamic> json) => _$CoreErrorDataFromJson(json);
-
-  List<LocalizedString>? get mappedOrganizationName {
-    final data = organizationName;
-    if (data == null || data.isEmpty) return null;
-
-    return [for (final entry in data.entries) LocalizedString(language: entry.key, value: entry.value)];
-  }
 }

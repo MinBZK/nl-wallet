@@ -115,7 +115,7 @@ void main() {
 
     // Make sure this CTA also renders an image (i.e. the organization logo)
     expect(find.byType(AppImage), findsOneWidget);
-    final orgDisplayName = WalletMockData.disclosureEvent.relyingPartyOrIssuer.displayName.testValue;
+    final orgDisplayName = WalletMockData.disclosureEvent.relyingPartyOrIssuer.displayName;
     expect(find.textContaining(orgDisplayName), findsOneWidget);
   });
 

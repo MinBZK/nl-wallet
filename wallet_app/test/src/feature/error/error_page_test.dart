@@ -290,9 +290,9 @@ void main() {
         Builder(
           builder: (context) {
             const orgName = 'Test Organization';
-            final error = RelyingPartyError(
+            final error = const RelyingPartyError(
               sourceError: 'error',
-              organizationName: {const Locale('en'): orgName},
+              organizationName: orgName,
             );
             final page = ErrorPage.fromError(
               context,

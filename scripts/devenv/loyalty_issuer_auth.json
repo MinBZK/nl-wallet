@@ -1,13 +1,7 @@
 {
   "organization": {
-    "displayName": {
-      "nl": "Jum supermarkten",
-      "en": "Jum supermarket"
-    },
-    "legalName": {
-      "nl": "Jum supermarkten N.V.",
-      "en": "Jum supermarket N.V."
-    },
+    "displayName": "Jum supermarkten",
+    "legalName": "Jum supermarkten N.V.",
     "description": {
       "nl": "Jum supermarkten is een voorbeeld-supermarkt.",
       "en": "Jum supermarket is an examplar supermarket."
