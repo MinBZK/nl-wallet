@@ -18,7 +18,7 @@
   "usecases": {
     "insurance_acf": {
       "credential_configuration_ids": ["com.example.insurance"],
-      "issuer_state": "insurance"
+      "issuer_state": "insurance_acf"
     },
     "loyalty": {
       "data": [

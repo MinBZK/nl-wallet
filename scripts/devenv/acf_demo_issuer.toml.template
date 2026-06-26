@@ -29,10 +29,10 @@ max_sessions = 3
 max_session_lifetime_in_sec = 900
 
 # Demo usecases, keyed by the `issuer_state` value carried in the credential offer.
-[usecases.insurance]
+[usecases.insurance_acf]
 kind = "consent"
 
-[[usecases.insurance.documents]]
+[[usecases.insurance_acf.documents]]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
 attributes = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" }

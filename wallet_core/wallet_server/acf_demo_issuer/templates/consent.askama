@@ -2,7 +2,7 @@
 {%- import "../../../demo/demo_utils/templates/components/header.askama" as header -%}
 
 {% block styles %}
-<link rel="stylesheet" href="../static/css/consent.css" />
+<link rel="stylesheet" href="static/css/consent.css" />
 {% endblock %}
 
 {% block content %}

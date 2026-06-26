@@ -30,6 +30,13 @@ async fn main_impl(settings: AcfDemoIssuerSettings) -> Result<()> {
     let usecases = settings.usecases;
     let issuer_identifier = settings.authorizing_issuer_settings.issuer_settings.public_url.clone();
 
+    // The consent page sets its own CSP, whose `form-action` must allow the wallet redirect target.
+    // Build it once here, while the wallet redirect URIs are still in scope, and leak it for the
+    // 'static lifetime the response middleware requires (it lives for the process, like the server).
+    let csp_header: &'static str = Box::leak(
+        server::build_consent_csp(&settings.authorizing_issuer_settings.wallet_redirect_uris).into_boxed_str(),
+    );
+
     let (issuer, database_checkers, _, server_settings) = settings
         .authorizing_issuer_settings
         .into_authorizing_issuer(hsm, |store_connection| {
@@ -48,5 +55,12 @@ async fn main_impl(settings: AcfDemoIssuerSettings) -> Result<()> {
         .chain(database_checkers.into_iter().map(|checker| Box::new(checker) as Box<_>));
 
     // This will block until the server shuts down.
-    server::serve(authorizing_issuer, server_settings, serve_status_lists, health_checkers).await
+    server::serve(
+        authorizing_issuer,
+        server_settings,
+        serve_status_lists,
+        health_checkers,
+        csp_header,
+    )
+    .await
 }

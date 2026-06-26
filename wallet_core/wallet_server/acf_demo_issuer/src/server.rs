@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use axum::middleware;
 use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::nonce_store::ProofNonceStore;
@@ -25,7 +26,9 @@ use status_lists::postgres::PostgresStatusListService;
 use status_lists::revoke::create_revocation_router;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
+use url::Url;
 use utils::vec_at_least::VecNonEmpty;
+use web_utils::headers::set_content_security_policy;
 
 use crate::flow::DemoAuthorizationCodeFlow;
 use crate::flow::create_static_router;
@@ -39,11 +42,32 @@ pub type AcfDemoIssuer = AuthorizingIssuer<
     DemoAuthorizationCodeFlow,
 >;
 
+/// Build the `Content-Security-Policy` served on the consent page. `form-action` must allow both the
+/// page's own origin (`'self'`, for the POST back to `/consent`) and the wallet's redirect target: the
+/// consent submission 302-redirects there, and browsers enforce `form-action` across that redirect.
+pub fn build_consent_csp(wallet_redirect_uris: &VecNonEmpty<Url>) -> String {
+    let form_action_sources = wallet_redirect_uris
+        .iter()
+        .map(|uri| match uri.scheme() {
+            "http" | "https" => uri.origin().ascii_serialization(),
+            scheme => format!("{scheme}:"),
+        })
+        .sorted()
+        .dedup()
+        .join(" ");
+
+    format!(
+        "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; form-action 'self' \
+         {form_action_sources}; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+    )
+}
+
 pub async fn serve(
     authorizing_issuer: Arc<AcfDemoIssuer>,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
+    csp_header: &'static str,
 ) -> Result<()> {
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
@@ -52,10 +76,12 @@ pub async fn serve(
         server_settings,
         serve_status_lists,
         health_checkers,
+        csp_header,
     )
     .await
 }
 
+#[expect(clippy::too_many_arguments)]
 pub async fn serve_with_listeners(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
@@ -63,6 +89,7 @@ pub async fn serve_with_listeners(
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
+    csp_header: &'static str,
 ) -> Result<()> {
     let status_list_services =
         VecNonEmpty::try_from(authorizing_issuer.issuer().status_lists().cloned().collect_vec())?;
@@ -88,6 +115,10 @@ pub async fn serve_with_listeners(
 
         router = router.merge(status_list_router);
     }
+
+    let router = router.layer(middleware::from_fn(move |req, next| {
+        set_content_security_policy(req, next, csp_header)
+    }));
 
     let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
 
