@@ -166,6 +166,11 @@ where
                 // the whole backlog. `FOR UPDATE SKIP LOCKED` skips rows currently locked by a
                 // concurrent `consume`; the loop drains the rest, stopping once a batch removes
                 // fewer rows than the limit (nothing left to delete).
+                //
+                // We currently do not sleep between batches: with these short TTLs and the
+                // periodic cleanup cadence, each run only clears a small backlog, so throttling WAL
+                // generation to bound replication lag is not needed. If a deployment ever observes
+                // replication lag during cleanup, add a small delay between batches here.
                 loop {
                     let result = connection
                         .execute(Statement::from_sql_and_values(
