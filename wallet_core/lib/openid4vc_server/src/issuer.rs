@@ -29,6 +29,8 @@ use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
 use derive_more::Into;
 use http::request::Parts;
+use jwt::wia::WIA_HEADER_NAME;
+use jwt::wia::WIA_POP_HEADER_NAME;
 use jwt::wia::Wia;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaPop;
@@ -418,7 +420,7 @@ where
 fn parse_from_header<T: FromStr, E: WiaRejection>(name: &str, parts: &mut Parts) -> Result<T, ErrorResponse<E>> {
     parts
         .headers
-        .get(name)
+        .get(name.to_lowercase())
         .ok_or_else(|| E::invalid_client_attestation(format!("missing header '{name}'")))?
         .to_str()
         .map_err(|_| E::invalid_client_attestation(format!("header '{name}' contains non-UTF-8 bytes")))?

@@ -310,7 +310,11 @@ async fn start_issuance_session(server: &AuthCodeFlowServer, attestation_count: 
     assert_eq!(redirect_params.get("state"), Some(&state));
 
     auth_session
-        .start_issuance(&received_redirect, &server.trust_anchors)
+        .start_issuance(
+            &received_redirect,
+            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
+            &server.trust_anchors,
+        )
         .await
         .unwrap()
 }

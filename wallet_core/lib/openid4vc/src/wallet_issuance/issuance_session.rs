@@ -14,6 +14,9 @@ use futures::future::try_join_all;
 use futures::try_join;
 use http_utils::reqwest::HttpJsonClient;
 use itertools::Itertools;
+use jwt::wia::WIA_HEADER_NAME;
+use jwt::wia::WIA_POP_HEADER_NAME;
+use jwt::wia::WiaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
@@ -39,6 +42,7 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
+use wscd::wscd::WiaClient;
 
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
@@ -86,6 +90,7 @@ pub trait VcMessageClient {
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
+        wia: &WiaDisclosure,
     ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError>;
 
     async fn request_credential_preview(
@@ -146,11 +151,14 @@ impl VcMessageClient for HttpVcMessageClient {
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
+        wia: &WiaDisclosure,
     ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
         self.http_client
             .post(url.as_ref(), |builder| {
                 builder
                     .header(DPOP_HEADER_NAME, dpop_header.to_string())
+                    .header(WIA_HEADER_NAME, wia.wia().serialization())
+                    .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
                     .form(token_request)
             })
             .map_err(WalletIssuanceError::TokenRequestHttp)
@@ -387,6 +395,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         issuer_endpoints: IssuerEndpoints,
         token_endpoint: &Url,
         token_request: TokenRequest,
+        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self, WalletIssuanceError> {
         let credential_preview_endpoint = issuer_endpoints
@@ -397,8 +406,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let dpop_signing_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
+        let wia = wia_client
+            .issue_wia(credential_issuer.to_string(), None)
+            .await
+            .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
+
         let (token_response, dpop_nonce) = message_client
-            .request_token(token_endpoint, &token_request, &dpop_header)
+            .request_token(token_endpoint, &token_request, &dpop_header, &wia)
             .await?;
 
         // Request preview and fetch type metadata
@@ -994,6 +1008,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
+    use wscd::mock_remote::MockWiaClient;
 
     use super::*;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -1018,12 +1033,12 @@ mod tests {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, &IssuerRegistration::new_mock()).unwrap();
 
         let mut mock_msg_client = MockVcMessageClient::new();
-        mock_msg_client
-            .expect_request_token()
-            .return_once(move |_url, _token_request, _dpop_header| {
+        mock_msg_client.expect_request_token().return_once(
+            move |_url, _token_request, _dpop_header, _wia_disclosure| {
                 let token_response = TokenResponse::new("access_token".to_string().into());
                 Ok((token_response, None))
-            });
+            },
+        );
         mock_msg_client
             .expect_request_type_metadata()
             .return_once(move |_url| Ok(TypeMetadataDocuments::from_single_example(type_metadata).2));
@@ -1071,6 +1086,7 @@ mod tests {
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
+            &MockWiaClient::new(),
             trust_anchors,
         )
         .now_or_never()
@@ -1225,12 +1241,12 @@ mod tests {
             PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
 
         let mut mock_msg_client = MockVcMessageClient::new();
-        mock_msg_client
-            .expect_request_token()
-            .return_once(move |_url, _token_request, _dpop_header| {
+        mock_msg_client.expect_request_token().return_once(
+            move |_url, _token_request, _dpop_header, _wia_disclosure| {
                 let token_response = TokenResponse::new("access_token".to_string().into());
                 Ok((token_response, None))
-            });
+            },
+        );
         mock_msg_client
             .expect_request_type_metadata()
             .return_once(move |_url| Ok(TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example()).2));
@@ -1268,6 +1284,7 @@ mod tests {
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
+            &MockWiaClient::new(),
             &TrustAnchors::from(&ca),
         )
         .now_or_never()

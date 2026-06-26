@@ -481,13 +481,14 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn continue_issuance(
-        &mut self,
-        redirect_uri: Url,
-    ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
+    pub async fn continue_issuance(&mut self, redirect_uri: Url) -> Result<Vec<AttestationPresentation>, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Received redirect URI, processing URI and retrieving access token");
 
-        self.check_session_preconditions()?;
+        let (attested_key, registration_data, config) =
+            self.check_session_preconditions_and_get_registration_data().await?;
 
         info!("Checking if there is an active issuance session");
         if !matches!(
@@ -514,11 +515,20 @@ where
             return Err(IssuanceError::SessionState);
         };
 
-        let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
+        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
+            attested_key,
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            ),
+        ));
 
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, trust_anchors)
+            .start_issuance(&redirect_uri, &wia_client, trust_anchors)
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => IssuanceError::AuthorizationDenied,

@@ -92,6 +92,9 @@ impl WiaClaims {
     }
 }
 
+pub const WIA_HEADER_NAME: &str = "oauth-client-attestation";
+pub const WIA_POP_HEADER_NAME: &str = "oauth-client-attestation-pop";
+
 pub const WIA_JWT_TYP: &str = "oauth-client-attestation+jwt";
 
 impl JwtTyp for WiaClaims {

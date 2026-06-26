@@ -297,7 +297,7 @@ pub trait IssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
-        wscd: &impl WiaClient,
+        wia_client: &impl WiaClient,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
@@ -308,7 +308,7 @@ pub trait IssuanceDiscovery {
         offer_uri: &Url,
         client_id: String,
         redirect_uri: Url,
-        wscd: &impl WiaClient,
+        wia_client: &impl WiaClient,
     ) -> Result<Self::Authorization, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
@@ -318,6 +318,7 @@ pub trait IssuanceDiscovery {
         &self,
         offer_uri: &Url,
         client_id: String,
+        wia_client: &impl WiaClient,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 
@@ -351,6 +352,7 @@ pub trait AuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
+        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }

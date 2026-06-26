@@ -739,7 +739,7 @@ where
                 &self.issuer_data.server_url,
                 &self.issuer_data.credential_configs,
                 self.issuer_data.batch_size,
-                wia_disclosure,
+                &wia_disclosure,
                 self.issuer_data.wia_config.as_ref(),
             );
 
@@ -953,7 +953,7 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
-        wia_disclosure: WiaDisclosure,
+        wia_disclosure: &WiaDisclosure,
         wia_config: Option<&WiaConfig>,
     ) -> ProcessTokenRequest {
         let result = self.validate_and_build_token_response(
@@ -970,6 +970,7 @@ impl Session<AuthCodeIssued> {
         self.finalize_token_response(accepted_wallet_client_ids, result)
     }
 
+    #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
     fn validate_and_build_token_response<K, L>(
         &self,
         token_request: &TokenRequest,
@@ -977,7 +978,7 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
-        wia_disclosure: WiaDisclosure,
+        wia_disclosure: &WiaDisclosure,
         wia_config: Option<&WiaConfig>,
         accepted_wallet_client_ids: &[String],
     ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
@@ -1573,6 +1574,7 @@ mod tests {
     use tracing_test::traced_test;
     use url::Url;
     use wscd::mock_remote::MockRemoteWscd;
+    use wscd::mock_remote::MockWiaClient;
 
     use super::*;
     use crate::CredentialErrorCode;
@@ -1754,10 +1756,11 @@ mod tests {
             _url: &Url,
             token_request: &TokenRequest,
             dpop_header: &Dpop,
+            wia: &WiaDisclosure,
         ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
             let (token_response, dpop_nonce) = self
                 .issuer
-                .process_token_request(token_request.clone(), dpop_header.clone())
+                .process_token_request(token_request.clone(), dpop_header.clone(), wia.clone())
                 .await
                 .map_err(|err| WalletIssuanceError::TokenRequest(Box::new(err.into())))?;
             Ok((token_response, Some(dpop_nonce)))
@@ -1839,6 +1842,7 @@ mod tests {
     async fn start_and_accept_err(
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
+        wia_keypair: KeyPair,
         trust_anchors: TrustAnchors,
     ) -> WalletIssuanceError {
         let session_token = message_client
@@ -1870,6 +1874,7 @@ mod tests {
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
+            &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &trust_anchors,
         )
         .await
@@ -1887,7 +1892,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, wia_issuer_privkey, trust_anchor).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
@@ -1902,7 +1907,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, wia_issuer_privkey, trust_anchor).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
@@ -1917,7 +1922,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, wia_issuer_privkey, trust_anchor).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)

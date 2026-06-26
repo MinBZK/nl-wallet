@@ -215,9 +215,10 @@ where
         }
 
         info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(PinRecoveryError::NotRegistered);
-        }
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| PinRecoveryError::NotRegistered)?;
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
@@ -240,10 +241,21 @@ where
             return Err(PinRecoveryError::SessionState);
         };
 
-        // Fetch issuance previews
         let config = self.config_repository.get();
+        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
+            Arc::clone(attested_key),
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            ),
+        ));
+
+        // Fetch issuance previews
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, config.issuer_trust_anchors())
+            .start_issuance(&redirect_uri, &wia_client, config.issuer_trust_anchors())
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::AuthorizationDenied,

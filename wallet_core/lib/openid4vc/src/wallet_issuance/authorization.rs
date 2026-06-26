@@ -288,6 +288,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
+        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
@@ -309,6 +310,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.issuer_endpoints,
             &self.oauth_metadata.token_endpoint,
             token_request,
+            wia_client,
             trust_anchors,
         )
         .await
