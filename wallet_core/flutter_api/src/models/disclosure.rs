@@ -11,6 +11,7 @@ use wallet::openid4vc::SessionType;
 use super::attestation::AttestationPresentation;
 use super::instruction::WalletInstructionError;
 use super::localize::LocalizedString;
+use super::localize::LocalizedStrings;
 use super::organization::Organization;
 use crate::errors::FlutterApiError;
 
@@ -94,21 +95,6 @@ pub enum AcceptDisclosureResult {
     InstructionError { error: WalletInstructionError },
 }
 
-pub struct RPLocalizedStrings(pub wallet::attestation_data::LocalizedStrings);
-
-impl From<RPLocalizedStrings> for Vec<LocalizedString> {
-    fn from(value: RPLocalizedStrings) -> Self {
-        let RPLocalizedStrings(wallet::attestation_data::LocalizedStrings(localized_strings)) = value;
-        localized_strings
-            .iter()
-            .map(|(language, value)| LocalizedString {
-                language: language.to_owned(),
-                value: value.to_owned(),
-            })
-            .collect()
-    }
-}
-
 impl From<&ReaderRegistration> for RequestPolicy {
     fn from(value: &ReaderRegistration) -> Self {
         let data_storage_duration_in_minutes = value
@@ -161,7 +147,7 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
     fn from(proposal: DisclosureProposalPresentation) -> Self {
         let policy: RequestPolicy = (&proposal.reader_registration).into();
         let request_purpose: Vec<LocalizedString> =
-            RPLocalizedStrings(proposal.reader_registration.purpose_statement).into();
+            LocalizedStrings(proposal.reader_registration.purpose_statement).into();
 
         StartDisclosureResult::Request {
             relying_party: proposal.reader_registration.organization.into(),
@@ -183,7 +169,7 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
 impl From<AttributesNotAvailable> for StartDisclosureResult {
     fn from(value: AttributesNotAvailable) -> Self {
         let request_purpose: Vec<LocalizedString> =
-            RPLocalizedStrings(value.reader_registration.purpose_statement).into();
+            LocalizedStrings(value.reader_registration.purpose_statement).into();
         // TODO (PVW-4525): Have the UI actually display these as requested attributes,
         //                  not as missing attributes.
         let missing_attributes = value
