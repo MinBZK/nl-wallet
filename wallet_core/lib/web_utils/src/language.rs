@@ -42,7 +42,7 @@ impl Language {
     pub fn chrono_locale(&self) -> chrono::prelude::Locale {
         match self {
             Language::Nl => chrono::prelude::Locale::nl_NL,
-            Language::En => chrono::prelude::Locale::en_US,
+            Language::En => chrono::prelude::Locale::en_GB,
         }
     }
 

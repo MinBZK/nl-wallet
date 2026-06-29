@@ -28,6 +28,7 @@ use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
+use chrono::NaiveDate;
 use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
@@ -250,6 +251,22 @@ struct DocumentPreview {
     attributes: Vec<(String, String)>,
 }
 
+/// Render an attribute value for display on the consent page. The `start_date` attribute is stored
+/// as ISO `YYYY-MM-DD` text and shown in the selected language's locale (localized month name); all
+/// other values are shown verbatim. Unparseable dates fall back to the raw value.
+fn format_attribute_value(key: &str, value: &AttributeValue, language: Language) -> String {
+    if key == "start_date"
+        && let AttributeValue::Text(text) = value
+        && let Ok(date) = NaiveDate::parse_from_str(text, "%Y-%m-%d")
+    {
+        // Render with the localized month name in day-first order, conventional for both en-GB
+        // and nl-NL (e.g. "1 January 2025", "1 januari 2025").
+        return date.format_localized("%-d %B %Y", language.chrono_locale()).to_string();
+    }
+
+    value.to_string()
+}
+
 struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
@@ -302,7 +319,16 @@ where
                 attributes: attributes
                     .flattened()
                     .into_iter()
-                    .map(|(path, value)| (path.as_ref().join("."), value.to_string()))
+                    .map(|(path, value)| {
+                        let key = path.as_ref().join(".");
+                        let display_value = format_attribute_value(&key, value, language);
+                        // Show a hardcoded, translated label; fall back to the raw path if unlabelled.
+                        let label = TRANSLATIONS[language]
+                            .attribute_label(&key)
+                            .map(str::to_string)
+                            .unwrap_or(key);
+                        (label, display_value)
+                    })
                     .collect(),
             }
         })
