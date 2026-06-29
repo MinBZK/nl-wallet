@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-06-29T10:34:09+02:00",
+    "@@last_modified": "2026-06-29T12:59:39+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1111,9 +1111,9 @@
     "organizationButtonLabel": "Over deze organisatie",
     "organizationDetailScreenCategoryInfo": "Soort organisatie",
     "organizationDetailScreenDepartmentInfo": "Afdeling",
-    "organizationDetailScreenKvkInfo": "KVK nummer",
     "organizationDetailScreenLegalNameInfo": "Officiële naam",
     "organizationDetailScreenLocationInfo": "Locatie",
+    "organizationDetailScreenOrganizationIdInfo": "Organisatie-ID",
     "organizationDetailScreenPrivacyInfo": "Privacyverklaring",
     "organizationDetailScreenReportIssueCta": "Wil je een probleem melden?",
     "organizationDetailScreenSomeInteractions": "Je hebt eerder gedeeld met {name}",

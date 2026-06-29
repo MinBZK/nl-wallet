@@ -182,7 +182,7 @@ abstract class WalletMockData {
     privacyPolicyUrl: 'https://example.org/privacy',
     city: 'Den Haag'.untranslated,
     department: 'department abc'.untranslated,
-    kvk: '12345678',
+    organizationId: '12345678',
     countryCode: 'NL',
   );
 

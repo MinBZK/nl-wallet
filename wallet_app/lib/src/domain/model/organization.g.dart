@@ -32,7 +32,7 @@ _Organization _$OrganizationFromJson(Map<String, dynamic> json) => _Organization
     json['department'],
     const LocalizedTextConverter().fromJson,
   ),
-  kvk: json['kvk'] as String?,
+  organizationId: json['organizationId'] as String?,
 );
 
 Map<String, dynamic> _$OrganizationToJson(
@@ -61,7 +61,7 @@ Map<String, dynamic> _$OrganizationToJson(
     instance.department,
     const LocalizedTextConverter().toJson,
   ),
-  'kvk': instance.kvk,
+  'organizationId': instance.organizationId,
 };
 
 Value? _$JsonConverterFromJson<Json, Value>(
