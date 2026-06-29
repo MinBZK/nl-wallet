@@ -34,6 +34,7 @@ axum = { workspace = true, features = ["json"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
 derive_more = { workspace = true, features = ["into"] }
 itertools.workspace = true
+rand.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_valid.workspace = true
 thiserror.workspace = true

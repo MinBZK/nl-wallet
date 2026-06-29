@@ -30,6 +30,7 @@ dependencies = [
  "openid4vc",
  "openid4vc_server",
  "p256",
+ "rand 0.8.6",
  "serde",
  "serde_valid",
  "server_utils",

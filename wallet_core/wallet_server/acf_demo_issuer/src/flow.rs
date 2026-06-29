@@ -15,6 +15,9 @@ use std::sync::Arc;
 
 use askama::Template;
 use askama_web::WebTemplate;
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
 use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
@@ -41,6 +44,8 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
+use rand::RngCore;
+use rand::rngs::OsRng;
 use serde::Deserialize;
 use server_utils::store::StoreConnection;
 use tower::ServiceBuilder;
@@ -130,7 +135,8 @@ impl DemoAuthorizationCodeFlow {
     }
 }
 
-/// Build the [`IssuableDocument`]s configured for a usecase.
+/// Build the [`IssuableDocument`]s configured for a usecase, substituting demo placeholders in the
+/// attributes so each issued document gets fresh values.
 fn issuable_documents(usecase: &Usecase) -> VecNonEmpty<IssuableDocument> {
     usecase
         .documents
@@ -140,9 +146,51 @@ fn issuable_documents(usecase: &Usecase) -> VecNonEmpty<IssuableDocument> {
                 credential_kind,
                 attributes,
             } = template.clone();
+            let attributes = substitute_placeholders(attributes, &mut OsRng);
             IssuableDocument::try_new_with_random_id(credential_kind, attributes).expect("attributes cannot be empty")
         })
         .collect()
+}
+
+/// Traverses all attributes (including those nested inside [`AttributeValue::Array`] or
+/// [`Attribute::Nested`]) and replaces every `{{INSERT_RANDOM_VALUE}}` text value with a random string
+/// of 10 digits, so each immediately-issued document gets fresh values.
+///
+/// Intentionally duplicated from `demo_issuer` rather than shared: the placeholder convention is
+/// demo-specific and not worth lifting into a common crate. Unlike `demo_issuer`, this variant only
+/// needs `{{INSERT_RANDOM_VALUE}}` (no acf usecase uses `{{INSERT_CURRENT_YEAR}}`).
+fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
+    let mut inner = attributes.into_inner();
+    for attribute in inner.values_mut() {
+        substitute_placeholders_in_attribute(attribute, rng);
+    }
+    inner.into()
+}
+
+fn substitute_placeholders_in_value(value: &mut AttributeValue, rng: &mut impl RngCore) {
+    match value {
+        AttributeValue::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
+            let n: u64 = rng.next_u64() % 10_000_000_000;
+            *value = AttributeValue::Text(format!("{n:010}"));
+        }
+        AttributeValue::Array(elements) => {
+            for element in elements {
+                substitute_placeholders_in_value(element, rng);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
+    match attribute {
+        Attribute::Single(value) => substitute_placeholders_in_value(value, rng),
+        Attribute::Nested(map) => {
+            for attr in map.values_mut() {
+                substitute_placeholders_in_attribute(attr, rng);
+            }
+        }
+    }
 }
 
 impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
