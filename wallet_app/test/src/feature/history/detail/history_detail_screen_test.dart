@@ -339,7 +339,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       //sharedAttributesCardTitle
       expect(find.byType(HistoryDetailDisclosePage), findsOneWidget);
-      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsAtLeast(1));
+      expect(find.textContaining(WalletMockData.organization.displayName), findsAtLeast(1));
       expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.disclosureEvent.cards.first.attributes.length.toString();
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
@@ -359,7 +359,7 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(HistoryDetailIssuePage), findsOneWidget);
-      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsOneWidget);
+      expect(find.textContaining(WalletMockData.organization.displayName), findsOneWidget);
       final count = WalletMockData.issuanceEvent.sharedAttributes.length;
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text('1 December 2023, 00:00'), findsOneWidget);
@@ -376,7 +376,7 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(HistoryDetailDeletionPage), findsOneWidget);
-      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsOneWidget);
+      expect(find.textContaining(WalletMockData.organization.displayName), findsOneWidget);
       final count = WalletMockData.deletionEvent.sharedAttributes.length;
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text('1 May 2024, 00:00'), findsOneWidget);
@@ -400,7 +400,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       //sharedAttributesCardTitle
       expect(find.byType(HistoryDetailLoginPage), findsOneWidget);
-      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsAtLeast(1));
+      expect(find.textContaining(WalletMockData.organization.displayName), findsAtLeast(1));
       expect(find.text(WalletMockData.loginEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.loginEvent.cards.first.attributes.length.toString();
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);

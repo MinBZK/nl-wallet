@@ -1,13 +1,7 @@
 {
   "organization": {
-    "displayName": {
-      "nl": "Holland Universiteit",
-      "en": "Holland University"
-    },
-    "legalName": {
-      "nl": "Holland Universiteit",
-      "en": "Holland University"
-    },
+    "displayName": "Holland University",
+    "legalName": "Holland Universiteit",
     "description": {
       "nl": "Holland Universiteit is een voorbeeld-universiteit.",
       "en": "Holland University is an examplar university."

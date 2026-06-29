@@ -14,14 +14,8 @@
     "deleteable": false
   },
   "organization": {
-    "displayName": {
-      "nl": "Gemeente Amsterdam",
-      "en": "City of Amsterdam"
-    },
-    "legalName": {
-      "nl": "Gemeente Amsterdam",
-      "en": "City of Amsterdam"
-    },
+    "displayName": "Gemeente Amsterdam",
+    "legalName": "Gemeente Amsterdam",
     "description": {
       "nl": "Alles wat we doen, doen we voor de stad en de Amsterdammers.",
       "en": "Everything we do, we do for the city and the people of Amsterdam."

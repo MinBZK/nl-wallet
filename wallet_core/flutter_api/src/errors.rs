@@ -6,7 +6,6 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 use wallet::AccountRevokedData;
-use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::CancelSessionError;
 use wallet::errors::ChangePinError;
@@ -257,7 +256,7 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
 #[derive(Debug, Clone, Serialize)]
 struct IssuanceErrorData {
     redirect_error: Option<AuthorizationErrorCode>,
-    organization_name: Option<LocalizedStrings>,
+    organization_name: Option<String>,
     revocation_data: Option<AccountRevokedData>,
 }
 
@@ -359,7 +358,7 @@ struct DisclosureErrorData<'a> {
     session_type: Option<SessionType>,
     can_retry: Option<bool>,
     return_url: Option<&'a Url>,
-    organization_name: Option<LocalizedStrings>,
+    organization_name: Option<String>,
     revocation_data: Option<AccountRevokedData>,
 }
 
@@ -511,7 +510,7 @@ impl FlutterApiErrorFields for CloseProximityDisclosureError {
 
 #[derive(Debug, Clone, Serialize)]
 struct DisclosureBasedIssuanceErrorData {
-    organization_name: LocalizedStrings,
+    organization_name: String,
 }
 
 impl FlutterApiErrorFields for DisclosureBasedIssuanceError {

@@ -12,6 +12,7 @@ import '../models/instruction.dart';
 import '../models/issuance.dart';
 import '../models/localize.dart';
 import '../models/notification.dart';
+import '../models/organization.dart';
 import '../models/pin.dart';
 import '../models/revocation.dart';
 import '../models/transfer.dart';

@@ -169,12 +169,12 @@ class IssuanceScreen extends StatelessWidget {
       final attributeLabel = requestedAttribute?.label.l10nValue(context) ?? '';
       description = context.l10n.issuanceRequestedAttributeDescription(
         attributeLabel,
-        state.organization.displayName.l10nValue(context),
+        state.organization.displayName,
       );
     } else {
       description = context.l10n.issuanceRequestedAttributesDescription(
         attributes.length,
-        state.organization.displayName.l10nValue(context),
+        state.organization.displayName,
       );
     }
     return OrganizationApprovePage(
@@ -224,7 +224,7 @@ class IssuanceScreen extends StatelessWidget {
     final session = context.bloc.state is IssuanceProvidePinForIssuance
         ? StopCopyVariant.issuance
         : StopCopyVariant.disclosure;
-    final organizationName = context.bloc.relyingParty?.displayName.l10nValue(context);
+    final organizationName = context.bloc.relyingParty?.displayName;
     final stopped = await StopToResetPinDialog.show(context, session, organizationName: organizationName);
     if (stopped && context.mounted) {
       context.bloc.add(const IssuanceStopRequested());
@@ -270,7 +270,7 @@ class IssuanceScreen extends StatelessWidget {
         Navigator.pop(context);
       },
       style: .close,
-      organizationName: context.bloc.relyingParty?.displayName.l10nValue(context),
+      organizationName: context.bloc.relyingParty?.displayName,
     );
   }
 
@@ -281,7 +281,7 @@ class IssuanceScreen extends StatelessWidget {
       final inDisclosureState = state is IssuanceCheckOrganization || state is IssuanceProvidePinForDisclosure;
       final stopped = await (inDisclosureState ? DisclosureStopSheet.show : IssuanceStopSheet.show)(
         context,
-        organizationName: bloc.relyingParty?.displayName.l10nValue(context),
+        organizationName: bloc.relyingParty?.displayName,
         onReportIssuePressed: () => ReportIssueScreen.show(context, _resolveReportingOptionsForState(context, state)),
       );
       if (stopped) bloc.add(const IssuanceStopRequested());
@@ -294,7 +294,7 @@ class IssuanceScreen extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.issuanceNoCardsPageTitle,
       description: context.l10n.issuanceNoCardsPageDescription(
-        state.organization.displayName.l10nValue(context),
+        state.organization.displayName,
       ),
       illustration: const PageIllustration(asset: WalletAssets.svg_no_cards),
       primaryButton: PrimaryButton(
@@ -337,7 +337,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildRelyingPartyErrorPage(BuildContext context, RelyingPartyError error) {
     return ErrorPage.relyingParty(
       context,
-      organizationName: (error.organizationName ?? context.bloc.relyingParty?.displayName)?.l10nValue(context),
+      organizationName: error.organizationName ?? context.bloc.relyingParty?.displayName,
       onPrimaryActionPressed: () => Navigator.pop(context),
       style: .close,
       useIssuanceStyle: true,

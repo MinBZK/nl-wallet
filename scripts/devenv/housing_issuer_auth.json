@@ -1,13 +1,7 @@
 {
   "organization": {
-    "displayName": {
-      "nl": "DroomWoon",
-      "en": "DreamHome"
-    },
-    "legalName": {
-      "nl": "DroomWoon N.V.",
-      "en": "DroomWoon N.V."
-    },
+    "displayName": "DroomWoon",
+    "legalName": "DroomWoon N.V.",
     "description": {
       "nl": "DroomWoon is een voorbeeld-woningcorporatie.",
       "en": "DreamHome is an exemplar housing company."

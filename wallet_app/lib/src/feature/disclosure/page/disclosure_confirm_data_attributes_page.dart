@@ -144,7 +144,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
         children: [
           const SizedBox(height: 12),
           TitleText(
-            context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.displayName.l10nValue(context)),
+            context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.displayName),
           ),
           const SizedBox(height: 8),
           BodyText(

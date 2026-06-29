@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
@@ -25,8 +24,8 @@ class DisclosureStoppedPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = isLoginFlow
-        ? context.l10n.disclosureStoppedPageDescriptionForLogin(organization.displayName.l10nValue(context))
-        : context.l10n.disclosureStoppedPageDescription(organization.displayName.l10nValue(context));
+        ? context.l10n.disclosureStoppedPageDescriptionForLogin(organization.displayName)
+        : context.l10n.disclosureStoppedPageDescription(organization.displayName);
     final bool hasReturnUrl = returnUrl != null;
     return TerminalPage(
       title: context.l10n.disclosureStoppedPageTitle,

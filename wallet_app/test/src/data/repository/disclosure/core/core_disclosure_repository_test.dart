@@ -37,7 +37,7 @@ void main() {
   test('StartDisclosureResultRequest is mapped successfully to StartDisclosureReadyToDisclose', () async {
     when(mockTypedWalletCore.startDisclosure(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
       return const StartDisclosureResult.request(
-        relyingParty: Organization(legalName: [], displayName: [], description: [], category: []),
+        relyingParty: Organization(legalName: '', displayName: '', description: [], category: [], countryCode: ''),
         requestOriginBaseUrl: '',
         sharedDataWithRelyingPartyBefore: false,
         sessionType: DisclosureSessionType.CrossDevice,

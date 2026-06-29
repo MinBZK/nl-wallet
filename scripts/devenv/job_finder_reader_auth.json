@@ -14,14 +14,8 @@
     "deleteable": false
   },
   "organization": {
-    "displayName": {
-      "nl": "BaanVinder",
-      "en": "JobFinder"
-    },
-    "legalName": {
-      "nl": "BaanVinder B.V.",
-      "en": "BaanVinder B.V."
-    },
+    "displayName": "BaanVinder",
+    "legalName": "BaanVinder B.V.",
     "description": {
       "nl": "BaanVinder is een platform dat het voor werkgevers en werkzoekenden makkelijker maakt om elkaar te vinden.",
       "en": "JobFinder is a platform that makes it easier for employers and job seekers to find each other."

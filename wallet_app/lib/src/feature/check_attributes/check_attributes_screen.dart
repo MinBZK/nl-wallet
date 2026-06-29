@@ -157,7 +157,7 @@ class CheckAttributesScreen extends StatelessWidget {
       width: double.infinity,
       child: BodyText(
         context.l10n.checkAttributesScreenSubtitle(
-          card.issuer.displayName.l10nValue(context),
+          card.issuer.displayName,
         ),
         textAlign: TextAlign.start,
       ),

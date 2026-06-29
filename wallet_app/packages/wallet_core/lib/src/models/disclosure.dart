@@ -8,6 +8,7 @@ import 'attestation.dart';
 import 'image.dart';
 import 'instruction.dart';
 import 'localize.dart';
+import 'organization.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 import 'revocation.dart';
@@ -79,65 +80,6 @@ class MissingAttribute {
   @override
   bool operator ==(Object other) =>
       identical(this, other) || other is MissingAttribute && runtimeType == other.runtimeType && labels == other.labels;
-}
-
-class Organization {
-  final List<LocalizedString> legalName;
-  final List<LocalizedString> displayName;
-  final List<LocalizedString> description;
-  final Image? image;
-  final String? webUrl;
-  final String? privacyPolicyUrl;
-  final String? kvk;
-  final List<LocalizedString>? city;
-  final List<LocalizedString> category;
-  final List<LocalizedString>? department;
-  final String? countryCode;
-
-  const Organization({
-    required this.legalName,
-    required this.displayName,
-    required this.description,
-    this.image,
-    this.webUrl,
-    this.privacyPolicyUrl,
-    this.kvk,
-    this.city,
-    required this.category,
-    this.department,
-    this.countryCode,
-  });
-
-  @override
-  int get hashCode =>
-      legalName.hashCode ^
-      displayName.hashCode ^
-      description.hashCode ^
-      image.hashCode ^
-      webUrl.hashCode ^
-      privacyPolicyUrl.hashCode ^
-      kvk.hashCode ^
-      city.hashCode ^
-      category.hashCode ^
-      department.hashCode ^
-      countryCode.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Organization &&
-          runtimeType == other.runtimeType &&
-          legalName == other.legalName &&
-          displayName == other.displayName &&
-          description == other.description &&
-          image == other.image &&
-          webUrl == other.webUrl &&
-          privacyPolicyUrl == other.privacyPolicyUrl &&
-          kvk == other.kvk &&
-          city == other.city &&
-          category == other.category &&
-          department == other.department &&
-          countryCode == other.countryCode;
 }
 
 class RequestPolicy {

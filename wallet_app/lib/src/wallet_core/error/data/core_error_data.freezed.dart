@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CoreErrorData {
 
-@JsonKey(name: 'revocation_data') RevocationData? get revocationData;@JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) RedirectError? get redirectError;@JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) SessionType? get sessionType;@JsonKey(name: 'can_retry') bool? get canRetry;@JsonKey(name: 'organization_name') Map<String, dynamic>? get organizationName;
+@JsonKey(name: 'revocation_data') RevocationData? get revocationData;@JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) RedirectError? get redirectError;@JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) SessionType? get sessionType;@JsonKey(name: 'can_retry') bool? get canRetry;@JsonKey(name: 'organization_name') String? get organizationName;
 /// Create a copy of CoreErrorData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,12 +28,12 @@ $CoreErrorDataCopyWith<CoreErrorData> get copyWith => _$CoreErrorDataCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoreErrorData&&(identical(other.revocationData, revocationData) || other.revocationData == revocationData)&&(identical(other.redirectError, redirectError) || other.redirectError == redirectError)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&(identical(other.canRetry, canRetry) || other.canRetry == canRetry)&&const DeepCollectionEquality().equals(other.organizationName, organizationName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoreErrorData&&(identical(other.revocationData, revocationData) || other.revocationData == revocationData)&&(identical(other.redirectError, redirectError) || other.redirectError == redirectError)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&(identical(other.canRetry, canRetry) || other.canRetry == canRetry)&&(identical(other.organizationName, organizationName) || other.organizationName == organizationName));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,revocationData,redirectError,sessionType,canRetry,const DeepCollectionEquality().hash(organizationName));
+int get hashCode => Object.hash(runtimeType,revocationData,redirectError,sessionType,canRetry,organizationName);
 
 @override
 String toString() {
@@ -48,7 +48,7 @@ abstract mixin class $CoreErrorDataCopyWith<$Res>  {
   factory $CoreErrorDataCopyWith(CoreErrorData value, $Res Function(CoreErrorData) _then) = _$CoreErrorDataCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'revocation_data') RevocationData? revocationData,@JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) RedirectError? redirectError,@JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) SessionType? sessionType,@JsonKey(name: 'can_retry') bool? canRetry,@JsonKey(name: 'organization_name') Map<String, dynamic>? organizationName
+@JsonKey(name: 'revocation_data') RevocationData? revocationData,@JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) RedirectError? redirectError,@JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) SessionType? sessionType,@JsonKey(name: 'can_retry') bool? canRetry,@JsonKey(name: 'organization_name') String? organizationName
 });
 
 
@@ -72,7 +72,7 @@ as RevocationData?,redirectError: freezed == redirectError ? _self.redirectError
 as RedirectError?,sessionType: freezed == sessionType ? _self.sessionType : sessionType // ignore: cast_nullable_to_non_nullable
 as SessionType?,canRetry: freezed == canRetry ? _self.canRetry : canRetry // ignore: cast_nullable_to_non_nullable
 as bool?,organizationName: freezed == organizationName ? _self.organizationName : organizationName // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as String?,
   ));
 }
 /// Create a copy of CoreErrorData
@@ -169,7 +169,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'revocation_data')  RevocationData? revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown)  RedirectError? redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown)  SessionType? sessionType, @JsonKey(name: 'can_retry')  bool? canRetry, @JsonKey(name: 'organization_name')  Map<String, dynamic>? organizationName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'revocation_data')  RevocationData? revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown)  RedirectError? redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown)  SessionType? sessionType, @JsonKey(name: 'can_retry')  bool? canRetry, @JsonKey(name: 'organization_name')  String? organizationName)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CoreErrorData() when $default != null:
 return $default(_that.revocationData,_that.redirectError,_that.sessionType,_that.canRetry,_that.organizationName);case _:
@@ -190,7 +190,7 @@ return $default(_that.revocationData,_that.redirectError,_that.sessionType,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'revocation_data')  RevocationData? revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown)  RedirectError? redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown)  SessionType? sessionType, @JsonKey(name: 'can_retry')  bool? canRetry, @JsonKey(name: 'organization_name')  Map<String, dynamic>? organizationName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'revocation_data')  RevocationData? revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown)  RedirectError? redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown)  SessionType? sessionType, @JsonKey(name: 'can_retry')  bool? canRetry, @JsonKey(name: 'organization_name')  String? organizationName)  $default,) {final _that = this;
 switch (_that) {
 case _CoreErrorData():
 return $default(_that.revocationData,_that.redirectError,_that.sessionType,_that.canRetry,_that.organizationName);case _:
@@ -210,7 +210,7 @@ return $default(_that.revocationData,_that.redirectError,_that.sessionType,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'revocation_data')  RevocationData? revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown)  RedirectError? redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown)  SessionType? sessionType, @JsonKey(name: 'can_retry')  bool? canRetry, @JsonKey(name: 'organization_name')  Map<String, dynamic>? organizationName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'revocation_data')  RevocationData? revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown)  RedirectError? redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown)  SessionType? sessionType, @JsonKey(name: 'can_retry')  bool? canRetry, @JsonKey(name: 'organization_name')  String? organizationName)?  $default,) {final _that = this;
 switch (_that) {
 case _CoreErrorData() when $default != null:
 return $default(_that.revocationData,_that.redirectError,_that.sessionType,_that.canRetry,_that.organizationName);case _:
@@ -225,22 +225,14 @@ return $default(_that.revocationData,_that.redirectError,_that.sessionType,_that
 @JsonSerializable()
 
 class _CoreErrorData extends CoreErrorData {
-   _CoreErrorData({@JsonKey(name: 'revocation_data') this.revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) this.redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) this.sessionType, @JsonKey(name: 'can_retry') this.canRetry, @JsonKey(name: 'organization_name') final  Map<String, dynamic>? organizationName}): _organizationName = organizationName,super._();
+   _CoreErrorData({@JsonKey(name: 'revocation_data') this.revocationData, @JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) this.redirectError, @JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) this.sessionType, @JsonKey(name: 'can_retry') this.canRetry, @JsonKey(name: 'organization_name') this.organizationName}): super._();
   factory _CoreErrorData.fromJson(Map<String, dynamic> json) => _$CoreErrorDataFromJson(json);
 
 @override@JsonKey(name: 'revocation_data') final  RevocationData? revocationData;
 @override@JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) final  RedirectError? redirectError;
 @override@JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) final  SessionType? sessionType;
 @override@JsonKey(name: 'can_retry') final  bool? canRetry;
- final  Map<String, dynamic>? _organizationName;
-@override@JsonKey(name: 'organization_name') Map<String, dynamic>? get organizationName {
-  final value = _organizationName;
-  if (value == null) return null;
-  if (_organizationName is EqualUnmodifiableMapView) return _organizationName;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
-}
-
+@override@JsonKey(name: 'organization_name') final  String? organizationName;
 
 /// Create a copy of CoreErrorData
 /// with the given fields replaced by the non-null parameter values.
@@ -255,12 +247,12 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoreErrorData&&(identical(other.revocationData, revocationData) || other.revocationData == revocationData)&&(identical(other.redirectError, redirectError) || other.redirectError == redirectError)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&(identical(other.canRetry, canRetry) || other.canRetry == canRetry)&&const DeepCollectionEquality().equals(other._organizationName, _organizationName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoreErrorData&&(identical(other.revocationData, revocationData) || other.revocationData == revocationData)&&(identical(other.redirectError, redirectError) || other.redirectError == redirectError)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&(identical(other.canRetry, canRetry) || other.canRetry == canRetry)&&(identical(other.organizationName, organizationName) || other.organizationName == organizationName));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,revocationData,redirectError,sessionType,canRetry,const DeepCollectionEquality().hash(_organizationName));
+int get hashCode => Object.hash(runtimeType,revocationData,redirectError,sessionType,canRetry,organizationName);
 
 @override
 String toString() {
@@ -275,7 +267,7 @@ abstract mixin class _$CoreErrorDataCopyWith<$Res> implements $CoreErrorDataCopy
   factory _$CoreErrorDataCopyWith(_CoreErrorData value, $Res Function(_CoreErrorData) _then) = __$CoreErrorDataCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'revocation_data') RevocationData? revocationData,@JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) RedirectError? redirectError,@JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) SessionType? sessionType,@JsonKey(name: 'can_retry') bool? canRetry,@JsonKey(name: 'organization_name') Map<String, dynamic>? organizationName
+@JsonKey(name: 'revocation_data') RevocationData? revocationData,@JsonKey(name: 'redirect_error', unknownEnumValue: RedirectError.unknown) RedirectError? redirectError,@JsonKey(name: 'session_type', unknownEnumValue: SessionType.unknown) SessionType? sessionType,@JsonKey(name: 'can_retry') bool? canRetry,@JsonKey(name: 'organization_name') String? organizationName
 });
 
 
@@ -298,8 +290,8 @@ revocationData: freezed == revocationData ? _self.revocationData : revocationDat
 as RevocationData?,redirectError: freezed == redirectError ? _self.redirectError : redirectError // ignore: cast_nullable_to_non_nullable
 as RedirectError?,sessionType: freezed == sessionType ? _self.sessionType : sessionType // ignore: cast_nullable_to_non_nullable
 as SessionType?,canRetry: freezed == canRetry ? _self.canRetry : canRetry // ignore: cast_nullable_to_non_nullable
-as bool?,organizationName: freezed == organizationName ? _self._organizationName : organizationName // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as bool?,organizationName: freezed == organizationName ? _self.organizationName : organizationName // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

@@ -137,11 +137,12 @@ final _kAltSampleCard = WalletCard(
 
 final _kSampleOrganization = Organization(
   id: 'id',
-  legalName: 'Organization Legal Name'.untranslated,
-  displayName: 'Organization Display Name'.untranslated,
+  legalName: 'Organization Legal Name',
+  displayName: 'Organization Display Name',
   category: 'Category'.untranslated,
   description: 'Organization description'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
+  countryCode: 'NL',
 );
 
 final _kSampleIssuanceEvent = WalletEvent.issuance(

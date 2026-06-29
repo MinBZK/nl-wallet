@@ -4,7 +4,6 @@ import '../../../domain/model/event/wallet_event.dart';
 import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/date_time_extension.dart';
-import '../../../util/extension/localized_text_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import 'default_text_and_focus_style.dart';
 
@@ -187,7 +186,7 @@ class _ActivitySummaryState extends State<ActivitySummary> {
         .whereType<DisclosureEvent>()
         .where((element) => element.status == EventStatus.success)
         .where((element) => element.type == DisclosureType.login)
-        .map((e) => e.relyingParty.displayName.l10nValue(context))
+        .map((e) => e.relyingParty.displayName)
         .toSet();
 
     if (loggedInWithOrganizationNames.isEmpty) return null;
@@ -229,7 +228,7 @@ class _ActivitySummaryState extends State<ActivitySummary> {
         .whereType<DisclosureEvent>()
         .where((element) => element.status == EventStatus.success)
         .where((element) => element.type == DisclosureType.regular)
-        .map((e) => e.relyingParty.displayName.l10nValue(context))
+        .map((e) => e.relyingParty.displayName)
         .toSet();
 
     if (sharedWithOrganizationNames.isEmpty) return null;

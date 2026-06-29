@@ -16,6 +16,7 @@ import 'models/instruction.dart';
 import 'models/issuance.dart';
 import 'models/localize.dart';
 import 'models/notification.dart';
+import 'models/organization.dart';
 import 'models/pin.dart';
 import 'models/revocation.dart';
 import 'models/transfer.dart';
@@ -2652,17 +2653,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 11) throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return Organization(
-      legalName: dco_decode_list_localized_string(arr[0]),
-      displayName: dco_decode_list_localized_string(arr[1]),
+      legalName: dco_decode_String(arr[0]),
+      displayName: dco_decode_String(arr[1]),
       description: dco_decode_list_localized_string(arr[2]),
       image: dco_decode_opt_box_autoadd_image(arr[3]),
       webUrl: dco_decode_opt_String(arr[4]),
       privacyPolicyUrl: dco_decode_opt_String(arr[5]),
-      kvk: dco_decode_opt_String(arr[6]),
+      identifier: dco_decode_opt_String(arr[6]),
       city: dco_decode_opt_list_localized_string(arr[7]),
       category: dco_decode_list_localized_string(arr[8]),
       department: dco_decode_opt_list_localized_string(arr[9]),
-      countryCode: dco_decode_opt_String(arr[10]),
+      countryCode: dco_decode_String(arr[10]),
     );
   }
 
@@ -3795,17 +3796,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   Organization sse_decode_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_legalName = sse_decode_list_localized_string(deserializer);
-    var var_displayName = sse_decode_list_localized_string(deserializer);
+    var var_legalName = sse_decode_String(deserializer);
+    var var_displayName = sse_decode_String(deserializer);
     var var_description = sse_decode_list_localized_string(deserializer);
     var var_image = sse_decode_opt_box_autoadd_image(deserializer);
     var var_webUrl = sse_decode_opt_String(deserializer);
     var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
-    var var_kvk = sse_decode_opt_String(deserializer);
+    var var_identifier = sse_decode_opt_String(deserializer);
     var var_city = sse_decode_opt_list_localized_string(deserializer);
     var var_category = sse_decode_list_localized_string(deserializer);
     var var_department = sse_decode_opt_list_localized_string(deserializer);
-    var var_countryCode = sse_decode_opt_String(deserializer);
+    var var_countryCode = sse_decode_String(deserializer);
     return Organization(
       legalName: var_legalName,
       displayName: var_displayName,
@@ -3813,7 +3814,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       image: var_image,
       webUrl: var_webUrl,
       privacyPolicyUrl: var_privacyPolicyUrl,
-      kvk: var_kvk,
+      identifier: var_identifier,
       city: var_city,
       category: var_category,
       department: var_department,
@@ -5093,17 +5094,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_organization(Organization self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_localized_string(self.legalName, serializer);
-    sse_encode_list_localized_string(self.displayName, serializer);
+    sse_encode_String(self.legalName, serializer);
+    sse_encode_String(self.displayName, serializer);
     sse_encode_list_localized_string(self.description, serializer);
     sse_encode_opt_box_autoadd_image(self.image, serializer);
     sse_encode_opt_String(self.webUrl, serializer);
     sse_encode_opt_String(self.privacyPolicyUrl, serializer);
-    sse_encode_opt_String(self.kvk, serializer);
+    sse_encode_opt_String(self.identifier, serializer);
     sse_encode_opt_list_localized_string(self.city, serializer);
     sse_encode_list_localized_string(self.category, serializer);
     sse_encode_opt_list_localized_string(self.department, serializer);
-    sse_encode_opt_String(self.countryCode, serializer);
+    sse_encode_String(self.countryCode, serializer);
   }
 
   @protected

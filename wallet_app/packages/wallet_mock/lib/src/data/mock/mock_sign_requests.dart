@@ -12,11 +12,12 @@ final kRentalRequest = SignRequest(
   id: 'RENTAL_AGREEMENT',
   organization: kOrganizations[kHousingCorpId]!,
   trustProvider: Organization(
-    legalName: 'Veilig Ondertekenen B.V.'.untranslated,
-    displayName: 'Veilig Ondertekenen B.V.'.untranslated,
+    legalName: 'Veilig Ondertekenen B.V.',
+    displayName: 'Veilig Ondertekenen B.V.',
     category: 'Contracten'.untranslated,
     description: ''.untranslated,
     image: const Image.asset(path: MockAssets.logo_sign_provider),
+    countryCode: 'NL',
   ),
   document: const Document(
     title: 'Huurovereenkomst',

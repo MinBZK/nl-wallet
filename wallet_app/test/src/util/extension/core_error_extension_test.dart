@@ -1,11 +1,8 @@
-import 'dart:ui';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/util/extension/core_error_extension.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
-import 'package:wallet_core/core.dart';
 
 import '../../mocks/wallet_mocks.mocks.dart';
 
@@ -141,14 +138,14 @@ void main() {
       test('maps to RelyingPartyError with organization name', () async {
         final coreError = CoreRelyingPartyError(
           'description',
-          organizationName: [const LocalizedString(language: 'en', value: 'org')],
+          organizationName: 'org',
         );
 
         final applicationError = await coreError.asApplicationError();
 
         expect(applicationError, isA<RelyingPartyError>());
         final rpError = applicationError as RelyingPartyError;
-        expect(rpError.organizationName, {const Locale('en'): 'org'});
+        expect(rpError.organizationName, 'org');
         expect(rpError.sourceError, coreError);
       });
 

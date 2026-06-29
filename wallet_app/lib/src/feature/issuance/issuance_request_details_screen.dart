@@ -38,7 +38,7 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
         title: TitleText(
           context.bloc.relyingParty == null
               ? ''
-              : context.l10n.requestDetailScreenAltTitle(context.bloc.relyingParty!.displayName.l10nValue(context)),
+              : context.l10n.requestDetailScreenAltTitle(context.bloc.relyingParty!.displayName),
         ),
       ),
       body: SafeArea(
@@ -75,7 +75,7 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
                   padding: kDefaultTitlePadding,
                   child: TitleText(
                     context.l10n.requestDetailScreenAltTitle(
-                      state.organization.displayName.l10nValue(context),
+                      state.organization.displayName,
                     ),
                   ),
                 ),
@@ -114,7 +114,7 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
       dividerSide: side,
       label: Text(
         context.l10n.requestDetailScreenAboutOrganizationCta(
-          organization.displayName.l10nValue(context),
+          organization.displayName,
         ),
       ),
       subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf((_) => organization.category != null),

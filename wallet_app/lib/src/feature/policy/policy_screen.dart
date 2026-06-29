@@ -2,7 +2,6 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/organization.dart';
 import '../../domain/model/policy/policy.dart';
 import '../../navigation/secured_page_route.dart';
@@ -114,7 +113,7 @@ class PolicyScreen extends StatelessWidget {
 
     final policyCta = context.l10n.policyScreenPolicySectionPolicyCta;
     final fullPolicyDescription = context.l10n.policyScreenPolicySectionText(
-      relyingParty.displayName.l10nValue(context),
+      relyingParty.displayName,
       policyCta,
     );
     final ctaIndex = fullPolicyDescription.indexOf(policyCta);
