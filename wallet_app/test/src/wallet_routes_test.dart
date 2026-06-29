@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/navigation/secured_page_route.dart';
+import 'package:wallet/src/navigation/sentry_navigation_observer.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
+import 'package:wallet/src/util/sentry_breadcrumbs.dart';
 
 void main() {
   group('WalletRoutes', () {
@@ -10,6 +12,29 @@ void main() {
       expect(routes, hasLength(1));
       expect(routes.first, isA<MaterialPageRoute>());
       expect(routes.first, isNot(isA<SecuredPageRoute>()));
+      expect(routes.first.settings.name, WalletRoutes.splashRoute);
+    });
+
+    test('.isKnownRoute should only accept route names from the central route table', () {
+      for (final routeName in WalletRoutes.allRoutes) {
+        expect(WalletRoutes.isKnownRoute(routeName), isTrue);
+      }
+
+      expect(WalletRoutes.isKnownRoute('/unknown'), isFalse);
+      expect(WalletRoutes.isKnownRoute(null), isFalse);
+    });
+
+    test('.allRoutes should produce allowed route breadcrumb messages', () {
+      for (final routeName in WalletRoutes.allRoutes) {
+        final routeCode = SentryNavigationObserver.routeToBreadcrumbCode(routeName);
+        final message = 'route.push.$routeCode';
+
+        expect(
+          SentryBreadcrumbs.isAllowedMessageCode(message),
+          isTrue,
+          reason: '$routeName produced invalid breadcrumb message $message',
+        );
+      }
     });
 
     test('.routeFactory should throw UnsupportedError for unknown route', () {

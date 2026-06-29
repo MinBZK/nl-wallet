@@ -8,6 +8,7 @@ import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/start_sign_result/start_sign_result.dart';
 import '../../../../util/mapper/mapper.dart';
+import '../../../../util/sentry_breadcrumbs.dart';
 import '../sign_repository.dart';
 
 class CoreSignRepository implements SignRepository {
@@ -27,7 +28,13 @@ class CoreSignRepository implements SignRepository {
   );
 
   @override
-  Future<StartSignResult> startSigning(String signUri) async {
+  Future<StartSignResult> startSigning(String signUri) => _callWithFlowBreadcrumb(
+    'sign.start',
+    failureCode: 'sign.fail.start',
+    runnable: () => _startSigning(signUri),
+  );
+
+  Future<StartSignResult> _startSigning(String signUri) async {
     final result = await _coreForSigning.startSigning(signUri);
     switch (result) {
       case StartSignResultReadyToDisclose():
@@ -44,8 +51,30 @@ class CoreSignRepository implements SignRepository {
   }
 
   @override
-  Future<core.WalletInstructionResult> acceptAgreement(String pin) => _coreForSigning.signAgreement(pin);
+  Future<core.WalletInstructionResult> acceptAgreement(String pin) => _callWithFlowBreadcrumb(
+    'sign.accept',
+    failureCode: 'sign.fail.accept',
+    runnable: () => _coreForSigning.signAgreement(pin),
+  );
 
   @override
-  Future<void> rejectAgreement() => _coreForSigning.rejectAgreement();
+  Future<void> rejectAgreement() => _callWithFlowBreadcrumb(
+    'sign.reject',
+    failureCode: 'sign.fail.reject',
+    runnable: _coreForSigning.rejectAgreement,
+  );
+
+  Future<T> _callWithFlowBreadcrumb<T>(
+    String code, {
+    required String failureCode,
+    required Future<T> Function() runnable,
+  }) async {
+    await SentryBreadcrumbs.flow(code);
+    try {
+      return await runnable();
+    } catch (_) {
+      await SentryBreadcrumbs.flow(failureCode);
+      rethrow;
+    }
+  }
 }

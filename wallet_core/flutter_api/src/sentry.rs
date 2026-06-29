@@ -9,6 +9,7 @@ pub use sentry::init;
 pub use sentry::release_name;
 
 static SENTRY: OnceLock<Option<ClientInitGuard>> = OnceLock::new();
+const MAX_BREADCRUMBS: usize = 25;
 
 pub(crate) fn init_sentry() {
     let _ = SENTRY.get_or_init(|| {
@@ -24,6 +25,7 @@ pub(crate) fn init_sentry() {
                         .filter(|environment| !environment.is_empty())
                         .map(Cow::from),
                     send_default_pii: false,
+                    max_breadcrumbs: MAX_BREADCRUMBS,
                     debug: cfg!(debug_assertions),
                     before_send: Some(Arc::new(filter_and_scrub_sensitive_data)),
                     ..Default::default()

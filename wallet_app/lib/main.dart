@@ -21,6 +21,7 @@ import 'src/feature/maintenance/maintenance_checker.dart';
 import 'src/feature/root/root_checker.dart';
 import 'src/feature/update/update_checker.dart';
 import 'src/util/helper/onboarding_helper.dart';
+import 'src/util/sentry_breadcrumbs.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
 import 'src/wallet_error_handler.dart';
@@ -52,6 +53,10 @@ FutureOr<void> initializeAndRun() async {
 
   await core.postInit();
 
+  if (Environment.hasSentryDsn) {
+    await SentryBreadcrumbs.installRustForwarding();
+  }
+
   await mainImpl();
 }
 
@@ -68,6 +73,8 @@ void configureSentry(SentryFlutterOptions options) {
     ..sendDefaultPii = false
     ..autoInitializeNativeSdk = false
     ..enableNativeCrashHandling = false
+    ..maxBreadcrumbs = SentryBreadcrumbs.maxBreadcrumbs
+    ..beforeBreadcrumb = SentryBreadcrumbs.beforeBreadcrumb
     ..beforeSend = beforeSend;
 }
 
@@ -76,8 +83,8 @@ FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
     ?..geo = null
     ..ipAddress = null;
 
-  // Strip all breadcrumbs and exception values from the event
-  event.breadcrumbs = null;
+  // Keep only curated wallet breadcrumbs and strip exception values.
+  event.breadcrumbs = SentryBreadcrumbs.filterEventBreadcrumbs(event.breadcrumbs);
   event.exceptions?.forEach((ex) {
     ex.value = null;
   });

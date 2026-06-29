@@ -392,6 +392,14 @@ class WalletCoreMock implements WalletCoreApi {
   Future<void> crateApiFullClearDirectNotificationsCallback() async {}
 
   @override
+  Future<void> crateApiFullClearSentryBreadcrumbCallback() async {}
+
+  @override
+  Future<void> crateApiFullSetSentryBreadcrumbCallback({
+    required FutureOr<void> Function(String) callback,
+  }) async {}
+
+  @override
   Future<String> crateApiFullGetRegistrationRevocationCode() async => 'AB12CD34EF56GH78IJ';
 
   @override

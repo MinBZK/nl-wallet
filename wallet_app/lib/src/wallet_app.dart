@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'data/store/impl/active_localization_delegate.dart';
 import 'localization/preferred_locale_cubit.dart';
+import 'navigation/sentry_navigation_observer.dart';
 import 'navigation/wallet_routes.dart';
 import 'theme/wallet_theme.dart';
 import 'util/extension/build_context_extension.dart';
@@ -27,6 +28,7 @@ class WalletApp extends StatelessWidget {
           onGenerateTitle: (BuildContext context) => context.l10n.appTitle,
           theme: WalletTheme.light,
           darkTheme: WalletTheme.dark,
+          navigatorObservers: [SentryNavigationObserver()],
           onGenerateInitialRoutes: WalletRoutes.initialRoutes,
           onGenerateRoute: WalletRoutes.routeFactory,
         );

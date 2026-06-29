@@ -34,6 +34,7 @@ Future<void> postInit() async {
     await core.clearRecentHistoryStream();
     await core.clearScheduledNotificationsStream();
     await core.clearDirectNotificationsCallback();
+    await core.clearSentryBreadcrumbCallback();
     // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
     await core.lockWallet();
   }
