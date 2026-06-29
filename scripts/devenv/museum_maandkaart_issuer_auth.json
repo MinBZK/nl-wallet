@@ -1,0 +1,26 @@
+{
+  "organization": {
+    "displayName": "Museum Demodam",
+    "legalName": "Museum Demodam B.V.",
+    "description": {
+      "nl": "Museum Demodam is een voorbeeld-museum.",
+      "en": "Museum Demodam is an example museum."
+    },
+    "webUrl": "https://museum.example.com",
+    "city": {
+      "nl": "Den Haag",
+      "en": "The Hague"
+    },
+    "category": {
+      "nl": "Cultuur",
+      "en": "Culture"
+    },
+    "logo": {
+      "mimeType": "image/svg+xml",
+      "imageData": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"32\" height=\"32\" fill=\"none\"><rect width=\"32\" height=\"32\" fill=\"#3d2b8e\" rx=\"6\"/><rect x=\"4\" y=\"22\" width=\"24\" height=\"2\" fill=\"#fff\"/><rect x=\"8\" y=\"14\" width=\"3\" height=\"8\" fill=\"#fff\"/><rect x=\"14\" y=\"14\" width=\"4\" height=\"8\" fill=\"#fff\"/><rect x=\"21\" y=\"14\" width=\"3\" height=\"8\" fill=\"#fff\"/><polygon points=\"4,14 28,14 16,6\" fill=\"#fff\"/></svg>"
+    },
+    "countryCode": "nl",
+    "kvk": "99876544",
+    "privacyPolicyUrl": "https://museum.example.com/privacy"
+  }
+}

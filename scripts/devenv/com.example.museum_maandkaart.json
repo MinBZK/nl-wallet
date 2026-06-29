@@ -1,0 +1,83 @@
+{
+  "vct": "com.example.museum_maandkaart",
+  "name": "Museum Maandkaart",
+  "description": "Monthly museum pass for various museums",
+  "display": [
+    {
+      "locale": "en-US",
+      "name": "Museum Month Card",
+      "description": "A monthly museum pass",
+      "summary": "{{member_number}}",
+      "rendering": {
+        "simple": {
+          "background_color": "3d2b8e",
+          "text_color": "#ffffff"
+        }
+      }
+    },
+    {
+      "locale": "nl-NL",
+      "name": "Museum Maandkaart",
+      "description": "Een maandelijkse museumkaart",
+      "summary": "{{member_number}}",
+      "rendering": {
+        "simple": {
+          "background_color": "3d2b8e",
+          "text_color": "#ffffff"
+        }
+      }
+    }
+  ],
+  "claims": [
+    {
+      "path": ["name"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Naam",
+          "description": "Naam van de kaarthouder"
+        },
+        {
+          "locale": "en-US",
+          "label": "Name",
+          "description": "Name of the cardholder"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["member_number"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Lidnummer",
+          "description": "Persoonlijk lidnummer"
+        },
+        {
+          "locale": "en-US",
+          "label": "Member number",
+          "description": "Personal member number"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true,
+      "svg_id": "member_number"
+    },
+    {
+      "path": ["valid_year"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Geldig jaar",
+          "description": "Het jaar waarvoor de kaart geldig is"
+        },
+        {
+          "locale": "en-US",
+          "label": "Valid year",
+          "description": "The year for which the pass is valid"
+        }
+      ],
+      "sd": "always"
+    }
+  ]
+}

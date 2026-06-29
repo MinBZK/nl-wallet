@@ -52,6 +52,8 @@
                                 {{ base.trans.housing_index }}
                             {% when "loyalty" %}
                                 {{ base.trans.loyalty_index }}
+                            {% when "museum_maandkaart" %}
+                                {{ base.trans.museum_maandkaart_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

@@ -58,6 +58,9 @@ spec:
             - name: metadata
               mountPath: /com.example.jum.bonuskaart.json
               subPath: com.example.jum.bonuskaart.json
+            - name: metadata
+              mountPath: /com.example.museum_maandkaart.json
+              subPath: com.example.museum_maandkaart.json
             - name: status-lists
               mountPath: /status-lists
           env:
@@ -68,7 +71,7 @@ spec:
             - name: PACF_ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
             - name: PACF_ISSUANCE_SERVER__METADATA
-              value: "com.example.jum.bonuskaart.json"
+              value: "com.example.jum.bonuskaart.json,com.example.museum_maandkaart.json"
             - name: PACF_ISSUANCE_SERVER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: PACF_ISSUANCE_SERVER__STORAGE__URL
