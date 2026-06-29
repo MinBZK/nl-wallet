@@ -18,6 +18,8 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
+use chrono::Datelike;
+use chrono::Utc;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestations;
@@ -332,7 +334,7 @@ async fn pre_authorized_usecase(
         .map(|doc| {
             let (credential_kind, attributes) = doc.clone().into();
 
-            let attributes = random_values(attributes, &mut OsRng);
+            let attributes = substitute_placeholders(attributes, &mut OsRng);
 
             IssuableDocument::try_new_with_random_id(credential_kind, attributes)
                 .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
@@ -417,41 +419,46 @@ async fn attestation(
     Ok(Json(documents).into_response())
 }
 
-/// Traverses all attributes and replaces every [`AttributeValue::String({{INSERT_RANDOM_VALUE}})`] (including those
-/// nested inside [`AttributeValue::Array`]) with a random string of 10 digits.
-fn random_values(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
+/// Traverses all attributes (including those nested inside [`AttributeValue::Array`] or
+/// [`Attribute::Nested`]) and replaces template placeholders in text values:
+/// - `{{INSERT_RANDOM_VALUE}}` with a random string of 10 digits;
+/// - `{{INSERT_CURRENT_YEAR}}` with the current calendar year.
+fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
     attributes
         .into_inner()
         .into_iter()
         .map(|(key, mut attribute)| {
-            random_values_in_attribute(&mut attribute, rng);
+            substitute_placeholders_in_attribute(&mut attribute, rng);
             (key, attribute)
         })
         .collect::<IndexMap<_, _>>()
         .into()
 }
 
-fn random_values_in_value(value: &mut AttributeValue, rng: &mut impl RngCore) {
+fn substitute_placeholders_in_value(value: &mut AttributeValue, rng: &mut impl RngCore) {
     match value {
         AttributeValue::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
             let n: u64 = rng.next_u64() % 10_000_000_000;
             *value = AttributeValue::Text(format!("{n:010}"));
         }
+        AttributeValue::Text(text) if text.as_str() == "{{INSERT_CURRENT_YEAR}}" => {
+            *value = AttributeValue::Text(Utc::now().year().to_string());
+        }
         AttributeValue::Array(elements) => {
             for element in elements {
-                random_values_in_value(element, rng);
+                substitute_placeholders_in_value(element, rng);
             }
         }
         _ => {}
     }
 }
 
-fn random_values_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
+fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
     match attribute {
-        Attribute::Single(value) => random_values_in_value(value, rng),
+        Attribute::Single(value) => substitute_placeholders_in_value(value, rng),
         Attribute::Nested(map) => {
             for attr in map.values_mut() {
-                random_values_in_attribute(attr, rng);
+                substitute_placeholders_in_attribute(attr, rng);
             }
         }
     }

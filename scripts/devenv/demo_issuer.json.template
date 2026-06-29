@@ -40,7 +40,7 @@
           "attributes": {
             "name": "Frouke Jansen",
             "member_number": "{{INSERT_RANDOM_VALUE}}",
-            "valid_year": "2026"
+            "valid_year": "{{INSERT_CURRENT_YEAR}}"
           }
         }
       ]
