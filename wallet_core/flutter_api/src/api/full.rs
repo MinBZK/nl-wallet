@@ -103,11 +103,11 @@ pub fn is_valid_pin(pin: String) -> anyhow::Result<PinValidationResult> {
     Ok(result)
 }
 
-pub async fn clear_sentry_breadcrumb_callback() {
+pub fn clear_sentry_breadcrumb_callback() {
     error_category::sentry::clear_breadcrumb_sink();
 }
 
-pub async fn set_sentry_breadcrumb_callback(
+pub fn set_sentry_breadcrumb_callback(
     callback: impl Fn(String) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<()> {
     let callback = Arc::new(callback);

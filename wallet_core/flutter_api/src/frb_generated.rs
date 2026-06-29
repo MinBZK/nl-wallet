@@ -439,23 +439,20 @@ fn wire__crate__api__full__clear_scheduled_notifications_stream_impl(
 fn wire__crate__api__full__clear_sentry_breadcrumb_callback_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "clear_sentry_breadcrumb_callback",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, ()>(
-                    (move || async move {
-                        let output_ok = Result::<_, ()>::Ok({
-                            crate::api::full::clear_sentry_breadcrumb_callback().await;
-                        })?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::full::clear_sentry_breadcrumb_callback();
+                    })?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -1351,7 +1348,7 @@ fn wire__crate__api__full__set_sentry_breadcrumb_callback_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     callback: impl CstDecode<flutter_rust_bridge::DartOpaque>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_sentry_breadcrumb_callback",
             port: Some(port_),
@@ -1359,14 +1356,11 @@ fn wire__crate__api__full__set_sentry_breadcrumb_callback_impl(
         },
         move || {
             let api_callback = decode_DartFn_Inputs_String_Output_unit_AnyhowException(callback.cst_decode());
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::set_sentry_breadcrumb_callback(api_callback).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::set_sentry_breadcrumb_callback(api_callback)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
