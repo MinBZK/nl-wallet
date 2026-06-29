@@ -21,16 +21,8 @@
       "issuer_state": "insurance_acf"
     },
     "loyalty": {
-      "data": [
-        {
-          "format": "mso_mdoc",
-          "attestation_type": "com.example.jum.bonuskaart",
-          "attributes": {
-            "branch": "Demodam",
-            "loyalty_number": "{{INSERT_RANDOM_VALUE}}"
-          }
-        }
-      ]
+      "credential_configuration_ids": ["com.example.jum.bonuskaart"],
+      "issuer_state": "loyalty"
     },
     "museum_maandkaart": {
       "data": [

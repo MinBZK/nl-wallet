@@ -57,8 +57,8 @@ serve = true
 # Usecases. Each is keyed by the `issuer_state` value used in the credential offer.
 #
 # Configuration fields for a usecase:
-# * kind: "consent" (phase 1; redirects to the consent page) or "immediate" (phase 2, not yet
-#   implemented). Defaults to "consent".
+# * kind: "consent" (redirects to the consent page) or "immediate" (issues immediately with no user
+#   interaction). Defaults to "consent".
 # * documents: the documents to issue, as an array of [[usecases.<name>.documents]] tables with
 #   `format` ("mso_mdoc" or "dc+sd-jwt"), `attestation_type`, and an `attributes` table.
 [usecases.insurance_acf]
