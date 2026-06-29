@@ -241,7 +241,7 @@ class CardDetailScreen extends StatelessWidget {
       MenuItem(
         leftIcon: OrganizationLogo(image: card.issuer.logo, size: 24),
         label: Text.rich(context.l10n.cardDetailScreenIssuerCta.toTextSpan(context)),
-        subtitle: Text.rich(card.issuer.displayName.l10nSpan(context)),
+        subtitle: Text.rich(card.issuer.displayName.toTextSpan(context)),
         onPressed: () => OrganizationDetailScreen.showPreloaded(
           context,
           card.issuer,
@@ -273,7 +273,7 @@ class CardDetailScreen extends StatelessWidget {
       final String status = WalletEventStatusTextMapper().map(context, attribute).toLowerCase();
       return context.l10n
           .cardDetailScreenLatestSuccessInteraction(
-            attribute.relyingParty.displayName.l10nValue(context),
+            attribute.relyingParty.displayName,
             status,
             timeAgo,
           )

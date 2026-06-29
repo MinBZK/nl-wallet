@@ -101,7 +101,7 @@ unused_self = "warn"
 
 [workspace.dependencies]
 accept-language = "3.1.0"
-aes-gcm = { version = "0.10.3", features = ["std"] }
+aes-gcm = { version = "0.10.3", features = ["std", "zeroize"] }
 # android_logger version 0.15.x and above is held back because PlatformLogWriter was made private.
 android_logger = { version = "0.14.1", default-features = false }
 anyhow = "1.0.100"
@@ -264,6 +264,7 @@ x509-parser = "0.18.0"
 xxhash-rust = "0.8.15"
 yoke = "0.8.1"
 zstd = "0.13.3"
+zeroize = "1.9.0"
 
 [patch.crates-io]
 # Pin on newer version due to https://github.com/parallaxsecond/rust-cryptoki/pull/291

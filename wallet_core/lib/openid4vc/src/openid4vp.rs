@@ -1147,11 +1147,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
-    use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::CertificateConfiguration;
-    use crypto::x509::CertificateUsage;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1290,7 +1286,7 @@ mod tests {
 
     #[test]
     fn test_client_id_x509_hash_from_certificate() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let key_pair = ca.generate_reader_mock().unwrap();
         let expected_hash = ClientId::x509_hash_value(key_pair.certificate());
 
@@ -1318,15 +1314,14 @@ mod tests {
         JweEcdhSecretKey,
         NormalizedVpAuthorizationRequest,
     ) {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let trust_anchor = TrustAnchors::from(&ca);
         let rp_keypair = ca.generate_reader_mock().unwrap();
 
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();
 
-        let rp_fqdn = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
-        let response_uri = format!("https://{rp_fqdn}/response_uri").parse().unwrap();
+        let response_uri = "https://cert.rp.example.com/response_uri".parse().unwrap();
 
         let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             credential_requests,
@@ -2301,7 +2296,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock().unwrap(),
+                    ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
                 false,
             )
@@ -2342,12 +2337,7 @@ mod tests {
 
         // Setup both issuer and holder keys.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key_pair = ca
-            .generate_key_pair(
-                ISSUANCE_CERT_CN,
-                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            )
-            .unwrap();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let holder_key1 = MockRemoteEcdsaKey::new_random("sd_jwt_key_1".to_string());
         let holder_public_key1 = *holder_key1.verifying_key();
@@ -2414,7 +2404,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock().unwrap(),
+                    ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
                 false,
             )
@@ -2486,12 +2476,7 @@ mod tests {
 
         // Setup the issuer keys.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let sd_jwt_issuer_key_pair = ca
-            .generate_key_pair(
-                ISSUANCE_CERT_CN,
-                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            )
-            .unwrap();
+        let sd_jwt_issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         // Create an mdoc holder key and device response using the WSCD. Note that the `PoaInput` is not actually used.
         let mdoc_holder_key = MockRemoteEcdsaKey::new_random("mdoc".to_string());
@@ -2576,7 +2561,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock().unwrap(),
+                    ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
                 false,
             )
@@ -2600,12 +2585,7 @@ mod tests {
 
         let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
-        let issuer_keypair = ca
-            .generate_key_pair(
-                PID_ISSUER_CERT_CN,
-                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            )
-            .unwrap();
+        let issuer_keypair = ca.generate_pid_issuer_mock().unwrap();
         let wscd = MockRemoteWscd::default();
 
         let partial_mdocs = test_credentials.to_partial_mdocs(&issuer_keypair, &wscd);
@@ -2628,7 +2608,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
+                    ca.generate_pid_issuer_status_list_mock().unwrap(),
                 ))),
                 false,
             )
@@ -2652,7 +2632,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
+                    ca.generate_pid_issuer_status_list_mock().unwrap(),
                 ))),
                 false,
             )
@@ -2681,7 +2661,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                    ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
+                    ca.generate_pid_issuer_status_list_mock().unwrap(),
                 ))),
                 false,
             )

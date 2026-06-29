@@ -137,11 +137,12 @@ final _kAltSampleCard = WalletCard(
 
 final _kSampleOrganization = Organization(
   id: 'id',
-  legalName: 'Organization Legal Name'.untranslated,
-  displayName: 'Organization Display Name'.untranslated,
+  legalName: 'Organization Legal Name',
+  displayName: 'Organization Display Name',
   category: 'Category'.untranslated,
   description: 'Organization description'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
+  countryCode: 'NL',
 );
 
 final _kSampleIssuanceEvent = WalletEvent.issuance(
@@ -222,10 +223,10 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () async {
             await FlutterLocalNotificationsPlugin().show(
-              DateTime.now().millisecondsSinceEpoch % 10000,
-              'Sample',
-              'Notification Body',
-              NotificationDetails(
+              id: DateTime.now().millisecondsSinceEpoch % 10000,
+              title: 'Sample',
+              body: 'Notification Body',
+              notificationDetails: NotificationDetails(
                 android: AndroidNotificationDetails(
                   NotificationChannel.cardUpdates.name,
                   context.l10n.cardNotificationsChannelName,
@@ -244,14 +245,14 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () async {
             await FlutterLocalNotificationsPlugin().zonedSchedule(
-              DateTime.now().millisecondsSinceEpoch % 10000,
-              'Sample Scheduled',
-              'Notification Body',
-              tz.TZDateTime.from(
+              id: DateTime.now().millisecondsSinceEpoch % 10000,
+              title: 'Sample Scheduled',
+              body: 'Notification Body',
+              scheduledDate: tz.TZDateTime.from(
                 DateTime.now().add(const Duration(minutes: 1)),
                 tz.getLocation('Europe/Amsterdam'),
               ),
-              NotificationDetails(
+              notificationDetails: NotificationDetails(
                 android: AndroidNotificationDetails(
                   NotificationChannel.cardUpdates.name,
                   context.l10n.cardNotificationsChannelName,

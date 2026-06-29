@@ -42,6 +42,7 @@ use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::instruction::PinRecoveryRemoteEcdsaWscd;
 use crate::instruction::PinRecoveryWscd;
+use crate::pin::key::Pin;
 use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
@@ -265,7 +266,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn complete_pin_recovery(&mut self, new_pin: String) -> Result<(), PinRecoveryError> {
+    pub async fn complete_pin_recovery(&mut self, new_pin: Pin) -> Result<(), PinRecoveryError> {
         self.complete_pin_recovery_internal(
             |instruction_client, pin_pubkey| PinRecoveryRemoteEcdsaWscd::new(instruction_client, pin_pubkey),
             new_pin,
@@ -277,7 +278,7 @@ where
     async fn complete_pin_recovery_internal<P, F>(
         &mut self,
         pin_recovery_wscd_factory: F,
-        new_pin: String,
+        new_pin: Pin,
     ) -> Result<(), PinRecoveryError>
     where
         P: PinRecoveryWscd,
@@ -690,7 +691,7 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         wallet
-            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".to_string())
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
             .await
             .unwrap();
     }
@@ -920,7 +921,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let err = wallet
-            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".to_string())
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
             .await
             .unwrap_err();
 
@@ -933,7 +934,7 @@ mod tests {
 
         // complete_pin_recovery_internal without an active issuance session should return SessionState.
         let err = wallet
-            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".to_string())
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
             .await
             .unwrap_err();
 
@@ -948,7 +949,7 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         let err = wallet
-            .complete_pin_recovery_internal(|_, _| MockPinWscd, "111111".to_string())
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "111111".into())
             .await
             .unwrap_err();
 

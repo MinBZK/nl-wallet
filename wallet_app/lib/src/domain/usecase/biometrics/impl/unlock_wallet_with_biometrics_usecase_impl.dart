@@ -1,6 +1,5 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/services.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../../../../l10n/generated/app_localizations.dart';
@@ -51,14 +50,13 @@ class UnlockWalletWithBiometricsUseCaseImpl extends UnlockWalletWithBiometricsUs
         _targetPlatform,
         l10n,
         localizedReason: l10n.unlockWithBiometricsReason,
-        useErrorDialogs: false /* we never want to allow setup at this stage */,
       );
       if (authenticated) {
         await _walletRepository.unlockWalletWithBiometrics();
         return const Result.success(BiometricAuthenticationResult.success);
       }
-    } on PlatformException catch (e) {
-      if (e.code == auth_error.lockedOut || e.code == auth_error.permanentlyLockedOut) {
+    } on LocalAuthException catch (e) {
+      if (e.code == LocalAuthExceptionCode.temporaryLockout || e.code == LocalAuthExceptionCode.biometricLockout) {
         return const Result.success(BiometricAuthenticationResult.lockedOut);
       }
     } on CoreError catch (ex) {

@@ -6,7 +6,6 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -206,11 +205,29 @@ val jniTargetDir = android.sourceSets.getByName("main").jniLibs.srcDirs.first()
 
 // Register tasks to build the Rust code and copy the resulting library files
 enum class BuildMode { Debug, Profile, Release }
-data class BuildOptions(val args: List<String> = emptyList())
+data class BuildOptions(
+    val args: List<String> = emptyList(),
+    val environment: Map<String, String> = emptyMap()
+)
+
+val sentryRustSymbolicationEnvironment = mapOf(
+    // Keep release artifacts optimized, but retain line tables in the CI-only
+    // debug files uploaded to Sentry. The packaged app should still be stripped
+    // by the Android build pipeline.
+    "CARGO_PROFILE_RELEASE_DEBUG" to "line-tables-only",
+    "CARGO_PROFILE_RELEASE_STRIP" to "none",
+)
+
 mapOf(
     BuildMode.Debug to BuildOptions(),
-    BuildMode.Profile to BuildOptions(args = listOf("--locked", "--release")),
-    BuildMode.Release to BuildOptions(args = listOf("--locked", "--release")),
+    BuildMode.Profile to BuildOptions(
+        args = listOf("--locked", "--release"),
+        environment = sentryRustSymbolicationEnvironment
+    ),
+    BuildMode.Release to BuildOptions(
+        args = listOf("--locked", "--release"),
+        environment = sentryRustSymbolicationEnvironment
+    ),
 ).forEach { (buildMode, options) ->
     tasks.register<Exec>("cargoBuildNativeLibrary${buildMode}") {
         workingDir("../../../wallet_core")
@@ -222,6 +239,9 @@ mapOf(
         args("-o", jniTargetDir)
         args("build", "-p", "flutter_api")
         args(options.args)
+        options.environment.forEach { (key, value) ->
+            environment(key, value)
+        }
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
             args("--features", "wallet/allow_insecure_url")
         }

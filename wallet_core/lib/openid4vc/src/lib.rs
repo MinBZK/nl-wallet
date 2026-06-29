@@ -32,10 +32,10 @@ pub mod verifier;
 pub mod errors;
 pub use errors::*;
 
+pub mod cleanup;
 pub mod cose;
 pub mod jose;
 pub mod nonce;
-mod recurring_task;
 pub mod server_state;
 pub mod store;
 

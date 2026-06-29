@@ -1,11 +1,7 @@
 {
   "organization": {
-    "displayName": {
-      "nl": "RvIG"
-    },
-    "legalName": {
-      "nl": "Rijksdienst voor Identiteitsgegevens"
-    },
+    "displayName": "RvIG",
+    "legalName": "Rijksdienst voor Identiteitsgegevens",
     "description": {
       "nl": "RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.",
       "en": "RvIG is the authority and director of the safe and reliable use of identity data."

@@ -5,6 +5,8 @@ use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::IssuanceServerIssuer;
 use itertools::Itertools;
+use openid4vc::cleanup::CLEANUP_INTERVAL;
+use openid4vc::cleanup::start_cleanup_task;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
@@ -45,6 +47,10 @@ pub async fn serve_with_listeners(
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
 ) -> Result<()> {
     let status_list_services = VecNonEmpty::try_from(issuer.status_lists().cloned().collect_vec())?;
+
+    // Periodically remove expired sessions and proof nonces for as long as the server runs; the
+    // guard aborts the task when this function returns.
+    let _cleanup_task = start_cleanup_task(CLEANUP_INTERVAL, Arc::clone(&issuer));
 
     let mut router = add_cache_control_no_store_layer(create_issuance_router(Arc::clone(&issuer)));
 

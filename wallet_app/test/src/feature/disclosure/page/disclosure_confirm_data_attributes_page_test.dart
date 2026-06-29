@@ -60,7 +60,7 @@ void main() {
     // - title
     // - organization detail row
     // - agreements section
-    final orgNameFinder = find.textContaining(WalletMockData.organization.displayName.testValue);
+    final orgNameFinder = find.textContaining(WalletMockData.organization.displayName);
     expect(orgNameFinder, findsNWidgets(3));
   });
 

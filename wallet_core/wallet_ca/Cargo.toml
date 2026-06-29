@@ -24,11 +24,12 @@ pem.workspace = true
 serde_json.workspace = true
 x509-parser.workspace = true
 
-crypto = { path = "../lib/crypto", features = ["generate", "mock"] }
+crypto = { path = "../lib/crypto", features = ["generate"] }
 attestation_data = { path = "../lib/attestation_data", features = ["generate"] }
 attestation_types.path = "../lib/attestation_types"
 mdoc = { path = "../lib/mdoc", features = ["test"] }
 utils.path = "../lib/utils"
+http_utils.path = "../lib/http_utils"
 
 [dev-dependencies]
 assert_cmd.workspace = true
@@ -38,3 +39,4 @@ rand_core.workspace = true
 time.workspace = true
 
 attestation_data = { path = "../lib/attestation_data", features = ["mock"] }
+crypto = { path = "../lib/crypto", features = ["generate", "mock"] }

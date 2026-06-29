@@ -1,6 +1,7 @@
 use std::future::Future;
 use std::sync::Arc;
 
+use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use http_utils::client::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
@@ -17,12 +18,13 @@ use wallet_account::messages::registration::WalletCertificate;
 
 use super::InstructionError;
 use crate::account_provider::AccountProviderClient;
+use crate::pin::key::Pin;
 use crate::pin::key::PinKey;
 use crate::storage::InstructionData;
 use crate::storage::Storage;
 
 pub struct InstructionClient<S, AK, GK, A> {
-    pin: String,
+    pin: Pin,
     hw_signed_instruction_client: HwSignedInstructionClient<S, AK, GK, A>,
 }
 
@@ -37,7 +39,7 @@ pub struct HwSignedInstructionClient<S, AK, GK, A> {
 #[derive(Constructor)]
 pub struct InstructionClientParameters {
     wallet_id: String,
-    pin_salt: Vec<u8>,
+    pin_salt: KeyBytes,
     wallet_certificate: WalletCertificate,
     client_config: TlsPinningConfig,
     instruction_result_public_key: EcdsaDecodingKey,
@@ -71,7 +73,7 @@ impl<S, AK, GK, A> InstructionClient<S, AK, GK, A> {
     /// a PIN change if it is in progress. [`Wallet::new_instruction_client`] will do this before
     /// returning the [`InstructionClient`] and so is the recommended way to obtain an [`InstructionClient`].
     pub fn new(
-        pin: String,
+        pin: Pin,
         storage: Arc<RwLock<S>>,
         attested_key: Arc<AttestedKey<AK, GK>>,
         account_provider_client: Arc<A>,
@@ -269,7 +271,7 @@ impl<S, AK, GK, A> InstructionClientFactory<S, AK, GK, A> {
 
     /// Creates an [`InstructionClient`].
     /// See [`InstructionClient::new`].
-    pub fn create(&self, pin: String) -> InstructionClient<S, AK, GK, A> {
+    pub fn create(&self, pin: Pin) -> InstructionClient<S, AK, GK, A> {
         let Self(hw_signed_instruction_client) = self;
 
         InstructionClient {

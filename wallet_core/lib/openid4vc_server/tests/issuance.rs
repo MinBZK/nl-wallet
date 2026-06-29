@@ -69,7 +69,7 @@ use wscd::mock_remote::MockRemoteWscd;
 const REDIRECT_URI: &str = "https://wallet.example.com/callback";
 
 fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
-    let ca = Ca::generate("localhost", Default::default()).unwrap();
+    let ca = Ca::generate_mock();
     let keypair = ca.generate_tls_mock("localhost").unwrap();
 
     let tls_config = TlsServerConfig {

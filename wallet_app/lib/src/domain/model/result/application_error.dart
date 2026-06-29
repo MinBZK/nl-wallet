@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../wallet_core/error/core_error.dart';
-import '../localized_text.dart';
 import '../pin/check_pin_result.dart';
 import '../pin/pin_validation_error.dart';
 
@@ -120,7 +119,7 @@ class DeniedDigidError extends ApplicationError {
 }
 
 class RelyingPartyError extends ApplicationError {
-  final LocalizedText? organizationName;
+  final String? organizationName;
 
   const RelyingPartyError({required super.sourceError, this.organizationName});
 

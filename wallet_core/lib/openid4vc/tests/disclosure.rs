@@ -28,15 +28,10 @@ use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
-use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
-use crypto::server_keys::generate::mock::RP_CERT_CN;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
-use crypto::x509::CertificateConfiguration;
-use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -155,12 +150,12 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
 
 #[test]
 fn disclosure_direct() {
-    let ca = Ca::generate("myca", Default::default()).unwrap();
+    let ca = Ca::generate_mock();
     let auth_keypair = ca.generate_reader_mock().unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = Nonce::from("nonce".to_string());
-    let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
+    let response_uri: BaseUrl = "https://cert.rp.example.com/response_uri".parse().unwrap();
     let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
         NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
@@ -190,7 +185,7 @@ fn disclosure_direct() {
         &TrustAnchors::from(&issuer_ca),
         &ExtendingVctRetrieverStub,
         &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-            issuer_ca.generate_status_list_mock().unwrap(),
+            issuer_ca.generate_issuer_status_list_mock().unwrap(),
         ))),
         false,
     )
@@ -253,7 +248,7 @@ async fn disclosure_using_message_client(
 ) {
     let formats = std::iter::repeat_n(format, test_credentials.as_ref().len()).collect_vec();
 
-    let ca = Ca::generate("myca", Default::default()).unwrap();
+    let ca = Ca::generate_mock();
     let rp_keypair = generate_reader_mock_with_registration(
         &ca,
         &ReaderRegistration::mock_from_dcql_query(&test_credentials.to_dcql_query(formats.iter().copied())),
@@ -261,12 +256,7 @@ async fn disclosure_using_message_client(
     .unwrap();
 
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_keypair = issuer_ca
-        .generate_key_pair(
-            PID_ISSUER_CERT_CN,
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-        )
-        .unwrap();
+    let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
 
     // Initialize the "wallet"
     let wscd = MockRemoteWscd::default();
@@ -285,7 +275,7 @@ async fn disclosure_using_message_client(
         formats,
         rp_keypair,
         TrustAnchors::from(&issuer_ca),
-        issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
+        issuer_ca.generate_pid_issuer_status_list_mock().unwrap(),
     );
     let request_uri = message_client.start_session();
 
@@ -334,9 +324,11 @@ impl DirectMockVpMessageClient {
             }),
         })
         .unwrap();
-        let request_uri = (format!("https://{RP_CERT_CN}/request_uri?") + &query).parse().unwrap();
+        let request_uri = format!("https://cert.rp.example.com/request_uri?{}", &query)
+            .parse()
+            .unwrap();
 
-        let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
+        let response_uri: BaseUrl = "https://cert.rp.example.com/response_uri".parse().unwrap();
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
 
         let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
@@ -800,9 +792,10 @@ async fn test_wallet_initiated_usecase_verifier() {
     let (verifier, test_credentials, rp_trust_anchor, issuer_keypair, client_id) =
         setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
-    let mut request_uri: Url = format!("https://{RP_CERT_CN}/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
-        .parse()
-        .unwrap();
+    let mut request_uri: Url =
+        format!("https://cert.rp.example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
+            .parse()
+            .unwrap();
     request_uri.set_query(Some(
         &serde_qs::to_string(&VerifierUrlParameters {
             session_type: SessionType::SameDevice,
@@ -846,9 +839,10 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
     let (verifier, _test_credentials, rp_trust_anchor, _issuer_keypair, client_id) =
         setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
-    let mut request_uri: Url = format!("https://{RP_CERT_CN}/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
-        .parse()
-        .unwrap();
+    let mut request_uri: Url =
+        format!("https://cert.rp.example.com/request_uri/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
+            .parse()
+            .unwrap();
     request_uri.set_query(Some(
         &serde_qs::to_string(&VerifierUrlParameters {
             session_type: SessionType::SameDevice,
@@ -1053,12 +1047,7 @@ where
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
-    let issuer_keypair = issuer_ca
-        .generate_key_pair(
-            ISSUANCE_CERT_CN,
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-        )
-        .unwrap();
+    let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
 
     // Initialize the verifier
     let test_credentials = nl_pid_credentials_full_name();
@@ -1081,7 +1070,7 @@ where
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::default(),
         RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-            issuer_ca.generate_status_list_mock_with_dn(ISSUANCE_CERT_CN).unwrap(),
+            issuer_ca.generate_issuer_status_list_mock().unwrap(),
         ))),
     ));
 
@@ -1102,12 +1091,7 @@ fn setup_verifier(
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
-    let issuer_keypair = issuer_ca
-        .generate_key_pair(
-            PID_ISSUER_CERT_CN,
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-        )
-        .unwrap();
+    let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
 
     // Initialize the verifier
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
@@ -1159,7 +1143,7 @@ fn setup_verifier(
             vec_nonempty![String::from(PID_ATTESTATION_TYPE)],
         )]),
         RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-            issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
+            issuer_ca.generate_pid_issuer_status_list_mock().unwrap(),
         ))),
     ));
 
@@ -1205,8 +1189,8 @@ async fn request_status_endpoint(
         .status_response(
             session_token,
             session_type,
-            &format!("https://{RP_CERT_CN}/ul").parse().unwrap(),
-            format!("https://{RP_CERT_CN}/verifier_base_url/{session_token}/request_uri")
+            &"https://cert.rp.example.com/request_uri/ul".parse().unwrap(),
+            format!("https://cert.rp.example.com/request_uri/verifier_base_url/{session_token}/request_uri")
                 .parse()
                 .unwrap(),
             &TimeGenerator,
@@ -1256,7 +1240,9 @@ where
             .verifier
             .process_get_request(
                 session_token.as_ref(),
-                &format!("https://{RP_CERT_CN}/verifier_base_url").parse().unwrap(),
+                &"https://cert.rp.example.com/request_uri/verifier_base_url"
+                    .parse()
+                    .unwrap(),
                 url.as_ref().query(),
                 wallet_nonce,
             )

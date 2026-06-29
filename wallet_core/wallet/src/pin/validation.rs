@@ -1,5 +1,8 @@
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use zeroize::Zeroize;
+
+use crate::pin::key::Pin;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(expected)]
@@ -24,7 +27,8 @@ const MIN_UNIQUE_DIGITS: usize = 2;
 const RADIX: usize = 10;
 
 /// This function will check whether the pin has a valid length.
-fn pin_length_should_be_correct(pin: &str) -> Result<(), PinValidationError> {
+fn pin_length_should_be_correct(pin: &Pin) -> Result<(), PinValidationError> {
+    let pin: &str = pin.as_ref();
     if pin.len() != EXACT_LENGTH {
         Err(PinValidationError::InvalidLength)
     } else {
@@ -34,7 +38,8 @@ fn pin_length_should_be_correct(pin: &str) -> Result<(), PinValidationError> {
 
 /// This function will convert a pin to a vector of digits.
 /// It will return an error when non-digits are detected.
-fn parse_pin_to_digits(pin: &str) -> Result<Vec<u8>, PinValidationError> {
+fn parse_pin_to_digits(pin: &Pin) -> Result<Vec<u8>, PinValidationError> {
+    let pin: &str = pin.as_ref();
     let digit_options: Vec<Option<u32>> = pin.chars().map(|c| c.to_digit(RADIX as u32)).collect();
     if digit_options.iter().any(|c| c.is_none()) {
         Err(PinValidationError::NonDigits)
@@ -90,11 +95,15 @@ fn pin_should_not_be_ascending_or_descending(digits: &[u8]) -> Result<(), PinVal
 
 /// This function will check whether a pin is not too simple.
 #[sentry_capture_error]
-pub fn validate_pin(pin: &str) -> Result<(), PinValidationError> {
+pub fn validate_pin(pin: &Pin) -> Result<(), PinValidationError> {
     pin_length_should_be_correct(pin)?;
-    let digits = parse_pin_to_digits(pin)?;
+
+    let mut digits = parse_pin_to_digits(pin)?;
     pin_should_contain_enough_unique_digits(&digits)?;
     pin_should_not_be_ascending_or_descending(&digits)?;
+
+    digits.zeroize();
+
     Ok(())
 }
 
@@ -104,35 +113,40 @@ mod tests {
 
     #[test]
     fn valid_pin() {
-        assert!(matches!(validate_pin("024791"), Ok(())));
-        assert!(matches!(validate_pin("010101"), Ok(())));
-        assert!(matches!(validate_pin("000001"), Ok(())));
-        assert!(matches!(validate_pin("100000"), Ok(())));
+        assert!(matches!(validate_pin(&"024791".into()), Ok(())));
+        assert!(matches!(validate_pin(&"010101".into()), Ok(())));
+        assert!(matches!(validate_pin(&"000001".into()), Ok(())));
+        assert!(matches!(validate_pin(&"100000".into()), Ok(())));
     }
 
     #[test]
     fn pin_should_have_length_6() {
-        assert!(matches!(validate_pin("02479"), Err(PinValidationError::InvalidLength)));
         assert!(matches!(
-            validate_pin("0247913"),
+            validate_pin(&"0247913".into()),
             Err(PinValidationError::InvalidLength)
         ));
     }
 
     #[test]
     fn pin_should_contain_only_digits() {
-        assert!(matches!(validate_pin("abcdef"), Err(PinValidationError::NonDigits)));
-        assert!(matches!(validate_pin("02479a"), Err(PinValidationError::NonDigits)));
+        assert!(matches!(
+            validate_pin(&"abcdef".into()),
+            Err(PinValidationError::NonDigits)
+        ));
+        assert!(matches!(
+            validate_pin(&"02479a".into()),
+            Err(PinValidationError::NonDigits)
+        ));
     }
 
     #[test]
     fn pin_should_contain_at_least_2_unique_digits() {
         assert!(matches!(
-            validate_pin("000000"),
+            validate_pin(&"000000".into()),
             Err(PinValidationError::TooFewUniqueDigits)
         ));
         assert!(matches!(
-            validate_pin("999999"),
+            validate_pin(&"999999".into()),
             Err(PinValidationError::TooFewUniqueDigits)
         ));
     }
@@ -140,11 +154,11 @@ mod tests {
     #[test]
     fn pin_should_not_contain_ascending_digits() {
         assert!(matches!(
-            validate_pin("012345"),
+            validate_pin(&"012345".into()),
             Err(PinValidationError::AscendingDigits)
         ));
         assert!(matches!(
-            validate_pin("456789"),
+            validate_pin(&"456789".into()),
             Err(PinValidationError::AscendingDigits)
         ));
     }
@@ -152,11 +166,11 @@ mod tests {
     #[test]
     fn pin_should_not_contain_descending_digits() {
         assert!(matches!(
-            validate_pin("543210"),
+            validate_pin(&"543210".into()),
             Err(PinValidationError::DescendingDigits)
         ));
         assert!(matches!(
-            validate_pin("987654"),
+            validate_pin(&"987654".into()),
             Err(PinValidationError::DescendingDigits)
         ));
     }

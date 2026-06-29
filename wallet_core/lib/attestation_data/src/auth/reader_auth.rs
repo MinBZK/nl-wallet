@@ -12,7 +12,7 @@ use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use x509_parser::der_parser::Oid;
-use x509_parser::der_parser::asn1_rs::oid;
+use x509_parser::der_parser::oid;
 
 use crate::auth::LocalizedStrings;
 use crate::auth::Organization;
@@ -84,7 +84,7 @@ impl ReaderRegistration {
         Ok(())
     }
 
-    #[cfg(feature = "mock")]
+    #[cfg(any(test, feature = "mock"))]
     pub fn to_certificate_configuration(
         &self,
     ) -> Result<crypto::x509::CertificateConfiguration, crypto::x509::CertificateError> {
@@ -202,7 +202,10 @@ pub mod mock {
         }
 
         pub fn new_mock() -> Self {
-            let organization = Organization::new_mock();
+            let mut organization = Organization::new_mock();
+            organization.display_name = "Cert relying party".to_string();
+            organization.legal_name = "Cert relying party B.V.".to_string();
+            organization.identifier = Some("NTRNL-87781674".to_string());
 
             ReaderRegistration {
                 purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]

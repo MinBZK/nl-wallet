@@ -26,7 +26,7 @@ mock_secure_keys = []
 aes-gcm.workspace = true
 base64.workspace = true
 chrono.workspace = true
-derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into", "display"] }
+derive_more = { workspace = true, features = ["debug", "as_ref", "from", "from_str", "into", "display"] }
 hex = { workspace = true, features = ["serde"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
@@ -43,6 +43,7 @@ thiserror.workspace = true
 trait-variant.workspace = true
 x509-parser = { workspace = true, features = ["verify", "validate"] }
 yoke = { workspace = true, features = ["derive"] }
+zeroize = { workspace = true, features = ["zeroize_derive"] }
 
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"

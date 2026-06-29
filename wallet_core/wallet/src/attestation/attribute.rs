@@ -376,11 +376,12 @@ pub mod test {
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
+        let organization = Organization::new_mock();
         let attestation_presentation = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Ephemeral,
             Format::SdJwt,
             type_metadata,
-            Organization::new_mock(),
+            organization.clone(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
@@ -390,7 +391,7 @@ pub mod test {
         )
         .expect("creating AttestationPresentation should succeed");
 
-        assert_eq!(attestation_presentation.issuer, Organization::new_mock());
+        assert_eq!(attestation_presentation.issuer, organization);
         assert_eq!(
             attestation_presentation.attributes,
             vec![

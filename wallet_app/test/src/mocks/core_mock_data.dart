@@ -41,10 +41,11 @@ abstract class CoreMockData {
   );
 
   static const Organization organization = Organization(
-    legalName: [LocalizedString(language: 'en', value: 'legalName')],
-    displayName: [LocalizedString(language: 'en', value: 'displayName')],
+    legalName: 'legalName',
+    displayName: 'displayName',
     category: [LocalizedString(language: 'en', value: 'category')],
     description: [LocalizedString(language: 'en', value: 'description')],
+    countryCode: 'NL',
   );
 
   static const RequestPolicy policy = RequestPolicy(

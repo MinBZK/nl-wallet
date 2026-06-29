@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
+use crypto::x509::CanonicalDistinguishedName;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -371,8 +372,8 @@ pub enum IssuerSettingsValidationError {
     )]
     CertificatesSubjectNameMismatch {
         config_id: CredentialConfigurationId,
-        attestation: String,
-        status_list: String,
+        attestation: CanonicalDistinguishedName,
+        status_list: CanonicalDistinguishedName,
     },
 }
 
@@ -458,8 +459,12 @@ impl IssuerSettings {
         verify_key_pairs(&key_pairs, trust_anchors, CertificateUsage::OAuthStatusSigning, &time)?;
 
         for (config_id, attestation) in self.credential_configurations.as_ref() {
-            let attestation_dn = attestation.keypair.certificate.distinguished_name()?;
-            let status_list_dn = attestation.status_list.keypair.certificate.distinguished_name()?;
+            let attestation_dn = attestation.keypair.certificate.to_canonical_distinguished_name()?;
+            let status_list_dn = attestation
+                .status_list
+                .keypair
+                .certificate
+                .to_canonical_distinguished_name()?;
             if attestation_dn != status_list_dn {
                 return Err(IssuerSettingsValidationError::CertificatesSubjectNameMismatch {
                     config_id: config_id.clone(),
@@ -628,11 +633,13 @@ mod tests {
     use attestation_types::credential_format::Format;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
+    use crypto::x509::DistinguishedName;
+    use crypto::x509::SubjectAltNameUri;
     use http_utils::urls::HttpsUri;
     use openid4vc::issuable_document::CredentialKind;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
@@ -660,7 +667,7 @@ mod tests {
             .into();
 
         let status_list_keypair = issuer_ca
-            .generate_status_list_mock()
+            .generate_issuer_status_list_mock()
             .expect("generate tsl cert failed")
             .into();
 
@@ -680,7 +687,7 @@ mod tests {
                         publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                     },
                     attestation_qualification: AttestationQualification::PubEAA,
-                    certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
+                    certificate_san: Some(ISSUANCE_CERT_SAN_URI.as_ref().to_string().parse().unwrap()),
                 },
             )])
             .into(),
@@ -753,7 +760,7 @@ mod tests {
             .expect("generate issuer cert without issuer registration");
 
         let status_list_keypair = issuer_ca
-            .generate_status_list_mock()
+            .generate_issuer_status_list_mock()
             .expect("generate tsl cert failed")
             .into();
 
@@ -843,8 +850,9 @@ mod tests {
 
         let status_list_keypair = issuer_ca
             .generate_key_pair(
-                "different.example.com",
+                DistinguishedName::create_mock("different"),
                 CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                ["https://different.example.com/".parse::<SubjectAltNameUri>().unwrap()],
             )
             .expect("generate tsl cert failed");
 
@@ -858,8 +866,8 @@ mod tests {
             error,
             IssuerSettingsValidationError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
                 if config_id.as_ref() == "pid_sdjwt" &&
-                    attestation == "CN=cert.issuer.example.com" &&
-                    status_list == "CN=different.example.com"
+                    attestation == "2.5.4.3=DAtDZXJ0IGlzc3Vlcg,2.5.4.6=DAJOTA,2.5.4.10=DBBDZXJ0IGlzc3VlciBCLlYu,1.3.6.1.1.15=DA5OVFJOTC05OTMzMzY3Mw".to_string().into() &&
+                    status_list == "2.5.4.3=DAlkaWZmZXJlbnQ,2.5.4.6=DAJOTA,2.5.4.10=DA5kaWZmZXJlbnQgQi5WLg,1.3.6.1.1.15=DA5OVFJOTC0xOTU3MDE4Ng".to_string().into()
         );
     }
 }

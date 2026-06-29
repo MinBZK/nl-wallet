@@ -59,7 +59,7 @@ class LoginDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WalletAppBar(
-        title: TitleText(context.l10n.loginDetailScreenTitle(organization.displayName.l10nValue(context))),
+        title: TitleText(context.l10n.loginDetailScreenTitle(organization.displayName)),
         actions: const [HelpIconButton()],
       ),
       body: SafeArea(
@@ -82,7 +82,7 @@ class LoginDetailScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: kDefaultTitlePadding,
-              child: TitleText(context.l10n.loginDetailScreenTitle(organization.displayName.l10nValue(context))),
+              child: TitleText(context.l10n.loginDetailScreenTitle(organization.displayName)),
             ),
           ),
           const SliverSizedBox(height: 12),
@@ -121,7 +121,7 @@ class LoginDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text.rich(
-                        organization.displayName.l10nSpan(context),
+                        organization.displayName.toTextSpan(context),
                         textAlign: TextAlign.start,
                         style: context.textTheme.labelLarge,
                       ),

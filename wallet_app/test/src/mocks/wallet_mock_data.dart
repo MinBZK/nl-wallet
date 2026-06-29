@@ -174,15 +174,16 @@ abstract class WalletMockData {
 
   static final Organization organization = Organization(
     id: 'id',
-    legalName: 'Organization Legal Name'.untranslated,
-    displayName: 'Organization Display Name'.untranslated,
+    legalName: 'Organization Legal Name',
+    displayName: 'Organization Display Name',
     category: 'Category'.untranslated,
     description: 'Organization description'.untranslated,
     logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
     privacyPolicyUrl: 'https://example.org/privacy',
     city: 'Den Haag'.untranslated,
     department: 'department abc'.untranslated,
-    kvk: '12345678',
+    organizationId: '12345678',
+    countryCode: 'NL',
   );
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(

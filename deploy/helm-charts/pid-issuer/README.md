@@ -127,6 +127,12 @@
 | ----------------- | ----------------- | ----- |
 | `wiaTrustAnchors` | the trust anchors | `[]`  |
 
+### Wallet redirect uris
+
+| Name                 | Description          | Value |
+| -------------------- | -------------------- | ----- |
+| `walletRedirectUris` | wallet redirect uris | `[]`  |
+
 ### Migration parameters
 
 | Name               | Description                             | Value  |

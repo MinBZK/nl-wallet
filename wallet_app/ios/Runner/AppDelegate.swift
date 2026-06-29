@@ -5,6 +5,10 @@ import Sentry
 import flutter_local_notifications
 import workmanager_apple
 
+private let sentryMaxBreadcrumbs: UInt = 25
+private let breadcrumbCategories = ["wallet.flow", "wallet.native"]
+private let breadcrumbMessagePattern = try! NSRegularExpression(pattern: "^[a-z0-9_]+(\\.[a-z0-9_]+)*$")
+
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var platformSupport: PlatformSupport?
@@ -46,9 +50,18 @@ import workmanager_apple
       options.enableWatchdogTerminationTracking = true
       options.enableAppHangTracking = true
       options.enableAppHangTrackingV2 = true
+      options.maxBreadcrumbs = sentryMaxBreadcrumbs
+      options.beforeBreadcrumb = { breadcrumb in
+        guard self.isCuratedWalletBreadcrumb(breadcrumb) else { return nil }
+        return self.sanitizeBreadcrumb(breadcrumb)
+      }
       options.beforeSend = { event in
         event.user?.geo = nil
         event.user?.ipAddress = nil
+        event.breadcrumbs = event.breadcrumbs?.compactMap { breadcrumb in
+          guard self.isCuratedWalletBreadcrumb(breadcrumb) else { return nil }
+          return self.sanitizeBreadcrumb(breadcrumb)
+        }
         return event
       }
     }
@@ -71,6 +84,20 @@ import workmanager_apple
       result[String(parts[0])] = String(parts[1])
     }
     return result
+  }
+
+  fileprivate func isCuratedWalletBreadcrumb(_ breadcrumb: Breadcrumb) -> Bool {
+    guard breadcrumbCategories.contains(breadcrumb.category), let message = breadcrumb.message else { return false }
+
+    let range = NSRange(location: 0, length: message.utf16.count)
+    return breadcrumbMessagePattern.firstMatch(in: message, range: range)?.range == range
+  }
+
+  fileprivate func sanitizeBreadcrumb(_ breadcrumb: Breadcrumb) -> Breadcrumb {
+    breadcrumb.data = nil
+    breadcrumb.level = .info
+    breadcrumb.type = "default"
+    return breadcrumb
   }
 
   fileprivate func initializeLocalNotifications() {

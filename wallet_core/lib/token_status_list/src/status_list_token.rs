@@ -111,9 +111,9 @@ pub mod verification {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::CanonicalDistinguishedName;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
-    use crypto::x509::DistinguishedName;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::error::JwtX5cError;
     use url::Url;
@@ -140,8 +140,8 @@ pub mod verification {
 
         #[error("DN from SLT ('{slt}') is different from attestation ('{attestation}')")]
         DifferentDN {
-            slt: DistinguishedName,
-            attestation: DistinguishedName,
+            slt: CanonicalDistinguishedName,
+            attestation: CanonicalDistinguishedName,
         },
     }
 
@@ -149,7 +149,7 @@ pub mod verification {
         pub fn parse_and_verify(
             &self,
             issuer_trust_anchors: &TrustAnchors,
-            attestation_signing_certificate_dn: DistinguishedName,
+            attestation_signing_certificate_dn: CanonicalDistinguishedName,
             url: &Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListClaims, StatusListTokenVerificationError> {
@@ -163,7 +163,7 @@ pub mod verification {
             let slt_dn = header
                 .x5c
                 .first()
-                .distinguished_name_canonical()
+                .to_canonical_distinguished_name()
                 .map_err(StatusListTokenVerificationError::MissingDN)?;
             if slt_dn != attestation_signing_certificate_dn {
                 return Err(StatusListTokenVerificationError::DifferentDN {
@@ -264,8 +264,8 @@ mod test {
 
     #[tokio::test]
     async fn test_status_list_token() {
-        let ca = Ca::generate("test", Default::default()).unwrap();
-        let keypair = ca.generate_status_list_mock().unwrap();
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
 
         let (expected_header, expected_claims, signed) =
             create_status_list_token(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
@@ -284,8 +284,8 @@ mod test {
 
     #[tokio::test]
     async fn test_status_list_token_verification() {
-        let ca = Ca::generate("test", Default::default()).unwrap();
-        let keypair = ca.generate_status_list_mock().unwrap();
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
         let iss_keypair = ca.generate_issuer_mock().unwrap();
 
         let (_, expected_claims, signed) = create_status_list_token(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
@@ -293,7 +293,7 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &TrustAnchors::empty(),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )
@@ -309,7 +309,7 @@ mod test {
                 ca.generate_pid_issuer_mock()
                     .unwrap()
                     .certificate()
-                    .distinguished_name_canonical()
+                    .to_canonical_distinguished_name()
                     .unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),
@@ -320,7 +320,7 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 &"http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
             )
@@ -330,7 +330,7 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
             )
@@ -340,7 +340,7 @@ mod test {
         signed
             .parse_and_verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )

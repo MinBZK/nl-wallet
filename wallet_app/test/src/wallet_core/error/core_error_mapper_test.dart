@@ -5,7 +5,6 @@ import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
 import 'package:wallet/src/wallet_core/error/data/core_error_data.dart';
 import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
-import 'package:wallet_core/core.dart';
 
 void main() {
   const defaultDescription = 'core error description';
@@ -224,7 +223,7 @@ void main() {
         type: FlutterApiErrorType.issuer,
         description: defaultDescription,
         data: {
-          'organization_name': {'en': 'Test', 'nl': 'TestNL'},
+          'organization_name': 'Test',
         },
       );
       final errorJson = jsonEncode(error);
@@ -234,10 +233,7 @@ void main() {
         CoreRelyingPartyError(
           defaultDescription,
           data: error.data,
-          organizationName: [
-            const LocalizedString(language: 'en', value: 'Test'),
-            const LocalizedString(language: 'nl', value: 'TestNL'),
-          ],
+          organizationName: 'Test',
         ),
       );
     });
@@ -258,7 +254,7 @@ void main() {
         type: FlutterApiErrorType.verifier,
         description: defaultDescription,
         data: {
-          'organization_name': {'en': 'Test'},
+          'organization_name': 'Test',
         },
       );
       final errorJson = jsonEncode(error);
@@ -268,7 +264,7 @@ void main() {
         CoreRelyingPartyError(
           defaultDescription,
           data: error.data,
-          organizationName: [const LocalizedString(language: 'en', value: 'Test')],
+          organizationName: 'Test',
         ),
       );
     });

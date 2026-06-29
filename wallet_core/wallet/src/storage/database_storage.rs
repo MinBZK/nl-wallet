@@ -1240,7 +1240,7 @@ fn create_attestation_copy_models(
                 let issuer_certificate_dn = mdoc
                     .issuer_leaf_certificate()
                     .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
-                    .distinguished_name_canonical()
+                    .to_canonical_distinguished_name()
                     .expect("the issuer certificate should contain a valid DN at this point");
 
                 let (mso, private_key_id, issuer_signed) = mdoc.into_components();
@@ -1271,7 +1271,7 @@ fn create_attestation_copy_models(
             IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
                 let issuer_certificate_dn = sd_jwt
                     .issuer_leaf_certificate()
-                    .distinguished_name_canonical()
+                    .to_canonical_distinguished_name()
                     .expect("the issuer certificate should contain a valid DN at this point");
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
 
@@ -1555,7 +1555,7 @@ pub(crate) mod tests {
 
         let initial_registration = RegistrationData {
             attested_key_identifier: random_string(16),
-            pin_salt: random_bytes(8),
+            pin_salt: random_bytes(8).into(),
             wallet_id: String::from("wallet123"),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
             revocation_code: RevocationCode::new_random(),
@@ -1563,7 +1563,7 @@ pub(crate) mod tests {
 
         let exported_registration = RegistrationData {
             attested_key_identifier: random_string(16),
-            pin_salt: random_bytes(8),
+            pin_salt: random_bytes(8).into(),
             wallet_id: String::from("wallet456"),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
             revocation_code: RevocationCode::new_random(),
@@ -1599,7 +1599,7 @@ pub(crate) mod tests {
     async fn test_database_keyed_storage() {
         let registration = RegistrationData {
             attested_key_identifier: "key_id".to_string(),
-            pin_salt: vec![1, 2, 3, 4],
+            pin_salt: vec![1, 2, 3, 4].into(),
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
             revocation_code: RevocationCode::new_random(),
@@ -1632,7 +1632,7 @@ pub(crate) mod tests {
 
         assert!(fetched_registration.is_some());
         let fetched_registration = fetched_registration.unwrap();
-        assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
+        assert_eq!(fetched_registration.pin_salt.as_ref(), registration.pin_salt.as_ref());
         assert_eq!(fetched_registration.wallet_certificate, registration.wallet_certificate);
 
         // Save the registration again, should result in an error.
@@ -1643,7 +1643,7 @@ pub(crate) mod tests {
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
             attested_key_identifier: "key_id".to_string(),
-            pin_salt: new_salt,
+            pin_salt: new_salt.into(),
             wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),
             revocation_code: RevocationCode::new_random(),
@@ -1660,8 +1660,8 @@ pub(crate) mod tests {
         assert!(fetched_after_update_registration.is_some());
         let fetched_after_update_registration = fetched_after_update_registration.unwrap();
         assert_eq!(
-            fetched_after_update_registration.pin_salt,
-            updated_registration.pin_salt
+            fetched_after_update_registration.pin_salt.as_ref(),
+            updated_registration.pin_salt.as_ref(),
         );
         assert_eq!(
             fetched_after_update_registration.wallet_certificate,
@@ -1699,7 +1699,7 @@ pub(crate) mod tests {
 
         assert!(fetched_registration.is_some());
         let fetched_registration = fetched_registration.unwrap();
-        assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
+        assert_eq!(fetched_registration.pin_salt.as_ref(), registration.pin_salt.as_ref());
     }
 
     async fn has_any_pid_attestation_types(storage: &MockHardwareDatabaseStorage) -> bool {
@@ -2651,7 +2651,7 @@ pub(crate) mod tests {
         let revocation_info = revocation_info.first().unwrap();
         assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
         assert_eq!(
-            ISSUER_KEY.certificate().distinguished_name_canonical().unwrap(),
+            ISSUER_KEY.certificate().to_canonical_distinguished_name().unwrap(),
             revocation_info.issuer_cert_distinguished_name
         );
 

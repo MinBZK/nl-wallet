@@ -18,6 +18,7 @@ void main() {
   /// WalletCore.init can only be called once, so setting up and assigning mock here.
   final MockWalletCoreApi core = MockWalletCoreApi();
   WalletCore.initMock(api: core);
+  provideDummy<IssuanceStartResult>(const IssuanceStartResult.authorizationUrl('https://example.org/auth'));
 
   late MockMapper<String, CoreError> errorMapper;
   late TypedWalletCore typedWalletCore;
@@ -60,6 +61,7 @@ void main() {
       verify(core.crateApiFullClearRecentHistoryStream()).called(1);
       verify(core.crateApiFullClearScheduledNotificationsStream()).called(1);
       verify(core.crateApiFullClearDirectNotificationsCallback()).called(1);
+      verify(core.crateApiFullClearSentryBreadcrumbCallback()).called(1);
 
       // Make sure wallet starts out locked
       verify(core.crateApiFullLockWallet()).called(1);
@@ -385,6 +387,14 @@ void main() {
       verify(core.crateApiFullContinueDisclosureBasedIssuance(pin: _kSamplePin, selectedIndices: [1, 2])).called(1);
     });
 
+    test('startIssuanceFromOffer is passed on to core', () async {
+      when(core.crateApiFullStartIssuanceFromOffer(offerUri: 'uri')).thenAnswer(
+        (_) async => const IssuanceStartResult.authorizationUrl('https://example.org/auth'),
+      );
+      await typedWalletCore.startIssuanceFromOffer('uri');
+      verify(core.crateApiFullStartIssuanceFromOffer(offerUri: 'uri')).called(1);
+    });
+
     test('acceptPidIssuance is passed on to core', () async {
       await typedWalletCore.acceptPidIssuance(_kSamplePin);
       verify(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).called(1);
@@ -395,6 +405,16 @@ void main() {
     test('startDisclosure is passed on to core', () async {
       await typedWalletCore.startDisclosure('uri', isQrCode: true);
       verify(core.crateApiFullStartDisclosure(uri: 'uri', isQrCode: true)).called(1);
+    });
+
+    test('startCloseProximityDisclosure is passed on to core', () async {
+      await typedWalletCore.startCloseProximityDisclosure(callback: (_) {});
+      verify(core.crateApiFullStartCloseProximityDisclosure(callback: anyNamed('callback'))).called(1);
+    });
+
+    test('continueCloseProximityDisclosure is passed on to core', () async {
+      await typedWalletCore.continueCloseProximityDisclosure();
+      verify(core.crateApiFullContinueCloseProximityDisclosure()).called(1);
     });
 
     test('acceptDisclosure is passed on to core', () async {
@@ -577,6 +597,11 @@ void main() {
       expect(() => typedWalletCore.continueDisclosureBasedIssuance(_kSamplePin, []), throwsA(isA<CoreError>()));
     });
 
+    test('startIssuanceFromOffer', () async {
+      when(core.crateApiFullStartIssuanceFromOffer(offerUri: 'https://example.org')).thenThrow(ffiException);
+      expect(() => typedWalletCore.startIssuanceFromOffer('https://example.org'), throwsA(isA<CoreError>()));
+    });
+
     test('acceptDisclosure', () async {
       when(core.crateApiFullAcceptDisclosure(pin: _kSamplePin, selectedIndices: [])).thenThrow(ffiException);
       expect(() => typedWalletCore.acceptDisclosure(_kSamplePin, []), throwsA(isA<CoreError>()));
@@ -585,6 +610,16 @@ void main() {
     test('startDisclosure', () async {
       when(core.crateApiFullStartDisclosure(uri: 'https://example.org', isQrCode: false)).thenThrow(ffiException);
       expect(() => typedWalletCore.startDisclosure('https://example.org'), throwsA(isA<CoreError>()));
+    });
+
+    test('startCloseProximityDisclosure', () async {
+      when(core.crateApiFullStartCloseProximityDisclosure(callback: anyNamed('callback'))).thenThrow(ffiException);
+      expect(() => typedWalletCore.startCloseProximityDisclosure(callback: (_) {}), throwsA(isA<CoreError>()));
+    });
+
+    test('continueCloseProximityDisclosure', () async {
+      when(core.crateApiFullContinueCloseProximityDisclosure()).thenThrow(ffiException);
+      expect(() => typedWalletCore.continueCloseProximityDisclosure(), throwsA(isA<CoreError>()));
     });
 
     test('getHistory', () async {

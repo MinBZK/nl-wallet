@@ -588,7 +588,7 @@ mod examples {
 
             let issuer = match attestation_type {
                 PID_ATTESTATION_TYPE | ADDRESS_ATTESTATION_TYPE => "https://pid.example.com",
-                _ => "https://cert.issuer.example.com",
+                _ => "https://issuer.example.com",
             }
             .parse()
             .unwrap();
@@ -719,6 +719,7 @@ mod test {
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
+    use crate::x509::generate::mock::generate_issuer_mock_with_registration;
 
     fn setup_into_signed() -> (
         PreviewableCredentialPayload,
@@ -999,9 +1000,8 @@ mod test {
         let holder_key = MockRemoteEcdsaKey::new_random("holder_key".to_string());
         let wscd = MockRemoteWscd::new(vec![holder_key.clone()]);
 
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let cert_config = IssuerRegistration::new_mock().to_certificate_configuration().unwrap();
-        let issuer_key_pair = ca.generate_key_pair("mycert", cert_config).unwrap();
+        let ca = Ca::generate_mock();
+        let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
             PID_ATTESTATION_TYPE,

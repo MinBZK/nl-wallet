@@ -108,7 +108,7 @@ async fn do_and_verify_iso_example_disclosure() {
             &IsoCertTimeGenerator,
             &TrustAnchors::from(&ca),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                ca.generate_status_list_mock().unwrap(),
+                ca.generate_issuer_status_list_mock().unwrap(),
             ))),
         )
         .await
@@ -154,7 +154,7 @@ async fn iso_examples_custom_disclosure() {
             &IsoCertTimeGenerator,
             &TrustAnchors::from(&ca),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                ca.generate_status_list_mock().unwrap(),
+                ca.generate_issuer_status_list_mock().unwrap(),
             ))),
         )
         .await

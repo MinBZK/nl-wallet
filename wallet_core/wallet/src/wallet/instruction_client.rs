@@ -14,6 +14,7 @@ use crate::instruction::HwSignedInstructionClient;
 use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::storage::Storage;
 
@@ -32,7 +33,7 @@ where
     /// will try to finalize any unfinished PIN change process.
     pub(super) async fn new_instruction_client(
         &mut self,
-        pin: String,
+        pin: Pin,
         attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
         parameters: InstructionClientParameters,
     ) -> Result<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError> {

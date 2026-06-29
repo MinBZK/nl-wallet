@@ -8,6 +8,7 @@ use sea_orm::QueryFilter;
 use serial_test::serial;
 use tests_integration::common::*;
 use wallet::AttestationIdentity;
+use wallet::Pin;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::entity::wallet_user_key;
 
@@ -15,7 +16,7 @@ use wallet_provider_persistence::entity::wallet_user_key;
 #[serial(hsm)]
 async fn test_delete_attestation_ok() {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     // Use only a single degree document so there is exactly one non-PID attestation to delete.
     let (issuance_settings, _, trust_anchor, tls_config) = issuance_server_settings(db_setup.issuance_server_url());
@@ -38,8 +39,8 @@ async fn test_delete_attestation_ok() {
         ),
     )
     .await;
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
 
     // Find the wallet user account in the WP database so we can inspect its keys.
     let wallet_user_id = {
@@ -64,7 +65,7 @@ async fn test_delete_attestation_ok() {
     // Since we can't delete the PID we have to issue another attestation to the wallet first.
     do_degree_issuance(
         &mut wallet,
-        pin.to_owned(),
+        pin.clone(),
         &issuance_urls.issuance_server.public,
         &issuance_urls.degree_client_ids,
         Format::MsoMdoc,
@@ -88,7 +89,7 @@ async fn test_delete_attestation_ok() {
 
     // Delete the degree attestation.
     wallet
-        .delete_attestation(pin.to_string(), attestation_id.to_string())
+        .delete_attestation(pin, attestation_id.to_string())
         .await
         .expect("delete_attestation should succeed");
 

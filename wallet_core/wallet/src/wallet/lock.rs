@@ -20,6 +20,7 @@ use crate::errors::StorageError;
 use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 pub use crate::lock::LockCallback;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -143,7 +144,7 @@ where
         };
     }
 
-    pub(super) async fn send_check_pin_instruction(&mut self, pin: String) -> Result<(), WalletUnlockError>
+    pub(super) async fn send_check_pin_instruction(&mut self, pin: Pin) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -194,7 +195,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
+    pub async fn unlock(&mut self, pin: Pin) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -223,7 +224,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn check_pin(&mut self, pin: String) -> Result<(), WalletUnlockError>
+    pub async fn check_pin(&mut self, pin: Pin) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -272,6 +273,7 @@ where
 mod tests {
     use std::assert_matches;
     use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use apple_app_attest::AssertionCounter;
     use chrono::Utc;
@@ -300,12 +302,13 @@ mod tests {
     use super::super::test::create_wp_result;
     use super::*;
     use crate::account_provider::AccountProviderResponseError;
+    use crate::pin::key::Pin;
     use crate::pin::key::PinKey;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::StorageState;
 
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     #[tokio::test]
     #[rstest]
@@ -392,8 +395,8 @@ mod tests {
         };
 
         let pin_key = PinKey {
-            pin: PIN,
-            salt: &registration_data.pin_salt,
+            pin: &PIN.clone(),
+            salt: &registration_data.pin_salt.clone(),
         };
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
@@ -440,7 +443,7 @@ mod tests {
             });
 
         // Unlock the `Wallet` with the PIN.
-        wallet.unlock(PIN.to_owned()).await.expect("Could not unlock wallet");
+        wallet.unlock(PIN.clone()).await.expect("Could not unlock wallet");
 
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&is_locked_vec), 2);
@@ -472,7 +475,7 @@ mod tests {
 
         // Unlocking an unregistered `Wallet` should result in an error.
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -485,7 +488,7 @@ mod tests {
 
         // Unlocking an already unlocked `Wallet` should result in an error.
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -506,7 +509,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::NOT_FOUND).into()));
 
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -533,7 +536,7 @@ mod tests {
             .return_once(move |_, _: Instruction<CheckPin>| Err(response_error.into()));
 
         wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error")
     }
@@ -624,7 +627,7 @@ mod tests {
         }
 
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -662,7 +665,7 @@ mod tests {
         // Unlocking the wallet should now result in a
         // `InstructionError::InstructionResultValidation` error.
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -692,7 +695,7 @@ mod tests {
         // Unlocking the wallet should now result in an
         // `InstructionError::StoreInstructionSequenceNumber` error.
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -726,7 +729,7 @@ mod tests {
             });
 
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -770,7 +773,7 @@ mod tests {
             });
 
         let error = wallet
-            .unlock(PIN.to_owned())
+            .unlock(PIN.clone())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 

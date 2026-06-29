@@ -34,17 +34,31 @@ void main() {
     // Setup default responses for plugin mock
     when(
       mockPlugin.initialize(
-        any,
+        settings: anyNamed('settings'),
         onDidReceiveNotificationResponse: anyNamed('onDidReceiveNotificationResponse'),
-        onDidReceiveBackgroundNotificationResponse: anyNamed('onDidReceiveNotificationResponse'),
+        onDidReceiveBackgroundNotificationResponse: anyNamed('onDidReceiveBackgroundNotificationResponse'),
       ),
     ).thenAnswer((_) async => true);
     when(mockPlugin.cancelAllPendingNotifications()).thenAnswer((_) async => {});
     when(
-      mockPlugin.zonedSchedule(any, any, any, any, any, androidScheduleMode: anyNamed('androidScheduleMode')),
+      mockPlugin.zonedSchedule(
+        id: anyNamed('id'),
+        title: anyNamed('title'),
+        body: anyNamed('body'),
+        scheduledDate: anyNamed('scheduledDate'),
+        notificationDetails: anyNamed('notificationDetails'),
+        androidScheduleMode: anyNamed('androidScheduleMode'),
+        payload: anyNamed('payload'),
+      ),
     ).thenAnswer((_) async => {});
     when(
-      mockPlugin.show(any, any, any, any, payload: anyNamed('payload')),
+      mockPlugin.show(
+        id: anyNamed('id'),
+        title: anyNamed('title'),
+        body: anyNamed('body'),
+        notificationDetails: anyNamed('notificationDetails'),
+        payload: anyNamed('payload'),
+      ),
     ).thenAnswer((_) async => {});
   });
 
@@ -65,7 +79,7 @@ void main() {
       // Verify initialization
       verify(
         mockPlugin.initialize(
-          any,
+          settings: anyNamed('settings'),
           onDidReceiveNotificationResponse: anyNamed('onDidReceiveNotificationResponse'),
           onDidReceiveBackgroundNotificationResponse: anyNamed('onDidReceiveBackgroundNotificationResponse'),
         ),
@@ -107,11 +121,11 @@ void main() {
       verify(mockPlugin.cancelAllPendingNotifications()).called(1);
       verify(
         mockPlugin.zonedSchedule(
-          notification.id,
-          notification.title,
-          notification.body,
-          any,
-          any,
+          id: notification.id,
+          title: notification.title,
+          body: notification.body,
+          scheduledDate: anyNamed('scheduledDate'),
+          notificationDetails: anyNamed('notificationDetails'),
           androidScheduleMode: .inexact,
           payload: anyNamed('payload'),
         ),
@@ -149,10 +163,10 @@ void main() {
 
       verify(
         mockPlugin.show(
-          notification.id,
-          notification.title,
-          notification.body,
-          any,
+          id: notification.id,
+          title: notification.title,
+          body: notification.body,
+          notificationDetails: anyNamed('notificationDetails'),
           payload: anyNamed('payload'),
         ),
       ).called(1);
@@ -190,10 +204,10 @@ void main() {
 
         final VerificationResult verification = verify(
           mockPlugin.show(
-            any,
-            any,
-            any,
-            captureAny,
+            id: anyNamed('id'),
+            title: anyNamed('title'),
+            body: anyNamed('body'),
+            notificationDetails: captureAnyNamed('notificationDetails'),
             payload: anyNamed('payload'),
           ),
         );

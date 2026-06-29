@@ -41,7 +41,7 @@ void main() {
       localAuthentication.authenticate(
         authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
-        options: anyNamed('options'),
+        biometricOnly: anyNamed('biometricOnly'),
       ),
     ).thenAnswer((_) async => true);
     await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
@@ -49,7 +49,7 @@ void main() {
       localAuthentication.authenticate(
         authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
-        options: anyNamed('options'),
+        biometricOnly: anyNamed('biometricOnly'),
       ),
     ).called(1);
   });
@@ -58,15 +58,17 @@ void main() {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     when(
       localAuthentication.authenticate(
+        authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
-        options: anyNamed('options'),
+        biometricOnly: anyNamed('biometricOnly'),
       ),
     ).thenAnswer((_) async => true);
     await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
     verifyNever(
       localAuthentication.authenticate(
+        authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
-        options: anyNamed('options'),
+        biometricOnly: anyNamed('biometricOnly'),
       ),
     );
   });
@@ -91,8 +93,9 @@ void main() {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     when(
       localAuthentication.authenticate(
+        authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
-        options: anyNamed('options'),
+        biometricOnly: anyNamed('biometricOnly'),
       ),
     ).thenAnswer((_) async => false);
 
@@ -106,8 +109,9 @@ void main() {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => false);
     when(
       localAuthentication.authenticate(
+        authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
-        options: anyNamed('options'),
+        biometricOnly: anyNamed('biometricOnly'),
       ),
     ).thenAnswer((_) async => false);
     await setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: true);
@@ -119,8 +123,9 @@ void main() {
     await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
     verifyNever(
       localAuthentication.authenticate(
+        authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
-        options: anyNamed('options'),
+        biometricOnly: anyNamed('biometricOnly'),
       ),
     );
     verify(biometricRepository.enableBiometricLogin()).called(1);

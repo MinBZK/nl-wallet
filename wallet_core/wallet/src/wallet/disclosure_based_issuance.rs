@@ -26,6 +26,7 @@ use super::disclosure::RedirectUriPurpose;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::errors::UpdatePolicyError;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -76,7 +77,7 @@ where
     pub async fn continue_disclosure_based_issuance(
         &mut self,
         selected_indices: &[usize],
-        pin: String,
+        pin: Pin,
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
@@ -164,6 +165,7 @@ fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organizat
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
@@ -204,6 +206,7 @@ mod tests {
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_example_pid_preview_data;
     use super::super::test::create_example_pid_sd_jwt;
+    use crate::Pin;
     use crate::attestation::AttestationPresentation;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
@@ -213,7 +216,7 @@ mod tests {
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_mdoc;
 
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     fn setup_wallet_disclosure_session(requested_format: Format) -> WalletDisclosureSession<MockDisclosureSession> {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
@@ -349,7 +352,7 @@ mod tests {
 
         // Accept disclosure based issuance
         let previews = wallet
-            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
             .await
             .expect("continuing disclosure based issuance should not have resulted in an error");
 
@@ -416,7 +419,7 @@ mod tests {
             .returning(move || Ok(vec![]));
 
         let previews = wallet
-            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
             .await
             .expect("continuing disclosure based issuance should not have resulted in an error");
 
@@ -434,7 +437,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         let error = wallet
-            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
             .await
             .expect_err("continuing disclosure based issuance should have resulted in an error");
 

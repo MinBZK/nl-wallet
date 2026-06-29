@@ -35,6 +35,7 @@ use url::Url;
 use utils::vec_nonempty;
 use wallet::AttributesNotAvailable;
 use wallet::DisclosureUriSource;
+use wallet::Pin;
 use wallet::errors::DisclosureError;
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
@@ -54,7 +55,7 @@ async fn assert_disclosure_ok(
     test_credentials: TestCredentials,
 ) {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
@@ -65,8 +66,8 @@ async fn assert_disclosure_ok(
     };
 
     let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
 
     let client = reqwest::Client::new();
 
@@ -127,7 +128,7 @@ async fn assert_disclosure_ok(
 
     let attestation_count = test_credentials.as_ref().len();
     let return_url = wallet
-        .accept_disclosure(&vec![0; attestation_count], pin.to_owned())
+        .accept_disclosure(&vec![0; attestation_count], pin)
         .await
         .expect("Could not accept disclosure");
 
@@ -279,7 +280,7 @@ async fn failed_disclosure_session(
     start_request: StartDisclosureRequest,
 ) -> (WalletWithStorage, DisclosureError, Url, Url) {
     let db_setup = DbSetup::create_clean().await;
-    let pin = "112233";
+    let pin: Pin = "112233".into();
 
     let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;

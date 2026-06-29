@@ -63,6 +63,7 @@ use crate::instruction::InstructionClient;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
+use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -588,7 +589,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_issuance(&mut self, pin: String) -> Result<IssuanceResult, IssuanceError>
+    pub async fn accept_issuance(&mut self, pin: Pin) -> Result<IssuanceResult, IssuanceError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
@@ -853,10 +854,12 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
     use std::ops::Add;
+    use std::sync::LazyLock;
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Duration;
@@ -887,6 +890,7 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::Pin;
     use crate::WalletEvent;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
@@ -1522,9 +1526,8 @@ mod tests {
             })
             .collect_vec();
 
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let cert_config = IssuerRegistration::new_mock().to_certificate_configuration().unwrap();
-        let issuer_key_pair = ca.generate_key_pair("mycert", cert_config).unwrap();
+        let ca = Ca::generate_mock();
+        let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
 
         let (payload, stored_type_metadata) = create_example_credential_payload(&time_generator, attestation_type);
         let sd_jwt = payload
@@ -1749,7 +1752,7 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    const PIN: &str = "051097";
+    static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     fn sd_jwt_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
         let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
@@ -1880,7 +1883,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect("Could not accept PID issuance");
 
@@ -1947,7 +1950,7 @@ mod tests {
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1966,7 +1969,7 @@ mod tests {
 
         // Accepting PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1992,7 +1995,7 @@ mod tests {
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2049,7 +2052,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2144,7 +2147,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2177,7 +2180,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2233,7 +2236,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -2245,9 +2248,8 @@ mod tests {
 
     #[test]
     fn test_match_preview_and_stored_attestations() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let cert_config = IssuerRegistration::new_mock().to_certificate_configuration().unwrap();
-        let issuer_key_pair = ca.generate_key_pair("mycert", cert_config).unwrap();
+        let ca = Ca::generate_mock();
+        let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
 
         let time_generator = MockTimeGenerator::default();
 
@@ -2395,7 +2397,7 @@ mod tests {
         }));
 
         let error = wallet
-            .accept_issuance(PIN.to_owned())
+            .accept_issuance(PIN.clone())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 

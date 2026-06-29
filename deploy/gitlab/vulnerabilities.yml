@@ -160,6 +160,9 @@ trivy-publish:
     - job: build-pacf-issuance-server-image
       artifacts: false
       optional: true
+    - job: build-acf-demo-issuer-image
+      artifacts: false
+      optional: true
     - job: build-pacf-issuance-server-migrations-image
       artifacts: false
       optional: true

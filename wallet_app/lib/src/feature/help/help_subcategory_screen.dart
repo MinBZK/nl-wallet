@@ -38,6 +38,7 @@ class HelpSubcategoryScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return WalletScrollbar(
       child: ListView(
+        scrollCacheExtent: context.screenReaderListCacheExtent,
         children: [
           Padding(
             padding: kDefaultTitlePadding,

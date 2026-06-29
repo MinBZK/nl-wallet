@@ -8,12 +8,8 @@ part of 'organization.dart';
 
 _Organization _$OrganizationFromJson(Map<String, dynamic> json) => _Organization(
   id: json['id'] as String,
-  legalName: const LocalizedTextConverter().fromJson(
-    json['legalName'] as Map<String, dynamic>,
-  ),
-  displayName: const LocalizedTextConverter().fromJson(
-    json['displayName'] as Map<String, dynamic>,
-  ),
+  legalName: json['legalName'] as String,
+  displayName: json['displayName'] as String,
   category: _$JsonConverterFromJson<Map<String, dynamic>, Map<Locale, String>>(
     json['category'],
     const LocalizedTextConverter().fromJson,
@@ -27,7 +23,7 @@ _Organization _$OrganizationFromJson(Map<String, dynamic> json) => _Organization
   ),
   webUrl: json['webUrl'] as String?,
   privacyPolicyUrl: json['privacyPolicyUrl'] as String?,
-  countryCode: json['countryCode'] as String?,
+  countryCode: json['countryCode'] as String,
   city: _$JsonConverterFromJson<Map<String, dynamic>, Map<Locale, String>>(
     json['city'],
     const LocalizedTextConverter().fromJson,
@@ -36,15 +32,15 @@ _Organization _$OrganizationFromJson(Map<String, dynamic> json) => _Organization
     json['department'],
     const LocalizedTextConverter().fromJson,
   ),
-  kvk: json['kvk'] as String?,
+  organizationId: json['organizationId'] as String?,
 );
 
 Map<String, dynamic> _$OrganizationToJson(
   _Organization instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'legalName': const LocalizedTextConverter().toJson(instance.legalName),
-  'displayName': const LocalizedTextConverter().toJson(instance.displayName),
+  'legalName': instance.legalName,
+  'displayName': instance.displayName,
   'category': _$JsonConverterToJson<Map<String, dynamic>, Map<Locale, String>>(
     instance.category,
     const LocalizedTextConverter().toJson,
@@ -65,7 +61,7 @@ Map<String, dynamic> _$OrganizationToJson(
     instance.department,
     const LocalizedTextConverter().toJson,
   ),
-  'kvk': instance.kvk,
+  'organizationId': instance.organizationId,
 };
 
 Value? _$JsonConverterFromJson<Json, Value>(

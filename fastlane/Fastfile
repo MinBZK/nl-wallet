@@ -53,15 +53,49 @@ private_lane :get_newest_file do |options|
   end
 end
 
+def sentry_upload_configured?
+  !ENV["SENTRY_AUTH_TOKEN"].blank?
+end
+
+def ensure_sentry_upload_environment!
+  UI.user_error!("Missing environment variable 'SENTRY_ORG'") if ENV["SENTRY_ORG"].blank?
+  UI.user_error!("Missing environment variable 'SENTRY_PROJECT'") if ENV["SENTRY_PROJECT"].blank?
+  UI.user_error!("Missing environment variable 'SENTRY_URL'") if ENV["SENTRY_URL"].blank?
+end
+
 # Upload debug symbols to Sentry.
 # Requires the following environment variables: [SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL].
-# SENTRY_AUTH_TOKEN enables the sentry_dart_plugin, after which the existense of the other variables is checked.
+# SENTRY_AUTH_TOKEN enables the sentry_dart_plugin, after which the existence of the other variables is checked.
+# On iOS, sentry_dart_plugin uploads the archive/dSYM paths used for Rust symbolication.
 private_lane :upload_sentry_symbols do |options|
-  unless ENV["SENTRY_AUTH_TOKEN"].blank? then
-    UI.user_error!("Missing environment variable 'SENTRY_ORG'") if ENV["SENTRY_ORG"].blank?
-    UI.user_error!("Missing environment variable 'SENTRY_PROJECT'") if ENV["SENTRY_PROJECT"].blank?
-    UI.user_error!("Missing environment variable 'SENTRY_URL'") if ENV["SENTRY_URL"].blank?
+  if sentry_upload_configured?
+    ensure_sentry_upload_environment!
     sh({ "SENTRY_RELEASE" => options[:sentry_release] }, *flutter_cmd, "packages", "pub", "run", "sentry_dart_plugin")
+  end
+end
+
+# Android Rust .so files are uploaded explicitly after the Flutter build copies them to jniLibs.
+# Keep --include-sources aligned with sentry.upload_sources in wallet_app/pubspec.yaml.
+private_lane :upload_android_rust_sentry_symbols do |options|
+  if sentry_upload_configured?
+    ensure_sentry_upload_environment!
+
+    sentry_cli = File.expand_path("../wallet_app/.dart_tool/pub/bin/sentry_dart_plugin/sentry-cli", __dir__)
+    UI.user_error!("Sentry CLI not found at #{sentry_cli}; run upload_sentry_symbols first") unless File.exist?(sentry_cli)
+
+    symbol_files = Dir.glob("android/app/src/main/jniLibs/**/libwallet_core.so").sort
+    UI.user_error!("No Android Rust debug symbols found under android/app/src/main/jniLibs") if symbol_files.empty?
+
+    UI.message("Uploading #{symbol_files.length} Android Rust debug symbol file(s) to Sentry")
+    sh(
+      { "SENTRY_RELEASE" => options[:sentry_release] },
+      sentry_cli,
+      "debug-files",
+      "upload",
+      "--include-sources",
+      "--wait",
+      *symbol_files
+    )
   end
 end
 
@@ -178,6 +212,7 @@ platform :android do
       )
 
       upload_sentry_symbols(sentry_release: sentry_release)
+      upload_android_rust_sentry_symbols(sentry_release: sentry_release)
 
       source_filepath = "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}"
       target_filepath = "../#{application_id}-#{version}-#{build_mode}.#{file_format}"

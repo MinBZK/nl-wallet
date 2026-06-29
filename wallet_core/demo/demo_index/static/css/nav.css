@@ -162,3 +162,7 @@ nav a::before {
 #loyalty::before {
   background: url("../images/loyalty.svg") no-repeat center center / cover;
 }
+
+#museum_maandkaart::before {
+  background: url("../images/museum_maandkaart.svg") no-repeat center center / cover;
+}

@@ -21,13 +21,13 @@ dependencies:
   connectivity_plus: ^6.1.5
   country_codes_plus: ^5.1.1
   cupertino_icons: ^1.0.8
-  device_info_plus: ^11.5.0
+  device_info_plus: ^13.1.0
   equatable: ^2.0.7
   fimber: ^0.7.0
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
-  flutter_local_notifications: ^19.5.0
+  flutter_local_notifications: ^22.0.1
   flutter_localizations:
     sdk: flutter
   flutter_markdown_plus: ^1.0.7
@@ -40,24 +40,24 @@ dependencies:
   internet_connection_checker: ^3.0.1
   intl: ^0.20.2
   json_annotation: ^4.9.0
-  local_auth: ^2.3.0
+  local_auth: ^3.0.1
   local_auth_android: any # explicit transitive dependency to satisfy sonarqube
   local_auth_darwin: any # explicit transitive dependency to satisfy sonarqube
   lottie: ^3.3.1
   meta: ^1.16.0
   mobile_scanner: ^7.0.1
-  package_info_plus: ^8.3.1
+  package_info_plus: ^10.1.0
   permission_handler: ^12.0.3
   provider: ^6.1.5+1
   qr_flutter: ^4.1.0
   root_jailbreak_sniffer: ^1.1.3
   rxdart: ^0.28.0
   screen_brightness: ^2.1.7
-  sensors_plus: ^6.1.2
+  sensors_plus: ^7.0.0
   sentry_flutter: ^9.6.0
   shared_preferences: ^2.5.3
   store_redirect: ^2.0.4
-  timezone: ^0.10.1
+  timezone: ^0.11.0
   url_launcher: ^6.3.2
   vector_graphics: any # explicit transitive dependency to satisfy sonarqube
   vibration: ^3.1.3
@@ -77,14 +77,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   freezed: ^3.2.3
-  get_it: ^8.2.0
+  get_it: ^9.2.1
   integration_test:
     sdk: flutter
   json_serializable: ^6.11.0
   mockito: ^5.5.0
   sentry_dart_plugin: ^3.1.1
   test: ^1.26.2
-  translations_cleaner: ^0.1.1
+  translations_cleaner: ^0.2.1
 
 flutter:
   uses-material-design: true
@@ -137,7 +137,7 @@ sentry:
   # web_build_path: build/web # Not applicable
   upload_debug_symbols: true
   upload_source_maps: false
-  upload_sources: false
+  upload_sources: true
   wait_for_processing: true
   log_level: debug # Env. variable: SENTRY_LOG_LEVEL
   commits: false

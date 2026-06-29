@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
-import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/feature/common/widget/activity_summary.dart';
@@ -242,7 +241,7 @@ void main() {
       );
 
       final organizationFinder = find.textContaining(
-        l10n.activitySummarySharedWith(disclosureEvent.relyingParty.displayName.testValue),
+        l10n.activitySummarySharedWith(disclosureEvent.relyingParty.displayName),
       );
       expect(organizationFinder, findsOneWidget);
     });
@@ -259,7 +258,7 @@ void main() {
       );
 
       final organizationFinder = find.textContaining(
-        l10n.activitySummarySharedWith(WalletMockData.disclosureEvent.relyingParty.displayName.testValue),
+        l10n.activitySummarySharedWith(WalletMockData.disclosureEvent.relyingParty.displayName),
       );
       expect(organizationFinder, findsOneWidget);
     });
@@ -271,19 +270,19 @@ void main() {
             disclosureAt(
               clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
-                displayName: 'Org-X'.untranslated,
+                displayName: 'Org-X',
               ),
             ),
             disclosureAt(
               clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
-                displayName: 'Org-Y'.untranslated,
+                displayName: 'Org-Y',
               ),
             ),
             disclosureAt(
               clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
-                displayName: 'Org-Z'.untranslated,
+                displayName: 'Org-Z',
               ),
             ),
           ],
@@ -306,25 +305,25 @@ void main() {
             disclosureAt(
               clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
-                displayName: 'Org-X'.untranslated,
+                displayName: 'Org-X',
               ),
             ),
             disclosureAt(
               clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
-                displayName: 'Org-Y'.untranslated,
+                displayName: 'Org-Y',
               ),
             ),
             disclosureAt(
               clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
-                displayName: 'not-shown-a'.untranslated,
+                displayName: 'not-shown-a',
               ),
             ),
             disclosureAt(
               clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
-                displayName: 'not-shown-b'.untranslated,
+                displayName: 'not-shown-b',
               ),
             ),
           ],
@@ -414,15 +413,15 @@ void main() {
           events: [
             disclosureAt(
               clock.now(),
-              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-X'.untranslated),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-X'),
             ),
             disclosureAt(
               clock.now(),
-              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Y'.untranslated),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Y'),
             ),
             disclosureAt(
               clock.now(),
-              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Z'.untranslated),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Z'),
             ),
           ],
         ),
@@ -437,19 +436,19 @@ void main() {
           events: [
             disclosureAt(
               clock.now(),
-              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-A'.untranslated),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-A'),
             ),
             disclosureAt(
               clock.now(),
-              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-B'.untranslated),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-B'),
             ),
             disclosureAt(
               clock.now(),
-              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-C'.untranslated),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-C'),
             ),
             disclosureAt(
               clock.now(),
-              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-D'.untranslated),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-D'),
             ),
           ],
         ),

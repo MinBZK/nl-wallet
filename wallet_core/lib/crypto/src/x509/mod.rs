@@ -1,5 +1,7 @@
+use std::convert::Into;
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::iter::Iterator;
 use std::iter::once;
 use std::sync::Arc;
 use std::time::Duration;
@@ -34,7 +36,6 @@ use x509_parser::asn1_rs::ToDer;
 use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
-use x509_parser::objects::oid_registry;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
 use x509_parser::prelude::ParsedExtension;
@@ -50,12 +51,20 @@ use crate::trust_anchor::TrustAnchors;
 mod config;
 mod dn;
 mod key_identifier;
+#[cfg(any(test, feature = "generate"))]
+mod san;
 mod usage;
 
 #[cfg(any(test, feature = "generate"))]
 pub use config::CertificateConfiguration;
+pub use dn::CanonicalDistinguishedName;
 pub use dn::DistinguishedName;
+pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
+#[cfg(any(test, feature = "generate"))]
+pub use san::NO_SAN;
+#[cfg(any(test, feature = "generate"))]
+pub use san::SubjectAltNameUri;
 pub use usage::CertificateUsage;
 pub use usage::CertificateUsageError;
 
@@ -265,18 +274,15 @@ impl BorrowingCertificate {
         Ok(self.common_names()?.into_iter().next())
     }
 
-    pub fn distinguished_name(&self) -> Result<String, CertificateError> {
-        let dn = self
-            .x509_certificate()
-            .subject
-            .to_string_with_registry(oid_registry())?;
-        Ok(dn)
+    pub fn to_distinguished_name(&self) -> Result<DistinguishedName, DistinguishedNameError> {
+        let subject = &self.0.get().x509_cert.subject;
+        subject.try_into()
     }
 
     // Returns a human-readable string representation of the distinguished name attributes with the raw OID values and
     // base64-encoded DER values. Can be used for persistence and comparison, since this representation is independent
     // of an OID registry.
-    pub fn distinguished_name_canonical(&self) -> Result<DistinguishedName, CertificateError> {
+    pub fn to_canonical_distinguished_name(&self) -> Result<CanonicalDistinguishedName, CertificateError> {
         let encoded_attrs: Vec<_> = self
             .x509_certificate()
             .subject()
@@ -288,7 +294,7 @@ impl BorrowingCertificate {
             })
             .try_collect()?;
 
-        Ok(DistinguishedName::new(encoded_attrs.join(",")))
+        Ok(CanonicalDistinguishedName::new(encoded_attrs.join(",")))
     }
 
     /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
@@ -313,11 +319,6 @@ impl BorrowingCertificate {
         Ok(san_https_uris)
     }
 
-    /// Returns the first DNS SAN, if any, from the certificate.
-    pub fn san_dns_name(&self) -> Result<Option<&str>, CertificateError> {
-        Ok(self.san_dns_names()?.into_iter().next())
-    }
-
     /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
     /// the hash over the public key that signed this certificate.
     pub fn authority_key_id(&self) -> Option<KeyIdentifier> {
@@ -327,21 +328,6 @@ impl BorrowingCertificate {
             };
             aki.key_identifier.as_ref().map(|ki| ki.0.to_vec().into())
         })
-    }
-
-    /// Returns all DNS SAN entries from the certificate.
-    pub fn san_dns_names(&self) -> Result<Vec<&str>, CertificateError> {
-        let dns_names = self
-            .x509_certificate()
-            .subject_alternative_name()?
-            .into_iter()
-            .flat_map(|ext| ext.value.general_names.iter())
-            .filter_map(|name| match name {
-                GeneralName::DNSName(name) => Some(*name),
-                _ => None,
-            })
-            .collect();
-        Ok(dns_names)
     }
 
     pub(crate) fn parse_and_extract_custom_ext<'a, T: Deserialize<'a>>(
@@ -443,7 +429,7 @@ where
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::assert_matches;
     use std::slice::from_ref;
 
@@ -461,7 +447,8 @@ mod test {
 
     #[test]
     fn generate_ca() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let dn = DistinguishedName::create_mock("myca");
+        let ca = Ca::generate(dn.clone(), Default::default()).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
@@ -483,14 +470,20 @@ mod test {
             not_after: Some(later),
             ..Default::default()
         };
-        let ca = Ca::generate("myca", config).unwrap();
+        let dn = DistinguishedName {
+            common_name: "myca".to_string(),
+            country_name: "NL".to_string(),
+            organization_name: "My CA B.V.".to_string(),
+            organization_identifier: "VATNL-123456789B01".to_string(),
+        };
+        let ca = Ca::generate(dn.clone(), config).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
-        assert_eq!("CN=myca", certificate.distinguished_name().unwrap());
+        assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DARteWNh",
-            certificate.distinguished_name_canonical().unwrap().as_ref()
+            "2.5.4.3=DARteWNh,2.5.4.6=DAJOTA,2.5.4.10=DApNeSBDQSBCLlYu,1.3.6.1.1.15=DBJWQVROTC0xMjM0NTY3ODlCMDE",
+            certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 
         let x509_cert = certificate.x509_certificate();
@@ -510,7 +503,9 @@ mod test {
             ..Default::default()
         };
 
-        let issuer_key_pair = ca.generate_key_pair("mycert", config).unwrap();
+        let issuer_key_pair = ca
+            .generate_key_pair(DistinguishedName::create_mock("mycert"), config, NO_SAN)
+            .unwrap();
         issuer_key_pair
             .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
@@ -578,7 +573,7 @@ mod test {
             ..Default::default()
         };
 
-        Ca::generate("myca", config).unwrap()
+        Ca::generate(DistinguishedName::create_mock("myca"), config).unwrap()
     }
 
     // Cross-signing scenario:
@@ -597,17 +592,21 @@ mod test {
         let time = TimeGenerator;
 
         // Old CA must allow one intermediate so it can sign the cross-cert.
-        let old_ca = Ca::generate_with_intermediate_count("old_ca", Default::default(), 1).unwrap();
+        let old_ca =
+            Ca::generate_with_intermediate_count(DistinguishedName::create_mock("old_ca"), Default::default(), 1)
+                .unwrap();
         // new_ca uses the same key pair for both the self-signed root and the cross-cert (signed
         // by old_ca). This is the core of a cross-signing setup.
         let cert_config = CertificateConfiguration::with_usage(CertificateUsage::Mdl);
         let (new_ca, cross_cert_der) = old_ca
-            .generate_root_and_cross_cert("new_ca", cert_config.clone())
+            .generate_root_and_cross_cert(DistinguishedName::create_mock("new_ca"), cert_config.clone())
             .unwrap();
         let cross_cert = BorrowingCertificate::from_certificate_der(cross_cert_der).unwrap();
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
-        let leaf = new_ca.generate_key_pair("leaf", cert_config).unwrap();
+        let leaf = new_ca
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), cert_config, NO_SAN)
+            .unwrap();
 
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
         // Path: leaf ← cross-cert (new key, signed by old CA) ← old CA trust anchor.
@@ -644,17 +643,26 @@ mod test {
         let cert_config = CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth);
 
         // CA
-        let ca = Ca::generate_with_intermediate_count("ca", CertificateConfiguration::default(), 2).unwrap();
+        let ca = Ca::generate_with_intermediate_count(
+            DistinguishedName::create_mock("ca"),
+            CertificateConfiguration::default(),
+            2,
+        )
+        .unwrap();
         let ca_ta = ca.to_borrowing_trust_anchor();
         let ca_cert = ca.as_borrowing_certificate().unwrap();
 
         // Intermediate
-        let intermediate_ca = ca.generate_intermediate("intermediate", cert_config.clone()).unwrap();
+        let intermediate_ca = ca
+            .generate_intermediate(DistinguishedName::create_mock("intermediate"), cert_config.clone())
+            .unwrap();
         let intermediate_ta = intermediate_ca.to_borrowing_trust_anchor();
         let intermediate_cert = intermediate_ca.as_borrowing_certificate().unwrap();
 
         // Leaf
-        let leaf_key_pair = intermediate_ca.generate_key_pair("leaf", cert_config).unwrap();
+        let leaf_key_pair = intermediate_ca
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), cert_config, NO_SAN)
+            .unwrap();
 
         // Verify whole chain with leaf, intermediate and ca trust anchor
         leaf_key_pair
