@@ -8,7 +8,7 @@
 {% match usecase %}
 {% when "university_mdoc" | "university_sd_jwt" %}
     <link rel="stylesheet" href="../static/css/university.css" />
-{% when "insurance_acf" %}
+{% when "insurance" %}
     <link rel="stylesheet" href="../static/css/insurance.css" />
 {% when "housing" %}
     <link rel="stylesheet" href="../static/css/housing.css" />
@@ -29,7 +29,7 @@
 {% match usecase %}
     {% when "university_mdoc" | "university_sd_jwt" %}
         {% include "university.askama" %}
-    {% when "insurance_acf" %}
+    {% when "insurance" %}
         {% include "insurance.askama" %}
     {% when "housing" %}
         {% include "housing.askama" %}
