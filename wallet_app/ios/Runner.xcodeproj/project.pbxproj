@@ -478,6 +478,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				CARGO_BUILD_MODE = release;
+				CARGO_PROFILE_RELEASE_DEBUG = "line-tables-only";
+				CARGO_PROFILE_RELEASE_STRIP = none;
 				CARGO_TARGETS = "";
 				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
 				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
@@ -661,6 +663,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				CARGO_BUILD_MODE = release;
+				CARGO_PROFILE_RELEASE_DEBUG = "line-tables-only";
+				CARGO_PROFILE_RELEASE_STRIP = none;
 				CARGO_TARGETS = "";
 				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
 				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
