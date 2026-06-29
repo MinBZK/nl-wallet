@@ -30,6 +30,7 @@ mkdir -p "${TARGET_DIR}"
 # Create the CA certificate using wallet_ca.
 cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" ca \
     --common-name "ca.${IDENTIFIER}" \
+    --oin "NTRNL-00000001" \
     --file-prefix "${TARGET_DIR}/ca.${IDENTIFIER}"
 
 # Convert certificate PEM to DER.
