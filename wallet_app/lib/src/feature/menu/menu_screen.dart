@@ -68,7 +68,11 @@ class MenuScreen extends StatelessWidget {
     // to the 'logout' button for example. This might be fixable by using a combination of [SliverEnsureSemantics]
     // and CustomScrollViews with fixedScrollExtend, but seeing as this is a relatively short list, this seems like
     // the cleaner and (much) simpler solution. As fixedScrollExtend might also conflict with font scaling.
+    //
+    // Items are spread directly into this ListView, not a nested (shrinkWrap) one: a nested viewport gives
+    // off-screen items stale semantic rects that break VoiceOver focus/activation.
     return ListView(
+      scrollCacheExtent: context.screenReaderListCacheExtent,
       children: [
         Padding(
           padding: kDefaultTitlePadding,
@@ -76,13 +80,10 @@ class MenuScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         const Divider(),
-        ListView.separated(
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (c, i) => menuItems[i],
-          separatorBuilder: (c, i) => const Divider(),
-          itemCount: menuItems.length,
-          shrinkWrap: true,
-        ),
+        for (int i = 0; i < menuItems.length; i++) ...[
+          if (i > 0) const Divider(),
+          menuItems[i],
+        ],
         const Divider(),
         const SizedBox(height: 40),
         Center(

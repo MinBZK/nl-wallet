@@ -70,12 +70,9 @@ class _HelpTopicScreenState extends State<HelpTopicScreen> {
 
   Widget _buildScrollableBody(Widget child) {
     return WalletScrollbar(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: SelectionArea(
-          focusNode: _selectionFocusNode,
-          child: child,
-        ),
+      child: SelectionArea(
+        focusNode: _selectionFocusNode,
+        child: child,
       ),
     );
   }
@@ -92,8 +89,11 @@ class _HelpTopicScreenState extends State<HelpTopicScreen> {
   Widget _buildLoading() => const CenteredLoadingIndicator();
 
   Widget _buildContent(BuildContext context, HelpTopicLoadSuccess state) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // Flat ListView + a Column of blocks form one scroll region; scrollCacheExtent lets VoiceOver reach
+    // content past the pinned back button, which it would otherwise skip.
+    return ListView(
+      scrollCacheExtent: context.screenReaderListCacheExtent,
+      padding: const EdgeInsets.only(bottom: 24),
       children: [
         Padding(
           padding: kDefaultTitlePadding,
