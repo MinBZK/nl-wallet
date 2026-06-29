@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 
@@ -60,7 +61,10 @@ class SentryBreadcrumbs {
   }
 
   static bool _isCurated(Breadcrumb breadcrumb) =>
-      _allowedCategories.contains(breadcrumb.category) && _isAllowedMessage(breadcrumb.message);
+      _allowedCategories.contains(breadcrumb.category) && isAllowedMessageCode(breadcrumb.message);
 
-  static bool _isAllowedMessage(String? message) => message != null && _messagePattern.hasMatch(message);
+  @visibleForTesting
+  static bool isAllowedMessageCode(String? message) => message != null && _messagePattern.hasMatch(message);
+
+  static bool _isAllowedMessage(String? message) => isAllowedMessageCode(message);
 }

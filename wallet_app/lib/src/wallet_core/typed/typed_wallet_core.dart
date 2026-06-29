@@ -83,20 +83,39 @@ class TypedWalletCore {
 
   Future<core.PinValidationResult> isValidPin(String pin) => call(() => core.isValidPin(pin: pin));
 
-  Future<void> register(String pin) => call(() => core.register(pin: pin));
+  Future<void> register(String pin) => _callWithFlowBreadcrumb(
+    'wallet.register',
+    failureCode: 'wallet.fail.register',
+    runnable: () => core.register(pin: pin),
+  );
 
   Future<bool> isRegistered() => call(core.hasRegistration);
 
-  Future<void> lockWallet() => call(core.lockWallet);
+  Future<void> lockWallet() => _callWithFlowBreadcrumb(
+    'wallet.lock',
+    failureCode: 'wallet.fail.lock',
+    runnable: core.lockWallet,
+  );
 
-  Future<core.WalletInstructionResult> unlockWallet(String pin) => call(() => core.unlockWallet(pin: pin));
+  Future<core.WalletInstructionResult> unlockWallet(String pin) => _callWithFlowBreadcrumb(
+    'wallet.unlock',
+    failureCode: 'wallet.fail.unlock',
+    runnable: () => core.unlockWallet(pin: pin),
+  );
 
   Future<core.WalletInstructionResult> checkPin(String pin) => call(() => core.checkPin(pin: pin));
 
-  Future<core.WalletInstructionResult> changePin(String oldPin, newPin) =>
-      call(() => core.changePin(oldPin: oldPin, newPin: newPin));
+  Future<core.WalletInstructionResult> changePin(String oldPin, newPin) => _callWithFlowBreadcrumb(
+    'pin.change',
+    failureCode: 'pin.fail.change',
+    runnable: () => core.changePin(oldPin: oldPin, newPin: newPin),
+  );
 
-  Future<core.WalletInstructionResult> continueChangePin(String pin) => call(() => core.continueChangePin(pin: pin));
+  Future<core.WalletInstructionResult> continueChangePin(String pin) => _callWithFlowBreadcrumb(
+    'pin.change.continue',
+    failureCode: 'pin.change.fail.continue',
+    runnable: () => core.continueChangePin(pin: pin),
+  );
 
   Stream<bool> get isLocked => _isLocked;
 
@@ -107,23 +126,41 @@ class TypedWalletCore {
   Stream<List<core.AppNotification>> observeNotifications() => _notifications.stream;
 
   Future<String> createPidIssuanceRedirectUri() => _callWithFlowBreadcrumb(
-    'issuance.start',
-    failureCode: 'issuance.fail.start',
+    'pid_issuance.start',
+    failureCode: 'pid_issuance.fail.start',
     runnable: core.createPidIssuanceRedirectUri,
   );
 
-  Future<String> createPidRenewalRedirectUri() => call(core.createPidRenewalRedirectUri);
+  Future<String> createPidRenewalRedirectUri() => _callWithFlowBreadcrumb(
+    'pid_renewal.start',
+    failureCode: 'pid_renewal.fail.start',
+    runnable: core.createPidRenewalRedirectUri,
+  );
 
-  Future<core.IdentifyUriResult> identifyUri(String uri) => call(() => core.identifyUri(uri: uri));
+  Future<core.IdentifyUriResult> identifyUri(String uri) => _callWithFlowBreadcrumb(
+    'uri.identify',
+    failureCode: 'uri.fail.identify',
+    runnable: () => core.identifyUri(uri: uri),
+  );
 
-  Future<List<core.AttestationPresentation>> continueIssuance(String uri) =>
-      call(() => core.continueIssuance(uri: uri));
+  Future<List<core.AttestationPresentation>> continueIssuance(String uri) => _callWithFlowBreadcrumb(
+    'issuance.continue',
+    failureCode: 'issuance.fail.continue',
+    runnable: () => core.continueIssuance(uri: uri),
+  );
 
   Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin, List<int> selectedIndices) =>
-      call(() => core.continueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin));
+      _callWithFlowBreadcrumb(
+        'issuance.disclosure_based.continue',
+        failureCode: 'issuance.disclosure_based.fail.continue',
+        runnable: () => core.continueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin),
+      );
 
-  Future<core.IssuanceStartResult> startIssuanceFromOffer(String offerUri) =>
-      call(() => core.startIssuanceFromOffer(offerUri: offerUri));
+  Future<core.IssuanceStartResult> startIssuanceFromOffer(String offerUri) => _callWithFlowBreadcrumb(
+    'issuance.start',
+    failureCode: 'issuance.fail.start',
+    runnable: () => core.startIssuanceFromOffer(offerUri: offerUri),
+  );
 
   /// Accept offered attestations
   Future<core.WalletInstructionResult> acceptIssuance(String pin) => _callWithFlowBreadcrumb(
@@ -134,8 +171,8 @@ class TypedWalletCore {
 
   /// Accept offered PID
   Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => _callWithFlowBreadcrumb(
-    'issuance.accept',
-    failureCode: 'issuance.fail.accept',
+    'pid_issuance.accept',
+    failureCode: 'pid_issuance.fail.accept',
     runnable: () => core.acceptPidIssuance(pin: pin),
   );
 
@@ -150,9 +187,17 @@ class TypedWalletCore {
 
   Future<String> startCloseProximityDisclosure({
     required FutureOr<void> Function(core.CloseProximityDisclosureFlutterUpdate) callback,
-  }) => call(() => core.startCloseProximityDisclosure(callback: callback));
+  }) => _callWithFlowBreadcrumb(
+    'disclosure.close_proximity.start',
+    failureCode: 'disclosure.close_proximity.fail.start',
+    runnable: () => core.startCloseProximityDisclosure(callback: callback),
+  );
 
-  Future<core.StartDisclosureResult> continueCloseProximityDisclosure() => call(core.continueCloseProximityDisclosure);
+  Future<core.StartDisclosureResult> continueCloseProximityDisclosure() => _callWithFlowBreadcrumb(
+    'disclosure.close_proximity.continue',
+    failureCode: 'disclosure.close_proximity.fail.continue',
+    runnable: core.continueCloseProximityDisclosure,
+  );
 
   Future<String?> cancelSession() => _callWithFlowBreadcrumb(
     'session.cancel',
@@ -169,10 +214,17 @@ class TypedWalletCore {
 
   Stream<List<core.AttestationPresentation>> observeCards() => _attestations.stream;
 
-  Future<core.WalletInstructionResult> deleteAttestation(String pin, String attestationId) =>
-      call(() => core.deleteAttestation(pin: pin, attestationId: attestationId));
+  Future<core.WalletInstructionResult> deleteAttestation(String pin, String attestationId) => _callWithFlowBreadcrumb(
+    'attestation.delete',
+    failureCode: 'attestation.fail.delete',
+    runnable: () => core.deleteAttestation(pin: pin, attestationId: attestationId),
+  );
 
-  Future<void> resetWallet() => call(core.resetWallet);
+  Future<void> resetWallet() => _callWithFlowBreadcrumb(
+    'wallet.reset',
+    failureCode: 'wallet.fail.reset',
+    runnable: core.resetWallet,
+  );
 
   Future<List<core.WalletEvent>> getHistory() => call(core.getHistory);
 
@@ -183,19 +235,43 @@ class TypedWalletCore {
 
   Future<bool> isBiometricLoginEnabled() => call(core.isBiometricUnlockEnabled);
 
-  Future<void> setBiometricUnlock({required bool enabled}) => call(() => core.setBiometricUnlock(enable: enabled));
+  Future<void> setBiometricUnlock({required bool enabled}) => _callWithFlowBreadcrumb(
+    'biometrics.set',
+    failureCode: 'biometrics.fail.set',
+    runnable: () => core.setBiometricUnlock(enable: enabled),
+  );
 
-  Future<void> unlockWithBiometrics() => call(core.unlockWalletWithBiometrics);
+  Future<void> unlockWithBiometrics() => _callWithFlowBreadcrumb(
+    'biometrics.unlock',
+    failureCode: 'biometrics.fail.unlock',
+    runnable: core.unlockWalletWithBiometrics,
+  );
 
   Future<String> getVersionString() => call(core.getVersionString);
 
-  Future<String> createPinRecoveryRedirectUri() => call(core.createPinRecoveryRedirectUri);
+  Future<String> createPinRecoveryRedirectUri() => _callWithFlowBreadcrumb(
+    'pin_recovery.start',
+    failureCode: 'pin_recovery.fail.start',
+    runnable: core.createPinRecoveryRedirectUri,
+  );
 
-  Future<void> continuePinRecovery(String uri) => call(() => core.continuePinRecovery(uri: uri));
+  Future<void> continuePinRecovery(String uri) => _callWithFlowBreadcrumb(
+    'pin_recovery.continue',
+    failureCode: 'pin_recovery.fail.continue',
+    runnable: () => core.continuePinRecovery(uri: uri),
+  );
 
-  Future<void> completePinRecovery(String pin) => call(() => core.completePinRecovery(pin: pin));
+  Future<void> completePinRecovery(String pin) => _callWithFlowBreadcrumb(
+    'pin_recovery.complete',
+    failureCode: 'pin_recovery.fail.complete',
+    runnable: () => core.completePinRecovery(pin: pin),
+  );
 
-  Future<void> cancelPinRecovery() => call(core.cancelPinRecovery);
+  Future<void> cancelPinRecovery() => _callWithFlowBreadcrumb(
+    'pin_recovery.cancel',
+    failureCode: 'pin_recovery.fail.cancel',
+    runnable: core.cancelPinRecovery,
+  );
 
   Future<String> initWalletTransfer() => _callWithFlowBreadcrumb(
     'wallet_transfer.start',
@@ -203,26 +279,57 @@ class TypedWalletCore {
     runnable: core.initWalletTransfer,
   );
 
-  Future<void> pairWalletTransfer(String uri) => call(() => core.pairWalletTransfer(uri: uri));
+  Future<void> pairWalletTransfer(String uri) => _callWithFlowBreadcrumb(
+    'wallet_transfer.pair',
+    failureCode: 'wallet_transfer.fail.pair',
+    runnable: () => core.pairWalletTransfer(uri: uri),
+  );
 
-  Future<core.WalletInstructionResult> confirmWalletTransfer(String pin) =>
-      call(() => core.confirmWalletTransfer(pin: pin));
+  Future<core.WalletInstructionResult> confirmWalletTransfer(String pin) => _callWithFlowBreadcrumb(
+    'wallet_transfer.confirm',
+    failureCode: 'wallet_transfer.fail.confirm',
+    runnable: () => core.confirmWalletTransfer(pin: pin),
+  );
 
-  Future<void> transferWallet() => call(core.transferWallet);
+  Future<void> transferWallet() => _callWithFlowBreadcrumb(
+    'wallet_transfer.transfer',
+    failureCode: 'wallet_transfer.fail.transfer',
+    runnable: core.transferWallet,
+  );
 
-  Future<void> receiveWalletTransfer() => call(core.receiveWalletTransfer);
+  Future<void> receiveWalletTransfer() => _callWithFlowBreadcrumb(
+    'wallet_transfer.receive',
+    failureCode: 'wallet_transfer.fail.receive',
+    runnable: core.receiveWalletTransfer,
+  );
 
-  Future<void> cancelWalletTransfer() => call(core.cancelWalletTransfer);
+  Future<void> cancelWalletTransfer() => _callWithFlowBreadcrumb(
+    'wallet_transfer.cancel',
+    failureCode: 'wallet_transfer.fail.cancel',
+    runnable: core.cancelWalletTransfer,
+  );
 
   Future<core.TransferSessionState> getWalletTransferState() => call(core.getWalletTransferState);
 
-  Future<void> skipWalletTransfer() => call(core.skipWalletTransfer);
+  Future<void> skipWalletTransfer() => _callWithFlowBreadcrumb(
+    'wallet_transfer.skip',
+    failureCode: 'wallet_transfer.fail.skip',
+    runnable: core.skipWalletTransfer,
+  );
 
   Future<core.WalletState> getWalletState() => call(core.getWalletState);
 
-  Future<String> getRegistrationRevocationCode() => call(core.getRegistrationRevocationCode);
+  Future<String> getRegistrationRevocationCode() => _callWithFlowBreadcrumb(
+    'registration_revocation_code.get',
+    failureCode: 'registration_revocation_code.fail.get',
+    runnable: core.getRegistrationRevocationCode,
+  );
 
-  Future<core.RevocationCodeResult> getRevocationCode(String pin) => call(() => core.getRevocationCode(pin: pin));
+  Future<core.RevocationCodeResult> getRevocationCode(String pin) => _callWithFlowBreadcrumb(
+    'revocation_code.get',
+    failureCode: 'revocation_code.fail.get',
+    runnable: () => core.getRevocationCode(pin: pin),
+  );
 
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
@@ -236,16 +343,14 @@ class TypedWalletCore {
 
   Future<T> _callWithFlowBreadcrumb<T>(
     String code, {
-    String? failureCode,
+    required String failureCode,
     required Future<T> Function() runnable,
   }) async {
     await SentryBreadcrumbs.flow(code);
     try {
       return await call(runnable);
     } catch (_) {
-      if (failureCode != null) {
-        await SentryBreadcrumbs.flow(failureCode);
-      }
+      await SentryBreadcrumbs.flow(failureCode);
       rethrow;
     }
   }

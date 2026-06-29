@@ -7,7 +7,7 @@ void main() {
     test('beforeBreadcrumb keeps only curated wallet breadcrumbs and scrubs payload data', () {
       final breadcrumb = Breadcrumb(
         category: 'wallet.flow',
-        message: 'route.push.dashboard',
+        message: 'pid_issuance.accept',
         data: {'route': '/dashboard'},
         level: SentryLevel.warning,
         type: 'navigation',
@@ -37,16 +37,22 @@ void main() {
       final breadcrumbs = [
         Breadcrumb(category: 'wallet.native', message: 'rust.error.unexpected', data: {'details': 'sensitive'}),
         Breadcrumb(category: 'wallet.flow', message: 'issuance.fail.start', level: SentryLevel.error),
+        Breadcrumb(category: 'wallet.flow', message: 'disclosure.close_proximity.continue'),
+        Breadcrumb(category: 'wallet.flow', message: 'wallet_transfer.fail.confirm'),
+        Breadcrumb(category: 'wallet.flow', message: 'sign.accept'),
         Breadcrumb(category: 'wallet.flow', message: 'Issuance.start'),
         Breadcrumb(category: 'http', message: 'request'),
       ];
 
       final result = SentryBreadcrumbs.filterEventBreadcrumbs(breadcrumbs);
 
-      expect(result, hasLength(2));
+      expect(result, hasLength(5));
       expect(result?.map((breadcrumb) => breadcrumb.message), [
         'rust.error.unexpected',
         'issuance.fail.start',
+        'disclosure.close_proximity.continue',
+        'wallet_transfer.fail.confirm',
+        'sign.accept',
       ]);
       expect(result?.every((breadcrumb) => breadcrumb.data == null), isTrue);
       expect(result?.every((breadcrumb) => breadcrumb.level == SentryLevel.info), isTrue);

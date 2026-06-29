@@ -25,10 +25,11 @@ class SentryNavigationObserver extends NavigatorObserver {
     final routeName = route?.settings.name;
     if (!WalletRoutes.isKnownRoute(routeName)) return;
 
-    unawaited(SentryBreadcrumbs.flow('route.$action.${_toRouteCode(routeName!)}'));
+    unawaited(SentryBreadcrumbs.flow('route.$action.${routeToBreadcrumbCode(routeName!)}'));
   }
 
-  static String _toRouteCode(String route) {
+  @visibleForTesting
+  static String routeToBreadcrumbCode(String route) {
     if (route == WalletRoutes.splashRoute) return 'splash';
     return route.substring(1).replaceAll('/', '.');
   }
