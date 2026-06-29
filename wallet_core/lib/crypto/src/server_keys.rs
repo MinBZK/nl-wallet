@@ -100,6 +100,7 @@ pub mod generate {
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateError;
     use crate::x509::CertificateUsage;
+    use crate::x509::DistinguishedName;
 
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateError> {
         SigningKey::from_pkcs8_der(keypair.serialized_der())
@@ -134,13 +135,13 @@ pub mod generate {
 
         /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
         pub fn generate_with_intermediate_count(
-            common_name: &str,
+            distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
             intermediate_count: u8,
         ) -> Result<Self, CertificateError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(intermediate_count));
-            params.distinguished_name.push(DnType::CommonName, common_name);
+            params.distinguished_name = distinguished_name.into();
 
             let key_pair = rcgen::KeyPair::generate()?;
             let certificate = params.self_signed(&key_pair)?;
@@ -150,8 +151,11 @@ pub mod generate {
         }
 
         /// Generate a new self-signed CA key pair, constrained to having no intermediate CAs.
-        pub fn generate(common_name: &str, configuration: CertificateConfiguration) -> Result<Self, CertificateError> {
-            Self::generate_with_intermediate_count(common_name, configuration, 0)
+        pub fn generate(
+            distinguished_name: DistinguishedName,
+            configuration: CertificateConfiguration,
+        ) -> Result<Self, CertificateError> {
+            Self::generate_with_intermediate_count(distinguished_name, configuration, 0)
         }
 
         pub fn from_der(
@@ -205,7 +209,7 @@ pub mod generate {
         /// on the amount of intermediates it can have decremented by one.
         pub fn generate_intermediate(
             &self,
-            common_name: &str,
+            distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
         ) -> Result<Self, CertificateError> {
             if self.intermediate_count < 1 {
@@ -217,7 +221,7 @@ pub mod generate {
 
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(constraint);
-            params.distinguished_name.push(DnType::CommonName, common_name);
+            params.distinguished_name = distinguished_name.into();
 
             let key_pair = rcgen::KeyPair::generate()?;
             let certificate = params.signed_by(&key_pair, &self.issuer)?;
@@ -229,13 +233,14 @@ pub mod generate {
         fn certificate_for(
             &self,
             pk: &impl PublicKeyData,
-            common_name: &str,
+            distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
+            subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
         ) -> Result<BorrowingCertificate, CertificateError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
-            params.distinguished_name.push(DnType::CommonName, common_name);
-            params.subject_alt_names.push(SanType::DnsName(common_name.try_into()?));
+            params.distinguished_name = distinguished_name.into();
+            params.subject_alt_names = subject_alt_names.into_iter().map(Into::into).collect();
 
             let certificate = params.signed_by(pk, &self.issuer)?;
             let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
@@ -245,12 +250,13 @@ pub mod generate {
         /// Generate a new key pair signed with the specified CA.
         pub fn generate_key_pair(
             &self,
-            common_name: &str,
+            distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
+            subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
         ) -> Result<KeyPair, CertificateError> {
             let key_pair = rcgen::KeyPair::generate()?;
             let private_key = rcgen_cert_privkey(&key_pair)?;
-            let certificate = self.certificate_for(&key_pair, common_name, configuration)?;
+            let certificate = self.certificate_for(&key_pair, distinguished_name, configuration, subject_alt_names)?;
 
             let key_pair = KeyPair {
                 private_key,
@@ -264,11 +270,12 @@ pub mod generate {
         pub fn generate_certificate(
             &self,
             public_key: &[u8],
-            common_name: &str,
+            distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
+            subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
         ) -> Result<BorrowingCertificate, CertificateError> {
             let public_key = SubjectPublicKeyInfo::from_der(public_key)?;
-            self.certificate_for(&public_key, common_name, configuration)
+            self.certificate_for(&public_key, distinguished_name, configuration, subject_alt_names)
         }
 
         /// Generate a new key pair and return both a self-signed root `Ca` for it and a
@@ -277,21 +284,19 @@ pub mod generate {
         /// that use it as an intermediate.
         pub fn generate_root_and_cross_cert(
             &self,
-            common_name: &str,
+            distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
         ) -> Result<(Self, CertificateDer<'static>), CertificateError> {
             let key_pair = rcgen::KeyPair::generate()?;
 
             let mut self_signed_params = CertificateParams::from(configuration.clone());
             self_signed_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-            self_signed_params
-                .distinguished_name
-                .push(DnType::CommonName, common_name);
+            self_signed_params.distinguished_name = distinguished_name.clone().into();
             let self_signed_cert = self_signed_params.self_signed(&key_pair)?;
 
             let mut cross_params = CertificateParams::from(configuration);
             cross_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-            cross_params.distinguished_name.push(DnType::CommonName, common_name);
+            cross_params.distinguished_name = distinguished_name.into();
             let cross_cert = cross_params.signed_by(&key_pair, &self.issuer)?;
 
             let issuer = Issuer::new(self_signed_params, key_pair);
@@ -323,24 +328,48 @@ pub mod generate {
 
     #[cfg(any(test, feature = "mock"))]
     pub mod mock {
+
+        use std::sync::LazyLock;
+
         use super::*;
+        use crate::x509::NO_SAN;
+        use crate::x509::SubjectAltNameUri;
 
-        pub const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
-        pub const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
-        pub const PID_ISSUER_CERT_CN: &str = "pid.example.com";
-        pub const WIA_CERT_CN: &str = "wia.example.com";
+        pub static ISSUANCE_CA_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("CA issuer"));
+        pub static ISSUANCE_CERT_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("Cert issuer"));
+        pub static ISSUANCE_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
+            LazyLock::new(|| "https://issuer.example.com".parse().unwrap());
+        pub static PID_ISSUER_CERT_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("PID"));
+        pub static PID_ISSUER_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
+            LazyLock::new(|| "https://pid.example.com".parse().unwrap());
+        pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
 
-        pub const RP_CA_CN: &str = "ca.rp.example.com";
-        pub const RP_CERT_CN: &str = "cert.rp.example.com";
+        pub static RP_CA_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("CA relying party"));
+        pub static RP_CERT_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("Cert relying party"));
+        pub static RP_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
+            LazyLock::new(|| "https://cert.rp.example.com".parse().unwrap());
 
         impl Ca {
+            pub fn generate_mock() -> Self {
+                Self::generate(
+                    DistinguishedName::create_mock("myca"),
+                    CertificateConfiguration::default(),
+                )
+                .unwrap()
+            }
+
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
-                Self::generate(ISSUANCE_CA_CN, Default::default())
+                Self::generate(ISSUANCE_CA_DN.clone(), Default::default())
             }
 
             pub fn generate_issuer_mock_ca_without_aki() -> Result<Self, CertificateError> {
                 Self::generate(
-                    ISSUANCE_CA_CN,
+                    ISSUANCE_CA_DN.clone(),
                     CertificateConfiguration {
                         exclude_aki: true,
                         ..Default::default()
@@ -349,45 +378,54 @@ pub mod generate {
             }
 
             pub fn generate_reader_mock_ca() -> Result<Self, CertificateError> {
-                Self::generate(RP_CA_CN, Default::default())
+                Self::generate(RP_CA_DN.clone(), Default::default())
             }
 
             pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
-                    PID_ISSUER_CERT_CN,
+                    PID_ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                    [PID_ISSUER_CERT_SAN_URI.clone()],
                 )
             }
 
             pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_CN,
+                    ISSUANCE_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                    [ISSUANCE_CERT_SAN_URI.clone()],
                 )
             }
 
             pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(WIA_CERT_CN, CertificateConfiguration::with_usage(CertificateUsage::Wia))
+                self.generate_key_pair(
+                    WIA_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                    NO_SAN,
+                )
             }
 
             pub fn generate_reader_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
-                    RP_CERT_CN,
+                    RP_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth),
+                    [RP_CERT_SAN_URI.clone()],
                 )
             }
 
-            pub fn generate_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_CN,
+                    ISSUANCE_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                    [ISSUANCE_CERT_SAN_URI.clone()],
                 )
             }
 
-            pub fn generate_status_list_mock_with_dn(&self, dn: &str) -> Result<KeyPair, CertificateError> {
+            pub fn generate_pid_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
-                    dn,
+                    PID_ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                    [PID_ISSUER_CERT_SAN_URI.clone()],
                 )
             }
 

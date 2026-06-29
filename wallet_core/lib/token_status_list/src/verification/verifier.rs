@@ -9,7 +9,7 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::DistinguishedName;
+use crypto::x509::CanonicalDistinguishedName;
 use moka::Expiry;
 use moka::future::Cache;
 use serde::Deserialize;
@@ -97,7 +97,7 @@ where
     pub async fn verify(
         &self,
         issuer_trust_anchors: &TrustAnchors,
-        attestation_signing_certificate_dn: DistinguishedName,
+        attestation_signing_certificate_dn: CanonicalDistinguishedName,
         status_claim: StatusClaim,
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
@@ -133,7 +133,7 @@ where
         &self,
         url: Url,
         issuer_trust_anchors: &TrustAnchors,
-        attestation_signing_certificate_dn: DistinguishedName,
+        attestation_signing_certificate_dn: CanonicalDistinguishedName,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusListClaims, StatusListVerificationError> {
         let status_list_token = self.client.fetch(url.clone()).await.map_err(Arc::new)?;
@@ -183,7 +183,6 @@ mod test {
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::DistinguishedName;
     use futures::FutureExt;
     use jwt::error::JwtError;
     use moka::Expiry;
@@ -206,8 +205,8 @@ mod test {
 
     #[test]
     fn test_verify() {
-        let ca = Ca::generate("test", Default::default()).unwrap();
-        let keypair = ca.generate_status_list_mock().unwrap();
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
         let iss_keypair = ca.generate_issuer_mock().unwrap();
 
         let verifier = RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(keypair)));
@@ -216,7 +215,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -231,7 +230,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 3,
@@ -246,7 +245,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://different_uri".parse().unwrap(),
                     idx: 1,
@@ -261,7 +260,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::empty(),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -276,7 +275,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -291,7 +290,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::from(&ca),
-                DistinguishedName::new(String::from("CN=Different CA")),
+                "CN=Different CA".to_string().into(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -317,7 +316,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -331,8 +330,8 @@ mod test {
 
     #[test]
     fn test_verify_cached() {
-        let ca = Ca::generate("test", Default::default()).unwrap();
-        let keypair = ca.generate_status_list_mock().unwrap();
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
         let iss_keypair = ca.generate_issuer_mock().unwrap();
 
         let verifier = RevocationVerifier::new(
@@ -347,7 +346,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::from(&ca),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -362,7 +361,7 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::empty(),
-                iss_keypair.certificate().distinguished_name_canonical().unwrap(),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,

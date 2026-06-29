@@ -299,11 +299,8 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificateExtension;
-    use crypto::x509::CertificateConfiguration;
-    use crypto::x509::CertificateUsage;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -530,12 +527,7 @@ mod tests {
                 .unwrap()
             }
             Format::SdJwt => {
-                let issuer_key_pair = ca
-                    .generate_key_pair(
-                        ISSUANCE_CERT_CN,
-                        CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-                    )
-                    .unwrap();
+                let issuer_key_pair = ca.generate_issuer_mock().unwrap();
                 let verified_sd_jwt =
                     SignedSdJwt::pid_example(&issuer_key_pair, attestation_key.verifying_key()).into_verified();
                 let unsigned_presentation = verified_sd_jwt
@@ -586,7 +578,7 @@ mod tests {
             &TrustAnchors::from(&ca),
             &ExtendingVctRetrieverStub,
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
-                ca.generate_status_list_mock().unwrap(),
+                ca.generate_issuer_status_list_mock().unwrap(),
             ))),
             false,
         )

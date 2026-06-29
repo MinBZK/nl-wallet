@@ -62,7 +62,7 @@ Content-Length: 267
             "bsn": "999991772"
           }
         },
-        "issuer_uri": "https://cert.issuer.example.com/",
+        "issuer_uri": "https://issuer.example.com/",
         "attestation_qualification": "QEAA",
         "ca": "ca.pid.example.com",
         "issuance_validity": {

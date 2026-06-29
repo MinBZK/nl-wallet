@@ -23,8 +23,7 @@ impl FromStr for KeyIdentifier {
 }
 
 #[cfg(test)]
-mod test {
-
+mod tests {
     use p256::pkcs8::EncodePublicKey;
 
     use crate::server_keys::generate::Ca;
@@ -33,7 +32,7 @@ mod test {
 
     #[test]
     fn parse_aki() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 

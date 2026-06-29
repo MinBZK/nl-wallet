@@ -85,9 +85,12 @@ pub mod generate {
     pub mod mock {
         use crypto::server_keys::KeyPair;
         use crypto::server_keys::generate::Ca;
-        use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
-        use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
-        use crypto::server_keys::generate::mock::RP_CERT_CN;
+        use crypto::server_keys::generate::mock::ISSUANCE_CERT_DN;
+        use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
+        use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
+        use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
+        use crypto::server_keys::generate::mock::RP_CERT_DN;
+        use crypto::server_keys::generate::mock::RP_CERT_SAN_URI;
         use crypto::x509::CertificateError;
 
         use crate::auth::issuer_auth::IssuerRegistration;
@@ -97,21 +100,33 @@ pub mod generate {
             ca: &Ca,
             issuer_registration: &IssuerRegistration,
         ) -> Result<KeyPair, CertificateError> {
-            ca.generate_key_pair(ISSUANCE_CERT_CN, issuer_registration.to_certificate_configuration()?)
+            ca.generate_key_pair(
+                ISSUANCE_CERT_DN.clone(),
+                issuer_registration.to_certificate_configuration()?,
+                [ISSUANCE_CERT_SAN_URI.clone()],
+            )
         }
 
         pub fn generate_pid_issuer_mock_with_registration(
             ca: &Ca,
             issuer_registration: &IssuerRegistration,
         ) -> Result<KeyPair, CertificateError> {
-            ca.generate_key_pair(PID_ISSUER_CERT_CN, issuer_registration.to_certificate_configuration()?)
+            ca.generate_key_pair(
+                PID_ISSUER_CERT_DN.clone(),
+                issuer_registration.to_certificate_configuration()?,
+                [PID_ISSUER_CERT_SAN_URI.clone()],
+            )
         }
 
         pub fn generate_reader_mock_with_registration(
             ca: &Ca,
             reader_registration: &ReaderRegistration,
         ) -> Result<KeyPair, CertificateError> {
-            ca.generate_key_pair(RP_CERT_CN, reader_registration.to_certificate_configuration()?)
+            ca.generate_key_pair(
+                RP_CERT_DN.clone(),
+                reader_registration.to_certificate_configuration()?,
+                [RP_CERT_SAN_URI.clone()],
+            )
         }
     }
 }

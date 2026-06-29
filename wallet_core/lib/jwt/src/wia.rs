@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn verify_valid() {
-        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
 
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn verify_pop_signed_with_wrong_key() {
-        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let wrong_key = SigningKey::random(&mut OsRng);
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn verify_pop_wrong_audience() {
-        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
 
@@ -329,7 +329,7 @@ mod tests {
 
     #[test]
     fn verify_unaccepted_wallet_client_id() {
-        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
 
@@ -347,7 +347,7 @@ mod tests {
 
     #[test]
     fn verify_missing_nonce() {
-        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
 
@@ -365,7 +365,7 @@ mod tests {
 
     #[test]
     fn verify_wia_not_yet_valid() {
-        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
 

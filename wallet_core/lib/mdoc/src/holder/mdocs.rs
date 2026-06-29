@@ -122,9 +122,6 @@ mod test {
     use chrono::Utc;
     use crypto::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
-    use crypto::x509::CertificateConfiguration;
-    use crypto::x509::CertificateUsage;
     use futures::FutureExt;
     use http_utils::urls::HttpsUri;
     use indexmap::IndexMap;
@@ -167,12 +164,7 @@ mod test {
         ) -> Self {
             let time = time_generator.generate();
 
-            let issuer_key_pair = ca
-                .generate_key_pair(
-                    ISSUANCE_CERT_CN,
-                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-                )
-                .unwrap();
+            let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
             let device_public_key = &device_key.verifying_key().await.unwrap();
             let cose_pubkey = CoseKey::try_from(device_public_key).unwrap();
@@ -234,7 +226,7 @@ pub mod mock {
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
     use crypto::trust_anchor::TrustAnchors;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
@@ -295,7 +287,7 @@ pub mod mock {
 
             Self::new_unverified_from_data(
                 PID_ATTESTATION_TYPE.to_string(),
-                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
+                ISSUANCE_CERT_SAN_URI.clone().into(),
                 IndexMap::from_iter(vec![(
                     PID_ATTESTATION_TYPE.to_string(),
                     vec![

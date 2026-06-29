@@ -1,4 +1,4 @@
-use crypto::x509::DistinguishedName;
+use crypto::x509::CanonicalDistinguishedName;
 use sea_orm::FromQueryResult;
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
@@ -12,5 +12,5 @@ pub struct RevocationInfo {
     pub attestation_copy_id: Uuid,
     pub status_list_url: String,
     pub status_list_index: u32,
-    pub issuer_certificate_dn: DistinguishedName,
+    pub issuer_certificate_dn: CanonicalDistinguishedName,
 }

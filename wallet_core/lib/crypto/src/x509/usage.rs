@@ -1,14 +1,14 @@
 use derive_more::Display;
-use x509_parser::asn1_rs::Oid;
-use x509_parser::asn1_rs::oid;
 use x509_parser::certificate::X509Certificate;
+use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::oid;
 use x509_parser::error::X509Error;
 use x509_parser::extensions::ExtendedKeyUsage;
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
 /// being verified.
-#[derive(derive_more::Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
@@ -23,7 +23,7 @@ const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
 // The .128 is made up, the real child node is TBD
 const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
 
-#[derive(thiserror::Error, derive_more::Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum CertificateUsageError {
     #[error("X509 coding error: {0}")]
     X509Error(#[from] X509Error),
@@ -99,7 +99,7 @@ impl CertificateUsage {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::assert_matches;
 
     use rstest::rstest;
@@ -108,14 +108,16 @@ mod test {
     use super::*;
 
     fn create_der_seq_of_oid_bytes(oid_bytes: &[&[u8]]) -> Vec<u8> {
-        let mut ext_bytes = Vec::with_capacity(128);
+        let mut der_bytes = Vec::with_capacity(128);
         // Write DER sequence of OIDs (assuming length fits in single byte)
-        ext_bytes.extend_from_slice(&[0x30, oid_bytes.iter().map(|b| b.len() as u8 + 2).sum()]);
+        der_bytes.extend_from_slice(&[0x30, 0]);
         for bytes in oid_bytes {
-            ext_bytes.extend_from_slice(&[0x06, bytes.len() as u8]);
-            ext_bytes.extend_from_slice(bytes);
+            der_bytes.extend_from_slice(&[0x06, bytes.len() as u8]);
+            der_bytes.extend_from_slice(bytes);
         }
-        ext_bytes
+        assert!(der_bytes.len() < 0x100, "arguments are too large in bytes");
+        der_bytes[1] = der_bytes.len() as u8 - 2;
+        der_bytes
     }
 
     #[rstest]

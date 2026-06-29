@@ -355,7 +355,7 @@ export READER_CA_CRT
 
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
-generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party
+generate_relying_party_hsm_key_pair mijn_amsterdam
 export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
