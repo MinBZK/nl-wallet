@@ -437,6 +437,7 @@ impl HttpIssuanceDiscovery {
             &oauth_metadata.token_endpoint,
             token_request,
             wia_client,
+            &oauth_metadata.issuer,
             issuer_trust_anchors,
         )
         .await

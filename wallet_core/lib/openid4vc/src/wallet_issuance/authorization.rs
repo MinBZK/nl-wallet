@@ -148,7 +148,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         );
 
         let wia = wia_client
-            .issue_wia(credential_issuer.to_string(), None)
+            .issue_wia(oauth_metadata.issuer.to_string(), None)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
@@ -311,6 +311,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             &self.oauth_metadata.token_endpoint,
             token_request,
             wia_client,
+            &self.oauth_metadata.issuer,
             trust_anchors,
         )
         .await

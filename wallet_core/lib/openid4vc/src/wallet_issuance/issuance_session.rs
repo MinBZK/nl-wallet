@@ -396,6 +396,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         token_endpoint: &Url,
         token_request: TokenRequest,
         wia_client: &impl WiaClient,
+        auth_server_identifier: &IssuerIdentifier,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self, WalletIssuanceError> {
         let credential_preview_endpoint = issuer_endpoints
@@ -407,7 +408,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
         let wia = wia_client
-            .issue_wia(credential_issuer.to_string(), None)
+            .issue_wia(auth_server_identifier.to_string(), None)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
@@ -1087,6 +1088,7 @@ mod tests {
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
+            &oauth_metadata.issuer,
             trust_anchors,
         )
         .now_or_never()
@@ -1285,6 +1287,7 @@ mod tests {
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
+            &oauth_metadata.issuer,
             &TrustAnchors::from(&ca),
         )
         .now_or_never()

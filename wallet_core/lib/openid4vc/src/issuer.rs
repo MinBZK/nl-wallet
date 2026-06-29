@@ -857,11 +857,14 @@ where
 
 impl<K, L, S, N> Issuer<K, L, S, N> {
     pub(super) fn verify_wia(&self, wia_disclosure: &WiaDisclosure) -> Result<(), WiaError> {
-        let issuer_identifier = self.issuer_data.metadata.credential_issuer.as_ref();
+        // The RFC says we should use the Issuer Identifier of the Authorization for this (see
+        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
+        // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
+        let expected_aud = self.issuer_data.metadata.credential_issuer.as_ref();
 
         wia_disclosure.verify(
             &self.issuer_data.wia_config.wia_trust_anchors,
-            issuer_identifier,
+            expected_aud,
             self.issuer_data.accepted_wallet_client_ids.as_ref(),
             None,
         )?;
@@ -955,10 +958,15 @@ impl Session<AuthCodeIssued> {
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
 
+        // The RFC says we should use the Issuer Identifier of the Authorization for this (see
+        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
+        // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
+        let expected_aud = issuer_data.metadata.issuer_identifier().as_ref();
+
         wia_disclosure
             .verify(
                 &issuer_data.wia_config.wia_trust_anchors,
-                issuer_data.metadata.issuer_identifier().as_ref(),
+                expected_aud,
                 &issuer_data.accepted_wallet_client_ids,
                 None,
             )
@@ -1840,6 +1848,7 @@ mod tests {
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
+            &oauth_metadata.issuer,
             &trust_anchors,
         )
         .await
