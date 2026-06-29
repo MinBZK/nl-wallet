@@ -1,13 +1,7 @@
 {
   "organization": {
-    "displayName": {
-      "nl": "Museum Demodam",
-      "en": "Museum Demodam"
-    },
-    "legalName": {
-      "nl": "Museum Demodam B.V.",
-      "en": "Museum Demodam B.V."
-    },
+    "displayName": "Museum Demodam",
+    "legalName": "Museum Demodam B.V.",
     "description": {
       "nl": "Museum Demodam is een voorbeeld-museum.",
       "en": "Museum Demodam is an example museum."
