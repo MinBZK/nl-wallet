@@ -691,13 +691,13 @@ Next to these configuration files the build can be configured with:
 | UNIVERSAL_LINK_BASE           | Env         | Cargo option_env                    | Universal Link base URL used in Wallet Core. |
 | ALLOW_INSECURE_URL            | _Dart only_ | Cargo feature                       | Whether to allow http urls in Wallet Core (passed via Dart define as ALLOW_INSECURE_URL via Xcode / build.gradle as `wallet/allow_insecure_url`). Defaults to `false`. |
 | CONFIG_ENV                    | Env         | Cargo build                         | The configuration environment name (should match the environment in `config-server-config.json` and `wallet-config.json`). Defaults to `dev`. |
-| SENTRY_AUTH_TOKEN             | Env         | Flutter                             | [Sentry Auth Token](https://docs.sentry.io/account/auth-tokens/), empty if not enabled (read by Dart plugin via environment). |
-| SENTRY_PROJECT                | Env         | Flutter                             | [Sentry Project](https://docs.sentry.io/concepts/key-terms/key-terms/), empty if not enabled (read by Dart plugin via environment). |
-| SENTRY_ORG                    | Env         | Flutter                             | Sentry Organization slug, empty if not enabled (read by Dart plugin via environment). |
-| SENTRY_URL                    | Env         | Flutter                             | Sentry URL, empty if not enabled (read by Dart plugin via environment). |
+| SENTRY_AUTH_TOKEN             | Env         | Fastlane / Flutter                  | [Sentry Auth Token](https://docs.sentry.io/account/auth-tokens/), empty if Sentry uploads are not enabled. |
+| SENTRY_PROJECT                | Env         | Fastlane / Flutter                  | [Sentry Project](https://docs.sentry.io/concepts/key-terms/key-terms/), required when `SENTRY_AUTH_TOKEN` is set. |
+| SENTRY_ORG                    | Env         | Fastlane / Flutter                  | Sentry Organization slug, required when `SENTRY_AUTH_TOKEN` is set. |
+| SENTRY_URL                    | Env         | Fastlane / Flutter                  | Sentry URL, required when `SENTRY_AUTH_TOKEN` is set. |
 | SENTRY_DSN                    | Env         | Flutter                             | [Sentry Data Source Name](https://docs.sentry.io/concepts/key-terms/dsn-explainer/), empty if not enabled (passed via Dart define as SENTRY_DSN). |
 | SENTRY_ENVIRONMENT            | Env         | Flutter                             | [Sentry Environment](https://docs.sentry.io/concepts/key-terms/environments/) (passed via Dart define as SENTRY_ENVIRONMENT). |
-| SENTRY_RELEASE                | Env         | Flutter                             | [Sentry Release](https://docs.sentry.io/product/releases/) (passed via Dart define as SENTRY_RELEASE). |
+| SENTRY_RELEASE                | Env         | Fastlane / Flutter                  | [Sentry Release](https://docs.sentry.io/product/releases/) (passed via Dart define as SENTRY_RELEASE and used for symbol uploads). |
 | build                         | Option      | iOS / Android build                 | The build number of the build (should be strictly increasing when submitting to App or Play Store). Defaults to `0`. |
 | version                       | Option      | iOS / Android build                 | The version of the build (should be semver). Defaults to the version in the [pubspec.yaml](wallet_app/pubspec.yaml). |
 | app_name                      | Option      | iOS / Android build                 | The app name (passed via environment as APP_NAME). Defaults to the `NL Wallet`. |
@@ -708,17 +708,6 @@ Next to these configuration files the build can be configured with:
 | fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`. |
 | mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`. |
 | demo_index_url                | Option      | Flutter                             | The URL to launch the demo index page in Browser for tests (passed via Dart define as DEMO_INDEX_URL). |
-
-Release builds with `SENTRY_AUTH_TOKEN` configured must upload debug symbols
-before publishing. The shared Fastlane `upload_sentry_symbols` lane runs the
-Dart plugin for Flutter and app-native symbols; for iOS, this includes the
-archive/dSYM paths used for Rust symbolication. The app dSYMs in
-`wallet_app/build/ios/archive/Runner.xcarchive` are retained as CI build
-artifacts. On Android, the release lane also explicitly uploads the unstripped
-Rust `libwallet_core.so` files from `wallet_app/android/app/src/main/jniLibs/**`.
-Symbol uploads include source context for Sentry stack traces. The mobile
-release builds keep line-table debug information only for these CI-side symbol
-artifacts; distributed app artifacts must remain stripped.
 
 ## Troubleshooting
 
