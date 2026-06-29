@@ -29,7 +29,6 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::authorization::AuthorizationDetails;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::scope::Scope;
 use crate::server_state::SessionToken;
@@ -171,10 +170,6 @@ pub struct TokenResponse {
 
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub expires_in: Option<Duration>,
-
-    /// "REQUIRED when authorization_details parameter is used to request issuance of a certain Credential type
-    /// as defined in Section 5.1.1. MUST NOT be used otherwise."
-    pub authorization_details: Option<AuthorizationDetails>,
 }
 
 impl TokenResponse {
@@ -185,7 +180,6 @@ impl TokenResponse {
             expires_in: None,
             refresh_token: None,
             scope: HashSet::new(),
-            authorization_details: None,
         }
     }
 }
@@ -312,7 +306,6 @@ mod tests {
             scope: HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]),
             expires_in: None,
             refresh_token: None,
-            authorization_details: None,
         };
 
         let mut json =
@@ -353,7 +346,6 @@ mod tests {
         assert!(token_response.refresh_token.is_none());
         assert!(token_response.scope.is_empty());
         assert!(token_response.expires_in.is_none());
-        assert!(token_response.authorization_details.is_none());
 
         let serialized_json =
             serde_json::to_value(token_response).expect("should be able to serialize TokenResponse to JSON value");

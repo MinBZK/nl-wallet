@@ -62,8 +62,6 @@ pub struct VciAuthorizationRequest {
     /// aren't registered.
     pub redirect_uri: SpecOptional<Url>,
 
-    pub authorization_details: Option<Vec<AuthorizationDetails>>,
-
     #[serde(flatten)]
     pub code_challenge: PkceCodeChallenge,
 
@@ -99,7 +97,6 @@ impl VciAuthorizationRequest {
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: String::from(pkce_pair.code_challenge()),
             },
-            authorization_details: None,
             scope,
             issuer_state,
         }
@@ -189,30 +186,6 @@ pub enum ResponseType {
     IdToken,
 }
 
-/// Format-specific data for the [`AuthorizationDetails`].
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(tag = "format", rename_all = "snake_case")]
-pub enum AuthorizationDetailsFormatData {
-    MsoMdoc { doctype: String },
-}
-
-#[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AuthorizationDetails {
-    #[serde(rename = "type")]
-    typ: AuthorizationDetailsType,
-    credential_identifiers: Option<Vec<String>>,
-    #[serde(flatten)]
-    format_data: AuthorizationDetailsFormatData,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum AuthorizationDetailsType {
-    #[default]
-    OpenidCredential,
-}
-
 /// See
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-successful-authorization-re>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2>.
@@ -230,13 +203,10 @@ mod tests {
     use std::collections::HashSet;
 
     use jwt::nonce::Nonce;
-    use serde_json::json;
     use serde_qs;
     use url::Url;
     use utils::spec::SpecForbidden;
 
-    use crate::authorization::AuthorizationDetails;
-    use crate::authorization::AuthorizationDetailsFormatData;
     use crate::authorization::AuthorizationRequestBase;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::ResponseType;
@@ -253,7 +223,6 @@ mod tests {
                 _request_uri: SpecForbidden,
             },
             redirect_uri: Url::parse("https://example.com/callback").unwrap().into(),
-            authorization_details: None,
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: "challenge-xyz".to_string(),
             },
@@ -309,21 +278,6 @@ mod tests {
         assert!(
             err.to_string().contains("MUST NOT be present"),
             "expected SpecForbidden rejection, got: {err}"
-        );
-    }
-
-    #[test]
-    fn authorization_details_serialization() {
-        assert_eq!(
-            serde_json::to_string(&AuthorizationDetails {
-                typ: crate::authorization::AuthorizationDetailsType::OpenidCredential,
-                credential_identifiers: None,
-                format_data: AuthorizationDetailsFormatData::MsoMdoc {
-                    doctype: "example_doctype".to_string()
-                }
-            })
-            .unwrap(),
-            json!({"type": "openid_credential","format": "mso_mdoc","doctype": "example_doctype"}).to_string(),
         );
     }
 }
