@@ -10086,6 +10086,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "strum 0.28.0",
+ "tokio",
  "tower-http",
  "tracing",
 ]

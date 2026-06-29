@@ -37,3 +37,4 @@ chrono.workspace = true
 indexmap.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
