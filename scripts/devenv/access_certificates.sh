@@ -40,4 +40,8 @@ declare -A access_certificates=(
     [(loyalty,name)]='Jum supermarkten'
     [(loyalty,legal_name)]='Jum supermarkten N.V.'
     [(loyalty,oid)]='NTRNL-99876546'
+
+    [(museum_maandkaart,name)]='Museum Demodam'
+    [(museum_maandkaart,legal_name)]='Museum Demodam B.V.'
+    [(museum_maandkaart,oid)]='NTRNL-99876547'
 )
