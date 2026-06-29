@@ -22,7 +22,7 @@ abstract class Organization with _$Organization {
     required String countryCode,
     @LocalizedTextConverter() LocalizedText? city,
     @LocalizedTextConverter() LocalizedText? department,
-    String? kvk,
+    String? organizationId,
   }) = _Organization;
 
   factory Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);

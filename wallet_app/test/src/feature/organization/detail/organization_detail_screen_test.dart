@@ -109,7 +109,7 @@ void main() {
       final location =
           '${WalletMockData.organization.city!.testValue}, ${CountryCodeFormatter.format(WalletMockData.organization.countryCode)}';
       expect(find.text(location), findsOneWidget);
-      expect(find.text(WalletMockData.organization.kvk.toString()), findsOneWidget);
+      expect(find.text(WalletMockData.organization.organizationId.toString()), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenWebsiteInfo), findsNothing);
     });
 

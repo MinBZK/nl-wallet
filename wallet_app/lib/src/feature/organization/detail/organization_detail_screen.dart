@@ -175,7 +175,7 @@ class OrganizationDetailScreen extends StatelessWidget {
       if (country != null || organization.city != null) _buildLocationRow(context, country, organization),
       if (organization.webUrl != null) _buildWebUrlRow(context, organization.webUrl!),
       if (organization.privacyPolicyUrl != null) _buildPrivacyRow(context, organization.privacyPolicyUrl!),
-      if (organization.kvk != null) _buildKvkRow(context, organization),
+      if (organization.organizationId != null) _buildOrganizationIdRow(context, organization.organizationId!),
     ];
   }
 
@@ -233,25 +233,22 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildKvkRow(BuildContext context, Organization organization) {
-    final kvkRange = TextRange(start: 0, end: organization.kvk?.length ?? 0);
+  Widget _buildOrganizationIdRow(BuildContext context, String organizationId) {
+    final organizationIdRange = TextRange(start: 0, end: organizationId.length);
     final label = AttributedString(
-      organization.kvk ?? '',
+      organizationId,
       attributes: [
-        LocaleStringAttribute(
-          range: kvkRange,
-          locale: context.activeLocale,
-        ),
-        SpellOutStringAttribute(range: kvkRange),
+        LocaleStringAttribute(range: organizationIdRange, locale: context.activeLocale),
+        SpellOutStringAttribute(range: organizationIdRange),
       ],
     );
     return ListItem(
       icon: const Icon(Icons.storefront_outlined),
-      label: Text.rich(context.l10n.organizationDetailScreenKvkInfo.toTextSpan(context)),
+      label: Text.rich(context.l10n.organizationDetailScreenOrganizationIdInfo.toTextSpan(context)),
       subtitle: Semantics(
         attributedLabel: label,
         excludeSemantics: true,
-        child: Text(organization.kvk ?? ''),
+        child: Text(organizationId),
       ),
     );
   }
