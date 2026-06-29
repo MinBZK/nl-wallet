@@ -63,13 +63,6 @@ def ensure_sentry_upload_environment!
   UI.user_error!("Missing environment variable 'SENTRY_URL'") if ENV["SENTRY_URL"].blank?
 end
 
-def sentry_cli_executable
-  return ENV["SENTRY_CLI_EXECUTABLE"] unless ENV["SENTRY_CLI_EXECUTABLE"].blank?
-
-  executable = Gem.win_platform? ? "sentry-cli.exe" : "sentry-cli"
-  File.expand_path("../wallet_app/.dart_tool/pub/bin/sentry_dart_plugin/#{executable}", __dir__)
-end
-
 # Upload debug symbols to Sentry.
 # Requires the following environment variables: [SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL].
 # SENTRY_AUTH_TOKEN enables the sentry_dart_plugin, after which the existence of the other variables is checked.
@@ -87,7 +80,7 @@ private_lane :upload_android_rust_sentry_symbols do |options|
   if sentry_upload_configured?
     ensure_sentry_upload_environment!
 
-    sentry_cli = sentry_cli_executable
+    sentry_cli = File.expand_path("../wallet_app/.dart_tool/pub/bin/sentry_dart_plugin/sentry-cli", __dir__)
     UI.user_error!("Sentry CLI not found at #{sentry_cli}; run upload_sentry_symbols first") unless File.exist?(sentry_cli)
 
     symbol_files = Dir.glob("android/app/src/main/jniLibs/**/libwallet_core.so").sort
