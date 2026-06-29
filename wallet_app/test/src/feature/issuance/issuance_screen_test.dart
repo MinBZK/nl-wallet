@@ -527,8 +527,8 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceError(
-            error: RelyingPartyError(sourceError: 'test', organizationName: 'XYZ Bank'.untranslated),
+          const IssuanceError(
+            error: RelyingPartyError(sourceError: 'test', organizationName: 'XYZ Bank'),
           ),
         ),
       );
@@ -612,7 +612,7 @@ void main() {
 
       // Verify the expected stop sheet description text is shown
       final l10n = await TestUtils.englishLocalizations;
-      final organizationName = WalletMockData.card.issuer.displayName.l10nValueForLocale(const Locale('en'));
+      final organizationName = WalletMockData.card.issuer.displayName;
       expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
     });
   });

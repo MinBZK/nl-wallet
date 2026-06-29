@@ -123,7 +123,7 @@ class ConfirmAgreementPage extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              context.l10n.confirmAgreementPageSignProvider(trustProvider.displayName.l10nValue(context)),
+              context.l10n.confirmAgreementPageSignProvider(trustProvider.displayName),
               style: context.textTheme.bodyLarge,
             ),
           ),

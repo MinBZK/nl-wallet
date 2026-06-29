@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/organization/detail/bloc/organization_detail_bloc.dart';
 import 'package:wallet/src/feature/organization/detail/organization_detail_screen.dart';
+import 'package:wallet/src/util/formatter/country_code_formatter.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -99,13 +100,15 @@ void main() {
       );
 
       final l10n = await TestUtils.englishLocalizations;
-      final title = l10n.organizationDetailScreenTitle(WalletMockData.organization.displayName.testValue);
+      final title = l10n.organizationDetailScreenTitle(WalletMockData.organization.displayName);
       expect(find.text(title), findsOneWidget);
       expect(find.text(WalletMockData.organization.description!.testValue), findsOneWidget);
-      expect(find.text(WalletMockData.organization.legalName.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.legalName), findsOneWidget);
       expect(find.text(WalletMockData.organization.category!.testValue), findsOneWidget);
       expect(find.text(WalletMockData.organization.privacyPolicyUrl.toString()), findsOneWidget);
-      expect(find.text(WalletMockData.organization.city!.testValue), findsOneWidget);
+      final location =
+          '${WalletMockData.organization.city!.testValue}, ${CountryCodeFormatter.format(WalletMockData.organization.countryCode)}';
+      expect(find.text(location), findsOneWidget);
       expect(find.text(WalletMockData.organization.kvk.toString()), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenWebsiteInfo), findsNothing);
     });

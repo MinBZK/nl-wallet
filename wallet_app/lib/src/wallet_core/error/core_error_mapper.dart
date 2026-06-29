@@ -71,7 +71,7 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
     return CoreRelyingPartyError(
       error.description,
       data: error.data,
-      organizationName: errorData.mappedOrganizationName,
+      organizationName: errorData.organizationName,
     );
   }
 

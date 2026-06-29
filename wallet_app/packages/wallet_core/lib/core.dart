@@ -13,6 +13,7 @@ export 'src/models/instruction.dart';
 export 'src/models/issuance.dart';
 export 'src/models/localize.dart';
 export 'src/models/notification.dart';
+export 'src/models/organization.dart';
 export 'src/models/pin.dart';
 export 'src/models/revocation.dart';
 export 'src/models/transfer.dart';

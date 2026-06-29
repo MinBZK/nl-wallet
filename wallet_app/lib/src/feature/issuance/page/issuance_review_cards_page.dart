@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -169,8 +168,8 @@ class IssuanceReviewCardsPage extends StatelessWidget {
   }
 
   String _getOrganizationName(BuildContext context) {
-    if (hasOfferedCards) return offeredCards.first.issuer.displayName.l10nValue(context);
-    if (hasRenewedCards) return renewedCards.first.issuer.displayName.l10nValue(context);
+    if (hasOfferedCards) return offeredCards.first.issuer.displayName;
+    if (hasRenewedCards) return renewedCards.first.issuer.displayName;
     return context.l10n.organizationFallbackName;
   }
 

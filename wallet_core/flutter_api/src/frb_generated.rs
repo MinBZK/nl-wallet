@@ -1994,7 +1994,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_format = <crate::models::attestation::Format>::sse_decode(deserializer);
         let mut var_attestationType = <String>::sse_decode(deserializer);
         let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
-        let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
+        let mut var_issuer = <crate::models::organization::Organization>::sse_decode(deserializer);
         let mut var_revocationStatus = <Option<crate::models::revocation::RevocationStatus>>::sse_decode(deserializer);
         let mut var_validityStatus = <crate::models::attestation::ValidityStatus>::sse_decode(deserializer);
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
@@ -2723,28 +2723,28 @@ impl SseDecode for Option<Vec<crate::models::localize::LocalizedString>> {
     }
 }
 
-impl SseDecode for crate::models::disclosure::Organization {
+impl SseDecode for crate::models::organization::Organization {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_legalName = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-        let mut var_displayName = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
+        let mut var_legalName = <String>::sse_decode(deserializer);
+        let mut var_displayName = <String>::sse_decode(deserializer);
         let mut var_description = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_image = <Option<crate::models::image::Image>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
-        let mut var_kvk = <Option<String>>::sse_decode(deserializer);
+        let mut var_identifier = <Option<String>>::sse_decode(deserializer);
         let mut var_city = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
         let mut var_category = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_department = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
-        let mut var_countryCode = <Option<String>>::sse_decode(deserializer);
-        return crate::models::disclosure::Organization {
+        let mut var_countryCode = <String>::sse_decode(deserializer);
+        return crate::models::organization::Organization {
             legal_name: var_legalName,
             display_name: var_displayName,
             description: var_description,
             image: var_image,
             web_url: var_webUrl,
             privacy_policy_url: var_privacyPolicyUrl,
-            kvk: var_kvk,
+            identifier: var_identifier,
             city: var_city,
             category: var_category,
             department: var_department,
@@ -2904,7 +2904,7 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
+                let mut var_relyingParty = <crate::models::organization::Organization>::sse_decode(deserializer);
                 let mut var_policy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_disclosureOptions =
                     <Vec<crate::models::disclosure::DisclosureOptions>>::sse_decode(deserializer);
@@ -2925,7 +2925,7 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 };
             }
             1 => {
-                let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
+                let mut var_relyingParty = <crate::models::organization::Organization>::sse_decode(deserializer);
                 let mut var_missingAttributes =
                     <Vec<crate::models::disclosure::MissingAttribute>>::sse_decode(deserializer);
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
@@ -3054,7 +3054,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
             0 => {
                 let mut var_id = <String>::sse_decode(deserializer);
                 let mut var_dateTime = <String>::sse_decode(deserializer);
-                let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
+                let mut var_relyingParty = <crate::models::organization::Organization>::sse_decode(deserializer);
                 let mut var_purpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
                 let mut var_sharedAttestations =
                     <Option<Vec<crate::models::attestation::AttestationPresentation>>>::sse_decode(deserializer);
@@ -3816,7 +3816,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::notification::Notification
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::disclosure::Organization {
+impl flutter_rust_bridge::IntoDart for crate::models::organization::Organization {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.legal_name.into_into_dart().into_dart(),
@@ -3825,7 +3825,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::Organization {
             self.image.into_into_dart().into_dart(),
             self.web_url.into_into_dart().into_dart(),
             self.privacy_policy_url.into_into_dart().into_dart(),
-            self.kvk.into_into_dart().into_dart(),
+            self.identifier.into_into_dart().into_dart(),
             self.city.into_into_dart().into_dart(),
             self.category.into_into_dart().into_dart(),
             self.department.into_into_dart().into_dart(),
@@ -3834,11 +3834,11 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::Organization {
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::Organization {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::Organization>
-    for crate::models::disclosure::Organization
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::organization::Organization {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::organization::Organization>
+    for crate::models::organization::Organization
 {
-    fn into_into_dart(self) -> crate::models::disclosure::Organization {
+    fn into_into_dart(self) -> crate::models::organization::Organization {
         self
     }
 }
@@ -4449,7 +4449,7 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
         <crate::models::attestation::Format>::sse_encode(self.format, serializer);
         <String>::sse_encode(self.attestation_type, serializer);
         <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
-        <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
+        <crate::models::organization::Organization>::sse_encode(self.issuer, serializer);
         <Option<crate::models::revocation::RevocationStatus>>::sse_encode(self.revocation_status, serializer);
         <crate::models::attestation::ValidityStatus>::sse_encode(self.validity_status, serializer);
         <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
@@ -5088,20 +5088,20 @@ impl SseEncode for Option<Vec<crate::models::localize::LocalizedString>> {
     }
 }
 
-impl SseEncode for crate::models::disclosure::Organization {
+impl SseEncode for crate::models::organization::Organization {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.legal_name, serializer);
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.display_name, serializer);
+        <String>::sse_encode(self.legal_name, serializer);
+        <String>::sse_encode(self.display_name, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.description, serializer);
         <Option<crate::models::image::Image>>::sse_encode(self.image, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
-        <Option<String>>::sse_encode(self.kvk, serializer);
+        <Option<String>>::sse_encode(self.identifier, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.city, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.category, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.department, serializer);
-        <Option<String>>::sse_encode(self.country_code, serializer);
+        <String>::sse_encode(self.country_code, serializer);
     }
 }
 
@@ -5254,7 +5254,7 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 request_type,
             } => {
                 <i32>::sse_encode(0, serializer);
-                <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
+                <crate::models::organization::Organization>::sse_encode(relying_party, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(policy, serializer);
                 <Vec<crate::models::disclosure::DisclosureOptions>>::sse_encode(disclosure_options, serializer);
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
@@ -5272,7 +5272,7 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 request_origin_base_url,
             } => {
                 <i32>::sse_encode(1, serializer);
-                <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
+                <crate::models::organization::Organization>::sse_encode(relying_party, serializer);
                 <Vec<crate::models::disclosure::MissingAttribute>>::sse_encode(missing_attributes, serializer);
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
@@ -5400,7 +5400,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <i32>::sse_encode(0, serializer);
                 <String>::sse_encode(id, serializer);
                 <String>::sse_encode(date_time, serializer);
-                <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
+                <crate::models::organization::Organization>::sse_encode(relying_party, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(purpose, serializer);
                 <Option<Vec<crate::models::attestation::AttestationPresentation>>>::sse_encode(
                     shared_attestations,
@@ -5792,11 +5792,11 @@ mod io {
             CstDecode::<crate::models::image::ImageWithMetadata>::cst_decode(*wrap).into()
         }
     }
-    impl CstDecode<crate::models::disclosure::Organization> for *mut wire_cst_organization {
+    impl CstDecode<crate::models::organization::Organization> for *mut wire_cst_organization {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::disclosure::Organization {
+        fn cst_decode(self) -> crate::models::organization::Organization {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<crate::models::disclosure::Organization>::cst_decode(*wrap).into()
+            CstDecode::<crate::models::organization::Organization>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<(String, String)> for *mut wire_cst_record_string_string {
@@ -6224,17 +6224,17 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::disclosure::Organization> for wire_cst_organization {
+    impl CstDecode<crate::models::organization::Organization> for wire_cst_organization {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::disclosure::Organization {
-            crate::models::disclosure::Organization {
+        fn cst_decode(self) -> crate::models::organization::Organization {
+            crate::models::organization::Organization {
                 legal_name: self.legal_name.cst_decode(),
                 display_name: self.display_name.cst_decode(),
                 description: self.description.cst_decode(),
                 image: self.image.cst_decode(),
                 web_url: self.web_url.cst_decode(),
                 privacy_policy_url: self.privacy_policy_url.cst_decode(),
-                kvk: self.kvk.cst_decode(),
+                identifier: self.identifier.cst_decode(),
                 city: self.city.cst_decode(),
                 category: self.category.cst_decode(),
                 department: self.department.cst_decode(),
@@ -6792,7 +6792,7 @@ mod io {
                 image: core::ptr::null_mut(),
                 web_url: core::ptr::null_mut(),
                 privacy_policy_url: core::ptr::null_mut(),
-                kvk: core::ptr::null_mut(),
+                identifier: core::ptr::null_mut(),
                 city: core::ptr::null_mut(),
                 category: core::ptr::null_mut(),
                 department: core::ptr::null_mut(),
@@ -8101,13 +8101,13 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_organization {
-        legal_name: *mut wire_cst_list_localized_string,
-        display_name: *mut wire_cst_list_localized_string,
+        legal_name: *mut wire_cst_list_prim_u_8_strict,
+        display_name: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_localized_string,
         image: *mut wire_cst_image,
         web_url: *mut wire_cst_list_prim_u_8_strict,
         privacy_policy_url: *mut wire_cst_list_prim_u_8_strict,
-        kvk: *mut wire_cst_list_prim_u_8_strict,
+        identifier: *mut wire_cst_list_prim_u_8_strict,
         city: *mut wire_cst_list_localized_string,
         category: *mut wire_cst_list_localized_string,
         department: *mut wire_cst_list_localized_string,

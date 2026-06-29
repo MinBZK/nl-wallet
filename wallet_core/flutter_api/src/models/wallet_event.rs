@@ -2,10 +2,10 @@ use itertools::Itertools;
 
 use super::attestation::AttestationPresentation;
 use super::disclosure::DisclosureType;
-use super::disclosure::Organization;
-use super::disclosure::RPLocalizedStrings;
 use super::disclosure::RequestPolicy;
 use super::localize::LocalizedString;
+use super::localize::LocalizedStrings;
+use super::organization::Organization;
 
 pub enum WalletEvent {
     Disclosure {
@@ -75,7 +75,7 @@ impl From<wallet::WalletEvent> for WalletEvent {
                     id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
                     relying_party: Organization::from(reader_registration.organization),
-                    purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
+                    purpose: LocalizedStrings(reader_registration.purpose_statement).into(),
                     request_policy,
                     shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),

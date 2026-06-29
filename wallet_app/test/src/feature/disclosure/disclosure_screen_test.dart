@@ -755,7 +755,7 @@ void main() {
 
         final l10n = await TestUtils.englishLocalizations;
         final checkOrgForLoginTitle = l10n.organizationApprovePageLoginTitle(
-          WalletMockData.organization.displayName.testValue,
+          WalletMockData.organization.displayName,
         );
         expect(find.textContaining(checkOrgForLoginTitle), findsAtLeast(1));
 
@@ -768,7 +768,7 @@ void main() {
         expect(find.text(checkOrgForLoginTitle), findsNothing);
         // Login detail screen checkOrgForLoginTitle should be visible
         final organizationDetailScreenTitle = l10n.loginDetailScreenTitle(
-          WalletMockData.organization.displayName.testValue,
+          WalletMockData.organization.displayName,
         );
         expect(find.text(organizationDetailScreenTitle), findsAtLeast(1));
       },
@@ -793,7 +793,7 @@ void main() {
 
         final l10n = await TestUtils.englishLocalizations;
         expect(find.byType(OrganizationApprovePage), findsOneWidget);
-        final loginTitle = l10n.organizationApprovePageLoginTitle(WalletMockData.organization.displayName.testValue);
+        final loginTitle = l10n.organizationApprovePageLoginTitle(WalletMockData.organization.displayName);
         expect(find.text(loginTitle), findsOneWidget);
       },
     );
@@ -835,12 +835,12 @@ void main() {
         await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
         await tester.pumpAndSettle();
         expect(find.byType(LoginDetailScreen), findsOneWidget);
-        expect(find.text(WalletMockData.organization.displayName.testValue), findsOneWidget);
+        expect(find.text(WalletMockData.organization.displayName), findsOneWidget);
         expect(
           find.text(
             l10n.disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle(
               3,
-              WalletMockData.organization.displayName.testValue,
+              WalletMockData.organization.displayName,
             ),
           ),
           findsOneWidget,

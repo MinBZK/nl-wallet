@@ -31,7 +31,7 @@ void main() {
           },
         ),
       );
-      expect(formatted, WalletMockData.organization.displayName.testValue);
+      expect(formatted, WalletMockData.organization.displayName);
     });
 
     testWidgets('IssuanceEvent returns the card title', (tester) async {
@@ -57,7 +57,7 @@ void main() {
           },
         ),
       );
-      expect(formatted, WalletMockData.organization.displayName.testValue);
+      expect(formatted, WalletMockData.organization.displayName);
     });
   });
 }

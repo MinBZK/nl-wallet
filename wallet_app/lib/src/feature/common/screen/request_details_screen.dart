@@ -127,7 +127,7 @@ class RequestDetailsScreen extends StatelessWidget {
       dividerSide: side,
       label: Text(
         context.l10n.requestDetailScreenAboutOrganizationCta(
-          organization.displayName.l10nValue(context),
+          organization.displayName,
         ),
       ),
       subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf(

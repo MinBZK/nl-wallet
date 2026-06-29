@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../domain/model/attribute/attribute.dart';
 import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
@@ -52,7 +51,7 @@ class HistoryDetailLoginPage extends StatelessWidget {
   }
 
   static String resolveLoginTitle(BuildContext context, DisclosureEvent event) {
-    final organizationName = event.relyingParty.displayName.l10nValue(context);
+    final organizationName = event.relyingParty.displayName;
     return switch (event.status) {
       EventStatus.success => context.l10n.historyDetailScreenTitleForLogin(organizationName),
       EventStatus.cancelled => context.l10n.historyDetailScreenStoppedTitleForLogin(organizationName),

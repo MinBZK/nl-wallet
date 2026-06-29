@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
@@ -22,7 +21,7 @@ class OrganizationRow extends StatelessWidget {
     return MenuItem(
       leftIcon: OrganizationLogo(image: organization.logo, size: kMenuItemNormalIconSize),
       label: Text.rich(context.l10n.organizationButtonLabel.toTextSpan(context)),
-      subtitle: Text.rich(organization.displayName.l10nSpan(context)),
+      subtitle: Text.rich(organization.displayName.toTextSpan(context)),
       onPressed: onPressed,
     );
   }

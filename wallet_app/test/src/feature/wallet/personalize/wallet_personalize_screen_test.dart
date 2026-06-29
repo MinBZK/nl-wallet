@@ -20,7 +20,6 @@ import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_in
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_success_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
-import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -330,8 +329,8 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeError(
-            error: RelyingPartyError(sourceError: '', organizationName: 'Relying Party X'.untranslated),
+          const WalletPersonalizeError(
+            error: RelyingPartyError(sourceError: '', organizationName: 'Relying Party X'),
           ),
         ),
         providers: [

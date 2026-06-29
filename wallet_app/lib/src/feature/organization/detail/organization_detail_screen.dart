@@ -85,7 +85,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   String _resolveTitle(BuildContext context) {
     final state = context.watch<OrganizationDetailBloc>().state;
     if (state is! OrganizationDetailSuccess) return '';
-    return context.l10n.organizationDetailScreenTitle(state.organization.displayName.l10nValue(context));
+    return context.l10n.organizationDetailScreenTitle(state.organization.displayName);
   }
 
   Widget _buildLoadingSliver() {
@@ -183,7 +183,7 @@ class OrganizationDetailScreen extends StatelessWidget {
     return ListItem(
       icon: const Icon(Icons.balance_outlined),
       label: Text.rich(context.l10n.organizationDetailScreenLegalNameInfo.toTextSpan(context)),
-      subtitle: Text(organization.legalName.l10nValue(context)),
+      subtitle: Text(organization.legalName),
     );
   }
 
@@ -320,7 +320,7 @@ class OrganizationDetailScreen extends StatelessWidget {
 
   Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
     final String interaction = context.l10n.organizationDetailScreenSomeInteractions(
-      state.organization.displayName.l10nValue(context),
+      state.organization.displayName,
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),

@@ -836,9 +836,9 @@ void main() {
     blocTest(
       'when a RelyingPartyError is thrown, emit DisclosureRelyingPartyError',
       setUp: () => when(startDisclosureUseCase.invoke(any)).thenAnswer(
-        (_) async => Result.error(
+        (_) async => const Result.error(
           RelyingPartyError(
-            organizationName: 'organizationName'.untranslated,
+            organizationName: 'organizationName',
             sourceError: 'test',
           ),
         ),

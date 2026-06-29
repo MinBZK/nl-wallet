@@ -14,14 +14,8 @@
     "deleteable": true
   },
   "organization": {
-    "displayName": {
-      "nl": "Marktplek",
-      "en": "Marktplek"
-    },
-    "legalName": {
-      "nl": "Marktplek B.V.",
-      "en": "Marktplek B.V."
-    },
+    "displayName": "Marktplek",
+    "legalName": "Marktplek B.V.",
     "description": {
       "nl": "Verkoop eenvoudig jouw tweedehands spullen online op Marktplek.",
       "en": "Easily sell your second-hand items online at Marktplek."

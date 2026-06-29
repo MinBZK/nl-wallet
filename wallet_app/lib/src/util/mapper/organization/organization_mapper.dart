@@ -16,13 +16,13 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
   @override
   Organization map(core.Organization input) => Organization(
     id: input.hashCode.toString(),
-    legalName: _localizedStringMapper.map(input.legalName),
-    displayName: _localizedStringMapper.map(input.displayName),
+    legalName: input.legalName,
+    displayName: input.displayName,
     description: _localizedStringMapper.map(input.description),
     department: input.department == null ? null : _localizedStringMapper.map(input.department!),
     logo: input.image == null ? const AppAssetImage(WalletAssets.logo_rp_placeholder) : _imageMapper.map(input.image!),
     category: _localizedStringMapper.map(input.category),
-    kvk: input.kvk,
+    kvk: input.identifier,
     countryCode: input.countryCode,
     city: input.city == null ? null : _localizedStringMapper.map(input.city!),
     webUrl: input.webUrl,
