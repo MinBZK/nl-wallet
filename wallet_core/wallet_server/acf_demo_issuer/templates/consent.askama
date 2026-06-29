@@ -5,7 +5,26 @@
 <link rel="stylesheet" href="static/css/consent.css" />
 {% endblock %}
 
+{% block scripts %}
+<script integrity="sha256-{{ base.language_js_sha256 }}" src="language.js" defer></script>
+{% endblock %}
+
 {% block content %}
+{#- The language selector submits a GET form to this same page; `state` and `usecase` are carried as
+    hidden fields so a language switch preserves them (a GET form replaces the entire query string). -#}
+<aside>
+    <div class="lang-selector">
+        <label tabindex="0" role="navigation" for="lang_toggle">{{ base.selected_lang|upper }}</label>
+        <input tabindex="-1" id="lang_toggle" type="checkbox" aria-hidden="true"></input>
+        <form class="lang-modal" method="GET">
+            <input type="hidden" name="state" value="{{ state }}">
+            <input type="hidden" name="usecase" value="{{ usecase }}">
+            {% for lang in base.available_languages.to_owned() %}
+            <button tabindex="0" type="submit" name="lang" value="{{ lang }}" {% if lang == base.selected_lang %}disabled{% endif %}>{{ base.trans[lang] }}</button>
+            {% endfor %}
+        </form>
+    </div>
+</aside>
 {% call header::header(base.trans.insurance_title, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}
 <main>
     <section>

@@ -32,6 +32,7 @@ use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
+use itertools::Itertools;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
@@ -48,6 +49,7 @@ use rand::RngCore;
 use rand::rngs::OsRng;
 use serde::Deserialize;
 use server_utils::store::StoreConnection;
+use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tracing::warn;
@@ -56,6 +58,7 @@ use utils::path::prefix_local_path;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use web_utils::headers::set_static_cache_control;
+use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
 
 use crate::settings::IssuableDocumentTemplate;
@@ -250,12 +253,15 @@ struct DocumentPreview {
 struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
+    available_languages: &'a [Language],
+    language_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
 #[template(path = "consent.askama", escape = "html", ext = "html")]
 struct ConsentTemplate<'a> {
     state: String,
+    usecase: String,
     doc_previews: Vec<DocumentPreview>,
     base: BaseTemplate<'a>,
 }
@@ -302,12 +308,17 @@ where
         })
         .collect();
 
+    let available_languages = Language::iter().collect_vec();
+
     ConsentTemplate {
         state,
+        usecase,
         doc_previews,
         base: BaseTemplate {
             selected_lang: language,
             trans: &TRANSLATIONS[language],
+            available_languages: &available_languages,
+            language_js_sha256: &LANGUAGE_JS_SHA256,
         },
     }
     .into_response()
