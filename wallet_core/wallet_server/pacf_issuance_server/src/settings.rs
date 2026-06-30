@@ -56,6 +56,8 @@ impl ServerSettings for PacfIssuanceServerSettings {
             .prefix_separator("__")
             .list_separator(",")
             .with_list_parse_key("issuer_trust_anchors")
+            .with_list_parse_key("wrpac_trust_anchors")
+            .with_list_parse_key("wrprc_trust_anchors")
             .with_list_parse_key("metadata")
             .try_parsing(true);
 
