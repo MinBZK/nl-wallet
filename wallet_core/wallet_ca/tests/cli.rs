@@ -75,6 +75,12 @@ fn predicate_file_already_exists(path: &Path) -> Result<RegexPredicate> {
     Ok(result)
 }
 
+fn predicate_not_a_natural_or_legal_person() -> Result<RegexPredicate> {
+    let result =
+        predicate::str::is_match("Error: Illegal subject name, specify either for a legal or natural person\n")?;
+    Ok(result)
+}
+
 fn predicate_missing_reader_json_file(path: &Path) -> StartsWithPredicate {
     predicate::str::starts_with(format!(
         "error: Invalid value for --reader-auth-file <READER_AUTH_FILE>: Could not open \"{}\": No such file or \
@@ -210,6 +216,10 @@ trait CommandExtension {
         file_prefix: &Path,
     ) -> &mut Self;
     fn generate_tsl_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
+
+    fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self;
+
+    fn generate_for_natural_person(&mut self, serial_number: &str, surname: &str, given_name: &str) -> &mut Self;
 }
 
 impl CommandExtension for Command {
@@ -217,8 +227,6 @@ impl CommandExtension for Command {
         self.arg("ca")
             .arg("--common-name")
             .arg("CA")
-            .arg("--oid")
-            .arg("NTRNL-00000001")
             .arg("--file-prefix")
             .arg(file_prefix)
     }
@@ -239,8 +247,6 @@ impl CommandExtension for Command {
             .arg(ca_crt)
             .arg("--common-name")
             .arg("Test Issuer")
-            .arg("--oid")
-            .arg("NTRNL-00000002")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--issuer-auth-file")
@@ -263,8 +269,6 @@ impl CommandExtension for Command {
             .arg(ca_crt)
             .arg("--common-name")
             .arg("Test Reader")
-            .arg("--oid")
-            .arg("NTRNL-00000003")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--reader-auth-file")
@@ -281,8 +285,6 @@ impl CommandExtension for Command {
             .arg(ca_crt)
             .arg("--common-name")
             .arg("Test TSL")
-            .arg("--oid")
-            .arg("NTRNL-00000004")
             .arg("--file-prefix")
             .arg(file_prefix)
     }
@@ -306,8 +308,6 @@ impl CommandExtension for Command {
             .arg(ca_crt)
             .arg("--common-name")
             .arg("Test Issuer")
-            .arg("--oid")
-            .arg("NTRNL-00000002")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--issuer-auth-file")
@@ -333,8 +333,6 @@ impl CommandExtension for Command {
             .arg(ca_crt)
             .arg("--common-name")
             .arg("Test Reader")
-            .arg("--oid")
-            .arg("NTRNL-00000003")
             .arg("--file-prefix")
             .arg(file_prefix)
             .arg("--reader-auth-file")
@@ -353,10 +351,24 @@ impl CommandExtension for Command {
             .arg(ca_crt)
             .arg("--common-name")
             .arg("Test TSL")
-            .arg("--oid")
-            .arg("NTRNL-00000004")
             .arg("--file-prefix")
             .arg(file_prefix)
+    }
+
+    fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self {
+        self.arg("--organization-name")
+            .arg(organization_name)
+            .arg("--oid")
+            .arg(organization_identifer)
+    }
+
+    fn generate_for_natural_person(&mut self, serial_number: &str, surname: &str, given_name: &str) -> &mut Self {
+        self.arg("--serial-number")
+            .arg(serial_number)
+            .arg("--surname")
+            .arg(surname)
+            .arg("--given-name")
+            .arg(given_name)
     }
 }
 
@@ -399,12 +411,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
 
     // Assert generated ca files
-    let ca_dn = DistinguishedName {
-        common_name: "CA".to_string(),
-        country_name: "NL".to_string(),
-        organization_name: "CA".to_string(),
-        organization_identifier: "NTRNL-00000001".to_string(),
-    };
+    let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
     assert_generated_key(&ca_key)?;
     assert_generated_certificate(
         &ca_crt,
@@ -427,6 +434,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+            .generate_for_natural_person("123", "Doe", "John")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_key_pair(&mdl_crt, &mdl_key)?);
@@ -436,12 +444,13 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_certificate(
             &mdl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test Issuer".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test Issuer".to_string(),
-                organization_identifier: "NTRNL-00000002".to_string(),
-            },
+            &DistinguishedName::new_natural_person(
+                "Test Issuer".to_string(),
+                "NL".to_string(),
+                "123".to_string(),
+                "Doe".to_string(),
+                "John".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
@@ -463,6 +472,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_issuer_cert(&public_key_path, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_certificate(&mdl_crt)?);
@@ -471,12 +481,12 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_certificate(
             &mdl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test Issuer".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test Issuer".to_string(),
-                organization_identifier: "NTRNL-00000002".to_string(),
-            },
+            &DistinguishedName::new_legal_person(
+                "Test Issuer".to_string(),
+                "NL".to_string(),
+                "Test B.V.".to_string(),
+                "NTRNL-00000002".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
@@ -495,6 +505,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+            .generate_for_natural_person("123", "Doe", "John")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_key_pair(&rp_auth_crt, &rp_auth_key)?);
@@ -504,12 +515,13 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_certificate(
             &rp_auth_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test Reader".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test Reader".to_string(),
-                organization_identifier: "NTRNL-00000003".to_string(),
-            },
+            &DistinguishedName::new_natural_person(
+                "Test Reader".to_string(),
+                "NL".to_string(),
+                "123".to_string(),
+                "Doe".to_string(),
+                "John".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
@@ -531,6 +543,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_reader_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
@@ -539,12 +552,12 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_certificate(
             &rp_auth_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test Reader".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test Reader".to_string(),
-                organization_identifier: "NTRNL-00000003".to_string(),
-            },
+            &DistinguishedName::new_legal_person(
+                "Test Reader".to_string(),
+                "NL".to_string(),
+                "Test B.V.".to_string(),
+                "NTRNL-00000002".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
@@ -559,6 +572,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_natural_person("123", "Doe", "John")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
@@ -568,12 +582,13 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_certificate(
             &tsl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test TSL".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
+            &DistinguishedName::new_natural_person(
+                "Test TSL".to_string(),
+                "NL".to_string(),
+                "123".to_string(),
+                "Doe".to_string(),
+                "John".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
@@ -591,6 +606,9 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test GmbH", "NTRNL-00000002")
+            .arg("--country-name")
+            .arg("DE")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
@@ -599,12 +617,12 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         assert_generated_certificate(
             &tsl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test TSL".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
+            &DistinguishedName::new_legal_person(
+                "Test TSL".to_string(),
+                "DE".to_string(),
+                "Test GmbH".to_string(),
+                "NTRNL-00000002".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
@@ -633,12 +651,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
 
     // Assert generated ca files
-    let ca_dn = DistinguishedName {
-        common_name: "CA".to_string(),
-        country_name: "NL".to_string(),
-        organization_name: "CA".to_string(),
-        organization_identifier: "NTRNL-00000001".to_string(),
-    };
+    let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
     assert_generated_key(&ca_key)?;
     assert_generated_certificate(
         &ca_crt,
@@ -657,6 +670,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .arg("--days")
             .arg("7")
             .assert()
@@ -668,12 +682,12 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         assert_generated_certificate(
             &tsl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test TSL".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
+            &DistinguishedName::new_legal_person(
+                "Test TSL".to_string(),
+                "NL".to_string(),
+                "Test B.V.".to_string(),
+                "NTRNL-00000002".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
@@ -691,6 +705,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .arg("--days")
             .arg("7")
             .assert()
@@ -701,123 +716,15 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         assert_generated_certificate(
             &tsl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test TSL".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
+            &DistinguishedName::new_legal_person(
+                "Test TSL".to_string(),
+                "NL".to_string(),
+                "Test B.V.".to_string(),
+                "NTRNL-00000002".to_string(),
+            ),
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
-            Some(CertificateUsage::OAuthStatusSigning),
-        )?;
-    }
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-#[test]
-fn happy_flow_with_modified_dn() -> Result<()> {
-    let temp = TempDir::new()?;
-    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
-
-    // Generate ca and assert success and stderr output
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_ca(&ca_prefix)
-        .arg("--country-name")
-        .arg("DE")
-        .arg("--organization-name")
-        .arg("CA GmbH")
-        .assert()
-        .success()
-        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
-
-    // Assert generated ca files
-    let ca_dn = DistinguishedName {
-        common_name: "CA".to_string(),
-        country_name: "DE".to_string(),
-        organization_name: "CA GmbH".to_string(),
-        organization_identifier: "NTRNL-00000001".to_string(),
-    };
-    assert_generated_key(&ca_key)?;
-    assert_generated_certificate(
-        &ca_crt,
-        &ca_dn,
-        &ca_dn,
-        None,
-        OffsetDateTime::now_utc(),
-        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
-        None,
-    )?;
-
-    // Generate tsl key pair
-    {
-        let (tsl_prefix, tsl_crt, tsl_key) = keypair_paths(&temp, "test-tsl-kp");
-
-        // Execute command and assert success and stderr output
-        Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
-            .arg("--country-name")
-            .arg("DE")
-            .arg("--organization-name")
-            .arg("Test TSL GmbH")
-            .assert()
-            .success()
-            .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
-
-        // Assert generated cert files
-        assert_generated_key(&tsl_key)?;
-        assert_generated_certificate(
-            &tsl_crt,
-            &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "DE".to_string(),
-                organization_name: "Test TSL GmbH".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
-            None,
-            OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
-            Some(CertificateUsage::OAuthStatusSigning),
-        )?;
-    }
-
-    // Generate tsl certificate
-    {
-        let (tsl_prefix, tsl_crt, _) = keypair_paths(&temp, "test-tsl-crt");
-
-        let public_key_path = public_key_path(&temp, "test-tsl-crt");
-        generate_public_key(&public_key_path);
-
-        // Execute command and assert success and stderr output
-        Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
-            .arg("--country-name")
-            .arg("DE")
-            .arg("--organization-name")
-            .arg("Test TSL GmbH")
-            .assert()
-            .success()
-            .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
-
-        // Assert generated certificate
-        assert_generated_certificate(
-            &tsl_crt,
-            &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "DE".to_string(),
-                organization_name: "Test TSL GmbH".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
-            None,
-            OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
@@ -841,12 +748,7 @@ fn happy_flow_with_san() -> Result<()> {
         .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
 
     // Assert generated ca files
-    let ca_dn = DistinguishedName {
-        common_name: "CA".to_string(),
-        country_name: "NL".to_string(),
-        organization_name: "CA".to_string(),
-        organization_identifier: "NTRNL-00000001".to_string(),
-    };
+    let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
     assert_generated_key(&ca_key)?;
     assert_generated_certificate(
         &ca_crt,
@@ -865,6 +767,7 @@ fn happy_flow_with_san() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .arg("--san-uri")
             .arg("https://tsl.example.com")
             .assert()
@@ -876,12 +779,12 @@ fn happy_flow_with_san() -> Result<()> {
         assert_generated_certificate(
             &tsl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test TSL".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
+            &DistinguishedName::new_legal_person(
+                "Test TSL".to_string(),
+                "NL".to_string(),
+                "Test B.V.".to_string(),
+                "NTRNL-00000002".to_string(),
+            ),
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
@@ -899,6 +802,7 @@ fn happy_flow_with_san() -> Result<()> {
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
             .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .arg("--san-uri")
             .arg("https://tsl.example.com")
             .assert()
@@ -909,17 +813,79 @@ fn happy_flow_with_san() -> Result<()> {
         assert_generated_certificate(
             &tsl_crt,
             &ca_dn,
-            &DistinguishedName {
-                common_name: "Test TSL".to_string(),
-                country_name: "NL".to_string(),
-                organization_name: "Test TSL".to_string(),
-                organization_identifier: "NTRNL-00000004".to_string(),
-            },
+            &DistinguishedName::new_legal_person(
+                "Test TSL".to_string(),
+                "NL".to_string(),
+                "Test B.V.".to_string(),
+                "NTRNL-00000002".to_string(),
+            ),
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn not_a_natural_or_legal_person() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success and stderr output
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    // Assert generated ca files
+    let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
+    assert_generated_key(&ca_key)?;
+    assert_generated_certificate(
+        &ca_crt,
+        &ca_dn,
+        &ca_dn,
+        None,
+        OffsetDateTime::now_utc(),
+        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+        None,
+    )?;
+
+    // Generate tsl key pair
+    {
+        let (tsl_prefix, _, _) = keypair_paths(&temp, "test-tsl-kp");
+
+        // Execute command and assert success and stderr output
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .arg("--serial-number")
+            .arg("1234")
+            .assert()
+            .failure()
+            .stderr(predicate_not_a_natural_or_legal_person()?);
+    }
+
+    // Generate tsl certificate
+    {
+        let (tsl_prefix, _, _) = keypair_paths(&temp, "test-tsl-crt");
+
+        let public_key_path = public_key_path(&temp, "test-tsl-crt");
+        generate_public_key(&public_key_path);
+
+        // Execute command and assert success and stderr output
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .arg("--organization-name")
+            .arg("Test")
+            .assert()
+            .failure()
+            .stderr(predicate_not_a_natural_or_legal_person()?);
     }
 
     // Explicitly close the temp folder, for better error reporting
@@ -987,12 +953,14 @@ fn regenerating_cert() -> Result<()> {
     // Generate issuer key pair and assert success
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .success();
 
     // Regenerate issuer key pair should fail on key
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_file_already_exists(&mdl_key)?);
@@ -1002,6 +970,7 @@ fn regenerating_cert() -> Result<()> {
 
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_file_already_exists(&mdl_crt)?);
@@ -1009,6 +978,7 @@ fn regenerating_cert() -> Result<()> {
     // Regenerate issuer key pair should succeed with force
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .arg("--force")
         .assert()
         .success();
@@ -1057,6 +1027,7 @@ fn missing_input_files_issuer() -> Result<()> {
     // Generate issuer should fail when missing CA key file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_key_file(&ca_key));
@@ -1068,6 +1039,7 @@ fn missing_input_files_issuer() -> Result<()> {
     // Execute command and assert failure and stderr output
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_crt_file(&ca_crt));
@@ -1079,6 +1051,7 @@ fn missing_input_files_issuer() -> Result<()> {
     // Generate issuer should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_issuer_json_file(&issuer_auth_json));
@@ -1100,6 +1073,7 @@ fn missing_input_files_issuer_pubkey() -> Result<()> {
     // Generate issuer should fail when missing CA key file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_key_file(&ca_key));
@@ -1111,6 +1085,7 @@ fn missing_input_files_issuer_pubkey() -> Result<()> {
     // Execute command and assert failure and stderr output
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_crt_file(&ca_crt));
@@ -1122,6 +1097,7 @@ fn missing_input_files_issuer_pubkey() -> Result<()> {
     // Generate issuer should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_issuer_json_file(&issuer_auth_json));
@@ -1133,6 +1109,7 @@ fn missing_input_files_issuer_pubkey() -> Result<()> {
     // Generate issuer should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_public_key_file(&public_key_file));
@@ -1181,6 +1158,7 @@ fn missing_input_files_reader() -> Result<()> {
     // Generate reader should fail on missing CA key
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_key_file(&ca_key));
@@ -1191,6 +1169,7 @@ fn missing_input_files_reader() -> Result<()> {
 
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_crt_file(&ca_crt));
@@ -1202,6 +1181,7 @@ fn missing_input_files_reader() -> Result<()> {
     // Generate reader_auth should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_reader_json_file(&rp_auth_json));
@@ -1223,6 +1203,7 @@ fn missing_input_files_reader_pubkey() -> Result<()> {
     // Generate reader should fail on missing CA key
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_key_file(&ca_key));
@@ -1233,6 +1214,7 @@ fn missing_input_files_reader_pubkey() -> Result<()> {
 
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_crt_file(&ca_crt));
@@ -1244,6 +1226,7 @@ fn missing_input_files_reader_pubkey() -> Result<()> {
     // Generate reader_auth should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_reader_json_file(&rp_auth_json));
@@ -1255,6 +1238,7 @@ fn missing_input_files_reader_pubkey() -> Result<()> {
     // Generate reader_auth should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
         .stderr(predicate_missing_public_key_file(&public_key_file));

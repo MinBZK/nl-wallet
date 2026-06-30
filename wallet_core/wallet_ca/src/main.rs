@@ -63,12 +63,6 @@ enum Command {
         /// Subject Country name to use in the new certificate when not NL
         #[arg(long)]
         country_name: Option<String>,
-        /// Subject Organization name to use in the new certificate when different from name
-        #[arg(long)]
-        organization_name: Option<String>,
-        /// Subject Organization identifier to use in the new certificate
-        #[arg(short, long)]
-        oid: String,
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -97,8 +91,17 @@ enum Command {
         #[arg(long)]
         organization_name: Option<String>,
         /// Subject Organization identifier to use in the new certificate
-        #[arg(short, long)]
-        oid: String,
+        #[arg(long)]
+        oid: Option<String>,
+        /// Subject Serial Number identifier to use in the new certificate
+        #[arg(long)]
+        serial_number: Option<String>,
+        /// Subject Surname identifier to use in the new certificate
+        #[arg(long)]
+        surname: Option<String>,
+        /// Subject Given Name identifier to use in the new certificate
+        #[arg(long)]
+        given_name: Option<String>,
         /// Subject Alternative Name URIs
         #[arg(long = "san-uri", num_args(0..))]
         san_uris: Vec<String>,
@@ -138,12 +141,21 @@ enum Command {
         /// Subject Country name to use in the new certificate when not NL
         #[arg(long)]
         country_name: Option<String>,
-        /// Subject Organization name to use in the new certificate when different from name
+        /// Subject Organization name to use in the new certificate
         #[arg(long)]
         organization_name: Option<String>,
         /// Subject Organization identifier to use in the new certificate
-        #[arg(short, long)]
-        oid: String,
+        #[arg(long)]
+        oid: Option<String>,
+        /// Subject Serial Number identifier to use in the new certificate
+        #[arg(long)]
+        serial_number: Option<String>,
+        /// Subject Surname identifier to use in the new certificate
+        #[arg(long)]
+        surname: Option<String>,
+        /// Subject Given Name identifier to use in the new certificate
+        #[arg(long)]
+        given_name: Option<String>,
         /// Subject Alternative Name URIs
         #[arg(long = "san-uri", num_args(0..))]
         san_uris: Vec<String>,
@@ -180,12 +192,21 @@ enum Command {
         /// Subject Country name to use in the new certificate when not NL
         #[arg(long)]
         country_name: Option<String>,
-        /// Subject Organization name to use in the new certificate when different from name
+        /// Subject Organization name to use in the new certificate
         #[arg(long)]
         organization_name: Option<String>,
         /// Subject Organization identifier to use in the new certificate
-        #[arg(short, long)]
-        oid: String,
+        #[arg(long)]
+        oid: Option<String>,
+        /// Subject Serial Number identifier to use in the new certificate
+        #[arg(long)]
+        serial_number: Option<String>,
+        /// Subject Surname identifier to use in the new certificate
+        #[arg(long)]
+        surname: Option<String>,
+        /// Subject Given Name identifier to use in the new certificate
+        #[arg(long)]
+        given_name: Option<String>,
         /// Subject Alternative Name URIs
         #[arg(long = "san-uri", num_args(0..))]
         san_uris: Vec<String>,
@@ -199,20 +220,41 @@ enum Command {
 }
 
 impl Command {
+    fn default_country_name() -> String {
+        "NL".to_string()
+    }
+
+    #[expect(clippy::too_many_arguments, reason = "constructor like method")]
     fn get_distinguished_name(
         common_name: String,
         country_name: Option<String>,
         organization_name: Option<String>,
-        organization_identifier: String,
-    ) -> DistinguishedName {
-        let organization_name = organization_name.unwrap_or_else(|| common_name.clone());
-        let country_name = country_name.unwrap_or_else(|| "NL".to_string());
-        DistinguishedName {
+        organization_identifier: Option<String>,
+        serial_number: Option<String>,
+        surname: Option<String>,
+        given_name: Option<String>,
+    ) -> Result<DistinguishedName> {
+        let country_name = country_name.unwrap_or_else(Self::default_country_name);
+        match (
+            &organization_name,
+            &organization_identifier,
+            &serial_number,
+            &surname,
+            &given_name,
+        ) {
+            (Some(_), Some(_), _, _, _) | (_, _, Some(_), Some(_), Some(_)) => {}
+            // Only disallow names that are neither legal nor natural persons, allow extra attributes
+            _ => anyhow::bail!("Illegal subject name, specify either for a legal or natural person"),
+        }
+        Ok(DistinguishedName {
             common_name,
             country_name,
             organization_name,
             organization_identifier,
-        }
+            serial_number,
+            surname,
+            given_name,
+        })
     }
 
     fn get_san_uris(uris: Vec<String>) -> Result<Vec<SubjectAltNameUri>> {
@@ -269,14 +311,12 @@ impl Command {
             Ca {
                 common_name,
                 country_name,
-                organization_name,
-                oid,
                 file_prefix,
                 days,
                 force,
             } => {
                 let distinguished_name =
-                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
+                    DistinguishedName::new(common_name, country_name.unwrap_or_else(Self::default_country_name));
                 let configuration = Self::get_ca_configuration(days);
                 let ca = generate::Ca::generate(distinguished_name, configuration)?;
                 let signing_key = ca.to_signing_key()?;
@@ -289,6 +329,9 @@ impl Command {
                 common_name,
                 country_name,
                 organization_name,
+                serial_number,
+                surname,
+                given_name,
                 oid,
                 san_uris,
                 cert_type,
@@ -300,8 +343,15 @@ impl Command {
             } => {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
 
-                let distinguished_name =
-                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
+                let distinguished_name = Self::get_distinguished_name(
+                    common_name,
+                    country_name,
+                    organization_name,
+                    oid,
+                    serial_number,
+                    surname,
+                    given_name,
+                )?;
                 let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, reader_auth_file, days)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let key_pair = ca.generate_key_pair(distinguished_name, config, san_uris)?;
@@ -316,6 +366,9 @@ impl Command {
                 country_name,
                 organization_name,
                 oid,
+                serial_number,
+                surname,
+                given_name,
                 san_uris,
                 cert_type,
                 issuer_auth_file,
@@ -327,8 +380,15 @@ impl Command {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
                 let public_key = read_public_key(&public_key_file)?;
 
-                let distinguished_name =
-                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
+                let distinguished_name = Self::get_distinguished_name(
+                    common_name,
+                    country_name,
+                    organization_name,
+                    oid,
+                    serial_number,
+                    surname,
+                    given_name,
+                )?;
                 let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, reader_auth_file, days)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let certificate =
@@ -343,13 +403,23 @@ impl Command {
                 country_name,
                 organization_name,
                 oid,
+                serial_number,
+                surname,
+                given_name,
                 san_uris,
                 reader_auth_file,
                 session_transcript_hex,
             } => {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
-                let distinguished_name =
-                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
+                let distinguished_name = Self::get_distinguished_name(
+                    common_name,
+                    country_name,
+                    organization_name,
+                    oid,
+                    serial_number,
+                    surname,
+                    given_name,
+                )?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
 
