@@ -21,14 +21,18 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
 use serde_with::StringWithSeparator;
+use serde_with::TryFromInto;
 use serde_with::base64::Base64;
 use serde_with::formats::SpaceSeparator;
+use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::authorization_details::WalletAuthorizationDetails;
+use crate::authorization_details::WalletAuthorizationDetailsEntries;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::scope::Scope;
 use crate::server_state::SessionToken;
@@ -100,6 +104,9 @@ pub struct TokenRequest {
 
     /// The PKCE code verifier as defined in RFC 7636.
     pub code_verifier: Option<String>,
+
+    #[serde_as(as = "Option<JsonString<TryFromInto<WalletAuthorizationDetailsEntries>>>")]
+    pub authorization_details: Option<WalletAuthorizationDetails>,
 }
 
 impl TokenRequest {
@@ -117,16 +124,21 @@ impl TokenRequest {
             redirect_uri: Some(redirect_uri),
             scope: None,
             code_verifier: Some(code_verifier),
+            authorization_details: None,
         }
     }
 
     pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode, client_id: String) -> Self {
         Self {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                pre_authorized_code,
+                tx_code: None,
+            },
             client_id: Some(client_id),
             redirect_uri: None,
             scope: None,
             code_verifier: None,
+            authorization_details: None,
         }
     }
 
@@ -134,7 +146,9 @@ impl TokenRequest {
     pub fn code(&self) -> &AuthorizationCode {
         match &self.grant_type {
             TokenRequestGrantType::AuthorizationCode { code } => code,
-            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } => pre_authorized_code,
+            TokenRequestGrantType::PreAuthorizedCode {
+                pre_authorized_code, ..
+            } => pre_authorized_code,
         }
     }
 }
@@ -150,6 +164,10 @@ pub enum TokenRequestGrantType {
     PreAuthorizedCode {
         #[serde(rename = "pre-authorized_code")]
         pre_authorized_code: AuthorizationCode,
+
+        /// String value containing a Transaction Code value itself. This value MUST be present if a tx_code object was
+        /// present in the Credential Offer (including if the object was empty)
+        tx_code: Option<String>,
     },
 }
 
@@ -271,10 +289,11 @@ mod tests {
     use itertools::Itertools;
     use serde_json::json;
 
-    use crate::token::TokenRequest;
-    use crate::token::TokenRequestGrantType;
-    use crate::token::TokenResponse;
-    use crate::token::TokenType;
+    use super::TokenRequest;
+    use super::TokenRequestGrantType;
+    use super::TokenResponse;
+    use super::TokenType;
+    use crate::authorization_details::TypedAuthorizationDetailsEntry;
 
     #[test]
     fn token_request_serialization() {
@@ -282,12 +301,14 @@ mod tests {
         assert_eq!(
             serde_qs::to_string(&TokenRequest {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into()
+                    pre_authorized_code: "123".to_string().into(),
+                    tx_code: None,
                 },
                 client_id: Some("myclient".to_string()),
                 redirect_uri: Some("https://example.com".parse().unwrap()),
                 scope: None,
-                code_verifier: Some("myverifier".to_string())
+                code_verifier: Some("myverifier".to_string()),
+                authorization_details: None,
             })
             .unwrap(),
             "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code\
@@ -351,5 +372,55 @@ mod tests {
             serde_json::to_value(token_response).expect("should be able to serialize TokenResponse to JSON value");
 
         assert_eq!(json, serialized_json);
+    }
+
+    #[test]
+    fn token_request_deserialize_pre_authorized_example() {
+        // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.1.1-3>
+        let example = "grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code&\
+                       pre-authorized_code=SplxlOBeZQQYbYS6WxSbIA&tx_code=493536&authorization_details=%5B%7B%22type%\
+                       22%3A%20%22openid_credential%22%2C%20%22credential_configuration_id%22%3A%20%\
+                       22UniversityDegreeCredential%22%7D%5D";
+
+        let token_request =
+            serde_qs::from_str::<TokenRequest>(example).expect("deserializing TokenRequest should succeed");
+
+        let TokenRequestGrantType::PreAuthorizedCode {
+            pre_authorized_code,
+            tx_code,
+        } = &token_request.grant_type
+        else {
+            panic!("grant type should be pre-authorized");
+        };
+
+        assert_eq!(pre_authorized_code.as_ref(), "SplxlOBeZQQYbYS6WxSbIA");
+        assert_eq!(tx_code.as_deref(), Some("493536"));
+
+        assert!(token_request.client_id.is_none());
+        assert!(token_request.redirect_uri.is_none());
+        assert!(token_request.scope.is_none());
+
+        let authorization_details = token_request
+            .authorization_details
+            .as_ref()
+            .expect("authorization_details should be present in Authorization Request");
+
+        let entry = authorization_details
+            .as_ref()
+            .iter()
+            .exactly_one()
+            .expect("there should exactly one authorization_details entry");
+
+        assert!(entry.locations.is_none());
+
+        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) = &entry.typed_entry else {
+            panic!("authorization details entry should be of type openid_credential");
+        };
+
+        assert_eq!(
+            vci_entry.credential_configuration_id.as_ref(),
+            "UniversityDegreeCredential"
+        );
+        assert!(vci_entry.claims.is_none());
     }
 }

@@ -833,6 +833,7 @@ async fn token_rejects_missing_code_verifier() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: None,
+        authorization_details: None,
     };
 
     let response = http_client
@@ -873,6 +874,7 @@ async fn token_rejects_unknown_code_verifier() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
+        authorization_details: None,
     };
 
     let response = http_client
@@ -913,11 +915,13 @@ async fn token_rejects_grant_type_mismatch() {
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::PreAuthorizedCode {
             pre_authorized_code: code,
+            tx_code: None,
         },
         client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let response = http_client
@@ -959,6 +963,7 @@ async fn token_rejects_scope_mismatch() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: Some(HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()])),
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let response = http_client
@@ -985,6 +990,7 @@ async fn token_rejects_scope_mismatch() {
             "other_scope".parse().unwrap(),
         ])),
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let response = http_client
@@ -1024,6 +1030,7 @@ async fn token_rejects_differing_client_id() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let response = http_client
@@ -1048,6 +1055,7 @@ async fn token_rejects_differing_client_id() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let response = http_client
@@ -1089,6 +1097,7 @@ async fn token_rejects_differing_redirect_uri() {
         redirect_uri: None,
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let response = http_client
@@ -1113,6 +1122,7 @@ async fn token_rejects_differing_redirect_uri() {
         redirect_uri: Some("https://wallet.example.com/other_path".parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let response = http_client
