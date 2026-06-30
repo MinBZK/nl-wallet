@@ -194,13 +194,14 @@ pub enum ResponseType {
     IdToken,
 }
 
-/// See
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-successful-authorization-re>
-/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2>.
-/// Contains the token that may be exchanged for an access token.
-/// URL-encoded and provided as query parameters added to the `redirect_uri` that was passed in the
+/// The OAuth 2.0 Authorization Response, which is URL-encoded and provided as query parameters added to the
+/// `redirect_uri` that was passed in the [`VciAuthorizationRequest`]. Contains the token that may be exchanged for an
+/// access token.
+///
+/// See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.2> and
+/// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2>.
 /// [`VciAuthorizationRequest`].
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthorizationResponse {
     pub code: String,
     pub state: Option<String>,
