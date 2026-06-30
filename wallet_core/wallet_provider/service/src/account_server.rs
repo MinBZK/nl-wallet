@@ -3599,7 +3599,7 @@ mod tests {
                 assert_eq!(state, WalletUserState::RecoveringPin);
                 Ok(())
             });
-        repositories.expect_save_keys().times(2).returning(move |_, _| Ok(()));
+        repositories.expect_save_keys().times(1).returning(move |_, _| Ok(()));
 
         let user_state = UserState {
             repositories,

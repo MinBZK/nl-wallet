@@ -99,7 +99,7 @@ async fn test_delete_attestation_ok() {
         .count(&wp_db_connection)
         .await
         .unwrap();
-    assert_eq!(keys_before_degree_issuance, keys_after_degree_deletion - 1); // Subtract one because WIA was created
+    assert_eq!(keys_before_degree_issuance, keys_after_degree_deletion);
 
     // The degree attestation should no longer be present in the wallet.
     assert!(

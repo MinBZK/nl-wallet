@@ -510,7 +510,7 @@ async fn wia<T, R, H, G>(
     wallet_user: &WalletUser,
     user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
     generators: &G,
-) -> Result<(WrappedKey, WiaDisclosure), InstructionError>
+) -> Result<WiaDisclosure, InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -551,7 +551,7 @@ where
         .map_err(InstructionError::PopSigning)?
         .into();
 
-    Ok((wia_wrapped_key, WiaDisclosure::new(wia, wia_disclosure)))
+    Ok(WiaDisclosure::new(wia, wia_disclosure))
 }
 
 async fn issuance_pops<H>(
@@ -639,7 +639,7 @@ impl HandleInstruction for IssueWia {
         // The JWT claims to be signed in the PoPs.
         let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud, generators);
 
-        let (wia_wrapped_key, wia_disclosure) = wia(&claims, wallet_user, user_state, generators).await?;
+        let wia_disclosure = wia(&claims, wallet_user, user_state, generators).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -652,19 +652,6 @@ impl HandleInstruction for IssueWia {
                 .delete_all_blocked_keys(&tx, wallet_user.id)
                 .await?;
         }
-
-        persist_keys(
-            &tx,
-            wallet_user,
-            user_state,
-            vec![WalletUserKey {
-                wallet_user_key_id: generators.generate(),
-                key: wia_wrapped_key,
-                is_blocked: false,
-            }],
-            generators,
-        )
-        .await?;
 
         tx.commit().await?;
 
