@@ -12,17 +12,17 @@ part 'organization.g.dart';
 abstract class Organization with _$Organization {
   const factory Organization({
     required String id,
-    @LocalizedTextConverter() required LocalizedText legalName,
-    @LocalizedTextConverter() required LocalizedText displayName,
+    @LocalizedTextConverter() required String legalName,
+    @LocalizedTextConverter() required String displayName,
     @LocalizedTextConverter() required LocalizedText? category,
     @LocalizedTextConverter() required LocalizedText? description,
     @AppImageDataConverter() required AppImageData logo,
     String? webUrl,
     String? privacyPolicyUrl,
-    String? countryCode,
+    required String countryCode,
     @LocalizedTextConverter() LocalizedText? city,
     @LocalizedTextConverter() LocalizedText? department,
-    String? kvk,
+    String? organizationId,
   }) = _Organization;
 
   factory Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);

@@ -16,7 +16,10 @@ use crypto::server_keys::generate;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
+use crypto::x509::DistinguishedName;
+use crypto::x509::SubjectAltNameUri;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use mdoc::DataElements;
 use mdoc::DeviceRequest;
 use mdoc::ItemsRequest;
@@ -57,6 +60,15 @@ enum Command {
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
+        /// Subject Country name to use in the new certificate when not NL
+        #[arg(long)]
+        country_name: Option<String>,
+        /// Subject Organization name to use in the new certificate when different from name
+        #[arg(long)]
+        organization_name: Option<String>,
+        /// Subject Organization identifier to use in the new certificate
+        #[arg(short, long)]
+        oid: String,
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -78,6 +90,18 @@ enum Command {
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
+        /// Subject Country name to use in the new certificate when not NL
+        #[arg(long)]
+        country_name: Option<String>,
+        /// Subject Organization name to use in the new certificate when different from name
+        #[arg(long)]
+        organization_name: Option<String>,
+        /// Subject Organization identifier to use in the new certificate
+        #[arg(short, long)]
+        oid: String,
+        /// Subject Alternative Name URIs
+        #[arg(long = "san-uri", num_args(0..))]
+        san_uris: Vec<String>,
         /// Certificate type in EDI
         #[arg(short = 't', long = "type", value_parser)]
         cert_type: CertType,
@@ -111,6 +135,18 @@ enum Command {
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
+        /// Subject Country name to use in the new certificate when not NL
+        #[arg(long)]
+        country_name: Option<String>,
+        /// Subject Organization name to use in the new certificate when different from name
+        #[arg(long)]
+        organization_name: Option<String>,
+        /// Subject Organization identifier to use in the new certificate
+        #[arg(short, long)]
+        oid: String,
+        /// Subject Alternative Name URIs
+        #[arg(long = "san-uri", num_args(0..))]
+        san_uris: Vec<String>,
         /// Certificate type in EDI
         #[arg(short = 't', long = "type", value_parser)]
         cert_type: CertType,
@@ -138,10 +174,21 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
-        /// Optional subject Common Name to use in the ephemeral reader certificate.
-        /// Defaults to the host from requestOriginBaseUrl in reader_auth.json.
+        /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
-        common_name: Option<String>,
+        common_name: String,
+        /// Subject Country name to use in the new certificate when not NL
+        #[arg(long)]
+        country_name: Option<String>,
+        /// Subject Organization name to use in the new certificate when different from name
+        #[arg(long)]
+        organization_name: Option<String>,
+        /// Subject Organization identifier to use in the new certificate
+        #[arg(short, long)]
+        oid: String,
+        /// Subject Alternative Name URIs
+        #[arg(long = "san-uri", num_args(0..))]
+        san_uris: Vec<String>,
         /// Path to Reader Authentication file in JSON format
         #[arg(short, long, value_parser)]
         reader_auth_file: CachedInput,
@@ -152,6 +199,28 @@ enum Command {
 }
 
 impl Command {
+    fn get_distinguished_name(
+        common_name: String,
+        country_name: Option<String>,
+        organization_name: Option<String>,
+        organization_identifier: String,
+    ) -> DistinguishedName {
+        let organization_name = organization_name.unwrap_or_else(|| common_name.clone());
+        let country_name = country_name.unwrap_or_else(|| "NL".to_string());
+        DistinguishedName {
+            common_name,
+            country_name,
+            organization_name,
+            organization_identifier,
+        }
+    }
+
+    fn get_san_uris(uris: Vec<String>) -> Result<Vec<SubjectAltNameUri>> {
+        uris.into_iter()
+            .map(|uri| uri.parse::<SubjectAltNameUri>().map_err(anyhow::Error::from))
+            .try_collect()
+    }
+
     fn get_ca_configuration(days: u32) -> CertificateConfiguration {
         let not_before = Utc::now();
         let not_after = not_before
@@ -199,12 +268,17 @@ impl Command {
         match self {
             Ca {
                 common_name,
+                country_name,
+                organization_name,
+                oid,
                 file_prefix,
                 days,
                 force,
             } => {
+                let distinguished_name =
+                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
                 let configuration = Self::get_ca_configuration(days);
-                let ca = generate::Ca::generate(&common_name, configuration)?;
+                let ca = generate::Ca::generate(distinguished_name, configuration)?;
                 let signing_key = ca.to_signing_key()?;
                 write_key_pair(ca.certificate(), &signing_key, &file_prefix, force)?;
                 Ok(())
@@ -213,6 +287,10 @@ impl Command {
                 ca_key_file,
                 ca_crt_file,
                 common_name,
+                country_name,
+                organization_name,
+                oid,
+                san_uris,
                 cert_type,
                 issuer_auth_file,
                 reader_auth_file,
@@ -222,8 +300,11 @@ impl Command {
             } => {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
 
+                let distinguished_name =
+                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
                 let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, reader_auth_file, days)?;
-                let key_pair = ca.generate_key_pair(&common_name, config)?;
+                let san_uris = Self::get_san_uris(san_uris)?;
+                let key_pair = ca.generate_key_pair(distinguished_name, config, san_uris)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
                 Ok(())
             }
@@ -232,6 +313,10 @@ impl Command {
                 ca_key_file,
                 ca_crt_file,
                 common_name,
+                country_name,
+                organization_name,
+                oid,
+                san_uris,
                 cert_type,
                 issuer_auth_file,
                 reader_auth_file,
@@ -242,8 +327,12 @@ impl Command {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
                 let public_key = read_public_key(&public_key_file)?;
 
+                let distinguished_name =
+                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
                 let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, reader_auth_file, days)?;
-                let certificate = ca.generate_certificate(public_key.contents(), &common_name, config)?;
+                let san_uris = Self::get_san_uris(san_uris)?;
+                let certificate =
+                    ca.generate_certificate(public_key.contents(), distinguished_name, config, san_uris)?;
                 write_certificate(&certificate, &file_prefix, force)?;
                 Ok(())
             }
@@ -251,20 +340,27 @@ impl Command {
                 ca_key_file,
                 ca_crt_file,
                 common_name,
+                country_name,
+                organization_name,
+                oid,
+                san_uris,
                 reader_auth_file,
                 session_transcript_hex,
             } => {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
+                let distinguished_name =
+                    Self::get_distinguished_name(common_name, country_name, organization_name, oid);
+                let san_uris = Self::get_san_uris(san_uris)?;
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
 
                 let session_transcript_bytes =
                     hex::decode(&session_transcript_hex).with_context(|| "invalid session transcript hex")?;
                 let session_transcript = SessionTranscript::try_from_bytes(&session_transcript_bytes)?;
-                let common_name = common_name.unwrap_or_else(|| reader_common_name_or_default(&reader_registration));
-                let runtime = tokio::runtime::Builder::new_current_thread().build().unwrap();
+                let runtime = tokio::runtime::Builder::new_current_thread().build()?;
                 let device_request = runtime.block_on(create_reader_device_request(
                     &ca,
-                    &common_name,
+                    distinguished_name,
+                    san_uris,
                     reader_registration,
                     &session_transcript,
                 ))?;
@@ -280,14 +376,6 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     cli.command.execute()?;
     Ok(())
-}
-
-fn reader_common_name_or_default(reader_registration: &ReaderRegistration) -> String {
-    reader_registration
-        .request_origin_base_url
-        .host_str()
-        .unwrap_or("cert.rp.example.com")
-        .to_string()
 }
 
 fn items_requests_from_reader_registration(reader_registration: &ReaderRegistration) -> Result<Vec<ItemsRequest>> {
@@ -422,17 +510,19 @@ fn is_mdoc_namespace_for_doc_type(doc_type: &str, namespace: &str) -> bool {
 
 async fn create_reader_device_request(
     ca: &generate::Ca,
-    common_name: &str,
+    distinguished_name: DistinguishedName,
+    subject_alt_name_uris: Vec<SubjectAltNameUri>,
     reader_registration: ReaderRegistration,
     session_transcript: &SessionTranscript,
 ) -> Result<DeviceRequest> {
     let items_requests = items_requests_from_reader_registration(&reader_registration)?;
     let key_pair = ca.generate_key_pair(
-        common_name,
+        distinguished_name,
         CertificateConfiguration::with_usage_and_extension(
             CertificateUsage::ReaderAuth,
             reader_registration.to_custom_ext()?,
         ),
+        subject_alt_name_uris,
     )?;
 
     let mut doc_requests = Vec::with_capacity(items_requests.len());

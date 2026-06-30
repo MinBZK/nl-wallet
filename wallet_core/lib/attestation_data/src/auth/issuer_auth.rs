@@ -2,8 +2,8 @@ use crypto::x509::BorrowingCertificateExtension;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
-use x509_parser::oid_registry::Oid;
-use x509_parser::oid_registry::asn1_rs::oid;
+use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::oid;
 
 use crate::auth::Organization;
 use crate::x509::CertificateType;
@@ -48,7 +48,10 @@ pub mod mock {
 
     impl IssuerRegistration {
         pub fn new_mock() -> Self {
-            let organization = Organization::new_mock();
+            let mut organization = Organization::new_mock();
+            organization.display_name = "Cert issuer".to_string();
+            organization.legal_name = "Cert issuer B.V.".to_string();
+            organization.identifier = Some("NTRNL-50198052".to_string());
 
             IssuerRegistration { organization }
         }

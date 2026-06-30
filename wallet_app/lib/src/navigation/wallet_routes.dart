@@ -135,6 +135,8 @@ class WalletRoutes {
   @visibleForTesting
   static List<String> get allRoutes => _routeBuilders.keys.toList();
 
+  static bool isKnownRoute(String? routeName) => routeName != null && _routeBuilders.containsKey(routeName);
+
   static const aboutRoute = '/about';
   static const biometricsSettingsRoute = '/settings/biometrics';
   static const cardDataRoute = '/card/data';
@@ -262,7 +264,12 @@ class WalletRoutes {
     }
   }
 
-  static List<Route<dynamic>> initialRoutes(String route) => [MaterialPageRoute(builder: _createSplashScreenBuilder)];
+  static List<Route<dynamic>> initialRoutes(String route) => [
+    MaterialPageRoute(
+      settings: const RouteSettings(name: splashRoute),
+      builder: _createSplashScreenBuilder,
+    ),
+  ];
 }
 
 Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(

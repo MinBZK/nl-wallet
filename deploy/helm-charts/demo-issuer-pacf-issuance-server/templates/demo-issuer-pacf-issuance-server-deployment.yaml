@@ -56,8 +56,8 @@ spec:
               mountPath: /pacf_issuance_server.toml
               subPath: pacf_issuance_server.toml
             - name: metadata
-              mountPath: /com.example.jum.bonuskaart.json
-              subPath: com.example.jum.bonuskaart.json
+              mountPath: /com.example.museum_maandkaart.json
+              subPath: com.example.museum_maandkaart.json
             - name: status-lists
               mountPath: /status-lists
           env:
@@ -68,7 +68,7 @@ spec:
             - name: PACF_ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
             - name: PACF_ISSUANCE_SERVER__METADATA
-              value: "com.example.jum.bonuskaart.json"
+              value: "com.example.museum_maandkaart.json"
             - name: PACF_ISSUANCE_SERVER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: PACF_ISSUANCE_SERVER__STORAGE__URL
@@ -86,6 +86,16 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: reader_trust_anchors
+            - name: PACF_ISSUANCE_SERVER__WRPAC_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: wrpac_trust_anchors
+            - name: PACF_ISSUANCE_SERVER__WRPRC_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: wrprc_trust_anchors
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

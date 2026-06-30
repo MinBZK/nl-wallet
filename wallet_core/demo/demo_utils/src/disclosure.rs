@@ -66,7 +66,7 @@ mod test {
                         ("family_name".to_string(), AttributeValue::Text("Jansen".to_string())),
                     ]),
                 )])),
-                issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
+                issuer_uri: "https://issuer.example.com/".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
                 issuance_validity: IssuanceValidity::new(
@@ -99,7 +99,7 @@ mod test {
                     )])
                     .into(),
                 ),
-                issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
+                issuer_uri: "https://issuer.example.com/".parse().unwrap(),
                 attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
                 issuance_validity: IssuanceValidity::new(

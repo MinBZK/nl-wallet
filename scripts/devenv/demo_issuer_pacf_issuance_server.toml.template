@@ -1,8 +1,10 @@
 public_url = 'http://${SERVICES_HOST}:${PACF_ISSUANCE_SERVER_PORT}/'
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
+wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
+wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 
 metadata = [
-    "${ISSUER_METADATA_LOYALTY_PATH}"
+    "${ISSUER_METADATA_MUSEUM_MAANDKAART_PATH}"
 ]
 
 batch_size = 4
@@ -27,18 +29,18 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[credential_configurations."com.example.jum.bonuskaart"]
+[credential_configurations."com.example.museum_maandkaart"]
 format = "mso_mdoc"
-attestation_type = "com.example.jum.bonuskaart"
-valid_days = 365
+attestation_type = "com.example.museum_maandkaart"
+valid_days = 30
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_LOYALTY_ISSUER}"
-certificate = "${DEMO_ISSUER_CRT_LOYALTY_ISSUER}"
+private_key = "${DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_ISSUER}"
 
-[credential_configurations."com.example.jum.bonuskaart".status_list]
-group_name = "com.example.jum.bonuskaart"
+[credential_configurations."com.example.museum_maandkaart".status_list]
+group_name = "com.example.museum_maandkaart"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_LOYALTY_TSL}"
-certificate = "${DEMO_ISSUER_CRT_LOYALTY_TSL}"
+private_key = "${DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL}"
+certificate = "${DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL}"

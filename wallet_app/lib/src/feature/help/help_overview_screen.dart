@@ -60,6 +60,7 @@ class HelpOverviewScreen extends StatelessWidget {
   Widget _buildContent(BuildContext context, List<HelpCategory> categories) {
     return WalletScrollbar(
       child: ListView(
+        scrollCacheExtent: context.screenReaderListCacheExtent,
         children: [
           Padding(
             padding: kDefaultTitlePadding,

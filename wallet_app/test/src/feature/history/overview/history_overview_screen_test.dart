@@ -94,7 +94,7 @@ void main() {
       );
 
       // Sign attribute renders the title of the organization
-      expect(find.text(WalletMockData.organization.displayName.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.displayName), findsOneWidget);
     });
 
     testWidgets('ltc30 InteractionAttribute renders the organization title', (tester) async {
@@ -108,7 +108,7 @@ void main() {
       );
 
       // Interaction attribute renders the title of the organization
-      expect(find.text(WalletMockData.organization.displayName.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.displayName), findsOneWidget);
     });
 
     testWidgets('ltc30 HistoryOverviewLoadFailure shows error description and retry cta', (tester) async {
@@ -139,7 +139,7 @@ void main() {
       expect(find.text('March 1'), findsOneWidget);
       expect(find.text(l10n.cardHistoryDisclosureSuccess), findsOneWidget);
       expect(find.text(l10n.cardHistoryLoginSuccess), findsOneWidget);
-      expect(find.text(WalletMockData.organization.displayName.testValue), findsExactly(2));
+      expect(find.text(WalletMockData.organization.displayName), findsExactly(2));
       expect(find.byType(Image), findsExactly(2));
     });
 

@@ -168,9 +168,7 @@ class RequestDetailCommonBuilders {
   }) {
     return ListButton(
       text: Text.rich(
-        context.l10n
-            .historyDetailScreenAboutOrganizationCta(organization.displayName.l10nValue(context))
-            .toTextSpan(context),
+        context.l10n.historyDetailScreenAboutOrganizationCta(organization.displayName).toTextSpan(context),
       ),
       onPressed: () => OrganizationDetailScreen.showPreloaded(
         context,

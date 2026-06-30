@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/model/help/help_category.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/menu_item.dart';
@@ -35,6 +36,7 @@ class HelpCategoryScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return WalletScrollbar(
       child: ListView(
+        scrollCacheExtent: context.screenReaderListCacheExtent,
         children: [
           Padding(
             padding: kDefaultTitlePadding,

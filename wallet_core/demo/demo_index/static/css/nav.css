@@ -151,7 +151,7 @@ nav a::before {
   background: url("../images/university.svg") no-repeat center center / cover;
 }
 
-#insurance_acf::before {
+#insurance::before {
   background: url("../images/insurance.svg") no-repeat center center / cover;
 }
 
@@ -161,4 +161,8 @@ nav a::before {
 
 #loyalty::before {
   background: url("../images/loyalty.svg") no-repeat center center / cover;
+}
+
+#museum_maandkaart::before {
+  background: url("../images/museum_maandkaart.svg") no-repeat center center / cover;
 }

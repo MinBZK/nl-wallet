@@ -353,9 +353,27 @@ fi
 READER_CA_CRT=$(< "${TARGET_DIR}/ca.reader.crt.der" ${BASE64})
 export READER_CA_CRT
 
+# Generate root CA for WRPAC
+if [[ ! -f "${TARGET_DIR}/ca.wrpac.key.pem" ]]; then
+    generate_wrpac_root_ca
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrpac.key.pem' already exists, not (re-)generating WRPAC root CA"
+fi
+WRPAC_CA_CRT=$(< "${TARGET_DIR}/ca.wrpac.crt.der" ${BASE64})
+export WRPAC_CA_CRT
+
+# Generate root CA for WRPRC
+if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then
+    generate_wrprc_root_ca
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrprc.key.pem' already exists, not (re-)generating WRPRC root CA"
+fi
+WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
+export WRPRC_CA_CRT
+
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
-generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party
+generate_relying_party_hsm_key_pair mijn_amsterdam
 export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
@@ -451,6 +469,16 @@ export DEMO_ISSUER_KEY_LOYALTY_TSL
 DEMO_ISSUER_CRT_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_LOYALTY_TSL
 
+generate_demo_issuer_issuance_key_pairs museum_maandkaart
+DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER
+DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_ISSUER=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_ISSUER
+DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL
+DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL
+
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
 
@@ -464,15 +492,16 @@ render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_ind
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${PID_ISSUER_DIR}"
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
-cp "${DEVENV}/com.example.jum.bonuskaart.json" "${PACF_ISSUANCE_SERVER_DIR}"
-cp "${DEVENV}/com.example.jum.bonuskaart.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.insurance.json" "${ACF_DEMO_ISSUER_DIR}"
+cp "${DEVENV}/com.example.museum_maandkaart.json" "${PACF_ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/com.example.jum.bonuskaart.json" "${DEVENV}/com.example.museum_maandkaart.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.jum.bonuskaart.json" "${ACF_DEMO_ISSUER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
 export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
 export ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
 export ISSUER_METADATA_HOUSING_PATH="com.example.housing.json"
 export ISSUER_METADATA_LOYALTY_PATH="com.example.jum.bonuskaart.json"
+export ISSUER_METADATA_MUSEUM_MAANDKAART_PATH="com.example.museum_maandkaart.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"

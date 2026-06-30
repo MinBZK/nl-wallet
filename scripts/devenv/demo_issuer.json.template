@@ -16,18 +16,23 @@
     "key": "${DEMO_ISSUER_ATTESTATION_SERVER_KEY}"
   },
   "usecases": {
-    "insurance_acf": {
+    "insurance": {
       "credential_configuration_ids": ["com.example.insurance"],
-      "issuer_state": "insurance_acf"
+      "issuer_state": "insurance"
     },
     "loyalty": {
+      "credential_configuration_ids": ["com.example.jum.bonuskaart"],
+      "issuer_state": "loyalty"
+    },
+    "museum_maandkaart": {
       "data": [
         {
           "format": "mso_mdoc",
-          "attestation_type": "com.example.jum.bonuskaart",
+          "attestation_type": "com.example.museum_maandkaart",
           "attributes": {
-            "branch": "Demodam",
-            "loyalty_number": "{{INSERT_RANDOM_VALUE}}"
+            "name": "Frouke Jansen",
+            "member_number": "{{INSERT_RANDOM_VALUE}}",
+            "valid_year": "{{INSERT_CURRENT_YEAR}}"
           }
         }
       ]

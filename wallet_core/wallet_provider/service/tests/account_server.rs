@@ -70,7 +70,7 @@ async fn do_registration(
     >,
 ) {
     let wia_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let key_pair = wia_issuer_ca.generate_status_list_mock().unwrap();
+    let key_pair = wia_issuer_ca.generate_issuer_status_list_mock().unwrap();
 
     let db_connection = db.to_connection();
     let wia_status_list_config = StatusListConfig {

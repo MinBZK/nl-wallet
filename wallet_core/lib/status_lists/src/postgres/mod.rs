@@ -1082,7 +1082,7 @@ mod tests {
                 publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 key_pair: Ca::generate_issuer_mock_ca()
                     .unwrap()
-                    .generate_status_list_mock()
+                    .generate_issuer_status_list_mock()
                     .unwrap(),
             }
             .into(),

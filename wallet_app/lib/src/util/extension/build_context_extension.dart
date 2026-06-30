@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
@@ -26,6 +27,11 @@ extension BuildContextExtension on BuildContext {
   }
 
   bool get isScreenReaderEnabled => mediaQuery.accessibleNavigation;
+
+  /// [ListView.scrollCacheExtent] that eagerly builds well past the viewport under a screen reader (lazy
+  /// otherwise), so VoiceOver can reach items past a pinned back button instead of skipping them.
+  ScrollCacheExtent? get screenReaderListCacheExtent =>
+      isScreenReaderEnabled ? const ScrollCacheExtent.viewport(5) : null;
 
   ThemeData get theme => Theme.of(this);
 

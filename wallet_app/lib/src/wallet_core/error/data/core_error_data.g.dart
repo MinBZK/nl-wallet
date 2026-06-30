@@ -23,7 +23,7 @@ _CoreErrorData _$CoreErrorDataFromJson(Map<String, dynamic> json) => _CoreErrorD
     unknownValue: SessionType.unknown,
   ),
   canRetry: json['can_retry'] as bool?,
-  organizationName: json['organization_name'] as Map<String, dynamic>?,
+  organizationName: json['organization_name'] as String?,
 );
 
 Map<String, dynamic> _$CoreErrorDataToJson(_CoreErrorData instance) => <String, dynamic>{

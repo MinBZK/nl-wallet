@@ -12,6 +12,7 @@ import '../models/instruction.dart';
 import '../models/issuance.dart';
 import '../models/localize.dart';
 import '../models/notification.dart';
+import '../models/organization.dart';
 import '../models/pin.dart';
 import '../models/revocation.dart';
 import '../models/transfer.dart';
@@ -27,6 +28,11 @@ Future<bool> isInitialized() => WalletCore.instance.api.crateApiFullIsInitialize
 
 Future<PinValidationResult> isValidPin({required String pin}) =>
     WalletCore.instance.api.crateApiFullIsValidPin(pin: pin);
+
+Future<void> clearSentryBreadcrumbCallback() => WalletCore.instance.api.crateApiFullClearSentryBreadcrumbCallback();
+
+Future<void> setSentryBreadcrumbCallback({required FutureOr<void> Function(String) callback}) =>
+    WalletCore.instance.api.crateApiFullSetSentryBreadcrumbCallback(callback: callback);
 
 Stream<bool> setLockStream() => WalletCore.instance.api.crateApiFullSetLockStream();
 

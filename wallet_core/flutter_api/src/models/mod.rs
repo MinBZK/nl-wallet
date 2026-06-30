@@ -18,6 +18,7 @@ pub mod instruction;
 pub mod issuance;
 pub mod localize;
 pub mod notification;
+pub mod organization;
 pub mod pin;
 pub mod revocation;
 pub mod transfer;

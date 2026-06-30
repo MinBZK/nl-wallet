@@ -14,6 +14,7 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
+use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -23,7 +24,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
 use crypto::trust_anchor::TrustAnchors;
 use dcql::CredentialQuery;
 use dcql::Query;
@@ -139,9 +139,7 @@ async fn wallet_server_settings_and_listener(
     let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = rp_ca
-        .generate_key_pair("localhost", reader_registration.to_certificate_configuration().unwrap())
-        .unwrap();
+    let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -167,6 +165,8 @@ async fn wallet_server_settings_and_listener(
         structured_logging: false,
         storage: memory_storage_settings(),
         issuer_trust_anchors,
+        wrpac_trust_anchors: TrustAnchors::empty(),
+        wrprc_trust_anchors: TrustAnchors::empty(),
 
         hsm: None,
     };
@@ -306,7 +306,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
         settings.clone(),
         hsm,
         Arc::new(MemorySessionStore::default()),
-        StatusListClientStub::new(issuer_ca.generate_status_list_mock().unwrap()),
+        StatusListClientStub::new(issuer_ca.generate_issuer_status_list_mock().unwrap()),
     )
     .await;
 
@@ -466,7 +466,7 @@ async fn test_new_session_parameters_error() {
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
                 .unwrap()
-                .generate_status_list_mock()
+                .generate_issuer_status_list_mock()
                 .unwrap(),
         ),
     )
@@ -520,7 +520,7 @@ async fn test_disclosure_not_found() {
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
                 .unwrap()
-                .generate_status_list_mock()
+                .generate_issuer_status_list_mock()
                 .unwrap(),
         ),
     )
@@ -605,7 +605,7 @@ where
         settings.clone(),
         hsm,
         disclosure_sessions,
-        StatusListClientStub::new(issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap()),
+        StatusListClientStub::new(issuer_ca.generate_pid_issuer_status_list_mock().unwrap()),
     )
     .await;
 

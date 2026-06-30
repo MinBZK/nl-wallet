@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -140,16 +139,16 @@ class OrganizationApprovePage extends StatelessWidget {
   static String resolveTitle(BuildContext context, ApprovalPurpose purpose, Organization organization) {
     return switch (purpose) {
       ApprovalPurpose.issuance => context.l10n.organizationApprovePageIssuanceTitle(
-        organization.displayName.l10nValue(context),
+        organization.displayName,
       ),
       ApprovalPurpose.disclosure => context.l10n.organizationApprovePageGenericTitle(
-        organization.displayName.l10nValue(context),
+        organization.displayName,
       ),
       ApprovalPurpose.sign => context.l10n.organizationApprovePageGenericTitle(
-        organization.displayName.l10nValue(context),
+        organization.displayName,
       ),
       ApprovalPurpose.login => context.l10n.organizationApprovePageLoginTitle(
-        organization.displayName.l10nValue(context),
+        organization.displayName,
       ),
     };
   }

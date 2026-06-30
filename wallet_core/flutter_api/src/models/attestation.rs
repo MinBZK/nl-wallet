@@ -4,9 +4,9 @@ use tracing::warn;
 use wallet::attestation_data;
 use wallet::sd_jwt_vc_metadata::LogoMetadata;
 
-use crate::models::disclosure::Organization;
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
+use crate::models::organization::Organization;
 use crate::models::revocation::RevocationStatus;
 
 pub struct AttestationPresentation {

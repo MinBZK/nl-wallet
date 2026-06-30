@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/pin/check_pin_result.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
@@ -222,22 +220,22 @@ void main() {
     group('RelyingPartyError', () {
       test('props match', () {
         expect(
-          RelyingPartyError(sourceError: sourceError, organizationName: {const Locale('en'): 'org'}),
-          RelyingPartyError(sourceError: sourceError, organizationName: {const Locale('en'): 'org'}),
+          RelyingPartyError(sourceError: sourceError, organizationName: 'org'),
+          RelyingPartyError(sourceError: sourceError, organizationName: 'org'),
         );
       });
 
       test('props do not match', () {
         expect(
-          RelyingPartyError(sourceError: sourceError, organizationName: {const Locale('en'): 'org'}),
+          RelyingPartyError(sourceError: sourceError, organizationName: 'org'),
           isNot(
-            RelyingPartyError(sourceError: sourceError, organizationName: {const Locale('en'): 'org2'}),
+            RelyingPartyError(sourceError: sourceError, organizationName: 'org2'),
           ),
         );
         expect(
-          RelyingPartyError(sourceError: sourceError, organizationName: {const Locale('en'): 'org'}),
+          RelyingPartyError(sourceError: sourceError, organizationName: 'org'),
           isNot(
-            RelyingPartyError(sourceError: sourceError2, organizationName: {const Locale('en'): 'org'}),
+            RelyingPartyError(sourceError: sourceError2, organizationName: 'org'),
           ),
         );
       });

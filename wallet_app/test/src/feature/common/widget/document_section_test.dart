@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/document_section.dart';
 
 import '../../../../wallet_app_test_widget.dart';
@@ -51,7 +50,7 @@ void main() {
 
       // Validate that the widget exists
       final titleFinder = find.text('Title');
-      final orgNameFinder = find.text(WalletMockData.organization.displayName.testValue);
+      final orgNameFinder = find.text(WalletMockData.organization.displayName);
       final fileFinder = find.text(WalletMockData.document.fileName);
       expect(titleFinder, findsOneWidget);
       expect(orgNameFinder, findsOneWidget);

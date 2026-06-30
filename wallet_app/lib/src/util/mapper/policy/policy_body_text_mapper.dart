@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../extension/build_context_extension.dart';
 import '../../extension/duration_extension.dart';
@@ -19,7 +18,7 @@ class PolicyBodyTextMapper extends ContextMapper<OrganizationPolicy, String> {
     final l10n = appLocalizations ?? context.l10n;
     final policy = input.policy;
     final storageDuration = policy.storageDuration ?? Duration.zero;
-    final organization = input.organization.displayName.l10nValue(context);
+    final organization = input.organization.displayName;
     final policyType = PolicyType.fromFlags(isShared: policy.dataIsShared, isStored: policy.dataIsStored);
 
     return _getSubtitleForPolicyType(

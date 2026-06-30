@@ -422,7 +422,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .map_err(WalletIssuanceError::PreviewIssuerRegistration)?
             .iter()
             .single_unique()
-            .map_err(WalletIssuanceError::DifferentIssuerRegistrations)?
+            .map_err(WalletIssuanceError::DifferentIssuers)?
             .expect("there are always credential_previews in the preview response")
             .clone();
 
@@ -1037,7 +1037,6 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
-    use attestation_data::auth::LocalizedStrings;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
@@ -1048,6 +1047,8 @@ mod tests {
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
+    use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
     use crypto::trust_anchor::BorrowingTrustAnchor;
     use crypto::x509::CertificateError;
     use futures::FutureExt;
@@ -1357,13 +1358,21 @@ mod tests {
     }
 
     #[test]
-    fn test_start_issuance_error_different_issuer_registrations() {
+    fn test_start_issuance_error_different_issuer() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        let issuance_key = generate_pid_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
-        let mut different_org = IssuerRegistration::new_mock();
-        different_org.organization.display_name = LocalizedStrings::from(vec![("en", "different org name")]);
-        let different_issuance_key = generate_pid_issuer_mock_with_registration(&ca, &different_org).unwrap();
+        let issuer_registration = IssuerRegistration::new_mock();
+        let issuance_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
+        let different_issuance_key = {
+            let mut different_dn = PID_ISSUER_CERT_DN.clone();
+            different_dn.organization_name = "Different B.V.".to_string();
+            ca.generate_key_pair(
+                different_dn,
+                issuer_registration.to_certificate_configuration().unwrap(),
+                [PID_ISSUER_CERT_SAN_URI.clone()],
+            )
+            .unwrap()
+        };
 
         let config_id_mdoc: CredentialConfigurationId = "config_id_mdoc".to_string().into();
         let config_id_sd_jwt: CredentialConfigurationId = "config_id_sd_jwt".to_string().into();
@@ -1443,7 +1452,7 @@ mod tests {
         .unwrap()
         .expect_err("starting issuance session should not succeed");
 
-        assert_matches!(error, WalletIssuanceError::DifferentIssuerRegistrations(_));
+        assert_matches!(error, WalletIssuanceError::DifferentIssuers(_));
     }
 
     /// Return a new session ready for `accept_issuance()`.

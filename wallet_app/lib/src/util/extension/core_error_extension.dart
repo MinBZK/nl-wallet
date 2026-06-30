@@ -3,7 +3,6 @@ import 'package:fimber/fimber.dart';
 import '../../data/repository/network/network_repository.dart';
 import '../../domain/model/result/application_error.dart';
 import '../../wallet_core/error/core_error.dart';
-import '../mapper/card/attribute/localized_labels_mapper.dart';
 
 extension CoreErrorExtension on CoreError {
   /// Static reference, set on app start, needed to check
@@ -56,10 +55,7 @@ extension CoreErrorExtension on CoreError {
   }
 
   ApplicationError _mapRelyingPartyError(CoreRelyingPartyError error) {
-    final organizationName = error.organizationName != null
-        ? LocalizedLabelsMapper().map(error.organizationName!)
-        : null;
-    return RelyingPartyError(sourceError: error, organizationName: organizationName);
+    return RelyingPartyError(sourceError: error, organizationName: error.organizationName);
   }
 
   ApplicationError _handleStateError(CoreStateError error) {

@@ -315,8 +315,8 @@ mod tests {
 
     /// Shared setup for revocation tests
     async fn setup_revocation_test_env() -> (Arc<TestConfigRepo>, Arc<MockStatusListClient>, MockStorage, Uuid, Uuid) {
-        let ca = Ca::generate("test", Default::default()).unwrap();
-        let keypair = ca.generate_status_list_mock().unwrap();
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
 
         let mut wallet_config = default_wallet_config();
         wallet_config.issuer_trust_anchors = TrustAnchors::from(&ca);
@@ -337,7 +337,7 @@ mod tests {
             RevocationInfo::new(
                 revocation_id_1,
                 StatusClaim::new_mock(),
-                keypair.certificate().distinguished_name_canonical().unwrap(),
+                keypair.certificate().to_canonical_distinguished_name().unwrap(),
             ),
             RevocationInfo::new(
                 revocation_id_2,
@@ -345,7 +345,7 @@ mod tests {
                     idx: 3,
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                 }),
-                keypair.certificate().distinguished_name_canonical().unwrap(),
+                keypair.certificate().to_canonical_distinguished_name().unwrap(),
             ),
         ];
 

@@ -30,8 +30,7 @@ pub struct AcfDemoIssuerSettings {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Usecase {
-    /// Determines how `/authorize` is handled for this usecase. Only [`UsecaseKind::Consent`] is
-    /// implemented (phase 1); [`UsecaseKind::Immediate`] is reserved for the public-QR variant.
+    /// Determines how `/authorize` is handled for this usecase.
     pub kind: UsecaseKind,
 
     /// The documents to issue for this usecase.
@@ -43,7 +42,7 @@ pub struct Usecase {
 pub enum UsecaseKind {
     /// `/authorize` redirects to a consent page; a callback completes the authorization.
     Consent,
-    /// `/authorize` mints the authorization code immediately (phase 2, not yet implemented).
+    /// `/authorize` mints the authorization code immediately, with no user interaction.
     Immediate,
 }
 
@@ -98,6 +97,8 @@ impl ServerSettings for AcfDemoIssuerSettings {
             .list_separator(",")
             .with_list_parse_key("issuer_trust_anchors")
             .with_list_parse_key("wia_trust_anchors")
+            .with_list_parse_key("wrpac_trust_anchors")
+            .with_list_parse_key("wrprc_trust_anchors")
             .with_list_parse_key("metadata")
             .with_list_parse_key("wallet_redirect_uris")
             .try_parsing(true);

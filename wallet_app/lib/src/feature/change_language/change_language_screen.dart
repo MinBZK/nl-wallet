@@ -82,6 +82,10 @@ class ChangeLanguageScreen extends StatelessWidget {
   }
 
   Widget _buildLanguageItem(BuildContext context, Language language, bool isSelectedLanguage) {
+    // Dummy placeholder to mark generalWCAGChangeLanguage as used in 'translations_cleaner'
+    context.l10n.generalWCAGChangeLanguage;
+    final onTapHint = _lookupSystemLocalizations(context).generalWCAGChangeLanguage;
+
     return Semantics(
       inMutuallyExclusiveGroup: true,
       selected: isSelectedLanguage,
@@ -89,7 +93,7 @@ class ChangeLanguageScreen extends StatelessWidget {
       onTap: isSelectedLanguage ? null : () => _onLanguageSelected(context, language),
       excludeSemantics: true,
       attributedLabel: _buildAttributedLanguageString(language),
-      onTapHint: _lookupSystemLocalizations(context).generalWCAGChangeLanguage,
+      onTapHint: onTapHint,
       child: InkWell(
         onTap: isSelectedLanguage ? null : () => _onLanguageSelected(context, language),
         child: Container(
@@ -196,7 +200,11 @@ class ChangeLanguageScreen extends StatelessWidget {
 
   Future<void> _announceNewLanguage(BuildContext context, Language language) async {
     final systemL10n = _lookupSystemLocalizations(context);
+
+    // Dummy placeholder to mark generalWCAGLanguageUpdatedAnnouncement as used in 'translations_cleaner'
+    context.l10n.generalWCAGLanguageUpdatedAnnouncement('');
     final announcement = systemL10n.generalWCAGLanguageUpdatedAnnouncement(language.name);
+
     await context.read<AnnouncementService>().announce(announcement);
   }
 }

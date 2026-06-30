@@ -151,6 +151,7 @@ walletRedirectUris: []
 ##
 metadata:
   - com_example_insurance_metadata.json
+  - com_example_jum_bonuskaart_metadata.json
 
 ## @section Migration parameters
 ## Parameters for the migration configuration

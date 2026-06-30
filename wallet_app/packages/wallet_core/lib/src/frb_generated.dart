@@ -16,6 +16,7 @@ import 'models/instruction.dart';
 import 'models/issuance.dart';
 import 'models/localize.dart';
 import 'models/notification.dart';
+import 'models/organization.dart';
 import 'models/pin.dart';
 import 'models/revocation.dart';
 import 'models/transfer.dart';
@@ -81,7 +82,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -643715260;
+  int get rustContentHash => -591652018;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -128,6 +129,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<void> crateApiFullClearRecentHistoryStream();
 
   Future<void> crateApiFullClearScheduledNotificationsStream();
+
+  Future<void> crateApiFullClearSentryBreadcrumbCallback();
 
   Future<void> crateApiFullClearVersionStateStream();
 
@@ -211,6 +214,8 @@ abstract class WalletCoreApi extends BaseApi {
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream();
 
   Stream<List<AppNotification>> crateApiFullSetScheduledNotificationsStream();
+
+  Future<void> crateApiFullSetSentryBreadcrumbCallback({required FutureOr<void> Function(String) callback});
 
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream();
 
@@ -646,6 +651,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullClearScheduledNotificationsStreamConstMeta => const TaskConstMeta(
     debugName: "clear_scheduled_notifications_stream",
+    argNames: [],
+  );
+
+  @override
+  Future<void> crateApiFullClearSentryBreadcrumbCallback() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__clear_sentry_breadcrumb_callback(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiFullClearSentryBreadcrumbCallbackConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullClearSentryBreadcrumbCallbackConstMeta => const TaskConstMeta(
+    debugName: "clear_sentry_breadcrumb_callback",
     argNames: [],
   );
 
@@ -1594,6 +1622,30 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
+  Future<void> crateApiFullSetSentryBreadcrumbCallback({required FutureOr<void> Function(String) callback}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_DartFn_Inputs_String_Output_unit_AnyhowException(callback);
+          return wire.wire__crate__api__full__set_sentry_breadcrumb_callback(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullSetSentryBreadcrumbCallbackConstMeta,
+        argValues: [callback],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullSetSentryBreadcrumbCallbackConstMeta => const TaskConstMeta(
+    debugName: "set_sentry_breadcrumb_callback",
+    argNames: ["callback"],
+  );
+
+  @override
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream() {
     final sink = RustStreamSink<FlutterVersionState>();
     unawaited(
@@ -1791,6 +1843,40 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     argNames: [],
   );
 
+  Future<void> Function(int, dynamic) encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 = dco_decode_String(rawArg0);
+
+      Box<void>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_unit(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
   Future<void> Function(int, dynamic)
   encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
@@ -1887,6 +1973,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return SanitizedSvgImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  FutureOr<void> Function(String) dco_decode_DartFn_Inputs_String_Output_unit_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
   }
 
   @protected
@@ -2561,17 +2653,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 11) throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return Organization(
-      legalName: dco_decode_list_localized_string(arr[0]),
-      displayName: dco_decode_list_localized_string(arr[1]),
+      legalName: dco_decode_String(arr[0]),
+      displayName: dco_decode_String(arr[1]),
       description: dco_decode_list_localized_string(arr[2]),
       image: dco_decode_opt_box_autoadd_image(arr[3]),
       webUrl: dco_decode_opt_String(arr[4]),
       privacyPolicyUrl: dco_decode_opt_String(arr[5]),
-      kvk: dco_decode_opt_String(arr[6]),
+      identifier: dco_decode_opt_String(arr[6]),
       city: dco_decode_opt_list_localized_string(arr[7]),
       category: dco_decode_list_localized_string(arr[8]),
       department: dco_decode_opt_list_localized_string(arr[9]),
-      countryCode: dco_decode_opt_String(arr[10]),
+      countryCode: dco_decode_String(arr[10]),
     );
   }
 
@@ -3704,17 +3796,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   Organization sse_decode_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_legalName = sse_decode_list_localized_string(deserializer);
-    var var_displayName = sse_decode_list_localized_string(deserializer);
+    var var_legalName = sse_decode_String(deserializer);
+    var var_displayName = sse_decode_String(deserializer);
     var var_description = sse_decode_list_localized_string(deserializer);
     var var_image = sse_decode_opt_box_autoadd_image(deserializer);
     var var_webUrl = sse_decode_opt_String(deserializer);
     var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
-    var var_kvk = sse_decode_opt_String(deserializer);
+    var var_identifier = sse_decode_opt_String(deserializer);
     var var_city = sse_decode_opt_list_localized_string(deserializer);
     var var_category = sse_decode_list_localized_string(deserializer);
     var var_department = sse_decode_opt_list_localized_string(deserializer);
-    var var_countryCode = sse_decode_opt_String(deserializer);
+    var var_countryCode = sse_decode_String(deserializer);
     return Organization(
       legalName: var_legalName,
       displayName: var_displayName,
@@ -3722,7 +3814,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       image: var_image,
       webUrl: var_webUrl,
       privacyPolicyUrl: var_privacyPolicyUrl,
-      kvk: var_kvk,
+      identifier: var_identifier,
       city: var_city,
       category: var_category,
       department: var_department,
@@ -4091,6 +4183,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  PlatformPointer cst_encode_DartFn_Inputs_String_Output_unit_AnyhowException(FutureOr<void> Function(String) raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_DartOpaque(encode_DartFn_Inputs_String_Output_unit_AnyhowException(raw));
+  }
+
+  @protected
   PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
   ) {
@@ -4235,6 +4333,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize((self as SanitizedSvgImpl).frbInternalSseEncode(move: false), serializer);
+  }
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(encode_DartFn_Inputs_String_Output_unit_AnyhowException(self), serializer);
   }
 
   @protected
@@ -4987,17 +5094,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_organization(Organization self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_localized_string(self.legalName, serializer);
-    sse_encode_list_localized_string(self.displayName, serializer);
+    sse_encode_String(self.legalName, serializer);
+    sse_encode_String(self.displayName, serializer);
     sse_encode_list_localized_string(self.description, serializer);
     sse_encode_opt_box_autoadd_image(self.image, serializer);
     sse_encode_opt_String(self.webUrl, serializer);
     sse_encode_opt_String(self.privacyPolicyUrl, serializer);
-    sse_encode_opt_String(self.kvk, serializer);
+    sse_encode_opt_String(self.identifier, serializer);
     sse_encode_opt_list_localized_string(self.city, serializer);
     sse_encode_list_localized_string(self.category, serializer);
     sse_encode_opt_list_localized_string(self.department, serializer);
-    sse_encode_opt_String(self.countryCode, serializer);
+    sse_encode_String(self.countryCode, serializer);
   }
 
   @protected

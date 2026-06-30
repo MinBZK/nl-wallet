@@ -1240,7 +1240,7 @@ fn create_attestation_copy_models(
                 let issuer_certificate_dn = mdoc
                     .issuer_leaf_certificate()
                     .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
-                    .distinguished_name_canonical()
+                    .to_canonical_distinguished_name()
                     .expect("the issuer certificate should contain a valid DN at this point");
 
                 let (mso, private_key_id, issuer_signed) = mdoc.into_components();
@@ -1271,7 +1271,7 @@ fn create_attestation_copy_models(
             IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
                 let issuer_certificate_dn = sd_jwt
                     .issuer_leaf_certificate()
-                    .distinguished_name_canonical()
+                    .to_canonical_distinguished_name()
                     .expect("the issuer certificate should contain a valid DN at this point");
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
 
@@ -2651,7 +2651,7 @@ pub(crate) mod tests {
         let revocation_info = revocation_info.first().unwrap();
         assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
         assert_eq!(
-            ISSUER_KEY.certificate().distinguished_name_canonical().unwrap(),
+            ISSUER_KEY.certificate().to_canonical_distinguished_name().unwrap(),
             revocation_info.issuer_cert_distinguished_name
         );
 

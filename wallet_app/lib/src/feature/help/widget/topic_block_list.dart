@@ -31,13 +31,19 @@ class TopicBlockList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: blocks.length,
-      itemBuilder: (context, index) => _blockWidget(blocks[index]),
-      separatorBuilder: (context, index) => const SizedBox(height: _kBlockSpacing),
+    // [Column], not a nested [ListView]: a nested viewport gives off-screen blocks stale semantic rects that
+    // break VoiceOver. [explicitChildNodes] keeps each block a separate semantics node.
+    return Semantics(
+      explicitChildNodes: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < blocks.length; i++) ...[
+            if (i > 0) const SizedBox(height: _kBlockSpacing),
+            _blockWidget(blocks[i]),
+          ],
+        ],
+      ),
     );
   }
 

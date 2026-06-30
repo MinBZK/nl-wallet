@@ -101,7 +101,7 @@ class CardPreviewScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             TitleText(card.title.l10nValue(context)),
-            BodyText(context.l10n.cardPreviewScreenIssuedBy(card.issuer.displayName.l10nValue(context))),
+            BodyText(context.l10n.cardPreviewScreenIssuedBy(card.issuer.displayName)),
             const SizedBox(height: 24),
           ],
         ),

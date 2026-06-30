@@ -31,11 +31,14 @@ anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["json"] }
+chrono = { workspace = true, features = ["unstable-locales"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
 derive_more = { workspace = true, features = ["into"] }
 itertools.workspace = true
+rand.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_valid.workspace = true
+strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }
 tower.workspace = true

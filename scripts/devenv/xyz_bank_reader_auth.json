@@ -14,14 +14,8 @@
     "deleteable": true
   },
   "organization": {
-    "displayName": {
-      "nl": "XYZ Bank",
-      "en": "XYZ Bank"
-    },
-    "legalName": {
-      "nl": "XYZ Bank N.V.",
-      "en": "XYZ Bank N.V."
-    },
+    "displayName": "XYZ Bank",
+    "legalName": "XYZ Bank N.V.",
     "description": {
       "nl": "De toegankelijke bank voor betalen, sparen en beleggen.",
       "en": "The accessible bank for paying, saving and investing."

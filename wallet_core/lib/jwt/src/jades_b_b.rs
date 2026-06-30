@@ -126,7 +126,7 @@ mod tests {
             iat: Some(Utc.timestamp_opt(iat, 0).unwrap()),
         };
 
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let keypair = ca.generate_reader_mock().unwrap();
         HeaderWithX5c::new(inner, vec_nonempty![keypair.certificate().to_owned()])
     }
@@ -156,7 +156,7 @@ mod tests {
             iat: None,
         };
 
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let keypair = ca.generate_reader_mock().unwrap();
         let header = HeaderWithX5c::new(inner, vec_nonempty![keypair.certificate().to_owned()]);
 
@@ -243,7 +243,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sign_and_verify_jades_b_b_token_roundtrip() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let keypair = ca.generate_reader_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};
@@ -277,7 +277,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_jades_b_b_without_iat() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let keypair = ca.generate_reader_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};

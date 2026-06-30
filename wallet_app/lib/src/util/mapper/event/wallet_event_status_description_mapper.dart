@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/event/wallet_event.dart';
 import '../../extension/build_context_extension.dart';
-import '../../extension/localized_text_extension.dart';
 import '../context_mapper.dart';
 
 class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, String> {
@@ -30,7 +29,7 @@ class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, Stri
   }
 
   String _mapErrorDisclosureEvent(BuildContext context, DisclosureEvent event) {
-    final organizationName = event.relyingParty.displayName.l10nValue(context);
+    final organizationName = event.relyingParty.displayName;
     return switch (event.type) {
       DisclosureType.regular =>
         event.hasSharedAttributes
@@ -44,7 +43,7 @@ class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, Stri
   }
 
   String _mapCancelledDisclosureEvent(BuildContext context, DisclosureEvent event) {
-    final organizationName = event.relyingParty.displayName.l10nValue(context);
+    final organizationName = event.relyingParty.displayName;
     return switch (event.type) {
       DisclosureType.regular => context.l10n.historyDetailScreenDisclosureCancelledDescription(organizationName),
       DisclosureType.login => context.l10n.historyDetailScreenLoginCancelledDescription(organizationName),
@@ -64,7 +63,7 @@ class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, Stri
   String _mapSignEvent(BuildContext context, SignEvent event) {
     if (event.status == EventStatus.cancelled) {
       return context.l10n.historyDetailScreenSigningStatusRejectedDescription(
-        event.relyingParty.displayName.l10nValue(context),
+        event.relyingParty.displayName,
       );
     }
     return '';

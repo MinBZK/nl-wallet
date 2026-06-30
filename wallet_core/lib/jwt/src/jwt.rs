@@ -970,6 +970,7 @@ mod tests {
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
+    use crypto::x509::DistinguishedName;
     use futures::FutureExt;
     use jsonwebtoken::Header;
     use jsonwebtoken::jwk::JwkSet;
@@ -1293,7 +1294,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let keypair = ca.generate_reader_mock().unwrap();
 
         let payload = json!({"hello": "world"});
@@ -1458,16 +1459,21 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert_intermediates() {
         // Generate a chain of certificates
-        let ca = Ca::generate_with_intermediate_count("myca", CertificateConfiguration::default(), 3).unwrap();
+        let ca = Ca::generate_with_intermediate_count(
+            DistinguishedName::create_mock("myca"),
+            CertificateConfiguration::default(),
+            3,
+        )
+        .unwrap();
         let cert_config = CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth);
         let intermediate1 = ca
-            .generate_intermediate("myintermediate1", cert_config.clone())
+            .generate_intermediate(DistinguishedName::create_mock("myintermediate1"), cert_config.clone())
             .unwrap();
         let intermediate2 = intermediate1
-            .generate_intermediate("myintermediate2", cert_config.clone())
+            .generate_intermediate(DistinguishedName::create_mock("myintermediate2"), cert_config.clone())
             .unwrap();
         let intermediate3 = intermediate2
-            .generate_intermediate("myintermediate3", cert_config)
+            .generate_intermediate(DistinguishedName::create_mock("myintermediate3"), cert_config)
             .unwrap();
         let keypair = intermediate3.generate_reader_mock().unwrap();
 
@@ -1502,7 +1508,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_wrong_cert() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let keypair = ca.generate_reader_mock().unwrap();
 
         let payload = json!({"hello": "world"});
@@ -1511,7 +1517,7 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let other_ca = Ca::generate("myca", Default::default()).unwrap();
+        let other_ca = Ca::generate(DistinguishedName::create_mock("otherca"), Default::default()).unwrap();
 
         let err = jwt
             .parse_and_verify_against_trust_anchors(
@@ -1529,7 +1535,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_rejects_jwt_with_trust_anchor_in_x5c() {
-        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate_mock();
         let keypair = ca.generate_reader_mock().unwrap();
 
         let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();

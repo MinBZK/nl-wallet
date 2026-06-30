@@ -33,7 +33,7 @@ class MissingAttributesPage extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.missingAttributesPageTitle,
       description: context.l10n.missingAttributesPageDescription(
-        organization.displayName.l10nValue(context),
+        organization.displayName,
       ),
       illustration: const PageIllustration(asset: WalletAssets.svg_error_card_blocked),
       // Because flipButtonOrder was true: primary ⇄ secondary.

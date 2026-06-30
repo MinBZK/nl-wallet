@@ -103,6 +103,31 @@ pub fn is_valid_pin(pin: String) -> anyhow::Result<PinValidationResult> {
     Ok(result)
 }
 
+pub fn clear_sentry_breadcrumb_callback() {
+    error_category::sentry::clear_breadcrumb_sink();
+}
+
+pub fn set_sentry_breadcrumb_callback(
+    callback: impl Fn(String) -> DartFnFuture<()> + Send + Sync + 'static,
+) -> anyhow::Result<()> {
+    let callback = Arc::new(callback);
+    error_category::sentry::set_breadcrumb_sink(Arc::new(move |message| {
+        let callback = Arc::clone(&callback);
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                _ = handle.spawn(async move {
+                    callback(message).await;
+                });
+            }
+            Err(error) => {
+                tracing::debug!("could not forward Rust Sentry breadcrumb to Dart: {error}");
+            }
+        }
+    }));
+
+    Ok(())
+}
+
 pub async fn set_lock_stream(sink: StreamSink<bool>) {
     wallet().write().await.set_lock_callback(Box::new(move |locked| {
         let _ = sink.add(locked);
@@ -655,6 +680,16 @@ mod tests {
             is_valid_pin(pin.to_string()).expect("Could not validate PIN"),
             PinValidationResult::Ok
         )
+    }
+
+    #[test]
+    fn sentry_breadcrumb_callback_does_not_panic_without_tokio_runtime() {
+        clear_sentry_breadcrumb_callback();
+        set_sentry_breadcrumb_callback(|_| Box::pin(async {}) as DartFnFuture<()>).unwrap();
+
+        error_category::sentry::add_breadcrumb("test.breadcrumb");
+
+        clear_sentry_breadcrumb_callback();
     }
 
     #[test]

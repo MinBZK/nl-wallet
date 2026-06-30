@@ -75,7 +75,7 @@ struct GetByBsnRequest<'a> {
 
 impl GetByBsnRequest<'_> {
     const TYPE: &'static str = "RaadpleegMetBurgerservicenummer";
-    const FIELDS: [&'static str; 18] = [
+    const FIELDS: [&'static str; 20] = [
         "burgerservicenummer",
         "geslacht",
         "naam.voornamen",
@@ -87,6 +87,8 @@ impl GetByBsnRequest<'_> {
         "verblijfplaats.verblijfadres.officieleStraatnaam",
         "verblijfplaats.verblijfadres.korteStraatnaam",
         "verblijfplaats.verblijfadres.huisnummer",
+        "verblijfplaats.verblijfadres.huisletter",
+        "verblijfplaats.verblijfadres.huisnummertoevoeging",
         "verblijfplaats.verblijfadres.postcode",
         "verblijfplaats.verblijfadres.woonplaats",
         "leeftijd",

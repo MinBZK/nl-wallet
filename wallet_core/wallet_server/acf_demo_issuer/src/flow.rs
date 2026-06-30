@@ -15,6 +15,9 @@ use std::sync::Arc;
 
 use askama::Template;
 use askama_web::WebTemplate;
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
 use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
@@ -25,10 +28,12 @@ use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
+use chrono::NaiveDate;
 use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
+use itertools::Itertools;
 use openid4vc::AuthorizationErrorCode;
 use openid4vc::BodyOrRedirectErrorResponse;
 use openid4vc::ErrorWithCode;
@@ -46,8 +51,11 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
+use rand::RngCore;
+use rand::rngs::OsRng;
 use serde::Deserialize;
 use server_utils::store::StoreConnection;
+use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tracing::warn;
@@ -56,6 +64,7 @@ use utils::path::prefix_local_path;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use web_utils::headers::set_static_cache_control;
+use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
 
 use crate::settings::IssuableDocumentTemplate;
@@ -78,9 +87,6 @@ pub enum Error {
     #[error("unknown usecase: {0}")]
     UnknownUsecase(String),
 
-    #[error("usecase {0} is not configured for the consent flow")]
-    NotConsentUsecase(String),
-
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
 
@@ -93,9 +99,7 @@ impl ErrorWithCode for Error {
 
     fn error_code(&self) -> Self::ErrorCode {
         match self {
-            Self::MissingIssuerState | Self::UnknownUsecase(_) | Self::NotConsentUsecase(_) => {
-                AuthorizationErrorCode::InvalidRequest
-            }
+            Self::MissingIssuerState | Self::UnknownUsecase(_) => AuthorizationErrorCode::InvalidRequest,
 
             Self::StateBridge(_) => AuthorizationErrorCode::ServerError,
 
@@ -154,7 +158,8 @@ impl DemoAuthorizationCodeFlow {
     }
 }
 
-/// Build the [`IssuableDocument`]s configured for a usecase.
+/// Build the [`IssuableDocument`]s configured for a usecase, substituting demo placeholders in the
+/// attributes so each issued document gets fresh values.
 fn issuable_documents(usecase: &Usecase) -> VecNonEmpty<IssuableDocument> {
     usecase
         .documents
@@ -164,9 +169,51 @@ fn issuable_documents(usecase: &Usecase) -> VecNonEmpty<IssuableDocument> {
                 credential_kind,
                 attributes,
             } = template.clone();
+            let attributes = substitute_placeholders(attributes, &mut OsRng);
             IssuableDocument::try_new_with_random_id(credential_kind, attributes).expect("attributes cannot be empty")
         })
         .collect()
+}
+
+/// Traverses all attributes (including those nested inside [`AttributeValue::Array`] or
+/// [`Attribute::Nested`]) and replaces every `{{INSERT_RANDOM_VALUE}}` text value with a random string
+/// of 10 digits, so each immediately-issued document gets fresh values.
+///
+/// Intentionally duplicated from `demo_issuer` rather than shared: the placeholder convention is
+/// demo-specific and not worth lifting into a common crate. Unlike `demo_issuer`, this variant only
+/// needs `{{INSERT_RANDOM_VALUE}}` (no acf usecase uses `{{INSERT_CURRENT_YEAR}}`).
+fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
+    let mut inner = attributes.into_inner();
+    for attribute in inner.values_mut() {
+        substitute_placeholders_in_attribute(attribute, rng);
+    }
+    inner.into()
+}
+
+fn substitute_placeholders_in_value(value: &mut AttributeValue, rng: &mut impl RngCore) {
+    match value {
+        AttributeValue::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
+            let n: u64 = rng.next_u64() % 10_000_000_000;
+            *value = AttributeValue::Text(format!("{n:010}"));
+        }
+        AttributeValue::Array(elements) => {
+            for element in elements {
+                substitute_placeholders_in_value(element, rng);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
+    match attribute {
+        Attribute::Single(value) => substitute_placeholders_in_value(value, rng),
+        Attribute::Nested(map) => {
+            for attr in map.values_mut() {
+                substitute_placeholders_in_attribute(attr, rng);
+            }
+        }
+    }
 }
 
 impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
@@ -183,25 +230,30 @@ impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
             .usecases
             .get(usecase_id)
             .ok_or_else(|| Error::UnknownUsecase(usecase_id.to_string()))?;
-        if !matches!(usecase.kind, UsecaseKind::Consent) {
-            return Err(Error::NotConsentUsecase(usecase_id.to_string()));
+
+        match usecase.kind {
+            UsecaseKind::Immediate => {
+                let documents = issuable_documents(usecase);
+                Ok(AuthorizeOutcome::Authorized(documents, context))
+            }
+            UsecaseKind::Consent => {
+                // Stash the wallet request under a random flow-state token, then redirect to the consent page.
+                let flow_state = random_string(FLOW_STATE_LENGTH);
+
+                let mut consent_url = self.consent_uri.clone();
+                consent_url
+                    .query_pairs_mut()
+                    .append_pair("state", &flow_state)
+                    .append_pair("usecase", usecase_id);
+
+                self.state_bridge_store
+                    .store(flow_state, context)
+                    .await
+                    .map_err(Error::StateBridge)?;
+
+                Ok(AuthorizeOutcome::RedirectTo(consent_url))
+            }
         }
-
-        // Stash the wallet request under a random flow-state token, then redirect to the consent page.
-        let flow_state = random_string(FLOW_STATE_LENGTH);
-
-        let mut consent_url = self.consent_uri.clone();
-        consent_url
-            .query_pairs_mut()
-            .append_pair("state", &flow_state)
-            .append_pair("usecase", usecase_id);
-
-        self.state_bridge_store
-            .store(flow_state, context)
-            .await
-            .map_err(Error::StateBridge)?;
-
-        Ok(AuthorizeOutcome::RedirectTo(consent_url))
     }
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
@@ -218,15 +270,34 @@ struct DocumentPreview {
     attributes: Vec<(String, String)>,
 }
 
+/// Render an attribute value for display on the consent page. The `start_date` attribute is stored
+/// as ISO `YYYY-MM-DD` text and shown in the selected language's locale (localized month name); all
+/// other values are shown verbatim. Unparseable dates fall back to the raw value.
+fn format_attribute_value(key: &str, value: &AttributeValue, language: Language) -> String {
+    if key == "start_date"
+        && let AttributeValue::Text(text) = value
+        && let Ok(date) = NaiveDate::parse_from_str(text, "%Y-%m-%d")
+    {
+        // Render with the localized month name in day-first order, conventional for both en-GB
+        // and nl-NL (e.g. "1 January 2025", "1 januari 2025").
+        return date.format_localized("%-d %B %Y", language.chrono_locale()).to_string();
+    }
+
+    value.to_string()
+}
+
 struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
+    available_languages: &'a [Language],
+    language_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
 #[template(path = "consent.askama", escape = "html", ext = "html")]
 struct ConsentTemplate<'a> {
     state: String,
+    usecase: String,
     doc_previews: Vec<DocumentPreview>,
     base: BaseTemplate<'a>,
 }
@@ -267,18 +338,32 @@ where
                 attributes: attributes
                     .flattened()
                     .into_iter()
-                    .map(|(path, value)| (path.as_ref().join("."), value.to_string()))
+                    .map(|(path, value)| {
+                        let key = path.as_ref().join(".");
+                        let display_value = format_attribute_value(&key, value, language);
+                        // Show a hardcoded, translated label; fall back to the raw path if unlabelled.
+                        let label = TRANSLATIONS[language]
+                            .attribute_label(&key)
+                            .map(str::to_string)
+                            .unwrap_or(key);
+                        (label, display_value)
+                    })
                     .collect(),
             }
         })
         .collect();
 
+    let available_languages = Language::iter().collect_vec();
+
     ConsentTemplate {
         state,
+        usecase,
         doc_previews,
         base: BaseTemplate {
             selected_lang: language,
             trans: &TRANSLATIONS[language],
+            available_languages: &available_languages,
+            language_js_sha256: &LANGUAGE_JS_SHA256,
         },
     }
     .into_response()
@@ -638,12 +723,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn authorize_non_consent_usecase() {
+    async fn authorize_immediate_usecase() {
         let flow = flow_with_usecases(usecases_with_kind(UsecaseKind::Immediate));
         let context = test_context(Some(USECASE_ID.to_string()));
 
-        let error = flow.authorize(context, credential_kinds()).await.unwrap_err();
+        let outcome = flow.authorize(context, credential_kinds()).await.unwrap();
 
-        assert_matches!(error, Error::NotConsentUsecase(usecase) if usecase == USECASE_ID);
+        let AuthorizeOutcome::Authorized(documents, _) = outcome else {
+            panic!("expected an Authorized outcome");
+        };
+        assert_eq!(documents.len().get(), 1);
+        assert!(
+            documents
+                .iter()
+                .all(|doc| doc.credential_kind.attestation_type == ATTESTATION_TYPE)
+        );
     }
 }

@@ -94,7 +94,7 @@ async fn create_status_list_service(
         base_url: "https://example.com/tsl/".parse()?,
         context_path: attestation_group.clone(),
         publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
-        key_pair: ca.generate_status_list_mock()?,
+        key_pair: ca.generate_issuer_status_list_mock()?,
     };
     let revoke_all = RevokeAllBool::default();
     let service = PostgresStatusListService::try_new(

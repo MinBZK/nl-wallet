@@ -1711,7 +1711,7 @@ mod tests {
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
-                    .generate_status_list_mock()
+                    .generate_issuer_status_list_mock()
                     .unwrap(),
             ))),
         )
@@ -2165,7 +2165,7 @@ mod tests {
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
                     .unwrap()
-                    .generate_status_list_mock()
+                    .generate_issuer_status_list_mock()
                     .unwrap(),
             ))),
         );
