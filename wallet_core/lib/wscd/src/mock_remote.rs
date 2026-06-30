@@ -22,6 +22,7 @@ use jwt::pop::JwtPopClaims;
 use jwt::wia::ClientStatus;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaPopClaims;
 use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -199,7 +200,7 @@ impl MockWiaClient {
 impl WiaClient for MockWiaClient {
     type Error = MockRemoteWscdError;
 
-    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+    async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
         let wia_key = SigningKey::random(&mut OsRng);
         let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
 
@@ -232,12 +233,13 @@ impl WiaClient for MockWiaClient {
         .into();
 
         let wia_disclosure = SignedJwt::sign(
-            &JwtPopClaims::new(
-                nonce,
-                MOCK_WALLET_CLIENT_ID.to_string(),
+            &WiaPopClaims {
+                iss: MOCK_WALLET_CLIENT_ID.to_string(),
                 aud,
-                &MockTimeGenerator::default(),
-            ),
+                iat: Utc::now().into(),
+                jti: "jti".to_string(),
+                challenge,
+            },
             &wia_key,
         )
         .now_or_never()

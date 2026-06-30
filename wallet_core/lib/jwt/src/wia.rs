@@ -26,7 +26,6 @@ use crate::error::JwtError;
 use crate::error::JwtX5cError;
 use crate::headers::HeaderWithX5c;
 use crate::nonce::Nonce;
-use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WiaClaims {
@@ -96,13 +95,27 @@ pub const WIA_HEADER_NAME: &str = "oauth-client-attestation";
 pub const WIA_POP_HEADER_NAME: &str = "oauth-client-attestation-pop";
 
 pub const WIA_JWT_TYP: &str = "oauth-client-attestation+jwt";
+pub const WIA_POP_JWT_TYP: &str = "oauth-client-attestation-pop+jwt";
 
 impl JwtTyp for WiaClaims {
     const TYP: &'static str = WIA_JWT_TYP;
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WiaPopClaims {
+    pub iss: String,
+    pub aud: String,
+    pub iat: DateTimeSeconds,
+    pub jti: String,
+    pub challenge: Option<Nonce>,
+}
+
 pub type Wia = UnverifiedJwt<WiaClaims, HeaderWithX5c>;
-pub type WiaPop = UnverifiedJwt<JwtPopClaims>;
+pub type WiaPop = UnverifiedJwt<WiaPopClaims>;
+
+impl JwtTyp for WiaPopClaims {
+    const TYP: &str = WIA_POP_JWT_TYP;
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
 pub struct WiaDisclosure(Wia, WiaPop);
@@ -112,7 +125,7 @@ impl WiaDisclosure {
         &self.0
     }
 
-    pub fn wia_pop(&self) -> &UnverifiedJwt<JwtPopClaims> {
+    pub fn wia_pop(&self) -> &UnverifiedJwt<WiaPopClaims> {
         &self.1
     }
 }
@@ -135,7 +148,7 @@ impl WiaDisclosure {
         trust_anchors: &TrustAnchors,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
-        expected_nonce: Option<&Nonce>,
+        expected_challenge: Option<&Nonce>,
     ) -> Result<VerifyingKey, WiaError> {
         let (_, verified_wia_claims) = self
             .0
@@ -161,7 +174,7 @@ impl WiaDisclosure {
             .parse_and_verify(EcdsaDecodingKey::from(&wia_pubkey), &validations)
             .map_err(WiaError::Jwt)?;
 
-        if wia_disclosure_claims.nonce.as_ref() != expected_nonce {
+        if wia_disclosure_claims.challenge.as_ref() != expected_challenge {
             return Err(WiaError::IncorrectNonce);
         }
 
@@ -228,11 +241,11 @@ mod tests {
     use crate::error::JwtX5cError;
     use crate::headers::HeaderWithX5c;
     use crate::nonce::Nonce;
-    use crate::pop::JwtPopClaims;
     use crate::wia::ClientStatus;
     use crate::wia::WiaClaims;
     use crate::wia::WiaDisclosure;
     use crate::wia::WiaError;
+    use crate::wia::WiaPopClaims;
     use crate::wia::WiaWalletInfo;
 
     const AUD: &str = "https://issuer.example.com/";
@@ -265,14 +278,15 @@ mod tests {
             .into()
     }
 
-    fn make_pop(holder_key: &SigningKey, nonce: Option<Nonce>, aud: &str) -> UnverifiedJwt<JwtPopClaims> {
+    fn make_pop(holder_key: &SigningKey, nonce: Option<Nonce>, aud: &str) -> UnverifiedJwt<WiaPopClaims> {
         SignedJwt::sign(
-            &JwtPopClaims::new(
-                nonce,
-                WALLET_CLIENT_ID.to_string(),
-                aud.to_string(),
-                &MockTimeGenerator::default(),
-            ),
+            &WiaPopClaims {
+                iss: WALLET_CLIENT_ID.to_string(),
+                aud: aud.to_string(),
+                iat: Utc::now().into(),
+                jti: "jti".to_string(),
+                challenge: nonce,
+            },
             holder_key,
         )
         .now_or_never()
