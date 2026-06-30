@@ -20,7 +20,7 @@ async fn test_pre_authorized_code_issuance() {
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     // Create a pre-authorized issuance session on the issuance server.
-    let documents = vec_nonempty![IssuableDocument::new_mock_loyalty()];
+    let documents = vec_nonempty![IssuableDocument::new_mock_museum_maandkaart()];
 
     let offer_response = default_reqwest_client_builder()
         .build()
@@ -63,6 +63,6 @@ async fn test_pre_authorized_code_issuance() {
 
     assert_eq!(
         attestations.first().unwrap().attestation_type,
-        "com.example.jum.bonuskaart".to_string()
+        "com.example.museum_maandkaart".to_string()
     );
 }
