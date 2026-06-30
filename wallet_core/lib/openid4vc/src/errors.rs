@@ -40,8 +40,8 @@ pub trait ErrorWithCode: Error {
     fn error_code(&self) -> Self::ErrorCode;
 }
 
-/// A type that that wraps a `Box<dyn>` error and implements both the `Error` and `ToErrorCode` traits. This allows it
-/// to be used as an error source for `thiserror` error types.
+/// A type that wraps a `Box<dyn>` error and implements both the `Error` and `ToErrorCode` traits. This allows it to be
+/// used as an error source for `thiserror` error types.
 #[derive(Debug, derive_more::Display)]
 pub struct BoxedErrorWithCode<T>(Box<dyn ErrorWithCode<ErrorCode = T> + Send + Sync + 'static>);
 
