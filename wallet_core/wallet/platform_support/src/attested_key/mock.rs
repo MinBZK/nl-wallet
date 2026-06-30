@@ -536,10 +536,11 @@ mod google {
             key_identifier: String,
             ca_chain: &MockCaChain,
             challenge: Vec<u8>,
-        ) -> (MockGoogleAttestedKey, Vec<Vec<u8>>, String) {
+        ) -> (MockGoogleAttestedKey, Vec<Vec<u8>>, Option<String>) {
             // The token is simply the Base64 encoded challenge hash, which can then be used by
             // a mock Play Integrity implementation in order to generate an integrity verdict.
-            let app_attestation_token = BASE64_STANDARD.encode(&challenge);
+            // The mock emulates a device with Google Play services, so a token is always produced.
+            let app_attestation_token = Some(BASE64_STANDARD.encode(&challenge));
 
             let key_description = KeyDescription::new_valid_mock(challenge);
 

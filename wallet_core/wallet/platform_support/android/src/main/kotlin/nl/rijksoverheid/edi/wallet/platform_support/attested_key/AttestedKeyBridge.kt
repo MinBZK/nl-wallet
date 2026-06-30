@@ -4,7 +4,9 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.google.android.play.core.integrity.IntegrityManagerFactory
+import com.google.android.play.core.integrity.StandardIntegrityException
 import com.google.android.play.core.integrity.StandardIntegrityManager.*
+import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -29,6 +31,26 @@ import uniffi.platform_support.AttestedKeyBridge as RustAttestedKeyBridge
 private const val ATTESTED_KEY_PREFIX = "ecdsa_"
 
 private fun String.keyAlias() = ATTESTED_KEY_PREFIX + this
+
+/**
+ * Play Integrity error codes that indicate this device fundamentally cannot produce an integrity
+ * token: it has no Google Play services / Play Store, or no Google account is present. These are the
+ * cases for de-Googled devices (e.g. GrapheneOS, LineageOS, /e/OS) and for devices without a signed-in
+ * Google account. When any of these occurs we fall back to hardware key attestation only, instead of
+ * failing registration. Transient errors (network, internal, etc.) are intentionally NOT in this set,
+ * so genuine Google devices still must produce a valid integrity token.
+ */
+private val PLAY_INTEGRITY_UNAVAILABLE_ERROR_CODES = setOf(
+    StandardIntegrityErrorCode.API_NOT_AVAILABLE,
+    StandardIntegrityErrorCode.PLAY_STORE_NOT_FOUND,
+    StandardIntegrityErrorCode.PLAY_SERVICES_NOT_FOUND,
+    StandardIntegrityErrorCode.PLAY_STORE_ACCOUNT_NOT_FOUND,
+    StandardIntegrityErrorCode.PLAY_STORE_VERSION_OUTDATED,
+    StandardIntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED,
+)
+
+private fun Exception.indicatesPlayIntegrityUnavailable(): Boolean =
+    this is StandardIntegrityException && errorCode in PLAY_INTEGRITY_UNAVAILABLE_ERROR_CODES
 
 /**
  * This class is automatically initialized on app start through
@@ -63,9 +85,12 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
                 .build()
 
             // Retryably execute integrity token provider request, await result, fill integrityTokenProvider.
+            // A permanent "Play Integrity unavailable" failure (de-Googled device / no Google account) is
+            // not retried but propagated immediately, so the caller can fall back to key attestation only.
             integrityTokenProvider = retryable(
                 taskName = "attest",
-                taskDescription = "obtaining integrity token provider"
+                taskDescription = "obtaining integrity token provider",
+                nonRetryable = { it.indicatesPlayIntegrityUnavailable() }
             ) { integrityManager.prepareIntegrityToken(integrityTokenProviderRequest).await() }
 
             // Set last as this is used to check for init.
@@ -83,23 +108,37 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
     @OptIn(ExperimentalEncodingApi::class)
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>, googleCloudProjectNumber: ULong): AttestationData = withContext(Dispatchers.IO) {
-        // Initialize integrity token provider.
-        initializeIntegrityTokenProvider(googleCloudProjectNumber)
+        // Try to obtain a Google Play Integrity token. On devices without Google Play services / Play
+        // Store, or without a signed-in Google account, this is not possible. In that case we degrade
+        // gracefully to a `null` token and rely on hardware key attestation alone; the account server
+        // validates the key attestation certificate chain against its configured policy.
+        val appAttestationToken: String? = try {
+            // Initialize integrity token provider.
+            initializeIntegrityTokenProvider(googleCloudProjectNumber)
 
-        // Retryably execute integrity token request using provider, await result, fill integrityToken.
-        val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(Base64.Default.encode(challenge.toByteArray())).build()
-        val integrityToken = retryable(
-            taskName = "attest",
-            taskDescription = "obtaining integrity token"
-        ) { integrityTokenProvider.request(integrityTokenRequest).await() }
+            // Retryably execute integrity token request using provider, await result, fill integrityToken.
+            val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(Base64.Default.encode(challenge.toByteArray())).build()
+            val integrityToken = retryable(
+                taskName = "attest",
+                taskDescription = "obtaining integrity token",
+                nonRetryable = { it.indicatesPlayIntegrityUnavailable() }
+            ) { integrityTokenProvider.request(integrityTokenRequest).await() }
+
+            integrityToken.token()
+        } catch (e: Exception) {
+            if (e.indicatesPlayIntegrityUnavailable()) {
+                Log.i("attest", "Google Play Integrity unavailable on this device (no Play services / Play Store / Google account); falling back to hardware key attestation only")
+                null
+            } else {
+                throw e
+            }
+        }
 
         val signingKey = createKey(identifier, challenge)
         try {
             val certificateChain =
                 signingKey.getCertificateChain()?.asSequence()?.map { it.encoded.toUByteList() }?.toList()
                     ?: throw AttestedKeyException.Other("failed to get certificate chain")
-
-            val appAttestationToken = integrityToken.token()
 
             AttestationData.Google(certificateChain, appAttestationToken)
         } catch (e: Exception) {

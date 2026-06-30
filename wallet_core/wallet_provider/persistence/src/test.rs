@@ -76,7 +76,7 @@ where
         },
         WalletDeviceVendor::Google => WalletUserAttestationCreate::Android {
             certificate_chain: vec![random_bytes(64)],
-            integrity_verdict_json: "{}".to_string(),
+            integrity_verdict_json: Some("{}".to_string()),
             identifiers: AndroidHardwareIdentifiers {
                 brand: Some("Brand Name".to_string()),
                 model: Some("Model Name".to_string()),

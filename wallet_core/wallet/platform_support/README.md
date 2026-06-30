@@ -281,3 +281,25 @@ Before running these tests:
 * Connect a physical device
 * Enable the corresponding opt-in close proximity test constant in the iOS or Android test file.
 * Grant Bluetooth access to the terminal app that runs the Mac helper.
+
+# Android app attestation on devices without Google Play services
+
+On Android, key/app attestation normally combines a hardware **key attestation**
+certificate chain (produced by the Android Keystore, which does not require
+Google) with a Google **Play Integrity** token (which does require Google Play
+services and, in practice, a Google account).
+
+To support de-Googled devices (e.g. GrapheneOS, LineageOS, /e/OS), the
+`AttestedKeyBridge` degrades gracefully: when Play Integrity is unavailable
+because the device has no Google Play services / Play Store, or no Google
+account is signed in, it returns the key attestation certificate chain with a
+`null` app attestation token instead of failing. This is detected via the
+specific Play Integrity error codes in `PLAY_INTEGRITY_UNAVAILABLE_ERROR_CODES`;
+transient failures on genuine Google devices are still retried and surfaced, so
+those devices are not silently downgraded.
+
+The `app_attestation_token` is therefore optional throughout the attestation
+types (`AttestationData::Google`, `KeyWithAttestation::Google`,
+`RegistrationAttestation::Google`). The account server validates the hardware
+key attestation against its configured policy when no token is present; see the
+`wallet_provider` README.

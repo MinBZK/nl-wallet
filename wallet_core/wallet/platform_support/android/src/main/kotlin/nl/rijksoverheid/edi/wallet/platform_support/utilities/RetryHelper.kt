@@ -13,6 +13,7 @@ suspend fun <T> retryable(
     factor: Double = 2.0,
     taskName: String = "retry",
     taskDescription: String = "retryable-task",
+    nonRetryable: (Exception) -> Boolean = { false },
     block: suspend () -> T): T
 {
     var currentDelay = initialDelay
@@ -23,6 +24,12 @@ suspend fun <T> retryable(
         try {
             return block()
         } catch (e: Exception) {
+            // Some failures are permanent (e.g. the device has no Google Play services at all);
+            // retrying those only wastes time, so rethrow them immediately.
+            if (nonRetryable(e)) {
+                Log.i(taskName, "caught non-retryable ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\"), not retrying..")
+                throw e
+            }
             if (attempt == times) {
                 Log.e(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\"), giving up..")
                 throw e

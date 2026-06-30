@@ -162,7 +162,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
             app_attestation_token,
         } => {
             assert!(
-                !app_attestation_token.is_empty(),
+                app_attestation_token.as_ref().is_some_and(|token| !token.is_empty()),
                 "App attestation token should not be empty"
             );
 
