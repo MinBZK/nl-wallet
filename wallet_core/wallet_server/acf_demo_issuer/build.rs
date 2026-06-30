@@ -5,6 +5,7 @@ use std::path::Path;
 use web_utils::build::BuildProfile;
 use web_utils::build::combine_css_with_imports;
 use web_utils::build::force_symlink;
+use web_utils::build::link_or_copy_asset;
 
 fn main() {
     if cfg!(windows) {
@@ -28,6 +29,13 @@ fn main() {
             Path::new("../../lib/web_utils/static/non-free"),
         ],
         Path::new("assets/static"),
+    );
+
+    // The consent page's language selector relies on this script (toggle interaction); served at `/language.js`.
+    link_or_copy_asset(
+        Path::new("../../../lib/web_utils/static/language.js"),
+        Path::new("assets/language.js"),
+        profile,
     );
 
     if !profile.is_release() {

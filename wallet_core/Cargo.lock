@@ -18,6 +18,7 @@ dependencies = [
  "attestation_data",
  "attestation_types",
  "axum",
+ "chrono",
  "config",
  "crypto",
  "derive_more",
@@ -35,6 +36,7 @@ dependencies = [
  "serde_valid",
  "server_utils",
  "status_lists",
+ "strum 0.28.0",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
@@ -10085,6 +10087,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "strum 0.28.0",
+ "tokio",
  "tower-http",
  "tracing",
 ]

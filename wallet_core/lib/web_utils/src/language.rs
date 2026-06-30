@@ -42,7 +42,7 @@ impl Language {
     pub fn chrono_locale(&self) -> chrono::prelude::Locale {
         match self {
             Language::Nl => chrono::prelude::Locale::nl_NL,
-            Language::En => chrono::prelude::Locale::en_US,
+            Language::En => chrono::prelude::Locale::en_GB,
         }
     }
 
@@ -85,7 +85,9 @@ where
 
 #[cfg(test)]
 mod test {
+    use axum::extract::FromRequestParts;
     use axum::http::HeaderValue;
+    use axum::http::Request;
     use rstest::rstest;
 
     use super::*;
@@ -119,5 +121,42 @@ mod test {
         headers.append(ACCEPT_LANGUAGE, accept_language);
 
         assert_eq!(Language::match_accept_language(&headers), expected);
+    }
+
+    /// Resolve a [`Language`] through the [`FromRequestParts`] extractor from an optional `?lang=`
+    /// query value and an optional `Accept-Language` header value, exercising their precedence.
+    async fn extract_language(lang_query: Option<&str>, accept_language: Option<&str>) -> Language {
+        let uri = match lang_query {
+            Some(lang) => format!("/?lang={lang}"),
+            None => "/".to_string(),
+        };
+        let mut builder = Request::builder().uri(uri);
+        if let Some(accept_language) = accept_language {
+            builder = builder.header(ACCEPT_LANGUAGE, accept_language);
+        }
+        let (mut parts, ()) = builder.body(()).unwrap().into_parts();
+
+        Language::from_request_parts(&mut parts, &()).await.unwrap()
+    }
+
+    #[rstest]
+    // The `?lang=` query parameter takes precedence over the `Accept-Language` header.
+    #[case(Some("en"), Some("nl"), Language::En)]
+    #[case(Some("nl"), Some("en"), Language::Nl)]
+    // Without a (valid) query parameter, the `Accept-Language` header is used.
+    #[case(None, Some("nl, en;q=0.8"), Language::Nl)]
+    #[case(None, Some("en, nl;q=0.8"), Language::En)]
+    // An unsupported query language is ignored, falling back to the header.
+    #[case(Some("fr"), Some("en"), Language::En)]
+    // With neither a usable query parameter nor header, the default language is used.
+    #[case(None, None, Language::Nl)]
+    #[case(None, Some("fr"), Language::Nl)]
+    #[tokio::test]
+    async fn test_extractor_precedence(
+        #[case] lang_query: Option<&str>,
+        #[case] accept_language: Option<&str>,
+        #[case] expected: Language,
+    ) {
+        assert_eq!(extract_language(lang_query, accept_language).await, expected);
     }
 }
