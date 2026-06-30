@@ -718,22 +718,16 @@ pub enum VerificationErrorCode {
     UnknownSession,
     Nonce,
     SessionState,
-
-    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
-    // Note that this is never to be used by a verifier.
-    #[strum(default)]
-    Other(String),
 }
 
 impl HttpJsonErrorType for VerificationErrorCode {
-    fn title(&self) -> Option<&'static str> {
+    fn title(&self) -> &'static str {
         match self {
-            Self::ServerError => Some("Internal server error occurred"),
-            Self::InvalidRequest => Some("Invalid request"),
-            Self::UnknownSession => Some("Unknown session"),
-            Self::Nonce => Some("Redirect URI nonce incorrect or missing"),
-            Self::SessionState => Some("Session is not in the required state"),
-            Self::Other(_) => None,
+            Self::ServerError => "Internal server error occurred",
+            Self::InvalidRequest => "Invalid request",
+            Self::UnknownSession => "Unknown session",
+            Self::Nonce => "Redirect URI nonce incorrect or missing",
+            Self::SessionState => "Session is not in the required state",
         }
     }
 
@@ -749,8 +743,6 @@ impl HttpJsonErrorType for VerificationErrorCode {
             Self::Nonce => StatusCode::UNAUTHORIZED,
 
             Self::SessionState => StatusCode::BAD_REQUEST,
-
-            Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

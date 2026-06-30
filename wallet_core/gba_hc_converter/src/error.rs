@@ -29,14 +29,12 @@ impl HttpJsonErrorType for ErrorType {
         }
     }
 
-    fn title(&self) -> Option<&'static str> {
-        let title = match self {
+    fn title(&self) -> &'static str {
+        match self {
             Self::Transport => "HTTP transport error",
             Self::Gba => "GBA error",
             Self::Conversion => "Conversion error",
-        };
-
-        Some(title)
+        }
     }
 }
 
