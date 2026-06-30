@@ -309,6 +309,26 @@ function generate_wia_root_ca {
     openssl x509 -in "${TARGET_DIR}/ca.wia.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wia.crt.der"
 }
 
+# Generate an EC root CA for WRPAC (Wallet Relying Party Access Certificates)
+function generate_wrpac_root_ca {
+    echo -e "${INFO}Generating WRPAC CA key pair${NC}"
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
+        --common-name "CA wrpac" --oid "NTRNL-00000040" \
+        --file-prefix "${TARGET_DIR}/ca.wrpac" \
+        --force
+    openssl x509 -in "${TARGET_DIR}/ca.wrpac.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wrpac.crt.der"
+}
+
+# Generate an EC root CA for WRPRC (Wallet Relying Party Registration Certificates)
+function generate_wrprc_root_ca {
+    echo -e "${INFO}Generating WRPRC CA key pair${NC}"
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
+        --common-name "CA wrprc" --oid "NTRNL-00000050" \
+        --file-prefix "${TARGET_DIR}/ca.wrprc" \
+        --force
+    openssl x509 -in "${TARGET_DIR}/ca.wrprc.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wrprc.crt.der"
+}
+
 # Generate an EC key pair for the config_signing
 function generate_config_signing_key_pair {
     echo -e "${INFO}Generating config signing key pair${NC}"

@@ -40,6 +40,12 @@
   "issuer_trust_anchors": [
     "${ISSUER_CA_CRT}"
   ],
+  "wrpac_trust_anchors": [
+    "${WRPAC_CA_CRT}"
+  ],
+  "wrprc_trust_anchors": [
+    "${WRPRC_CA_CRT}"
+  ],
   "update_policy_server": {
     "http_config": {
       "base_url": "https://${SERVICES_HOST}:${UPDATE_POLICY_SERVER_PORT}/update/v1/",

@@ -353,6 +353,24 @@ fi
 READER_CA_CRT=$(< "${TARGET_DIR}/ca.reader.crt.der" ${BASE64})
 export READER_CA_CRT
 
+# Generate root CA for WRPAC
+if [[ ! -f "${TARGET_DIR}/ca.wrpac.key.pem" ]]; then
+    generate_wrpac_root_ca
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrpac.key.pem' already exists, not (re-)generating WRPAC root CA"
+fi
+WRPAC_CA_CRT=$(< "${TARGET_DIR}/ca.wrpac.crt.der" ${BASE64})
+export WRPAC_CA_CRT
+
+# Generate root CA for WRPRC
+if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then
+    generate_wrprc_root_ca
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrprc.key.pem' already exists, not (re-)generating WRPRC root CA"
+fi
+WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
+export WRPRC_CA_CRT
+
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
 generate_relying_party_hsm_key_pair mijn_amsterdam

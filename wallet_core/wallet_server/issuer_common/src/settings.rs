@@ -717,6 +717,8 @@ mod tests {
                     failed_deletion_minutes: 10.try_into().unwrap(),
                 },
                 issuer_trust_anchors: TrustAnchors::from(issuer_ca),
+                wrpac_trust_anchors: TrustAnchors::empty(),
+                wrprc_trust_anchors: TrustAnchors::empty(),
                 hsm: None,
             },
             status_lists: StatusListsSettings {

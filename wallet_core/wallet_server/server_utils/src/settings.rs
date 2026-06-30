@@ -51,6 +51,12 @@ pub struct Settings {
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
     pub issuer_trust_anchors: TrustAnchors,
 
+    /// Trust anchors for Wallet Relying Party Access Certificates, used by both issuers and verifiers.
+    pub wrpac_trust_anchors: TrustAnchors,
+
+    /// Trust anchors for Wallet Relying Party Registration Certificates, used by both issuers and verifiers.
+    pub wrprc_trust_anchors: TrustAnchors,
+
     /// Optional HSM settings in which private keys can be stored
     pub hsm: Option<Hsm>,
 }
