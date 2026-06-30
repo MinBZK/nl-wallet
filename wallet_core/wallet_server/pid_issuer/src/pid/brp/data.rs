@@ -247,9 +247,6 @@ pub struct BrpAddress {
     #[serde(rename = "huisnummertoevoeging")]
     house_number_addition: Option<String>,
 
-    #[serde(rename = "aanduidingbijHuisnummer")]
-    house_number_designation: Option<BrpDescription>,
-
     #[serde(rename = "postcode")]
     postal_code: String,
 
@@ -277,14 +274,7 @@ impl BrpAddress {
         let house_letter = self.house_letter.as_deref().unwrap_or_default();
         let house_number_addition = self.house_number_addition.as_deref().unwrap_or_default();
 
-        // According to Logisch Ontwerp BRP 2024 Q2, elements 11.40 and 11.50 are mutually exclusive.
-        // This implementation is according to "Bijlage 3 Vertaaltabel" describing the GBA-V translations regarding
-        // the EAD eIDAS attributes.
-        if let Some(designation) = &self.house_number_designation {
-            format!("{} {}{}", designation.description, self.house_number, house_letter)
-        } else {
-            format!("{}{}{}", self.house_number, house_letter, house_number_addition)
-        }
+        format!("{}{}{}", self.house_number, house_letter, house_number_addition)
     }
 }
 
@@ -335,9 +325,6 @@ mod tests {
     #[case("huisletter", "20A")]
     #[case("huisletter-en-toevoeging", "1Abis")]
     #[case("huisnummertoevoeging", "38BIS1")]
-    #[case("huisnummeraanduiding", "tegenover 38")]
-    #[case("huisletter-en-aanduiding", "bij 38c")]
-    #[case("huisletter-en-aanduiding-en-toevoeging-illegal-combination", "bij 38c")]
     fn should_handle_house_number(#[case] json_file_name: &str, #[case] expected_house_number: &str) {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
         let brp_person = brp_persons.persons.first().unwrap();
