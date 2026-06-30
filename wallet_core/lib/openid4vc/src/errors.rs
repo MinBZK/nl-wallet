@@ -243,7 +243,7 @@ pub enum AuthorizationErrorCode {
     ServerError,
     TemporarilyUnavailable,
 
-    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
+    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
     // Note that this is never to be used by the verifier.
     #[strum(default)]
     Other(String),
