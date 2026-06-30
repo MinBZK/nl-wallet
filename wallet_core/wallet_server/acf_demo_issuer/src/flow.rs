@@ -229,7 +229,7 @@ impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
         match usecase.kind {
             UsecaseKind::Immediate => {
                 let documents = issuable_documents(usecase);
-                Ok(AuthorizeOutcome::Authorized(documents, context))
+                Ok(AuthorizeOutcome::Authorized(documents, Box::new(context)))
             }
             UsecaseKind::Consent => {
                 // Stash the wallet request under a random flow-state token, then redirect to the consent page.
@@ -527,7 +527,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use server_utils::store::StoreConnection;
     use token_status_list::status_list_service::mock::MockStatusListService;
-    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::CONSENT_PATH;
@@ -605,8 +604,8 @@ mod tests {
         }
     }
 
-    fn credential_kinds() -> VecNonEmpty<CredentialKind> {
-        vec_nonempty![CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string())]
+    fn credential_kinds() -> HashSet<CredentialKind> {
+        HashSet::from([CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string())])
     }
 
     fn authorizing_issuer_with_flow(

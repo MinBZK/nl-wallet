@@ -281,7 +281,11 @@ where
 
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
-            AuthorizeOutcome::Authorized(issuables, WalletAuthorizationContext { request_values, .. }) => {
+            AuthorizeOutcome::Authorized(issuables, context) => {
+                let WalletAuthorizationContext {
+                    state, request_values, ..
+                } = *context;
+
                 let code = match self.complete_authorization(issuables, request_values).await {
                     Ok(code) => code,
                     Err(error) => {
@@ -676,12 +680,12 @@ mod tests {
             vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
             AuthorizeOutcome::Authorized(
                 documents.clone(),
-                WalletAuthorizationContext {
+                Box::new(WalletAuthorizationContext {
                     state: Some(WALLET_STATE.to_string()),
-                    credential_kinds: vec_nonempty![CredentialKind::new(
+                    credential_kinds: HashSet::from_iter([CredentialKind::new(
                         Format::SdJwt,
-                        String::from(MOCK_ATTESTATION_TYPES[0])
-                    )],
+                        String::from(MOCK_ATTESTATION_TYPES[0]),
+                    )]),
                     request_values: AuthRequestValues::new(
                         MOCK_WALLET_CLIENT_ID.to_string(),
                         WALLET_REDIRECT_URI.parse().unwrap(),
@@ -689,7 +693,7 @@ mod tests {
                         HashSet::from([WALLET_SCOPE.parse().unwrap()]),
                     ),
                     issuer_state: None,
-                },
+                }),
             ),
         );
 

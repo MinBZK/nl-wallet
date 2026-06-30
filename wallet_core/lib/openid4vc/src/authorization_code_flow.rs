@@ -34,7 +34,7 @@ use crate::scope::Scope;
 pub struct WalletAuthorizationContext {
     pub state: Option<String>,
     pub issuer_state: Option<String>,
-    pub credential_kinds: VecNonEmpty<CredentialKind>,
+    pub credential_kinds: HashSet<CredentialKind>,
 
     // Represents those values present in the inciting Authorization Request that an implementor of
     // [`AuthorizationCodeFlow`] will need to pass to `AuthorizingIssuer::complete_authorization()`. These values are
@@ -75,19 +75,16 @@ impl WalletAuthorizationContext {
         //
         // The scope is part of `WalletAuthorizationContext` in order to store this in the session state in the next
         // step. Once there, it is used to compare against any scope that is requested as part of the Token Request.
-        let credential_kinds = match request
+        let credential_kinds = request
             .scope
             .iter()
             .flat_map(|scope| credential_configs.get_by_scope(scope))
             .map(|(_id, config)| config.credential_kind.clone())
-            .collect_vec()
-            .try_into()
-        {
-            Ok(credential_kinds) => credential_kinds,
-            Err(_) => {
-                return Err(InvalidAuthorizationRequest::NoValidScope(request.scope));
-            }
-        };
+            .collect::<HashSet<_>>();
+
+        if credential_kinds.is_empty() {
+            return Err(InvalidAuthorizationRequest::NoValidScope(request.scope));
+        }
 
         Ok(Self {
             state: request.oauth_request.state,
@@ -116,7 +113,7 @@ pub enum AuthorizeOutcome {
     /// Represents the state where the holder is authorized synchronously (no external round-trip) given the issuable
     /// documents and authorization context required to create a new session and redirect the wallet back to its
     /// `redirect_uri` with the code (and echoed `state`).
-    Authorized(VecNonEmpty<IssuableDocument>, WalletAuthorizationContext),
+    Authorized(VecNonEmpty<IssuableDocument>, Box<WalletAuthorizationContext>),
 }
 
 #[trait_variant::make(Send)]
@@ -145,7 +142,6 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_types::credential_format::Format;
-    use utils::vec_nonempty;
 
     use super::InvalidAuthorizationRequest;
     use super::WalletAuthorizationContext;
@@ -226,10 +222,10 @@ mod tests {
 
         assert_eq!(
             context.credential_kinds,
-            vec_nonempty![CredentialKind::new(
+            HashSet::from_iter([CredentialKind::new(
                 Format::SdJwt,
                 String::from(MOCK_ATTESTATION_TYPES[0])
-            )]
+            )])
         );
     }
 }

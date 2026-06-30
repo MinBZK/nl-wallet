@@ -160,7 +160,7 @@ impl AuthorizationCodeFlow for StaticAuthorizingFlow {
     async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
         let documents = self.authorize_result.clone().map_err(StaticAuthorizingFlowError)?;
 
-        let outcome = AuthorizeOutcome::Authorized(documents.clone(), context);
+        let outcome = AuthorizeOutcome::Authorized(documents.clone(), Box::new(context));
 
         Ok(outcome)
     }

@@ -538,7 +538,6 @@ mod tests {
     use server_utils::store::StoreConnection;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::path::prefix_local_path;
-    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::DIGID_CALLBACK_PATH;
@@ -643,7 +642,7 @@ mod tests {
 
     /// Builds the wallet-side context `AuthorizationCodeFlow::authorize` receives, carrying the
     /// `credential_kinds` the `openid4vc` layer derived from the request's scopes.
-    fn wallet_context(credential_kinds: VecNonEmpty<CredentialKind>) -> WalletAuthorizationContext {
+    fn wallet_context(credential_kinds: HashSet<CredentialKind>) -> WalletAuthorizationContext {
         WalletAuthorizationContext {
             state: Some(WALLET_STATE.to_string()),
             issuer_state: None,
@@ -662,10 +661,10 @@ mod tests {
             context: WalletAuthorizationContext {
                 state: Some(WALLET_STATE.to_string()),
                 issuer_state: None,
-                credential_kinds: vec_nonempty![
-                    CredentialKind::new(Format::MsoMdoc, String::from(PID_ATTESTATION_TYPE),),
-                    CredentialKind::new(Format::SdJwt, String::from(PID_ATTESTATION_TYPE),)
-                ],
+                credential_kinds: HashSet::from([
+                    CredentialKind::new(Format::MsoMdoc, String::from(PID_ATTESTATION_TYPE)),
+                    CredentialKind::new(Format::SdJwt, String::from(PID_ATTESTATION_TYPE)),
+                ]),
                 request_values: AuthRequestValues::new(
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     WALLET_REDIRECT_URI.parse().unwrap(),
@@ -731,12 +730,12 @@ mod tests {
             Arc::clone(&bridge),
         );
 
-        let context = wallet_context(vec_nonempty![
+        let context = wallet_context(HashSet::from([
             CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
             CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
             // Test deduplication.
-            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())
-        ]);
+            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+        ]));
         let wallet_code_challenge = context.request_values.code_challenge.clone();
 
         let outcome = flow.authorize(context).await.unwrap();
@@ -787,11 +786,11 @@ mod tests {
             Arc::clone(&bridge),
         );
 
-        let context = wallet_context(vec_nonempty![
+        let context = wallet_context(HashSet::from([
             CredentialKind::new(Format::SdJwt, "foo".to_string()),
             CredentialKind::new(Format::MsoMdoc, "bar".to_string()),
-            CredentialKind::new(Format::SdJwt, "not_supported".to_string())
-        ]);
+            CredentialKind::new(Format::SdJwt, "not_supported".to_string()),
+        ]));
 
         let error = flow
             .authorize(context)
