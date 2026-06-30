@@ -31,6 +31,8 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::authorization_details::IssuerAuthorizationDetails;
+use crate::authorization_details::IssuerAuthorizationDetailsEntries;
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -188,6 +190,12 @@ pub struct TokenResponse {
 
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub expires_in: Option<Duration>,
+
+    /// REQUIRED when the authorization_details parameter, as defined in Section 5.1.1, is used in either the
+    /// Authorization Request or Token Request. OPTIONAL when scope parameter was used to request issuance of a
+    /// Credential of a certain Credential Configuration.
+    #[serde_as(as = "Option<TryFromInto<IssuerAuthorizationDetailsEntries>>")]
+    pub authorization_details: Option<IssuerAuthorizationDetails>,
 }
 
 impl TokenResponse {
@@ -198,6 +206,7 @@ impl TokenResponse {
             expires_in: None,
             refresh_token: None,
             scope: HashSet::new(),
+            authorization_details: None,
         }
     }
 }
@@ -285,9 +294,11 @@ pub enum TokenType {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+    use std::time::Duration;
 
     use itertools::Itertools;
     use serde_json::json;
+    use utils::vec_nonempty;
 
     use super::TokenRequest;
     use super::TokenRequestGrantType;
@@ -327,6 +338,7 @@ mod tests {
             scope: HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]),
             expires_in: None,
             refresh_token: None,
+            authorization_details: None,
         };
 
         let mut json =
@@ -422,5 +434,68 @@ mod tests {
             "UniversityDegreeCredential"
         );
         assert!(vci_entry.claims.is_none());
+    }
+
+    #[test]
+    fn token_response_deserialize_example() {
+        // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.2-6>
+        let example_json = json!({
+            "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6Ikp..sHQ",
+            "token_type": "Bearer",
+            "expires_in": 86400,
+            "authorization_details": [
+                {
+                    "type": "openid_credential",
+                    "credential_configuration_id": "UniversityDegreeCredential",
+                    "credential_identifiers": [
+                        "CivilEngineeringDegree-2023",
+                        "ElectricalEngineeringDegree-2023"
+                    ]
+                }
+            ]
+        });
+
+        let token_response =
+            serde_json::from_value::<TokenResponse>(example_json).expect("deserializing TokenResponse should succeed");
+
+        assert_eq!(
+            token_response.access_token.as_ref(),
+            "eyJhbGciOiJSUzI1NiIsInR5cCI6Ikp..sHQ"
+        );
+        assert_eq!(token_response.token_type, TokenType::Bearer);
+        assert!(token_response.refresh_token.is_none());
+        assert_eq!(token_response.scope, HashSet::new());
+        assert_eq!(token_response.expires_in, Some(Duration::from_hours(24)));
+
+        let authorization_details = token_response
+            .authorization_details
+            .as_ref()
+            .expect("authorization_details should be present in Authorization Request");
+
+        let entry = authorization_details
+            .as_ref()
+            .iter()
+            .exactly_one()
+            .expect("there should exactly one authorization_details entry");
+
+        assert!(entry.locations.is_none());
+
+        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) = &entry.typed_entry else {
+            panic!("authorization details entry should be of type openid_credential");
+        };
+
+        assert_eq!(
+            vci_id_entry.vci_entry.credential_configuration_id.as_ref(),
+            "UniversityDegreeCredential"
+        );
+        assert!(vci_id_entry.vci_entry.claims.is_none());
+        assert_eq!(
+            vci_id_entry.credential_identifiers,
+            vec_nonempty![
+                "CivilEngineeringDegree-2023".to_string(),
+                "ElectricalEngineeringDegree-2023".to_string()
+            ]
+            .into()
+        );
     }
 }
