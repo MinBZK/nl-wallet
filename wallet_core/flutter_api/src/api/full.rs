@@ -113,9 +113,16 @@ pub fn set_sentry_breadcrumb_callback(
     let callback = Arc::new(callback);
     error_category::sentry::set_breadcrumb_sink(Arc::new(move |message| {
         let callback = Arc::clone(&callback);
-        tokio::spawn(async move {
-            callback(message).await;
-        });
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                _ = handle.spawn(async move {
+                    callback(message).await;
+                });
+            }
+            Err(error) => {
+                tracing::debug!("could not forward Rust Sentry breadcrumb to Dart: {error}");
+            }
+        }
     }));
 
     Ok(())
@@ -673,6 +680,16 @@ mod tests {
             is_valid_pin(pin.to_string()).expect("Could not validate PIN"),
             PinValidationResult::Ok
         )
+    }
+
+    #[test]
+    fn sentry_breadcrumb_callback_does_not_panic_without_tokio_runtime() {
+        clear_sentry_breadcrumb_callback();
+        set_sentry_breadcrumb_callback(|_| Box::pin(async {}) as DartFnFuture<()>).unwrap();
+
+        error_category::sentry::add_breadcrumb("test.breadcrumb");
+
+        clear_sentry_breadcrumb_callback();
     }
 
     #[test]
