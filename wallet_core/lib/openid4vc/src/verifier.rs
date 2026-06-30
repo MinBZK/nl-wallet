@@ -21,7 +21,6 @@ use dcql::disclosure::ExtendingVctRetriever;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
-use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
 use http_utils::urls::BaseUrl;
@@ -53,6 +52,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::AuthorizationErrorResponse;
+use crate::BoxedErrorWithCode;
 use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthResponseError;
@@ -157,10 +157,13 @@ pub enum GetAuthRequestError {
 pub enum PostAuthResponseError {
     #[error("session error: {0}")]
     Session(#[from] SessionError),
+
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
+
     #[error("failed handling disclosure result: {0}")]
-    HandlingDisclosureResult(#[from] DisclosureResultHandlerError),
+    HandlingDisclosureResult(#[from] BoxedErrorWithCode<PostAuthResponseErrorCode>),
+
     #[error("failed serializing response: {0}")]
     ResponseEncoding(#[from] serde_qs::Error),
 }
@@ -830,20 +833,6 @@ where
     }
 }
 
-pub trait ToPostAuthResponseErrorCode: Error {
-    fn to_error_code(&self) -> PostAuthResponseErrorCode;
-}
-
-#[derive(Debug, AsRef, thiserror::Error)]
-#[error("{0}")]
-pub struct DisclosureResultHandlerError(Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
-
-impl DisclosureResultHandlerError {
-    pub fn new(error: impl ToPostAuthResponseErrorCode + Send + Sync + 'static) -> Self {
-        Self(Box::new(error))
-    }
-}
-
 /// Types may implement this to receive disclosed attributes after a successful disclosure session.
 /// The return value is URL-serialized and appended to the query of the redirect URI, if present,
 /// that gets sent to the wallet.
@@ -853,7 +842,7 @@ pub trait DisclosureResultHandler {
         &self,
         usecase_id: &str,
         disclosed: &UniqueIdVec<DisclosedAttestations>,
-    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
+    ) -> Result<HashMap<String, String>, BoxedErrorWithCode<PostAuthResponseErrorCode>>;
 }
 
 #[derive(Debug)]

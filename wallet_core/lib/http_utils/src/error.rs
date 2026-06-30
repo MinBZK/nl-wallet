@@ -76,7 +76,7 @@ pub struct HttpJsonError<T> {
 /// for conversion to [`HttpJsonErrorBody`], every distinct error type always
 /// resolves to the same summary and HTTP status code.
 pub trait HttpJsonErrorType {
-    fn title(&self) -> String;
+    fn title(&self) -> &'static str;
     fn status_code(&self) -> StatusCode;
 }
 
@@ -101,7 +101,7 @@ where
     T::Err: Display,
 {
     fn from(value: HttpJsonError<T>) -> Self {
-        let title = Some(value.r#type.title());
+        let title = Some(value.r#type.title().to_string());
         let status = Some(value.r#type.status_code());
 
         HttpJsonErrorBody {
@@ -179,10 +179,10 @@ mod tests {
     }
 
     impl HttpJsonErrorType for TestErrorType {
-        fn title(&self) -> String {
+        fn title(&self) -> &'static str {
             match self {
-                Self::Teapot => "I'm a teapot".to_string(),
-                Self::Loop => "Loop detected.".to_string(),
+                Self::Teapot => "I'm a teapot",
+                Self::Loop => "Loop detected.",
             }
         }
 

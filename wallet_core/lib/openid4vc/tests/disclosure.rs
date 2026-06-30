@@ -49,7 +49,8 @@ use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
 use mdoc::holder::disclosure::PartialMdoc;
 use openid4vc::AuthorizationErrorResponse;
-use openid4vc::GetRequestErrorCode;
+use openid4vc::BoxedErrorWithCode;
+use openid4vc::GetAuthRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VpAuthorizationErrorCode;
 use openid4vc::disclosure_session::DisclosableAttestations;
@@ -78,7 +79,6 @@ use openid4vc::server_state::SessionToken;
 use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
-use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::RpInitiatedUseCase;
 use openid4vc::verifier::RpInitiatedUseCases;
@@ -439,7 +439,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
         &self,
         _usecase_id: &str,
         _disclosed: &UniqueIdVec<DisclosedAttestations>,
-    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
+    ) -> Result<HashMap<String, String>, BoxedErrorWithCode<PostAuthResponseErrorCode>> {
         Ok(self
             .key
             .as_ref()
@@ -645,7 +645,7 @@ async fn test_client_and_server_cancel_after_created() {
     assert_matches!(
         error,
         VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthGetResponse(error)))
-            if error.error_response.error == GetRequestErrorCode::CancelledSession
+            if error.error_response.error == GetAuthRequestErrorCode::CancelledSession
     );
 }
 

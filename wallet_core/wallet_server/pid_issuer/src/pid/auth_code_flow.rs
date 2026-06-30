@@ -11,9 +11,7 @@ use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::http::header;
-use axum::response::IntoResponse;
-use axum::response::Response;
+use axum::response::Redirect;
 use axum::routing::get;
 use crypto::utils::random_string;
 use hsm::service::HsmError;
@@ -23,12 +21,16 @@ use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use itertools::Either;
 use itertools::Itertools;
 use jwk_simple::Key;
+use openid4vc::AuthorizationErrorCode;
+use openid4vc::BodyOrRedirectErrorResponse;
+use openid4vc::ErrorWithCode;
+use openid4vc::RedirectError;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
-use openid4vc::authorizing_issuer::WalletRedirect;
+use openid4vc::authorizing_issuer::RedirectQuery;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
@@ -102,6 +104,29 @@ pub enum Error {
 
     #[error("error completing authorization: {0}")]
     CompleteAuthorization(#[source] CompleteAuthorizationError),
+}
+
+impl ErrorWithCode for Error {
+    type ErrorCode = AuthorizationErrorCode;
+
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::UnsupportedCredentialType(_) => AuthorizationErrorCode::InvalidScope,
+
+            Self::Digid(_)
+            | Self::StateBridge(_)
+            | Self::NoAttributesFound
+            | Self::Brp(_)
+            | Self::InvalidIssuableDocuments
+            | Self::NoBsnFound
+            | Self::RetrievingBsn(_)
+            | Self::BsnUnexpectedType
+            | Self::Hmac(_)
+            | Self::InsertingRecoveryCode(_) => AuthorizationErrorCode::ServerError,
+
+            Self::CompleteAuthorization(error) => error.error_code(),
+        }
+    }
 }
 
 /// One state-bridge entry, written at `/authorize` and consumed by the upstream callback handler.
@@ -349,7 +374,7 @@ type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B = HttpBrpClient, O = Http
 async fn digid_callback<K, L, S, N, PAS, B, O>(
     State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>>,
     Query(DigidCallbackQuery { code, state }): Query<DigidCallbackQuery>,
-) -> Response
+) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
@@ -361,15 +386,25 @@ where
 {
     let flow = authorizing_issuer.flow();
 
+    // Since we cannot know the `redirect_uri` yet, the below errors are rendered as responses with plain-text bodies
+    // and an error HTTP status code.
     let entry: StateBridgeEntry = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Some(entry)) => entry,
         Ok(None) => {
             warn!("digid callback: unknown or expired bridge key");
-            return (StatusCode::BAD_REQUEST, "unknown or expired state").into_response();
+
+            return Err(BodyOrRedirectErrorResponse::new_body(
+                StatusCode::BAD_REQUEST,
+                "unknown or expired state".to_string(),
+            ));
         }
         Err(error) => {
             warn!("digid callback: state bridge consume failed: {error}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "state bridge error").into_response();
+
+            return Err(BodyOrRedirectErrorResponse::new_body(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "state bridge error".to_string(),
+            ));
         }
     };
 
@@ -382,7 +417,7 @@ where
     } = entry;
     let redirect_uri = request_values.redirect_uri.clone();
 
-    let result = complete_digid_callback(
+    let code = match complete_digid_callback(
         &authorizing_issuer,
         request_values,
         upstream_code_verifier,
@@ -390,11 +425,20 @@ where
         code,
     )
     .await
-    .inspect_err(|error| warn!("digid callback: completion failed: {error}"));
+    {
+        Ok(code) => code,
+        Err(error) => {
+            warn!("digid callback: completion failed: {error}");
 
-    let url = WalletRedirect::new(redirect_uri, state).into_redirect_url(result.as_ref(), "server_error");
+            // Return any error from completing the callback as a 303 redirect to the `redirect_uri`, including the
+            // `state` if it was present in the Authorization Request.
+            return Err(RedirectError::new(error, redirect_uri, state).into());
+        }
+    };
 
-    (StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response()
+    let url = RedirectQuery::encode(redirect_uri, &code, state.as_deref());
+
+    Ok(Redirect::to(url.as_str()))
 }
 
 /// Exchange the upstream `code` for the issuable documents, then hand them to the `openid4vc` layer's

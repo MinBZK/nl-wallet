@@ -1042,7 +1042,7 @@ mod tests {
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
-    use openid4vc::errors::GetRequestErrorCode;
+    use openid4vc::errors::GetAuthRequestErrorCode;
     use openid4vc::verifier::SessionType;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1744,7 +1744,7 @@ mod tests {
             Err(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: GetRequestErrorCode::ServerError,
+                        error: GetAuthRequestErrorCode::ServerError,
                         error_description: None,
                         error_uri: None,
                     },
@@ -2331,7 +2331,7 @@ mod tests {
             Err(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: GetRequestErrorCode::ServerError,
+                        error: GetAuthRequestErrorCode::ServerError,
                         error_description: None,
                         error_uri: None,
                     },

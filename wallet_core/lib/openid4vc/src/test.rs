@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -17,6 +16,7 @@ use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use derive_more::Constructor;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
@@ -33,6 +33,8 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::AuthorizationErrorCode;
+use crate::ErrorWithCode;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
@@ -63,7 +65,7 @@ pub type MockAuthorizingIssuer<G = TimeGenerator> = AuthorizingIssuer<
     MemorySessionStore<IssuanceData, G>,
     MemoryNonceStore,
     MemoryStore<String, VciAuthorizationRequest>,
-    AlwaysAuthorizingFlow,
+    StaticAuthorizingFlow,
 >;
 
 fn mock_claims(required_attr: &str) -> Vec<ClaimMetadata> {
@@ -128,24 +130,43 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
         .unwrap()
 }
 
-/// Test-only implementation of [`AuthorizationCodeFlow`] for the auth-code path. `authorize`
-/// just returns [`AuthorizeOutcome::Authorized`] with the preconfigured documents, so the `openid4vc` layer
-/// immediately writes the `AuthCodeIssued` session and redirects the user-agent straight back to
-/// the wallet with the issuer-generated code.
+/// Test-only implementation of [`AuthorizationCodeFlow`] for the auth-code path. `authorize` either returns
+/// [`AuthorizeOutcome::Authorized`] with the preconfigured documents, so the `openid4vc` layer immediately writes the
+/// `AuthCodeIssued` session and redirects the user-agent straight back to the wallet with the issuer-generated code, or
+/// it returns an error that converts to [`AuthorizationErrorCode`], which is also encoded in a redirect back to the
+/// wallet.
 #[derive(derive_more::Constructor)]
-pub struct AlwaysAuthorizingFlow {
-    documents: VecNonEmpty<IssuableDocument>,
+pub struct StaticAuthorizingFlow {
+    authorize_result: Result<VecNonEmpty<IssuableDocument>, AuthorizationErrorCode>,
 }
 
-impl AuthorizationCodeFlow for AlwaysAuthorizingFlow {
-    type Error = Infallible;
+#[derive(Debug, thiserror::Error, Constructor)]
+#[error("StaticAuthorizingFlowError")]
+pub struct StaticAuthorizingFlowError(AuthorizationErrorCode);
+
+impl ErrorWithCode for StaticAuthorizingFlowError {
+    type ErrorCode = AuthorizationErrorCode;
+
+    fn error_code(&self) -> Self::ErrorCode {
+        let Self(inner) = self;
+
+        inner.clone()
+    }
+}
+
+impl AuthorizationCodeFlow for StaticAuthorizingFlow {
+    type Error = StaticAuthorizingFlowError;
 
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
         _credential_kinds: VecNonEmpty<CredentialKind>,
     ) -> Result<AuthorizeOutcome, Self::Error> {
-        Ok(AuthorizeOutcome::Authorized(self.documents.clone(), context))
+        let documents = self.authorize_result.clone().map_err(StaticAuthorizingFlowError)?;
+
+        let outcome = AuthorizeOutcome::Authorized(documents.clone(), context);
+
+        Ok(outcome)
     }
 }
 
@@ -267,7 +288,7 @@ pub fn setup_mock_authorizing_issuer_from_sd_jwt_metadata<G>(
     issuer_identifier: IssuerIdentifier,
     type_metadata: Vec<TypeMetadata>,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    flow: AlwaysAuthorizingFlow,
+    flow: StaticAuthorizingFlow,
     wallet_redirect_uris: VecNonEmpty<Url>,
 ) -> (MockAuthorizingIssuer<G>, TrustAnchors, KeyPair)
 where
