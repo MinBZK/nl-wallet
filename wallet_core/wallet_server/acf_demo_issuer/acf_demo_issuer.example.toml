@@ -61,10 +61,10 @@ serve = true
 #   interaction). Defaults to "consent".
 # * documents: the documents to issue, as an array of [[usecases.<name>.documents]] tables with
 #   `format` ("mso_mdoc" or "dc+sd-jwt"), `attestation_type`, and an `attributes` table.
-[usecases.insurance_acf]
+[usecases.insurance]
 kind = "consent"
 
-[[usecases.insurance_acf.documents]]
+[[usecases.insurance.documents]]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
 attributes = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" }

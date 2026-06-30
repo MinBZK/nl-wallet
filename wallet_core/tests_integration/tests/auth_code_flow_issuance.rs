@@ -25,13 +25,13 @@ use wallet::IssuanceStartResult;
 use wallet::Pin;
 
 /// The `issuer_state` carried by the auth-code credential offer, identifying the demo usecase.
-const ISSUER_STATE: &str = "insurance_acf";
+const ISSUER_STATE: &str = "insurance";
 
 /// Server-side smoke test for the authorization-code-flow demo issuer, without a wallet.
 ///
 /// Boots `acf_demo_issuer` in-process and exercises the Authorization Phase half of the flow:
 /// 1. it serves its OpenID4VCI metadata, advertising the configured insurance credential config;
-/// 2. a Pushed Authorization Request carrying `issuer_state = "insurance_acf"` is accepted;
+/// 2. a Pushed Authorization Request carrying `issuer_state = "insurance"` is accepted;
 /// 3. `/authorize` resolves the PAR and redirects the user-agent to the consent page for that usecase.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
@@ -53,7 +53,7 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
         "metadata should advertise the insurance credential configuration"
     );
 
-    // 2. Push an authorization request carrying issuer_state = "insurance_acf".
+    // 2. Push an authorization request carrying issuer_state = "insurance".
     let par_request = VciAuthorizationRequest::for_auth_code(
         NL_WALLET_CLIENT_ID.to_string(),
         wallet_issuance_redirect_uri(),

@@ -151,7 +151,7 @@ nav a::before {
   background: url("../images/university.svg") no-repeat center center / cover;
 }
 
-#insurance_acf::before {
+#insurance::before {
   background: url("../images/insurance.svg") no-repeat center center / cover;
 }
 

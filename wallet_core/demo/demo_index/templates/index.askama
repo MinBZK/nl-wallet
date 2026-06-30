@@ -44,7 +44,7 @@
                                 {{ base.trans.university_mdoc_index }}
                             {% when "university_sd_jwt" %}
                                 {{ base.trans.university_sd_jwt_index }}
-                            {% when "insurance_acf" %}
+                            {% when "insurance" %}
                                 {{ base.trans.insurance_index }}
                             {% when "job_finder" %}
                                 {{ base.trans.job_index }}
