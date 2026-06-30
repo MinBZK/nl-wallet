@@ -27,11 +27,11 @@ use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
-use openid4vc::test::AlwaysAuthorizingFlow;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
 use openid4vc::test::MOCK_ATTRS;
 use openid4vc::test::MockAuthorizingIssuer;
 use openid4vc::test::MockIssuer;
+use openid4vc::test::StaticAuthorizingFlow;
 use openid4vc::test::mock_issuable_document_with_attrs;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::mock_type_metadata;
@@ -124,7 +124,7 @@ async fn start_auth_code_flow_server_with(
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let flow = AlwaysAuthorizingFlow::new(documents_or_error_code);
+    let flow = StaticAuthorizingFlow::new(documents_or_error_code);
     let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_sd_jwt_metadata(
         issuer_identifier.clone(),
         type_metadata,
@@ -267,7 +267,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     // State is inside the PAR-stored request; read it from the session to check the redirect.
     let state = auth_session.state().to_owned();
 
-    // Simulate the user agent following the auth_url. `AlwaysAuthorizingFlow` authorizes
+    // Simulate the user agent following the auth_url. `StaticAuthorizingFlow` authorizes
     // synchronously, so the /authorize handler writes the `AuthCodeIssued` session and 302s the
     // user-agent straight back to the wallet's redirect_uri with the issuer-generated code and the
     // echoed state.
@@ -762,7 +762,7 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
         .get("error_description")
         .expect("redirect URI should contain error_description");
     assert!(
-        error_description.contains("AlwaysAuthorizingFlowError"),
+        error_description.contains("StaticAuthorizingFlowError"),
         "unexpected error_description: {error_description}",
     );
 }

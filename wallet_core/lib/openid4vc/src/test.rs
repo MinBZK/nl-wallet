@@ -65,7 +65,7 @@ pub type MockAuthorizingIssuer<G = TimeGenerator> = AuthorizingIssuer<
     MemorySessionStore<IssuanceData, G>,
     MemoryNonceStore,
     MemoryStore<String, VciAuthorizationRequest>,
-    AlwaysAuthorizingFlow,
+    StaticAuthorizingFlow,
 >;
 
 fn mock_claims(required_attr: &str) -> Vec<ClaimMetadata> {
@@ -136,15 +136,15 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
 /// it returns an error that converts to [`AuthorizationErrorCode`], which is also encoded in a redirect back to the
 /// wallet.
 #[derive(derive_more::Constructor)]
-pub struct AlwaysAuthorizingFlow {
+pub struct StaticAuthorizingFlow {
     authorize_result: Result<VecNonEmpty<IssuableDocument>, AuthorizationErrorCode>,
 }
 
 #[derive(Debug, thiserror::Error, Constructor)]
-#[error("AlwaysAuthorizingFlowError")]
-pub struct AlwaysAuthorizingFlowError(AuthorizationErrorCode);
+#[error("StaticAuthorizingFlowError")]
+pub struct StaticAuthorizingFlowError(AuthorizationErrorCode);
 
-impl ErrorWithCode for AlwaysAuthorizingFlowError {
+impl ErrorWithCode for StaticAuthorizingFlowError {
     type ErrorCode = AuthorizationErrorCode;
 
     fn error_code(&self) -> Self::ErrorCode {
@@ -154,15 +154,15 @@ impl ErrorWithCode for AlwaysAuthorizingFlowError {
     }
 }
 
-impl AuthorizationCodeFlow for AlwaysAuthorizingFlow {
-    type Error = AlwaysAuthorizingFlowError;
+impl AuthorizationCodeFlow for StaticAuthorizingFlow {
+    type Error = StaticAuthorizingFlowError;
 
     async fn authorize(
         &self,
         context: WalletAuthorizationContext,
         _credential_kinds: VecNonEmpty<CredentialKind>,
     ) -> Result<AuthorizeOutcome, Self::Error> {
-        let documents = self.authorize_result.clone().map_err(AlwaysAuthorizingFlowError)?;
+        let documents = self.authorize_result.clone().map_err(StaticAuthorizingFlowError)?;
 
         let outcome = AuthorizeOutcome::Authorized(documents.clone(), context);
 
@@ -288,7 +288,7 @@ pub fn setup_mock_authorizing_issuer_from_sd_jwt_metadata<G>(
     issuer_identifier: IssuerIdentifier,
     type_metadata: Vec<TypeMetadata>,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    flow: AlwaysAuthorizingFlow,
+    flow: StaticAuthorizingFlow,
     wallet_redirect_uris: VecNonEmpty<Url>,
 ) -> (MockAuthorizingIssuer<G>, TrustAnchors, KeyPair)
 where
