@@ -1550,9 +1550,11 @@ mod tests {
     use url::Url;
     use wscd::mock_remote::MockRemoteWscd;
     use wscd::mock_remote::MockWiaClient;
+    use wscd::wscd::WiaClient;
 
     use super::*;
     use crate::CredentialErrorCode;
+    use crate::TokenErrorCode;
     use crate::credential::CredentialRequest;
     use crate::credential::CredentialRequestProof;
     use crate::credential::CredentialRequests;
@@ -1662,6 +1664,7 @@ mod tests {
         wrong_access_token: bool,
         invalidate_dpop: bool,
         invalidate_pop: bool,
+        wia_override: Option<WiaDisclosure>,
     }
 
     impl VcMessageClientStub {
@@ -1671,6 +1674,7 @@ mod tests {
                 wrong_access_token: false,
                 invalidate_dpop: false,
                 invalidate_pop: false,
+                wia_override: None,
             }
         }
 
@@ -1731,6 +1735,7 @@ mod tests {
             dpop_header: &Dpop,
             wia: &WiaDisclosure,
         ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+            let wia = self.wia_override.as_ref().unwrap_or(wia);
             let (token_response, dpop_nonce) = self
                 .issuer
                 .process_token_request(token_request.clone(), dpop_header.clone(), wia.clone())
@@ -1856,6 +1861,99 @@ mod tests {
 
         let wscd = MockRemoteWscd::new(vec![]);
         session.accept_issuance(&trust_anchors, &wscd).await.unwrap_err()
+    }
+
+    /// Like [`start_and_accept_err`] but for errors that happen at token request time (inside
+    /// `HttpIssuanceSession::create`). The `wia_override` on the stub is used to inject a bad WIA;
+    /// the `wia_client` passed to `create` is a dummy because the stub ignores it.
+    async fn start_token_request_err(
+        message_client: VcMessageClientStub,
+        issuer_identifier: IssuerIdentifier,
+        trust_anchors: TrustAnchors,
+        wia_client: &impl WiaClient,
+    ) -> WalletIssuanceError {
+        let session_token = message_client
+            .issuer
+            .new_preauthorized_session(mock_issuable_documents(NonZeroUsize::MIN))
+            .await
+            .unwrap();
+
+        let issuer_metadata = message_client.issuer.metadata().clone();
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+
+        let credential_configs = message_client
+            .issuer
+            .credential_configs()
+            .all_configuration_ids()
+            .into_nonempty_iter()
+            .map(|id| {
+                (
+                    id.clone(),
+                    issuer_metadata.credential_configurations_supported[id].clone(),
+                )
+            })
+            .collect();
+
+        HttpIssuanceSession::create(
+            message_client,
+            credential_configs,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            &oauth_metadata.token_endpoint,
+            TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
+            wia_client,
+            &oauth_metadata.issuer,
+            &trust_anchors,
+        )
+        .await
+        .err()
+        .expect("HttpIssuanceSession::create should have returned an error")
+    }
+
+    #[tokio::test]
+    async fn token_request_rejects_wia_from_untrusted_issuer() {
+        let (issuer, trust_anchor, issuer_identifier, _wia_keypair) = setup_simple_mock_issuer();
+
+        // WIA signed by a freshly generated CA that is not in the issuer's trust anchors.
+        let bad_wia = MockWiaClient::new()
+            .issue_wia(issuer_identifier.to_string(), None)
+            .await
+            .unwrap();
+
+        let message_client = VcMessageClientStub {
+            wia_override: Some(bad_wia),
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let error =
+            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        assert_matches!(
+            error,
+            WalletIssuanceError::TokenRequest(err) if matches!(err.error, TokenErrorCode::InvalidClientAttestation)
+        );
+    }
+
+    #[tokio::test]
+    async fn token_request_rejects_wia_with_wrong_audience() {
+        let (issuer, trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+
+        // WIA signed by the trusted key pair but targeting a different audience.
+        let bad_wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia("https://wrong-issuer.example.com".to_string(), None)
+            .await
+            .unwrap();
+
+        let message_client = VcMessageClientStub {
+            wia_override: Some(bad_wia),
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let error =
+            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        assert_matches!(
+            error,
+            WalletIssuanceError::TokenRequest(err) if matches!(err.error, TokenErrorCode::InvalidClientAttestation)
+        );
     }
 
     #[tokio::test]

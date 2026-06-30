@@ -535,6 +535,48 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn process_par_rejects_wia_from_untrusted_issuer() {
+        let (authorizing_issuer, _sessions, _wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        // MockWiaClient::new() issues a WIA signed by a freshly generated CA that is not in the
+        // issuer's trust anchors, so verification must fail.
+        let wia = MockWiaClient::new()
+            .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+            .await
+            .unwrap();
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID), &wia)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::Wia(_));
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_wia_with_wrong_audience() {
+        let (authorizing_issuer, _sessions, wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        // The WIA is signed by the trusted key pair but targets a different audience, so the
+        // audience check inside verify_wia must reject it.
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia("https://wrong-issuer.example.com".to_string(), None)
+            .await
+            .unwrap();
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID), &wia)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::Wia(_));
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
     async fn process_authorize_rejects_unknown_client_id() {
         let (authorizing_issuer, _sessions, _) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
