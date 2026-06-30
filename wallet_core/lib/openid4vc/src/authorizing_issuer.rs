@@ -15,7 +15,6 @@ use std::sync::Arc;
 use derive_more::Constructor;
 use futures::join;
 use itertools::Itertools;
-use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -363,10 +362,9 @@ where
 
 /// Represents the contents of the query parameters of a successful redirect back to the wallet, i.e. the `code` and
 /// optional `state` parameter, echoing the `state` from the Authorization Request.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct RedirectQuery<'a> {
     code: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none")]
     state: Option<&'a str>,
 }
 
@@ -381,9 +379,15 @@ impl<'a> RedirectQuery<'a> {
     }
 
     fn append_to_uri(&self, mut redirect_uri: Url) -> Url {
-        let query = serde_qs::to_string(&self).expect("encoding redirect query to query string should never fail");
+        {
+            let mut query_pairs = redirect_uri.query_pairs_mut();
 
-        redirect_uri.set_query(Some(&query));
+            query_pairs.append_pair("code", self.code);
+
+            if let Some(state) = self.state {
+                query_pairs.append_pair("state", state);
+            }
+        }
 
         redirect_uri
     }
