@@ -10,6 +10,7 @@
 //! offer carries and the wallet echoes back in its authorization request.
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -44,6 +45,7 @@ use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::authorizing_issuer::RedirectQuery;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::IssuanceData;
@@ -60,7 +62,6 @@ use tower_http::services::ServeDir;
 use tracing::warn;
 use url::Url;
 use utils::path::prefix_local_path;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
@@ -86,6 +87,9 @@ pub enum Error {
     #[error("unknown usecase: {0}")]
     UnknownUsecase(String),
 
+    #[error("none of the usecase's documents match the requested credential kinds: {}", .0.iter().join(", "))]
+    NoRequestedCredentialKinds(HashSet<CredentialKind>),
+
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
 
@@ -98,7 +102,9 @@ impl ErrorWithCode for Error {
 
     fn error_code(&self) -> Self::ErrorCode {
         match self {
-            Self::MissingIssuerState | Self::UnknownUsecase(_) => AuthorizationErrorCode::InvalidRequest,
+            Self::MissingIssuerState | Self::UnknownUsecase(_) | Self::NoRequestedCredentialKinds(_) => {
+                AuthorizationErrorCode::InvalidRequest
+            }
 
             Self::StateBridge(_) => AuthorizationErrorCode::ServerError,
 
@@ -157,12 +163,17 @@ impl DemoAuthorizationCodeFlow {
     }
 }
 
-/// Build the [`IssuableDocument`]s configured for a usecase, substituting demo placeholders in the
-/// attributes so each issued document gets fresh values.
-fn issuable_documents(usecase: &Usecase) -> VecNonEmpty<IssuableDocument> {
+/// Build the [`IssuableDocument`]s configured for a usecase, keeping only those whose
+/// [`CredentialKind`] the wallet actually requested (as captured in the authorization context), and
+/// substituting demo placeholders in the attributes so each issued document gets fresh values.
+fn issuable_documents(
+    usecase: &Usecase,
+    requested_credential_kinds: &HashSet<CredentialKind>,
+) -> Result<VecNonEmpty<IssuableDocument>, Error> {
     usecase
         .documents
-        .nonempty_iter()
+        .iter()
+        .filter(|template| requested_credential_kinds.contains(&template.credential_kind))
         .map(|template| {
             let IssuableDocumentTemplate {
                 credential_kind,
@@ -171,7 +182,9 @@ fn issuable_documents(usecase: &Usecase) -> VecNonEmpty<IssuableDocument> {
             let attributes = substitute_placeholders(attributes, &mut OsRng);
             IssuableDocument::try_new_with_random_id(credential_kind, attributes).expect("attributes cannot be empty")
         })
-        .collect()
+        .collect_vec()
+        .try_into()
+        .map_err(|_| Error::NoRequestedCredentialKinds(requested_credential_kinds.clone()))
 }
 
 /// Traverses all attributes (including those nested inside [`AttributeValue::Array`] or
@@ -228,7 +241,7 @@ impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
 
         match usecase.kind {
             UsecaseKind::Immediate => {
-                let documents = issuable_documents(usecase);
+                let documents = issuable_documents(usecase, &context.credential_kinds)?;
                 Ok(AuthorizeOutcome::Authorized(documents, Box::new(context)))
             }
             UsecaseKind::Consent => {
@@ -444,6 +457,7 @@ where
     let code = match complete_consent(
         authorizing_issuer.as_ref(),
         context.issuer_state,
+        &context.credential_kinds,
         context.request_values,
     )
     .await
@@ -469,6 +483,7 @@ where
 async fn complete_consent<K, L, S, N, PAS>(
     authorizing_issuer: &DemoAuthorizingIssuer<K, L, S, N, PAS>,
     issuer_state: Option<String>,
+    credential_kinds: &HashSet<CredentialKind>,
     request_values: AuthRequestValues,
 ) -> Result<AuthorizationCode, Error>
 where
@@ -484,7 +499,7 @@ where
         .ok_or_else(|| Error::UnknownUsecase(usecase_id))?;
 
     let code = authorizing_issuer
-        .complete_authorization(issuable_documents(usecase), request_values)
+        .complete_authorization(issuable_documents(usecase, credential_kinds)?, request_values)
         .await
         .map_err(Error::CompleteAuthorization)?;
 
@@ -503,6 +518,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_types::credential_format::Format;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -554,28 +570,37 @@ mod tests {
     const USECASE_ID: &str = "diploma";
     const ATTESTATION_TYPE: &str = "com.example.diploma";
 
-    /// A single usecase keyed by [`USECASE_ID`] with the given `kind` and one SD-JWT document.
-    fn usecases_with_kind(kind: UsecaseKind) -> HashMap<String, Usecase> {
-        let attributes: Attributes = IndexMap::from_iter(MOCK_ATTRS.map(|(key, val)| {
+    fn mock_attributes() -> Attributes {
+        IndexMap::from_iter(MOCK_ATTRS.map(|(key, val)| {
             (
                 key.to_string(),
                 Attribute::Single(AttributeValue::Text(val.to_string())),
             )
         }))
-        .into();
+        .into()
+    }
 
-        let template = IssuableDocumentTemplate {
-            credential_kind: CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string()),
-            attributes,
-        };
+    /// A usecase keyed by [`USECASE_ID`] with the given `kind` and one document per credential kind.
+    fn usecase_with_credential_kinds(
+        kind: UsecaseKind,
+        credential_kinds: HashSet<CredentialKind>,
+    ) -> HashMap<String, Usecase> {
+        let documents = credential_kinds
+            .into_iter()
+            .map(|credential_kind| IssuableDocumentTemplate {
+                credential_kind,
+                attributes: mock_attributes(),
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
 
-        HashMap::from([(
-            USECASE_ID.to_string(),
-            Usecase {
-                kind,
-                documents: vec_nonempty![template],
-            },
-        )])
+        HashMap::from([(USECASE_ID.to_string(), Usecase { kind, documents })])
+    }
+
+    /// A single usecase keyed by [`USECASE_ID`] with the given `kind` and one SD-JWT document.
+    fn usecases_with_kind(kind: UsecaseKind) -> HashMap<String, Usecase> {
+        usecase_with_credential_kinds(kind, credential_kinds())
     }
 
     fn test_usecases() -> HashMap<String, Usecase> {
@@ -634,9 +659,14 @@ mod tests {
 
         let context = test_context(Some(USECASE_ID.to_string()));
 
-        let code = complete_consent(&authorizing_issuer, context.issuer_state, context.request_values)
-            .await
-            .unwrap();
+        let code = complete_consent(
+            &authorizing_issuer,
+            context.issuer_state,
+            &context.credential_kinds,
+            context.request_values,
+        )
+        .await
+        .unwrap();
 
         // An AuthCodeIssued session was written, keyed by the generated code, carrying the configured
         // document and the wallet's PKCE challenge.
@@ -733,5 +763,46 @@ mod tests {
                 .iter()
                 .all(|doc| doc.credential_kind.attestation_type == ATTESTATION_TYPE)
         );
+    }
+
+    #[tokio::test]
+    async fn authorize_immediate_filters_documents_to_requested_credential_kinds() {
+        // The usecase offers both an SD-JWT and an mso_mdoc document, but the wallet only requested
+        // the SD-JWT credential kind, so only that document is issued.
+        let flow = flow_with_usecases(usecase_with_credential_kinds(
+            UsecaseKind::Immediate,
+            HashSet::from([
+                CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string()),
+                CredentialKind::new(Format::MsoMdoc, ATTESTATION_TYPE.to_string()),
+            ]),
+        ));
+        let mut context = test_context(Some(USECASE_ID.to_string()));
+        context.credential_kinds = HashSet::from([CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string())]);
+
+        let outcome = flow.authorize(context).await.unwrap();
+
+        let AuthorizeOutcome::Authorized(documents, _) = outcome else {
+            panic!("expected an Authorized outcome");
+        };
+        assert_eq!(
+            documents.iter().map(|doc| &doc.credential_kind).collect_vec(),
+            vec![&CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string())]
+        );
+    }
+
+    #[tokio::test]
+    async fn authorize_immediate_without_matching_credential_kind_errors() {
+        // The usecase only offers an SD-JWT document, but the wallet requested an mso_mdoc one, so
+        // there is nothing to issue.
+        let flow = flow_with_usecases(usecase_with_credential_kinds(
+            UsecaseKind::Immediate,
+            HashSet::from([CredentialKind::new(Format::SdJwt, ATTESTATION_TYPE.to_string())]),
+        ));
+        let mut context = test_context(Some(USECASE_ID.to_string()));
+        context.credential_kinds = HashSet::from([CredentialKind::new(Format::MsoMdoc, ATTESTATION_TYPE.to_string())]);
+
+        let error = flow.authorize(context).await.unwrap_err();
+
+        assert_matches!(error, Error::NoRequestedCredentialKinds(_));
     }
 }
