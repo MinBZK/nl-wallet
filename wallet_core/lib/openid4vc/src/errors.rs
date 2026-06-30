@@ -123,11 +123,9 @@ impl<T> AuthorizationErrorResponse<T> {
 
 /// Describes an error that occured at a HTTP(S) endpoint that is meant to be returned in a 303 See Other redirect.
 #[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RedirectErrorResponse<T> {
-    #[serde(flatten, bound(serialize = "T: Display"))]
     pub auth_error_response: AuthorizationErrorResponse<T>,
-    #[serde(skip)]
     pub redirect_uri: Url,
 }
 
@@ -905,10 +903,25 @@ mod axum {
         fn into_response(self) -> Response {
             warn!("Responding with error redirect: {:?}", &self);
 
-            let query = serde_qs::to_string(&self).expect("encoding redirect error query string should never fail");
-
             let mut redirect_uri = self.redirect_uri;
-            redirect_uri.set_query(Some(&query));
+
+            {
+                let mut query_pairs = redirect_uri.query_pairs_mut();
+
+                query_pairs.append_pair("error", &self.auth_error_response.error_response.error.to_string());
+
+                if let Some(error_description) = self.auth_error_response.error_response.error_description.as_deref() {
+                    query_pairs.append_pair("error_description", error_description);
+                }
+
+                if let Some(error_uri) = self.auth_error_response.error_response.error_uri.as_ref() {
+                    query_pairs.append_pair("error_description", error_uri.as_str());
+                }
+
+                if let Some(state) = self.auth_error_response.state.as_deref() {
+                    query_pairs.append_pair("state", state);
+                }
+            }
 
             Redirect::to(redirect_uri.as_str()).into_response()
         }
@@ -940,47 +953,63 @@ mod axum {
             (self.error_response.error.status_code(), Json(self)).into_response()
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use derive_more::Display;
+    #[cfg(test)]
+    mod tests {
+        use axum::response::IntoResponse;
+        use derive_more::Display;
+        use http::header;
+        use url::Url;
 
-    use super::ErrorWithCode;
-    use super::RedirectError;
-    use super::RedirectErrorResponse;
+        use super::super::ErrorWithCode;
+        use super::super::RedirectError;
+        use super::super::RedirectErrorResponse;
 
-    #[test]
-    fn test_redirect_error_serialization() {
-        #[derive(Debug, thiserror::Error)]
-        #[error("{0}")]
-        struct ExampleError(String);
+        #[test]
+        fn test_redirect_error_into_response() {
+            #[derive(Debug, thiserror::Error)]
+            #[error("{0}")]
+            struct ExampleError(String);
 
-        #[derive(Display)]
-        #[display("something_happened")]
-        struct ExampleErrorCode;
+            #[derive(Debug, Display)]
+            #[display("something_happened")]
+            struct ExampleErrorCode;
 
-        impl ErrorWithCode for ExampleError {
-            type ErrorCode = ExampleErrorCode;
+            impl ErrorWithCode for ExampleError {
+                type ErrorCode = ExampleErrorCode;
 
-            fn error_code(&self) -> Self::ErrorCode {
-                ExampleErrorCode
+                fn error_code(&self) -> Self::ErrorCode {
+                    ExampleErrorCode
+                }
             }
+
+            let example_error = ExampleError("Something happened 猫".to_string());
+            let redirect_uri = "http://example.com/redirect?foo=bar".parse().unwrap();
+            let state = "wallet_state".to_string();
+
+            let redirect_error = RedirectError::new(example_error, redirect_uri, Some(state));
+            let error_response = RedirectErrorResponse::<ExampleErrorCode>::from(redirect_error);
+
+            let response = error_response.into_response();
+
+            let location_header = response
+                .headers()
+                .get(header::LOCATION)
+                .expect("response should have Location header");
+
+            let url = location_header
+                .to_str()
+                .unwrap()
+                .parse::<Url>()
+                .expect("Location header should contain a URL");
+
+            assert_eq!(
+                url.query(),
+                Some(
+                    "foo=bar&error=something_happened&error_description=Something+happened+%E7%8C%AB&\
+                     state=wallet_state"
+                )
+            );
         }
-
-        let example_error = ExampleError("Something happened".to_string());
-        let redirect_uri = "http://example.com/redirect".parse().unwrap();
-        let state = "wallet_state".to_string();
-
-        let redirect_error = RedirectError::new(example_error, redirect_uri, Some(state));
-        let error_response = RedirectErrorResponse::<ExampleErrorCode>::from(redirect_error);
-
-        let query = serde_qs::to_string(&error_response)
-            .expect("encoding redirect error response to query string should succeed");
-
-        assert_eq!(
-            query,
-            "error=something_happened&error_description=Something%20happened&state=wallet_state"
-        );
     }
 }
