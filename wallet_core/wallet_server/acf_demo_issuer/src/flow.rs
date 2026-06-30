@@ -44,7 +44,6 @@ use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::authorizing_issuer::RedirectQuery;
-use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::IssuanceData;
@@ -219,11 +218,7 @@ fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut imp
 impl AuthorizationCodeFlow for DemoAuthorizationCodeFlow {
     type Error = Error;
 
-    async fn authorize(
-        &self,
-        context: WalletAuthorizationContext,
-        _credential_kinds: VecNonEmpty<CredentialKind>,
-    ) -> Result<AuthorizeOutcome, Self::Error> {
+    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
         // The usecase is identified by the `issuer_state` the wallet echoes back from the offer.
         let usecase_id = context.issuer_state.as_deref().ok_or(Error::MissingIssuerState)?;
         let usecase = self
@@ -600,6 +595,7 @@ mod tests {
         WalletAuthorizationContext {
             state: None,
             issuer_state,
+            credential_kinds: credential_kinds(),
             request_values: AuthRequestValues {
                 client_id: WALLET_CLIENT_ID.to_string(),
                 redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
@@ -674,7 +670,7 @@ mod tests {
         let flow = flow();
         let context = test_context(Some(USECASE_ID.to_string()));
 
-        let outcome = flow.authorize(context, credential_kinds()).await.unwrap();
+        let outcome = flow.authorize(context).await.unwrap();
 
         // The user-agent is redirected to the local consent page, carrying the flow-state token and the usecase.
         let AuthorizeOutcome::RedirectTo(url) = outcome else {
@@ -707,7 +703,7 @@ mod tests {
         let flow = flow();
         let context = test_context(None);
 
-        let error = flow.authorize(context, credential_kinds()).await.unwrap_err();
+        let error = flow.authorize(context).await.unwrap_err();
 
         assert_matches!(error, Error::MissingIssuerState);
     }
@@ -717,7 +713,7 @@ mod tests {
         let flow = flow();
         let context = test_context(Some("nonexistent".to_string()));
 
-        let error = flow.authorize(context, credential_kinds()).await.unwrap_err();
+        let error = flow.authorize(context).await.unwrap_err();
 
         assert_matches!(error, Error::UnknownUsecase(usecase) if usecase == "nonexistent");
     }
@@ -727,7 +723,7 @@ mod tests {
         let flow = flow_with_usecases(usecases_with_kind(UsecaseKind::Immediate));
         let context = test_context(Some(USECASE_ID.to_string()));
 
-        let outcome = flow.authorize(context, credential_kinds()).await.unwrap();
+        let outcome = flow.authorize(context).await.unwrap();
 
         let AuthorizeOutcome::Authorized(documents, _) = outcome else {
             panic!("expected an Authorized outcome");

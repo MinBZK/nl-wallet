@@ -157,11 +157,7 @@ impl ErrorWithCode for StaticAuthorizingFlowError {
 impl AuthorizationCodeFlow for StaticAuthorizingFlow {
     type Error = StaticAuthorizingFlowError;
 
-    async fn authorize(
-        &self,
-        context: WalletAuthorizationContext,
-        _credential_kinds: VecNonEmpty<CredentialKind>,
-    ) -> Result<AuthorizeOutcome, Self::Error> {
+    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
         let documents = self.authorize_result.clone().map_err(StaticAuthorizingFlowError)?;
 
         let outcome = AuthorizeOutcome::Authorized(documents.clone(), context);
