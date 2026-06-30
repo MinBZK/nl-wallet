@@ -243,9 +243,9 @@ where
     /// Process a PAR that was retrieved from storage. Any error is returned along with the `redirect_uri` and optional
     /// `state` from the PAR, so that the error can be added to the `redirect_uri` and returned to the wallet.
     ///
-    /// Note that this should be a 303 (See Other) redirect, as the 302 (Found) status code is deprecated and has
-    /// security issues related to method alternation. For OAuth, status code 303 seems a little more approprate than
-    /// 307 (Temporary Redirect), as this forces the client to make a GET request and not re-post any body.
+    /// Note that this should be a 303 (See Other) redirect, the semantics of which are better defined than the older
+    /// 302 (Found) status code. Additionally, for OAuth status code 303 seems a little more approprate than 307
+    /// (Temporary Redirect), as this forces the client to make a GET request and not re-post any body.
     async fn process_stored_authorization_request(
         &self,
         authorization_request: VciAuthorizationRequest,
