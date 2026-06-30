@@ -165,6 +165,8 @@ async fn wallet_server_settings_and_listener(
         structured_logging: false,
         storage: memory_storage_settings(),
         issuer_trust_anchors,
+        wrpac_trust_anchors: TrustAnchors::empty(),
+        wrprc_trust_anchors: TrustAnchors::empty(),
 
         hsm: None,
     };
