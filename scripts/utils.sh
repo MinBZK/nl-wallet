@@ -514,13 +514,25 @@ function generate_demo_issuer_issuance_key_pairs {
 #
 # $1 - Short name of the Relying Party
 function generate_demo_relying_party_key_pair {
+    ca_args=(--common-name "${access_certificates[($1,name)]}")
+    if [[ -z ${access_certificates[($1,serial_number)]:-} ]]; then
+        ca_args+=(
+            --organization-name "${access_certificates[($1,legal_name)]}"
+            --oid "${access_certificates[($1,oid)]}"
+        )
+    else
+        ca_args+=(
+            --serial-number "${access_certificates[($1,serial_number)]}"
+            --surname "${access_certificates[($1,surname)]}"
+            --given-name "${access_certificates[($1,given_name)]}"
+        )
+    fi
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert --type reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "${access_certificates[($1,name)]}" \
-        --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        "${ca_args[@]}" \
         --san-uri "https://$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \

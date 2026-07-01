@@ -26,8 +26,9 @@ declare -A access_certificates=(
     [(monkey_bike,oid)]='NTRNL-13572468'
 
     [(job_finder,name)]='BaanVinder'
-    [(job_finder,legal_name)]='BaanVinder B.V.'
-    [(job_finder,oid)]='NTRNL-98765433'
+    [(job_finder,serial_number)]='98765433'
+    [(job_finder,surname)]='Baan'
+    [(job_finder,given_name)]='Jan'
 
     [(university,name)]='Holland University'
     [(university,legal_name)]='Holland Universiteit'
