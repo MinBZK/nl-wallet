@@ -73,7 +73,6 @@ use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
 use crate::pkce::S256PkcePair;
-use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::scope::Scope;
 use crate::server_state::Expirable;
@@ -270,9 +269,6 @@ pub enum CredentialPreviewError {
 
     #[error("missing credential configuration with identifier: {0}")]
     MissingCredentialConfiguration(CredentialConfigurationId),
-
-    #[error("requested credential previews not found in session")]
-    CredentialPreviewsNotFound,
 }
 
 /// Session keyed by a code that the wallet will exchange at `/token`. Covers both grant types:
@@ -801,7 +797,6 @@ where
     pub async fn process_credential_preview(
         &self,
         access_token: AccessToken,
-        request: CredentialPreviewRequest,
     ) -> Result<CredentialPreviewResponse, CredentialPreviewError> {
         let code = access_token.code().ok_or(CredentialPreviewError::MalformedToken)?;
 
@@ -820,31 +815,13 @@ where
             return Err(CredentialPreviewError::Unauthorized);
         }
 
-        let previews = match request {
-            CredentialPreviewRequest::CredentialIdentifiers { .. } => {
-                todo!("implement in PVW-5541")
-            }
-            CredentialPreviewRequest::CredentialConfigurationIds {
-                credential_configuration_ids,
-            } => {
-                let requested_configuration_ids = credential_configuration_ids.iter().collect::<HashSet<_>>();
+        let credential_previews = session_data
+            .prepared_credentials
+            .nonempty_iter()
+            .map(|state| self.credential_preview_for_credential(state))
+            .collect::<Result<_, _>>()?;
 
-                // Return previews only for the types that are actually in the session; silently ignore IDs that appear
-                // in the requested_attestation_types but are not part of this session.
-                session_data
-                    .prepared_credentials
-                    .iter()
-                    .filter(|credential| requested_configuration_ids.contains(&credential.credential_configuration_id))
-                    .map(|state| self.credential_preview_for_credential(state))
-                    .collect::<Result<Vec<_>, _>>()?
-            }
-        };
-
-        Ok(CredentialPreviewResponse {
-            credential_previews: previews
-                .try_into()
-                .map_err(|_| CredentialPreviewError::CredentialPreviewsNotFound)?,
-        })
+        Ok(CredentialPreviewResponse { credential_previews })
     }
 
     fn credential_preview_for_credential(
@@ -1749,7 +1726,6 @@ mod tests {
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::nonce::response::NonceResponse;
-    use crate::preview::CredentialPreviewRequest;
     use crate::preview::CredentialPreviewResponse;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::test::memory_session_store_with_mock_time;
@@ -1928,11 +1904,10 @@ mod tests {
         async fn request_credential_preview(
             &self,
             _url: &Url,
-            preview_request: &CredentialPreviewRequest,
             access_token: &AccessToken,
         ) -> Result<CredentialPreviewResponse, WalletIssuanceError> {
             self.issuer
-                .process_credential_preview(access_token.clone(), preview_request.clone())
+                .process_credential_preview(access_token.clone())
                 .await
                 .map_err(|err| WalletIssuanceError::CredentialPreview(Box::new(err.into())))
         }

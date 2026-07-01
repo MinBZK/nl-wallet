@@ -50,7 +50,6 @@ use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
@@ -160,7 +159,6 @@ async fn type_metadata<K, L, S, N>(
 async fn credential_preview<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<Bearer>>,
-    Json(preview_request): Json<CredentialPreviewRequest>,
 ) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
 where
     S: SessionStore<IssuanceData>,
@@ -168,7 +166,7 @@ where
     let access_token = AccessToken::from(authorization_header.token().to_string());
     let response = state
         .issuer
-        .process_credential_preview(access_token, preview_request)
+        .process_credential_preview(access_token)
         .await
         .inspect_err(|error| warn!("processing credential preview failed: {}", error))?;
 
