@@ -92,7 +92,7 @@ enum Command {
         organization_name: Option<String>,
         /// Subject Organization identifier to use in the new certificate
         #[arg(long)]
-        oid: Option<String>,
+        organization_id: Option<String>,
         /// Subject Serial Number identifier to use in the new certificate
         #[arg(long)]
         serial_number: Option<String>,
@@ -146,7 +146,7 @@ enum Command {
         organization_name: Option<String>,
         /// Subject Organization identifier to use in the new certificate
         #[arg(long)]
-        oid: Option<String>,
+        organization_id: Option<String>,
         /// Subject Serial Number identifier to use in the new certificate
         #[arg(long)]
         serial_number: Option<String>,
@@ -197,7 +197,7 @@ enum Command {
         organization_name: Option<String>,
         /// Subject Organization identifier to use in the new certificate
         #[arg(long)]
-        oid: Option<String>,
+        organization_id: Option<String>,
         /// Subject Serial Number identifier to use in the new certificate
         #[arg(long)]
         serial_number: Option<String>,
@@ -332,7 +332,7 @@ impl Command {
                 serial_number,
                 surname,
                 given_name,
-                oid,
+                organization_id,
                 san_uris,
                 cert_type,
                 issuer_auth_file,
@@ -347,7 +347,7 @@ impl Command {
                     common_name,
                     country_name,
                     organization_name,
-                    oid,
+                    organization_id,
                     serial_number,
                     surname,
                     given_name,
@@ -365,7 +365,7 @@ impl Command {
                 common_name,
                 country_name,
                 organization_name,
-                oid,
+                organization_id,
                 serial_number,
                 surname,
                 given_name,
@@ -384,7 +384,7 @@ impl Command {
                     common_name,
                     country_name,
                     organization_name,
-                    oid,
+                    organization_id,
                     serial_number,
                     surname,
                     given_name,
@@ -402,7 +402,7 @@ impl Command {
                 common_name,
                 country_name,
                 organization_name,
-                oid,
+                organization_id,
                 serial_number,
                 surname,
                 given_name,
@@ -415,7 +415,7 @@ impl Command {
                     common_name,
                     country_name,
                     organization_name,
-                    oid,
+                    organization_id,
                     serial_number,
                     surname,
                     given_name,

@@ -361,7 +361,7 @@ function generate_pid_issuer_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[(pid,name)]}" \
         --organization-name "${access_certificates[(pid,legal_name)]}" \
-        --oid "${access_certificates[(pid,oid)]}" \
+        --organization-id "${access_certificates[(pid,oid)]}" \
         --san-uri "https://pid.example.com" \
         --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
@@ -383,7 +383,7 @@ function generate_pid_issuer_tsl_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[(pid,name)]}" \
         --organization-name "${access_certificates[(pid,legal_name)]}" \
-        --oid "${access_certificates[(pid,oid)]}" \
+        --organization-id "${access_certificates[(pid,oid)]}" \
         --san-uri "https://pid.example.com" \
         --file-prefix "${TARGET_DIR}/pid_issuer/tsl" \
         --force
@@ -412,7 +412,7 @@ function generate_wia_signing_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
         --common-name "${access_certificates[(wia,name)]}" \
         --organization-name "${access_certificates[(wia,legal_name)]}" \
-        --oid "${access_certificates[(wia,oid)]}" \
+        --organization-id "${access_certificates[(wia,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_signing" \
         --force
 
@@ -435,7 +435,7 @@ function generate_wia_tsl_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
         --common-name "${access_certificates[(wia,name)]}" \
         --organization-name "${access_certificates[(wia,legal_name)]}" \
-        --oid "${access_certificates[(wia,oid)]}" \
+        --organization-id "${access_certificates[(wia,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
 
@@ -454,7 +454,7 @@ function generate_demo_issuer_key_pairs {
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
@@ -480,7 +480,7 @@ function generate_demo_issuer_issuance_key_pairs {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --issuer-auth-file "${DEVENV}/$1_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.issuer" \
@@ -492,7 +492,7 @@ function generate_demo_issuer_issuance_key_pairs {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.tsl" \
         --force
@@ -518,7 +518,7 @@ function generate_demo_relying_party_key_pair {
     if [[ -z ${access_certificates[($1,serial_number)]:-} ]]; then
         ca_args+=(
             --organization-name "${access_certificates[($1,legal_name)]}"
-            --oid "${access_certificates[($1,oid)]}"
+            --organization-id "${access_certificates[($1,oid)]}"
         )
     else
         ca_args+=(
@@ -563,7 +563,7 @@ function generate_relying_party_hsm_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \

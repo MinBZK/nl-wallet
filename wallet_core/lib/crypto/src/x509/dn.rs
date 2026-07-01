@@ -161,8 +161,8 @@ impl From<DistinguishedName> for rcgen::DistinguishedName {
         if let Some(org_name) = dn.organization_name {
             value.push(rcgen::DnType::OrganizationName, org_name);
         }
-        if let Some(oid) = dn.organization_identifier {
-            value.push(custom_dn_type(DN_TYPE_ORGANIZATION_IDENTIFIER_OID), oid);
+        if let Some(org_id) = dn.organization_identifier {
+            value.push(custom_dn_type(DN_TYPE_ORGANIZATION_IDENTIFIER_OID), org_id);
         }
         if let Some(serial_number) = dn.serial_number {
             value.push(custom_dn_type(DN_TYPE_SERIAL_NUMBER_OID), serial_number);
@@ -249,7 +249,7 @@ mod tests {
     const CN_OID: &Oid = &oid!(2.5.4.3);
     const COUNTRY_OID: &Oid = &oid!(2.5.4.6);
     const ORG_OID: &Oid = &oid!(2.5.4.10);
-    const OID_OID: &Oid = DN_TYPE_ORGANIZATION_IDENTIFIER_OID;
+    const ORG_ID_OID: &Oid = DN_TYPE_ORGANIZATION_IDENTIFIER_OID;
     const SERIAL_NUMBER_OID: &Oid = DN_TYPE_SERIAL_NUMBER_OID;
     const SN_OID: &Oid = DN_TYPE_SURNAME_OID;
     const GN_OID: &Oid = DN_TYPE_GIVEN_NAME_OID;
@@ -310,7 +310,7 @@ mod tests {
     #[case::common_name(CN_OID, "CN")]
     #[case::country(COUNTRY_OID, "C")]
     #[case::org(ORG_OID, "O")]
-    #[case::oid(OID_OID, "OID")]
+    #[case::org_id(ORG_ID_OID, "OID")]
     #[case::serial_number(SERIAL_NUMBER_OID, "serialNumber")]
     #[case::surname(SN_OID, "SN")]
     #[case::given_name(GN_OID, "GN")]
@@ -320,7 +320,7 @@ mod tests {
             (CN_OID, "Tst"),
             (COUNTRY_OID, "NL"),
             (ORG_OID, "Tst Ltd"),
-            (OID_OID, "NTRMA-1"),
+            (ORG_ID_OID, "NTRMA-1"),
             (SERIAL_NUMBER_OID, "1"),
             (SN_OID, "Doe"),
             (GN_OID, "John"),
@@ -352,7 +352,7 @@ mod tests {
         for x509_name in [x509_cert.issuer(), x509_cert.subject()] {
             assert_x509_common_name(x509_name, &dn.common_name);
             assert_x509_country_name(x509_name, &dn.country_name);
-            for oid in [ORG_OID, OID_OID, SERIAL_NUMBER_OID, SN_OID, GN_OID] {
+            for oid in [ORG_OID, ORG_ID_OID, SERIAL_NUMBER_OID, SN_OID, GN_OID] {
                 assert_x509_oid(x509_name, oid, None);
             }
         }
@@ -380,7 +380,7 @@ mod tests {
         assert_x509_common_name(x509_cert.subject(), &dn.common_name);
         assert_x509_country_name(x509_cert.subject(), &dn.country_name);
         assert_x509_oid(x509_cert.subject(), ORG_OID, dn.organization_name.as_ref());
-        assert_x509_oid(x509_cert.subject(), OID_OID, dn.organization_identifier.as_ref());
+        assert_x509_oid(x509_cert.subject(), ORG_ID_OID, dn.organization_identifier.as_ref());
         assert_x509_oid(x509_cert.subject(), SERIAL_NUMBER_OID, None);
         assert_x509_oid(x509_cert.subject(), SN_OID, None);
         assert_x509_oid(x509_cert.subject(), GN_OID, None);
@@ -408,7 +408,7 @@ mod tests {
         assert_x509_common_name(x509_cert.subject(), &dn.common_name);
         assert_x509_country_name(x509_cert.subject(), &dn.country_name);
         assert_x509_oid(x509_cert.subject(), ORG_OID, None);
-        assert_x509_oid(x509_cert.subject(), OID_OID, None);
+        assert_x509_oid(x509_cert.subject(), ORG_ID_OID, None);
         assert_x509_oid(x509_cert.subject(), SERIAL_NUMBER_OID, dn.serial_number.as_ref());
         assert_x509_oid(x509_cert.subject(), SN_OID, dn.surname.as_ref());
         assert_x509_oid(x509_cert.subject(), GN_OID, dn.given_name.as_ref());

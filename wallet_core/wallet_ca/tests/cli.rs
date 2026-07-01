@@ -358,7 +358,7 @@ impl CommandExtension for Command {
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self {
         self.arg("--organization-name")
             .arg(organization_name)
-            .arg("--oid")
+            .arg("--organization-id")
             .arg(organization_identifer)
     }
 
