@@ -668,7 +668,8 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::InvalidCertificate { .. }
             | CloseProximityDisclosureError::MissingCommonName { .. } => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::DeviceResponseEncoding(_)
-            | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,
+            | CloseProximityDisclosureError::DeviceResponse(_)
+            | CloseProximityDisclosureError::UnsupportedAttestationFormat => FlutterApiErrorType::Generic,
             CloseProximityDisclosureError::Disconnected => FlutterApiErrorType::CloseProximityDisconnected,
             CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
         }

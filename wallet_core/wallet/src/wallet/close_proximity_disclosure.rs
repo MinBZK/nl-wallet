@@ -236,6 +236,10 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
 
+    #[error("close proximity disclosure only supports mdoc attestations")]
+    #[category(critical)]
+    UnsupportedAttestationFormat,
+
     #[error("could not extract Common Name from certificate: {error}")]
     #[category(critical)]
     InvalidCertificate {
@@ -274,7 +278,8 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
         | CloseProximityDisclosureError::PlatformError(_)
         | CloseProximityDisclosureError::Disconnected
-        | CloseProximityDisclosureError::DeviceResponse(_) => None,
+        | CloseProximityDisclosureError::DeviceResponse(_)
+        | CloseProximityDisclosureError::UnsupportedAttestationFormat => None,
     }
 }
 
@@ -716,14 +721,13 @@ where
         // attestations needs to be retryable.
         let partial_mdocs = attestations
             .into_nonempty_iter()
-            .map(|attestation| {
-                let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
-                    panic!("SD-JWT attestations are not supported in close proximity disclosure")
-                };
-
-                *partial_mdoc.clone()
+            .map(|attestation| match attestation.partial_attestation() {
+                PartialAttestation::MsoMdoc { partial_mdoc } => Ok(*partial_mdoc.clone()),
+                PartialAttestation::SdJwt { .. } => Err(CloseProximityDisclosureError::UnsupportedAttestationFormat),
             })
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .map_err(|_| DisclosureError::SessionState)?;
 
         // if this fails, there's a bug in the code
         let nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
@@ -2209,6 +2213,77 @@ mod tests {
                 .expect("accepting close proximity disclosure should succeed")
                 .is_none()
         );
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_accept_close_proximity_disclosure_error_unsupported_attestation_format() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+
+        let credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+            &[PID_ATTESTATION_TYPE],
+            &[&[PID_GIVEN_NAME]],
+        )]);
+        let (sd_jwt_attestation, _) = example_pid_stored_attestation_copy(Format::SdJwt);
+        let sd_jwt_disclosable_attestation =
+            disclosable_attestation_from_credential_requests(sd_jwt_attestation, &credential_requests);
+
+        {
+            let Some(Session::CloseProximityDisclosure(session)) = &wallet.session else {
+                unreachable!();
+            };
+            let CloseProximityDisclosureSessionState::DisclosureProposed { attestations, .. } =
+                &mut *session.session_state.lock()
+            else {
+                unreachable!();
+            };
+            *attestations = WalletDisclosureAttestations::Proposal(IndexMap::from([(
+                0,
+                vec_nonempty![sd_jwt_disclosable_attestation],
+            )]));
+        }
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .once()
+            .returning(|_| Ok(()));
+
+        let reader_certificate = verifier_certificate.certificate().to_owned();
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .with(
+                always(),
+                always(),
+                eq(reader_certificate),
+                eq(EventStatus::Error),
+                eq(DisclosureType::Regular),
+            )
+            .once()
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let context = MockCloseProximityDisclosureClient::send_device_response_context();
+        context.expect().never();
+
+        let error = wallet
+            .accept_disclosure(&[0], PIN.clone())
+            .await
+            .expect_err("accepting close proximity disclosure with an SD-JWT attestation should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::UnsupportedAttestationFormat
+            )
+        );
+        assert!(wallet.session.is_some());
     }
 
     #[tokio::test]
