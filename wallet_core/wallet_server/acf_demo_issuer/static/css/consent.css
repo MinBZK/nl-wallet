@@ -1,5 +1,6 @@
 @import url("../../../../lib/web_utils/static/css/button-reset.css");
 @import url("../../../../lib/web_utils/static/css/fonts.css");
+@import url("../../../../lib/web_utils/static/css/language_selector.css");
 @import url("../../../../lib/web_utils/static/css/reset.css");
 @import url("../../../../demo/demo_utils/static/css/common.css");
 @import url("../../../../demo/demo_utils/static/css/title_bar.css");
@@ -12,6 +13,21 @@
   --title-color: #3a839a;
   --text-color: #002328;
   --logo-url: url("../images/insurance.svg");
+}
+
+aside {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 16px;
+  background: #f2f1fe;
+}
+
+@media screen and (min-width: 500px) {
+  aside {
+    padding: 8px 24px;
+  }
 }
 
 main h2 {

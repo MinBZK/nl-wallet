@@ -30,6 +30,9 @@ use serde::de::DeserializeOwned;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::EndEntityCert;
+use webpki::Error;
+use webpki::ExtendedKeyUsageValidator;
+use webpki::KeyPurposeIdIter;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
@@ -153,6 +156,17 @@ type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'sta
 #[derive(Debug)]
 pub struct BorrowingCertificate(#[debug("{:?}", _0.get())] YokedCertificate);
 
+struct OptionalExtendedKeyUsageValidator<E: ExtendedKeyUsageValidator>(Option<E>);
+
+impl<E: ExtendedKeyUsageValidator> ExtendedKeyUsageValidator for OptionalExtendedKeyUsageValidator<E> {
+    fn validate(&self, iter: KeyPurposeIdIter<'_, '_>) -> Result<(), Error> {
+        match self.0.as_ref() {
+            None => Ok(()),
+            Some(validator) => validator.validate(iter),
+        }
+    }
+}
+
 impl BorrowingCertificate {
     pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, CertificateError> {
         let certificate_der = CertificateDer::from(der_bytes.into());
@@ -194,7 +208,7 @@ impl BorrowingCertificate {
     /// certificates as mandated by HAIP 1.0.
     pub fn verify(
         &self,
-        usage: CertificateUsage,
+        usage: Option<CertificateUsage>,
         intermediate_certs: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -212,14 +226,22 @@ impl BorrowingCertificate {
             .cloned()
             .collect_vec();
 
+        let supported_sig_algs = [ECDSA_P256_SHA256];
+        let time = UnixTime::since_unix_epoch(Duration::from_secs(
+            time.generate()
+                .timestamp()
+                .try_into()
+                .expect("time of verification should lie after UNIX epoch"),
+        ));
+        let key_usage = usage.map(|u| webpki::KeyUsage::required(u.as_oid_bytes()));
+
         self.end_entity_certificate()
             .verify_for_usage(
-                &[ECDSA_P256_SHA256],
+                &supported_sig_algs,
                 trust_anchors.as_trust_anchor_slice(),
                 intermediate_certs.as_slice(),
-                // unwrap is safe here because we assume the time that is generated lies after the epoch
-                UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())),
-                webpki::KeyUsage::required(usage.as_oid_bytes()),
+                time,
+                OptionalExtendedKeyUsageValidator(key_usage),
                 None,
                 None,
             )
@@ -243,7 +265,7 @@ impl BorrowingCertificate {
         self.as_ref().to_vec()
     }
 
-    pub fn as_der<'a>(&'a self) -> &'a CertificateDer<'a> {
+    pub fn as_der(&'_ self) -> &'_ CertificateDer<'_> {
         self.0.backing_cart()
     }
 
@@ -490,6 +512,47 @@ mod tests {
         assert_certificate_validity(x509_cert, now, later);
     }
 
+    #[test]
+    fn test_key_usage() {
+        let ca = Ca::generate_mock();
+
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("mycert"),
+                CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                NO_SAN,
+            )
+            .unwrap();
+
+        // Test verify with no usage
+        key_pair
+            .certificate()
+            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca))
+            .expect("Expected verify to succeed");
+
+        // Test verify with correct usage
+        key_pair
+            .certificate()
+            .verify(
+                Some(CertificateUsage::Wia),
+                &[],
+                &TimeGenerator,
+                &TrustAnchors::from(&ca),
+            )
+            .expect("Expected verify to succeed");
+
+        // Test verify with different usage
+        key_pair
+            .certificate()
+            .verify(
+                Some(CertificateUsage::OAuthStatusSigning),
+                &[],
+                &TimeGenerator,
+                &TrustAnchors::from(&ca),
+            )
+            .expect_err("Expected verify to fail");
+    }
+
     fn generate_and_verify_issuer_for_validity(
         not_before: Option<DateTime<Utc>>,
         not_after: Option<DateTime<Utc>>,
@@ -499,7 +562,6 @@ mod tests {
         let config = CertificateConfiguration {
             not_before,
             not_after,
-            usage: Some(CertificateUsage::Mdl),
             ..Default::default()
         };
 
@@ -508,7 +570,7 @@ mod tests {
             .unwrap();
         issuer_key_pair
             .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca))
             .expect_err("Expected verify to fail")
     }
 
@@ -597,26 +659,20 @@ mod tests {
                 .unwrap();
         // new_ca uses the same key pair for both the self-signed root and the cross-cert (signed
         // by old_ca). This is the core of a cross-signing setup.
-        let cert_config = CertificateConfiguration::with_usage(CertificateUsage::Mdl);
         let (new_ca, cross_cert_der) = old_ca
-            .generate_root_and_cross_cert(DistinguishedName::create_mock("new_ca"), cert_config.clone())
+            .generate_root_and_cross_cert(DistinguishedName::create_mock("new_ca"), Default::default())
             .unwrap();
         let cross_cert = BorrowingCertificate::from_certificate_der(cross_cert_der).unwrap();
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
         let leaf = new_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), cert_config, NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
             .unwrap();
 
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
         // Path: leaf ← cross-cert (new key, signed by old CA) ← old CA trust anchor.
         leaf.certificate()
-            .verify(
-                CertificateUsage::Mdl,
-                from_ref(&cross_cert),
-                &time,
-                &TrustAnchors::from(&old_ca),
-            )
+            .verify(None, from_ref(&cross_cert), &time, &TrustAnchors::from(&old_ca))
             .expect("leaf should verify against old CA via cross-cert intermediate");
 
         // Phase 2: same verification but with the self-signed new CA cert added to the
@@ -624,7 +680,7 @@ mod tests {
         // here is old CA (different subject/SPKI from the new CA cert).
         leaf.certificate()
             .verify(
-                CertificateUsage::Mdl,
+                None,
                 &[cross_cert, new_ca.as_borrowing_certificate().unwrap()],
                 &time,
                 &TrustAnchors::from(&old_ca),
@@ -633,14 +689,13 @@ mod tests {
 
         // Phase 3: leaf verified directly against the new CA trust anchor (no intermediates).
         leaf.certificate()
-            .verify(CertificateUsage::Mdl, &[], &time, &TrustAnchors::from(&new_ca))
+            .verify(None, &[], &time, &TrustAnchors::from(&new_ca))
             .expect("leaf should verify against self-signed new CA");
     }
 
     #[test]
     fn chain_with_intermediate_scenario() {
         let time = TimeGenerator;
-        let cert_config = CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth);
 
         // CA
         let ca = Ca::generate_with_intermediate_count(
@@ -654,43 +709,33 @@ mod tests {
 
         // Intermediate
         let intermediate_ca = ca
-            .generate_intermediate(DistinguishedName::create_mock("intermediate"), cert_config.clone())
+            .generate_intermediate(DistinguishedName::create_mock("intermediate"), Default::default())
             .unwrap();
         let intermediate_ta = intermediate_ca.to_borrowing_trust_anchor();
         let intermediate_cert = intermediate_ca.as_borrowing_certificate().unwrap();
 
         // Leaf
         let leaf_key_pair = intermediate_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), cert_config, NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
             .unwrap();
 
         // Verify whole chain with leaf, intermediate and ca trust anchor
         leaf_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::ReaderAuth,
-                from_ref(&intermediate_cert),
-                &time,
-                &TrustAnchors::from(&ca),
-            )
+            .verify(None, from_ref(&intermediate_cert), &time, &TrustAnchors::from(&ca))
             .expect("should verify");
 
         // Verify leaf with only intermediate as trust anchor
         leaf_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::ReaderAuth,
-                &[],
-                &time,
-                &TrustAnchors::from(&intermediate_ca),
-            )
+            .verify(None, &[], &time, &TrustAnchors::from(&intermediate_ca))
             .expect("should verify");
 
         // Verify whole chain with intermediate both in intermediates and trust anchors
         let error = leaf_key_pair
             .certificate()
             .verify(
-                CertificateUsage::ReaderAuth,
+                None,
                 from_ref(&intermediate_cert),
                 &time,
                 &TrustAnchors::try_from(vec![intermediate_ta, ca_ta.clone()]).unwrap(),
@@ -701,12 +746,7 @@ mod tests {
         // Verify whole chain with ca in both intermediates and trust anchors
         let error = leaf_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::ReaderAuth,
-                &[intermediate_cert, ca_cert],
-                &time,
-                &TrustAnchors::from(&ca),
-            )
+            .verify(None, &[intermediate_cert, ca_cert], &time, &TrustAnchors::from(&ca))
             .expect_err("should detect TrustAnchorInChain");
         assert_matches!(error, CertificateError::TrustAnchorInChain);
     }

@@ -237,7 +237,7 @@ where
 
         let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
         leaf_cert
-            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
+            .verify(Some(certificate_usage), &intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.

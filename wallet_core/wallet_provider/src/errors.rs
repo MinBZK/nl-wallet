@@ -42,8 +42,8 @@ pub enum WalletProviderError {
 }
 
 impl HttpJsonErrorType for WalletProviderErrorType {
-    fn title(&self) -> String {
-        let title = match self.as_ref() {
+    fn title(&self) -> &'static str {
+        match self.as_ref() {
             AccountErrorType::Unexpected => "An unexpected error occurred",
             AccountErrorType::ChallengeValidation => "Could not validate registration challenge",
             AccountErrorType::AttestationValidation => "Could not validate key / app attestation",
@@ -53,9 +53,7 @@ impl HttpJsonErrorType for WalletProviderErrorType {
             AccountErrorType::AccountBlocked => "The requested account is blocked",
             AccountErrorType::InstructionValidation => "Could not validate instruction",
             AccountErrorType::AccountRevoked => "Account has been revoked",
-        };
-
-        title.to_string()
+        }
     }
 
     fn status_code(&self) -> StatusCode {

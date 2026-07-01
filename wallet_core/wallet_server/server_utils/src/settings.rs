@@ -51,6 +51,12 @@ pub struct Settings {
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
     pub issuer_trust_anchors: TrustAnchors,
 
+    /// Trust anchors for Wallet Relying Party Access Certificates, used by both issuers and verifiers.
+    pub wrpac_trust_anchors: TrustAnchors,
+
+    /// Trust anchors for Wallet Relying Party Registration Certificates, used by both issuers and verifiers.
+    pub wrprc_trust_anchors: TrustAnchors,
+
     /// Optional HSM settings in which private keys can be stored
     pub hsm: Option<Hsm>,
 }
@@ -203,7 +209,7 @@ pub fn verify_key_pairs(
 
         key_pair
             .certificate
-            .verify(usage, &[], time, trust_anchors)
+            .verify(Some(usage), &[], time, trust_anchors)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
         if CertificateType::has_certificate_type(usage) {

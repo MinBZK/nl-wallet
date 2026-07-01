@@ -7,7 +7,6 @@ use itertools::Either;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::DeserializeFromStr;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -18,6 +17,7 @@ use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
+use crate::ParErrorCode;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
@@ -29,21 +29,6 @@ use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
-
-#[derive(Debug, Clone, PartialEq, strum::EnumString, DeserializeFromStr)]
-#[strum(serialize_all = "snake_case")]
-pub enum ParErrorCode {
-    InvalidClient,
-    InvalidRequest,
-    ServerError,
-
-    // Catch-all for any (spec-compliant) error code the holder doesn't model explicitly. The PAR
-    // endpoint returns RFC 6749 / RFC 9126 codes in snake_case, so deserialization routes through
-    // the strum `FromStr` impl via `DeserializeFromStr`; the `#[strum(default)]` fallback captures
-    // the original code here instead of failing to decode the response.
-    #[strum(default)]
-    Other(String),
-}
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]

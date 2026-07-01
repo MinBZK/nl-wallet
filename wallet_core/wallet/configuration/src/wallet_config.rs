@@ -33,6 +33,10 @@ pub struct WalletConfiguration {
     pub disclosure: DisclosureConfiguration,
     #[debug(skip)]
     pub issuer_trust_anchors: TrustAnchors,
+    #[debug(skip)]
+    pub wrpac_trust_anchors: TrustAnchors,
+    #[debug(skip)]
+    pub wrprc_trust_anchors: TrustAnchors,
     pub update_policy_server: UpdatePolicyServerConfiguration,
     pub google_cloud_project_number: u64,
     pub static_assets_base_url: BaseUrl,
@@ -46,6 +50,14 @@ impl JwtTyp for WalletConfiguration {}
 impl WalletConfiguration {
     pub fn issuer_trust_anchors(&self) -> &TrustAnchors {
         &self.issuer_trust_anchors
+    }
+
+    pub fn wrpac_trust_anchors(&self) -> &TrustAnchors {
+        &self.wrpac_trust_anchors
+    }
+
+    pub fn wrprc_trust_anchors(&self) -> &TrustAnchors {
+        &self.wrprc_trust_anchors
     }
 }
 

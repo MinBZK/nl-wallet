@@ -9,10 +9,12 @@ use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use http::header;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use openid4vc::AuthorizationErrorCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential_offer::CredentialOfferContainer;
@@ -25,11 +27,11 @@ use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
-use openid4vc::test::AlwaysAuthorizingFlow;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
 use openid4vc::test::MOCK_ATTRS;
 use openid4vc::test::MockAuthorizingIssuer;
 use openid4vc::test::MockIssuer;
+use openid4vc::test::StaticAuthorizingFlow;
 use openid4vc::test::mock_issuable_document_with_attrs;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::mock_type_metadata;
@@ -105,13 +107,14 @@ async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCod
         .map(|attestation_type| mock_type_metadata(attestation_type))
         .collect();
 
-    start_auth_code_flow_server_with(type_metadata, mock_issuable_documents(attestation_count)).await
+    start_auth_code_flow_server_with(type_metadata, Ok(mock_issuable_documents(attestation_count))).await
 }
 
-/// Like [`start_auth_code_flow_server`], but with custom type metadata and custom documents to authorize.
+/// Like [`start_auth_code_flow_server`], but with custom type metadata and either custom documents to authorize or an
+/// error status code to return.
 async fn start_auth_code_flow_server_with(
     type_metadata: Vec<TypeMetadata>,
-    documents: VecNonEmpty<IssuableDocument>,
+    documents_or_error_code: Result<VecNonEmpty<IssuableDocument>, AuthorizationErrorCode>,
 ) -> AuthCodeFlowServer {
     let (tls_server_config, tls_trust_anchor) = generate_localhost_tls();
 
@@ -121,7 +124,7 @@ async fn start_auth_code_flow_server_with(
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let flow = AlwaysAuthorizingFlow::new(documents);
+    let flow = StaticAuthorizingFlow::new(documents_or_error_code);
     let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_sd_jwt_metadata(
         issuer_identifier.clone(),
         type_metadata,
@@ -264,7 +267,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     // State is inside the PAR-stored request; read it from the session to check the redirect.
     let state = auth_session.state().to_owned();
 
-    // Simulate the user agent following the auth_url. `AlwaysAuthorizingFlow` authorizes
+    // Simulate the user agent following the auth_url. `StaticAuthorizingFlow` authorizes
     // synchronously, so the /authorize handler writes the `AuthCodeIssued` session and 302s the
     // user-agent straight back to the wallet's redirect_uri with the issuer-generated code and the
     // echoed state.
@@ -277,7 +280,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
         .send()
         .await
         .unwrap();
-    assert_eq!(authorize_response.status(), StatusCode::FOUND);
+    assert_eq!(authorize_response.status(), StatusCode::SEE_OTHER);
 
     let received_redirect: Url = authorize_response
         .headers()
@@ -334,7 +337,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
         MOCK_ATTESTATION_TYPES[0],
         &[MOCK_ATTRS[1]]
     )];
-    let server = start_auth_code_flow_server_with(vec![type_metadata], documents).await;
+    let server = start_auth_code_flow_server_with(vec![type_metadata], Ok(documents)).await;
 
     let mut session = start_issuance_session(&server).await;
 
@@ -503,6 +506,7 @@ async fn par_rejects_unknown_client_id() {
             ("response_type", "code"),
             ("client_id", "unknown_client_id"),
             ("redirect_uri", REDIRECT_URI),
+            ("scope", "com.example.pid_dc+sd-jwt"),
             ("code_challenge", "some-challenge"),
             ("code_challenge_method", "S256"),
         ])
@@ -566,10 +570,13 @@ async fn authorize_rejects_unknown_request_uri() {
         .append_pair("request_uri", "urn:ietf:params:oauth:request_uri:not-stored");
     let response = http_client.get(authorize_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    // This should result in an error HTTP status code and plain-text body describing the error.
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
     let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_request"), "unexpected body: {body}");
-    assert!(body.contains("request_uri not found"), "unexpected body: {body}");
+    assert!(
+        body.contains("urn:ietf:params:oauth:request_uri:not-stored"),
+        "unexpected body: {body}"
+    );
 }
 
 #[tokio::test]
@@ -597,9 +604,10 @@ async fn authorize_rejects_unknown_client_id() {
         .append_pair("request_uri", "urn:ietf:params:oauth:request_uri:doesnt-matter");
     let response = http_client.get(authorize_url).send().await.unwrap();
 
+    // This should result in an error HTTP status code and plain-text body describing the error.
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_client"), "unexpected body: {body}");
+    assert!(body.contains("definitely-not-the-wallet"), "unexpected body: {body}");
 }
 
 #[tokio::test]
@@ -625,6 +633,7 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
             ("response_type", "code"),
             ("client_id", MOCK_WALLET_CLIENT_ID),
             ("redirect_uri", REDIRECT_URI),
+            ("scope", "com.example.pid_dc+sd-jwt"),
             ("code_challenge", "plain-challenge"),
             ("code_challenge_method", "plain"),
         ])
@@ -645,10 +654,117 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
         .append_pair("request_uri", &request_uri);
     let response = http_client.get(authorize_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_request"), "unexpected body: {body}");
-    assert!(body.contains("code_challenge_method"), "unexpected body: {body}");
+    // As the `redirect_uri` is known at the point the error occurred, it should result in a 303 redirect and the error
+    // details being transported as query parameters using said `redirect_uri`.
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+
+    let redirect_uri = response
+        .headers()
+        .get(header::LOCATION)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse::<Url>()
+        .unwrap();
+
+    assert!(
+        redirect_uri.as_str().starts_with(REDIRECT_URI),
+        "unexpected redirect URI: {redirect_uri}"
+    );
+
+    let query_pairs = redirect_uri.query_pairs().collect::<HashMap<_, _>>();
+
+    // The redirect URI returned does not contain "state" or "error_uri" parameters.
+    assert_eq!(query_pairs.len(), 2);
+    assert_eq!(query_pairs.get("error").map(AsRef::as_ref), Some("invalid_request"));
+    let error_description = query_pairs
+        .get("error_description")
+        .expect("redirect URI should contain error_description");
+    assert!(
+        error_description.contains("code_challenge_method"),
+        "unexpected error_description: {error_description}",
+    );
+}
+
+#[tokio::test]
+async fn authorize_forwards_auth_code_flow_error_codes() {
+    let AuthCodeFlowServer {
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server_with(
+        vec![mock_type_metadata(MOCK_ATTESTATION_TYPES[0])],
+        Err(AuthorizationErrorCode::TemporarilyUnavailable),
+    )
+    .await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
+
+    let par_response = http_client
+        .post(format!("{base}issuance/par"))
+        .form(&[
+            ("response_type", "code"),
+            ("client_id", MOCK_WALLET_CLIENT_ID),
+            ("redirect_uri", REDIRECT_URI),
+            ("scope", "com.example.pid_dc+sd-jwt"),
+            ("code_challenge", "some-challenge"),
+            ("code_challenge_method", "S256"),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(par_response.status(), StatusCode::CREATED);
+    let request_uri = par_response
+        .json::<PushedAuthorizationResponse>()
+        .await
+        .unwrap()
+        .request_uri;
+
+    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
+    authorize_url
+        .query_pairs_mut()
+        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
+        .append_pair("request_uri", &request_uri);
+    let response = http_client.get(authorize_url).send().await.unwrap();
+
+    // As the `redirect_uri` is known at the point the error occurred, it should result in a 303 redirect and the error
+    // details being transported as query parameters using said `redirect_uri`.
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+
+    let redirect_uri = response
+        .headers()
+        .get(header::LOCATION)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse::<Url>()
+        .unwrap();
+
+    assert!(
+        redirect_uri.as_str().starts_with(REDIRECT_URI),
+        "unexpected redirect URI: {redirect_uri}"
+    );
+
+    let query_pairs = redirect_uri.query_pairs().collect::<HashMap<_, _>>();
+
+    // The redirect URI returned does not contain "state" or "error_uri" parameters.
+    assert_eq!(query_pairs.len(), 2);
+    assert_eq!(
+        query_pairs.get("error").map(AsRef::as_ref),
+        Some("temporarily_unavailable")
+    );
+    let error_description = query_pairs
+        .get("error_description")
+        .expect("redirect URI should contain error_description");
+    assert!(
+        error_description.contains("StaticAuthorizingFlowError"),
+        "unexpected error_description: {error_description}",
+    );
 }
 
 /// Builds a parseable DPoP header for `POST {token_url}`. The PKCE check in the `/token`

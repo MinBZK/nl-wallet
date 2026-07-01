@@ -2,7 +2,7 @@ use error_category::ErrorCategory;
 use url::Url;
 
 use crate::errors::DisclosureErrorResponse;
-use crate::errors::GetRequestErrorCode;
+use crate::errors::GetAuthRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,7 +21,7 @@ pub enum VpMessageClientError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("auth request server error response: {0:?}")]
-    AuthGetResponse(Box<DisclosureErrorResponse<GetRequestErrorCode>>),
+    AuthGetResponse(Box<DisclosureErrorResponse<GetAuthRequestErrorCode>>),
     #[error("auth request server error response: {0:?}")]
     AuthPostResponse(Box<DisclosureErrorResponse<PostAuthResponseErrorCode>>),
     #[error("JWT error: {0}")]
@@ -33,9 +33,9 @@ impl VpMessageClientError {
         match self {
             // Consider the different error codes when getting the disclosure request.
             Self::AuthGetResponse(response) => match response.error() {
-                GetRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
-                GetRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
-                GetRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
+                GetAuthRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
+                GetAuthRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
+                GetAuthRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
                 _ => VpMessageClientErrorType::Other,
             },
             // Consider the different error codes when posting the disclosure response.
@@ -58,8 +58,8 @@ impl VpMessageClientError {
     }
 }
 
-impl From<DisclosureErrorResponse<GetRequestErrorCode>> for VpMessageClientError {
-    fn from(value: DisclosureErrorResponse<GetRequestErrorCode>) -> Self {
+impl From<DisclosureErrorResponse<GetAuthRequestErrorCode>> for VpMessageClientError {
+    fn from(value: DisclosureErrorResponse<GetAuthRequestErrorCode>) -> Self {
         Self::AuthGetResponse(value.into())
     }
 }

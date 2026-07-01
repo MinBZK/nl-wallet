@@ -178,7 +178,10 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;
     use mdoc::holder::disclosure::PartialMdoc;
+    use openid4vc::BoxedErrorWithCode;
     use openid4vc::DisclosureErrorResponse;
+    use openid4vc::ErrorResponse;
+    use openid4vc::ErrorWithCode;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
@@ -187,9 +190,7 @@ mod tests {
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
-    use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
-    use openid4vc::verifier::ToPostAuthResponseErrorCode;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -363,8 +364,10 @@ mod tests {
     #[error("mock error")]
     pub struct MockError;
 
-    impl ToPostAuthResponseErrorCode for MockError {
-        fn to_error_code(&self) -> PostAuthResponseErrorCode {
+    impl ErrorWithCode for MockError {
+        type ErrorCode = PostAuthResponseErrorCode;
+
+        fn error_code(&self) -> Self::ErrorCode {
             PostAuthResponseErrorCode::NoIssuableAttestations
         }
     }
@@ -383,10 +386,9 @@ mod tests {
                     DataDisclosed::Disclosed,
                     VpSessionError::Client(VpClientError::Request(
                         DisclosureErrorResponse {
-                            error_response: PostAuthResponseError::HandlingDisclosureResult(
-                                DisclosureResultHandlerError::new(MockError),
-                            )
-                            .into(),
+                            error_response: ErrorResponse::<PostAuthResponseErrorCode>::from(
+                                PostAuthResponseError::HandlingDisclosureResult(BoxedErrorWithCode::new(MockError)),
+                            ),
                             redirect_uri: None,
                         }
                         .into(),

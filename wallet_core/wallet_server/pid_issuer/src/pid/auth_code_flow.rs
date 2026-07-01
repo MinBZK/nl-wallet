@@ -11,9 +11,7 @@ use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::http::header;
-use axum::response::IntoResponse;
-use axum::response::Response;
+use axum::response::Redirect;
 use axum::routing::get;
 use crypto::utils::random_string;
 use hsm::service::HsmError;
@@ -23,12 +21,16 @@ use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use itertools::Either;
 use itertools::Itertools;
 use jwk_simple::Key;
+use openid4vc::AuthorizationErrorCode;
+use openid4vc::BodyOrRedirectErrorResponse;
+use openid4vc::ErrorWithCode;
+use openid4vc::RedirectError;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
-use openid4vc::authorizing_issuer::WalletRedirect;
+use openid4vc::authorizing_issuer::RedirectQuery;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
@@ -102,6 +104,29 @@ pub enum Error {
 
     #[error("error completing authorization: {0}")]
     CompleteAuthorization(#[source] CompleteAuthorizationError),
+}
+
+impl ErrorWithCode for Error {
+    type ErrorCode = AuthorizationErrorCode;
+
+    fn error_code(&self) -> Self::ErrorCode {
+        match self {
+            Self::UnsupportedCredentialType(_) => AuthorizationErrorCode::InvalidScope,
+
+            Self::Digid(_)
+            | Self::StateBridge(_)
+            | Self::NoAttributesFound
+            | Self::Brp(_)
+            | Self::InvalidIssuableDocuments
+            | Self::NoBsnFound
+            | Self::RetrievingBsn(_)
+            | Self::BsnUnexpectedType
+            | Self::Hmac(_)
+            | Self::InsertingRecoveryCode(_) => AuthorizationErrorCode::ServerError,
+
+            Self::CompleteAuthorization(error) => error.error_code(),
+        }
+    }
 }
 
 /// One state-bridge entry, written at `/authorize` and consumed by the upstream callback handler.
@@ -277,15 +302,14 @@ where
 {
     type Error = Error;
 
-    async fn authorize(
-        &self,
-        context: WalletAuthorizationContext,
-        credential_kinds: VecNonEmpty<CredentialKind>,
-    ) -> Result<AuthorizeOutcome, Self::Error> {
+    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
         // Return an error if any of the attestation types are not the PID attestation type and retain only the
         // requested formats.
-        let (formats, unsupported): (HashSet<_>, HashSet<_>) =
-            credential_kinds.into_iter().partition_map(|credential_kind| {
+        let (formats, unsupported): (HashSet<_>, HashSet<_>) = context
+            .credential_kinds
+            .clone()
+            .into_iter()
+            .partition_map(|credential_kind| {
                 if credential_kind.attestation_type == PID_ATTESTATION_TYPE {
                     Either::Left(credential_kind.format)
                 } else {
@@ -349,7 +373,7 @@ type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B = HttpBrpClient, O = Http
 async fn digid_callback<K, L, S, N, PAS, B, O>(
     State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>>,
     Query(DigidCallbackQuery { code, state }): Query<DigidCallbackQuery>,
-) -> Response
+) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
@@ -361,15 +385,25 @@ where
 {
     let flow = authorizing_issuer.flow();
 
+    // Since we cannot know the `redirect_uri` yet, the below errors are rendered as responses with plain-text bodies
+    // and an error HTTP status code.
     let entry: StateBridgeEntry = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Some(entry)) => entry,
         Ok(None) => {
             warn!("digid callback: unknown or expired bridge key");
-            return (StatusCode::BAD_REQUEST, "unknown or expired state").into_response();
+
+            return Err(BodyOrRedirectErrorResponse::new_body(
+                StatusCode::BAD_REQUEST,
+                "unknown or expired state".to_string(),
+            ));
         }
         Err(error) => {
             warn!("digid callback: state bridge consume failed: {error}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "state bridge error").into_response();
+
+            return Err(BodyOrRedirectErrorResponse::new_body(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "state bridge error".to_string(),
+            ));
         }
     };
 
@@ -382,7 +416,7 @@ where
     } = entry;
     let redirect_uri = request_values.redirect_uri.clone();
 
-    let result = complete_digid_callback(
+    let code = match complete_digid_callback(
         &authorizing_issuer,
         request_values,
         upstream_code_verifier,
@@ -390,11 +424,20 @@ where
         code,
     )
     .await
-    .inspect_err(|error| warn!("digid callback: completion failed: {error}"));
+    {
+        Ok(code) => code,
+        Err(error) => {
+            warn!("digid callback: completion failed: {error}");
 
-    let url = WalletRedirect::new(redirect_uri, state).into_redirect_url(result.as_ref(), "server_error");
+            // Return any error from completing the callback as a 303 redirect to the `redirect_uri`, including the
+            // `state` if it was present in the Authorization Request.
+            return Err(RedirectError::new(error, redirect_uri, state).into());
+        }
+    };
 
-    (StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response()
+    let url = RedirectQuery::encode(redirect_uri, &code, state.as_deref());
+
+    Ok(Redirect::to(url.as_str()))
 }
 
 /// Exchange the upstream `code` for the issuable documents, then hand them to the `openid4vc` layer's
@@ -478,8 +521,6 @@ mod tests {
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::par::PAR_TTL;
-    use openid4vc::pkce::PkcePair;
-    use openid4vc::pkce::S256PkcePair;
     use openid4vc::scope::Scope;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
@@ -599,15 +640,20 @@ mod tests {
         (authorizing_issuer, sessions)
     }
 
-    fn wallet_request() -> VciAuthorizationRequest {
-        VciAuthorizationRequest::for_auth_code(
-            MOCK_WALLET_CLIENT_ID.to_string(),
-            WALLET_REDIRECT_URI.parse().unwrap(),
-            WALLET_STATE.to_string(),
-            None,
-            HashSet::from([WALLET_SCOPE.parse().unwrap()]),
-            &S256PkcePair::generate(),
-        )
+    /// Builds the wallet-side context `AuthorizationCodeFlow::authorize` receives, carrying the
+    /// `credential_kinds` the `openid4vc` layer derived from the request's scopes.
+    fn wallet_context(credential_kinds: HashSet<CredentialKind>) -> WalletAuthorizationContext {
+        WalletAuthorizationContext {
+            state: Some(WALLET_STATE.to_string()),
+            issuer_state: None,
+            credential_kinds,
+            request_values: AuthRequestValues::new(
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                WALLET_REDIRECT_URI.parse().unwrap(),
+                WALLET_CODE_CHALLENGE.to_string(),
+                HashSet::from([WALLET_SCOPE.parse().unwrap()]),
+            ),
+        }
     }
 
     fn state_bridge_entry() -> StateBridgeEntry {
@@ -615,6 +661,10 @@ mod tests {
             context: WalletAuthorizationContext {
                 state: Some(WALLET_STATE.to_string()),
                 issuer_state: None,
+                credential_kinds: HashSet::from([
+                    CredentialKind::new(Format::MsoMdoc, String::from(PID_ATTESTATION_TYPE)),
+                    CredentialKind::new(Format::SdJwt, String::from(PID_ATTESTATION_TYPE)),
+                ]),
                 request_values: AuthRequestValues::new(
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     WALLET_REDIRECT_URI.parse().unwrap(),
@@ -680,21 +730,15 @@ mod tests {
             Arc::clone(&bridge),
         );
 
-        let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
+        let context = wallet_context(HashSet::from([
+            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+            // Test deduplication.
+            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+        ]));
         let wallet_code_challenge = context.request_values.code_challenge.clone();
 
-        let outcome = flow
-            .authorize(
-                context,
-                vec_nonempty![
-                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
-                    CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
-                    // Test deduplication.
-                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())
-                ],
-            )
-            .await
-            .unwrap();
+        let outcome = flow.authorize(context).await.unwrap();
         let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
             panic!("authorize should redirect the user-agent to the upstream provider");
         };
@@ -742,17 +786,14 @@ mod tests {
             Arc::clone(&bridge),
         );
 
-        let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
+        let context = wallet_context(HashSet::from([
+            CredentialKind::new(Format::SdJwt, "foo".to_string()),
+            CredentialKind::new(Format::MsoMdoc, "bar".to_string()),
+            CredentialKind::new(Format::SdJwt, "not_supported".to_string()),
+        ]));
 
         let error = flow
-            .authorize(
-                context,
-                vec_nonempty![
-                    CredentialKind::new(Format::SdJwt, "foo".to_string()),
-                    CredentialKind::new(Format::MsoMdoc, "bar".to_string()),
-                    CredentialKind::new(Format::SdJwt, "not_supported".to_string())
-                ],
-            )
+            .authorize(context)
             .await
             .expect_err("starting authorization flow should fail");
 

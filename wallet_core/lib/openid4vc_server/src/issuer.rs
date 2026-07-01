@@ -11,9 +11,7 @@ use axum::http::HeaderMap;
 use axum::http::HeaderName;
 use axum::http::HeaderValue;
 use axum::http::StatusCode;
-use axum::http::header;
-use axum::response::IntoResponse;
-use axum::response::Response;
+use axum::response::Redirect;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
@@ -25,7 +23,8 @@ use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
-use openid4vc::AuthorizeErrorCode;
+use openid4vc::AuthorizationErrorCode;
+use openid4vc::BodyOrRedirectErrorResponse;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
@@ -51,7 +50,6 @@ use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
@@ -161,7 +159,6 @@ async fn type_metadata<K, L, S, N>(
 async fn credential_preview<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<Bearer>>,
-    Json(preview_request): Json<CredentialPreviewRequest>,
 ) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
 where
     S: SessionStore<IssuanceData>,
@@ -169,7 +166,7 @@ where
     let access_token = AccessToken::from(authorization_header.token().to_string());
     let response = state
         .issuer
-        .process_credential_preview(access_token, preview_request)
+        .process_credential_preview(access_token)
         .await
         .inspect_err(|error| warn!("processing credential preview failed: {}", error))?;
 
@@ -324,7 +321,7 @@ where
 async fn authorize<K, L, S, N, PAS, AF>(
     State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
     Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
-) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
+) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     S: SessionStore<IssuanceData>,
     PAS: Store<String, VciAuthorizationRequest>,
@@ -336,7 +333,7 @@ where
         .await
         .inspect_err(|error| warn!("processing authorization request failed: {error}"))?;
 
-    Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
+    Ok(Redirect::to(redirect_url.as_str()))
 }
 
 static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");
