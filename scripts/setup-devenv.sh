@@ -251,6 +251,10 @@ if [[ -z "${SKIP_KEYCLOAK:-}" ]]; then
   docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'mkdir -p /opt/keycloak/data/certs'
   docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/certs/keycloak.crt' < "${TARGET_DIR}/keycloak/keycloak.crt"
   docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/certs/keycloak.key' < "${TARGET_DIR}/keycloak/keycloak.key"
+
+  # Place the realm file, imported on container start.
+  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'mkdir -p /opt/keycloak/data/import'
+  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/import/realm.json' < "${DEVENV}/keycloak/realm.json"
 fi
 
 ########################################################################

@@ -1,0 +1,115 @@
+{
+  "realm": "nl-wallet",
+  "displayName": "NL Wallet",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "privilege_revoke_wallet",
+        "description": "Create or review a task to revoke a Wallet.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "privilege_block_user",
+        "description": "Create or review a task to block a user. Also revokes any active wallets held by the user.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "privilege_unblock_user",
+        "description": "Create or approve a task to unblock a blocked user.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "privilege_show_all_tasks",
+        "description": "See all open and completed tasks (also if not 'owner' or 'reviewer'). Used for a team member in a teamleader role.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "privilege_revoke_solution",
+        "description": "Create or review a task to revoke the Wallet Solution.",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "administrator",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "administrator",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "privilege_revoke_wallet",
+        "privilege_block_user",
+        "privilege_unblock_user"
+      ]
+    },
+    {
+      "username": "manager",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "manager",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "privilege_show_all_tasks"
+      ]
+    },
+    {
+      "username": "revoker",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "revoker",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "privilege_revoke_solution"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "wallet-backend",
+      "name": "Wallet Backend",
+      "description": "Client registration for the Wallet Backend. redirect_uris must include the /auth/callback endpoint on the WalletBackend.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "redirectUris": [
+        "https://localhost:3000/auth/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ]
+}

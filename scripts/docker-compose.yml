@@ -55,6 +55,7 @@ services:
       - keycloak:/opt/keycloak/data
     command:
       - start-dev
+      - --import-realm
 
 networks:
   default:
