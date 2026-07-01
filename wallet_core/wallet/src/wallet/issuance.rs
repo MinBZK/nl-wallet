@@ -643,7 +643,7 @@ where
                 SessionState::Issuance {
                     preview_attestations, ..
                 } => preview_attestations,
-                _ => unreachable!(),
+                _ => return Err(IssuanceError::SessionState),
             },
             _ => return Err(IssuanceError::SessionState),
         };
