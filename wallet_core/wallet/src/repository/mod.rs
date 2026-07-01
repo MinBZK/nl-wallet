@@ -56,6 +56,8 @@ pub enum FileStorageError {
     Io(#[from] std::io::Error),
     #[error("serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
+    #[error("invalid stored ETag header value: {0}")]
+    InvalidHeaderValue(#[from] http::header::InvalidHeaderValue),
 }
 
 #[nutype(

@@ -64,7 +64,7 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
         }
 
         let content = fs::read(&etag_file).await?;
-        Ok(Some(HeaderValue::from_bytes(&content).unwrap()))
+        Ok(Some(HeaderValue::from_bytes(&content)?))
     }
 
     async fn store_latest_etag(&self, etag: &HeaderValue) -> Result<(), FileStorageError> {
@@ -133,6 +133,7 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::convert::Infallible;
     use std::str::FromStr;
 
@@ -140,8 +141,11 @@ mod test {
     use http_utils::client::TlsPinningConfig;
     use httpmock::Method::GET;
     use httpmock::MockServer;
+    use tokio::fs;
 
     use super::EtagHttpClient;
+    use crate::repository::FileStorageError;
+    use crate::repository::Filename;
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
     use crate::repository::HttpResponse;
@@ -195,6 +199,29 @@ mod test {
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::NotModified));
         mock_not_modified.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn test_etag_http_client_invalid_stored_etag() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let resource_identifier: Filename = "config".parse().unwrap();
+        let etag_file = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::etag_file(
+            resource_identifier.clone(),
+            tempdir.path(),
+        );
+        fs::write(etag_file, b"invalid\netag").await.unwrap();
+
+        let err = match EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new(
+            resource_identifier,
+            tempdir.path().to_path_buf(),
+        )
+        .await
+        {
+            Ok(_) => panic!("client construction should fail for invalid stored ETag"),
+            Err(err) => err,
+        };
+
+        assert_matches!(err, HttpClientError::EtagFile(FileStorageError::InvalidHeaderValue(_)));
     }
 
     #[tokio::test]
