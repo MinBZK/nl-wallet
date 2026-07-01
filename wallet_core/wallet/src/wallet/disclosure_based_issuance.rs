@@ -26,8 +26,6 @@ use super::disclosure::RedirectUriPurpose;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::errors::UpdatePolicyError;
-use crate::instruction::InstructionClientParameters;
-use crate::instruction::RemoteWiaClient;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -130,16 +128,7 @@ where
             Err(err) => Err(err)?,
         };
 
-        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
-            attested_key,
-            InstructionClientParameters::new(
-                registration_data.wallet_id.clone(),
-                registration_data.pin_salt.clone(),
-                registration_data.wallet_certificate.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
-            ),
-        ));
+        let wia_client = self.new_remote_wia_client(attested_key, &registration_data, &config);
 
         let issuance_session = self
             .issuance_discovery

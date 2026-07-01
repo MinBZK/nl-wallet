@@ -60,11 +60,9 @@ use crate::errors::ChangePinError;
 use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
-use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
-use crate::instruction::RemoteWiaClient;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -337,16 +335,7 @@ where
             return Err(IssuanceError::NoPidPresent);
         }
 
-        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
-            attested_key,
-            InstructionClientParameters::new(
-                registration_data.wallet_id.clone(),
-                registration_data.pin_salt.clone(),
-                registration_data.wallet_certificate.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
-            ),
-        ));
+        let wia_client = self.new_remote_wia_client(attested_key, &registration_data, &config);
 
         info!("Fetching issuer metadata to discover authorization server");
         let authorization_session = self
@@ -427,16 +416,7 @@ where
         let trust_anchors = config.issuer_trust_anchors();
         let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
 
-        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
-            attested_key,
-            InstructionClientParameters::new(
-                registration_data.wallet_id.clone(),
-                registration_data.pin_salt.clone(),
-                registration_data.wallet_certificate.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
-            ),
-        ));
+        let wia_client = self.new_remote_wia_client(attested_key, &registration_data, &config);
 
         let flow = self
             .issuance_discovery
@@ -516,16 +496,7 @@ where
         };
 
         let trust_anchors = config.issuer_trust_anchors();
-        let wia_client = RemoteWiaClient::new(self.new_hw_signed_instruction_client(
-            attested_key,
-            InstructionClientParameters::new(
-                registration_data.wallet_id.clone(),
-                registration_data.pin_salt.clone(),
-                registration_data.wallet_certificate.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
-            ),
-        ));
+        let wia_client = self.new_remote_wia_client(attested_key, &registration_data, &config);
 
         let issuance_session = authorization_session
             .start_issuance(&redirect_uri, &wia_client, trust_anchors)
