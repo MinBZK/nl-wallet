@@ -209,7 +209,7 @@ pub fn verify_key_pairs(
 
         key_pair
             .certificate
-            .verify(usage, &[], time, trust_anchors)
+            .verify(Some(usage), &[], time, trust_anchors)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
         if CertificateType::has_certificate_type(usage) {
