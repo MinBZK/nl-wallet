@@ -156,11 +156,14 @@ type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'sta
 #[derive(Debug)]
 pub struct BorrowingCertificate(#[debug("{:?}", _0.get())] YokedCertificate);
 
-struct AllUsagesAllowed;
+struct OptionalExtendedKeyUsageValidator<E: ExtendedKeyUsageValidator>(Option<E>);
 
-impl ExtendedKeyUsageValidator for AllUsagesAllowed {
-    fn validate(&self, _iter: KeyPurposeIdIter<'_, '_>) -> Result<(), Error> {
-        Ok(())
+impl<E: ExtendedKeyUsageValidator> ExtendedKeyUsageValidator for OptionalExtendedKeyUsageValidator<E> {
+    fn validate(&self, iter: KeyPurposeIdIter<'_, '_>) -> Result<(), Error> {
+        match self.0.as_ref() {
+            None => Ok(()),
+            Some(validator) => validator.validate(iter),
+        }
     }
 }
 
@@ -230,30 +233,20 @@ impl BorrowingCertificate {
                 .try_into()
                 .expect("time of verification should lie after UNIX epoch"),
         ));
-        let end_cert = self.end_entity_certificate();
+        let key_usage = usage.map(|u| webpki::KeyUsage::required(u.as_oid_bytes()));
 
-        match usage {
-            None => end_cert.verify_for_usage(
+        self.end_entity_certificate()
+            .verify_for_usage(
                 &supported_sig_algs,
                 trust_anchors.as_trust_anchor_slice(),
                 intermediate_certs.as_slice(),
                 time,
-                AllUsagesAllowed,
+                OptionalExtendedKeyUsageValidator(key_usage),
                 None,
                 None,
-            ),
-            Some(usage) => end_cert.verify_for_usage(
-                &supported_sig_algs,
-                trust_anchors.as_trust_anchor_slice(),
-                intermediate_certs.as_slice(),
-                time,
-                webpki::KeyUsage::required(usage.as_oid_bytes()),
-                None,
-                None,
-            ),
-        }
-        .map(|_| ())
-        .map_err(|error| CertificateError::Verification(Box::new(error)))
+            )
+            .map(|_| ())
+            .map_err(|error| CertificateError::Verification(Box::new(error)))
     }
 
     pub fn end_entity_certificate(&self) -> &EndEntityCert<'_> {
