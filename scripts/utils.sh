@@ -410,9 +410,9 @@ function generate_wia_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
-        --common-name "NL Wallet" \
-        --organization-name "Stichting ICTU" \
-        --oid "NTRNL-27381312" \
+        --common-name "${access_certificates[(wia,name)]}" \
+        --organization-name "${access_certificates[(wia,legal_name)]}" \
+        --oid "${access_certificates[(wia,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_signing" \
         --force
 
@@ -433,9 +433,9 @@ function generate_wia_tsl_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
-        --common-name "NL Wallet" \
-        --organization-name "Stichting ICTU" \
-        --oid "NTRNL-27381312" \
+        --common-name "${access_certificates[(wia,name)]}" \
+        --organization-name "${access_certificates[(wia,legal_name)]}" \
+        --oid "${access_certificates[(wia,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
 

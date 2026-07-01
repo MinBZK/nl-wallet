@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 declare -A access_certificates=(
+    [(wia,name)]='NL Wallet'
+    [(wia,legal_name)]='Stichting ICTU'
+    [(wia,oid)]='NTRNL-27381312'
+
     [(pid,name)]='RvIG'
     [(pid,legal_name)]='Rijksdienst voor Identiteitsgegevens'
     [(pid,oid)]='NTRNL-27373207'
