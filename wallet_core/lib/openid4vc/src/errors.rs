@@ -446,8 +446,6 @@ impl ErrorWithCode for CredentialPreviewError {
             Self::MalformedToken | CredentialPreviewError::Unauthorized => CredentialPreviewErrorCode::InvalidToken,
 
             Self::MissingCredentialConfiguration(_) => CredentialPreviewErrorCode::ServerError,
-
-            Self::CredentialPreviewsNotFound => CredentialPreviewErrorCode::InvalidRequest,
         }
     }
 }

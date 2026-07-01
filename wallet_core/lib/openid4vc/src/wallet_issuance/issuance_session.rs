@@ -37,8 +37,6 @@ use serde::de::DeserializeOwned;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::single_unique::SingleUnique;
-use utils::vec_at_least::IntoNonEmptyIterator;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
@@ -68,7 +66,6 @@ use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
-use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
 use crate::token::CredentialPreview;
@@ -94,7 +91,6 @@ pub trait VcMessageClient {
     async fn request_credential_preview(
         &self,
         url: &Url,
-        preview_request: &CredentialPreviewRequest,
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, WalletIssuanceError>;
 
@@ -184,13 +180,10 @@ impl VcMessageClient for HttpVcMessageClient {
     async fn request_credential_preview(
         &self,
         url: &Url,
-        preview_request: &CredentialPreviewRequest,
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, WalletIssuanceError> {
         self.http_client
-            .post(url.as_ref(), |builder| {
-                builder.bearer_auth(access_token.as_ref()).json(preview_request)
-            })
+            .post(url.as_ref(), |builder| builder.bearer_auth(access_token.as_ref()))
             .map_err(WalletIssuanceError::CredentialPreviewHttp)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -461,16 +454,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         access_token: &AccessToken,
         message_client: &H,
     ) -> Result<VecNonEmpty<CredentialPreview>, WalletIssuanceError> {
-        let credential_configuration_ids = credential_configurations
-            .into_nonempty_iter()
-            .map(|(id, _config)| id.clone())
-            .collect();
-        let preview_request = CredentialPreviewRequest::CredentialConfigurationIds {
-            credential_configuration_ids,
-        };
-
         let CredentialPreviewResponse { credential_previews } = message_client
-            .request_credential_preview(preview_endpoint, &preview_request, access_token)
+            .request_credential_preview(preview_endpoint, access_token)
             .await?;
 
         let credential_configs = credential_configurations
@@ -1105,7 +1090,7 @@ mod tests {
 
         mock_msg_client
             .expect_request_credential_preview()
-            .return_once(move |_url, _request, _access_token| {
+            .return_once(move |_url, _access_token| {
                 let previews = preview_payloads
                     .into_iter()
                     .map(|(config_id, format, preview_payload)| CredentialPreview {
@@ -1414,7 +1399,7 @@ mod tests {
             .returning(|_url| Ok(TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example()).2));
         mock_msg_client
             .expect_request_credential_preview()
-            .return_once(move |_url, _request, _access_token| {
+            .return_once(move |_url, _access_token| {
                 let (_, _, _type_metadata) = TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example());
 
                 let previews = vec_nonempty![
