@@ -60,6 +60,8 @@ use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Order;
 use sea_orm::sea_query::Query;
 use sea_orm::sea_query::SimpleExpr;
+#[cfg(any(test, feature = "test"))]
+use sea_orm::sqlx::SqliteConnection;
 use tempfile::NamedTempFile;
 use token_status_list::verification::verifier::RevocationStatus;
 use tokio::fs;
@@ -117,6 +119,14 @@ pub struct DatabaseStorage<K> {
 struct OpenDatabaseStorage<K> {
     database: Database,
     key_file_key: K,
+
+    /// For in-memory test databases, an extra connection kept open for as long as the database is
+    /// open. A `sqlite::memory:` database is a shared-cache database that SQLite destroys the
+    /// instant no connection to it remains open, so this "anchor" keeps it (and its migrated
+    /// tables) alive even if the connection pool closes or replaces its own connection. Always
+    /// `None` for file-backed databases, which persist on disk regardless.
+    #[cfg(any(test, feature = "test"))]
+    _in_memory_anchor: Option<SqliteConnection>,
 }
 
 fn attestation_format_for_credential_format(format: Format) -> AttestationFormat {
@@ -447,7 +457,13 @@ where
 
         // Open database at the path, encrypted using the key
         let database = Database::open(SqliteUrl::File(database_path), key).await?;
-        let open_database = OpenDatabaseStorage { database, key_file_key };
+        let open_database = OpenDatabaseStorage {
+            database,
+            key_file_key,
+            // File-backed databases live on disk and need no anchor connection.
+            #[cfg(any(test, feature = "test"))]
+            _in_memory_anchor: None,
+        };
 
         Ok(open_database)
     }
@@ -1387,11 +1403,28 @@ pub mod test_storage {
                 .await
                 .expect("Could not open in-memory database");
 
+            // Detach a connection from the pool and keep it open for as long as the storage is
+            // open. A `sqlite::memory:` database is a shared-cache database that SQLite destroys the
+            // instant no connection remains open, so without this anchor the database (and its
+            // migrated tables) would be wiped whenever the pool closes or replaces its connection —
+            // for example when a query is cancelled — surfacing as spurious "no such table" errors.
+            let in_memory_anchor = database
+                .sqlite_connection_pool()
+                .acquire()
+                .await
+                .expect("Could not acquire in-memory anchor connection")
+                .detach();
+
             // Create an encryption key for the key file, which is not actually used,
             // but still needs to be present.
             let key_file_key = MockHardwareEncryptionKey::new_random(String::from(database_name));
 
-            storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
+            storage.open_database = OpenDatabaseStorage {
+                database,
+                key_file_key,
+                _in_memory_anchor: Some(in_memory_anchor),
+            }
+            .into();
 
             storage
         }
@@ -1593,6 +1626,50 @@ pub(crate) mod tests {
 
         assert_eq!(Some(test), imported_test_data);
         assert_eq!(String::from("wallet123"), imported_registration_data.unwrap().wallet_id);
+    }
+
+    // Regression test for the in-memory storage teardown bug seen in the integration tests
+    // (`no such table: keyed_data` during registration). In that flow the pool discarded its only
+    // connection — e.g. when the background revocation task was aborted mid-query — which, for a
+    // `sqlite::memory:` shared-cache database, destroyed the whole database. `open_in_memory` keeps
+    // an anchor connection open to prevent this.
+    //
+    // Rather than reproducing the cancellation race (slow and probabilistic), this deterministically
+    // closes the pool's own connection, driving the pool to zero connections, and asserts the data
+    // is still there afterwards — which only holds because of the anchor.
+    #[tokio::test]
+    async fn test_in_memory_storage_survives_pool_connection_loss() {
+        use sea_orm::sqlx::Connection;
+
+        let registration = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
+            pin_salt: vec![1, 2, 3, 4].into(),
+            wallet_id: "wallet_123".to_string(),
+            wallet_certificate: "this.isa.jwt".parse().unwrap(),
+            revocation_code: RevocationCode::new_random(),
+        };
+
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        // Detach and close the pool's connection, dropping the pool to zero connections. Without the
+        // anchor connection this destroys the shared-cache in-memory database.
+        storage
+            .database()
+            .unwrap()
+            .sqlite_connection_pool()
+            .acquire()
+            .await
+            .expect("could not acquire pooled connection")
+            .detach()
+            .close()
+            .await
+            .expect("could not close pooled connection");
+
+        // The pool opens a fresh connection for this write; it must still find the migrated table.
+        storage
+            .insert_data(&registration)
+            .await
+            .expect("registration insert must survive the pool losing its connection");
     }
 
     #[tokio::test]

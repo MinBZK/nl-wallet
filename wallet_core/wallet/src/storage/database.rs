@@ -6,12 +6,7 @@ use sea_orm::ConnectOptions;
 use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::DbErr;
-use sea_orm::RuntimeErr;
-use sea_orm::SqlxSqliteConnector;
 use sea_orm::TransactionTrait;
-use sea_orm::sqlx::ConnectOptions as _;
-use sea_orm::sqlx::sqlite::SqliteConnectOptions;
-use sea_orm::sqlx::sqlite::SqlitePoolOptions;
 use tokio::fs;
 use tracing::log::LevelFilter;
 use wallet_migrations::Migrator;
@@ -61,46 +56,26 @@ pub struct Database {
 
 impl Database {
     pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self, DbErr> {
-        let connection = match &url {
-            // File-backed (production) database: a standard Sea-ORM connection pool.
-            SqliteUrl::File(_) => {
-                let mut connection_options = ConnectOptions::new(&url);
-                connection_options.sqlx_logging_level(LevelFilter::Trace);
-                connection_options.sqlcipher_key(format!("\"{}\"", String::from(key)));
-
-                sea_orm::Database::connect(connection_options).await?
-            }
-            // In-memory (test) database: `sqlite::memory:` resolves to a *shared-cache* in-memory
-            // database, which SQLite destroys the instant no connection to it remains open. A
-            // default pool is allowed both to drop to zero connections (`min_connections == 0`)
-            // and to recycle connections on a timer (`idle_timeout` / `max_lifetime`), either of
-            // which silently wipes the database and surfaces later as spurious "no such table" errors.
-            // Pin the pool to a single connection that is never reaped, so the in-memory database lives
-            // exactly as long as this `Database` instance.
-            SqliteUrl::InMemory => {
-                let connect_options = String::from(&url)
-                    .parse::<SqliteConnectOptions>()
-                    .map_err(|error| DbErr::Conn(RuntimeErr::SqlxError(error)))?
-                    .pragma("key", format!("\"{}\"", String::from(key)))
-                    .log_statements(LevelFilter::Trace);
-
-                let pool = SqlitePoolOptions::new()
-                    .min_connections(1)
-                    .max_connections(1)
-                    .idle_timeout(None)
-                    .max_lifetime(None)
-                    .connect_with(connect_options)
-                    .await
-                    .map_err(|error| DbErr::Conn(RuntimeErr::SqlxError(error)))?;
-
-                SqlxSqliteConnector::from_sqlx_sqlite_pool(pool)
-            }
-        };
+        // Open database connection and set database key
+        let mut connection_options = ConnectOptions::new(&url);
+        connection_options.sqlx_logging_level(LevelFilter::Trace);
+        connection_options.sqlcipher_key(format!("\"{}\"", String::from(key)));
+        let connection = sea_orm::Database::connect(connection_options).await?;
 
         // Execute all migrations
         Migrator::up(&connection, None).await?;
 
         Ok(Self::new(url, connection))
+    }
+
+    /// Exposes the underlying SQLite connection pool. Used by the in-memory test storage to detach
+    /// an "anchor" connection (see [`crate::storage::database_storage::test_storage`]): a
+    /// `sqlite::memory:` database is a shared-cache database that SQLite destroys the instant no
+    /// connection to it remains open, so the pool closing or replacing its connection would
+    /// otherwise wipe the database mid-test.
+    #[cfg(any(test, feature = "test"))]
+    pub(crate) fn sqlite_connection_pool(&self) -> &sea_orm::sqlx::SqlitePool {
+        self.connection.get_sqlite_connection_pool()
     }
 
     pub async fn close(self) -> Result<(), DbErr> {
@@ -132,51 +107,6 @@ mod tests {
 
     pub async fn down(db: &Database) -> Result<(), DbErr> {
         Migrator::down(&db.connection, None).await
-    }
-
-    // Regression test for the in-memory connection-pool teardown race: a `sqlite::memory:`
-    // database is a shared-cache in-memory database that SQLite destroys as soon as no
-    // connection to it remains open. The migrated tables therefore survive only as long as the
-    // pool keeps a connection open and never recycles it; otherwise the database is wiped and
-    // queries fail with spurious "no such table" errors (e.g. `no such table: keyed_data`).
-    //
-    // We assert the pool configuration directly, rather than waiting out a (multi-minute) reaper
-    // interval at runtime, so the test is deterministic and fails immediately if either safeguard
-    // is weakened:
-    //   * a `min_connections` floor of 1, so the pool always holds a connection (and, should a timeout ever be
-    //     reintroduced, re-establishes one rather than leaving zero); and
-    //   * no `idle_timeout`/`max_lifetime`, so the connection is never reaped on a timer.
-    #[tokio::test]
-    async fn test_in_memory_pool_is_pinned() {
-        let key = SqlCipherKey::new_random_with_salt();
-        let db = Database::open(SqliteUrl::InMemory, key)
-            .await
-            .expect("Could not open database");
-
-        let pool = db.connection.get_sqlite_connection_pool();
-
-        assert_eq!(
-            pool.options().get_min_connections(),
-            1,
-            "in-memory pool must always keep a connection"
-        );
-        assert_eq!(
-            pool.options().get_max_connections(),
-            1,
-            "in-memory pool is single-connection"
-        );
-        assert!(
-            pool.options().get_idle_timeout().is_none(),
-            "in-memory pool connection must not be idle-reaped"
-        );
-        assert!(
-            pool.options().get_max_lifetime().is_none(),
-            "in-memory pool connection must not be lifetime-recycled"
-        );
-        assert!(
-            pool.size() >= 1,
-            "in-memory pool should have eagerly opened its connection"
-        );
     }
 
     #[test]
