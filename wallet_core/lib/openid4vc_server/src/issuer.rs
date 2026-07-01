@@ -418,10 +418,17 @@ where
 }
 
 fn parse_from_header<T: FromStr, E: WiaRejection>(name: &str, parts: &mut Parts) -> Result<T, ErrorResponse<E>> {
-    parts
-        .headers
-        .get(name.to_lowercase())
-        .ok_or_else(|| E::invalid_client_attestation(format!("missing header '{name}'")))?
+    let mut headers = parts.headers.get_all(name.to_lowercase()).into_iter();
+
+    let header = headers
+        .next()
+        .ok_or_else(|| E::invalid_client_attestation(format!("missing header '{name}'")))?;
+
+    if headers.next().is_some() {
+        return Err(E::invalid_client_attestation(format!("duplicate header '{name}'")));
+    }
+
+    header
         .to_str()
         .map_err(|_| E::invalid_client_attestation(format!("header '{name}' contains non-UTF-8 bytes")))?
         .parse()
