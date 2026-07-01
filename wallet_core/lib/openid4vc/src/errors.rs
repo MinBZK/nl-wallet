@@ -1,5 +1,6 @@
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
+use jwt::wia::WiaError;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
@@ -179,8 +180,12 @@ pub enum TokenErrorCode {
     InvalidScope,
 
     /// Invalid Client Attestation / WIA.
-    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
     InvalidClientAttestation,
+
+    /// Client Attestation / WIA is valid but not fresh enough.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    UseFreshAttestation,
 
     /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
     /// This error type is not defined in the specs, but then again the entire HTTP response in case
@@ -204,6 +209,7 @@ impl From<TokenRequestError> for TokenErrorCode {
             TokenRequestError::SessionNotFound
             | TokenRequestError::MissingCodeVerifier
             | TokenRequestError::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
+            TokenRequestError::Wia(WiaError::Expired) => TokenErrorCode::UseFreshAttestation,
             TokenRequestError::Wia(_) => TokenErrorCode::InvalidClientAttestation,
         }
     }
@@ -229,8 +235,12 @@ pub enum ParErrorCode {
     ServerError,
 
     /// Invalid Client Attestation / WIA.
-    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
     InvalidClientAttestation,
+
+    /// Client Attestation / WIA is valid but not fresh enough.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    UseFreshAttestation,
 }
 
 impl From<ParError> for ErrorResponse<ParErrorCode> {
@@ -239,6 +249,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
         ErrorResponse {
             error: match err {
                 ParError::UnknownClient(_) => ParErrorCode::InvalidClient,
+                ParError::Wia(WiaError::Expired) => ParErrorCode::UseFreshAttestation,
                 ParError::Wia(_) => ParErrorCode::InvalidClientAttestation,
                 ParError::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
                 ParError::Store(_) => ParErrorCode::ServerError,
@@ -252,7 +263,9 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
 impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::InvalidClient | Self::InvalidClientAttestation => StatusCode::UNAUTHORIZED,
+            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
+                StatusCode::UNAUTHORIZED
+            }
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -308,7 +321,9 @@ impl ErrorStatusCode for TokenErrorCode {
             | Self::UnauthorizedClient
             | Self::UnsupportedGrantType
             | Self::InvalidScope => StatusCode::BAD_REQUEST,
-            Self::InvalidClient | Self::InvalidClientAttestation => StatusCode::UNAUTHORIZED,
+            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
+                StatusCode::UNAUTHORIZED
+            }
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
         }

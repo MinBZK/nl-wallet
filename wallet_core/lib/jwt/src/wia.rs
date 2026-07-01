@@ -8,6 +8,7 @@ use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
 use http_utils::urls::BaseUrl;
 use jsonwebtoken::Validation;
+use jsonwebtoken::errors::ErrorKind;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -142,6 +143,8 @@ pub enum WiaError {
     JwtX5c(#[source] JwtX5cError),
     #[error("incorrect sub field in WIA: found '{0}', expected '{1}'")]
     IncorrectSub(String, String),
+    #[error("WIA has expired")]
+    Expired,
 }
 
 impl WiaDisclosure {
@@ -161,7 +164,12 @@ impl WiaDisclosure {
                 CertificateUsage::Wia,
                 &WIA_JWT_VALIDATIONS,
             )
-            .map_err(WiaError::JwtX5c)?;
+            .map_err(|err| match err {
+                JwtX5cError::Jwt(JwtError::Validation(e)) if matches!(e.kind(), ErrorKind::ExpiredSignature) => {
+                    WiaError::Expired
+                }
+                _ => WiaError::JwtX5c(err),
+            })?;
 
         // "If a client_id is provided in the request containing the Client Attestation, then this client_id
         // matches the sub claim of the Client Attestation JWT."
