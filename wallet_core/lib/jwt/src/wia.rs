@@ -140,6 +140,8 @@ pub enum WiaError {
     Jwt(#[source] JwtError),
     #[error("JWT with certificate error: {0}")]
     JwtX5c(#[source] JwtX5cError),
+    #[error("incorrect sub field in WIA: found '{0}', expected '{1}'")]
+    IncorrectSub(String, String),
 }
 
 impl WiaDisclosure {
@@ -149,6 +151,7 @@ impl WiaDisclosure {
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
         expected_challenge: Option<&Nonce>,
+        client_id: Option<&String>,
     ) -> Result<VerifyingKey, WiaError> {
         let (_, verified_wia_claims) = self
             .0
@@ -159,6 +162,15 @@ impl WiaDisclosure {
                 &WIA_JWT_VALIDATIONS,
             )
             .map_err(WiaError::JwtX5c)?;
+
+        // "If a client_id is provided in the request containing the Client Attestation, then this client_id
+        // matches the sub claim of the Client Attestation JWT."
+        if let Some(client_id) = client_id
+            && verified_wia_claims.sub != *client_id
+        {
+            return Err(WiaError::IncorrectSub(verified_wia_claims.sub, client_id.clone()));
+        }
+
         let wia_pubkey = verified_wia_claims
             .cnf
             .verifying_key()
@@ -313,6 +325,7 @@ mod tests {
                 AUD,
                 &[WALLET_CLIENT_ID.to_string()],
                 nonce.as_ref(),
+                None,
             )
             .unwrap();
     }
@@ -336,6 +349,7 @@ mod tests {
                 AUD,
                 &[WALLET_CLIENT_ID.to_string()],
                 nonce.as_ref(),
+                None,
             )
             .unwrap_err();
 
@@ -360,6 +374,7 @@ mod tests {
                 AUD,
                 &[WALLET_CLIENT_ID.to_string()],
                 nonce.as_ref(),
+                None,
             )
             .unwrap_err();
 
@@ -384,6 +399,7 @@ mod tests {
                 AUD,
                 &["other-client".to_string()],
                 nonce.as_ref(),
+                None,
             )
             .unwrap_err();
 
@@ -407,6 +423,7 @@ mod tests {
                 AUD,
                 &[WALLET_CLIENT_ID.to_string()],
                 Some(&Nonce::new_random()),
+                None,
             )
             .unwrap_err();
 
@@ -435,6 +452,7 @@ mod tests {
                 AUD,
                 &[WALLET_CLIENT_ID.to_string()],
                 nonce.as_ref(),
+                None,
             )
             .unwrap_err();
 
@@ -442,5 +460,52 @@ mod tests {
             error,
             WiaError::JwtX5c(JwtX5cError::Jwt(JwtError::Validation(error))) if *error.kind() == jsonwebtoken::errors::ErrorKind::ImmatureSignature
         );
+    }
+
+    #[test]
+    fn verify_correct_client_id() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
+            make_pop(&holder_key, None, AUD),
+        );
+
+        let _ = disclosure
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID.to_string()],
+                None,
+                Some(&WALLET_CLIENT_ID.to_string()),
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn verify_incorrect_client_id() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
+            make_pop(&holder_key, None, AUD),
+        );
+
+        let error = disclosure
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID.to_string()],
+                None,
+                Some(&"wrong-client-id".to_string()),
+            )
+            .unwrap_err();
+
+        assert_matches!(error, WiaError::IncorrectSub(found, expected)
+            if found == WALLET_CLIENT_ID && expected == "wrong-client-id");
     }
 }

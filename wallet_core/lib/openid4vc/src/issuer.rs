@@ -856,7 +856,11 @@ where
 }
 
 impl<K, L, S, N> Issuer<K, L, S, N> {
-    pub(super) fn verify_wia(&self, wia_disclosure: &WiaDisclosure) -> Result<(), WiaError> {
+    pub(super) fn verify_wia(
+        &self,
+        wia_disclosure: &WiaDisclosure,
+        client_id: Option<&String>,
+    ) -> Result<(), WiaError> {
         // The RFC says we should use the Issuer Identifier of the Authorization for this (see
         // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
         // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
@@ -867,6 +871,7 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
             expected_aud,
             self.issuer_data.accepted_wallet_client_ids.as_ref(),
             None,
+            client_id,
         )?;
 
         Ok(())
@@ -968,6 +973,7 @@ impl Session<AuthCodeIssued> {
                 &issuer_data.wia_config.wia_trust_anchors,
                 expected_aud,
                 &issuer_data.accepted_wallet_client_ids,
+                None,
                 None,
             )
             .map_err(TokenRequestError::Wia)?;

@@ -148,7 +148,9 @@ where
             return Err(ParError::UnknownClient(request.oauth_request.client_id));
         }
 
-        self.issuer.verify_wia(wia_disclosure).map_err(ParError::Wia)?;
+        self.issuer
+            .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
+            .map_err(ParError::Wia)?;
 
         // Exact-match the wallet's redirect_uri against the configured allowlist.
         if !self.wallet_redirect_uris.iter().contains(request.redirect_uri.as_ref()) {
