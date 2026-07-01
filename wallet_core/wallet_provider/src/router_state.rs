@@ -47,7 +47,7 @@ type ProductionUserState = UserState<
     Repositories,
     WalletRepoFlags<Repositories>,
     Pkcs11Hsm,
-    HsmWiaIssuer<Pkcs11Hsm>,
+    HsmWiaIssuer,
     PostgresStatusListService<HsmEcdsaKey, WalletRepoFlags<Repositories>>,
 >;
 
@@ -181,8 +181,6 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             )
             .await?,
             NL_WALLET_CLIENT_ID.to_string(),
-            wallet_user_hsm.clone(),
-            settings.attestation_wrapping_key_identifier.clone(),
             WiaWalletInfo {
                 wallet_name: settings.wia_settings.wia_wallet_name,
                 wallet_link: settings.wia_settings.wia_wallet_link,

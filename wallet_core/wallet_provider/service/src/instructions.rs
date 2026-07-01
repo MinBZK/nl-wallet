@@ -504,7 +504,7 @@ where
 }
 
 async fn wia<T, R, H, G>(
-    claims: &WiaPopClaims,
+    pop_claims: &WiaPopClaims,
     wallet_user: &WalletUser,
     user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
     generators: &G,
@@ -538,18 +538,13 @@ where
         .await?;
     tx.commit().await?;
 
-    let (wia_wrapped_key, wia) = user_state
+    let wia_disclosure = user_state
         .wia_issuer
-        .issue_wia(exp.into(), status_claim, generators)
+        .issue_wia(exp.into(), status_claim, pop_claims, generators)
         .await
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
-    let wia_pop = SignedJwt::sign(claims, &attestation_key(&wia_wrapped_key, user_state))
-        .await
-        .map_err(InstructionError::PopSigning)?
-        .into();
-
-    Ok(WiaDisclosure::new(wia, wia_pop))
+    Ok(wia_disclosure)
 }
 
 async fn issuance_pops<H>(
