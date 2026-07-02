@@ -304,7 +304,7 @@ export DEMO_ISSUER_ATTESTATION_SERVER_KEY
 
 # Generate root CA for issuer
 if [[ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]]; then
-    generate_issuer_root_ca
+    generate_root_ca issuer
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.issuer.key.pem' already exists, not (re-)generating issuer root CA"
 fi
@@ -313,7 +313,7 @@ export ISSUER_CA_CRT
 
 # Generate root CA and certificate for WIA
 if [[ ! -f "${TARGET_DIR}/ca.wia.key.pem" ]]; then
-    generate_wia_root_ca
+    generate_root_ca wia
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.wia.key.pem' already exists, not (re-)generating issuer root CA"
 fi
@@ -344,7 +344,7 @@ export PID_ISSUER_TSL_CRT
 
 # Generate root CA for reader
 if [[ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]]; then
-    generate_reader_root_ca
+    generate_root_ca reader
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"
 fi
@@ -355,7 +355,7 @@ export READER_CA_CRT
 
 # Generate root CA for WRPAC
 if [[ ! -f "${TARGET_DIR}/ca.wrpac.key.pem" ]]; then
-    generate_wrpac_root_ca
+    generate_root_ca wrpac
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrpac.key.pem' already exists, not (re-)generating WRPAC root CA"
 fi
@@ -364,7 +364,7 @@ export WRPAC_CA_CRT
 
 # Generate root CA for WRPRC
 if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then
-    generate_wrprc_root_ca
+    generate_root_ca wrprc
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrprc.key.pem' already exists, not (re-)generating WRPRC root CA"
 fi

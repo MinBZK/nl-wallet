@@ -279,54 +279,14 @@ function generate_wp_aes_key {
     random_bytes 32 | LC_ALL=C tr '\000\n' "XY" > "${TARGET_DIR}/wallet_provider/$1.key"
 }
 
-# Generate an EC root CA for issuer
-function generate_issuer_root_ca {
+# Generate an EC root CA
+function generate_root_ca {
     echo -e "${INFO}Generating Issuer CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA issuer" \
-        --file-prefix "${TARGET_DIR}/ca.issuer" \
+        --common-name "CA $1" \
+        --file-prefix "${TARGET_DIR}/ca.$1" \
         --force
-    openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -outform DER -out "${TARGET_DIR}/ca.issuer.crt.der"
-}
-
-# Generate an EC root CA for reader
-function generate_reader_root_ca {
-    echo -e "${INFO}Generating Reader CA key pair${NC}"
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA reader" \
-        --file-prefix "${TARGET_DIR}/ca.reader" \
-        --force
-    openssl x509 -in "${TARGET_DIR}/ca.reader.crt.pem" -outform DER -out "${TARGET_DIR}/ca.reader.crt.der"
-}
-
-# Generate an EC root CA for the WIA
-function generate_wia_root_ca {
-    echo -e "${INFO}Generating WIA CA key pair${NC}"
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA wia" \
-        --file-prefix "${TARGET_DIR}/ca.wia" \
-        --force
-    openssl x509 -in "${TARGET_DIR}/ca.wia.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wia.crt.der"
-}
-
-# Generate an EC root CA for WRPAC (Wallet Relying Party Access Certificates)
-function generate_wrpac_root_ca {
-    echo -e "${INFO}Generating WRPAC CA key pair${NC}"
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA wrpac" \
-        --file-prefix "${TARGET_DIR}/ca.wrpac" \
-        --force
-    openssl x509 -in "${TARGET_DIR}/ca.wrpac.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wrpac.crt.der"
-}
-
-# Generate an EC root CA for WRPRC (Wallet Relying Party Registration Certificates)
-function generate_wrprc_root_ca {
-    echo -e "${INFO}Generating WRPRC CA key pair${NC}"
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA wrprc" \
-        --file-prefix "${TARGET_DIR}/ca.wrprc" \
-        --force
-    openssl x509 -in "${TARGET_DIR}/ca.wrprc.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wrprc.crt.der"
+    openssl x509 -in "${TARGET_DIR}/ca.$1.crt.pem" -outform DER -out "${TARGET_DIR}/ca.$1.crt.der"
 }
 
 # Generate an EC key pair for the config_signing
