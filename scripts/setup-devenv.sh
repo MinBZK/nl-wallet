@@ -116,7 +116,7 @@ mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
-# Configure CA
+# Configure CA for TLS
 ########################################################################
 
 # Create a bad CA for integration testing usage
@@ -277,6 +277,57 @@ HSM_TOKEN_URL="$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | gr
 
 render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/hsm.toml"
 
+
+########################################################################
+# Configure CAs for EDI
+########################################################################
+
+# Generate root CA for reader
+if [[ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]]; then
+    generate_root_ca reader
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"
+fi
+READER_CA_CRT=$(< "${TARGET_DIR}/ca.reader.crt.der" ${BASE64})
+export READER_CA_CRT
+
+# Generate root CA for WRPAC
+if [[ ! -f "${TARGET_DIR}/ca.wrpac.key.pem" ]]; then
+    generate_root_ca wrpac
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrpac.key.pem' already exists, not (re-)generating WRPAC root CA"
+fi
+WRPAC_CA_CRT=$(< "${TARGET_DIR}/ca.wrpac.crt.der" ${BASE64})
+export WRPAC_CA_CRT
+
+# Generate root CA for WRPRC
+if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then
+    generate_root_ca wrprc
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrprc.key.pem' already exists, not (re-)generating WRPRC root CA"
+fi
+WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
+export WRPRC_CA_CRT
+
+# Generate root CA for issuer
+if [[ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]]; then
+    generate_root_ca issuer
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.issuer.key.pem' already exists, not (re-)generating issuer root CA"
+fi
+ISSUER_CA_CRT=$(< "${TARGET_DIR}/ca.issuer.crt.der" ${BASE64})
+export ISSUER_CA_CRT
+
+# Generate root CA for WIA
+if [[ ! -f "${TARGET_DIR}/ca.wia.key.pem" ]]; then
+    generate_root_ca wia
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wia.key.pem' already exists, not (re-)generating issuer root CA"
+fi
+WIA_CA_CRT=$(< "${TARGET_DIR}/ca.wia.crt.der" ${BASE64})
+export WIA_CA_CRT
+
+
 ########################################################################
 # Configure verification_server, issuance_server, pid_issuer and demo
 # services
@@ -302,23 +353,6 @@ ln -sf "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" "${BASE_DIR}/wallet_core/
 DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_KEY
 
-# Generate root CA for issuer
-if [[ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]]; then
-    generate_root_ca issuer
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/ca.issuer.key.pem' already exists, not (re-)generating issuer root CA"
-fi
-ISSUER_CA_CRT=$(< "${TARGET_DIR}/ca.issuer.crt.der" ${BASE64})
-export ISSUER_CA_CRT
-
-# Generate root CA and certificate for WIA
-if [[ ! -f "${TARGET_DIR}/ca.wia.key.pem" ]]; then
-    generate_root_ca wia
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wia.key.pem' already exists, not (re-)generating issuer root CA"
-fi
-WIA_CA_CRT=$(< "${TARGET_DIR}/ca.wia.crt.der" ${BASE64})
-export WIA_CA_CRT
 
 # Generate key for WIA signing and TSL
 generate_wia_signing_key_pair
@@ -341,35 +375,6 @@ PID_ISSUER_TSL_KEY=$(< "${TARGET_DIR}/pid_issuer/tsl.key.der" ${BASE64})
 export PID_ISSUER_TSL_KEY
 PID_ISSUER_TSL_CRT=$(< "${TARGET_DIR}/pid_issuer/tsl.crt.der" ${BASE64})
 export PID_ISSUER_TSL_CRT
-
-# Generate root CA for reader
-if [[ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]]; then
-    generate_root_ca reader
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"
-fi
-
-# Generate CA for RPs
-READER_CA_CRT=$(< "${TARGET_DIR}/ca.reader.crt.der" ${BASE64})
-export READER_CA_CRT
-
-# Generate root CA for WRPAC
-if [[ ! -f "${TARGET_DIR}/ca.wrpac.key.pem" ]]; then
-    generate_root_ca wrpac
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrpac.key.pem' already exists, not (re-)generating WRPAC root CA"
-fi
-WRPAC_CA_CRT=$(< "${TARGET_DIR}/ca.wrpac.crt.der" ${BASE64})
-export WRPAC_CA_CRT
-
-# Generate root CA for WRPRC
-if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then
-    generate_root_ca wrprc
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wrprc.key.pem' already exists, not (re-)generating WRPRC root CA"
-fi
-WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
-export WRPRC_CA_CRT
 
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
