@@ -7,7 +7,6 @@ use attestation_types::credential_format::Format;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
-use jwt::wia::WiaDisclosure;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -29,7 +28,6 @@ use utils::vec_nonempty;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequests {
     pub credential_requests: VecNonEmpty<CredentialRequest>,
-    pub attestations: Option<WiaDisclosure>,
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
@@ -40,7 +38,6 @@ pub struct CredentialRequest {
     #[serde(flatten)]
     pub credential_type: SpecOptional<CredentialRequestType>,
     pub proof: Option<CredentialRequestProof>,
-    pub attestations: Option<WiaDisclosure>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

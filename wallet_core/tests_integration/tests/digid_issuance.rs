@@ -30,6 +30,7 @@ use tests_integration::fake_digid::fake_digid_auth;
 use utils::vec_nonempty;
 use wallet::test::default_wallet_config;
 use wallet_account::NL_WALLET_CLIENT_ID;
+use wscd::mock_remote::MockWiaClient;
 
 /// Test the DigiD connector + BRP proxy integration as consumed by the pid_issuer.
 ///
@@ -123,6 +124,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             String::from(NL_WALLET_CLIENT_ID),
             redirect_uri,
             wallet_config.issuer_trust_anchors(),
+            &MockWiaClient::new(),
         )
         .await
         .unwrap();
@@ -149,7 +151,11 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Exchange the authorization code for the attestation previews. This is where the DigiD
     // connector is queried for the BSN and the BRP proxy is queried for the attributes.
     let issuance_session = authorization_session
-        .start_issuance(&redirect_url, wallet_config.issuer_trust_anchors())
+        .start_issuance(
+            &redirect_url,
+            &MockWiaClient::new(),
+            wallet_config.issuer_trust_anchors(),
+        )
         .await
         .unwrap();
 

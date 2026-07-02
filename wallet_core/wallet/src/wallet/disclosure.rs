@@ -760,7 +760,8 @@ where
     {
         info!("Accepting disclosure");
 
-        let attested_key_registration_data_and_config = self.check_accept_session_preconditions().await?;
+        let attested_key_registration_data_and_config =
+            self.check_session_preconditions_and_get_registration_data().await?;
 
         // We have to take ownership of the disclosure session here, so that `session`
         // below doesn't borrow from `self`, as we also borrow mutably from `self` here.

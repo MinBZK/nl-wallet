@@ -5,10 +5,13 @@ use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwt::wia::WIA_HEADER_NAME;
+use jwt::wia::WIA_POP_HEADER_NAME;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
 use super::WalletIssuanceError;
@@ -109,6 +112,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         client_id: String,
         redirect_uri: Url,
         issuer_state: Option<String>,
+        wia_client: &impl WiaClient,
     ) -> Result<Self, WalletIssuanceError> {
         // Include the scope values for each Credential Configuration with a supported credential format that was
         // present in the Credential Offer and return an error if any of them do not include a scope. According
@@ -142,8 +146,18 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
+        let wia = wia_client
+            .issue_wia(oauth_metadata.issuer.to_string(), None)
+            .await
+            .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
+
         let response = http_client
-            .post(auth_endpoints.par_endpoint, |builder| builder.form(&par_request))
+            .post(auth_endpoints.par_endpoint, |builder| {
+                builder
+                    .form(&par_request)
+                    .header(WIA_HEADER_NAME, wia.wia().serialization())
+                    .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+            })
             .await
             .map_err(WalletIssuanceError::ParHttp)?;
 
@@ -264,6 +278,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
+        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
@@ -283,6 +298,8 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.issuer_endpoints,
             &self.token_endpoint,
             token_request,
+            wia_client,
+            &self.oauth_metadata.issuer,
             trust_anchors,
         )
         .await
@@ -307,6 +324,7 @@ mod tests {
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
+    use wscd::mock_remote::MockWiaClient;
 
     use super::super::AuthorizationSession;
     use super::super::WalletIssuanceError;
@@ -476,6 +494,7 @@ mod tests {
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             issuer_state.map(str::to_string),
+            &MockWiaClient::new(),
         )
         .await
         .unwrap();

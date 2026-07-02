@@ -18,6 +18,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaPopClaims;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -506,11 +507,11 @@ where
 }
 
 async fn wia<T, R, H, G>(
-    claims: &JwtPopClaims,
+    claims: &WiaPopClaims,
     wallet_user: &WalletUser,
     user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
     generators: &G,
-) -> Result<(WrappedKey, WiaDisclosure), InstructionError>
+) -> Result<WiaDisclosure, InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -546,12 +547,12 @@ where
         .await
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
-    let wia_disclosure = SignedJwt::sign(claims, &attestation_key(&wia_wrapped_key, user_state))
+    let wia_pop = SignedJwt::sign(claims, &attestation_key(&wia_wrapped_key, user_state))
         .await
         .map_err(InstructionError::PopSigning)?
         .into();
 
-    Ok((wia_wrapped_key, WiaDisclosure::new(wia, wia_disclosure)))
+    Ok(WiaDisclosure::new(wia, wia_pop))
 }
 
 async fn issuance_pops<H>(
@@ -637,9 +638,17 @@ impl HandleInstruction for IssueWia {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         // The JWT claims to be signed in the PoPs.
-        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud, generators);
+        let jti: Uuid = generators.generate();
+        let iat: DateTime<Utc> = generators.generate();
+        let claims = WiaPopClaims {
+            iss: NL_WALLET_CLIENT_ID.to_string(),
+            aud: self.aud,
+            iat: iat.into(),
+            jti: jti.to_string(),
+            challenge: self.nonce,
+        };
 
-        let (wia_wrapped_key, wia_disclosure) = wia(&claims, wallet_user, user_state, generators).await?;
+        let wia_disclosure = wia(&claims, wallet_user, user_state, generators).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -652,19 +661,6 @@ impl HandleInstruction for IssueWia {
                 .delete_all_blocked_keys(&tx, wallet_user.id)
                 .await?;
         }
-
-        persist_keys(
-            &tx,
-            wallet_user,
-            user_state,
-            vec![WalletUserKey {
-                wallet_user_key_id: generators.generate(),
-                key: wia_wrapped_key,
-                is_blocked: false,
-            }],
-            generators,
-        )
-        .await?;
 
         tx.commit().await?;
 

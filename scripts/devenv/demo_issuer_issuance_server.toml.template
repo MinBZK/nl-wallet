@@ -3,6 +3,7 @@ issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 reader_trust_anchors = ["${READER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
+wia_trust_anchors = ["${WIA_CA_CRT}"]
 
 metadata = [
     "${ISSUER_METADATA_DEGREE_PATH}",

@@ -15,6 +15,8 @@ use std::sync::Arc;
 use derive_more::Constructor;
 use futures::join;
 use itertools::Itertools;
+use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaError;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -59,6 +61,9 @@ pub enum ParError {
 
     #[error("storing PAR request failed: {0}")]
     Store(#[source] Box<dyn Error + Send + Sync + 'static>),
+
+    #[error("error verifying WIA: {0}")]
+    Wia(#[source] WiaError),
 }
 
 /// Errors that can occur during calls to the `authorize` endpoint, before the PAR has been retrieved from storage.
@@ -175,6 +180,7 @@ where
     pub async fn process_pushed_authorization_request(
         &self,
         request: VciAuthorizationRequest,
+        wia_disclosure: &WiaDisclosure,
     ) -> Result<PushedAuthorizationResponse, ParError> {
         if !self
             .issuer
@@ -183,6 +189,10 @@ where
         {
             return Err(ParError::UnknownClient(request.oauth_request.client_id));
         }
+
+        self.issuer
+            .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
+            .map_err(ParError::Wia)?;
 
         // Exact-match the wallet's redirect_uri against the configured allowlist.
         if !self.wallet_redirect_uris.iter().contains(request.redirect_uri.as_ref()) {
@@ -379,11 +389,15 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_types::credential_format::Format;
+    use crypto::server_keys::KeyPair;
+    use jwt::wia::WiaDisclosure;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
+    use wscd::mock_remote::MockWiaClient;
+    use wscd::wscd::WiaClient;
 
     use super::AuthorizationRequestError;
     use super::AuthorizeError;
@@ -467,10 +481,11 @@ mod tests {
         Arc<MockIssuer>,
         MemoryStore<String, VciAuthorizationRequest>,
         Arc<MemorySessionStore<IssuanceData>>,
+        KeyPair,
     ) {
         let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, _) = setup_mock_issuer(
+        let (issuer, _, wia_keypair) = setup_mock_issuer(
             issuer_identifier,
             MOCK_ATTESTATION_TYPES.len().try_into().unwrap(),
             Arc::clone(&sessions),
@@ -481,7 +496,7 @@ mod tests {
             par_store.store_inner(request_uri, request);
         }
 
-        (Arc::new(issuer), par_store, sessions)
+        (Arc::new(issuer), par_store, sessions, wia_keypair)
     }
 
     /// Builds an [`AuthorizingIssuer`], building on [`issuer_and_par`] and resulting in the provided
@@ -489,10 +504,10 @@ mod tests {
     fn create_authorizing_issuer(
         entries: Vec<(String, VciAuthorizationRequest)>,
         outcome: AuthorizeOutcome,
-    ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
-        let (issuer, par_store, sessions) = issuer_and_par(entries);
+    ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>, KeyPair) {
+        let (issuer, par_store, sessions, wia_keypair) = issuer_and_par(entries);
         let auth_issuer = AuthorizingIssuer::new(issuer, par_store, FixedOutcomeFlow(outcome), allowed_redirect_uris());
-        (auth_issuer, sessions)
+        (auth_issuer, sessions, wia_keypair)
     }
 
     /// Minimal [`AuthorizationCodeFlow`] that returns a preconfigured outcome, so `process_authorize`
@@ -522,11 +537,14 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_unknown_client_id() {
-        let (authorizing_issuer, _sessions) =
+        let (authorizing_issuer, _sessions, _) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let error = authorizing_issuer
-            .process_pushed_authorization_request(vci_request(OTHER_CLIENT_ID))
+            .process_pushed_authorization_request(
+                vci_request(OTHER_CLIENT_ID),
+                &WiaDisclosure::new("a.b.c".parse().unwrap(), "a.b.c".parse().unwrap()),
+            )
             .await
             .unwrap_err();
 
@@ -537,11 +555,17 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_stores_request_and_returns_response() {
-        let (authorizing_issuer, _sessions) =
+        let (authorizing_issuer, _sessions, wia_keypair) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let response = authorizing_issuer
-            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID))
+            .process_pushed_authorization_request(
+                vci_request(MOCK_WALLET_CLIENT_ID),
+                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+                    .await
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -561,7 +585,7 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_disallowed_redirect_uri() {
-        let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
+        let (issuer, par_store, _sessions, wia_keypair) = issuer_and_par(vec![]);
         // The client_id is accepted, but the allowlist does not contain WALLET_REDIRECT_URI, so the
         // request must be rejected on the redirect_uri check alone.
         let authorizing_issuer = AuthorizingIssuer::new(
@@ -572,7 +596,13 @@ mod tests {
         );
 
         let error = authorizing_issuer
-            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID))
+            .process_pushed_authorization_request(
+                vci_request(MOCK_WALLET_CLIENT_ID),
+                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+                    .await
+                    .unwrap(),
+            )
             .await
             .unwrap_err();
 
@@ -582,8 +612,50 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn process_par_rejects_wia_from_untrusted_issuer() {
+        let (authorizing_issuer, _sessions, _wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        // MockWiaClient::new() issues a WIA signed by a freshly generated CA that is not in the
+        // issuer's trust anchors, so verification must fail.
+        let wia = MockWiaClient::new()
+            .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+            .await
+            .unwrap();
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID), &wia)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::Wia(_));
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_wia_with_wrong_audience() {
+        let (authorizing_issuer, _sessions, wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        // The WIA is signed by the trusted key pair but targets a different audience, so the
+        // audience check inside verify_wia must reject it.
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia("https://wrong-issuer.example.com".to_string(), None)
+            .await
+            .unwrap();
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID), &wia)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::Wia(_));
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
     async fn process_authorize_rejects_unknown_client_id() {
-        let (authorizing_issuer, _sessions) =
+        let (authorizing_issuer, _sessions, _) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let error = authorizing_issuer
@@ -597,7 +669,7 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_rejects_unknown_request_uri() {
         // Caller is accepted, but the PAR store is empty, so the request_uri can't be resolved.
-        let (authorizing_issuer, _sessions) =
+        let (authorizing_issuer, _sessions, _) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let error = authorizing_issuer
@@ -611,7 +683,7 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_rejects_mismatched_client_id() {
         // The PAR was pushed under a different client_id than the one presented at /authorize.
-        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+        let (authorizing_issuer, _sessions, _) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), vci_request(OTHER_CLIENT_ID))],
             AuthorizeOutcome::RedirectTo(upstream_url()),
         );
@@ -632,7 +704,7 @@ mod tests {
     async fn process_authorize_propagates_invalid_authorization_request() {
         let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
         request.scope = HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]);
-        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+        let (authorizing_issuer, _sessions, _) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), request)],
             AuthorizeOutcome::RedirectTo(upstream_url()),
         );
@@ -660,7 +732,7 @@ mod tests {
 
     #[tokio::test]
     async fn process_authorize_passes_through_redirect_outcome() {
-        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+        let (authorizing_issuer, _sessions, _) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
             AuthorizeOutcome::RedirectTo(upstream_url()),
         );
@@ -676,7 +748,7 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_builds_wallet_redirect_for_issued_code() {
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
-        let (authorizing_issuer, sessions) = create_authorizing_issuer(
+        let (authorizing_issuer, sessions, _) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
             AuthorizeOutcome::Authorized(
                 documents.clone(),
@@ -739,7 +811,7 @@ mod tests {
 
     #[tokio::test]
     async fn complete_authorization_writes_session_keyed_by_returned_code() {
-        let (authorizing_issuer, sessions) =
+        let (authorizing_issuer, sessions, _) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let documents = mock_issuable_documents(NonZeroUsize::MIN);

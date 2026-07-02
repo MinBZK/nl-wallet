@@ -69,6 +69,7 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+use crate::metadata::well_known::WellKnownMetadata;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
@@ -183,6 +184,9 @@ pub enum TokenRequestError {
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
+
+    #[error("error verifying WIA: {0}")]
+    Wia(#[source] WiaError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -215,7 +219,7 @@ pub enum CredentialRequestError {
     #[error("could not check proof nonce against nonce storage: {0}")]
     ProofNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("invalid nonce used in credential request proof, WIA or PoA")]
+    #[error("invalid nonce used in credential request proof")]
     InvalidNonce,
 
     #[error("JWT error: {0}")]
@@ -233,9 +237,6 @@ pub enum CredentialRequestError {
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 
-    #[error("missing WIA")]
-    MissingWia,
-
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
@@ -244,9 +245,6 @@ pub enum CredentialRequestError {
 
     #[error("error converting CredentialPayload to SD-JWT: {0}")]
     SdJwtConversion(#[from] CredentialPayloadIntoSignedSdJwtError),
-
-    #[error("error verifying WIA: {0}")]
-    Wia(#[source] WiaError),
 
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -386,7 +384,7 @@ pub struct Issuer<K, L, S, N> {
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, L> {
     credential_configs: CredentialConfigurations<K, L>,
-    wia_config: Option<WiaConfig>,
+    wia_config: WiaConfig,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
     accepted_wallet_client_ids: HashSet<String>,
@@ -437,6 +435,7 @@ impl<K, L> IssuerData<K, L> {
         self.accepted_wallet_client_ids.iter().collect()
     }
 
+    // TODO
     fn verify_wia(&self, attestations: Option<&WiaDisclosure>) -> Result<Option<Nonce>, CredentialRequestError> {
         let wia_nonce = self
             .wia_config
@@ -455,6 +454,7 @@ impl<K, L> IssuerData<K, L> {
 }
 
 impl WiaConfig {
+    // TODO
     fn verify_wia(
         &self,
         attestations: Option<&WiaDisclosure>,
@@ -579,7 +579,7 @@ where
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
-        wia_config: Option<WiaConfig>,
+        wia_config: WiaConfig,
         sessions: Arc<S>,
         proof_nonce_store: N,
     ) -> Result<Self, CredentialConfigurationsError> {
@@ -860,6 +860,7 @@ where
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
+        wia_disclosure: WiaDisclosure,
     ) -> Result<(TokenResponse, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
@@ -872,7 +873,13 @@ where
 
         let result = Session::<AuthCodeIssued>::try_from(session)
             .map_err(TokenRequestError::IssuanceError)?
-            .process_token_request(&token_request, dpop, &self.issuer_data.server_url, &self.issuer_data);
+            .process_token_request(
+                &token_request,
+                dpop,
+                &wia_disclosure,
+                &self.issuer_data.server_url,
+                &self.issuer_data,
+            );
 
         let (response, next) = match result {
             Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
@@ -989,6 +996,30 @@ where
             .write(next.into(), false)
             .await
             .map_err(IssuanceError::SessionStore)?;
+
+        Ok(())
+    }
+}
+
+impl<K, L, S, N> Issuer<K, L, S, N> {
+    // TODO
+    pub(super) fn verify_wia(
+        &self,
+        wia_disclosure: &WiaDisclosure,
+        client_id: Option<&String>,
+    ) -> Result<(), WiaError> {
+        // The RFC says we should use the Issuer Identifier of the Authorization for this (see
+        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
+        // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
+        let expected_aud = self.issuer_data.metadata.credential_issuer.as_ref();
+
+        wia_disclosure.verify(
+            &self.issuer_data.wia_config.wia_trust_anchors,
+            expected_aud,
+            &self.issuer_data.accepted_wallet_client_ids.iter().collect_vec(),
+            None,
+            client_id,
+        )?;
 
         Ok(())
     }
@@ -1148,10 +1179,12 @@ impl Session<AuthCodeIssued> {
         self,
         token_request: &TokenRequest,
         dpop: Dpop,
+        wia_disclosure: &WiaDisclosure,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
     ) -> ProcessTokenRequest {
-        let result = self.validate_and_build_token_response(token_request, dpop, server_url, issuer_data);
+        let result =
+            self.validate_and_build_token_response(token_request, dpop, wia_disclosure, server_url, issuer_data);
 
         self.finalize_token_response(result)
     }
@@ -1160,6 +1193,7 @@ impl Session<AuthCodeIssued> {
         &self,
         token_request: &TokenRequest,
         dpop: Dpop,
+        wia_disclosure: &WiaDisclosure,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
     ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
@@ -1172,6 +1206,22 @@ impl Session<AuthCodeIssued> {
             .verify_client_id(token_request, &issuer_data.accepted_wallet_client_ids)?;
         session_data.grant.verify_scope(token_request)?;
         session_data.grant.verify_redirect_uri(token_request)?;
+
+        // The RFC says we should use the Issuer Identifier of the Authorization for this (see
+        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
+        // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
+        let expected_aud = issuer_data.metadata.issuer_identifier().as_ref();
+
+        // TODO deduplicate with other functions, see TODOs
+        wia_disclosure
+            .verify(
+                &issuer_data.wia_config.wia_trust_anchors,
+                expected_aud,
+                &issuer_data.accepted_wallet_client_ids.iter().collect_vec(),
+                None,
+                None,
+            )
+            .map_err(TokenRequestError::Wia)?;
 
         build_token_response(
             token_request.code(),
@@ -1362,11 +1412,8 @@ impl Session<AccessTokenIssued> {
             &issuer_data.metadata.credential_issuer,
         )?;
 
-        let wia_nonce = issuer_data.verify_wia(credential_request.attestations.as_ref())?;
-
-        // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
-            .check_nonce_status_and_remove([&request_nonce].iter().copied().chain(wia_nonce.as_ref()))
+            .check_nonce_status_and_remove([request_nonce].iter())
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
 
@@ -1504,11 +1551,9 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
         }
 
-        let wia_nonce = issuer_data.verify_wia(credential_requests.attestations.as_ref())?;
-
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = proof_nonce_store
-            .check_nonce_status_and_remove(request_nonces.iter().chain(wia_nonce.as_ref()))
+            .check_nonce_status_and_remove(request_nonces.iter())
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
 
@@ -1711,9 +1756,12 @@ mod tests {
     use tracing_test::traced_test;
     use url::Url;
     use wscd::mock_remote::MockRemoteWscd;
+    use wscd::mock_remote::MockWiaClient;
+    use wscd::wscd::WiaClient;
 
     use super::*;
     use crate::CredentialErrorCode;
+    use crate::TokenErrorCode;
     use crate::cleanup::CLEANUP_INTERVAL;
     use crate::cleanup::start_cleanup_task;
     use crate::credential::CredentialRequest;
@@ -1815,7 +1863,7 @@ mod tests {
         wrong_access_token: bool,
         invalidate_dpop: bool,
         invalidate_pop: bool,
-        strip_wia: bool,
+        wia_override: Option<WiaDisclosure>,
     }
 
     impl VcMessageClientStub {
@@ -1825,7 +1873,7 @@ mod tests {
                 wrong_access_token: false,
                 invalidate_dpop: false,
                 invalidate_pop: false,
-                strip_wia: false,
+                wia_override: None,
             }
         }
 
@@ -1856,10 +1904,6 @@ mod tests {
                 credential_request.proof = Some(invalidated_proof);
             }
 
-            if self.strip_wia {
-                credential_request.attestations.take();
-            }
-
             credential_request
         }
 
@@ -1871,10 +1915,6 @@ mod tests {
                 let mut requests = credential_requests.credential_requests.into_inner();
                 requests[0] = invalidated_request;
                 credential_requests.credential_requests = requests.try_into().unwrap();
-            }
-
-            if self.strip_wia {
-                credential_requests.attestations.take();
             }
 
             credential_requests
@@ -1892,10 +1932,12 @@ mod tests {
             _url: &Url,
             token_request: &TokenRequest,
             dpop_header: &Dpop,
+            wia: &WiaDisclosure,
         ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+            let wia = self.wia_override.as_ref().unwrap_or(wia);
             let (token_response, dpop_nonce) = self
                 .issuer
-                .process_token_request(token_request.clone(), dpop_header.clone())
+                .process_token_request(token_request.clone(), dpop_header.clone(), wia.clone())
                 .await
                 .map_err(|err| WalletIssuanceError::TokenRequest(Box::new(err.into())))?;
             Ok((token_response, Some(dpop_nonce)))
@@ -2015,13 +2057,108 @@ mod tests {
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(code),
+            &MockWiaClient::new_with_wia_keypair(wia_keypair),
+            &oauth_metadata.issuer,
             &trust_anchors,
         )
         .await
         .unwrap();
 
-        let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-        session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap_err()
+        let wscd = MockRemoteWscd::new(vec![]);
+        session.accept_issuance(&trust_anchors, &wscd).await.unwrap_err()
+    }
+
+    /// Like [`start_and_accept_err`] but for errors that happen at token request time (inside
+    /// `HttpIssuanceSession::create`). The `wia_override` on the stub is used to inject a bad WIA;
+    /// the `wia_client` passed to `create` is a dummy because the stub ignores it.
+    async fn start_token_request_err(
+        message_client: VcMessageClientStub,
+        issuer_identifier: IssuerIdentifier,
+        trust_anchors: TrustAnchors,
+        wia_client: &impl WiaClient,
+    ) -> WalletIssuanceError {
+        let session_token = message_client
+            .issuer
+            .new_preauthorized_session(mock_issuable_documents(NonZeroUsize::MIN))
+            .await
+            .unwrap();
+
+        let issuer_metadata = message_client.issuer.metadata().clone();
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+
+        let credential_configs = message_client
+            .issuer
+            .credential_configs()
+            .all_configuration_ids()
+            .into_nonempty_iter()
+            .map(|id| {
+                (
+                    id.clone(),
+                    issuer_metadata.credential_configurations_supported[id].clone(),
+                )
+            })
+            .collect();
+
+        HttpIssuanceSession::create(
+            message_client,
+            credential_configs,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            &oauth_metadata.token_endpoint,
+            TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
+            wia_client,
+            &oauth_metadata.issuer,
+            &trust_anchors,
+        )
+        .await
+        .err()
+        .expect("HttpIssuanceSession::create should have returned an error")
+    }
+
+    #[tokio::test]
+    async fn token_request_rejects_wia_from_untrusted_issuer() {
+        let (issuer, trust_anchor, issuer_identifier, _wia_keypair) = setup_simple_mock_issuer();
+
+        // WIA signed by a freshly generated CA that is not in the issuer's trust anchors.
+        let bad_wia = MockWiaClient::new()
+            .issue_wia(issuer_identifier.to_string(), None)
+            .await
+            .unwrap();
+
+        let message_client = VcMessageClientStub {
+            wia_override: Some(bad_wia),
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let error =
+            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        assert_matches!(
+            error,
+            WalletIssuanceError::TokenRequest(err) if matches!(err.error, TokenErrorCode::InvalidClientAttestation)
+        );
+    }
+
+    #[tokio::test]
+    async fn token_request_rejects_wia_with_wrong_audience() {
+        let (issuer, trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+
+        // WIA signed by the trusted key pair but targeting a different audience.
+        let bad_wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia("https://wrong-issuer.example.com".to_string(), None)
+            .await
+            .unwrap();
+
+        let message_client = VcMessageClientStub {
+            wia_override: Some(bad_wia),
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let error =
+            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        assert_matches!(
+            error,
+            WalletIssuanceError::TokenRequest(err) if matches!(err.error, TokenErrorCode::InvalidClientAttestation)
+        );
     }
 
     #[tokio::test]
@@ -2066,21 +2203,6 @@ mod tests {
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
-        );
-    }
-
-    #[tokio::test]
-    async fn no_wia() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
-        let message_client = VcMessageClientStub {
-            strip_wia: true,
-            ..VcMessageClientStub::new(issuer)
-        };
-
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
-        assert_matches!(
-            result,
-            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
         );
     }
 

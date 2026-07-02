@@ -81,7 +81,8 @@ where
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
-        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) =
+            self.check_session_preconditions_and_get_registration_data().await?;
 
         info!("Checking if a disclosure session is present");
         let Some(Session::Disclosure(session)) = self.session.take() else {
@@ -101,7 +102,11 @@ where
                 selected_indices,
                 pin,
                 RedirectUriPurpose::Issuance,
-                (attested_key, registration_data, Arc::clone(&config)),
+                (
+                    Arc::clone(&attested_key),
+                    registration_data.clone(),
+                    Arc::clone(&config),
+                ),
             )
             .await
         {
@@ -129,6 +134,7 @@ where
             .start_pre_authorized_code_flow(
                 &redirect_uri,
                 NL_WALLET_CLIENT_ID.to_string(),
+                &self.new_remote_wia_client(attested_key, &registration_data, &config),
                 config.issuer_trust_anchors(),
             )
             .await

@@ -138,6 +138,10 @@ where
                     post(handle_hw_signed_instruction::<CompleteTransfer, _, _, _>),
                 )
                 .route(
+                    &format!("/instructions/hw_signed/{}", IssueWia::NAME),
+                    post(handle_hw_signed_instruction::<IssueWia, _, _, _>),
+                )
+                .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
                     post(change_pin_start),
                 )
@@ -164,10 +168,6 @@ where
                 .route(
                     &format!("/instructions/{}", PerformIssuance::NAME),
                     post(handle_instruction::<PerformIssuance, _, _, _>),
-                )
-                .route(
-                    &format!("/instructions/{}", IssueWia::NAME),
-                    post(handle_instruction::<IssueWia, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCode::NAME),

@@ -183,6 +183,7 @@ mod tests {
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
+    use openid4vc::issuer::WiaConfig;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
@@ -282,12 +283,15 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
 
+        // Normally this is its own CA; here we just reuse the ca we have.
+        let wia_trust_anchors = vec![ca.to_borrowing_trust_anchor()].try_into().unwrap();
+
         Issuer::try_new(
             "https://example.com".parse().unwrap(),
             NonZeroU8::MIN,
             HashSet::new(),
             [("credential_config_id".to_string().into(), config_params)].into(),
-            None,
+            WiaConfig { wia_trust_anchors },
             sessions,
             MemoryNonceStore::new(),
         )

@@ -5,6 +5,7 @@ use crypto::trust_anchor::TrustAnchors;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
@@ -47,6 +48,7 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         _client_id: String,
         _redirect_uri: Url,
         _issuer_trust_anchors: &TrustAnchors,
+        _wia_client: &impl WiaClient,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
         self.start_sync()
     }
@@ -56,6 +58,7 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         _offer_uri: &Url,
         _client_id: String,
         _redirect_uri: Url,
+        _wia_client: &impl WiaClient,
     ) -> Result<Self::Authorization, WalletIssuanceError> {
         self.start_authorization_code_flow_sync()
     }
@@ -64,6 +67,7 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         &self,
         _offer_uri: &Url,
         _client_id: String,
+        _wia_client: &impl WiaClient,
         _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_pre_authorized_code_flow_sync()
@@ -108,6 +112,7 @@ impl AuthorizationSession for MockAuthorizationSession {
     async fn start_issuance(
         self,
         _received_redirect_uri: &Url,
+        _wia_client: &impl WiaClient,
         _trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_issuance_sync()
@@ -136,7 +141,6 @@ impl IssuanceSession for MockIssuanceSession {
         &mut self,
         _: &TrustAnchors,
         _: &W,
-        _: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept()
     }

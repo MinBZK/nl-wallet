@@ -67,6 +67,8 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
+use wscd::mock_remote::MockWiaClient;
+use wscd::wscd::WiaClient;
 
 const REDIRECT_URI: &str = "https://wallet.example.com/callback";
 
@@ -241,6 +243,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
             &server.trust_anchors,
+            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
         )
         .await
         .unwrap();
@@ -295,7 +298,11 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     assert_eq!(redirect_params.get("state"), Some(&state));
 
     auth_session
-        .start_issuance(&received_redirect, &server.trust_anchors)
+        .start_issuance(
+            &received_redirect,
+            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
+            &server.trust_anchors,
+        )
         .await
         .unwrap()
 }
@@ -310,11 +317,8 @@ async fn authorization_code_flow(
 
     assert_eq!(session.credential_previews().len(), attestation_count.get());
 
-    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
-    let issued_creds = session
-        .accept_issuance(&server.trust_anchors, &wscd, true)
-        .await
-        .unwrap();
+    let wscd = MockRemoteWscd::new(vec![]);
+    let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
@@ -347,9 +351,9 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
-    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
+    let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
-        .accept_issuance(&server.trust_anchors, &wscd, true)
+        .accept_issuance(&server.trust_anchors, &wscd)
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
@@ -383,6 +387,7 @@ async fn pre_authorized_code_flow(
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
+            &MockWiaClient::new_with_wia_keypair(wia_keypair),
         )
         .await
         .unwrap();
@@ -395,8 +400,8 @@ async fn pre_authorized_code_flow(
     };
 
     let copy_count = 4;
-    let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-    let issued_creds = session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap();
+    let wscd = MockRemoteWscd::new(vec![]);
+    let issued_creds = session.accept_issuance(&trust_anchors, &wscd).await.unwrap();
 
     verify_issued_credentials(
         issued_creds,
@@ -413,6 +418,7 @@ async fn reject_issuance() {
         issuer,
         trust_anchors,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
@@ -430,6 +436,7 @@ async fn reject_issuance() {
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
+            &MockWiaClient::new_with_wia_keypair(wia_keypair),
         )
         .await
         .unwrap();
@@ -524,6 +531,7 @@ async fn par_rejects_missing_code_challenge() {
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -533,10 +541,17 @@ async fn par_rejects_missing_code_challenge() {
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     // `code_challenge` is mandatory on `VciAuthorizationRequest`; absence makes the form fail to
     // deserialize at the /par boundary (HTTP 422), rather than slipping through to /authorize.
     let response = http_client
         .post(format!("{base}issuance/par"))
+        .header("OAuth-Client-Attestation", wia.wia().serialization())
+        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
         .form(&[("response_type", "code"), ("client_id", MOCK_WALLET_CLIENT_ID)])
         .send()
         .await
@@ -615,6 +630,7 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -625,10 +641,17 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     // PAR doesn't validate the code_challenge_method, so a `plain` request is stored and yields a
     // request_uri; the rejection is the `openid4vc` layer's job at /authorize, uniformly for every flow.
     let par_response = http_client
         .post(format!("{base}issuance/par"))
+        .header("OAuth-Client-Attestation", wia.wia().serialization())
+        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
         .form(&[
             ("response_type", "code"),
             ("client_id", MOCK_WALLET_CLIENT_ID),
@@ -808,6 +831,7 @@ async fn token_rejects_missing_code_verifier() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -829,8 +853,15 @@ async fn token_rejects_missing_code_verifier() {
         code_verifier: None,
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header("OAuth-Client-Attestation", wia.wia().serialization())
+        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -848,6 +879,7 @@ async fn token_rejects_unknown_code_verifier() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -869,8 +901,15 @@ async fn token_rejects_unknown_code_verifier() {
         code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header("OAuth-Client-Attestation", wia.wia().serialization())
+        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -888,6 +927,7 @@ async fn token_rejects_grant_type_mismatch() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -914,8 +954,15 @@ async fn token_rejects_grant_type_mismatch() {
         code_verifier: Some(code_verifier),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header("OAuth-Client-Attestation", wia.wia().serialization())
+        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
