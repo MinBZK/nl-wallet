@@ -476,6 +476,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
             "unknown_client_id".to_string(),
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
+            &MockWiaClient::new(),
         )
         .await
         .expect_err("starting pre-authorized issuance should fail");

@@ -76,6 +76,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
+    authorization_server: IssuerIdentifier,
     http_client: HttpJsonClient,
 
     auth_url: Url,
@@ -91,6 +92,7 @@ pub struct HttpAuthorizationSessionData {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
+    authorization_server: IssuerIdentifier,
     auth_url: Url,
     client_id: String,
     redirect_uri: Url,
@@ -113,6 +115,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         redirect_uri: Url,
         issuer_state: Option<String>,
         wia_client: &impl WiaClient,
+        authorization_server: IssuerIdentifier,
     ) -> Result<Self, WalletIssuanceError> {
         // Include the scope values for each Credential Configuration with a supported credential format that was
         // present in the Credential Offer and return an error if any of them do not include a scope. According
@@ -147,7 +150,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         );
 
         let wia = wia_client
-            .issue_wia(oauth_metadata.issuer.to_string(), None)
+            .issue_wia(authorization_server.to_string(), None)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
@@ -185,6 +188,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             credential_issuer,
             issuer_endpoints,
             token_endpoint: auth_endpoints.token_endpoint,
+            authorization_server,
             http_client,
             auth_url,
             client_id,
@@ -239,6 +243,7 @@ impl HttpAuthorizationSession {
             credential_issuer: data.credential_issuer,
             issuer_endpoints: data.issuer_endpoints,
             token_endpoint: data.token_endpoint,
+            authorization_server: data.authorization_server,
             http_client,
             auth_url: data.auth_url,
             client_id: data.client_id,
@@ -267,6 +272,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             credential_issuer: self.credential_issuer.clone(),
             issuer_endpoints: self.issuer_endpoints.clone(),
             token_endpoint: self.token_endpoint.clone(),
+            authorization_server: self.authorization_server.clone(),
             auth_url: self.auth_url.clone(),
             client_id: self.client_id.clone(),
             redirect_uri: self.redirect_uri.clone(),
@@ -299,7 +305,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             &self.token_endpoint,
             token_request,
             wia_client,
-            &self.oauth_metadata.issuer,
+            &self.authorization_server,
             trust_anchors,
         )
         .await
@@ -382,6 +388,7 @@ mod tests {
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
+            authorization_server: ISSUER_URL.parse().unwrap(),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
             client_id: CLIENT_ID.to_string(),
@@ -488,13 +495,14 @@ mod tests {
                 .collect_vec()
                 .try_into()
                 .unwrap(),
-            issuer_metadata.credential_issuer,
+            issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             issuer_state.map(str::to_string),
             &MockWiaClient::new(),
+            issuer_metadata.credential_issuer,
         )
         .await
         .unwrap();
@@ -541,12 +549,14 @@ mod tests {
         let error = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             credential_configurations,
-            issuer_metadata.credential_issuer,
+            issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             None,
+            &MockWiaClient::new(),
+            issuer_metadata.credential_issuer,
         )
         .await
         .expect_err("creating authorization session should fail");
@@ -673,6 +683,7 @@ mod tests {
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             code_verifier: "verifier".to_string(),
             state: CSRF_TOKEN.to_string(),
+            authorization_server: ISSUER_URL.parse().unwrap(),
         };
 
         let session = HttpAuthorizationSession {
@@ -686,6 +697,7 @@ mod tests {
             redirect_uri: persisted.redirect_uri.clone(),
             pkce_pair: S256PkcePair::from_code_verifier(persisted.code_verifier.clone()),
             state: persisted.state.clone(),
+            authorization_server: ISSUER_URL.parse().unwrap(),
         };
 
         let restored = HttpAuthorizationSession::restore(

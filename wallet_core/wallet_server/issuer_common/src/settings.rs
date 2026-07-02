@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CanonicalDistinguishedName;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;

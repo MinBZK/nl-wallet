@@ -69,7 +69,6 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-use crate::metadata::well_known::WellKnownMetadata;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
@@ -435,43 +434,21 @@ impl<K, L> IssuerData<K, L> {
         self.accepted_wallet_client_ids.iter().collect()
     }
 
-    // TODO
-    fn verify_wia(&self, attestations: Option<&WiaDisclosure>) -> Result<Option<Nonce>, CredentialRequestError> {
-        let wia_nonce = self
-            .wia_config
-            .as_ref()
-            .map(|wia_config| {
-                wia_config.verify_wia(
-                    attestations,
-                    &self.metadata.credential_issuer,
-                    &self.accepted_wallet_client_ids_vec(),
-                )
-            })
-            .transpose()?;
+    fn verify_wia(&self, wia_disclosure: &WiaDisclosure, client_id: Option<&String>) -> Result<(), WiaError> {
+        // The RFC says we should use the Issuer Identifier of the Authorization for this (see
+        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
+        // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
+        let expected_aud = self.metadata.credential_issuer.as_ref();
 
-        Ok(wia_nonce)
-    }
-}
+        wia_disclosure.verify(
+            &self.wia_config.wia_trust_anchors,
+            expected_aud,
+            &self.accepted_wallet_client_ids_vec(),
+            None,
+            client_id,
+        )?;
 
-impl WiaConfig {
-    // TODO
-    fn verify_wia(
-        &self,
-        attestations: Option<&WiaDisclosure>,
-        issuer_identifier: &IssuerIdentifier,
-        accepted_wallet_client_ids: &[impl ToString],
-    ) -> Result<Nonce, CredentialRequestError> {
-        let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
-
-        let (_wia_pubkey, wia_nonce) = wia_disclosure
-            .verify(
-                &self.wia_trust_anchors,
-                issuer_identifier.as_ref(),
-                accepted_wallet_client_ids,
-            )
-            .map_err(CredentialRequestError::Wia)?;
-
-        Ok(wia_nonce)
+        Ok(())
     }
 }
 
@@ -1002,26 +979,12 @@ where
 }
 
 impl<K, L, S, N> Issuer<K, L, S, N> {
-    // TODO
     pub(super) fn verify_wia(
         &self,
         wia_disclosure: &WiaDisclosure,
         client_id: Option<&String>,
     ) -> Result<(), WiaError> {
-        // The RFC says we should use the Issuer Identifier of the Authorization for this (see
-        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
-        // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
-        let expected_aud = self.issuer_data.metadata.credential_issuer.as_ref();
-
-        wia_disclosure.verify(
-            &self.issuer_data.wia_config.wia_trust_anchors,
-            expected_aud,
-            &self.issuer_data.accepted_wallet_client_ids.iter().collect_vec(),
-            None,
-            client_id,
-        )?;
-
-        Ok(())
+        self.issuer_data.verify_wia(wia_disclosure, client_id)
     }
 }
 
@@ -1207,20 +1170,8 @@ impl Session<AuthCodeIssued> {
         session_data.grant.verify_scope(token_request)?;
         session_data.grant.verify_redirect_uri(token_request)?;
 
-        // The RFC says we should use the Issuer Identifier of the Authorization for this (see
-        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
-        // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
-        let expected_aud = issuer_data.metadata.issuer_identifier().as_ref();
-
-        // TODO deduplicate with other functions, see TODOs
-        wia_disclosure
-            .verify(
-                &issuer_data.wia_config.wia_trust_anchors,
-                expected_aud,
-                &issuer_data.accepted_wallet_client_ids.iter().collect_vec(),
-                None,
-                None,
-            )
+        issuer_data
+            .verify_wia(wia_disclosure, None)
             .map_err(TokenRequestError::Wia)?;
 
         build_token_response(
@@ -2081,7 +2032,12 @@ mod tests {
             .issuer
             .new_preauthorized_session(mock_issuable_documents(NonZeroUsize::MIN))
             .await
-            .unwrap();
+            .unwrap()
+            .grants
+            .unwrap()
+            .pre_authorized_code
+            .unwrap()
+            .pre_authorized_code;
 
         let issuer_metadata = message_client.issuer.metadata().clone();
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
@@ -2105,7 +2061,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
-            TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
+            TokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
             &oauth_metadata.issuer,
             &trust_anchors,

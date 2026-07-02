@@ -61,6 +61,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             CredentialOfferFlow::AuthorizationCode {
                 issuer_state,
                 auth_endpoints,
+                authorization_server,
             } => {
                 let authorization_session = HttpAuthorizationSession::create(
                     self.http_client.clone(),
@@ -72,6 +73,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                     redirect_uri,
                     issuer_state,
                     wia_client,
+                    authorization_server,
                 )
                 .await?;
 
@@ -80,6 +82,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             CredentialOfferFlow::PreAuthorizedCode {
                 pre_authorized_code,
                 token_endpoint,
+                authorization_server,
             } => {
                 let issuance_session = self
                     .create_issuance_session(
@@ -90,6 +93,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                         &token_endpoint,
                         client_id,
                         wia_client,
+                        &authorization_server,
                         issuer_trust_anchors,
                     )
                     .await?;
@@ -114,6 +118,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         let CredentialOfferFlow::AuthorizationCode {
             issuer_state,
             auth_endpoints,
+            authorization_server,
         } = flow
         else {
             return Err(WalletIssuanceError::CredentialOfferNoAuthorizationCode);
@@ -129,6 +134,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             redirect_uri,
             issuer_state,
             wia_client,
+            authorization_server,
         )
         .await
     }
@@ -146,6 +152,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         let CredentialOfferFlow::PreAuthorizedCode {
             pre_authorized_code,
             token_endpoint,
+            authorization_server,
         } = flow
         else {
             return Err(WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
@@ -159,6 +166,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             &token_endpoint,
             client_id,
             wia_client,
+            &authorization_server,
             issuer_trust_anchors,
         )
         .await
@@ -191,10 +199,12 @@ enum CredentialOfferGrant {
 enum CredentialOfferFlow {
     AuthorizationCode {
         issuer_state: Option<String>,
+        authorization_server: IssuerIdentifier,
         auth_endpoints: AuthorizationEndpoints,
     },
     PreAuthorizedCode {
         pre_authorized_code: AuthorizationCode,
+        authorization_server: IssuerIdentifier,
         token_endpoint: Url,
     },
 }
@@ -266,6 +276,8 @@ impl CredentialOfferFlow {
     ) -> Result<Self, WalletIssuanceError> {
         let flow = match offer_grant {
             CredentialOfferGrant::AuthorizationCode { issuer_state } => {
+                let authorization_server = oauth_metadata.issuer.clone();
+
                 let auth_endpoints = oauth_metadata
                     .try_into()
                     .map_err(WalletIssuanceError::AuthorizationEndpoints)?;
@@ -273,10 +285,12 @@ impl CredentialOfferFlow {
                 Self::AuthorizationCode {
                     issuer_state,
                     auth_endpoints,
+                    authorization_server,
                 }
             }
             CredentialOfferGrant::PreAuthorizedCode { pre_authorized_code } => Self::PreAuthorizedCode {
                 pre_authorized_code,
+                authorization_server: oauth_metadata.issuer,
                 token_endpoint: oauth_metadata.token_endpoint,
             },
             CredentialOfferGrant::NoKnownGrant => {
@@ -301,12 +315,15 @@ impl CredentialOfferFlow {
                     return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
                 }
 
+                let authorization_server = oauth_metadata.issuer.clone();
+
                 let auth_endpoints = oauth_metadata
                     .try_into()
                     .map_err(WalletIssuanceError::AuthorizationEndpoints)?;
 
                 Self::AuthorizationCode {
                     issuer_state: None,
+                    authorization_server,
                     auth_endpoints,
                 }
             }
@@ -461,6 +478,7 @@ impl HttpIssuanceDiscovery {
         token_endpoint: &Url,
         client_id: String,
         wia_client: &impl WiaClient,
+        authorization_server: &IssuerIdentifier,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
@@ -475,7 +493,7 @@ impl HttpIssuanceDiscovery {
             token_endpoint,
             token_request,
             wia_client,
-            &oauth_metadata.issuer,
+            authorization_server,
             issuer_trust_anchors,
         )
         .await
