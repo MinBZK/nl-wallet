@@ -46,6 +46,33 @@ void main() {
 
       expect(find.text(event.purpose.testValue), findsOneWidget);
     });
+
+    testWidgets('A stopped (cancelled) event renders read-only cards without the View CTA', (tester) async {
+      final event = WalletMockData.cancelledDisclosureEvent;
+      await tester.pumpWidgetWithAppWrapper(
+        RequestDetailsScreen.forDisclosureEvent(
+          'Title',
+          event,
+        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(event.cards.first.attributes.first.label.testValue), findsOneWidget);
+      expect(find.text(l10n.sharedAttributesCardCta), findsNothing);
+    });
+
+    testWidgets('A failed (error) event keeps the interactive View CTA', (tester) async {
+      final event = WalletMockData.failedDisclosureEvent;
+      await tester.pumpWidgetWithAppWrapper(
+        RequestDetailsScreen.forDisclosureEvent(
+          'Title',
+          event,
+        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.sharedAttributesCardCta), findsWidgets);
+    });
   });
 
   group('goldens', () {
@@ -88,6 +115,29 @@ void main() {
         ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
       await screenMatchesGolden('request_details/no_attributes.light');
+    });
+
+    testGoldens('RequestDetails, stopped (cancelled) event - light', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        RequestDetailsScreen.forDisclosureEvent(
+          l10n.requestDetailScreenTitle,
+          WalletMockData.cancelledDisclosureEvent,
+        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+      );
+      await screenMatchesGolden('request_details/cancelled.light');
+    });
+
+    testGoldens('RequestDetails, stopped (cancelled) event - dark', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        RequestDetailsScreen.forDisclosureEvent(
+          l10n.requestDetailScreenTitle,
+          WalletMockData.cancelledDisclosureEvent,
+        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('request_details/cancelled.dark');
     });
 
     testGoldens('RequestDetails - dark, landscape', (tester) async {

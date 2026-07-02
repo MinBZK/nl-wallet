@@ -83,35 +83,44 @@ class RequestDetailCommonBuilders {
     final totalNrOfAttributes = cards.map((it) => it.attributes).flattened.length;
     final String title = context.l10n.historyDetailScreenSharedAttributesTitle;
     final subtitle = context.l10n.historyDetailScreenSharedAttributesSubtitle(totalNrOfAttributes);
-    return _buildAttributes(context, cards: cards, title: title, subtitle: subtitle, side: side);
+    final header = _buildAttributesHeader(context, title: title, subtitle: subtitle);
+    return _buildAttributes(context, cards: cards, header: header, side: side);
   }
 
   static Widget buildRequestedAttributes(
     BuildContext context, {
     required List<WalletCard> cards,
     DividerSide side = DividerSide.none,
+    bool interactive = true,
   }) {
     final totalNrOfAttributes = cards.map((it) => it.attributes).flattened.length;
     final String title = context.l10n.requestDetailsScreenAttributesTitle;
     final subtitle = context.l10n.requestDetailsScreenAttributesSubtitle(totalNrOfAttributes);
-    return _buildAttributes(context, cards: cards, title: title, subtitle: subtitle, side: side);
+    final header = _buildAttributesHeader(context, title: title, subtitle: subtitle);
+    return _buildAttributes(context, cards: cards, header: header, side: side, interactive: interactive);
   }
 
-  static Widget _buildAttributes(
+  static Widget _buildAttributesHeader(
     BuildContext context, {
-    required List<WalletCard> cards,
     required String title,
     required String subtitle,
-    DividerSide side = DividerSide.none,
   }) {
-    final header = ListItem(
+    return ListItem(
       label: Text.rich(title.toTextSpan(context)),
       subtitle: Text.rich(subtitle.toTextSpan(context)),
       icon: const Icon(Icons.credit_card_outlined),
       style: ListItemStyle.vertical,
       dividerSide: DividerSide.none /* handled below */,
     );
+  }
 
+  static Widget _buildAttributes(
+    BuildContext context, {
+    required List<WalletCard> cards,
+    required Widget header,
+    DividerSide side = DividerSide.none,
+    bool interactive = true,
+  }) {
     return Column(
       children: [
         if (side.top) const Divider(),
@@ -124,11 +133,14 @@ class RequestDetailCommonBuilders {
             final card = cards[i];
             return SharedAttributesCard(
               card: card,
-              onPressed: () => CheckAttributesScreen.show(
-                context,
-                card: card,
-                onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
-              ),
+              showCta: interactive,
+              onPressed: interactive
+                  ? () => CheckAttributesScreen.show(
+                      context,
+                      card: card,
+                      onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
+                    )
+                  : null,
             );
           },
           separatorBuilder: (c, i) => const SizedBox(height: 16),

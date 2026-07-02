@@ -90,6 +90,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
       ],
     );
     return CardShadowContainer(
+      showShadow: widget.showCta,
       child: Column(
         children: [
           _buildCardWrapper(context, cardContent),
