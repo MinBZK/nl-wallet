@@ -73,6 +73,7 @@ use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
 use crate::token::CredentialPreview;
 use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 
 #[derive(Debug)]
@@ -381,6 +382,33 @@ fn credential_request_types_from_preview(
     Ok(credential_request_types)
 }
 
+/// In the pre-authorized-code flow, an `invalid_grant` response at the token endpoint can only mean the code is no
+/// longer valid: the session is missing (cleaned up), expired or already used. No PKCE / client_id / scope /
+/// redirect_uri check that also yields `invalid_grant` applies to this grant type, so the translation is unambiguous
+/// and lets the wallet render a dedicated "QR code no longer valid" screen (without the issuer having to return a
+/// non-standard, non-spec-compliant error code).
+///
+/// The authorization-code flow is deliberately left untranslated: there `invalid_grant` is *also* returned for
+/// PKCE verification, client_id mismatch, scope and redirect_uri failures, so it is not a reliable "code no longer
+/// valid" signal. And the genuine "no longer valid" case — the session expiring or being consumed between the
+/// authorization callback and the subsequent token request — is practically unreachable in the current implementation.
+/// So the generic error handling is used.
+fn map_pre_authorized_token_error(error: WalletIssuanceError, token_request: &TokenRequest) -> WalletIssuanceError {
+    let is_pre_authorized = matches!(
+        token_request.grant_type,
+        TokenRequestGrantType::PreAuthorizedCode { .. }
+    );
+
+    match &error {
+        WalletIssuanceError::TokenRequest(response)
+            if is_pre_authorized && response.error == TokenErrorCode::InvalidGrant =>
+        {
+            WalletIssuanceError::PreAuthorizedCodeExpired
+        }
+        _ => error,
+    }
+}
+
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
     #[expect(clippy::too_many_arguments, reason = "constructor method")]
     pub(crate) async fn create(
@@ -402,7 +430,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let (token_response, dpop_nonce) = message_client
             .request_token(token_endpoint, &token_request, &dpop_header)
-            .await?;
+            .await
+            .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
 
         // Request preview and fetch type metadata
         let (type_metadata, credential_previews) = try_join!(
@@ -1082,6 +1111,52 @@ mod tests {
     use crate::token::TokenResponse;
     use crate::wallet_issuance::TypeMetadataChainError;
     use crate::wallet_issuance::WalletIssuanceError;
+
+    fn invalid_grant_error() -> WalletIssuanceError {
+        WalletIssuanceError::TokenRequest(Box::new(ErrorResponse {
+            error: TokenErrorCode::InvalidGrant,
+            error_description: None,
+            error_uri: None,
+        }))
+    }
+
+    #[test]
+    fn map_pre_authorized_token_error_translates_only_pre_authorized_invalid_grant() {
+        use crate::token::AuthorizationCode;
+
+        let pre_authorized =
+            TokenRequest::new_pre_authorized(AuthorizationCode::from("the-code".to_string()), "client-id".to_string());
+        let authorization_code = TokenRequest::new_authorization_code(
+            AuthorizationCode::from("the-code".to_string()),
+            "client-id".to_string(),
+            "https://example.com/redirect".parse().unwrap(),
+            "code-verifier".to_string(),
+        );
+
+        // Pre-authorized flow + invalid_grant is unambiguously "code no longer valid".
+        assert_matches!(
+            map_pre_authorized_token_error(invalid_grant_error(), &pre_authorized),
+            WalletIssuanceError::PreAuthorizedCodeExpired
+        );
+
+        // Authorization-code flow: invalid_grant is shared with PKCE / client_id failures, so it must
+        // not be translated.
+        assert_matches!(
+            map_pre_authorized_token_error(invalid_grant_error(), &authorization_code),
+            WalletIssuanceError::TokenRequest(_)
+        );
+
+        // Any other error code in the pre-authorized flow is left untouched.
+        let other = WalletIssuanceError::TokenRequest(Box::new(ErrorResponse {
+            error: TokenErrorCode::InvalidRequest,
+            error_description: None,
+            error_uri: None,
+        }));
+        assert_matches!(
+            map_pre_authorized_token_error(other, &pre_authorized),
+            WalletIssuanceError::TokenRequest(_)
+        );
+    }
 
     fn test_start_issuance(
         ca: &Ca,
