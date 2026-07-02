@@ -382,6 +382,8 @@ fn credential_request_types_from_preview(
     Ok(credential_request_types)
 }
 
+/// Detects if an issuance error that occurred during a token request is a PreAuthorizedCodeExpired error.
+///
 /// In the pre-authorized-code flow, an `invalid_grant` response at the token endpoint can only mean the code is no
 /// longer valid: the session is missing (cleaned up), expired or already used. No PKCE / client_id / scope /
 /// redirect_uri check that also yields `invalid_grant` applies to this grant type, so the translation is unambiguous
