@@ -1,19 +1,24 @@
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_PORT}/'
+batch_size = 4
 wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 wallet_redirect_uris = ["${WALLET_REDIRECT_URI}"]
+
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
+wia_trust_anchors = ["${WIA_CA_CRT}"]
 
 brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
 
-wia_trust_anchors = ["${WIA_CA_CRT}"]
 metadata = [
     "${ISSUER_METADATA_PID_PATH}",
     "${ISSUER_METADATA_PID_NL_PATH}",
 ]
 
-batch_size = 4
+[metadata_keypair]
+private_key_type = "software"
+private_key = "${PID_ISSUER_WRPAC_KEY}"
+certificate = "${PID_ISSUER_WRPAC_CRT}"
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer'

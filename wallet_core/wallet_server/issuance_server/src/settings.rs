@@ -201,7 +201,7 @@ impl VerifierSettings {
         verify_key_pairs(
             &key_pairs,
             &self.reader_trust_anchors,
-            CertificateUsage::ReaderAuth,
+            Some(CertificateUsage::ReaderAuth),
             &time,
         )?;
 

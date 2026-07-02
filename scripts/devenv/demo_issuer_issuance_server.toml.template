@@ -1,4 +1,6 @@
 public_url = 'http://${SERVICES_HOST}:${ISSUANCE_SERVER_PORT}/'
+batch_size = 4
+
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 reader_trust_anchors = ["${READER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
@@ -9,7 +11,10 @@ metadata = [
     "${ISSUER_METADATA_HOUSING_PATH}"
 ]
 
-batch_size = 4
+[metadata_keypair]
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_WRPAC}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_WRPAC}"
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_server'
