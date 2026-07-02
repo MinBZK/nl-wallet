@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import 'bullet_list_dot.dart';
 import 'icon_row.dart';
 import 'text/body_text.dart';
@@ -13,7 +14,7 @@ class BulletList extends StatelessWidget {
   const BulletList({
     required this.items,
     this.icon = const BulletListDot(),
-    this.rowCrossAxisAlignment,
+    this.rowCrossAxisAlignment = .start,
     this.rowPadding,
     super.key,
   });
@@ -21,6 +22,7 @@ class BulletList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
+    final scale = _calculateTextHeight(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -29,7 +31,7 @@ class BulletList extends StatelessWidget {
           crossAxisAlignment: rowCrossAxisAlignment,
           padding: rowPadding ?? EdgeInsets.zero,
           icon: SizedBox(
-            height: 24,
+            height: scale,
             width: 24,
             child: icon,
           ),
@@ -37,5 +39,13 @@ class BulletList extends StatelessWidget {
         );
       }).toList(),
     );
+  }
+
+  /// Calculates the scaled line height for [BodyText] based on the current theme.
+  double _calculateTextHeight(BuildContext context) {
+    final textStyle = context.textTheme.bodyLarge;
+    final fontSize = textStyle?.fontSize ?? 24.0;
+    final heightScale = textStyle?.height ?? 1.0;
+    return context.textScaler.scale(fontSize * heightScale);
   }
 }
