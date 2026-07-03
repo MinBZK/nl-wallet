@@ -9,7 +9,7 @@ use quick_xml::events::BytesText;
 use quick_xml::events::Event;
 
 use crate::allow::LowerCaseString;
-use crate::allow::UrlUnescapedString;
+use crate::allow::XmlNormalizedString;
 
 /// Maximum allowed SVG input size in bytes.
 pub const MAX_SIZE: usize = 5 * 1024 * 1024;
@@ -166,7 +166,7 @@ impl SanitizedSvg {
 
         for attr_result in e.attributes().with_checks(false) {
             let attr = attr_result.map_err(|e| Error::Xml(quick_xml::Error::InvalidAttr(e)))?;
-            let unescaped_attr = UrlUnescapedString::new(&attr)?;
+            let unescaped_attr = XmlNormalizedString::new(&attr)?;
             let attr_name = LowerCaseString::new(str::from_utf8(attr.key.as_ref())?);
 
             if !(allow::is_allowed_attr(&attr_name) || allow::is_allowed_by_prefix(&attr_name)) {
