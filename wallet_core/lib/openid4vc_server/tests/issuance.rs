@@ -14,6 +14,8 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use jwt::wia::WIA_HEADER_NAME;
+use jwt::wia::WIA_POP_HEADER_NAME;
 use openid4vc::AuthorizationErrorCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::authorization::PushedAuthorizationResponse;
@@ -551,8 +553,8 @@ async fn par_rejects_missing_code_challenge() {
     // deserialize at the /par boundary (HTTP 422), rather than slipping through to /authorize.
     let response = http_client
         .post(format!("{base}issuance/par"))
-        .header("OAuth-Client-Attestation", wia.wia().serialization())
-        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .form(&[("response_type", "code"), ("client_id", MOCK_WALLET_CLIENT_ID)])
         .send()
         .await
@@ -651,8 +653,8 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
     // request_uri; the rejection is the `openid4vc` layer's job at /authorize, uniformly for every flow.
     let par_response = http_client
         .post(format!("{base}issuance/par"))
-        .header("OAuth-Client-Attestation", wia.wia().serialization())
-        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .form(&[
             ("response_type", "code"),
             ("client_id", MOCK_WALLET_CLIENT_ID),
@@ -715,6 +717,7 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server_with(
         vec![mock_type_metadata(MOCK_ATTESTATION_TYPES[0])],
@@ -729,8 +732,15 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let par_response = http_client
         .post(format!("{base}issuance/par"))
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .form(&[
             ("response_type", "code"),
             ("client_id", MOCK_WALLET_CLIENT_ID),
@@ -861,8 +871,8 @@ async fn token_rejects_missing_code_verifier() {
 
     let response = http_client
         .post(token_url.clone())
-        .header("OAuth-Client-Attestation", wia.wia().serialization())
-        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -909,8 +919,8 @@ async fn token_rejects_unknown_code_verifier() {
 
     let response = http_client
         .post(token_url.clone())
-        .header("OAuth-Client-Attestation", wia.wia().serialization())
-        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -962,8 +972,8 @@ async fn token_rejects_grant_type_mismatch() {
 
     let response = http_client
         .post(token_url.clone())
-        .header("OAuth-Client-Attestation", wia.wia().serialization())
-        .header("OAuth-Client-Attestation-PoP", wia.wia_pop().serialization())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -981,6 +991,7 @@ async fn token_rejects_scope_mismatch() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1003,8 +1014,15 @@ async fn token_rejects_scope_mismatch() {
         code_verifier: Some(code_verifier),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -1029,8 +1047,15 @@ async fn token_rejects_scope_mismatch() {
         code_verifier: Some(code_verifier),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -1046,6 +1071,7 @@ async fn token_rejects_differing_client_id() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1068,8 +1094,15 @@ async fn token_rejects_differing_client_id() {
         code_verifier: Some(code_verifier),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -1092,8 +1125,15 @@ async fn token_rejects_differing_client_id() {
         code_verifier: Some(code_verifier),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -1111,6 +1151,7 @@ async fn token_rejects_differing_redirect_uri() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
+        wia_keypair,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1133,8 +1174,15 @@ async fn token_rejects_differing_redirect_uri() {
         code_verifier: Some(code_verifier),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
@@ -1157,8 +1205,15 @@ async fn token_rejects_differing_redirect_uri() {
         code_verifier: Some(code_verifier),
     };
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
     let response = http_client
         .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
         .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
         .form(&token_request)
         .send()
