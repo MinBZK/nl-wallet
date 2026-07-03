@@ -2,6 +2,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::par::PAR_TTL;
+use openid4vc::store::Consumed;
 use openid4vc::store::MemoryStore;
 use openid4vc::store::Store;
 use sea_orm::ActiveModelTrait;
@@ -127,7 +128,7 @@ where
     async fn consume(
         &self,
         request_uri: impl Into<String> + Send,
-    ) -> Result<Option<VciAuthorizationRequest>, Self::Error> {
+    ) -> Result<Consumed<VciAuthorizationRequest>, Self::Error> {
         let request_uri = request_uri.into();
         match &self.backend {
             ParStoreBackend::Postgres(connection) => {
@@ -139,15 +140,15 @@ where
 
                 let model = match deleted.into_iter().next() {
                     Some(model) => model,
-                    None => return Ok(None),
+                    None => return Ok(Consumed::Absent),
                 };
 
-                if self.now() >= model.expires_at.to_utc() {
-                    return Ok(None);
-                }
-
                 let data = serde_json::from_value(model.data).map_err(IssuerParStoreError::Deserialize)?;
-                Ok(Some(data))
+                Ok(if self.now() >= model.expires_at.to_utc() {
+                    Consumed::Expired(data)
+                } else {
+                    Consumed::Live(data)
+                })
             }
             ParStoreBackend::Memory(memory_store) => Ok(memory_store.consume(request_uri.as_str()).await.unwrap()),
         }
