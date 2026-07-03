@@ -36,6 +36,7 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
       FlutterApiErrorType.wrongDigid => CoreWrongDigidError(error.description),
       FlutterApiErrorType.deniedDigid => CoreDeniedDigidError(error.description),
       FlutterApiErrorType.revoked => _mapAccountRevokedError(error),
+      FlutterApiErrorType.preAuthorizedCodeExpired => CorePreAuthorizedCodeExpired(error.description, data: error.data),
     };
   }
 

@@ -74,6 +74,19 @@ void main() {
       await screenMatchesGolden('page/session_expired');
     });
 
+    testGoldens('ErrorPage.preAuthorizedCodeExpired', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => ErrorPage.preAuthorizedCodeExpired(
+            context,
+            onPrimaryActionPressed: () {},
+            style: ErrorCtaStyle.close,
+          ),
+        ),
+      );
+      await screenMatchesGolden('page/pre_authorized_code_expired');
+    });
+
     testGoldens('ErrorPage.cancelledSession', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
@@ -260,6 +273,26 @@ void main() {
             );
             expect(page.title, expected.title);
             expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps PreAuthorizedCodeExpiredError to ErrorPage.preAuthorizedCodeExpired', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const PreAuthorizedCodeExpiredError(sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.close,
+            );
+            final expected = ErrorPage.preAuthorizedCodeExpired(context, style: ErrorCtaStyle.close);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            expect(page.illustration, expected.illustration);
             return const SizedBox.shrink();
           },
         ),

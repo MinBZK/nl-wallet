@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-07-01T15:38:34+02:00",
+    "@@last_modified": "2026-07-03T12:17:21+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -551,6 +551,8 @@
     "errorScreenNoInternetDescription": "Your internet connection seems to be down or too slow. Check your connection and try again.",
     "errorScreenNoInternetDescriptionCloseVariant": "Your internet connection seems to be down or too slow. Check your connection. Close the app and try again later.",
     "errorScreenNoInternetHeadline": "Sorry, no internet connection",
+    "errorScreenPreAuthorizedCodeExpiredDescription": "The QR code has expired or has already been used.\n\nGo back to the issuer's website where you started and try again. If it still doesn’t work, contact issuer.",
+    "errorScreenPreAuthorizedCodeExpiredTitle": "QR code is no longer valid",
     "errorScreenServerDescription": "Unable to reach the system. There could be several reasons for this.\nCheck if you are connected to the internet or use another network. Try again after doing so.",
     "errorScreenServerDescriptionCloseVariant": "Unable to reach the system. There could be several reasons for this.\nCheck your internet connection. Close the app and try again later.",
     "errorScreenServerHeadline": "Sorry, no response",

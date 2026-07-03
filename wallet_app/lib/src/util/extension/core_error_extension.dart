@@ -37,6 +37,7 @@ extension CoreErrorExtension on CoreError {
         sourceError: error,
         canRegisterNewAccount: error.canRegisterNewAccount,
       ),
+      CorePreAuthorizedCodeExpired() => PreAuthorizedCodeExpiredError(sourceError: error),
     };
   }
 

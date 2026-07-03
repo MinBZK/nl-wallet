@@ -93,6 +93,10 @@ enum SessionState { expired, cancelled }
 
 enum SessionType { sameDevice, crossDevice }
 
+class PreAuthorizedCodeExpiredError extends ApplicationError {
+  const PreAuthorizedCodeExpiredError({required super.sourceError});
+}
+
 class CloseProximityDisconnectedError extends ApplicationError {
   const CloseProximityDisconnectedError({required super.sourceError});
 }
