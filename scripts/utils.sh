@@ -283,7 +283,7 @@ function generate_wp_aes_key {
 function generate_issuer_root_ca {
     echo -e "${INFO}Generating Issuer CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA issuer" --oid "NTRNL-00000010" \
+        --common-name "CA issuer" \
         --file-prefix "${TARGET_DIR}/ca.issuer" \
         --force
     openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -outform DER -out "${TARGET_DIR}/ca.issuer.crt.der"
@@ -293,7 +293,7 @@ function generate_issuer_root_ca {
 function generate_reader_root_ca {
     echo -e "${INFO}Generating Reader CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA reader" --oid "NTRNL-00000020" \
+        --common-name "CA reader" \
         --file-prefix "${TARGET_DIR}/ca.reader" \
         --force
     openssl x509 -in "${TARGET_DIR}/ca.reader.crt.pem" -outform DER -out "${TARGET_DIR}/ca.reader.crt.der"
@@ -303,7 +303,7 @@ function generate_reader_root_ca {
 function generate_wia_root_ca {
     echo -e "${INFO}Generating WIA CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA wia" --oid "NTRNL-00000030" \
+        --common-name "CA wia" \
         --file-prefix "${TARGET_DIR}/ca.wia" \
         --force
     openssl x509 -in "${TARGET_DIR}/ca.wia.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wia.crt.der"
@@ -313,7 +313,7 @@ function generate_wia_root_ca {
 function generate_wrpac_root_ca {
     echo -e "${INFO}Generating WRPAC CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA wrpac" --oid "NTRNL-00000040" \
+        --common-name "CA wrpac" \
         --file-prefix "${TARGET_DIR}/ca.wrpac" \
         --force
     openssl x509 -in "${TARGET_DIR}/ca.wrpac.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wrpac.crt.der"
@@ -323,7 +323,7 @@ function generate_wrpac_root_ca {
 function generate_wrprc_root_ca {
     echo -e "${INFO}Generating WRPRC CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA wrprc" --oid "NTRNL-00000050" \
+        --common-name "CA wrprc" \
         --file-prefix "${TARGET_DIR}/ca.wrprc" \
         --force
     openssl x509 -in "${TARGET_DIR}/ca.wrprc.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wrprc.crt.der"
@@ -361,7 +361,7 @@ function generate_pid_issuer_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[(pid,name)]}" \
         --organization-name "${access_certificates[(pid,legal_name)]}" \
-        --oid "${access_certificates[(pid,oid)]}" \
+        --organization-id "${access_certificates[(pid,oid)]}" \
         --san-uri "https://pid.example.com" \
         --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
@@ -383,7 +383,7 @@ function generate_pid_issuer_tsl_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[(pid,name)]}" \
         --organization-name "${access_certificates[(pid,legal_name)]}" \
-        --oid "${access_certificates[(pid,oid)]}" \
+        --organization-id "${access_certificates[(pid,oid)]}" \
         --san-uri "https://pid.example.com" \
         --file-prefix "${TARGET_DIR}/pid_issuer/tsl" \
         --force
@@ -410,7 +410,9 @@ function generate_wia_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
-        --common-name "NL Wallet" --oid "NTRNL-27381312" \
+        --common-name "${access_certificates[(wia,name)]}" \
+        --organization-name "${access_certificates[(wia,legal_name)]}" \
+        --organization-id "${access_certificates[(wia,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_signing" \
         --force
 
@@ -431,7 +433,9 @@ function generate_wia_tsl_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
-        --common-name "NL Wallet" --oid "NTRNL-27381312" \
+        --common-name "${access_certificates[(wia,name)]}" \
+        --organization-name "${access_certificates[(wia,legal_name)]}" \
+        --organization-id "${access_certificates[(wia,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
 
@@ -450,7 +454,7 @@ function generate_demo_issuer_key_pairs {
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
@@ -476,7 +480,7 @@ function generate_demo_issuer_issuance_key_pairs {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --issuer-auth-file "${DEVENV}/$1_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.issuer" \
@@ -488,7 +492,7 @@ function generate_demo_issuer_issuance_key_pairs {
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.tsl" \
         --force
@@ -510,13 +514,25 @@ function generate_demo_issuer_issuance_key_pairs {
 #
 # $1 - Short name of the Relying Party
 function generate_demo_relying_party_key_pair {
+    ca_args=(--common-name "${access_certificates[($1,name)]}")
+    if [[ -z ${access_certificates[($1,serial_number)]:-} ]]; then
+        ca_args+=(
+            --organization-name "${access_certificates[($1,legal_name)]}"
+            --organization-id "${access_certificates[($1,oid)]}"
+        )
+    else
+        ca_args+=(
+            --serial-number "${access_certificates[($1,serial_number)]}"
+            --surname "${access_certificates[($1,surname)]}"
+            --given-name "${access_certificates[($1,given_name)]}"
+        )
+    fi
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert --type reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "${access_certificates[($1,name)]}" \
-        --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        "${ca_args[@]}" \
         --san-uri "https://$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \
@@ -547,7 +563,7 @@ function generate_relying_party_hsm_key_pair {
         --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
-        --oid "${access_certificates[($1,oid)]}" \
+        --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \

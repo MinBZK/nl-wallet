@@ -1427,7 +1427,7 @@ mod tests {
         let issuance_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
         let different_issuance_key = {
             let mut different_dn = PID_ISSUER_CERT_DN.clone();
-            different_dn.organization_name = "Different B.V.".to_string();
+            different_dn.organization_name = Some("Different B.V.".to_string());
             ca.generate_key_pair(
                 different_dn,
                 issuer_registration.to_certificate_configuration().unwrap(),
