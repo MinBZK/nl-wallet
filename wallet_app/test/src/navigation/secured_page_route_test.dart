@@ -23,7 +23,7 @@ void main() {
   late StreamController<bool> lockedStreamController;
 
   setUp(() {
-    SecuredPageRoute.overrideDurationOfNextTransition(null);
+    SecuredPageRoute.overridePendingAnimation(null);
     mockWalletRepository = MockWalletRepository();
     mockIsWalletInitializedUseCase = MockIsWalletInitializedUseCase();
 
@@ -46,15 +46,17 @@ void main() {
       expect(route.transitionDuration, const Duration(milliseconds: 500));
     });
 
-    test('overrideDurationOfNextTransition overrides duration once', () {
+    test('overrideDurationOfNextTransition resets after 1 second', () async {
       const customDuration = Duration(seconds: 1);
-      SecuredPageRoute.overrideDurationOfNextTransition(customDuration);
+      SecuredPageRoute.overridePendingAnimation(customDuration);
 
       final route1 = SecuredPageRoute(
         builder: (context) => Container(),
         transition: SecuredPageTransition.slideInFromBottom,
       );
       expect(route1.transitionDuration, customDuration);
+
+      await Future.delayed(const Duration(seconds: 1, milliseconds: 100));
 
       final route2 = SecuredPageRoute(
         builder: (context) => Container(),
@@ -65,8 +67,8 @@ void main() {
 
     test('overrideDurationOfNextTransition(null) resets override', () {
       const customDuration = Duration(seconds: 1);
-      SecuredPageRoute.overrideDurationOfNextTransition(customDuration);
-      SecuredPageRoute.overrideDurationOfNextTransition(null);
+      SecuredPageRoute.overridePendingAnimation(customDuration);
+      SecuredPageRoute.overridePendingAnimation(null);
 
       final route = SecuredPageRoute(
         builder: (context) => Container(),

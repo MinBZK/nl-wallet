@@ -14,7 +14,7 @@ class PerformPreNavigationActionsUseCaseImpl extends PerformPreNavigationActions
         case PreNavigationAction.setupMockedWallet:
           await _setupMockedWalletUseCase.invoke();
         case PreNavigationAction.disableUpcomingPageTransition:
-          SecuredPageRoute.overrideDurationOfNextTransition(Duration.zero);
+          SecuredPageRoute.overridePendingAnimation(Duration.zero);
       }
     }
   }
