@@ -34,7 +34,7 @@ fn parse_response_xml(xml: &str) -> Result<GbaResponse, Error> {
             Err(e) => return Err(Error::XmlDeserialization(DeError::InvalidXml(e))),
             Ok(Event::Eof) => break,
             Ok(Event::Start(e)) => {
-                let (ns, local) = reader.resolve_element(e.name());
+                let (ns, local) = reader.resolver().resolve_element(e.name());
                 if ns == Bound(Namespace(LO3_NAMESPACE)) && local.as_ref() == CATEGORIEVOORKOMENS_TAG.as_bytes() {
                     let end = e.to_end();
                     let text = reader.read_text(end.name())?.decode()?;
