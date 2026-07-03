@@ -4,6 +4,7 @@ use derive_more::AsRef;
 use derive_more::Into;
 use quick_xml::Reader;
 use quick_xml::Writer;
+use quick_xml::XmlVersion;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
 use quick_xml::events::Event;
@@ -67,6 +68,8 @@ impl SanitizedSvg {
         // until the matching close tag brings it back to 0.
         let mut skip_depth: usize = 0;
 
+        let mut xml_version = XmlVersion::Implicit1_0;
+
         loop {
             match reader.read_event()? {
                 Event::Eof => break,
@@ -86,6 +89,7 @@ impl SanitizedSvg {
                 // Pass the XML declaration through; it is safe and often required.
                 Event::Decl(d) => {
                     if skip_depth == 0 {
+                        xml_version = d.xml_version()?;
                         writer.write_event(Event::Decl(d))?;
                     }
                 }
@@ -111,7 +115,7 @@ impl SanitizedSvg {
                     if skip_depth > 0 {
                         skip_depth += 1;
                     } else {
-                        match Self::filter_element(&e)? {
+                        match Self::filter_element(&e, xml_version)? {
                             Some(clean) => writer.write_event(Event::Start(clean))?,
                             None => skip_depth += 1,
                         }
@@ -122,7 +126,7 @@ impl SanitizedSvg {
                 // whether we allow or block the element.
                 Event::Empty(e) => {
                     if skip_depth == 0
-                        && let Some(clean) = Self::filter_element(&e)?
+                        && let Some(clean) = Self::filter_element(&e, xml_version)?
                     {
                         writer.write_event(Event::Empty(clean))?;
                     }
@@ -152,7 +156,7 @@ impl SanitizedSvg {
 
     /// Returns a sanitized copy of the element's `BytesStart` if the tag is allowed,
     /// or `None` if the entire element (and its children) should be skipped.
-    fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Error> {
+    fn filter_element(e: &BytesStart<'_>, xml_version: XmlVersion) -> Result<Option<BytesStart<'static>>, Error> {
         let name_bytes = e.local_name();
         let name_str = str::from_utf8(name_bytes.as_ref())?;
         let tag_name = LowerCaseString::new(name_str);
@@ -166,7 +170,7 @@ impl SanitizedSvg {
 
         for attr_result in e.attributes().with_checks(false) {
             let attr = attr_result.map_err(|e| Error::Xml(quick_xml::Error::InvalidAttr(e)))?;
-            let unescaped_attr = XmlNormalizedString::new(&attr)?;
+            let unescaped_attr = XmlNormalizedString::new(&attr, xml_version)?;
             let attr_name = LowerCaseString::new(str::from_utf8(attr.key.as_ref())?);
 
             if !(allow::is_allowed_attr(&attr_name) || allow::is_allowed_by_prefix(&attr_name)) {

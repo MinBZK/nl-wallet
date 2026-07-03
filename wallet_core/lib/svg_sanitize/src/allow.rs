@@ -385,8 +385,8 @@ pub fn has_safe_url_func(value: &LowerCaseString) -> bool {
 pub struct XmlNormalizedString(String);
 
 impl XmlNormalizedString {
-    pub fn new(attr: &Attribute<'_>) -> Result<Self, quick_xml::Error> {
-        Ok(Self(attr.normalized_value(XmlVersion::Implicit1_0)?.to_string()))
+    pub fn new(attr: &Attribute<'_>, xml_version: XmlVersion) -> Result<Self, quick_xml::Error> {
+        Ok(Self(attr.normalized_value(xml_version)?.to_string()))
     }
 }
 
