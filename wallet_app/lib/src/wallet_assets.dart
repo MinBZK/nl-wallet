@@ -55,6 +55,7 @@ class WalletAssets {
   static const svg_error_server_outage = 'assets/non-free/svg/NL_WALLET_error_server_outage.svg';
   static const svg_error_server_overload = 'assets/non-free/svg/NL_WALLET_error_server_overload.svg';
   static const svg_error_session_expired = 'assets/non-free/svg/NL_WALLET_error_session_expired.svg';
+  static const svg_error_qr_invalid = 'assets/non-free/svg/NL_WALLET_qr_invalid.svg';
   static const svg_maintenance = 'assets/non-free/svg/NL_WALLET_maintenance.svg';
   static const svg_move_destination_permission = 'assets/non-free/svg/NL_WALLET_move_destination_permission.svg';
   static const svg_move_destination_success = 'assets/non-free/svg/NL_WALLET_move_destination_success.svg';

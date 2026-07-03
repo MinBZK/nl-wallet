@@ -65,6 +65,12 @@ class ErrorPage extends StatelessWidget {
         return ErrorPage.server(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
       case NetworkError(hasInternet: false):
         return ErrorPage.noInternet(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+      case PreAuthorizedCodeExpiredError():
+        return ErrorPage.preAuthorizedCodeExpired(
+          context,
+          style: style,
+          onPrimaryActionPressed: onPrimaryActionPressed,
+        );
       case SessionError(state: .expired):
         return ErrorPage.sessionExpired(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
       case SessionError(state: .cancelled):
@@ -200,6 +206,29 @@ class ErrorPage extends StatelessWidget {
         cta: cta,
       ),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
+  /// Creates an [ErrorPage] for when a pre-authorized code has expired.
+  ///
+  /// Use [style] to determine the CTA button behavior (retry or close).
+  /// [cta] can be used to override the default button text.
+  factory ErrorPage.preAuthorizedCodeExpired(
+    BuildContext context, {
+    VoidCallback? onPrimaryActionPressed,
+    required ErrorCtaStyle style,
+    String? cta,
+  }) {
+    return ErrorPage(
+      title: context.l10n.errorScreenPreAuthorizedCodeExpiredTitle,
+      description: context.l10n.errorScreenPreAuthorizedCodeExpiredDescription,
+      illustration: WalletAssets.svg_error_qr_invalid,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
+        onPressed: onPrimaryActionPressed,
+        cta: cta,
+      ),
     );
   }
 
