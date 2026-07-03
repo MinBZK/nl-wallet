@@ -216,7 +216,6 @@ mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</
 <span class="c1"># Create the CA certificate using wallet_ca.</span>
 cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>ca<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--oin<span class="w"> </span><span class="s2">&quot;NTRNL-00000001&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 
 <span class="c1"># Convert certificate PEM to DER.</span>
