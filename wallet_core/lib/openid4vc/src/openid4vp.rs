@@ -631,15 +631,15 @@ impl NormalizedVpAuthorizationRequest {
         }
 
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
-        if vp_auth_request.nonce.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
-        }
-        if vp_auth_request.response_mode.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
-        }
-        if vp_auth_request.response_uri.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
-        }
+        let nonce = vp_auth_request
+            .nonce
+            .ok_or(AuthRequestValidationError::ExpectedFieldMissing("nonce"))?;
+        let response_mode = vp_auth_request
+            .response_mode
+            .ok_or(AuthRequestValidationError::ExpectedFieldMissing("response_mode"))?;
+        let response_uri = vp_auth_request
+            .response_uri
+            .ok_or(AuthRequestValidationError::ExpectedFieldMissing("response_uri"))?;
         let Some(client_metadata) = vp_auth_request.client_metadata else {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
         };
@@ -649,14 +649,16 @@ impl NormalizedVpAuthorizationRequest {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 expected: "vp_token",
-                found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap(),
+                found: serde_json::to_string(&vp_auth_request.oauth_request.response_type)
+                    .unwrap_or_else(|error| format!("<failed to serialize response_type: {error}>")),
             });
         }
-        if vp_auth_request.response_mode.unwrap() != ResponseMode::DirectPostJwt {
+        if response_mode != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
-                found: serde_json::to_string(&vp_auth_request.response_mode).unwrap(),
+                found: serde_json::to_string(&response_mode)
+                    .unwrap_or_else(|error| format!("<failed to serialize response_mode: {error}>")),
             });
         }
         let jwks = &client_metadata.jwks.keys;
@@ -715,10 +717,10 @@ impl NormalizedVpAuthorizationRequest {
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
-            nonce: vp_auth_request.nonce.unwrap(),
+            nonce,
             encryption_pubkey,
             credential_requests: vp_auth_request.dcql_query.try_into()?,
-            response_uri: vp_auth_request.response_uri.unwrap(),
+            response_uri,
             client_metadata,
             state: vp_auth_request.oauth_request.state,
             wallet_nonce: vp_auth_request.wallet_nonce,
@@ -1222,6 +1224,7 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
+    use oauth::authorization::ResponseType;
     use oauth::jose::JwsAlgorithm;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
@@ -1256,6 +1259,7 @@ mod tests {
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
+    use crate::authorization::ResponseMode;
     use crate::disclosure_session::VpClientError;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
@@ -1771,6 +1775,77 @@ mod tests {
         let (_, encryption_algorithm) = auth_request.normalize_request(rp_keypair.certificate(), None).unwrap();
 
         assert_eq!(encryption_algorithm, EncryptionAlgorithm::A256Gcm);
+    }
+
+    #[rstest]
+    #[case::nonce("nonce")]
+    #[case::response_mode("response_mode")]
+    #[case::response_uri("response_uri")]
+    #[case::client_metadata("client_metadata")]
+    fn authorization_request_missing_required_field_should_error(#[case] missing_field: &'static str) {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+
+        match missing_field {
+            "nonce" => auth_request.nonce = None,
+            "response_mode" => auth_request.response_mode = None,
+            "response_uri" => auth_request.response_uri = None,
+            "client_metadata" => auth_request.client_metadata = None,
+            _ => unreachable!("test case should remove a supported field"),
+        }
+
+        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::ExpectedFieldMissing(field) if field == missing_field
+        );
+    }
+
+    #[rstest]
+    #[case::empty(HashSet::new())]
+    #[case::code(HashSet::from([ResponseType::Code]))]
+    #[case::id_token(HashSet::from([ResponseType::IdToken]))]
+    #[case::mixed(HashSet::from([ResponseType::VpToken, ResponseType::Code, ResponseType::IdToken]))]
+    fn authorization_request_unsupported_response_type_should_error(#[case] response_types: HashSet<ResponseType>) {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        auth_request.oauth_request.response_type = response_types.clone();
+
+        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::UnsupportedFieldValue {
+                field: "response_type",
+                expected: "vp_token",
+                found,
+            } if serde_json::from_str::<HashSet<ResponseType>>(&found).unwrap() == response_types
+        );
+    }
+
+    #[rstest]
+    #[case::query(ResponseMode::Query, r#""query""#)]
+    #[case::fragment(ResponseMode::Fragment, r#""fragment""#)]
+    #[case::direct_post(ResponseMode::DirectPost, r#""direct_post""#)]
+    fn authorization_request_unsupported_response_mode_should_error(
+        #[case] response_mode: ResponseMode,
+        #[case] expected_found: &str,
+    ) {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        auth_request.response_mode = Some(response_mode);
+
+        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::UnsupportedFieldValue {
+                field: "response_mode",
+                expected: "direct_post.jwt",
+                found,
+            } if found == expected_found
+        );
     }
 
     #[test]
