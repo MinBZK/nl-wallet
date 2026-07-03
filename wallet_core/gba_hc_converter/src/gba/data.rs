@@ -37,11 +37,11 @@ fn parse_response_xml(xml: &str) -> Result<GbaResponse, Error> {
                 let (ns, local) = reader.resolve_element(e.name());
                 if ns == Bound(Namespace(LO3_NAMESPACE)) && local.as_ref() == CATEGORIEVOORKOMENS_TAG.as_bytes() {
                     let end = e.to_end();
-                    let text = reader.read_text(end.name())?;
+                    let text = reader.read_text(end.name())?.decode()?;
                     voorkomens_xml.push(text);
                 } else if ns == Bound(Namespace(LRD_NAMESPACE)) && local.as_ref() == RESULTAAT_TAG.as_bytes() {
                     let end = e.to_end();
-                    let text = reader.read_text(end.name())?;
+                    let text = reader.read_text(end.name())?.decode()?;
                     result_xml = Some(format!("<{0}>{1}</{0}>", RESULTAAT_TAG, &text));
                 }
             }
