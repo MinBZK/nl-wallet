@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 
 use derive_more::AsRef;
+use quick_xml::XmlVersion;
 use quick_xml::events::attributes::Attribute;
 
 #[derive(Debug, Clone, AsRef)]
@@ -378,14 +379,14 @@ pub fn has_safe_url_func(value: &LowerCaseString) -> bool {
     true
 }
 
-/// An string that has been URL-unescaped, so that checking if a URL is safe
+/// A string that has been XML-normalized, so that checking if a URL is safe
 /// will catch encoded payloads like `java&#115;cript:`.
 #[derive(Debug, Clone, AsRef)]
-pub struct UrlUnescapedString(String);
+pub struct XmlNormalizedString(String);
 
-impl UrlUnescapedString {
-    pub fn new(attr: &Attribute<'_>) -> Result<Self, quick_xml::Error> {
-        Ok(Self(attr.unescape_value()?.to_string()))
+impl XmlNormalizedString {
+    pub fn new(attr: &Attribute<'_>, xml_version: XmlVersion) -> Result<Self, quick_xml::Error> {
+        Ok(Self(attr.normalized_value(xml_version)?.to_string()))
     }
 }
 
@@ -398,7 +399,7 @@ impl UrlUnescapedString {
 ///
 /// `data:image/svg+xml` is intentionally excluded: an SVG-in-SVG data URI
 /// executes as a same-origin document in most browsers and is an XSS vector.
-pub fn is_safe_url(value: &UrlUnescapedString) -> bool {
+pub fn is_safe_url(value: &XmlNormalizedString) -> bool {
     let value = value.as_ref();
 
     if value.is_empty() {
