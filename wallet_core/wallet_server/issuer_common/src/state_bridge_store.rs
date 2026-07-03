@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
+use openid4vc::store::Consumed;
 use openid4vc::store::MemoryStore;
 use openid4vc::store::Store;
 use sea_orm::ActiveModelTrait;
@@ -27,6 +28,13 @@ use crate::entity::state_bridge;
 /// TTL for state bridge store entries. Bounds how long an entry may live between being
 /// stored and consumed before it is treated as expired.
 const STATE_BRIDGE_ENTRY_TTL: Duration = Duration::minutes(30);
+
+/// Extra period an expired entry is retained before `cleanup` deletes it.
+///
+/// This lets a late arrival (e.g. a consent submitted just after the TTL) still recover the wallet's
+/// `redirect_uri` from the expired entry and be sent back with a graceful error, instead of hitting a
+/// dead-end. Mirrors the session store's split between expiration and deletion.
+const STATE_BRIDGE_DELETE_LEEWAY: Duration = Duration::hours(24);
 
 /// Maximum rows deleted per statement during cleanup, to bound lock duration and DB load.
 const CLEANUP_BATCH_SIZE: u64 = 1_000;
@@ -71,7 +79,10 @@ impl<E> IssuerStateBridgeStore<E> {
     pub fn new(store_connection: StoreConnection) -> Self {
         let backend = match store_connection {
             StoreConnection::Postgres(connection) => StateBridgeStoreBackend::Postgres(connection),
-            StoreConnection::Memory => StateBridgeStoreBackend::Memory(MemoryStore::new(STATE_BRIDGE_ENTRY_TTL)),
+            StoreConnection::Memory => StateBridgeStoreBackend::Memory(MemoryStore::new_with_leeway(
+                STATE_BRIDGE_ENTRY_TTL,
+                STATE_BRIDGE_DELETE_LEEWAY,
+            )),
         };
 
         Self {
@@ -134,7 +145,12 @@ where
         }
     }
 
-    async fn consume(&self, bridge_key: impl Into<String> + Send) -> Result<Option<E>, Self::Error> {
+    /// Returns expired-but-present entries as [`Consumed::Expired`] (not `Absent`).
+    ///
+    /// This lets the caller still recover e.g. the wallet's `redirect_uri` for a graceful error
+    /// response. Expired entries remain recoverable until they are deleted, i.e. for
+    /// [`STATE_BRIDGE_ENTRY_TTL`] + [`STATE_BRIDGE_DELETE_LEEWAY`].
+    async fn consume(&self, bridge_key: impl Into<String> + Send) -> Result<Consumed<E>, Self::Error> {
         let bridge_key = bridge_key.into();
         match &self.backend {
             StateBridgeStoreBackend::Postgres(connection) => {
@@ -145,11 +161,17 @@ where
                     .map_err(IssuerStateBridgeStoreError::DbConsume)?;
 
                 match deleted.into_iter().next() {
-                    Some(model) if self.now() < model.expires_at.to_utc() => {
-                        Some(serde_json::from_value(model.entry).map_err(IssuerStateBridgeStoreError::Deserialize))
-                            .transpose()
+                    Some(model) => {
+                        let expired = self.now() >= model.expires_at.to_utc();
+                        let entry =
+                            serde_json::from_value(model.entry).map_err(IssuerStateBridgeStoreError::Deserialize)?;
+                        Ok(if expired {
+                            Consumed::Expired(entry)
+                        } else {
+                            Consumed::Live(entry)
+                        })
                     }
-                    _ => Ok(None),
+                    None => Ok(Consumed::Absent),
                 }
             }
             StateBridgeStoreBackend::Memory(memory_store) => Ok(memory_store.consume_inner(&bridge_key)),
@@ -159,7 +181,9 @@ where
     async fn cleanup(&self) -> Result<(), Self::Error> {
         match &self.backend {
             StateBridgeStoreBackend::Postgres(connection) => {
-                let now = self.now();
+                // Only delete entries whose expiration is older than the deletion leeway, so recently
+                // recently expired entries stay recoverable by `consume` for a graceful error.
+                let delete_cutoff = self.now() - STATE_BRIDGE_DELETE_LEEWAY;
                 let mut total_deleted: u64 = 0;
 
                 // Delete in bounded batches so a single statement never holds a large lock or scans
@@ -189,7 +213,7 @@ where
                             USING rows_to_delete
                             WHERE sb.id = rows_to_delete.id
                             "#,
-                            [now.into(), (CLEANUP_BATCH_SIZE as i64).into()],
+                            [delete_cutoff.into(), (CLEANUP_BATCH_SIZE as i64).into()],
                         ))
                         .await
                         .map_err(IssuerStateBridgeStoreError::DbCleanup)?;

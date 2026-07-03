@@ -38,6 +38,7 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::SessionStore;
+use openid4vc::store::Consumed;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
 use serde::Deserialize;
@@ -74,6 +75,9 @@ pub enum Error {
 
     #[error("DigiD error: {0}")]
     Digid(#[source] digid::Error),
+
+    #[error("authorization flow state expired before the callback was received")]
+    ExpiredState,
 
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
@@ -112,6 +116,8 @@ impl ErrorWithCode for Error {
     fn error_code(&self) -> Self::ErrorCode {
         match self {
             Self::UnsupportedCredentialType(_) => AuthorizationErrorCode::InvalidScope,
+
+            Self::ExpiredState => AuthorizationErrorCode::InvalidRequest,
 
             Self::Digid(_)
             | Self::StateBridge(_)
@@ -385,12 +391,22 @@ where
 {
     let flow = authorizing_issuer.flow();
 
-    // Since we cannot know the `redirect_uri` yet, the below errors are rendered as responses with plain-text bodies
-    // and an error HTTP status code.
+    // An `Absent` entry (never existed, or deleted after the cleanup leeway) is rendered as a plain-text body, since we
+    // have no `redirect_uri` to return to. An `Expired` entry, however, still carries the `redirect_uri`, so we send
+    // the user back to the wallet with an OAuth error instead of a dead-end.
     let entry: StateBridgeEntry = match flow.state_bridge_store.consume(state.as_str()).await {
-        Ok(Some(entry)) => entry,
-        Ok(None) => {
-            warn!("digid callback: unknown or expired bridge key");
+        Ok(Consumed::Live(entry)) => entry,
+        Ok(Consumed::Expired(entry)) => {
+            warn!("digid callback: bridge entry expired; redirecting to wallet with error");
+
+            let WalletAuthorizationContext {
+                state, request_values, ..
+            } = entry.context;
+
+            return Err(RedirectError::new(Error::ExpiredState, request_values.redirect_uri, state).into());
+        }
+        Ok(Consumed::Absent) => {
+            warn!("digid callback: unknown bridge key");
 
             return Err(BodyOrRedirectErrorResponse::new_body(
                 StatusCode::BAD_REQUEST,
@@ -756,6 +772,7 @@ mod tests {
             .consume(upstream_state.as_str())
             .await
             .unwrap()
+            .live()
             .expect("a bridge entry should be stored under the bridge key");
 
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
