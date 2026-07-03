@@ -8,6 +8,7 @@ import '../../../domain/model/policy/organization_policy.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/object_extension.dart';
+import '../../../util/extension/wallet_event_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../builder/request_detail_common_builders.dart';
@@ -39,6 +40,11 @@ class RequestDetailsScreen extends StatelessWidget {
   /// Policy: rendered as the agreement section.
   final OrganizationPolicy? policy;
 
+  /// Whether the requested attribute cards are tappable. False for stopped/cancelled
+  /// events (no data was shared, so there are no details to view); failed events keep
+  /// the CTA.
+  final bool requestedAttributesInteractive;
+
   const RequestDetailsScreen({
     required this.title,
     this.organization,
@@ -46,6 +52,7 @@ class RequestDetailsScreen extends StatelessWidget {
     this.requestedAttributes,
     this.sharedAttributes,
     this.policy,
+    this.requestedAttributesInteractive = true,
     super.key,
   }) : assert(
          sharedAttributes == null || requestedAttributes == null,
@@ -58,6 +65,7 @@ class RequestDetailsScreen extends StatelessWidget {
     purpose: event.purpose,
     organization: event.relyingParty,
     policy: OrganizationPolicy(organization: event.relyingParty, policy: event.policy),
+    requestedAttributesInteractive: !event.wasCancelled,
   );
 
   @override
@@ -100,6 +108,7 @@ class RequestDetailsScreen extends StatelessWidget {
                         context,
                         cards: requestedAttributes!,
                         side: DividerSide.top,
+                        interactive: requestedAttributesInteractive,
                       ),
                     if (policy != null)
                       RequestDetailCommonBuilders.buildPolicy(

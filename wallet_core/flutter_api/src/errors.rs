@@ -98,6 +98,9 @@ enum FlutterApiErrorType {
     /// DigiD authentication was cancelled.
     DeniedDigid,
 
+    /// A pre-authorized (QR/deeplink) issuance code is no longer valid: it has expired or was already used.
+    PreAuthorizedCodeExpired,
+
     /// Wallet has been revoked.
     Revoked,
 
@@ -279,6 +282,10 @@ impl FlutterApiErrorFields for IssuanceError {
 
             IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
+            }
+
+            IssuanceError::IssuanceSession(WalletIssuanceError::PreAuthorizedCodeExpired) => {
+                FlutterApiErrorType::PreAuthorizedCodeExpired
             }
 
             IssuanceError::IssuanceSession(WalletIssuanceError::TokenRequest(_))

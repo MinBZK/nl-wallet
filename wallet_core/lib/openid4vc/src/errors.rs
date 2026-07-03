@@ -412,7 +412,15 @@ impl ErrorWithCode for TokenRequestError {
         match self {
             Self::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
 
-            Self::SessionNotFound => TokenErrorCode::InvalidGrant,
+            // A missing session (cleaned up) or a session in a terminal/wrong state (already used or
+            // expired) both mean the authorization grant presented at `/token` is no longer valid.
+            // Per RFC 6749 section 5.2 that is exactly `invalid_grant` ("invalid, expired, revoked ...").
+            //
+            // In the pre-authorized-code flow `invalid_grant` can *only* result from these two cases
+            // (there are no PKCE / client_id / scope / redirect_uri checks that also yield it), so the
+            // wallet can unambiguously map a pre-authorized `invalid_grant` onto a specific error without
+            // relying on a non-standard error code.
+            Self::SessionNotFound | Self::IssuanceError(IssuanceError::UnexpectedState) => TokenErrorCode::InvalidGrant,
 
             Self::IssuanceError(_) => TokenErrorCode::InvalidRequest,
 
@@ -1032,5 +1040,29 @@ mod axum {
                 )
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ErrorWithCode;
+    use super::TokenErrorCode;
+    use crate::issuer::IssuanceError;
+    use crate::issuer::TokenRequestError;
+
+    #[test]
+    fn expired_or_used_session_maps_to_invalid_grant() {
+        // A missing session (cleaned up) and a session in a terminal/wrong state (already used or
+        // expired) both mean the authorization grant is no longer valid, which per RFC 6749 section
+        // 5.2 is `invalid_grant`. In the pre-authorized-code flow this is the only source of
+        // `invalid_grant`, which lets the wallet render the "QR code no longer valid" screen.
+        assert_eq!(
+            TokenRequestError::SessionNotFound.error_code(),
+            TokenErrorCode::InvalidGrant
+        );
+        assert_eq!(
+            TokenRequestError::IssuanceError(IssuanceError::UnexpectedState).error_code(),
+            TokenErrorCode::InvalidGrant
+        );
     }
 }

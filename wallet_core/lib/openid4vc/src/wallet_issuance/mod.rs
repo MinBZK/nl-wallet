@@ -111,6 +111,10 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
 
+    #[error("pre-authorized code is no longer valid: it has expired or was already used")]
+    #[category(expected)]
+    PreAuthorizedCodeExpired,
+
     #[error("could not retrieve credential preview from issuer: {0:?}")]
     #[category(expected)]
     CredentialPreviewHttp(#[source] reqwest::Error),

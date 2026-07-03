@@ -18,6 +18,15 @@ void main() {
       await screenMatchesGolden('light');
     });
 
+    testGoldens('ltc12 light - scaled', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DemoScreen(),
+        textScaleSize: 2,
+      );
+
+      await screenMatchesGolden('light.2x');
+    });
+
     testGoldens('ltc12 dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DemoScreen(),
