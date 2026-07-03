@@ -30,7 +30,7 @@ async fn test_delete_attestation_ok() {
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         (wp_settings, wp_root_ca),
-        pid_issuer_settings(db_setup.pid_issuer_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
         (
             issuance_settings,
             vec![IssuableDocument::new_mock_degree("MSc".to_string())],

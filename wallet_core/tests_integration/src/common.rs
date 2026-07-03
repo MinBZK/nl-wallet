@@ -179,7 +179,7 @@ pub async fn setup_wallet_and_default_env(
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
@@ -295,7 +295,7 @@ pub async fn setup_env_default(
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         verification_server_settings(db_setup.verification_server_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
@@ -750,7 +750,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings(db_url: Url) -> PidIssuerSettings {
+pub fn pid_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> PidIssuerSettings {
     let mut pid_settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     pid_settings
@@ -772,6 +772,18 @@ pub fn pid_issuer_settings(db_url: Url) -> PidIssuerSettings {
         .server_settings
         .wallet_server
         .port = 0;
+
+    if let Some(wia_ca) = wia_ca_override {
+        pid_settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .wia_trust_anchors = TrustAnchors::from(wia_ca);
+        pid_settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .wallet_client_ids
+            .insert(MOCK_WALLET_CLIENT_ID.to_string());
+    }
 
     pid_settings
 }
