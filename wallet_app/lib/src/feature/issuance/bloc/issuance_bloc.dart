@@ -116,7 +116,16 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   Future<void> _onIssuanceBackPressed(IssuanceBackPressed event, Emitter<IssuanceState> emit) async {
     final state = this.state;
     final startIssuanceResult = _startIssuanceResult;
-    if (startIssuanceResult == null) return; // Unknown state, nothing to navigate back to.
+
+    // Shortcut back behaviour, as [_startIssuanceResult] is not necessarily set
+    // in the credential-offer flow (i.e. IssuanceSessionContinued)
+    if (state is IssuanceProvidePinForIssuance && state.cards.isNotEmpty) {
+      emit(IssuanceReviewCards.init(cards: state.cards, afterBackPressed: true));
+      return;
+    }
+
+    // Unknown state, nothing to navigate back to.
+    if (startIssuanceResult == null) return;
 
     switch (state) {
       case IssuanceProvidePinForDisclosure():

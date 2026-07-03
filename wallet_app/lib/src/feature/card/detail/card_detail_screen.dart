@@ -40,7 +40,7 @@ import '../delete/argument/delete_card_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
 
-/// This value can be used with [SecuredPageRoute.overrideDurationOfNextTransition] when navigating to the
+/// This value can be used with [SecuredPageRoute.overridePendingAnimation] when navigating to the
 /// [CardDetailScreen] to slow down the entry transition a bit, making it feel a bit less rushed when the card
 /// animates into place.
 const kPreferredCardDetailEntryTransitionDuration = Duration(milliseconds: 600);

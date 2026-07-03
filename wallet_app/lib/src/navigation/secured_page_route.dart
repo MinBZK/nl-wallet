@@ -7,19 +7,15 @@ import '../feature/pin/pin_overlay.dart';
 const _kSlideTransitionDuration = Duration(milliseconds: 500);
 
 /// Static reference to override the duration of a transition once,
-/// set it through [SecuredPageRoute.overrideDurationOfNextTransition].
-Duration? _nextTransitionDuration;
+/// set it through [SecuredPageRoute.overridePendingAnimation].
+Duration? _pendingAnimationDuration;
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {
   final SecuredPageTransition transition;
 
   @override
   Duration get transitionDuration {
-    final transitionDuration = _nextTransitionDuration;
-    if (transitionDuration != null) {
-      _nextTransitionDuration = null;
-      return transitionDuration;
-    }
+    if (_pendingAnimationDuration != null) return _pendingAnimationDuration ?? Duration.zero;
     switch (transition) {
       case SecuredPageTransition.platform:
         return super.transitionDuration;
@@ -61,8 +57,14 @@ class SecuredPageRoute<T> extends MaterialPageRoute<T> {
     return SlideTransition(position: offsetAnimation, child: child);
   }
 
-  /// Set a custom duration for the next transition to a [SecuredPageRoute], passing null instantly resets it to the defaults.
-  static void overrideDurationOfNextTransition(Duration? duration) => _nextTransitionDuration = duration;
+  /// Set a custom duration for the next transition to a [SecuredPageRoute].
+  ///
+  /// The override will automatically reset to defaults after one second.
+  /// Passing null will reset the duration immediately.
+  static void overridePendingAnimation(Duration? duration) {
+    _pendingAnimationDuration = duration;
+    Future.delayed(const Duration(seconds: 1)).then((_) => _pendingAnimationDuration = null);
+  }
 }
 
 enum SecuredPageTransition { platform, slideInFromBottom }
