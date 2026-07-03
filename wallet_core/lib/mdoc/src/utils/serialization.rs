@@ -190,7 +190,7 @@ where
                 .map(|entry| &entry.1)
                 .collect::<Vec<&Value>>()
                 .serialize(serializer),
-            e => panic!("struct serialization failed: {e:?}"),
+            _ => Err(ser::Error::custom("CborSeq::serialize failed: not a map")),
         }
     }
 }
@@ -230,15 +230,18 @@ where
                 map.iter()
                     .filter(|(_, val)| !val.is_null())
                     .map(|(key, val)| {
-                        (
-                            field_name_indices.get(key.as_text().unwrap()).unwrap().clone(),
-                            val.clone(),
-                        )
+                        let key = key
+                            .as_text()
+                            .ok_or_else(|| ser::Error::custom("CborIntMap::serialize failed: key was not text"))?;
+                        let index = field_name_indices
+                            .get(key)
+                            .ok_or_else(|| ser::Error::custom("CborIntMap::serialize failed: missing field index"))?;
+                        Ok((index.clone(), val.clone()))
                     })
-                    .collect(),
+                    .collect::<Result<_, S::Error>>()?,
             )
             .serialize(serializer),
-            e => panic!("struct serialization failed: {e:?}"),
+            _ => Err(ser::Error::custom("CborIntMap::serialize failed: not a map")),
         }
     }
 }
@@ -428,12 +431,63 @@ mod tests {
 
     use ciborium::value::Value::Array;
     use ciborium::value::Value::Bytes;
+    use ciborium::value::Value::Map;
     use ciborium::value::Value::Null;
     use ciborium::value::Value::Text;
     use hex_literal::hex;
+    use rstest::rstest;
 
     use super::*;
     use crate::examples::Example;
+
+    #[derive(Serialize, Deserialize)]
+    struct IndexedValue(Value);
+
+    impl CborIndexedFields for IndexedValue {
+        fn field_indices() -> &'static [(&'static str, u64)] {
+            &[("field", 0), ("optional", 1)]
+        }
+    }
+
+    #[test]
+    fn test_cbor_seq_serialization_rejects_non_map() {
+        let error = cbor_serialize(&CborSeq("sample value")).unwrap_err();
+
+        assert_matches!(
+            error,
+            CborError::Serialization(ciborium::ser::Error::Value(message))
+                if message == "CborSeq::serialize failed: not a map"
+        );
+    }
+
+    #[rstest]
+    #[case::non_map(Text("sample value".to_string()), "CborIntMap::serialize failed: not a map")]
+    #[case::non_text_key(
+        Map(vec![(Bytes(b"sample key".to_vec()), Text("sample value".to_string()))]),
+        "CborIntMap::serialize failed: key was not text"
+    )]
+    #[case::missing_field_index(
+        Map(vec![(Text("unknown field".to_string()), Text("sample value".to_string()))]),
+        "CborIntMap::serialize failed: missing field index"
+    )]
+    fn test_cbor_int_map_serialization_rejects_invalid_value(#[case] value: Value, #[case] expected_message: &str) {
+        let error = cbor_serialize(&CborIntMap(IndexedValue(value))).unwrap_err();
+
+        assert_matches!(
+            error,
+            CborError::Serialization(ciborium::ser::Error::Value(message)) if message == expected_message
+        );
+    }
+
+    #[test]
+    fn test_cbor_int_map_serialization_omits_null_fields() {
+        let value = CborIntMap(IndexedValue(Map(vec![
+            (Text("field".to_string()), Text("value".to_string())),
+            (Text("optional".to_string()), Null),
+        ])));
+
+        assert_eq!(cbor_serialize(&value).unwrap(), hex!("A1006576616C7565"));
+    }
 
     #[test]
     fn tagged_bytes() {
