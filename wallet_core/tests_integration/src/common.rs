@@ -19,7 +19,9 @@ use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
+use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use ctor::ctor;
 use db_test::DbSetup;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -104,6 +106,7 @@ use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
+use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
 use crate::logging::init_logging;
 use crate::utils::read_file;
@@ -589,8 +592,12 @@ pub async fn setup_pre_auth_env(db_setup: &DbSetup) -> IssuerUrl {
 
 /// Start just the authorization-code-flow issuer (`acf_demo_issuer`). Its keys are software-backed, so
 /// no HSM is required.
-pub async fn setup_auth_code_env(db_setup: &DbSetup) -> IssuerUrl {
-    start_acf_demo_issuer_server(acf_demo_issuer_settings(db_setup.acf_demo_issuer_url())).await
+pub async fn setup_auth_code_env(db_setup: &DbSetup, wia_ca_override: Option<&Ca>) -> IssuerUrl {
+    start_acf_demo_issuer_server(acf_demo_issuer_settings(
+        db_setup.acf_demo_issuer_url(),
+        wia_ca_override,
+    ))
+    .await
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -995,7 +1002,7 @@ pub fn wallet_issuance_redirect_uri() -> Url {
     issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner()
 }
 
-pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
+pub fn acf_demo_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> AcfDemoIssuerSettings {
     let mut settings =
         AcfDemoIssuerSettings::new("acf_demo_issuer.toml", "acf_demo_issuer").expect("Could not read settings");
 
@@ -1007,6 +1014,16 @@ pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
         port: 0,
     });
+
+    if let Some(wia_ca) = wia_ca_override {
+        settings.authorizing_issuer_settings.issuer_settings.wia_trust_anchors = TrustAnchors::from(wia_ca);
+        // `MockWiaClient` always issues WIAs with `sub` set to `MOCK_WALLET_CLIENT_ID`.
+        settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .wallet_client_ids
+            .insert(MOCK_WALLET_CLIENT_ID.to_string());
+    }
 
     settings
 }
