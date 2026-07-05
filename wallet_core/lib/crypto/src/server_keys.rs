@@ -338,11 +338,11 @@ pub mod generate {
         pub static ISSUANCE_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA issuer"));
         pub static ISSUANCE_CERT_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_mock("Cert issuer"));
+            LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert issuer"));
         pub static ISSUANCE_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
             LazyLock::new(|| "https://issuer.example.com".parse().unwrap());
         pub static PID_ISSUER_CERT_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_mock("PID"));
+            LazyLock::new(|| DistinguishedName::create_legal_person_mock("PID"));
         pub static PID_ISSUER_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
             LazyLock::new(|| "https://pid.example.com".parse().unwrap());
         pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
@@ -350,7 +350,7 @@ pub mod generate {
         pub static RP_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA relying party"));
         pub static RP_CERT_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_mock("Cert relying party"));
+            LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert relying party"));
         pub static RP_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
             LazyLock::new(|| "https://cert.rp.example.com".parse().unwrap());
 

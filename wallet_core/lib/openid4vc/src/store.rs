@@ -10,13 +10,36 @@ use chrono::Utc;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
+/// The result of consuming an entry from a [`Store`].
+///
+/// Either a still-valid entry, an entry that is present but past its expiration (still returned, so
+/// callers that can make use of stale contents may do so), or no entry at all.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Consumed<V> {
+    Live(V),
+    Expired(V),
+    Absent,
+}
+
+impl<V> Consumed<V> {
+    /// Returns the entry only if it is still valid, discarding expired and absent entries.
+    ///
+    /// Convenient for callers that do not distinguish expired from absent.
+    pub fn live(self) -> Option<V> {
+        match self {
+            Self::Live(value) => Some(value),
+            Self::Expired(_) | Self::Absent => None,
+        }
+    }
+}
+
 #[trait_variant::make(Send)]
 pub trait Store<K, V> {
     type Error: Error + Send + Sync + 'static;
 
     async fn store(&self, key: K, value: V) -> Result<(), Self::Error>;
 
-    async fn consume(&self, key: impl Into<K> + Send) -> Result<Option<V>, Self::Error>;
+    async fn consume(&self, key: impl Into<K> + Send) -> Result<Consumed<V>, Self::Error>;
 
     async fn cleanup(&self) -> Result<(), Self::Error>;
 }
@@ -24,20 +47,33 @@ pub trait Store<K, V> {
 #[derive(Debug, Default)]
 pub struct MemoryStore<K, V, G = TimeGenerator> {
     ttl: Duration,
+    /// Extra period an expired entry is retained before `cleanup` removes it.
+    ///
+    /// Lets a late [`Store::consume`] still recover an expired entry's contents.
+    delete_leeway: Duration,
     time: G,
     entries: Mutex<HashMap<K, (V, DateTime<Utc>)>>,
 }
 
 impl<K: Hash + Eq, V> MemoryStore<K, V> {
     pub fn new(ttl: Duration) -> Self {
-        Self::new_with_time(ttl, TimeGenerator)
+        Self::new_with_leeway(ttl, Duration::zero())
+    }
+
+    pub fn new_with_leeway(ttl: Duration, delete_leeway: Duration) -> Self {
+        Self::new_with_time_and_leeway(ttl, delete_leeway, TimeGenerator)
     }
 }
 
 impl<K: Hash + Eq, V, G> MemoryStore<K, V, G> {
     pub fn new_with_time(ttl: Duration, time: G) -> Self {
+        Self::new_with_time_and_leeway(ttl, Duration::zero(), time)
+    }
+
+    pub fn new_with_time_and_leeway(ttl: Duration, delete_leeway: Duration, time: G) -> Self {
         Self {
             ttl,
+            delete_leeway,
             time,
             entries: Mutex::default(),
         }
@@ -67,15 +103,16 @@ impl<K: Hash + Eq, V, G: Generator<DateTime<Utc>>> MemoryStore<K, V, G> {
         entries.insert(key, (value, expires_at));
     }
 
-    pub fn consume_inner(&self, key: &K) -> Option<V> {
+    pub fn consume_inner(&self, key: &K) -> Consumed<V> {
         let now = self.time.generate();
         let mut entries = self
             .entries
             .lock()
             .expect("there should be no panic while the lock is held");
         match entries.remove(key) {
-            Some((value, expires_at)) if now < expires_at => Some(value),
-            _ => None,
+            Some((value, expires_at)) if now < expires_at => Consumed::Live(value),
+            Some((value, _)) => Consumed::Expired(value),
+            None => Consumed::Absent,
         }
     }
 
@@ -85,7 +122,7 @@ impl<K: Hash + Eq, V, G: Generator<DateTime<Utc>>> MemoryStore<K, V, G> {
             .entries
             .lock()
             .expect("there should be no panic while the lock is held");
-        entries.retain(|_, (_, expires_at)| *expires_at > now);
+        entries.retain(|_, (_, expires_at)| *expires_at + self.delete_leeway > now);
     }
 }
 
@@ -102,7 +139,7 @@ where
         Ok(())
     }
 
-    async fn consume(&self, key: impl Into<K> + Send) -> Result<Option<V>, Self::Error> {
+    async fn consume(&self, key: impl Into<K> + Send) -> Result<Consumed<V>, Self::Error> {
         Ok(self.consume_inner(&key.into()))
     }
 
@@ -122,6 +159,7 @@ mod tests {
     use parking_lot::RwLock;
     use utils::generator::mock::MockTimeGenerator;
 
+    use super::Consumed;
     use super::MemoryStore;
     use super::Store;
 
@@ -141,11 +179,11 @@ mod tests {
         store.store("key".to_string(), "value".to_string()).await.unwrap();
         assert_eq!(store.len(), 1);
 
-        assert!(store.consume("key").await.unwrap().is_some());
+        assert!(store.consume("key").await.unwrap().live().is_some());
         assert_eq!(store.len(), 0);
 
-        assert!(store.consume("key").await.unwrap().is_none());
-        assert!(store.consume("unknown").await.unwrap().is_none());
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Absent));
+        assert!(matches!(store.consume("unknown").await.unwrap(), Consumed::Absent));
     }
 
     #[tokio::test]
@@ -156,7 +194,9 @@ mod tests {
 
         *mock_time.write() += Duration::seconds(61);
 
-        assert!(store.consume("key").await.unwrap().is_none());
+        // The entry is present but past its TTL: returned as expired (leeway is zero, but cleanup has
+        // not run yet), and discarded by `live()`.
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Expired(_)));
     }
 
     #[tokio::test]
@@ -173,7 +213,51 @@ mod tests {
 
         store.cleanup().await.unwrap();
 
-        assert!(store.consume("expired").await.unwrap().is_none());
-        assert!(store.consume("valid").await.unwrap().is_some());
+        assert!(matches!(store.consume("expired").await.unwrap(), Consumed::Absent));
+        assert!(matches!(store.consume("valid").await.unwrap(), Consumed::Live(_)));
+    }
+
+    #[tokio::test]
+    async fn test_consume_distinguishes_live_expired_absent() {
+        let (store, mock_time) = memory_store_with_mock_time();
+        let t0 = *mock_time.read();
+
+        // Absent: nothing stored.
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Absent));
+
+        // Live: within the TTL.
+        store.store("key".to_string(), "value".to_string()).await.unwrap();
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Live(v) if v == "value"));
+
+        // Expired but still present (not yet cleaned up).
+        store.store("key".to_string(), "value".to_string()).await.unwrap();
+        *mock_time.write() = t0 + Duration::seconds(61);
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Expired(v) if v == "value"));
+
+        // Single-use: consumed entry is gone.
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Absent));
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_retains_expired_within_leeway() {
+        let generator = MockTimeGenerator::default();
+        let mock_time = Arc::clone(&generator.time);
+        // TTL 60s, deletion leeway 100s: entries are recoverable-as-expired for 160s total.
+        let store: MemoryStore<String, String, MockTimeGenerator> =
+            MemoryStore::new_with_time_and_leeway(Duration::seconds(60), Duration::seconds(100), generator);
+        let t0 = *mock_time.read();
+
+        store.store("key".to_string(), "value".to_string()).await.unwrap();
+
+        // Past the TTL but within the leeway: cleanup keeps it, and it is still recoverable as expired.
+        *mock_time.write() = t0 + Duration::seconds(120);
+        store.cleanup().await.unwrap();
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Expired(_)));
+
+        // Past TTL + leeway: cleanup removes it entirely.
+        store.store("key".to_string(), "value".to_string()).await.unwrap();
+        *mock_time.write() = t0 + Duration::seconds(300);
+        store.cleanup().await.unwrap();
+        assert!(matches!(store.consume("key").await.unwrap(), Consumed::Absent));
     }
 }

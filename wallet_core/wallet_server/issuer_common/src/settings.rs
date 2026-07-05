@@ -852,7 +852,7 @@ mod tests {
 
         let status_list_keypair = issuer_ca
             .generate_key_pair(
-                DistinguishedName::create_mock("different"),
+                DistinguishedName::create_legal_person_mock("different"),
                 CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
                 ["https://different.example.com/".parse::<SubjectAltNameUri>().unwrap()],
             )

@@ -60,6 +60,10 @@ class CoreExpiredSessionError extends CoreError {
   List<Object?> get props => [canRetry, ...super.props];
 }
 
+class CorePreAuthorizedCodeExpired extends CoreError {
+  const CorePreAuthorizedCodeExpired(super.description, {super.data});
+}
+
 class CoreCancelledSessionError extends CoreError {
   const CoreCancelledSessionError(super.description, {super.data});
 }

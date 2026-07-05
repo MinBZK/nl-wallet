@@ -222,6 +222,7 @@ where
             .consume(request_uri)
             .await
             .map_err(|error| AuthorizeError::ParStore(Box::new(error)))?
+            .live()
             .ok_or_else(|| AuthorizeError::UnknownRequestUri(request_uri.to_string()))?;
 
         if authorization_request.oauth_request.client_id != client_id {
@@ -555,6 +556,7 @@ mod tests {
             .consume(response.request_uri.as_str())
             .await
             .unwrap()
+            .live()
             .expect("request should be stored under the returned request_uri");
         assert_eq!(stored.oauth_request.client_id, MOCK_WALLET_CLIENT_ID);
     }

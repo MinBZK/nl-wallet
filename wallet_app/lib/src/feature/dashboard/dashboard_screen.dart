@@ -59,7 +59,7 @@ class DashboardScreen extends StatefulWidget {
   /// the [DashboardBloc] is initialized with these cards, so that they are instantly
   /// available, e.g. useful when triggering Hero animations.
   static void show(BuildContext context, {List<WalletCard>? cards}) {
-    if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 1200));
+    if (cards != null) SecuredPageRoute.overridePendingAnimation(const Duration(milliseconds: 1200));
     Navigator.restorablePushNamedAndRemoveUntil(
       context,
       WalletRoutes.dashboardRoute,
@@ -238,7 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onCardPressed(BuildContext context, WalletCard walletCard) {
-    SecuredPageRoute.overrideDurationOfNextTransition(kPreferredCardDetailEntryTransitionDuration);
+    SecuredPageRoute.overridePendingAnimation(kPreferredCardDetailEntryTransitionDuration);
     Navigator.restorablePushNamed(
       context,
       WalletRoutes.cardDetailRoute,
