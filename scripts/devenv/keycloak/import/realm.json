@@ -76,13 +76,13 @@
       ]
     },
     {
-      "username": "revoker",
+      "username": "destroyer",
       "enabled": true,
       "emailVerified": false,
       "credentials": [
         {
           "type": "password",
-          "value": "revoker",
+          "value": "destroyer",
           "temporary": false
         }
       ],

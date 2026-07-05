@@ -546,3 +546,14 @@ function encrypt_gba_v_responses {
         fi
     done
 }
+
+# Emit a base64-encoded heredoc that recreates file $1 at path $2.
+#
+# $1 - The file to be encoded
+# $2 - The target path
+function emit_base64_decode_command() {
+    printf 'mkdir -p "%s"\n' "$(dirname "$2")"
+    printf "base64 -d > '%s' <<',EOF'\n" "$2"
+    ${BASE64} < "$1"
+    printf '\n,EOF\n'
+}

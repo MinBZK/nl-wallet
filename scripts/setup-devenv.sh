@@ -243,18 +243,18 @@ fi
 echo -e "${SECTION}Configure keycloak${NC}"
 
 if [[ -z "${SKIP_KEYCLOAK:-}" ]]; then
-  # Generate our certificates, USE_SINGLE_CA aware.
-  generate_or_reuse_root_ca "${TARGET_DIR}/keycloak" "keycloak"
-  generate_ssl_key_pair_with_san "${TARGET_DIR}/keycloak" "keycloak" "${TARGET_DIR}/keycloak/ca.crt.pem" "${TARGET_DIR}/keycloak/ca.key.pem"
+  generate_or_reuse_root_ca "${DEVENV}/keycloak/certs" "keycloak"
+  generate_ssl_key_pair_with_san "${DEVENV}/keycloak/certs" "keycloak" "${DEVENV}/keycloak/certs/ca.crt.pem" "${DEVENV}/keycloak/certs/ca.key.pem"
 
-  # Place our certificates, use container service user (1000, keycloak).
-  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'mkdir -p /opt/keycloak/data/certs'
-  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/certs/keycloak.crt' < "${TARGET_DIR}/keycloak/keycloak.crt"
-  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/certs/keycloak.key' < "${TARGET_DIR}/keycloak/keycloak.key"
+  # Constructs a shellscript that contains the commands to reproduce a file/directory structure.
+  # The shellscript is fed to docker compose, service: keycloak, command: sh, argument: -s.
+  {
+    printf '%s\n' 'set -eu'
+    emit_base64_decode_command "${DEVENV}/keycloak/certs/keycloak.crt" '/opt/keycloak/data/certs/keycloak.crt'
+    emit_base64_decode_command "${DEVENV}/keycloak/certs/keycloak.key" '/opt/keycloak/data/certs/keycloak.key'
+    emit_base64_decode_command "${DEVENV}/keycloak/import/realm.json"  '/opt/keycloak/data/import/realm.json'
+  } | docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -s
 
-  # Place the realm file, imported on container start.
-  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'mkdir -p /opt/keycloak/data/import'
-  docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -c 'cat > /opt/keycloak/data/import/realm.json' < "${DEVENV}/keycloak/realm.json"
 fi
 
 ########################################################################
