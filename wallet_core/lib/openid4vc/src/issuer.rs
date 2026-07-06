@@ -1,9 +1,11 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::ops::Add;
 use std::sync::Arc;
+use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
@@ -16,6 +18,8 @@ use chrono::DateTime;
 use chrono::DurationRound;
 use chrono::Utc;
 use crypto::EcdsaKey;
+use crypto::EcdsaKeySend;
+use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use derive_more::Constructor;
@@ -25,9 +29,11 @@ use futures::join;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwt::Algorithm;
+use jwt::SignedJwt;
 use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
@@ -40,6 +46,7 @@ use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
 use url::Url;
+use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -68,6 +75,7 @@ use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
@@ -398,6 +406,7 @@ pub struct IssuerData<K, L> {
     batch_size: NonZeroU8,
 
     metadata: IssuerMetadata,
+    metadata_keypair: KeyPair<K>,
 }
 
 pub struct WiaConfig {
@@ -569,6 +578,29 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
 
 impl<K, L, S, N> Issuer<K, L, S, N>
 where
+    K: EcdsaKeySend,
+{
+    pub async fn signed_metadata<G: Generator<DateTime<Utc>>>(
+        &self,
+        ttl: Duration,
+        time_generator: G,
+    ) -> Result<SignedJwt<SignedIssuerMetadataPayload<'_>, HeaderWithX5c>, JwtError> {
+        let iat = time_generator.generate();
+        let exp = iat + ttl;
+        let payload = SignedIssuerMetadataPayload {
+            metadata: Cow::Borrowed(&self.issuer_data.metadata),
+
+            iss: None,
+            sub: Cow::Borrowed(self.issuer_identifier().as_ref()),
+            iat: iat.into(),
+            exp: Some(exp.into()),
+        };
+        SignedJwt::sign_with_certificate(&payload, &self.issuer_data.metadata_keypair).await
+    }
+}
+
+impl<K, L, S, N> Issuer<K, L, S, N>
+where
     S: SessionStore<IssuanceData> + Sync + 'static,
     N: NonceStore + Sync + 'static,
     L: StatusListService,
@@ -576,6 +608,7 @@ where
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn try_new(
         issuer_identifier: IssuerIdentifier,
+        keypair: KeyPair<K>,
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
@@ -624,6 +657,7 @@ where
             server_url: server_url.into_inner(),
             batch_size,
             metadata,
+            metadata_keypair: keypair,
         };
 
         let proof_nonce_store = Arc::new(proof_nonce_store);
@@ -1710,6 +1744,7 @@ mod tests {
     use thiserror::Error;
     use tracing_test::traced_test;
     use url::Url;
+    use utils::generator::mock::MockTimeGenerator;
     use wscd::mock_remote::MockRemoteWscd;
 
     use super::*;
@@ -1741,6 +1776,27 @@ mod tests {
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
+
+    #[tokio::test]
+    async fn test_signed_metadata() {
+        let (_, metadata) = TypeMetadataDocuments::degree_example();
+        let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        let time_generator = MockTimeGenerator::default();
+        let ttl = Duration::from_secs(300);
+        let now = time_generator.generate();
+        let signed_metadata = issuer.signed_metadata(ttl, time_generator).await.unwrap();
+
+        let (_, payload) = signed_metadata.into_unverified().dangerous_parse_unverified().unwrap();
+        assert_eq!(payload.iss, None);
+        assert_eq!(payload.sub, payload.metadata.credential_issuer.as_ref());
+        assert_eq!(payload.iat, now.into());
+        assert_eq!(payload.exp, Some((now + ttl).into()));
+    }
 
     #[derive(Debug, Error, Clone, Eq, PartialEq)]
     #[error("MyError")]

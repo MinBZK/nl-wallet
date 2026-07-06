@@ -31,7 +31,7 @@ use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
 const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::new(
-    Name::new_unchecked("application"),
+    mediatype::names::APPLICATION,
     Name::new_unchecked("statuslist"),
     Some(Name::new_unchecked("jwt")),
 );

@@ -385,6 +385,9 @@ pub enum IssuerSettingsError {
     #[error("could not initialize HSM: {0}")]
     Hsm(#[source] HsmError),
 
+    #[error("invalid metadata private key: {0}")]
+    MetadataPrivateKey(#[source] PrivateKeySettingsError),
+
     #[error("could not initialize credential configuration parameters: {0}")]
     CredentialConfigurationParameters(#[source] CredentialConfigurationsSettingsError),
 
@@ -544,6 +547,12 @@ impl IssuerSettings {
             }
         };
 
+        let metadata_keypair = self
+            .metadata_keypair
+            .parse(hsm.clone())
+            .await
+            .map_err(IssuerSettingsError::MetadataPrivateKey)?;
+
         let config_params = self
             .credential_configurations
             .into_params(
@@ -558,6 +567,7 @@ impl IssuerSettings {
 
         let issuer = Issuer::try_new(
             self.public_url,
+            metadata_keypair,
             self.batch_size,
             self.wallet_client_ids,
             config_params,

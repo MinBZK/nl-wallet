@@ -261,6 +261,7 @@ mod tests {
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let metadata_keypair = ca.generate_wrpac_issuer_mock().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
 
         let mut status_list = MockStatusListService::new();
@@ -284,6 +285,7 @@ mod tests {
 
         Issuer::try_new(
             "https://example.com".parse().unwrap(),
+            metadata_keypair,
             NonZeroU8::MIN,
             HashSet::new(),
             [("credential_config_id".to_string().into(), config_params)].into(),

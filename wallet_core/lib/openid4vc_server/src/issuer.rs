@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::Form;
 use axum::Json;
@@ -11,7 +12,9 @@ use axum::http::HeaderMap;
 use axum::http::HeaderName;
 use axum::http::HeaderValue;
 use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::response::Redirect;
+use axum::response::Response;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
@@ -23,6 +26,8 @@ use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
+use http_utils::mediatype::MediaType;
+use http_utils::mediatype::find_content_type_from_accept;
 use openid4vc::AuthorizationErrorCode;
 use openid4vc::BodyOrRedirectErrorResponse;
 use openid4vc::CredentialErrorCode;
@@ -46,7 +51,6 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
-use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
@@ -59,6 +63,14 @@ use openid4vc::token::TokenResponse;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
+use utils::generator::TimeGenerator;
+
+const APPLICATION_JSON_MEDIA_TYPE: MediaType =
+    MediaType::new(mediatype::names::APPLICATION, mediatype::names::JSON, None);
+const APPLICATION_JWT_MEDIA_TYPE: MediaType =
+    MediaType::new(mediatype::names::APPLICATION, mediatype::names::JWT, None);
+
+const ISSUER_METADATA_TTL: Duration = Duration::from_secs(3600);
 
 /// Axum state for the Issuance Phase router (and the pre-authorized-code `/token` route).
 struct IssuanceState<K, L, S, N> {
@@ -135,8 +147,52 @@ where
         .route("/issuance/batch_credential", delete(reject_batch_credential))
         .with_state(IssuanceState { issuer })
 }
-async fn metadata<K, L, S, N>(State(state): State<IssuanceState<K, L, S, N>>) -> Json<IssuerMetadata> {
-    Json(state.issuer.metadata().clone())
+
+async fn metadata<K, L, S, N>(
+    headers: HeaderMap,
+    State(state): State<IssuanceState<K, L, S, N>>,
+) -> Result<Response, StatusCode>
+where
+    K: EcdsaKeySend,
+{
+    // Check for signed request
+    let signed = match find_content_type_from_accept(
+        headers.get("Accept"),
+        |mt| {
+            if mt == APPLICATION_JWT_MEDIA_TYPE {
+                Some(true)
+            } else if mt == APPLICATION_JSON_MEDIA_TYPE {
+                Some(false)
+            } else {
+                None
+            }
+        },
+        // OpenID4VCI and HAIP do not specify what to do on Accept (or */* is specified)
+        // HAIP mandates support for signed metadata, so that is used as default
+        true,
+    ) {
+        Ok(Some(signed)) => Ok(signed),
+        Ok(None) => Err(StatusCode::NOT_ACCEPTABLE),
+        Err(err) => {
+            tracing::info!("invalid accept header: {err}");
+            Err(StatusCode::BAD_REQUEST)
+        }
+    }?;
+
+    if signed {
+        // TODO: PVW-6104 Implement caching of signing
+        state
+            .issuer
+            .signed_metadata(ISSUER_METADATA_TTL, TimeGenerator)
+            .await
+            .map(IntoResponse::into_response)
+            .map_err(|err| {
+                warn!("Could not sign issuer metadata: {err:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    } else {
+        Ok(Json(state.issuer.metadata()).into_response())
+    }
 }
 
 async fn oauth_metadata<K, L, S, N>(

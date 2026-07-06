@@ -111,6 +111,7 @@ pub struct SignedIssuerMetadataPayload<'a> {
     pub metadata: Cow<'a, IssuerMetadata>,
 
     // Standard JWT fields.
+    // https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-signed-metadata
     pub iss: Option<Cow<'a, str>>,
     pub sub: Cow<'a, str>,
     pub iat: DateTimeSeconds,
