@@ -60,6 +60,7 @@ use server_utils::store::StoreConnection;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
+use tracing::info;
 use tracing::warn;
 use url::Url;
 use utils::path::prefix_local_path;
@@ -442,7 +443,7 @@ where
     let context: WalletAuthorizationContext = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Consumed::Live(context)) => context,
         Ok(Consumed::Expired(context)) => {
-            warn!("consent submit: flow state expired; redirecting to wallet with error");
+            info!("consent submit: flow state expired; redirecting to wallet with error");
 
             return Err(
                 RedirectError::new(Error::ExpiredState, context.request_values.redirect_uri, context.state).into(),
