@@ -4,6 +4,8 @@ pub mod error;
 pub mod health;
 #[cfg(feature = "httpmock")]
 pub mod httpmock;
+#[cfg(feature = "mediatype")]
+pub mod mediatype;
 #[cfg(feature = "client")]
 pub mod reqwest;
 #[cfg(feature = "server")]
