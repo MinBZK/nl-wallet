@@ -5,6 +5,10 @@
 //! is private to the impl, so the `openid4vc` layer stays free of specific flow-related concerns.
 //! [`AuthorizingIssuer`](crate::authorizing_issuer::AuthorizingIssuer) is generic over this trait and delegates both
 //! endpoints to the configured impl.
+//!
+//! The two endpoints are separated by a user-agent round-trip whose duration the issuer does not control, so several
+//! independent timeouts (the PAR entry, this flow's own bridged state, and any upstream identity-provider session) can
+//! each expire mid-flow.
 
 use std::collections::HashSet;
 

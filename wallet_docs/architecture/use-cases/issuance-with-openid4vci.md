@@ -310,6 +310,92 @@ sequenceDiagram
     end
 ```
 
+## Timeouts and expiry
+
+Issuance spans several hops — an out-of-band offer, one or two OAuth
+round-trips, and a multi-step issuance phase — and each hop is bounded by its
+own, independent clock. Where a timeout becomes visible, and whether it can be
+surfaced to the wallet at all, depends on _which_ clock expired and _which_ flow
+is in play.
+
+### The clocks
+
+| Clock                       | Flow            | Default  | Where set                          | Bounds                                                                                         |
+| --------------------------- | --------------- | -------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| PAR entry TTL               | auth-code       | 60 s     | `PAR_TTL`                          | time between `/par` and the front-channel `/authorize`                                         |
+| State-bridge entry TTL      | auth-code       | 30 min   | `STATE_BRIDGE_ENTRY_TTL`           | the whole user-agent round-trip through the upstream IdP (or consent page)                     |
+| State-bridge delete leeway  | auth-code       | 24 h     | `STATE_BRIDGE_DELETE_LEEWAY`       | extra grace after the TTL in which an _expired_ entry stays recoverable                        |
+| Issuance session inactivity | both            | 30 min   | `SessionStoreTimeouts::expiration` | inactivity between `/token`, previews and `/credential`; also a pre-authorized code's lifetime |
+| Upstream IdP session        | auth-code (PID) | external | nl-rdo-max                         | how long DigiD keeps the login state while the user authenticates                              |
+
+The issuance session also has deletion timeouts (`successful_deletion`, 5 min;
+`failed_deletion`, 4 h) that govern _cleanup_ after the session is done or
+expired, mirroring the state bridge's split between expiration and deletion.
+
+### Where an expiry surfaces
+
+The decisive question is whether the expiry is hit on a **wallet→issuer API
+call** (which can carry a structured error back to the wallet) or **during a
+front-channel browser redirect** (where the only way back to the wallet is the
+`redirect_uri`, which may no longer be recoverable).
+
+| Failure mode                               | Hit on        | Wire signal                      | Wallet result                         |
+| ------------------------------------------ | ------------- | -------------------------------- | ------------------------------------- |
+| Pre-authorized code reused / session gone  | `/token` call | `invalid_grant` (RFC 6749 §5.2)  | "QR code no longer valid" screen      |
+| Issuance session expired mid-issuance      | `/credential` | `invalid_token` (RFC 6750, 401)  | "session expired" screen              |
+| State-bridge entry expired, within leeway  | browser       | OAuth `invalid_request` redirect | redirect-uri error                    |
+| State-bridge entry deleted (after leeway)  | browser       | plain-text 400                   | **dead-end** — nothing reaches wallet |
+| Upstream IdP (DigiD) abandoned / timed out | browser       | none (callback never runs)       | **dead-end** — nothing reaches wallet |
+
+- **Pre-authorized code, reused or expired** (`issuance_server`). The wallet
+  POSTs the code to `/token` but the session is gone or already `Done`. This
+  maps to the spec's `invalid_grant`; the wallet recognises a pre-authorized
+  `invalid_grant` and shows a "QR code no longer valid" screen. It is a plain
+  API call, so the error reaches the wallet cleanly.
+
+- **Issuance session expired mid-issuance** (both flows). The holder dwells on a
+  preview or the PIN screen past the inactivity timeout and the session is
+  cleaned up. The next `/credential` call presents an access token whose session
+  no longer exists, which maps to `invalid_token`; the wallet shows a "session
+  expired" screen. Also an API call, so it surfaces cleanly.
+
+- **Auth-code browser dead-end** (both `pid_issuer` and `acf_demo_issuer`).
+  During the front-channel round-trip — DigiD for the PID issuer, the local
+  consent page for the acf-demo issuer — the state-bridge entry expires. The
+  callback then arrives carrying only the opaque `state` (the bridge key); the
+  wallet's `redirect_uri` lived _solely_ inside that entry. Two sub-cases:
+
+    - **Within the delete leeway**, the entry is expired-but-still-present, so
+      the callback recovers the `redirect_uri` and redirects the browser back to
+      the wallet with an OAuth error (`invalid_request`). The wallet surfaces
+      this as a redirect-uri error rather than a dead-end. This is exactly what
+      the leeway buys.
+    - **After the leeway**, the entry has been deleted, nothing links back to
+      the wallet, and the callback dead-ends as a plain-text `400` in the
+      browser.
+
+- **Upstream/DigiD timeout** (PID only). If the user abandons or times out _at
+  DigiD_, RDO Max never redirects back to the issuer, so our `/digid/callback`
+  never runs and nothing server-side can observe it. The browser dead-ends at
+  RDO Max. Only wallet-side detection of the abandoned step-out can catch this.
+
+### Relating the clocks
+
+- The **state-bridge TTL must be at least the upstream IdP session TTL**.
+  Otherwise a login the user completed in time upstream could still find its
+  bridge entry expired on the way back, turning a success into the dead-end
+  above. The current 30 min is a placeholder; it should track the real DigiD
+  session lifetime.
+- The **delete leeway is deliberately far longer than the TTL** (24 h vs 30
+  min), so a user who steps away mid-flow and returns much later still gets a
+  graceful error redirect instead of a dead-end. The bridge entry holds no
+  personal data (only the wallet's `redirect_uri`, `state` and PKCE challenge),
+  so retaining it that long is cheap.
+
+The code-level mechanics of the state-bridge dead-end and its leeway live in the
+`PID Issuer` — see
+[PID Issuer architecture](../../development/pid-issuer-architecture.md#internal-flow-par-authorize-callback-and-token).
+
 ## Key generation and usage during issuance
 
 ### Wallet App

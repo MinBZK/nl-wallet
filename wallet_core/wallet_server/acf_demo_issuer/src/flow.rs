@@ -60,6 +60,7 @@ use server_utils::store::StoreConnection;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
+use tracing::info;
 use tracing::warn;
 use url::Url;
 use utils::path::prefix_local_path;
@@ -434,13 +435,15 @@ where
 {
     let flow = authorizing_issuer.flow();
 
-    // An `Absent` entry (never existed, or deleted after the cleanup leeway) is rendered as a plain-text body, since we
-    // have no `redirect_uri` to return to. An `Expired` entry, however, still carries the `redirect_uri`, so we send
-    // the user back to the wallet with an OAuth error instead of a dead-end.
+    // The incoming request carries only the opaque `state` (the bridge key); the wallet's `redirect_uri` lives solely
+    // inside the bridge entry. So once the entry is gone there is nothing left to send the user-agent back to. An
+    // `Absent` entry (never existed, or deleted after the cleanup leeway) therefore dead-ends as a plain-text body. An
+    // `Expired` entry, however, still carries the `redirect_uri`, so we send the user back to the wallet with an OAuth
+    // error instead of a dead-end; this is exactly what the cleanup leeway buys us.
     let context: WalletAuthorizationContext = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Consumed::Live(context)) => context,
         Ok(Consumed::Expired(context)) => {
-            warn!("consent submit: flow state expired; redirecting to wallet with error");
+            info!("consent submit: flow state expired; redirecting to wallet with error");
 
             return Err(
                 RedirectError::new(Error::ExpiredState, context.request_values.redirect_uri, context.state).into(),
