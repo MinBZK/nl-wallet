@@ -4187,6 +4187,7 @@ name = "jwt"
 version = "0.6.0-dev"
 dependencies = [
  "attestation_types",
+ "axum",
  "base64 0.22.1",
  "chrono",
  "crypto",
