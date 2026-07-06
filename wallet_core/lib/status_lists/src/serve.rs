@@ -213,7 +213,7 @@ fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
         (media_type == ALL_MEDIA_TYPE || media_type == STATUSLIST_JWT_MEDIA_TYPE).then_some(()))
     {
         Ok(Some(_)) => Ok(()),
-        Ok(None) => Err(StatusCode::UNSUPPORTED_MEDIA_TYPE),
+        Ok(None) => Err(StatusCode::NOT_ACCEPTABLE),
         Err(err) => {
             tracing::info!("invalid accept header: {err}");
             Err(StatusCode::BAD_REQUEST)
