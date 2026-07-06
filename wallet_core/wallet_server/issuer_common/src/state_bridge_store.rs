@@ -26,7 +26,11 @@ use crate::entity::prelude::*;
 use crate::entity::state_bridge;
 
 /// TTL for state bridge store entries. Bounds how long an entry may live between being
-/// stored and consumed before it is treated as expired.
+/// stored (at `/authorize`) and consumed (from the flow's callback) before it is treated as expired.
+///
+/// This clock runs for the entire user-agent round-trip through the upstream identity provider, so it must be at least
+/// as long as that upstream session may reasonably take. If it were shorter, an authentication that the user completed
+/// in time upstream could still find its bridge entry expired on the way back.
 const STATE_BRIDGE_ENTRY_TTL: Duration = Duration::minutes(30);
 
 /// Extra period an expired entry is retained before `cleanup` deletes it.
@@ -182,7 +186,7 @@ where
         match &self.backend {
             StateBridgeStoreBackend::Postgres(connection) => {
                 // Only delete entries whose expiration is older than the deletion leeway, so recently
-                // recently expired entries stay recoverable by `consume` for a graceful error.
+                // expired entries stay recoverable by `consume` for a graceful error.
                 let delete_cutoff = self.now() - STATE_BRIDGE_DELETE_LEEWAY;
                 let mut total_deleted: u64 = 0;
 
