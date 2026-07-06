@@ -69,6 +69,18 @@ spec:
               value: "true"
             - name: PACF_ISSUANCE_SERVER__METADATA
               value: "com.example.museum_maandkaart.json"
+            - name: PACF_ISSUANCE_SERVER__METADATA_KEYPAIR__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pacf-demo-issuer-issuance-server-wrpac
+                  key: certificate
+            - name: PACF_ISSUANCE_SERVER__METADATA_KEYPAIR__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pacf-demo-issuer-issuance-server-wrpac
+                  key: private_key
+            - name: PACF_ISSUANCE_SERVER__METADATA_KEYPAIR__PRIVATE_KEY_TYPE
+              value: "software"
             - name: PACF_ISSUANCE_SERVER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: PACF_ISSUANCE_SERVER__STORAGE__URL

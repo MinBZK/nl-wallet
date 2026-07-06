@@ -90,6 +90,18 @@ spec:
               value: {{ .Values.batchSize | quote }}
             - name: ACF_DEMO_ISSUER__METADATA
               value: {{ join "," .Values.metadata | quote }}
+            - name: ACF_DEMO_ISSUER__METADATA_KEYPAIR__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-acf-demo-issuer-wrpac
+                  key: certificate
+            - name: ACF_DEMO_ISSUER__METADATA_KEYPAIR__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-acf-demo-issuer-wrpac
+                  key: private_key
+            - name: ACF_DEMO_ISSUER__METADATA_KEYPAIR__PRIVATE_KEY_TYPE
+              value: "software"
             - name: ACF_DEMO_ISSUER__STORAGE__URL
               valueFrom:
                 secretKeyRef:

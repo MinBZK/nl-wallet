@@ -111,6 +111,18 @@ spec:
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: PID_ISSUER__METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json"
+            - name: PID_ISSUER__METADATA_KEYPAIR__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pid-issuer-wrpac
+                  key: certificate
+            - name: PID_ISSUER__METADATA_KEYPAIR__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pid-issuer-wrpac
+                  key: private_key
+            - name: PID_ISSUER__METADATA_KEYPAIR__PRIVATE_KEY_TYPE
+              value: "software"
             - name: PID_ISSUER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: PID_ISSUER__STORAGE__URL

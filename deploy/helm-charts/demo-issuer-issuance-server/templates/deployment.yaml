@@ -74,6 +74,18 @@ spec:
               value: "true"
             - name: ISSUANCE_SERVER__METADATA
               value: "com.example.degree.json,com.example.housing.json"
+            - name: ISSUANCE_SERVER__METADATA_KEYPAIR__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-issuer-issuance-server-wrpac
+                  key: certificate
+            - name: ISSUANCE_SERVER__METADATA_KEYPAIR__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-issuer-issuance-server-wrpac
+                  key: private_key
+            - name: ISSUANCE_SERVER__METADATA_KEYPAIR__PRIVATE_KEY_TYPE
+              value: "software"
             - name: ISSUANCE_SERVER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: ISSUANCE_SERVER__STORAGE__URL
