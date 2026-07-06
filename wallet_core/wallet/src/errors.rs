@@ -9,6 +9,7 @@ pub mod openid4vc {
     pub use openid4vc::disclosure_session::VpMessageClientErrorType;
     pub use openid4vc::disclosure_session::VpVerifierError;
     pub use openid4vc::errors::AuthorizationErrorCode;
+    pub use openid4vc::errors::CredentialErrorCode;
     pub use openid4vc::errors::DisclosureErrorResponse;
     pub use openid4vc::errors::ErrorResponse;
     pub use openid4vc::errors::PostAuthResponseErrorCode;
