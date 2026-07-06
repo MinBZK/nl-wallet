@@ -31,6 +31,7 @@ use wallet::errors::WalletInitError;
 use wallet::errors::WalletRegistrationError;
 use wallet::errors::WalletUnlockError;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
+use wallet::errors::openid4vc::CredentialErrorCode;
 use wallet::errors::openid4vc::OAuthError;
 use wallet::errors::openid4vc::VpClientError;
 use wallet::errors::openid4vc::VpMessageClientError;
@@ -286,6 +287,20 @@ impl FlutterApiErrorFields for IssuanceError {
 
             IssuanceError::IssuanceSession(WalletIssuanceError::PreAuthorizedCodeExpired) => {
                 FlutterApiErrorType::PreAuthorizedCodeExpired
+            }
+
+            // The credential endpoint rejected the access token with `invalid_token`. On the wire this
+            // single code covers every access-token-rejection case the issuer can raise: the session
+            // being gone or in a terminal/wrong state (`UnexpectedState` / `UnknownSession`, e.g. the
+            // holder dwelling past the session timeout mid-issuance), as well as a structurally malformed
+            // or mismatched token (`MalformedToken` / `Unauthorized`). The wallet cannot distinguish
+            // these from the wire code alone, and it does not need to: all of them mean "the session is
+            // no longer usable", so surface the "session expired" screen instead of a generic server
+            // error.
+            IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(error))
+                if error.error == CredentialErrorCode::InvalidToken =>
+            {
+                FlutterApiErrorType::ExpiredSession
             }
 
             IssuanceError::IssuanceSession(WalletIssuanceError::TokenRequest(_))
@@ -829,6 +844,7 @@ mod tests {
     use wallet::errors::TransferError;
     use wallet::errors::WalletUnlockError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
+    use wallet::errors::openid4vc::CredentialErrorCode;
     use wallet::errors::openid4vc::DisclosureErrorResponse;
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OAuthError;
@@ -883,6 +899,24 @@ mod tests {
         ))),
         FlutterApiErrorType::RedirectUri,
         json!({"redirect_error": "some_error"})
+    )]
+    #[case::issuance_credential_request_invalid_token(
+        IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(Box::new(ErrorResponse {
+            error: CredentialErrorCode::InvalidToken,
+            error_description: None,
+            error_uri: None,
+        }))),
+        FlutterApiErrorType::ExpiredSession,
+        serde_json::Value::Null
+    )]
+    #[case::issuance_credential_request_other(
+        IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(Box::new(ErrorResponse {
+            error: CredentialErrorCode::ServerError,
+            error_description: None,
+            error_uri: None,
+        }))),
+        FlutterApiErrorType::Server,
+        serde_json::Value::Null
     )]
     #[case::issuance_missingsignature(
         IssuanceError::MissingSignature,
