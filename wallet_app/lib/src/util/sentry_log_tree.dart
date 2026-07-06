@@ -22,9 +22,7 @@ class SentryLogTree extends LogTree {
     StackTrace? stacktrace,
   }) {
     final body = _formatBody(message, ex, stacktrace);
-    final attributes = tag == null
-        ? null
-        : {'logger.name': SentryAttribute.string(tag)};
+    final attributes = tag == null ? null : {'logger.name': SentryAttribute.string(tag)};
 
     final result = switch (level) {
       'V' => _logger.trace(body, attributes: attributes),
