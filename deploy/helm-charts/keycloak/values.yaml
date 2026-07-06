@@ -1,0 +1,159 @@
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## @param fullnameOverride String to completely override chart's fullname
+## @param nameOverride String to partially override chart's fullname
+## @param replicaCount Number of replicas
+##
+fullnameOverride: ""
+nameOverride: ""
+replicaCount: 1
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag (defaults to Chart.appVersion)
+##
+image:
+  repository: quay.io/keycloak/keycloak
+  pullPolicy: IfNotPresent
+  tag: null
+
+## @section Image pull secrets
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Deployment parameters
+## @param deployment.strategy Strategy used to replace old pods by new ones
+## @param deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
+## @param deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
+##
+deployment:
+  strategy: null
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+
+## @section Security parameters
+## @param serviceAccountName Name of the service account
+## @param podSecurityContext Security context for the pod
+## @param securityContext Security context for the container
+##
+serviceAccountName: null
+podSecurityContext: {}
+securityContext: {}
+
+## @section Annotations and labels
+## @param extraAnnotations Additional annotations for the deployment
+## @param extraPodLabels Additional labels for the pods
+##
+extraAnnotations: {}
+extraPodLabels: {}
+
+## @section Resource requests and limits
+## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
+##
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+## @section HTTP route parameters
+## @param httpRoute.enabled Enable or disable the route
+## @param httpRoute.parentRefs Parent references to the gateway
+## @param httpRoute.hostnames Hostnames for the route
+## @param httpRoute.contextPath Optional context path for the route
+## @param httpRoute.labels Additional labels for the route
+## @param httpRoute.annotations Additional annotations for the route
+##
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hostnames: []
+  contextPath: null
+  labels: {}
+  annotations: {}
+
+## @section Container probes
+## Keycloak serves /health/* on the management interface (port 9000), not on http (8080).
+## @param probes.config.liveness Additional configuration for liveness probe
+## @param probes.config.readiness Additional configuration for readiness probe
+## @param probes.config.startup Additional configuration for startup probe
+## @param probes.disableLiveness Disable liveness probe
+## @param probes.useLivenessAsReadiness Use liveness endpoint for readiness
+##
+probes:
+  config:
+    liveness: {}
+    readiness: {}
+    startup: {}
+  disableLiveness: false
+  useLivenessAsReadiness: false
+
+## @section Keycloak parameters
+## @param keycloak.hostname Value for KC_HOSTNAME (external hostname of the ingress)
+## @param keycloak.database Value for KC_DB (defaults to dev-file backed by the PVC)
+## @param keycloak.proxyHeaders Value for KC_PROXY_HEADERS (xforwarded or forwarded)
+## @param keycloak.clientRedirectUri The wallet-backend client redirect URI, rendered into realm.json
+## @param keycloak.admin.existingSecret.name Name of the secret holding the admin credentials
+## @param keycloak.admin.existingSecret.usernameKey Key in the secret for the admin username (KC_BOOTSTRAP_ADMIN_USERNAME)
+## @param keycloak.admin.existingSecret.passwordKey Key in the secret for the admin password (KC_BOOTSTRAP_ADMIN_PASSWORD)
+## @param keycloak.extraEnv Additional environment variables
+## @param keycloak.extraImportFiles Additional/override files placed in the import directory (filename -> content), rendered as templates
+## @param keycloak.usersSecret.name Name of the secret holding the seed user passwords (referenced by users[].passwordKey)
+## @extra keycloak.users Seed users rendered into realm.json, each with username, passwordKey (key in usersSecret) and privileges (role names without the privilege_ prefix). The password is injected as env var KC_PASSWORD_FOR_<USERNAME> and substituted at import time, so usernames must be env-var-safe ([A-Za-z0-9_]).
+## @skip keycloak.users
+##
+keycloak:
+  hostname: localhost
+  database: dev-file
+  proxyHeaders: xforwarded
+  # Required: the wallet-backend client redirect URI. Left null so a missing override fails loudly.
+  clientRedirectUri: null
+  admin:
+    existingSecret:
+      name: nl-wallet-keycloak-admin
+      usernameKey: username
+      passwordKey: password
+  extraEnv: []
+  extraImportFiles: {}
+  usersSecret:
+    name: nl-wallet-keycloak-users
+  users:
+    - username: administrator
+      passwordKey: administrator-password
+      privileges:
+        - revoke_wallet
+        - block_user
+        - unblock_user
+    - username: manager
+      passwordKey: manager-password
+      privileges:
+        - show_all_tasks
+    - username: destroyer
+      passwordKey: destroyer-password
+      privileges:
+        - revoke_solution
+
+## @section Persistence parameters
+## Keycloak stores realm + user data in /opt/keycloak/data. For replicaCount > 1, switch to a real database.
+## @param persistence.enabled Enable a PVC for /opt/keycloak/data
+## @param persistence.accessMode PVC access mode
+## @param persistence.size PVC size
+## @param persistence.storageClassName Optional storage class
+##
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClassName: null
