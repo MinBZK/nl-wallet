@@ -589,7 +589,7 @@ impl ErrorStatusCode for GetAuthRequestErrorCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            // Per RFC 7235 we MUST include a `WWW-Authenticate` HTTP header with this, but we can't do that
+            // Per RFC 9110 we MUST include a `WWW-Authenticate` HTTP header with this, but we can't do that
             // conveniently here. It seems this header is often skipped, and we use it internally here, we skip it too.
             Self::ExpiredEphemeralId => StatusCode::UNAUTHORIZED,
 
