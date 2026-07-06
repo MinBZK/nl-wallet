@@ -571,9 +571,8 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     private func log(_ message: String) {
-        #if DEBUG
+        guard PlatformSupportLogging.allowLogs else { return }
         NSLog("[CloseProximityBleTransport] %@", message)
-        #endif
     }
 }
 

@@ -1,6 +1,5 @@
 package nl.rijksoverheid.edi.wallet.platform_support.utilities
 
-import android.util.Log
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -18,17 +17,17 @@ suspend fun <T> retryable(
     var currentDelay = initialDelay
     var attempt = 0
     while (true) {
-        Log.d(taskName, taskDescription)
+        PlatformLogger.d(taskName, taskDescription)
         attempt++
         try {
             return block()
         } catch (e: Exception) {
             if (attempt == times) {
-                Log.e(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\"), giving up..")
+                PlatformLogger.e(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\"), giving up..")
                 throw e
 
             }
-            Log.w(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\", remaining times: ${times - attempt}, current delay: ${currentDelay}), retrying..")
+            PlatformLogger.w(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\", remaining times: ${times - attempt}, current delay: ${currentDelay}), retrying..")
         }
 
         delay(currentDelay)

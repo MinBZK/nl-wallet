@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import net.razvan.JacocoToCoberturaPlugin
 import net.razvan.JacocoToCoberturaTask
 import java.io.ByteArrayOutputStream
+import java.util.Base64
 
 plugins {
     id("com.android.library")
@@ -11,6 +12,29 @@ plugins {
 
 val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
     ?: listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+
+val dartEnvironmentVariables = if (project.hasProperty("dart-defines")) {
+    project.property("dart-defines").let { defines ->
+        check(defines is String) { "dart-defines should be String" }
+        defines.split(",").associate { entry ->
+            val pair =
+                Base64.getDecoder().decode(entry).toString(Charsets.UTF_8).split("=", limit = 2)
+            check(pair.size == 2) { "Got dart define without =" }
+            pair[0] to pair[1]
+        }
+    }
+} else {
+    mapOf()
+}
+
+fun Map<String, String>.nonEmptyDartDefine(key: String): String? =
+    this[key]?.takeIf { it.isNotEmpty() }
+
+val allowReleaseLogs = dartEnvironmentVariables.nonEmptyDartDefine("ALLOW_RELEASE_LOGS")
+
+check(allowReleaseLogs == null || allowReleaseLogs == "true" || allowReleaseLogs == "false") {
+    "ALLOW_RELEASE_LOGS must be 'true' or 'false'"
+}
 
 android {
     namespace  = "nl.rijksoverheid.edi.wallet.platform_support"
@@ -22,6 +46,8 @@ android {
         minSdk = 29
         lint { targetSdk = 36 }
         testOptions { targetSdk = 36 }
+
+        buildConfigField("boolean", "ALLOW_RELEASE_LOGS", allowReleaseLogs ?: "false")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
