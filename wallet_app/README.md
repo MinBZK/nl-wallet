@@ -152,6 +152,21 @@ services, we also provide scripts to configure the complete development
 environment. Please refer to [scripts](../scripts/), and more specifically the
 `setup-devenv.sh` and `start-devenv.sh` files.
 
+##### Device Logs and Sentry Logs
+
+Device logs and Sentry Logs are controlled by the `ALLOW_RELEASE_LOGS` Dart
+define for profile and release builds. The flag defaults to `false`; release
+builds must opt in explicitly. Debug builds still enable logs by build mode.
+
+When `ALLOW_RELEASE_LOGS=true`, Flutter and Rust device logs are enabled. If a
+Sentry DSN is configured, those logs are also forwarded to Sentry Logs. Crash
+and error reporting still follows the existing Sentry DSN configuration.
+
+Release builds should keep `ALLOW_RELEASE_LOGS=false` unless the build is
+explicitly intended to collect device and Sentry logs. The shared ont/demo
+release builds set this flag to `true`; production release builds must not copy
+that setting.
+
 ##### Configuration
 
 The configuration for how the app can connect to the server that serves the

@@ -44,6 +44,15 @@ class Environment {
   /// Indicates whether a Sentry DSN has been provided.
   static bool get hasSentryDsn => sentryDsn.isNotEmpty;
 
+  /// Indicates whether release/profile builds may emit device logs and Sentry Logs.
+  ///
+  /// Defaults to false; release/profile builds must opt in explicitly.
+  /// Set using: `flutter build --dart-define=ALLOW_RELEASE_LOGS=true`
+  static bool get allowReleaseLogs => const bool.fromEnvironment('ALLOW_RELEASE_LOGS', defaultValue: false);
+
+  /// Indicates whether device logs and Sentry Logs are enabled for this build.
+  static bool get allowLogs => kDebugMode || allowReleaseLogs;
+
   /// The environment name for Sentry (e.g., "development", "production").
   ///
   /// Set using: `flutter build --dart-define=SENTRY_ENVIRONMENT=production`
