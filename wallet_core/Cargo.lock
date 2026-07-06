@@ -3503,6 +3503,7 @@ dependencies = [
  "futures",
  "http",
  "itertools 0.14.0",
+ "mediatype",
  "mime",
  "nutype",
  "regex",
