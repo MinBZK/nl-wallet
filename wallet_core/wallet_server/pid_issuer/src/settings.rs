@@ -23,6 +23,8 @@ use server_utils::settings::Settings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::pid::digid_mock::MockSubject;
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct PidIssuerSettings {
@@ -44,6 +46,12 @@ pub struct Digid {
     pub bsn_privkey: Key,
     pub client_id: String,
     pub client_settings: DigidClientSettings,
+
+    /// When non-empty, the pid_issuer serves its own mock DigiD login page (a grid of these identities) instead of
+    /// redirecting to nl-rdo-max's. Each `bsn` must resolve in the BRP proxy's dataset. Leave empty for the
+    /// real DigiD flow.
+    #[serde(default)]
+    pub mock_subjects: Vec<MockSubject>,
 }
 
 #[serde_as]

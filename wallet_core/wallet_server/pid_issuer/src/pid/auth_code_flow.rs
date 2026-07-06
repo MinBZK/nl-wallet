@@ -172,6 +172,7 @@ pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidCli
     state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     callback_url: Url,
     client_id: String,
+    mock_login_uri: Option<Url>,
 }
 
 impl UpstreamOidcAuthorizationCodeFlow {
@@ -236,7 +237,15 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             state_bridge_store,
             callback_url: callback_base_url.join(DIGID_CALLBACK_PATH),
             client_id,
+            mock_login_uri: None,
         }
+    }
+
+    /// Enable (or disable) the pid_issuer-hosted mock login page. When `Some`, `authorize` redirects
+    /// the user-agent there instead of directly to nl-rdo-max.
+    pub fn with_mock_login_uri(mut self, mock_login_uri: Option<Url>) -> Self {
+        self.mock_login_uri = mock_login_uri;
+        self
     }
 
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
@@ -360,7 +369,21 @@ where
             .await
             .map_err(Error::StateBridge)?;
 
-        Ok(AuthorizeOutcome::RedirectTo(redirect_url))
+        // Send the user-agent to our own card page instead of straight to nl-rdo-max, carrying the nl-rdo-max authorize
+        // URL so a selected card can drive the bridge. The upstream `state` is present in that URL as well, so the
+        // `/digid/callback` still consumes the same bridge entry.
+        let outcome_url = match &self.mock_login_uri {
+            Some(mock_login_uri) => {
+                let mut mock_login_url = mock_login_uri.clone();
+                mock_login_url
+                    .query_pairs_mut()
+                    .append_pair("authorize_url", redirect_url.as_str());
+                mock_login_url
+            }
+            None => redirect_url,
+        };
+
+        Ok(AuthorizeOutcome::RedirectTo(outcome_url))
     }
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
