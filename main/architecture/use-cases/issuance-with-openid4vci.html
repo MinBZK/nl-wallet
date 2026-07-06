@@ -887,6 +887,155 @@ the party that issued the challenge.</p>
     end
     </pre></section>
 </section>
+<section id="timeouts-and-expiry">
+<h2>Timeouts and expiry<a class="headerlink" href="#timeouts-and-expiry" title="Link to this heading"></a></h2>
+<p>Issuance spans several hops — an out-of-band offer, one or two OAuth
+round-trips, and a multi-step issuance phase — and each hop is bounded by its
+own, independent clock. Where a timeout becomes visible, and whether it can be
+surfaced to the wallet at all, depends on <em>which</em> clock expired and <em>which</em> flow
+is in play.</p>
+<section id="the-clocks">
+<h3>The clocks<a class="headerlink" href="#the-clocks" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Clock</p></th>
+<th class="head"><p>Flow</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Where set</p></th>
+<th class="head"><p>Bounds</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>PAR entry TTL</p></td>
+<td><p>auth-code</p></td>
+<td><p>60 s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAR_TTL</span></code></p></td>
+<td><p>time between <code class="docutils literal notranslate"><span class="pre">/par</span></code> and the front-channel <code class="docutils literal notranslate"><span class="pre">/authorize</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>State-bridge entry TTL</p></td>
+<td><p>auth-code</p></td>
+<td><p>30 min</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">STATE_BRIDGE_ENTRY_TTL</span></code></p></td>
+<td><p>the whole user-agent round-trip through the upstream IdP (or consent page)</p></td>
+</tr>
+<tr class="row-even"><td><p>State-bridge delete leeway</p></td>
+<td><p>auth-code</p></td>
+<td><p>24 h</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">STATE_BRIDGE_DELETE_LEEWAY</span></code></p></td>
+<td><p>extra grace after the TTL in which an <em>expired</em> entry stays recoverable</p></td>
+</tr>
+<tr class="row-odd"><td><p>Issuance session inactivity</p></td>
+<td><p>both</p></td>
+<td><p>30 min</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SessionStoreTimeouts::expiration</span></code></p></td>
+<td><p>inactivity between <code class="docutils literal notranslate"><span class="pre">/token</span></code>, previews and <code class="docutils literal notranslate"><span class="pre">/credential</span></code>; also a pre-authorized code’s lifetime</p></td>
+</tr>
+<tr class="row-even"><td><p>Upstream IdP session</p></td>
+<td><p>auth-code (PID)</p></td>
+<td><p>external</p></td>
+<td><p>nl-rdo-max</p></td>
+<td><p>how long DigiD keeps the login state while the user authenticates</p></td>
+</tr>
+</tbody>
+</table>
+<p>The issuance session also has deletion timeouts (<code class="docutils literal notranslate"><span class="pre">successful_deletion</span></code>, 5 min;
+<code class="docutils literal notranslate"><span class="pre">failed_deletion</span></code>, 4 h) that govern <em>cleanup</em> after the session is done or
+expired, mirroring the state bridge’s split between expiration and deletion.</p>
+</section>
+<section id="where-an-expiry-surfaces">
+<h3>Where an expiry surfaces<a class="headerlink" href="#where-an-expiry-surfaces" title="Link to this heading"></a></h3>
+<p>The decisive question is whether the expiry is hit on a <strong>wallet→issuer API
+call</strong> (which can carry a structured error back to the wallet) or <strong>during a
+front-channel browser redirect</strong> (where the only way back to the wallet is the
+<code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, which may no longer be recoverable).</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Failure mode</p></th>
+<th class="head"><p>Hit on</p></th>
+<th class="head"><p>Wire signal</p></th>
+<th class="head"><p>Wallet result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Pre-authorized code reused / session gone</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/token</span></code> call</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">invalid_grant</span></code> (RFC 6749 §5.2)</p></td>
+<td><p>“QR code no longer valid” screen</p></td>
+</tr>
+<tr class="row-odd"><td><p>Issuance session expired mid-issuance</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/credential</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">invalid_token</span></code> (RFC 6750, 401)</p></td>
+<td><p>“session expired” screen</p></td>
+</tr>
+<tr class="row-even"><td><p>State-bridge entry expired, within leeway</p></td>
+<td><p>browser</p></td>
+<td><p>OAuth <code class="docutils literal notranslate"><span class="pre">invalid_request</span></code> redirect</p></td>
+<td><p>redirect-uri error</p></td>
+</tr>
+<tr class="row-odd"><td><p>State-bridge entry deleted (after leeway)</p></td>
+<td><p>browser</p></td>
+<td><p>plain-text 400</p></td>
+<td><p><strong>dead-end</strong> — nothing reaches wallet</p></td>
+</tr>
+<tr class="row-even"><td><p>Upstream IdP (DigiD) abandoned / timed out</p></td>
+<td><p>browser</p></td>
+<td><p>none (callback never runs)</p></td>
+<td><p><strong>dead-end</strong> — nothing reaches wallet</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p><strong>Pre-authorized code, reused or expired</strong> (<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>). The wallet
+POSTs the code to <code class="docutils literal notranslate"><span class="pre">/token</span></code> but the session is gone or already <code class="docutils literal notranslate"><span class="pre">Done</span></code>. This
+maps to the spec’s <code class="docutils literal notranslate"><span class="pre">invalid_grant</span></code>; the wallet recognises a pre-authorized
+<code class="docutils literal notranslate"><span class="pre">invalid_grant</span></code> and shows a “QR code no longer valid” screen. It is a plain
+API call, so the error reaches the wallet cleanly.</p></li>
+<li><p><strong>Issuance session expired mid-issuance</strong> (both flows). The holder dwells on a
+preview or the PIN screen past the inactivity timeout and the session is
+cleaned up. The next <code class="docutils literal notranslate"><span class="pre">/credential</span></code> call presents an access token whose session
+no longer exists, which maps to <code class="docutils literal notranslate"><span class="pre">invalid_token</span></code>; the wallet shows a “session
+expired” screen. Also an API call, so it surfaces cleanly.</p></li>
+<li><p><strong>Auth-code browser dead-end</strong> (both <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> and <code class="docutils literal notranslate"><span class="pre">acf_demo_issuer</span></code>).
+During the front-channel round-trip — DigiD for the PID issuer, the local
+consent page for the acf-demo issuer — the state-bridge entry expires. The
+callback then arrives carrying only the opaque <code class="docutils literal notranslate"><span class="pre">state</span></code> (the bridge key); the
+wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> lived <em>solely</em> inside that entry. Two sub-cases:</p>
+<ul>
+<li><p><strong>Within the delete leeway</strong>, the entry is expired-but-still-present, so
+the callback recovers the <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> and redirects the browser back to
+the wallet with an OAuth error (<code class="docutils literal notranslate"><span class="pre">invalid_request</span></code>). The wallet surfaces
+this as a redirect-uri error rather than a dead-end. This is exactly what
+the leeway buys.</p></li>
+<li><p><strong>After the leeway</strong>, the entry has been deleted, nothing links back to
+the wallet, and the callback dead-ends as a plain-text <code class="docutils literal notranslate"><span class="pre">400</span></code> in the
+browser.</p></li>
+</ul>
+</li>
+<li><p><strong>Upstream/DigiD timeout</strong> (PID only). If the user abandons or times out <em>at
+DigiD</em>, RDO Max never redirects back to the issuer, so our <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code>
+never runs and nothing server-side can observe it. The browser dead-ends at
+RDO Max. Only wallet-side detection of the abandoned step-out can catch this.</p></li>
+</ul>
+</section>
+<section id="relating-the-clocks">
+<h3>Relating the clocks<a class="headerlink" href="#relating-the-clocks" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>The <strong>state-bridge TTL must be at least the upstream IdP session TTL</strong>.
+Otherwise a login the user completed in time upstream could still find its
+bridge entry expired on the way back, turning a success into the dead-end
+above. The current 30 min is a placeholder; it should track the real DigiD
+session lifetime.</p></li>
+<li><p>The <strong>delete leeway is deliberately far longer than the TTL</strong> (24 h vs 30
+min), so a user who steps away mid-flow and returns much later still gets a
+graceful error redirect instead of a dead-end. The bridge entry holds no
+personal data (only the wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code> and PKCE challenge),
+so retaining it that long is cheap.</p></li>
+</ul>
+<p>The code-level mechanics of the state-bridge dead-end and its leeway live in the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> — see
+<a class="reference internal" href="../../development/pid-issuer-architecture.html#internal-flow-par-authorize-callback-and-token"><span class="std std-ref">PID Issuer architecture</span></a>.</p>
+</section>
+</section>
 <section id="key-generation-and-usage-during-issuance">
 <h2>Key generation and usage during issuance<a class="headerlink" href="#key-generation-and-usage-during-issuance" title="Link to this heading"></a></h2>
 <section id="wallet-app">

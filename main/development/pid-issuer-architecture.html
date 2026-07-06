@@ -842,7 +842,14 @@ Max, and the issuer’s never reaches the wallet.</p></li>
 <li><p><strong>Error handling.</strong> If any callback step (BSN, BRP, document build) fails, the
 flow redirects the browser back to the wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> with an OAuth
 <code class="docutils literal notranslate"><span class="pre">error</span></code> response (carrying the wallet’s <code class="docutils literal notranslate"><span class="pre">state</span></code>), rather than surfacing a bare
-HTTP error.</p></li>
+HTTP error. This depends on the <code class="docutils literal notranslate"><span class="pre">StateBridgeEntry</span></code> still being present: the
+callback carries only the opaque <code class="docutils literal notranslate"><span class="pre">state</span></code> (the bridge key), so the wallet’s
+<code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> is recoverable <em>only</em> from the entry. If the entry has expired
+but not yet been deleted, the callback still redirects back with an error;
+once it is deleted (after <code class="docutils literal notranslate"><span class="pre">STATE_BRIDGE_DELETE_LEEWAY</span></code>), the request dead-ends
+as a plain-text <code class="docutils literal notranslate"><span class="pre">400</span></code>. How this fits the other issuance timeouts is described
+in
+<a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html#timeouts-and-expiry"><span class="std std-ref">Issuance with OpenID4VCI § Timeouts and expiry</span></a>.</p></li>
 </ul>
 <p>The protocol-level view of the same exchange — including which parameters live
 in which of the two OAuth exchanges — is in
