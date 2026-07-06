@@ -23,7 +23,6 @@ set -o pipefail
 ########################################################################
 
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
-DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.yml
 
 source "${SCRIPTS_DIR}/utils.sh"
 source "${SCRIPTS_DIR}/configuration.sh"
@@ -38,38 +37,41 @@ function usage() {
 
 Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] <SERVICES>
 
-  Starts or restarts the services that are part of the development environment.
+  Starts or restarts the services that are part of the development environment
 
 Where:
 
-  SERVICE is any of:
-    wallet:                     Start the wallet Flutter application.
-                                This requires a simulator to be running.
-    wp, wallet_provider:        Start the wallet_provider.
-                                This requires a PostgreSQL database to be running, which can be provided by the
-                                'docker' service.
-    vs, verification_server:    Start the verification_server.
-    is, issuance_server:        Start the issuance_server.
-    pis, pacf_issuance_server:  Start the pacf_issuance_server.
-    pi, pid_issuer:             Start the pid_issuer.
-    acf, acf_demo_issuer:       Start the acf_demo_issuer.
-    drp, demo_relying_party:    Start the demo_relying_party.
-    di, demo_issuer:            Start the demo_issuer.
-    dx, demo_index:             Start the demo_index.
-    rvp, revocation_portal:     Start the revocation_portal.
-    digid, digid_connector:     Start the digid_connector and a redis on docker.
+  SERVICES is any of:
+    wallet:                     Start the wallet Flutter application. Requires
+                                an ios simulator or android emulator to run
+    wp, wallet_provider:        Start the wallet_provider. This requires a
+                                PostgreSQL database to be running
+    vs, verification_server:    Start the verification_server
+    is, issuance_server:        Start the issuance_server
+    pis, pacf_issuance_server:  Start the pacf_issuance_server
+    pi, pid_issuer:             Start the pid_issuer
+    acf, acf_demo_issuer:       Start the acf_demo_issuer
+    drp, demo_relying_party:    Start the demo_relying_party
+    di, demo_issuer:            Start the demo_issuer
+    dx, demo_index:             Start the demo_index
+    rvp, revocation_portal:     Start the revocation_portal
+    digid, digid_connector:     Start the digid_connector and a redis instance
+    kc, keycloak:               Start the keycloak server
     static, static_server:      Start the static server
     ups, update_policy_server:  Start the update policy server
-    brp:                        Start the Haal-Centraal BRP proxy with GBA HC converter.
-    brpproxy:                   Start the Haal-Centraal BRP proxy.
-    gba, gba_hc_converter:      Start the GBA HC converter.
-    postgres:                   Start a PostgreSQL database, using Docker.
+    brp:                        Start the HC BRP proxy with GBA HC converter
+    brpproxy:                   Start the Haal-Centraal BRP proxy
+    gba, gba_hc_converter:      Start the GBA Haal-Centraal converter
+    postgres:                   Start a PostgreSQL database
 
-  OPTION is any of:
-    --all                       Start all of the above services.
-    --default                   Start all of the above services, excluding postgres and wallet.
-                                This option is provided when a PostgreSQL database is run and managed by the user.
-    --stop                      Combine with --all, --default or specific service name(s) to stop said services.
+  OPTIONS is any of:
+    --all                       Start all of the above services
+    --default                   Start all of the above services, excluding
+                                postgres and wallet This option is provided for
+                                when a PostgreSQL database is run outside of
+                                this script and managed by the user
+    --stop                      Combine with --all, --default or specific
+                                service name(s) to stop said services
     -h, --help                  Show this help
 "
 }
@@ -96,6 +98,7 @@ PID_ISSUER=1
 ACF_DEMO_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
+KEYCLOAK=1
 STATIC_SERVER=1
 UPDATE_POLICY_SERVER=1
 BRP_PROXY=1
@@ -169,6 +172,10 @@ do
             DIGID_CONNECTOR=0
             shift # past argument
             ;;
+        kc|keycloak)
+            KEYCLOAK=0
+            shift # past argument
+            ;;
         static|static_server)
             STATIC_SERVER=0
             shift
@@ -196,6 +203,7 @@ do
             ;;
         --default)
             DIGID_CONNECTOR=0
+            KEYCLOAK=0
             DEMO_RELYING_PARTY=0
             DEMO_INDEX=0
             DEMO_ISSUER=0
@@ -214,6 +222,7 @@ do
             ;;
         --all)
             DIGID_CONNECTOR=0
+            KEYCLOAK=0
             POSTGRES=0
             DEMO_RELYING_PARTY=0
             DEMO_INDEX=0
@@ -259,7 +268,7 @@ fi
 # Check special prerequisites
 ########################################################################
 
-if [[ $DIGID_CONNECTOR == '0' || $POSTGRES == '0' || $BRP_PROXY == '0' ]]; then
+if [[ $DIGID_CONNECTOR == '0' || $KEYCLOAK == '0' || $POSTGRES == '0' || $BRP_PROXY == '0' ]]; then
     have docker
 fi
 if [[ $WALLET == '0' ]]; then
@@ -286,6 +295,27 @@ then
     then
         echo -e "Starting ${ORANGE}digid-connector${NC}"
         docker compose up --detach
+    fi
+fi
+
+########################################################################
+# Manage keycloak
+########################################################################
+
+if [[ $KEYCLOAK == '0' ]]
+then
+    echo
+    echo -e "${SECTION}Manage keycloak${NC}"
+
+    if [[ $STOP == '0' ]]
+    then
+        echo -e "${INFO}Stopping ${ORANGE}keycloak${NC}"
+        docker compose --file "${DOCKER_COMPOSE_FILE}" down keycloak || true
+    fi
+    if [[ $START == '0' ]]
+    then
+        echo -e "Starting ${ORANGE}keycloak${NC}"
+        docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach keycloak
     fi
 fi
 
@@ -685,7 +715,7 @@ then
     fi
     if [[ $START == '0' ]]
     then
-        echo -e "Building and starting ${ORANGE}brpproxy${NC}"
+        echo -e "Starting ${ORANGE}brpproxy${NC}"
         docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach brpproxy
     fi
 fi

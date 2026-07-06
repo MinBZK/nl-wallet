@@ -63,8 +63,8 @@ have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
 # Check if openssl is "real" OpenSSL
 check_openssl
 
-# Only check for docker if we build rdo-max
-if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+# Only check for docker if we configure rdo-max or keycloak
+if [[ -z "${SKIP_DIGID_CONNECTOR:-}" || -z "${SKIP_KEYCLOAK:-}" ]]; then
     have docker
 fi
 
@@ -186,8 +186,17 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   # Don't use the rijksoverheid ui-theme.
   npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
 
-  # Workaround for groupadd existing group
+  # Workaround for groupadd existing group.
   ${SED} -i 's|^RUN groupadd --system|RUN groupadd -f --system|' docker/Dockerfile
+
+  # Make sure we use our single ca if USE_SINGLE_CA is set. This works because setup-secrets.sh, which is indirectly
+  # called by make setup-remote later, will not replace a previously existing set of ca certificate files.
+  if [[ "${USE_SINGLE_CA}" == 1 && -n "${USE_SINGLE_CA_PATH}" && -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" ]]; then
+    echo -e "${INFO}Using single CA for digid-connector${NC}"
+    mkdir -p "${DIGID_CONNECTOR_PATH}/secrets"
+    cp -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt"
+    cp -f "${USE_SINGLE_CA_PATH}/ca.key.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
+  fi
 
   # Create an RDO max container.
   make setup-remote
@@ -223,8 +232,29 @@ else
     export DIGID_CA_CRT
 
     # Set a fake RSA private key so that parsing the settings succeeds.
-    BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
-    export BSN_PRIVKEY
+    # shellcheck disable=SC2089 # JSON string, quotes are intentional.
+    export BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
+fi
+
+########################################################################
+# Configure keycloak
+########################################################################
+
+echo -e "${SECTION}Configure keycloak${NC}"
+
+if [[ -z "${SKIP_KEYCLOAK:-}" ]]; then
+  generate_or_reuse_root_ca "${DEVENV}/keycloak/certs" "keycloak"
+  generate_ssl_key_pair_with_san "${DEVENV}/keycloak/certs" "keycloak" "${DEVENV}/keycloak/certs/ca.crt.pem" "${DEVENV}/keycloak/certs/ca.key.pem"
+
+  # Constructs a shellscript that contains the commands to reproduce a file/directory structure.
+  # The shellscript is fed to docker compose, service: keycloak, command: sh, argument: -s.
+  {
+    printf '%s\n' 'set -eu'
+    emit_base64_decode_command "${DEVENV}/keycloak/certs/keycloak.crt" '/opt/keycloak/data/certs/keycloak.crt'
+    emit_base64_decode_command "${DEVENV}/keycloak/certs/keycloak.key" '/opt/keycloak/data/certs/keycloak.key'
+    emit_base64_decode_command "${DEVENV}/keycloak/import/realm.json"  '/opt/keycloak/data/import/realm.json'
+  } | docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -s
+
 fi
 
 ########################################################################
@@ -412,7 +442,7 @@ DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_find
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
-ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
+ISSUER_CA_AKI=$(openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
 export ISSUER_CA_AKI
 
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
