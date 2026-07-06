@@ -19,10 +19,9 @@ use axum::response::Response;
 use axum::routing::get;
 use etag::EntityTag;
 use http::Method;
-use http_utils::mediatype::ALL_MEDIA_TYPE;
+use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
 use itertools::Itertools;
-use mediatype::MediaType;
 use mediatype::Name;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
@@ -31,11 +30,10 @@ use tower_http::cors::CorsLayer;
 use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
-const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::from_parts(
+const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::new(
     Name::new_unchecked("application"),
     Name::new_unchecked("statuslist"),
     Some(Name::new_unchecked("jwt")),
-    &[],
 );
 
 #[derive(Debug, Clone)]
@@ -169,9 +167,7 @@ async fn serve_status_list(
     Path(id): Path<String>,
     State(state): State<RouterState>,
 ) -> Result<Response, StatusCode> {
-    if let Some(accept) = headers.get(header::ACCEPT) {
-        check_accept(accept)?
-    }
+    check_accept(headers.get(header::ACCEPT))?;
 
     let path = state.publish_dir.jwt_path(id.as_str());
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
@@ -207,11 +203,12 @@ fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, Stat
 /// The spec says that a verifier SHOULD send a request with an Accept header
 /// unless the Content-Type is known in the ecosystem or the verifier supports
 /// both. For the moment only the JWT format is supported in this code base.
-fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
-    match find_content_type_from_accept(header, |media_type|
-        // */* is pure for convenience of using curl and friends to test
-        (media_type == ALL_MEDIA_TYPE || media_type == STATUSLIST_JWT_MEDIA_TYPE).then_some(()))
-    {
+fn check_accept(header: Option<&HeaderValue>) -> Result<(), StatusCode> {
+    match find_content_type_from_accept(
+        header,
+        |media_type| (media_type == STATUSLIST_JWT_MEDIA_TYPE).then_some(()),
+        (),
+    ) {
         Ok(Some(_)) => Ok(()),
         Ok(None) => Err(StatusCode::NOT_ACCEPTABLE),
         Err(err) => {
@@ -322,7 +319,7 @@ mod tests {
     #[test]
     fn check_accept_invalid_type() {
         let header = HeaderValue::from_str("application/statuslist/jwt").unwrap();
-        assert_matches!(check_accept(&header), Err(StatusCode::BAD_REQUEST));
+        assert_matches!(check_accept(Some(&header)), Err(StatusCode::BAD_REQUEST));
     }
 
     #[test]
