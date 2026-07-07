@@ -11,6 +11,7 @@ use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use serde_with::skip_serializing_none;
+use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
@@ -73,6 +74,32 @@ where
         }
 
         Ok(Self(auth_details))
+    }
+}
+
+impl AuthorizationDetails<VciIdentifierAuthorizationDetailsEntry> {
+    pub fn from_credential_ids_and_identifiers<'a>(
+        credential_ids_and_identifiers: impl IntoNonEmptyIterator<Item = (&'a CredentialConfigurationId, String)>,
+    ) -> Self {
+        let entries = credential_ids_and_identifiers
+            .into_iter()
+            .into_group_map()
+            .into_iter()
+            .map(|(config_id, identifiers)| {
+                AuthorizationDetailsEntry::new_vci_identifier(
+                    config_id.clone(),
+                    VecNonEmpty::try_from(identifiers)
+                        .expect("into_group_map() values should never contain an empty Vec")
+                        .into(),
+                )
+            })
+            .collect_vec()
+            .try_into()
+            .expect("source iterator is non-empty and into_group_map() should never result in an empty HashMap");
+
+        AuthorizationDetails::try_new(entries).expect(
+            "all entries are created as openid_credential and into_group_map() guarantees removal of duplicates",
+        )
     }
 }
 
@@ -258,6 +285,60 @@ mod tests {
     use super::TypedAuthorizationDetailsEntry;
     use super::VciAuthorizationDetailsEntry;
     use super::VciIdentifierAuthorizationDetailsEntry;
+    use crate::metadata::issuer_metadata::CredentialConfigurationId;
+
+    #[test]
+    fn test_authorization_details_from_credential_ids_and_identifiers() {
+        let credential_config_id_a = CredentialConfigurationId::from("credential_identifer_a".to_string());
+        let credential_config_id_b = CredentialConfigurationId::from("credential_identifer_b".to_string());
+        let credential_ids_and_identifiers = vec_nonempty![
+            (&credential_config_id_b, "id_1_b".to_string()),
+            (&credential_config_id_a, "id_1_a".to_string()),
+            (&credential_config_id_a, "id_2_a".to_string()),
+            (&credential_config_id_a, "id_3_a".to_string()),
+            (&credential_config_id_b, "id_2_b".to_string()),
+            (&credential_config_id_b, "id_2_b".to_string())
+        ];
+
+        let authorization_details =
+            AuthorizationDetails::from_credential_ids_and_identifiers(credential_ids_and_identifiers);
+
+        let entries = VecNonEmpty::from(authorization_details)
+            .into_iter()
+            .map(|entry| {
+                assert!(entry.locations.is_none());
+
+                match entry.typed_entry {
+                    TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) => {
+                        assert!(vci_id_entry.vci_entry.claims.is_none());
+
+                        (
+                            vci_id_entry.vci_entry.credential_configuration_id,
+                            vci_id_entry.credential_identifiers,
+                        )
+                    }
+                    TypedAuthorizationDetailsEntry::Other { .. } => {
+                        panic!("type of AuthorizationDetailsEntry should be OpenidCredential")
+                    }
+                }
+            })
+            .sorted_by(|(left, _), (right, _)| Ord::cmp(left.as_ref(), right.as_ref()))
+            .collect_vec();
+
+        assert_eq!(
+            entries,
+            vec![
+                (
+                    credential_config_id_a,
+                    vec_nonempty!["id_1_a".to_string(), "id_2_a".to_string(), "id_3_a".to_string()].into()
+                ),
+                (
+                    credential_config_id_b,
+                    vec_nonempty!["id_1_b".to_string(), "id_2_b".to_string()].into()
+                )
+            ]
+        );
+    }
 
     fn other_type_auth_details_example_json() -> serde_json::Value {
         // Source: https://datatracker.ietf.org/doc/html/rfc9396#figure-10>

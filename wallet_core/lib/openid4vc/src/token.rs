@@ -200,13 +200,17 @@ pub struct TokenResponse {
 
 impl TokenResponse {
     pub fn new(access_token: AccessToken) -> Self {
+        Self::new_vci(access_token, None)
+    }
+
+    pub fn new_vci(access_token: AccessToken, authorization_details: Option<IssuerAuthorizationDetails>) -> Self {
         Self {
             access_token,
             token_type: TokenType::DPoP,
             expires_in: None,
             refresh_token: None,
             scope: HashSet::new(),
-            authorization_details: None,
+            authorization_details,
         }
     }
 }

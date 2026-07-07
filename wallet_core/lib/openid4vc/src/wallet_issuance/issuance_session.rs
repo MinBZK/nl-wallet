@@ -1066,6 +1066,7 @@ mod tests {
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
     use crypto::trust_anchor::BorrowingTrustAnchor;
+    use crypto::utils::random_string;
     use crypto::x509::CertificateError;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_p256;
@@ -1087,6 +1088,7 @@ mod tests {
     use wscd::mock_remote::MockRemoteWscd;
 
     use super::*;
+    use crate::authorization_details::AuthorizationDetails;
     use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::IssuerMetadata;
@@ -1154,11 +1156,22 @@ mod tests {
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, &IssuerRegistration::new_mock()).unwrap();
 
+        let credential_ids_and_identifiers = VecNonEmpty::try_from(
+            preview_payloads
+                .iter()
+                .map(|(config_id, _, _)| (config_id, random_string(16)))
+                .collect_vec(),
+        )
+        .unwrap();
+        let authorization_details =
+            AuthorizationDetails::from_credential_ids_and_identifiers(credential_ids_and_identifiers);
+
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
-                let token_response = TokenResponse::new("access_token".to_string().into());
+                let token_response =
+                    TokenResponse::new_vci("access_token".to_string().into(), Some(authorization_details));
                 Ok((token_response, None))
             });
         mock_msg_client
@@ -1461,6 +1474,10 @@ mod tests {
             .try_into()
             .unwrap();
 
+        let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(vec_nonempty![
+            (&config_id_mdoc, random_string(16)),
+            (&config_id_sd_jwt, random_string(16))
+        ]);
         let preview_payload =
             PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
 
@@ -1468,7 +1485,9 @@ mod tests {
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
-                let token_response = TokenResponse::new("access_token".to_string().into());
+                let token_response =
+                    TokenResponse::new_vci("access_token".to_string().into(), Some(authorization_details));
+
                 Ok((token_response, None))
             });
         mock_msg_client

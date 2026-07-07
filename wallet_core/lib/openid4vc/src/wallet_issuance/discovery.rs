@@ -485,6 +485,7 @@ mod test {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::utils::random_string;
     use futures::future::try_join_all;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
@@ -503,6 +504,7 @@ mod test {
 
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
+    use crate::authorization_details::AuthorizationDetails;
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
     use crate::credential_offer::GrantPreAuthorizedCode;
@@ -651,7 +653,12 @@ mod test {
             credential_previews: vec_nonempty![preview],
         };
 
-        let token_response = TokenResponse::new("mock_access_token".to_string().into());
+        let token_response = TokenResponse::new_vci(
+            "mock_access_token".to_string().into(),
+            Some(AuthorizationDetails::from_credential_ids_and_identifiers(
+                vec_nonempty![(LazyLock::force(&CONFIG_ID), random_string(16))],
+            )),
+        );
 
         let issuer_identifier = httpmock_issuer_add_metadata(
             &server,

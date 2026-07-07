@@ -52,6 +52,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
+use crate::authorization_details::AuthorizationDetails;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
 use crate::credential::Credential;
@@ -1263,6 +1264,12 @@ fn build_token_response<K, L>(
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
+    let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(
+        credential_ids_and_documents
+            .nonempty_iter()
+            .map(|(config_id, document)| (config_id, document.id.to_string())),
+    );
+
     let prepared_credentials = credential_ids_and_documents
         .into_nonempty_iter()
         .map(|(config_id, document)| {
@@ -1272,7 +1279,7 @@ fn build_token_response<K, L>(
         .collect::<Result<_, _>>()?;
 
     let dpop_nonce = random_string(32);
-    let token_response = TokenResponse::new(AccessToken::new(token_request_auth_code));
+    let token_response = TokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
 
     Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))
 }
