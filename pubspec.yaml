@@ -1,6 +1,8 @@
 name: nl_wallet_workspace
+
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.12.2
+  flutter: ^3.44.0
 
 publish_to: none
 
