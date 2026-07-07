@@ -81,6 +81,7 @@ pub mod generate {
     use p256::pkcs8::DecodePrivateKey;
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
+    use rcgen::CrlDistributionPoint;
     use rcgen::DnType;
     use rcgen::IsCa;
     use rcgen::Issuer;
@@ -322,6 +323,13 @@ pub mod generate {
             if let Some(extension) = source.extension {
                 result.custom_extensions.push(extension);
             }
+            result.crl_distribution_points = source
+                .crl_distribution_points
+                .into_iter()
+                .map(|uri| CrlDistributionPoint {
+                    uris: vec![uri.to_string()],
+                })
+                .collect();
             result
         }
     }

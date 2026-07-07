@@ -52,6 +52,7 @@ use crate::trust_anchor::TrustAnchors;
 
 #[cfg(any(test, feature = "generate"))]
 mod config;
+pub mod crl;
 mod dn;
 mod key_identifier;
 #[cfg(any(test, feature = "generate"))]

@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
+use url::Url;
 
 use super::CertificateUsage;
 
@@ -11,6 +12,7 @@ pub struct CertificateConfiguration {
     pub usage: Option<CertificateUsage>,
     /// TODO: PVW-5885 PVW-5895 Remove when ReaderRegistration and IssuerRegistration are removed
     pub extension: Option<rcgen::CustomExtension>,
+    pub crl_distribution_points: Vec<Url>,
 }
 
 impl CertificateConfiguration {
