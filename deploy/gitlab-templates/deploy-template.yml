@@ -263,6 +263,16 @@ digid-connector-${DEPLOY_ENV}:
     RELEASE_NAME: digid-connector
     CONFIG_FILES: "general/global.yaml,general/rdo-max.yaml,${DEPLOY_ENV}/digid-connector.yaml"
 
+keycloak-${DEPLOY_ENV}:
+  extends: .deploy-helm
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: keycloak
+    RELEASE_NAME: keycloak
+    CONFIG_FILES: "general/global.yaml,general/keycloak.yaml,${DEPLOY_ENV}/keycloak.yaml"
+
 run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
   extends: .deploy-base
   needs:

@@ -100,13 +100,6 @@ spec:
             secretKeyRef:
               name: {{ .Values.keycloak.admin.existingSecret.name }}
               key: {{ .Values.keycloak.admin.existingSecret.passwordKey }}
-        {{- range .Values.keycloak.users }}
-        - name: KC_PASSWORD_FOR_{{ .username | upper }}
-          valueFrom:
-            secretKeyRef:
-              name: {{ $.Values.keycloak.usersSecret.name }}
-              key: {{ .passwordKey }}
-        {{- end }}
         {{- with .Values.keycloak.extraEnv }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -120,8 +113,12 @@ spec:
           readOnly: true
       volumes:
       - name: import
-        configMap:
-          name: {{ include "common.names.fullname" . }}-import
+        secret:
+          secretName: {{ .Values.keycloak.realm.existingSecret.name }}
+          optional: true
+          items:
+          - key: {{ .Values.keycloak.realm.existingSecret.key }}
+            path: realm.json
       {{- if .Values.persistence.enabled }}
       - name: data
         persistentVolumeClaim:

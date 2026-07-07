@@ -1,48 +1,89 @@
 # Keycloak helm-chart
 
 Deploys [Keycloak](https://www.keycloak.org/) as the OIDC provider for the NL
-Wallet revocation portal. Imports the `nl-wallet` realm (roles, seed users, the
-`wallet-backend` client) on first start. For ont/demo; for local development use
-`scripts/start-devenv.sh keycloak` (see
-`wallet_docs/development/keycloak-setup.md`).
+Wallet revocation portal. Imports the `nl-wallet` realm (roles, users, client)
+on first start. (see also: `wallet_docs/development/keycloak-setup.md`).
 
 ## Prerequisites
 
-- Kubernetes with the Gateway API (a gateway terminates TLS; the pod serves
-  plain HTTP on `:8080`).
-- Helm.
+- Kubernetes with Gateway API.
+- Helm + this helm-chart.
+- The pod-label `ingress-controller-frontoffice-policy: allow` (set via
+  `extraPodLabels`) so the frontoffice gateway can reach the pod.
 - Two secrets in the namespace:
-  - `nl-wallet-keycloak-admin` (`keycloak.admin.existingSecret`): keys
-    `username` / `password` for the bootstrap admin.
-  - `nl-wallet-keycloak-users` (`keycloak.usersSecret`): one key per seed user
-    (`administrator-password`, `manager-password`, `destroyer-password`).
+
+  ```bash
+  # Bootstrap admin credentials (KC_BOOTSTRAP_ADMIN_USERNAME/PASSWORD):
+  kubectl create secret generic nl-wallet-keycloak-admin \
+    --from-literal=username=keycloak --from-literal=password=<some-password>
+
+  # To-be-imported realm.json:
+  kubectl create secret generic nl-wallet-keycloak-realm \
+    --from-file=realm.json=scripts/devenv/keycloak/import/realm.json
+  ```
+
+  The realm JSON holds roles, users, passwords, and client definitions (which
+  have `redirectUris` configured).
 
 ## Installing
 
-```shell
-# Resolve the sp-common dependency (required before a fresh install):
-helm dependency build deploy/helm-charts/keycloak
+This example targets the `nl-wallet-ont` and `nl-wallet-demo` namespaces on
+the `test-a` and `test-b` clusters; adjust for other environments. Assumes
+the prerequisites above (admin + realm secrets) are already in place.
 
-# Override the values that have no usable default:
-helm install keycloak deploy/helm-charts/keycloak \
-  --set keycloak.hostname=keycloak.example.org \
-  --set keycloak.clientRedirectUri=https://wallet.example.org/auth/callback \
-  --set 'httpRoute.parentRefs[0].name=<gateway>' \
-  --set 'httpRoute.hostnames[0]=keycloak.example.org'
-```
+Step-by-step:
 
-Seed-user passwords stay out of the chart: `realm.json` uses
-`${KC_PASSWORD_FOR_<USERNAME>}` placeholders that Keycloak substitutes at import
-time from env vars sourced (via `secretKeyRef`) from `keycloak.usersSecret`.
+1. Build the chart dependency (required once after a fresh checkout or after
+   bumping `sp-common`):
 
-Two caveats (detail in `wallet_docs/development/keycloak-setup.md`):
+   ```bash
+   helm dependency build deploy/helm-charts/keycloak
+   ```
 
-- **Verify substitution.** If Keycloak does not replace the placeholders, the
-  literal string becomes the password, and it is public. Confirm login with the
-  literal `${KC_PASSWORD_FOR_ADMINISTRATOR}` is rejected.
-- **Import runs once.** `--import-realm` only seeds a realm that does not exist;
-  with `persistence.enabled` the realm stays on the PVC, so later user or
-  password changes need the realm or PVC wiped.
+2. Create a values override file (e.g. `values-ont.yaml`) for the settings
+   that have no usable default. For ont/demo this typically routes the image
+   pull through the Harbor proxy, points the HTTPRoute at the internal gateway
+   with its wildcard cert, and admits the pod to the gateway via the
+   frontoffice label. Here is an example that matches our setup somewhat:
+
+   ```yaml
+   global:
+     imageRegistry: harbor.example.com
+   image:
+     repository: quay-proxy/keycloak/keycloak
+   persistence:
+     enabled: true
+   httpRoute:
+     enabled: true
+     parentRefs:
+       - name: gateway-private
+     hostnames:
+       - keycloak.nl-wallet-ont.example.com
+   keycloak:
+     hostname: keycloak.nl-wallet-ont.example.com
+   extraPodLabels:
+     ingress-controller-frontoffice-policy: allow
+   ```
+
+3. Install or upgrade:
+
+   ```bash
+   helm upgrade --install keycloak deploy/helm-charts/keycloak \
+     --namespace nl-wallet-ont -f values-ont.yaml
+   kubectl rollout status deployment/keycloak -n nl-wallet-ont
+   ```
+
+   A cold start reaches `Ready` in ~60s to 80s on our environment; the chart's
+   startup probe defaults allow for this leisurely pace.
+
+4. Log in at `https://<hostname>/` with the credentials configured in
+   `nl-wallet-keycloak-admin`. With a `nl-wallet-keycloak-realm` present, you'll
+   see the `nl-wallet` realm in addition to `master` realm.
+
+   Note that import runs once. `--import-realm` only imports a realm that does
+   not exist; with `persistence.enabled` the realm stays on the PVC, so later
+   realm changes in a realm secret are not applied until you remove the PVC.
+   To re-import, wipe the realm or PVC.
 
 ## Parameters
 
@@ -119,29 +160,28 @@ Two caveats (detail in `wallet_docs/development/keycloak-setup.md`):
 
 ### Container probes
 
-| Name                            | Description                                  | Value   |
-| ------------------------------- | -------------------------------------------- | ------- |
-| `probes.config.liveness`        | Additional configuration for liveness probe  | `{}`    |
-| `probes.config.readiness`       | Additional configuration for readiness probe | `{}`    |
-| `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
-| `probes.disableLiveness`        | Disable liveness probe                       | `false` |
-| `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
+| Name                                     | Description                                                       | Value   |
+| ---------------------------------------- | ----------------------------------------------------------------- | ------- |
+| `probes.config.liveness`                 | Additional configuration for liveness probe                       | `{}`    |
+| `probes.config.readiness`                | Additional configuration for readiness probe                      | `{}`    |
+| `probes.config.startup.periodSeconds`    | Seconds between startup probe checks                              | `10`    |
+| `probes.config.startup.failureThreshold` | Number of failed startup probes before the container is restarted | `60`    |
+| `probes.disableLiveness`                 | Disable liveness probe                                            | `false` |
+| `probes.useLivenessAsReadiness`          | Use liveness endpoint for readiness                               | `false` |
 
 ### Keycloak parameters
 
-| Name                                        | Description                                                                                                                                                                                                                                                                                           | Value                      |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| `keycloak.hostname`                         | Value for KC_HOSTNAME (external hostname of the ingress)                                                                                                                                                                                                                                              | `localhost`                |
-| `keycloak.database`                         | Value for KC_DB (defaults to dev-file backed by the PVC)                                                                                                                                                                                                                                              | `dev-file`                 |
-| `keycloak.proxyHeaders`                     | Value for KC_PROXY_HEADERS (xforwarded or forwarded)                                                                                                                                                                                                                                                  | `xforwarded`               |
-| `keycloak.clientRedirectUri`                | The wallet-backend client redirect URI, rendered into realm.json                                                                                                                                                                                                                                      | `nil`                      |
-| `keycloak.admin.existingSecret.name`        | Name of the secret holding the admin credentials                                                                                                                                                                                                                                                      | `nl-wallet-keycloak-admin` |
-| `keycloak.admin.existingSecret.usernameKey` | Key in the secret for the admin username (KC_BOOTSTRAP_ADMIN_USERNAME)                                                                                                                                                                                                                                | `username`                 |
-| `keycloak.admin.existingSecret.passwordKey` | Key in the secret for the admin password (KC_BOOTSTRAP_ADMIN_PASSWORD)                                                                                                                                                                                                                                | `password`                 |
-| `keycloak.extraEnv`                         | Additional environment variables                                                                                                                                                                                                                                                                      | `[]`                       |
-| `keycloak.extraImportFiles`                 | Additional/override files placed in the import directory (filename -> content), rendered as templates                                                                                                                                                                                                 | `{}`                       |
-| `keycloak.usersSecret.name`                 | Name of the secret holding the seed user passwords (referenced by users[].passwordKey)                                                                                                                                                                                                                | `nl-wallet-keycloak-users` |
-| `keycloak.users`                            | Seed users rendered into realm.json, each with username, passwordKey (key in usersSecret) and privileges (role names without the privilege_ prefix). The password is injected as env var KC_PASSWORD_FOR_<USERNAME> and substituted at import time, so usernames must be env-var-safe ([A-Za-z0-9_]). |                            |
+| Name                                        | Description                                                                                       | Value                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------- |
+| `keycloak.hostname`                         | Value for KC_HOSTNAME (external hostname of the ingress)                                          | `localhost`                |
+| `keycloak.database`                         | Value for KC_DB (defaults to dev-file backed by the PVC)                                          | `dev-file`                 |
+| `keycloak.proxyHeaders`                     | Value for KC_PROXY_HEADERS (xforwarded or forwarded)                                              | `xforwarded`               |
+| `keycloak.realm.existingSecret.name`        | Name of the secret holding the realm import JSON (the nl-wallet realm; must exist before install) | `nl-wallet-keycloak-realm` |
+| `keycloak.realm.existingSecret.key`         | Key in the secret whose value is the realm JSON file                                              | `realm.json`               |
+| `keycloak.admin.existingSecret.name`        | Name of the secret holding the admin credentials                                                  | `nl-wallet-keycloak-admin` |
+| `keycloak.admin.existingSecret.usernameKey` | Key in the secret for the admin username (KC_BOOTSTRAP_ADMIN_USERNAME)                            | `username`                 |
+| `keycloak.admin.existingSecret.passwordKey` | Key in the secret for the admin password (KC_BOOTSTRAP_ADMIN_PASSWORD)                            | `password`                 |
+| `keycloak.extraEnv`                         | Additional environment variables                                                                  | `[]`                       |
 
 ### Persistence parameters
 

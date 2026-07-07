@@ -5,6 +5,8 @@ metadata:
   name: {{ include "common.names.fullname" . }}-data
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ .Values.persistence.accessMode }}

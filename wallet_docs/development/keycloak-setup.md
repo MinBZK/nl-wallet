@@ -43,17 +43,20 @@ container to a Kubernetes namespace. Differences from local dev:
 - TLS is terminated by the ingress/gateway; the pod serves plain HTTP on `:8080`
   (`KC_HTTP_ENABLED=true`, no in-pod certificates). The Service exposes `:443`
   → `:8080`.
-- `realm.json` ships as a `ConfigMap` (`/opt/keycloak/data/import/realm.json`).
-  The bundled `import/realm.json` is rendered as a template; the wallet-backend
-  client `redirectUris` is taken from `keycloak.clientRedirectUri`. Per-env
-  overrides go in `keycloak.extraImportFiles`.
-- Seed users come from `keycloak.users` (username + privileges). Passwords are
-  kept out of the chart: each user's password is injected as env var
-  `KC_PASSWORD_FOR_<USERNAME>` from `keycloak.usersSecret` (key `passwordKey`),
-  and `realm.json` references it as `${KC_PASSWORD_FOR_<USERNAME>}`, which
-  Keycloak substitutes at import time. The `secretKeyRef` makes the env var
-  mandatory, so a missing secret key fails pod startup. Usernames must be
-  env-var-safe (`[A-Za-z0-9_]`); the env var name is the uppercased username.
+- The whole `nl-wallet` realm import JSON (roles, users, passwords, clients)
+  is supplied by an existing secret (`keycloak.realm.existingSecret`, default
+  `nl-wallet-keycloak-realm`, key `realm.json`) and mounted read-only at
+  `/opt/keycloak/data/import/realm.json`. The chart itself ships no realm
+  contents and holds no realm secrets; creating the secret is a deploy-time
+  concern handled out-of-band (separate repositories / pipelines for ont and
+  demo). For a throw-away local cluster, the dev realm from
+  `scripts/devenv/keycloak/import` can be used:
+
+  ```shell
+  kubectl create secret generic nl-wallet-keycloak-realm \
+    --from-file=realm.json=scripts/devenv/keycloak/import/realm.json
+  ```
+
 - The admin user credentials come from an existing secret
   (`keycloak.admin.existingSecret`); set `KC_BOOTSTRAP_ADMIN_USERNAME` /
   `KC_BOOTSTRAP_ADMIN_PASSWORD` keys.
@@ -61,14 +64,9 @@ container to a Kubernetes namespace. Differences from local dev:
   to the embedded `dev-file` database; switch `keycloak.database` to a real DB
   for `replicaCount > 1`.
 
-> **Verify substitution.** If Keycloak does not replace `${KC_PASSWORD_FOR_*}`,
-> the literal placeholder becomes the password, and it is public. Before deploy,
-> confirm login as `administrator` with `${KC_PASSWORD_FOR_ADMINISTRATOR}` is
-> rejected.
-
-> **Import runs once.** `--import-realm` only seeds a realm that does not exist.
-> With `persistence.enabled` the realm stays on the PVC, so later user/password
-> changes are not applied. Re-import requires wiping the realm or PVC.
+> **Import runs once.** `--import-realm` only imports a realm that does not
+> exist yet. With `persistence.enabled` the realm stays on the PVC, so later
+> realm changes are not applied. Re-import requires wiping the realm or PVC.
 
 Run `helm dependency build deploy/helm-charts/keycloak` before install (the
 chart depends on `sp-common`).

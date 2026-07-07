@@ -86,9 +86,12 @@ httpRoute:
 
 ## @section Container probes
 ## Keycloak serves /health/* on the management interface (port 9000), not on http (8080).
+## First-boot (image augmentation + liquibase init + realm import) can take ~60s on a
+## cold PVC, hence the generous startup-probe defaults below.
 ## @param probes.config.liveness Additional configuration for liveness probe
 ## @param probes.config.readiness Additional configuration for readiness probe
-## @param probes.config.startup Additional configuration for startup probe
+## @param probes.config.startup.periodSeconds Seconds between startup probe checks
+## @param probes.config.startup.failureThreshold Number of failed startup probes before the container is restarted
 ## @param probes.disableLiveness Disable liveness probe
 ## @param probes.useLivenessAsReadiness Use liveness endpoint for readiness
 ##
@@ -96,7 +99,9 @@ probes:
   config:
     liveness: {}
     readiness: {}
-    startup: {}
+    startup:
+      periodSeconds: 10
+      failureThreshold: 60
   disableLiveness: false
   useLivenessAsReadiness: false
 
@@ -104,46 +109,27 @@ probes:
 ## @param keycloak.hostname Value for KC_HOSTNAME (external hostname of the ingress)
 ## @param keycloak.database Value for KC_DB (defaults to dev-file backed by the PVC)
 ## @param keycloak.proxyHeaders Value for KC_PROXY_HEADERS (xforwarded or forwarded)
-## @param keycloak.clientRedirectUri The wallet-backend client redirect URI, rendered into realm.json
+## @param keycloak.realm.existingSecret.name Name of the secret holding the realm import JSON (the nl-wallet realm; must exist before install)
+## @param keycloak.realm.existingSecret.key Key in the secret whose value is the realm JSON file
 ## @param keycloak.admin.existingSecret.name Name of the secret holding the admin credentials
 ## @param keycloak.admin.existingSecret.usernameKey Key in the secret for the admin username (KC_BOOTSTRAP_ADMIN_USERNAME)
 ## @param keycloak.admin.existingSecret.passwordKey Key in the secret for the admin password (KC_BOOTSTRAP_ADMIN_PASSWORD)
 ## @param keycloak.extraEnv Additional environment variables
-## @param keycloak.extraImportFiles Additional/override files placed in the import directory (filename -> content), rendered as templates
-## @param keycloak.usersSecret.name Name of the secret holding the seed user passwords (referenced by users[].passwordKey)
-## @extra keycloak.users Seed users rendered into realm.json, each with username, passwordKey (key in usersSecret) and privileges (role names without the privilege_ prefix). The password is injected as env var KC_PASSWORD_FOR_<USERNAME> and substituted at import time, so usernames must be env-var-safe ([A-Za-z0-9_]).
-## @skip keycloak.users
 ##
 keycloak:
   hostname: localhost
   database: dev-file
   proxyHeaders: xforwarded
-  # Required: the wallet-backend client redirect URI. Left null so a missing override fails loudly.
-  clientRedirectUri: null
+  realm:
+    existingSecret:
+      name: nl-wallet-keycloak-realm
+      key: realm.json
   admin:
     existingSecret:
       name: nl-wallet-keycloak-admin
       usernameKey: username
       passwordKey: password
   extraEnv: []
-  extraImportFiles: {}
-  usersSecret:
-    name: nl-wallet-keycloak-users
-  users:
-    - username: administrator
-      passwordKey: administrator-password
-      privileges:
-        - revoke_wallet
-        - block_user
-        - unblock_user
-    - username: manager
-      passwordKey: manager-password
-      privileges:
-        - show_all_tasks
-    - username: destroyer
-      passwordKey: destroyer-password
-      privileges:
-        - revoke_solution
 
 ## @section Persistence parameters
 ## Keycloak stores realm + user data in /opt/keycloak/data. For replicaCount > 1, switch to a real database.
