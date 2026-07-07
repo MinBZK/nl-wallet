@@ -7,12 +7,12 @@ issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 
-metadata = [
+type_metadata = [
     "${ISSUER_METADATA_INSURANCE_PATH}",
     "${ISSUER_METADATA_LOYALTY_PATH}",
 ]
 
-[metadata_keypair]
+[credential_metadata_keypair]
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_WRPAC}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_WRPAC}"

@@ -10,12 +10,12 @@ wia_trust_anchors = ["${WIA_CA_CRT}"]
 
 brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
 
-metadata = [
+type_metadata = [
     "${ISSUER_METADATA_PID_PATH}",
     "${ISSUER_METADATA_PID_NL_PATH}",
 ]
 
-[metadata_keypair]
+[credential_metadata_keypair]
 private_key_type = "software"
 private_key = "${PID_ISSUER_WRPAC_KEY}"
 certificate = "${PID_ISSUER_WRPAC_CRT}"

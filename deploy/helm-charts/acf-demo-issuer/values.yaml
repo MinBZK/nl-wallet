@@ -146,10 +146,10 @@ batchSize: 10
 ## @param walletRedirectUris wallet redirect uris
 walletRedirectUris: []
 
-## @section Metadata parameters
-## @param metadata List of SD-JWT Type Metadata filenames to mount and pass to the server
+## @section Type Metadata parameters
+## @param typeMetadata List of SD-JWT Type Metadata filenames to mount and pass to the server
 ##
-metadata:
+typeMetadata:
   - com_example_insurance_metadata.json
   - com_example_jum_bonuskaart_metadata.json
 

@@ -55,7 +55,7 @@ spec:
             - name: private-keys
               mountPath: /acf_demo_issuer.toml
               subPath: acf_demo_issuer.toml
-            {{- range .Values.metadata }}
+            {{- range .Values.typeMetadata }}
             - name: metadata
               mountPath: /{{ . }}
               subPath: {{ . }}
@@ -88,19 +88,19 @@ spec:
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: ACF_DEMO_ISSUER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
-            - name: ACF_DEMO_ISSUER__METADATA
-              value: {{ join "," .Values.metadata | quote }}
-            - name: ACF_DEMO_ISSUER__METADATA_KEYPAIR__CERTIFICATE
+            - name: ACF_DEMO_ISSUER__TYPE_METADATA
+              value: {{ join "," .Values.typeMetadata | quote }}
+            - name: ACF_DEMO_ISSUER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-acf-demo-issuer-wrpac
                   key: certificate
-            - name: ACF_DEMO_ISSUER__METADATA_KEYPAIR__PRIVATE_KEY
+            - name: ACF_DEMO_ISSUER__CREDENTIAL_METADATA_KEYPAIR__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-acf-demo-issuer-wrpac
                   key: private_key
-            - name: ACF_DEMO_ISSUER__METADATA_KEYPAIR__PRIVATE_KEY_TYPE
+            - name: ACF_DEMO_ISSUER__CREDENTIAL_METADATA_KEYPAIR__PRIVATE_KEY_TYPE
               value: "software"
             - name: ACF_DEMO_ISSUER__STORAGE__URL
               valueFrom:
@@ -113,7 +113,7 @@ spec:
         - name: private-keys
           secret:
             secretName: nl-wallet-acf-demo-issuer-private-keys
-        {{- if .Values.metadata }}
+        {{- if .Values.typeMetadata }}
         - name: metadata
           configMap:
             name: nl-wallet-acf-demo-issuer-metadata

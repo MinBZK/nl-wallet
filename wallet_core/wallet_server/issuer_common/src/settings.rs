@@ -130,11 +130,11 @@ pub struct IssuerSettings {
     pub credential_configurations: CredentialConfigurationsSettings,
 
     #[debug(skip)]
-    #[serde_as(as = "TryFromInto<Vec<String>>")]
-    pub metadata: TypeMetadataByVct,
+    pub credential_metadata_keypair: KeyPair,
 
     #[debug(skip)]
-    pub metadata_keypair: KeyPair,
+    #[serde_as(as = "TryFromInto<Vec<String>>")]
+    pub type_metadata: TypeMetadataByVct,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
@@ -420,7 +420,7 @@ impl IssuerSettings {
         let time = TimeGenerator;
 
         verify_key_pairs(
-            &[("metadata", &self.metadata_keypair)],
+            &[("credential_metadata", &self.credential_metadata_keypair)],
             &self.server_settings.wrpac_trust_anchors,
             None,
             &time,
@@ -548,7 +548,7 @@ impl IssuerSettings {
         };
 
         let metadata_keypair = self
-            .metadata_keypair
+            .credential_metadata_keypair
             .parse(hsm.clone())
             .await
             .map_err(IssuerSettingsError::MetadataPrivateKey)?;
@@ -560,7 +560,7 @@ impl IssuerSettings {
                 self.public_url.as_base_url().clone(),
                 hsm,
                 &self.status_lists,
-                &self.metadata,
+                &self.type_metadata,
             )
             .await
             .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
@@ -687,7 +687,7 @@ mod tests {
     use crate::settings::IssuerSettingsValidationError;
 
     fn mock_settings(wrpac_ca: &Ca, issuer_ca: &Ca) -> IssuerSettings {
-        let metadata_keypair = wrpac_ca
+        let wrpac_keypair = wrpac_ca
             .generate_wrpac_issuer_mock()
             .expect("generate metadata cert failed")
             .into();
@@ -721,13 +721,13 @@ mod tests {
                 },
             )])
             .into(),
-            metadata: TypeMetadataByVct(HashMap::from([{
+            credential_metadata_keypair: wrpac_keypair,
+            type_metadata: TypeMetadataByVct(HashMap::from([{
                 let metadata = UncheckedTypeMetadata::pid_example();
                 let vct = metadata.vct.clone();
                 let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
                 (vct, (metadata, metadata_bytes))
             }])),
-            metadata_keypair,
             wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
             server_settings: Settings {
@@ -842,7 +842,7 @@ mod tests {
         let pid_metadata = TypeMetadata::pid_example().into_inner();
         let pid_metadata_serialized = serde_json::to_vec(&pid_metadata).unwrap();
 
-        settings.metadata = TypeMetadataByVct(HashMap::from([
+        settings.type_metadata = TypeMetadataByVct(HashMap::from([
             (
                 no_registration_metadata.vct.clone(),
                 (no_registration_metadata, no_registration_metadata_serialized),

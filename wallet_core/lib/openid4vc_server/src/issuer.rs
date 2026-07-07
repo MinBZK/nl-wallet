@@ -135,7 +135,7 @@ where
     N: NonceStore + Send + Sync + 'static,
 {
     Router::new()
-        .route("/.well-known/openid-credential-issuer", get(metadata))
+        .route("/.well-known/openid-credential-issuer", get(credential_metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/issuance/token", post(token))
         .route("/issuance/type_metadata/{id}", get(type_metadata))
@@ -148,7 +148,7 @@ where
         .with_state(IssuanceState { issuer })
 }
 
-async fn metadata<K, L, S, N>(
+async fn credential_metadata<K, L, S, N>(
     headers: HeaderMap,
     State(state): State<IssuanceState<K, L, S, N>>,
 ) -> Result<Response, StatusCode>
