@@ -311,8 +311,7 @@ where
     {
         info!("Generating OAuth URL, starting issuer discovery");
 
-        let (attested_key, registration_data, config) =
-            self.check_session_preconditions_and_get_registration_data().await?;
+        self.check_session_preconditions()?;
 
         info!("Checking if there is an active session");
         if self.session.is_some() {
@@ -336,6 +335,12 @@ where
             return Err(IssuanceError::NoPidPresent);
         }
 
+        let config = self.config_repository.get();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
+
         info!("Fetching issuer metadata to discover authorization server");
         let authorization_session = self
             .issuance_discovery
@@ -343,7 +348,7 @@ where
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
-                &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await?;
 
@@ -405,15 +410,19 @@ where
     {
         info!("Starting issuance from credential offer URI");
 
-        let (attested_key, registration_data, config) =
-            self.check_session_preconditions_and_get_registration_data().await?;
+        self.check_session_preconditions()?;
 
         if self.session.is_some() {
             return Err(IssuanceError::SessionState);
         }
 
+        let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
         let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         let flow = self
             .issuance_discovery
@@ -422,7 +431,7 @@ where
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
                 trust_anchors,
-                &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await?;
 
@@ -464,8 +473,7 @@ where
     {
         info!("Received redirect URI, processing URI and retrieving access token");
 
-        let (attested_key, registration_data, config) =
-            self.check_session_preconditions_and_get_registration_data().await?;
+        self.check_session_preconditions()?;
 
         info!("Checking if there is an active issuance session");
         if !matches!(
@@ -492,12 +500,17 @@ where
             return Err(IssuanceError::SessionState);
         };
 
+        let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
-                &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
                 trust_anchors,
             )
             .await
@@ -606,8 +619,7 @@ where
     {
         info!("Accepting issuance");
 
-        let (attested_key, registration_data, config) =
-            self.check_session_preconditions_and_get_registration_data().await?;
+        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let remote_instruction_client = self

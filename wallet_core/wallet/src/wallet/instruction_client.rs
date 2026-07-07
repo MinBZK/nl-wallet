@@ -73,7 +73,7 @@ where
         &self,
         attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
         registration_data: &RegistrationData,
-        config: &Arc<WalletConfiguration>,
+        config: &WalletConfiguration,
     ) -> RemoteWiaClient<S, AKH::AppleKey, AKH::GoogleKey, APC> {
         RemoteWiaClient::new(self.new_hw_signed_instruction_client(
             attested_key,
