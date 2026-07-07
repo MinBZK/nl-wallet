@@ -4,8 +4,8 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
         <title>{{ trans.title }}</title>
-        <link rel="stylesheet" href="{{ css_path }}" />
-        <script src="{{ js_path }}" defer></script>
+        <link rel="stylesheet" href="mock-login/mock_login.css" />
+        <script src="mock-login/mock_login.js" defer></script>
     </head>
     <body>
         <nav class="lang-bar">
@@ -28,7 +28,7 @@
 
         <div class="grid">
             {% for subject in subjects %}
-            <form class="card" method="post" action="{{ select_path }}">
+            <form class="card" method="post" action="mock-login/select">
                 <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
                 <input type="hidden" name="bsn" value="{{ subject.bsn }}" />
                 <button type="submit">
@@ -38,7 +38,7 @@
             </form>
             {% endfor %}
 
-            <form class="card-custom" method="post" action="{{ select_path }}">
+            <form class="card-custom" method="post" action="mock-login/select">
                 <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
                 <label class="name" for="custom-bsn">{{ trans.custom_heading }}</label>
                 <div class="custom-row">

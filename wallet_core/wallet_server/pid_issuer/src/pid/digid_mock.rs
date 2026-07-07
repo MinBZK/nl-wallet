@@ -285,12 +285,9 @@ struct MockLoginTemplate {
     /// The nl-rdo-max authorize URL, round-tripped as a hidden field so each card can POST it back.
     authorize_url: String,
     subjects: Vec<Subject>,
-    /// Links that switch the page language while preserving `authorize_url`.
+    /// Relative links that switch the page language while preserving `authorize_url`.
     nl_href: String,
     en_href: String,
-    select_path: &'static str,
-    css_path: &'static str,
-    js_path: &'static str,
 }
 
 /// Query parameters of the mock login page: the nl-rdo-max `/authorize` URL a selected card will
@@ -307,13 +304,15 @@ async fn mock_login_page(
     language: Language,
     Query(PageQuery { authorize_url }): Query<PageQuery>,
 ) -> MockLoginTemplate {
-    // A language-switch link for the given code, preserving the authorize URL across the switch.
+    // A language-switch link for the given code, preserving the authorize URL across the switch. This
+    // is a query-only relative ref (`?…`) so the browser resolves it against the page's own URL,
+    // keeping any context path the issuer is served under.
     let lang_href = |code: &str| {
         let query = url::form_urlencoded::Serializer::new(String::new())
             .append_pair("lang", code)
             .append_pair("authorize_url", &authorize_url)
             .finish();
-        format!("{MOCK_LOGIN_PATH}?{query}")
+        format!("?{query}")
     };
 
     let subjects = state
@@ -332,9 +331,6 @@ async fn mock_login_page(
         en_href: lang_href("en"),
         authorize_url,
         subjects,
-        select_path: MOCK_LOGIN_SELECT_PATH,
-        css_path: MOCK_LOGIN_CSS_PATH,
-        js_path: MOCK_LOGIN_JS_PATH,
     }
 }
 
