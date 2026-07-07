@@ -290,7 +290,7 @@ impl Command {
             CertType::Reader => Some(CertificateUsage::ReaderAuth),
             CertType::Tsl => Some(CertificateUsage::OAuthStatusSigning),
             CertType::Wia => Some(CertificateUsage::Wia),
-            _ => None,
+            CertType::Wrpac => None,
         };
 
         let extension = match (issuer_auth_file, reader_auth_file) {
