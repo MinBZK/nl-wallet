@@ -101,6 +101,36 @@ pub struct AuthorizationDetailsEntry<T> {
     pub locations: Option<VecNonEmpty<IssuerIdentifier>>,
 }
 
+impl AuthorizationDetailsEntry<VciAuthorizationDetailsEntry> {
+    pub fn new_vci(credential_configuration_id: CredentialConfigurationId) -> Self {
+        Self {
+            typed_entry: TypedAuthorizationDetailsEntry::OpenidCredential(VciAuthorizationDetailsEntry {
+                credential_configuration_id,
+                claims: None,
+            }),
+            locations: None,
+        }
+    }
+}
+
+impl AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry> {
+    pub fn new_vci_identifier(
+        credential_configuration_id: CredentialConfigurationId,
+        credential_identifiers: VecNonEmptyUnique<String>,
+    ) -> Self {
+        Self {
+            typed_entry: TypedAuthorizationDetailsEntry::OpenidCredential(VciIdentifierAuthorizationDetailsEntry {
+                vci_entry: VciAuthorizationDetailsEntry {
+                    credential_configuration_id,
+                    claims: None,
+                },
+                credential_identifiers,
+            }),
+            locations: None,
+        }
+    }
+}
+
 /// A newtype around [`String`] that is anything but `openid_credential`, for use in [`TypedAuthorizationDetailsEntry`].
 #[derive(Debug, Clone, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
 #[as_ref(str)]
