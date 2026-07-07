@@ -1,5 +1,7 @@
 use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
+use webpki::CertRevocationList;
+use webpki::OwnedCertRevocationList;
 use x509_parser::extensions::DistributionPointName;
 use x509_parser::extensions::GeneralName;
 use x509_parser::extensions::ParsedExtension;
@@ -57,9 +59,24 @@ pub fn extract_crl_distribution_points(cert: &BorrowingCertificate) -> Option<Ve
     VecNonEmpty::try_from(crl_distribution_points).ok()
 }
 
+/// Parse CRL DER bytes into a [`CertRevocationList`] ready for use with
+/// [`BorrowingCertificate::verify_with_crls`].
+pub fn parse_crl_der(crl_der: &[u8]) -> Result<CertRevocationList<'static>, webpki::Error> {
+    let owned = OwnedCertRevocationList::from_der(crl_der)?;
+    Ok(CertRevocationList::from(owned))
+}
+
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
+    use rcgen::RevokedCertParams;
+    use rcgen::RevocationReason;
+    use rcgen::SerialNumber;
+    use rustls_pki_types::UnixTime;
+    use time::OffsetDateTime;
     use url::Url;
+    use webpki::RevocationReason as WebpkiRevocationReason;
 
     use super::*;
     use crate::server_keys::generate::Ca;
@@ -99,5 +116,43 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url1.clone(), url2.clone()]);
         let result = extract_crl_distribution_points(&cert).unwrap();
         assert_eq!(result.as_ref(), &[url1.to_string(), url2.to_string()]);
+    }
+
+    #[test]
+    fn parse_empty_crl() {
+        let ca = Ca::generate_mock();
+        let crl = ca.generate_crl(vec![]).unwrap();
+        parse_crl_der(crl.der()).unwrap();
+    }
+
+    #[test]
+    fn parse_crl_with_revoked_cert() {
+        let ca = Ca::generate_mock();
+
+        // Create test CRL
+        let serial: &[u8] = &[42];
+        let revoked = RevokedCertParams {
+            serial_number: SerialNumber::from_slice(serial),
+            revocation_time: OffsetDateTime::UNIX_EPOCH,
+            reason_code: Some(RevocationReason::KeyCompromise),
+            invalidity_date: None,
+        };
+        let crl = ca.generate_crl(vec![revoked]).unwrap();
+
+        // Parse the CRL
+        let parsed = parse_crl_der(crl.der()).unwrap();
+
+        // Find the revoked serial in the CRL
+        let revoked_cert = parsed.find_serial(serial).unwrap().unwrap();
+
+        // Verify the revoked certificate data
+        assert_eq!(revoked_cert.serial_number, serial);
+        assert_eq!(revoked_cert.reason_code, Some(WebpkiRevocationReason::KeyCompromise));
+        assert_eq!(revoked_cert.revocation_date, UnixTime::since_unix_epoch(Duration::ZERO));
+    }
+
+    #[test]
+    fn parse_invalid_crl_der() {
+        assert!(parse_crl_der(b"not a crl").is_err());
     }
 }

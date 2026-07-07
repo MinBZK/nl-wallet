@@ -81,14 +81,20 @@ pub mod generate {
     use p256::pkcs8::DecodePrivateKey;
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
+    use rcgen::CertificateRevocationList;
+    use rcgen::CertificateRevocationListParams;
     use rcgen::CrlDistributionPoint;
     use rcgen::DnType;
     use rcgen::IsCa;
     use rcgen::Issuer;
+    use rcgen::KeyIdMethod;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PublicKeyData;
+    use rcgen::RevokedCertParams;
     use rcgen::SanType;
+    use rcgen::SerialNumber;
     use rcgen::SubjectPublicKeyInfo;
+    use time::Duration;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
     use time::OffsetDateTime;
@@ -204,6 +210,20 @@ pub mod generate {
 
         pub fn to_trust_anchor(&self) -> TrustAnchor<'_> {
             self.borrowing_trust_anchor.as_trust_anchor().clone()
+        }
+
+        /// Generate a signed CRL from this CA, revoking the given certificates.
+        pub fn generate_crl(&self, revoked_certs: Vec<RevokedCertParams>) -> Result<CertificateRevocationList, CertificateError> {
+            let now = OffsetDateTime::now_utc();
+            let params = CertificateRevocationListParams {
+                this_update: now,
+                next_update: now + Duration::days(7),
+                crl_number: SerialNumber::from(1u64),
+                issuing_distribution_point: None,
+                revoked_certs,
+                key_identifier_method: KeyIdMethod::Sha256,
+            };
+            params.signed_by(&self.issuer).map_err(CertificateError::GeneratingFailed)
         }
 
         /// Generate a new intermediate CA key pair, with any constraint
