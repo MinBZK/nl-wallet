@@ -141,11 +141,8 @@ fn scrape_relay_state(page: &str) -> Result<String, MockDigidError> {
         .lines()
         .find(|line| line.contains("RelayState"))
         .ok_or(MockDigidError::RelayStateNotFound)?;
-    let after = line
-        .split("value=\"")
-        .nth(1)
-        .ok_or(MockDigidError::RelayStateNotFound)?;
-    let value = after.split('"').next().ok_or(MockDigidError::RelayStateNotFound)?;
+    let after = line.split_once("value=\"").ok_or(MockDigidError::RelayStateNotFound)?.1;
+    let value = after.split_once('"').ok_or(MockDigidError::RelayStateNotFound)?.0;
 
     Ok(value.to_string())
 }
