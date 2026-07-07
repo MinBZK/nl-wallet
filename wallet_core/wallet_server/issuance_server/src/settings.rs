@@ -150,7 +150,7 @@ impl ServerSettings for IssuanceServerSettings {
             .with_list_parse_key("reader_trust_anchors")
             .with_list_parse_key("wrpac_trust_anchors")
             .with_list_parse_key("wrprc_trust_anchors")
-            .with_list_parse_key("metadata")
+            .with_list_parse_key("type_metadata")
             .try_parsing(true);
 
         let config = config_builder
@@ -201,7 +201,7 @@ impl VerifierSettings {
         verify_key_pairs(
             &key_pairs,
             &self.reader_trust_anchors,
-            CertificateUsage::ReaderAuth,
+            Some(CertificateUsage::ReaderAuth),
             &time,
         )?;
 

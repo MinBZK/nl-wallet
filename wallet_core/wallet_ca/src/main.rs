@@ -51,6 +51,7 @@ enum CertType {
     Reader,
     Tsl,
     Wia,
+    Wrpac,
 }
 
 #[derive(Subcommand)]
@@ -284,12 +285,13 @@ impl Command {
         reader_auth_file: Option<CachedInput>,
         days: u32,
     ) -> Result<CertificateConfiguration> {
-        let usage = Some(match cert_type {
-            CertType::Issuer => CertificateUsage::Mdl,
-            CertType::Reader => CertificateUsage::ReaderAuth,
-            CertType::Tsl => CertificateUsage::OAuthStatusSigning,
-            CertType::Wia => CertificateUsage::Wia,
-        });
+        let usage = match cert_type {
+            CertType::Issuer => Some(CertificateUsage::Mdl),
+            CertType::Reader => Some(CertificateUsage::ReaderAuth),
+            CertType::Tsl => Some(CertificateUsage::OAuthStatusSigning),
+            CertType::Wia => Some(CertificateUsage::Wia),
+            CertType::Wrpac => None,
+        };
 
         let extension = match (issuer_auth_file, reader_auth_file) {
             (Some(_), Some(_)) => anyhow::bail!("cannot specify both reader and issuer auth file"),

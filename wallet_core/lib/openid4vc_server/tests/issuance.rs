@@ -4,16 +4,20 @@ use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::slice::Iter;
 use std::sync::Arc;
+use std::time::Duration;
 
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use http::header;
+use http::header::ACCEPT;
+use http::header::CONTENT_TYPE;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use jwt::VerifiedJwt;
 use openid4vc::AuthorizationErrorCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::authorization::PushedAuthorizationResponse;
@@ -23,6 +27,7 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
@@ -57,6 +62,7 @@ use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
 use reqwest::Method;
+use reqwest::RequestBuilder;
 use reqwest::StatusCode;
 use reqwest::redirect::Policy;
 use rstest::rstest;
@@ -1120,4 +1126,71 @@ async fn token_rejects_differing_redirect_uri() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
     assert!(body.contains("invalid_request"), "unexpected body: {body}");
+}
+
+async fn setup_metadata_test() -> (Arc<MockIssuer>, RequestBuilder) {
+    let PreAuthCodeFlowServer {
+        issuer,
+        tls_trust_anchor,
+        ..
+    } = start_pre_authorized_code_flow_server(NonZeroUsize::MIN).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let metadata_url: Url = format!(
+        "{}.well-known/openid-credential-issuer",
+        issuer.issuer_identifier().as_base_url().as_ref().as_str()
+    )
+    .parse()
+    .unwrap();
+
+    (issuer, http_client.get(metadata_url))
+}
+
+#[rstest]
+#[case(None, true)]
+#[case(Some("application/json"), false)]
+#[case(Some("application/jwt"), true)]
+#[tokio::test]
+async fn openid_metadata_signed(#[case] accept_header: Option<&str>, #[case] signed: bool) {
+    let (issuer, mut request) = setup_metadata_test().await;
+
+    if let Some(accept_header) = accept_header {
+        request = request.header(ACCEPT, accept_header);
+    }
+    let response = request.send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let metadata = if signed {
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/jwt");
+        let text = response.text().await.unwrap();
+        let jwt: VerifiedJwt<SignedIssuerMetadataPayload> =
+            VerifiedJwt::dangerous_parse_unverified(text.as_str()).unwrap();
+
+        let payload = jwt.into_payload();
+        let ttl = (*payload.exp.unwrap().as_ref() - *payload.iat.as_ref())
+            .to_std()
+            .unwrap();
+        assert_eq!(ttl, Duration::from_secs(3600));
+
+        payload.metadata.into_owned()
+    } else {
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/json");
+        response.json().await.unwrap()
+    };
+
+    assert_eq!(&metadata.credential_issuer, issuer.issuer_identifier());
+}
+
+#[rstest]
+#[case("text/json", 406)]
+#[case("text/jsoß", 400)]
+#[tokio::test]
+async fn openid_metadata_error(#[case] accept_header: &str, #[case] status_code: u16) {
+    let (_, request) = setup_metadata_test().await;
+
+    let response = request.header(ACCEPT, accept_header).send().await.unwrap();
+    assert_eq!(response.status(), status_code);
 }

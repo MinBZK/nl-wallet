@@ -956,12 +956,28 @@ impl<T, H> TryFrom<VecNonEmpty<UnverifiedJwt<T, H>>> for JsonJwt<T, H> {
     }
 }
 
+#[cfg(any(test, feature = "axum"))]
+mod axum {
+    use axum::http::header::CONTENT_TYPE;
+    use axum::response::IntoResponse;
+    use axum::response::Response;
+
+    use crate::SignedJwt;
+
+    impl<T, H> IntoResponse for SignedJwt<T, H> {
+        fn into_response(self) -> Response {
+            ([(CONTENT_TYPE, "application/jwt")], self.0.serialization).into_response()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
     use std::fmt::Debug;
 
+    use ::axum::response::IntoResponse;
     use base64::prelude::*;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
@@ -1595,5 +1611,20 @@ mod tests {
         let deserialized: PayloadWithSub<U> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.payload, t.payload);
         assert_eq!(deserialized.sub, t.sub);
+    }
+
+    #[tokio::test]
+    async fn axum_response_of_signed_jwt() {
+        let signed_jwt = SignedJwt::<()>("abc.def.ghi".parse().unwrap());
+        let response = signed_jwt.into_response();
+
+        assert_eq!(response.status(), ::axum::http::StatusCode::OK);
+        assert_eq!(
+            response.headers()[::axum::http::header::CONTENT_TYPE],
+            "application/jwt"
+        );
+
+        let body = ::axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
+        assert_eq!(body, "abc.def.ghi".as_bytes());
     }
 }

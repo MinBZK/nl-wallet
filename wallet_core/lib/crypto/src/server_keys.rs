@@ -335,6 +335,9 @@ pub mod generate {
         use crate::x509::NO_SAN;
         use crate::x509::SubjectAltNameUri;
 
+        pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("CA wrpac"));
+
         pub static ISSUANCE_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA issuer"));
         pub static ISSUANCE_CERT_DN: LazyLock<DistinguishedName> =
@@ -363,6 +366,10 @@ pub mod generate {
                 .unwrap()
             }
 
+            pub fn generate_wrpac_mock_ca() -> Result<Self, CertificateError> {
+                Self::generate(WRPAC_CA_DN.clone(), Default::default())
+            }
+
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
                 Self::generate(ISSUANCE_CA_DN.clone(), Default::default())
             }
@@ -375,6 +382,10 @@ pub mod generate {
                         ..Default::default()
                     },
                 )
+            }
+
+            pub fn generate_wrpac_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default(), NO_SAN)
             }
 
             pub fn generate_reader_mock_ca() -> Result<Self, CertificateError> {

@@ -15,12 +15,11 @@ doctest = false
 allow_insecure_url = []
 # Include implementations for http clients
 client = ["reqwest/gzip", "serde_with/base64"]
-# Include mediatype library functionality
-mediatype = ["dep:mediatype"]
 # Include implementations of the axum IntoResponse trait.
 server = [
     "axum/json",
     "dep:axum-server",
+    "dep:mediatype",
     "dep:rustls",
     "dep:rustls-pki-types",
     "dep:tracing",
