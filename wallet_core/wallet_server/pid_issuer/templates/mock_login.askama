@@ -26,9 +26,6 @@
             <p class="intro">{{ trans.intro }}</p>
         </header>
 
-        {% if subjects.is_empty() %}
-        <p class="empty">{{ trans.empty }}</p>
-        {% else %}
         <div class="grid">
             {% for subject in subjects %}
             <form class="card" method="post" action="{{ select_path }}">
@@ -40,8 +37,26 @@
                 </button>
             </form>
             {% endfor %}
+
+            <form class="card-custom" method="post" action="{{ select_path }}">
+                <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+                <label class="name" for="custom-bsn">{{ trans.custom_heading }}</label>
+                <div class="custom-row">
+                    <input
+                        class="bsn-input"
+                        id="custom-bsn"
+                        name="bsn"
+                        inputmode="numeric"
+                        pattern="[0-9]{8,9}"
+                        maxlength="9"
+                        autocomplete="off"
+                        placeholder="{{ trans.custom_placeholder }}"
+                        required
+                    />
+                    <button type="submit">{{ trans.custom_submit }}</button>
+                </div>
+            </form>
         </div>
-        {% endif %}
 
         <div id="overlay" hidden>
             <span class="spinner"></span>

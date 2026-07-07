@@ -190,8 +190,7 @@ impl MockLoginState {
         }
     }
 
-    /// The dynamic mock login routes (the page and per-card selection), with the CSP layered on.
-    /// These must be served no-store, so the caller merges them with the other dynamic routers.
+    /// The non-cacheable dynamic mock login routes (the page and per-card selection), with the CSP layered on.
     pub fn page_router(self) -> Router {
         let csp = self.csp;
 
@@ -204,8 +203,7 @@ impl MockLoginState {
             .with_state(self)
     }
 
-    /// The static asset routes (CSS + JS), with the CSP layered on. These are cacheable, so the
-    /// caller merges them *outside* the no-store layer.
+    /// The cacheable static asset routes (CSS + JS), with the CSP layered on.
     pub fn assets_router(&self) -> Router {
         let csp = self.csp;
 
@@ -243,24 +241,31 @@ async fn mock_login_js() -> impl IntoResponse {
 struct Translations {
     title: &'static str,
     intro: &'static str,
-    empty: &'static str,
     // Overlay shown (via JS) once a card has been submitted.
     signing_in: &'static str,
+    // The "enter your own BSN" card, for BSNs not in the configured list.
+    custom_heading: &'static str,
+    custom_placeholder: &'static str,
+    custom_submit: &'static str,
 }
 
 fn translations(language: Language) -> Translations {
     match language {
         Language::Nl => Translations {
             title: "Kies een test-identiteit",
-            intro: "Selecteer met welke test-identiteit je wilt inloggen.",
-            empty: "Er zijn geen test-identiteiten geconfigureerd.",
+            intro: "Selecteer een test-identiteit of voer zelf een BSN in.",
             signing_in: "Bezig met inloggen…",
+            custom_heading: "Eigen BSN",
+            custom_placeholder: "Voer een BSN in",
+            custom_submit: "Inloggen",
         },
         Language::En => Translations {
             title: "Choose a test identity",
-            intro: "Select which test identity you want to sign in with.",
-            empty: "No test identities have been configured.",
+            intro: "Select a test identity or enter a BSN yourself.",
             signing_in: "Signing in…",
+            custom_heading: "Custom BSN",
+            custom_placeholder: "Enter a BSN",
+            custom_submit: "Sign in",
         },
     }
 }
