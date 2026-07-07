@@ -53,7 +53,7 @@
                         placeholder="{{ trans.custom_placeholder }}"
                         required
                     />
-                    <button type="submit">{{ trans.custom_submit }}</button>
+                    <button id="custom-bsn-submit" type="submit">{{ trans.custom_submit }}</button>
                 </div>
             </form>
         </div>
