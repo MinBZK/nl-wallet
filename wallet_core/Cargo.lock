@@ -5628,6 +5628,8 @@ name = "pid_issuer"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
+ "askama",
+ "askama_web",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -5670,6 +5672,7 @@ dependencies = [
  "url",
  "utils",
  "utoipa-swagger-ui",
+ "web_utils",
 ]
 
 [[package]]

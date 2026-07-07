@@ -1,0 +1,200 @@
+:root {
+    color-scheme: light dark;
+    --bg: #f3f4f6;
+    --card-bg: #ffffff;
+    --border: #d0d5dd;
+    --accent: #154273; /* Rijksoverheid blue */
+    --text: #1f2933;
+    --muted: #667085;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #1f2933;
+        --card-bg: #27313d;
+        --border: #3b4756;
+        --accent: #8fb8e0;
+        --text: #f3f4f6;
+        --muted: #9aa5b1;
+    }
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem 1rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.lang-bar {
+    align-self: flex-end;
+    display: flex;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}
+.lang-bar a,
+.lang-bar span {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--accent);
+}
+.lang-bar .active {
+    font-weight: 700;
+    color: var(--text);
+    background: var(--border);
+    cursor: default;
+}
+header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+.intro {
+    margin: 0;
+    color: var(--muted);
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    width: 100%;
+    max-width: 720px;
+}
+.card {
+    margin: 0;
+}
+.card button {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.card button:hover,
+.card button:focus-visible {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    outline: none;
+}
+.card button:disabled {
+    cursor: default;
+    opacity: 0.5;
+    transform: none;
+}
+.card .name {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.card .bsn {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+/* The "enter your own BSN" card: same frame as a selectable card, but holding an input + submit. */
+.card-custom {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    transition: border-color 0.15s ease;
+}
+.card-custom:focus-within {
+    border-color: var(--accent);
+}
+.card-custom .name {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+/* Second line inside the custom card: the BSN input grows, the submit button sits beside it. */
+.custom-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+.bsn-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: inherit;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+}
+.bsn-input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+}
+.card-custom button {
+    flex: none;
+    padding: 0.55rem 1.35rem;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--card-bg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+.card-custom button:hover,
+.card-custom button:focus-visible {
+    opacity: 0.9;
+    outline: none;
+}
+.card-custom button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+/* Loading overlay, revealed by JS once a card has been submitted. */
+#overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    font-size: 1.1rem;
+}
+#overlay[hidden] {
+    display: none;
+}
+.spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 3px solid var(--muted);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

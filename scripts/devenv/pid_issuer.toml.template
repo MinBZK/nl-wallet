@@ -37,6 +37,13 @@ secret_key_type = "software"
 bsn_privkey = '${BSN_PRIVKEY}'
 client_id = "${DIGID_CLIENT_ID}"
 
+# Serve the pid_issuer-hosted mock DigiD login page (a grid of these identities) instead of redirecting to nl-rdo-max's
+# own mock page. Maps each bsn to a display name; each bsn must resolve in the dev BRP dataset. Comment out for the
+# real-DigiD flow.
+[digid.mock_subjects]
+"999991772" = "Frouke Jansen"
+"999991905" = "Linda Strijps"
+
 [digid.client_settings]
 oidc_identifier = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 trust_anchors = ["${DIGID_CA_CRT}"]
