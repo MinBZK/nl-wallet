@@ -300,6 +300,9 @@ its own configuration file and database.</p></li>
 <li><p>flutter_rust_bridge has been updated to 2.12.0, run
 <code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">install</span> <span class="pre">flutter_rust_bridge_codegen</span> <span class="pre">--locked</span> <span class="pre">--version</span> <span class="pre">2.12.0</span></code> to
 update.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> service can now serve a custom DigiD login page, where a
+preconfigured BSN can be selected. For this, the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> offers a
+<code class="docutils literal notranslate"><span class="pre">digid.mock_subjects</span></code> setting.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -341,6 +344,8 @@ This is demonstrated by the new service <code class="docutils literal notranslat
 insurance attestation including a user consent page.</p></li>
 <li><p>The wallet uses fields from the Wallet Relying Party Access Certificate when
 showing an organization to the user.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> service can now serve a custom styled DigiD login page, where
+a preconfigured BSN can be selected, or a custom BSN can be entered.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">

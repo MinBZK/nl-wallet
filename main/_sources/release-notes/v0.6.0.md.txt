@@ -92,6 +92,9 @@
 - flutter_rust_bridge has been updated to 2.12.0, run
   `cargo install flutter_rust_bridge_codegen --locked --version 2.12.0` to
   update.
+- The `pid_issuer` service can now serve a custom DigiD login page, where a
+  preconfigured BSN can be selected. For this, the `pid_issuer` offers a
+  `digid.mock_subjects` setting.
 
 [1]:
     https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p
@@ -134,6 +137,8 @@
   insurance attestation including a user consent page.
 - The wallet uses fields from the Wallet Relying Party Access Certificate when
   showing an organization to the user.
+- The `pid_issuer` service can now serve a custom styled DigiD login page, where
+  a preconfigured BSN can be selected, or a custom BSN can be entered.
 
 ## Interoperability improvements
 
