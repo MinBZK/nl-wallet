@@ -10,23 +10,41 @@ use std::sync::Arc;
 use askama::Template;
 use askama_web::WebTemplate;
 use axum::Router;
+use axum::extract::Form;
 use axum::extract::Query;
 use axum::extract::State;
+use axum::http::HeaderMap;
+use axum::http::HeaderValue;
 use axum::http::StatusCode;
+use axum::http::header;
+use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
-use reqwest::header;
+use axum::routing::post;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
+use web_utils::css::serve_bundled_css;
+use web_utils::headers::set_content_security_policy;
+use web_utils::language::Language;
 
 /// Path (relative to the issuer's public URL) of the mock login page.
 pub const MOCK_LOGIN_PATH: &str = "/digid/mock-login";
 
 /// Path of the per-card selection endpoint that drives the bridge and hands off to `/digid/callback`.
 const MOCK_LOGIN_SELECT_PATH: &str = "/digid/mock-login/select";
+
+/// Paths of the page's (same-origin) stylesheet and script, so a strict CSP can use `'self'` rather
+/// than allowing inline styles/scripts.
+const MOCK_LOGIN_CSS_PATH: &str = "/digid/mock-login/mock_login.css";
+const MOCK_LOGIN_JS_PATH: &str = "/digid/mock-login/mock_login.js";
+
+const MOCK_LOGIN_CSS: &str = include_str!("../../static/mock_login.css");
+const MOCK_LOGIN_JS: &str = include_str!("../../static/mock_login.js");
 
 /// A selectable mock identity, rendered as a card on the mock login page.
 ///
@@ -132,47 +150,147 @@ fn scrape_relay_state(page: &str) -> Result<String, MockDigidError> {
     Ok(value.to_string())
 }
 
-/// Everything the mock login routes need: a redirect-disabled HTTP client trusting nl-rdo-max, and
-/// the configured test identities.
+/// Build the `Content-Security-Policy` served on the mock login page. Assets are same-origin
+/// (`style-src`/`script-src 'self'`), so no inline styles/scripts are needed. `form-action` must
+/// allow both the page's own origin (`'self'`, for the POST to `/select`) and the wallet's redirect
+/// target: selecting a card 303-redirects toward it and browsers enforce `form-action` across
+/// redirects.
+pub fn build_mock_login_csp(wallet_redirect_uris: &VecNonEmpty<Url>) -> String {
+    let form_action_sources = wallet_redirect_uris
+        .iter()
+        .map(|uri| match uri.scheme() {
+            "http" | "https" => uri.origin().ascii_serialization(),
+            scheme => format!("{scheme}:"),
+        })
+        .sorted()
+        .dedup()
+        .join(" ");
+
+    format!(
+        "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self' data:; \
+         form-action 'self' {form_action_sources}; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+    )
+}
+
+/// Everything the mock login routes need: a redirect-disabled HTTP client trusting nl-rdo-max, the
+/// configured test identities, and the `Content-Security-Policy` to serve on the page.
 #[derive(Clone)]
 pub struct MockLoginState {
     client: reqwest::Client,
     subjects: Arc<Vec<MockSubject>>,
+    csp: &'static str,
 }
 
 impl MockLoginState {
-    pub fn new(client: reqwest::Client, subjects: Vec<MockSubject>) -> Self {
+    pub fn new(client: reqwest::Client, subjects: Vec<MockSubject>, csp: &'static str) -> Self {
         Self {
             client,
             subjects: Arc::new(subjects),
+            csp,
         }
     }
 
-    /// Mount the mock login page and its per-card selection endpoint on a fresh [`Router`]. The
-    /// pid_issuer's `server` module merges this with the issuance/authorization/callback routers.
-    pub fn router(self) -> Router {
+    /// The dynamic mock login routes (the page and per-card selection), with the CSP layered on.
+    /// These must be served no-store, so the caller merges them with the other dynamic routers.
+    pub fn page_router(self) -> Router {
+        let csp = self.csp;
+
         Router::new()
             .route(MOCK_LOGIN_PATH, get(mock_login_page))
-            .route(MOCK_LOGIN_SELECT_PATH, get(mock_login_select))
+            .route(MOCK_LOGIN_SELECT_PATH, post(mock_login_select))
+            .layer(middleware::from_fn(move |request, next| {
+                set_content_security_policy(request, next, csp)
+            }))
             .with_state(self)
+    }
+
+    /// The static asset routes (CSS + JS), with the CSP layered on. These are cacheable, so the
+    /// caller merges them *outside* the no-store layer.
+    pub fn assets_router(&self) -> Router {
+        let csp = self.csp;
+
+        Router::new()
+            .route(MOCK_LOGIN_CSS_PATH, get(mock_login_css))
+            .route(MOCK_LOGIN_JS_PATH, get(mock_login_js))
+            .layer(middleware::from_fn(move |request, next| {
+                set_content_security_policy(request, next, csp)
+            }))
     }
 }
 
-/// One rendered identity card: its display fields plus the pre-built, percent-encoded selection link.
-struct Card {
+/// `GET /digid/mock-login/mock_login.css`: the page's stylesheet.
+async fn mock_login_css(headers: HeaderMap) -> Response {
+    serve_bundled_css(&headers, MOCK_LOGIN_CSS)
+}
+
+/// `GET /digid/mock-login/mock_login.js`: the page's script.
+async fn mock_login_js() -> impl IntoResponse {
+    (
+        [
+            (
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("text/javascript; charset=utf-8"),
+            ),
+            (
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("public, max-age=604800"),
+            ),
+        ],
+        MOCK_LOGIN_JS,
+    )
+}
+
+struct Translations {
+    title: &'static str,
+    intro: &'static str,
+    empty: &'static str,
+    // Overlay shown (via JS) once a card has been submitted.
+    signing_in: &'static str,
+}
+
+fn translations(language: Language) -> Translations {
+    match language {
+        Language::Nl => Translations {
+            title: "Kies een test-identiteit",
+            intro: "Selecteer met welke test-identiteit je wilt inloggen.",
+            empty: "Er zijn geen test-identiteiten geconfigureerd.",
+            signing_in: "Bezig met inloggen…",
+        },
+        Language::En => Translations {
+            title: "Choose a test identity",
+            intro: "Select which test identity you want to sign in with.",
+            empty: "No test identities have been configured.",
+            signing_in: "Signing in…",
+        },
+    }
+}
+
+/// One identity, rendered as a card (a form that POSTs its `bsn`).
+struct Subject {
     name: String,
     bsn: String,
-    href: String,
 }
 
 #[derive(Template, WebTemplate)]
 #[template(path = "mock_login.askama", escape = "html", ext = "html")]
 struct MockLoginTemplate {
-    cards: Vec<Card>,
+    /// Selected language code (`"nl"`/`"en"`), for the `<html lang>` attribute and the language bar.
+    lang: String,
+    trans: Translations,
+    /// The nl-rdo-max authorize URL, round-tripped as a hidden field so each card can POST it back.
+    authorize_url: String,
+    subjects: Vec<Subject>,
+    /// Links that switch the page language while preserving `authorize_url`.
+    nl_href: String,
+    en_href: String,
+    select_path: &'static str,
+    css_path: &'static str,
+    js_path: &'static str,
 }
 
-/// Query parameters of the mock login page, set by the flow's `authorize` redirect: the nl-rdo-max
-/// `/authorize` URL that a selected card will drive.
+/// Query parameters of the mock login page: the nl-rdo-max `/authorize` URL a selected card will
+/// drive (set by the flow's `authorize` redirect). The language is resolved separately via the
+/// [`Language`] extractor (`?lang=` or `Accept-Language`).
 #[derive(Deserialize)]
 struct PageQuery {
     authorize_url: String,
@@ -181,42 +299,53 @@ struct PageQuery {
 /// `GET /digid/mock-login`: render the grid of identity cards.
 async fn mock_login_page(
     State(state): State<MockLoginState>,
+    language: Language,
     Query(PageQuery { authorize_url }): Query<PageQuery>,
 ) -> MockLoginTemplate {
-    let cards = state
+    // A language-switch link for the given code, preserving the authorize URL across the switch.
+    let lang_href = |code: &str| {
+        let query = url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("lang", code)
+            .append_pair("authorize_url", &authorize_url)
+            .finish();
+        format!("{MOCK_LOGIN_PATH}?{query}")
+    };
+
+    let subjects = state
         .subjects
         .iter()
-        .map(|subject| {
-            // Absolute link so relative resolution from `/digid/mock-login` is unambiguous.
-            let query = url::form_urlencoded::Serializer::new(String::new())
-                .append_pair("authorize_url", &authorize_url)
-                .append_pair("bsn", &subject.bsn)
-                .finish();
-
-            Card {
-                name: subject.name.clone(),
-                bsn: subject.bsn.clone(),
-                href: format!("{MOCK_LOGIN_SELECT_PATH}?{query}"),
-            }
+        .map(|subject| Subject {
+            name: subject.name.clone(),
+            bsn: subject.bsn.clone(),
         })
         .collect();
 
-    MockLoginTemplate { cards }
+    MockLoginTemplate {
+        lang: language.to_string(),
+        trans: translations(language),
+        nl_href: lang_href("nl"),
+        en_href: lang_href("en"),
+        authorize_url,
+        subjects,
+        select_path: MOCK_LOGIN_SELECT_PATH,
+        css_path: MOCK_LOGIN_CSS_PATH,
+        js_path: MOCK_LOGIN_JS_PATH,
+    }
 }
 
-/// Query parameters of a card selection.
+/// Form fields of a card selection.
 #[derive(Deserialize)]
-struct SelectQuery {
+struct SelectForm {
     authorize_url: Url,
     bsn: String,
 }
 
-/// `GET /digid/mock-login/select`: "click the button" for one card. Drive nl-rdo-max's mock login,
-/// then 302 the user-agent to the resulting `/digid/callback` URL (which consumes the bridge entry
-/// and redirects on to the wallet).
+/// `POST /digid/mock-login/select`: "click the button" for one card. Drive nl-rdo-max's mock login,
+/// then 303-redirect the user-agent to the resulting `/digid/callback` URL (which consumes the bridge
+/// entry and redirects on to the wallet). The 303 turns the POST into a GET of the callback.
 async fn mock_login_select(
     State(state): State<MockLoginState>,
-    Query(SelectQuery { authorize_url, bsn }): Query<SelectQuery>,
+    Form(SelectForm { authorize_url, bsn }): Form<SelectForm>,
 ) -> Result<Redirect, MockDigidError> {
     let callback_url = drive_mock_digid_login(&state.client, authorize_url, &bsn).await?;
 

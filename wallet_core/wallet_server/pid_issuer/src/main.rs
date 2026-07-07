@@ -9,6 +9,7 @@ use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::pid::digid::DigidMetadataClient;
 use pid_issuer::pid::digid_mock::MOCK_LOGIN_PATH;
 use pid_issuer::pid::digid_mock::MockLoginState;
+use pid_issuer::pid::digid_mock::build_mock_login_csp;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use reqwest::redirect::Policy;
@@ -65,7 +66,14 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             .redirect(Policy::none())
             .build()?;
 
-        Some(MockLoginState::new(client, mock_subjects))
+        // The mock login page sets its own CSP, whose `form-action` must allow the wallet redirect
+        // target. Build it while the redirect URIs are in scope and leak it for the 'static lifetime
+        // the response middleware requires (it lives for the process, like the server).
+        let csp: &'static str = Box::leak(
+            build_mock_login_csp(&settings.authorizing_issuer_settings.wallet_redirect_uris).into_boxed_str(),
+        );
+
+        Some(MockLoginState::new(client, mock_subjects, csp))
     };
     let mock_login_uri = mock_login.as_ref().map(|_| callback_base_url.join(MOCK_LOGIN_PATH));
 

@@ -5672,6 +5672,7 @@ dependencies = [
  "url",
  "utils",
  "utoipa-swagger-ui",
+ "web_utils",
 ]
 
 [[package]]
