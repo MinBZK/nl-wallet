@@ -164,6 +164,8 @@
   Metadata and Oauth 2.0 Authorization Server Metadata when a subpath is
   involved.
 - SD-JWT VC type metadata is updated to draft 13.
+- All issuance servers can serve signed OpenID4VCI metadata with the WRPAC
+  certificate.
 
 ## Bug fixes
 
