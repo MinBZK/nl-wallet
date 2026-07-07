@@ -21,6 +21,7 @@ use jwt::VerifiedJwt;
 use openid4vc::AuthorizationErrorCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::authorization::PushedAuthorizationResponse;
+use openid4vc::authorization_details::AuthorizationDetailsEntry;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
@@ -935,6 +936,56 @@ async fn token_rejects_grant_type_mismatch() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
     assert!(body.contains("unsupported_grant_type"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn token_rejects_authorization_details() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    // Plant an authorization-code session, then try to redeem its code using the pre-authorized-code
+    // grant. The code is placed in the `pre-authorized_code` field so the session is still found, and
+    // the grant-type mismatch is what the handler must reject.
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+        scope: None,
+        code_verifier: Some(code_verifier),
+        authorization_details: Some(
+            vec_nonempty![AuthorizationDetailsEntry::new_vci(
+                "com.example.pid_dc+sd-jwt".to_string().into()
+            )]
+            .try_into()
+            .unwrap(),
+        ),
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_request"), "unexpected body: {body}");
 }
 
 #[tokio::test]

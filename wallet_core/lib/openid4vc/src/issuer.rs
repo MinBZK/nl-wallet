@@ -169,6 +169,9 @@ pub enum TokenRequestError {
     )]
     ClientIdMismatch { expected: String, actual: String },
 
+    #[error("a Token Request containing authorization_details is not supported")]
+    AuthorizationDetailsUnsupported,
+
     #[error(
         "scope received in Token Request does not match scope requested in Authorization Request: \
          expected {}, received: {}",
@@ -1204,6 +1207,11 @@ impl Session<AuthCodeIssued> {
         session_data
             .grant
             .verify_client_id(token_request, &issuer_data.accepted_wallet_client_ids)?;
+
+        if token_request.authorization_details.is_some() {
+            return Err(TokenRequestError::AuthorizationDetailsUnsupported);
+        }
+
         session_data.grant.verify_scope(token_request)?;
         session_data.grant.verify_redirect_uri(token_request)?;
 

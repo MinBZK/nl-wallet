@@ -407,6 +407,8 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
 
+            Self::AuthorizationDetailsUnsupported => TokenErrorCode::InvalidRequest,
+
             Self::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
 
             Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => TokenErrorCode::InvalidRequest,
