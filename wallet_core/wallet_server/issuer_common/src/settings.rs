@@ -28,7 +28,6 @@ use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WiaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -549,9 +548,7 @@ impl IssuerSettings {
             self.batch_size,
             self.wallet_client_ids,
             config_params,
-            WiaConfig {
-                wia_trust_anchors: self.wia_trust_anchors,
-            },
+            self.wia_trust_anchors,
             Arc::new(sessions),
             proof_nonce_store,
         )

@@ -383,7 +383,6 @@ pub struct Issuer<K, L, S, N> {
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, L> {
     credential_configs: CredentialConfigurations<K, L>,
-    wia_config: WiaConfig,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
     accepted_wallet_client_ids: HashSet<String>,
@@ -395,11 +394,9 @@ pub struct IssuerData<K, L> {
     batch_size: NonZeroU8,
 
     metadata: IssuerMetadata,
-}
 
-pub struct WiaConfig {
     /// Public key of the WIA issuer.
-    pub wia_trust_anchors: TrustAnchors,
+    wia_trust_anchors: TrustAnchors,
 }
 
 impl<K, L> IssuerData<K, L> {
@@ -441,7 +438,7 @@ impl<K, L> IssuerData<K, L> {
         let expected_aud = self.metadata.credential_issuer.as_ref();
 
         wia_disclosure.verify(
-            &self.wia_config.wia_trust_anchors,
+            &self.wia_trust_anchors,
             expected_aud,
             &self.accepted_wallet_client_ids_vec(),
             None,
@@ -556,7 +553,7 @@ where
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
-        wia_config: WiaConfig,
+        wia_trust_anchors: TrustAnchors,
         sessions: Arc<S>,
         proof_nonce_store: N,
     ) -> Result<Self, CredentialConfigurationsError> {
@@ -594,7 +591,7 @@ where
         let issuer_data = IssuerData {
             credential_configs,
             accepted_wallet_client_ids: wallet_client_ids,
-            wia_config,
+            wia_trust_anchors,
 
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.

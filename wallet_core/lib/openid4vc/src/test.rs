@@ -45,7 +45,6 @@ use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
@@ -267,9 +266,7 @@ where
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         config_params,
-        WiaConfig {
-            wia_trust_anchors: trust_anchors.clone(),
-        },
+        trust_anchors.clone(),
         sessions,
         MemoryNonceStore::new(),
     )

@@ -183,7 +183,6 @@ mod tests {
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
-    use openid4vc::issuer::WiaConfig;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
@@ -291,7 +290,7 @@ mod tests {
             NonZeroU8::MIN,
             HashSet::new(),
             [("credential_config_id".to_string().into(), config_params)].into(),
-            WiaConfig { wia_trust_anchors },
+            wia_trust_anchors,
             sessions,
             MemoryNonceStore::new(),
         )
