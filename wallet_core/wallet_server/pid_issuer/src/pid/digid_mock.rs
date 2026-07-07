@@ -106,14 +106,8 @@ pub async fn drive_mock_digid_login(
         .map_err(MockDigidError::Http)?;
     let relay_state = scrape_relay_state(&page)?;
 
-    // Mock ACS: in mock mode SAMLart is literally the BSN. `/acs` lives at the authorize origin;
-    // joining an absolute path drops the `/authorize` path and its query for us.
-    let mut acs_url = authorize_url.join("/acs").expect("\"/acs\" is a valid path");
-    acs_url
-        .query_pairs_mut()
-        .append_pair("SAMLart", bsn)
-        .append_pair("RelayState", &relay_state)
-        .append_pair("mocking", "1");
+    // In mock mode SAMLart is literally the BSN.
+    let acs_url = mock_acs_url(&authorize_url, bsn, &relay_state);
 
     // With redirect following disabled on the client, the 302 Location is the issuer's
     // `/digid/callback` URL carrying the upstream code + state.
@@ -138,6 +132,22 @@ fn scrape_relay_state(page: &str) -> Result<String, MockDigidError> {
     let value = after.split_once('"').ok_or(MockDigidError::RelayStateNotFound)?.0;
 
     Ok(value.to_string())
+}
+
+/// Build the bridge's mock `/acs` URL for the given `/authorize` URL, BSN and scraped `RelayState`.
+///
+/// `/acs` is a sibling of the bridge's `/authorize` endpoint, so it is joined as a *relative* reference:
+/// this replaces the last path segment (and drops the query) while preserving any base path the bridge
+/// is mounted under.
+fn mock_acs_url(authorize_url: &Url, bsn: &str, relay_state: &str) -> Url {
+    let mut acs_url = authorize_url.join("acs").expect("\"acs\" is a valid relative path");
+    acs_url
+        .query_pairs_mut()
+        .append_pair("SAMLart", bsn)
+        .append_pair("RelayState", relay_state)
+        .append_pair("mocking", "1");
+
+    acs_url
 }
 
 /// Build the `Content-Security-Policy` served on the mock login page. Assets are same-origin
@@ -345,4 +355,32 @@ async fn mock_login_select(
     let callback_url = drive_mock_digid_login(&state.client, authorize_url, &bsn).await?;
 
     Ok(Redirect::to(callback_url.as_str()))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use url::Url;
+
+    use super::mock_acs_url;
+
+    #[test]
+    fn mock_acs_url_preserves_bridge_base_path() {
+        // nl-rdo-max at the origin root (local devenv): `/acs` sits directly under the origin.
+        let root = Url::parse("https://localhost:8006/authorize?login_hint=digid_mock").unwrap();
+        assert_eq!(mock_acs_url(&root, "999991772", "relay").path(), "/acs");
+
+        // nl-rdo-max behind a base path prefix (as in CI): the prefix must be preserved, otherwise
+        // `/acs` 404s and the bridge returns no callback redirect.
+        let prefixed = Url::parse("https://example.com/digid-connector/authorize?login_hint=digid_mock").unwrap();
+        let acs = mock_acs_url(&prefixed, "999991772", "relay");
+        assert_eq!(acs.path(), "/digid-connector/acs");
+
+        // The BSN (as SAMLart), RelayState and mocking flag are available as query parameters.
+        let query: HashMap<_, _> = acs.query_pairs().into_owned().collect();
+        assert_eq!(query.get("SAMLart").map(String::as_str), Some("999991772"));
+        assert_eq!(query.get("RelayState").map(String::as_str), Some("relay"));
+        assert_eq!(query.get("mocking").map(String::as_str), Some("1"));
+    }
 }
