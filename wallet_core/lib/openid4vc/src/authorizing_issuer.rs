@@ -54,6 +54,9 @@ pub enum ParError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
 
+    #[error("a PAR containing authorization_details is not supported")]
+    AuthorizationDetailsUnsupported,
+
     #[error("redirect_uri not allowed: {0}")]
     InvalidRedirectUri(Url),
 
@@ -182,6 +185,10 @@ where
             .contains(request.oauth_request.client_id.as_str())
         {
             return Err(ParError::UnknownClient(request.oauth_request.client_id));
+        }
+
+        if request.authorization_details.is_some() {
+            return Err(ParError::AuthorizationDetailsUnsupported);
         }
 
         // Exact-match the wallet's redirect_uri against the configured allowlist.
@@ -399,6 +406,7 @@ mod tests {
     use crate::authorization_code_flow::AuthorizeOutcome;
     use crate::authorization_code_flow::InvalidAuthorizationRequest;
     use crate::authorization_code_flow::WalletAuthorizationContext;
+    use crate::authorization_details::AuthorizationDetailsEntry;
     use crate::issuable_document::CredentialKind;
     use crate::issuer::AuthRequestValues;
     use crate::issuer::Grant;
@@ -522,21 +530,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn process_par_rejects_unknown_client_id() {
-        let (authorizing_issuer, _sessions) =
-            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
-
-        let error = authorizing_issuer
-            .process_pushed_authorization_request(vci_request(OTHER_CLIENT_ID))
-            .await
-            .unwrap_err();
-
-        assert_matches!(error, ParError::UnknownClient(client_id) if client_id == OTHER_CLIENT_ID);
-        // The rejected request must not have been stored.
-        assert!(authorizing_issuer.par_store.is_empty());
-    }
-
-    #[tokio::test]
     async fn process_par_stores_request_and_returns_response() {
         let (authorizing_issuer, _sessions) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
@@ -559,6 +552,45 @@ mod tests {
             .live()
             .expect("request should be stored under the returned request_uri");
         assert_eq!(stored.oauth_request.client_id, MOCK_WALLET_CLIENT_ID);
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_unknown_client_id() {
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(vci_request(OTHER_CLIENT_ID))
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::UnknownClient(client_id) if client_id == OTHER_CLIENT_ID);
+        // The rejected request must not have been stored.
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_authorization_details() {
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
+        request.authorization_details = Some(
+            vec_nonempty![AuthorizationDetailsEntry::new_vci(
+                "credential_config_id".to_string().into()
+            )]
+            .try_into()
+            .unwrap(),
+        );
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(request)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::AuthorizationDetailsUnsupported);
+        // The rejected request must not have been stored.
+        assert!(authorizing_issuer.par_store.is_empty());
     }
 
     #[tokio::test]

@@ -334,7 +334,7 @@ impl ErrorWithCode for ParError {
         match self {
             Self::UnknownClient(_) => ParErrorCode::InvalidClient,
 
-            Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
+            Self::InvalidRedirectUri(_) | Self::AuthorizationDetailsUnsupported => ParErrorCode::InvalidRequest,
 
             Self::Store(_) => ParErrorCode::ServerError,
         }
