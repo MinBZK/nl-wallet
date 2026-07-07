@@ -106,7 +106,6 @@ pub struct TokenRequest {
 impl TokenRequest {
     pub fn new_authorization_code(
         authorization_code: AuthorizationCode,
-        client_id: String,
         redirect_uri: Url,
         code_verifier: String,
     ) -> Self {
@@ -114,17 +113,17 @@ impl TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: authorization_code,
             },
-            client_id: Some(client_id),
+            client_id: None, // Not required as our implementation sends a WIA which contains the client_id in the sub
             redirect_uri: Some(redirect_uri),
             scope: None,
             code_verifier: Some(code_verifier),
         }
     }
 
-    pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode, client_id: String) -> Self {
+    pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode) -> Self {
         Self {
             grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-            client_id: Some(client_id),
+            client_id: None, // Not required as our implementation sends a WIA which contains the client_id in the sub
             redirect_uri: None,
             scope: None,
             code_verifier: None,

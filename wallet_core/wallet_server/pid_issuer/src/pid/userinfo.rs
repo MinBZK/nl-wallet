@@ -206,7 +206,6 @@ mod tests {
     fn create_token_request() -> TokenRequest {
         TokenRequest::new_authorization_code(
             AuthorizationCode::from("test-code".to_string()),
-            "test-client".to_string(),
             "https://example.com/callback".parse::<Url>().unwrap(),
             "test-verifier".to_string(),
         )

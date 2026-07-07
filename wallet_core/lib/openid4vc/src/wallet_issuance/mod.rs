@@ -348,7 +348,6 @@ pub trait IssuanceDiscovery {
     async fn start_pre_authorized_code_flow(
         &self,
         offer_uri: &Url,
-        client_id: String,
         wia_client: &impl WiaClient,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;

@@ -1109,11 +1109,9 @@ mod tests {
     fn map_pre_authorized_token_error_translates_only_pre_authorized_invalid_grant() {
         use crate::token::AuthorizationCode;
 
-        let pre_authorized =
-            TokenRequest::new_pre_authorized(AuthorizationCode::from("the-code".to_string()), "client-id".to_string());
+        let pre_authorized = TokenRequest::new_pre_authorized(AuthorizationCode::from("the-code".to_string()));
         let authorization_code = TokenRequest::new_authorization_code(
             AuthorizationCode::from("the-code".to_string()),
-            "client-id".to_string(),
             "https://example.com/redirect".parse().unwrap(),
             "code-verifier".to_string(),
         );

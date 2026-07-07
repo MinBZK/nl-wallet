@@ -16,7 +16,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
-use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::DisclosureError;
@@ -132,7 +131,6 @@ where
             .issuance_discovery
             .start_pre_authorized_code_flow(
                 &redirect_uri,
-                NL_WALLET_CLIENT_ID.to_string(),
                 &self.new_remote_wia_client(attested_key, &registration_data, &config),
                 config.issuer_trust_anchors(),
             )

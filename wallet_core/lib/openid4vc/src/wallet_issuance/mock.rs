@@ -66,7 +66,6 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     async fn start_pre_authorized_code_flow(
         &self,
         _offer_uri: &Url,
-        _client_id: String,
         _wia_client: &impl WiaClient,
         _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {

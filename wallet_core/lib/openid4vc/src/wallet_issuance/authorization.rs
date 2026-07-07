@@ -80,7 +80,6 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     http_client: HttpJsonClient,
 
     auth_url: Url,
-    client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
     state: String,
@@ -94,7 +93,6 @@ pub struct HttpAuthorizationSessionData {
     token_endpoint: Url,
     authorization_server: IssuerIdentifier,
     auth_url: Url,
-    client_id: String,
     redirect_uri: Url,
     code_verifier: String,
     state: String,
@@ -191,7 +189,6 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             authorization_server,
             http_client,
             auth_url,
-            client_id,
             redirect_uri,
             pkce_pair,
             state,
@@ -246,7 +243,6 @@ impl HttpAuthorizationSession {
             authorization_server: data.authorization_server,
             http_client,
             auth_url: data.auth_url,
-            client_id: data.client_id,
             redirect_uri: data.redirect_uri,
             pkce_pair: S256PkcePair::from_code_verifier(data.code_verifier),
             state: data.state,
@@ -274,7 +270,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
             token_endpoint: self.token_endpoint.clone(),
             authorization_server: self.authorization_server.clone(),
             auth_url: self.auth_url.clone(),
-            client_id: self.client_id.clone(),
             redirect_uri: self.redirect_uri.clone(),
             code_verifier: self.pkce_pair.code_verifier().to_string(),
             state: self.state.clone(),
@@ -292,7 +287,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
         let token_request = TokenRequest::new_authorization_code(
             authorization_code,
-            self.client_id,
             self.redirect_uri,
             self.pkce_pair.into_code_verifier(),
         );
@@ -351,7 +345,6 @@ mod tests {
 
     const ISSUER_URL: &str = "https://example.com";
     const TOKEN_ENDPOINT: &str = "/issuance/token";
-    const CLIENT_ID: &str = "client-1";
     const REDIRECT_URI: &str = "redirect://here";
     const CSRF_TOKEN: &str = "csrf_token";
     const CODE: &str = "code";
@@ -391,7 +384,6 @@ mod tests {
             authorization_server: ISSUER_URL.parse().unwrap(),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
-            client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair,
             state: CSRF_TOKEN.to_string(),
@@ -679,7 +671,6 @@ mod tests {
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             auth_url: ISSUER_URL.parse().unwrap(),
-            client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             code_verifier: "verifier".to_string(),
             state: CSRF_TOKEN.to_string(),
@@ -693,7 +684,6 @@ mod tests {
             token_endpoint: persisted.token_endpoint,
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
-            client_id: persisted.client_id.clone(),
             redirect_uri: persisted.redirect_uri.clone(),
             pkce_pair: S256PkcePair::from_code_verifier(persisted.code_verifier.clone()),
             state: persisted.state.clone(),
@@ -707,7 +697,6 @@ mod tests {
         let restored_persisted = restored.persist();
 
         assert_eq!(restored_persisted.auth_url, persisted.auth_url);
-        assert_eq!(restored_persisted.client_id, persisted.client_id);
         assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
         assert_eq!(restored_persisted.code_verifier, persisted.code_verifier);
         assert_eq!(restored_persisted.state, persisted.state);
