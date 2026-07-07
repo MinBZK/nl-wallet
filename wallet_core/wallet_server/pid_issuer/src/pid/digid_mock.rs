@@ -23,9 +23,9 @@ use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
-use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 use web_utils::css::serve_bundled_css;
@@ -46,15 +46,8 @@ const MOCK_LOGIN_JS_PATH: &str = "/digid/mock-login/mock_login.js";
 const MOCK_LOGIN_CSS: &str = include_str!("../../static/mock_login.css");
 const MOCK_LOGIN_JS: &str = include_str!("../../static/mock_login.js");
 
-/// A selectable mock identity, rendered as a card on the mock login page.
-///
-/// `bsn` must resolve in the BRP proxy's dataset, since the real `/digid/callback` performs a BRP
-/// lookup for it; `name` is a display label only.
-#[derive(Clone, Serialize, Deserialize)]
-pub struct MockSubject {
-    pub bsn: String,
-    pub name: String,
-}
+/// The configured selectable mock identities, as a map from BSN to display name.
+pub type MockSubjects = IndexMap<String, String>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockDigidError {
@@ -174,12 +167,12 @@ pub fn build_mock_login_csp(wallet_redirect_uris: &VecNonEmpty<Url>) -> String {
 #[derive(Clone)]
 pub struct MockLoginState {
     client: reqwest::Client,
-    subjects: Arc<Vec<MockSubject>>,
+    subjects: Arc<MockSubjects>,
     csp: &'static str,
 }
 
 impl MockLoginState {
-    pub fn new(client: reqwest::Client, subjects: Vec<MockSubject>, csp: &'static str) -> Self {
+    pub fn new(client: reqwest::Client, subjects: MockSubjects, csp: &'static str) -> Self {
         Self {
             client,
             subjects: Arc::new(subjects),
@@ -316,9 +309,9 @@ async fn mock_login_page(
     let subjects = state
         .subjects
         .iter()
-        .map(|subject| Subject {
-            name: subject.name.clone(),
-            bsn: subject.bsn.clone(),
+        .map(|(bsn, name)| Subject {
+            name: name.clone(),
+            bsn: bsn.clone(),
         })
         .collect();
 
