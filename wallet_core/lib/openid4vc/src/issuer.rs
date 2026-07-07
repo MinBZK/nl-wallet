@@ -1171,7 +1171,7 @@ impl Session<AuthCodeIssued> {
         session_data.grant.verify_redirect_uri(token_request)?;
 
         issuer_data
-            .verify_wia(wia_disclosure, None)
+            .verify_wia(wia_disclosure, token_request.client_id.as_ref())
             .map_err(TokenRequestError::Wia)?;
 
         build_token_response(
