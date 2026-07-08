@@ -23,7 +23,6 @@ import screen.security.SecuritySetupCompletedScreen
 import screen.settings.BiometricsSetupScreen
 import screen.settings.SettingsScreen
 import screen.web.digid.DigidLoginMockWebPage
-import screen.web.digid.DigidLoginStartWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("Biometric unlock and configuration")
@@ -37,7 +36,6 @@ class BiometricsTests : TestBase() {
     private lateinit var securitySetupCompletedScreen: SecuritySetupCompletedScreen
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
     private lateinit var revocationCodeSetupScreen: RevocationCodeSetupScreen
-    private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
     private lateinit var digidLoginMockWebPage: DigidLoginMockWebPage
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
     private lateinit var personalizeSuccessScreen: PersonalizeSuccessScreen
@@ -59,7 +57,6 @@ class BiometricsTests : TestBase() {
         securitySetupCompletedScreen = SecuritySetupCompletedScreen()
         personalizeInformScreen = PersonalizeInformScreen()
         revocationCodeSetupScreen = RevocationCodeSetupScreen()
-        digidLoginStartWebPage = DigidLoginStartWebPage()
         digidLoginMockWebPage = DigidLoginMockWebPage()
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
         personalizeSuccessScreen = PersonalizeSuccessScreen()
@@ -78,8 +75,7 @@ class BiometricsTests : TestBase() {
         revocationCodeSetupScreen.confirmReceive()
 
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()
@@ -109,8 +105,7 @@ class BiometricsTests : TestBase() {
         securitySetupCompletedScreen.clickNextButton()
         revocationCodeSetupScreen.confirmReceive()
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()
@@ -143,8 +138,7 @@ class BiometricsTests : TestBase() {
         revocationCodeSetupScreen.confirmReceive()
 
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()
@@ -180,8 +174,7 @@ class BiometricsTests : TestBase() {
         securitySetupCompletedScreen.clickNextButton()
         revocationCodeSetupScreen.confirmReceive()
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()
