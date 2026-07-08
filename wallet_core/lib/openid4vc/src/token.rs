@@ -109,11 +109,20 @@ impl TokenRequest {
         redirect_uri: Url,
         code_verifier: String,
     ) -> Self {
+        Self::new_authorization_code_with_client_id(authorization_code, redirect_uri, code_verifier, None)
+    }
+
+    pub fn new_authorization_code_with_client_id(
+        authorization_code: AuthorizationCode,
+        redirect_uri: Url,
+        code_verifier: String,
+        client_id: Option<String>,
+    ) -> Self {
         Self {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: authorization_code,
             },
-            client_id: None, // Not required as our implementation sends a WIA which contains the client_id in the sub
+            client_id,
             redirect_uri: Some(redirect_uri),
             scope: None,
             code_verifier: Some(code_verifier),

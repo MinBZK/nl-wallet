@@ -171,7 +171,12 @@ impl DigidClient for HttpDigidClient {
     async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error> {
         let metadata = self.metadata_client.metadata().await.map_err(Error::WellKnown)?;
 
-        let token_request = TokenRequest::new_authorization_code(code, redirect_uri, code_verifier);
+        let token_request = TokenRequest::new_authorization_code_with_client_id(
+            code,
+            redirect_uri,
+            code_verifier,
+            Some(self.client_id.clone()),
+        );
 
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             self.metadata_client.http_client(),
