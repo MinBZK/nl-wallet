@@ -470,3 +470,85 @@ impl Credentials for DpopBearer {
         HeaderValue::from_str(&(DPOP_HEADER_NAME.to_string() + " " + &self.0)).unwrap()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::body::Body;
+    use axum::extract::FromRequestParts;
+    use axum::http::HeaderValue;
+    use axum::http::Request;
+    use axum::http::request::Parts;
+    use jwt::wia::WIA_HEADER_NAME;
+    use jwt::wia::WIA_POP_HEADER_NAME;
+    use openid4vc::TokenErrorCode;
+    use rstest::rstest;
+
+    use super::WiaHeaders;
+
+    const VALID_WIA: &str = "header.payload.signature";
+    const VALID_WIA_POP: &str = "header2.payload2.signature2";
+
+    fn request_parts(headers: &[(&str, &[u8])]) -> Parts {
+        let mut builder = Request::builder().uri("/");
+        for (name, value) in headers {
+            builder = builder.header(*name, HeaderValue::from_bytes(value).unwrap());
+        }
+        builder.body(Body::empty()).unwrap().into_parts().0
+    }
+
+    #[tokio::test]
+    async fn should_accept_valid_headers() {
+        let mut parts = request_parts(&[
+            (WIA_HEADER_NAME, VALID_WIA.as_bytes()),
+            (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes()),
+        ]);
+
+        let WiaHeaders(wia, wia_pop, _) = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
+
+        assert_eq!(wia.serialization(), VALID_WIA);
+        assert_eq!(wia_pop.serialization(), VALID_WIA_POP);
+    }
+
+    #[rstest]
+    #[case::missing_wia(&[(WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes())], "missing header 'oauth-client-attestation'")]
+    #[case::missing_wia_pop(&[(WIA_HEADER_NAME, VALID_WIA.as_bytes())], "missing header 'oauth-client-attestation-pop'")]
+    #[case::duplicate_wia(
+        &[
+            (WIA_HEADER_NAME, VALID_WIA.as_bytes()),
+            (WIA_HEADER_NAME, VALID_WIA.as_bytes()),
+            (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes()),
+        ],
+        "duplicate header 'oauth-client-attestation'"
+    )]
+    #[case::duplicate_wia_pop(
+        &[
+            (WIA_HEADER_NAME, VALID_WIA.as_bytes()),
+            (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes()),
+            (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes()),
+        ],
+        "duplicate header 'oauth-client-attestation-pop'"
+    )]
+    #[case::non_utf8_wia(&[(WIA_HEADER_NAME, &[0xff, 0xfe][..]), (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes())], "non-UTF-8 bytes")]
+    #[case::invalid_jwt_wia(&[(WIA_HEADER_NAME, &b"not-a-jwt"[..]), (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes())], "not a valid JWT")]
+    #[tokio::test]
+    async fn should_reject_invalid_headers(#[case] headers: &[(&str, &[u8])], #[case] expected_description: &str) {
+        let mut parts = request_parts(headers);
+
+        let error = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+            .await
+            .unwrap_err();
+
+        assert_eq!(error.error, TokenErrorCode::InvalidClientAttestation);
+        assert!(
+            error
+                .error_description
+                .as_deref()
+                .unwrap()
+                .contains(expected_description),
+            "unexpected error description: {:?}",
+            error.error_description
+        );
+    }
+}
