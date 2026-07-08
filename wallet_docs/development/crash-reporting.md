@@ -2,13 +2,14 @@
 
 The mobile app uses Sentry for crash reporting, fatal exception capture, native
 crash diagnostics, Rust panic diagnostics, and a small curated breadcrumb trail.
-The setup is intentionally split across Flutter, native Android/iOS, and Rust so
-each layer owns the failures it can diagnose best while using the same release,
-environment, and privacy rules.
+Selected non-production release builds can also opt into device logs and Sentry
+Logs for troubleshooting. The setup is intentionally split across Flutter,
+native Android/iOS, and Rust so each layer owns the failures it can diagnose best
+while using the same release, environment, and privacy rules.
 
 Sentry is enabled only when a non-empty `SENTRY_DSN` is provided. The configured
-environment labels events but does not change runtime behavior. Builds without a
-DSN run without Sentry telemetry.
+environment labels events but does not decide whether logs are enabled. Builds
+without a DSN run without Sentry telemetry.
 
 ## Runtime Ownership
 
@@ -49,6 +50,7 @@ The same build inputs feed Flutter, native, and Rust:
 | `SENTRY_DSN` | Enables Sentry and selects the Sentry project endpoint. |
 | `SENTRY_ENVIRONMENT` | Labels events with the build/runtime environment. |
 | `SENTRY_RELEASE` | Aligns Flutter, native, Rust, and uploaded debug files to one release. |
+| `ALLOW_RELEASE_LOGS` | Enables device logs and Sentry Logs in profile/release builds. |
 | `SENTRY_AUTH_TOKEN` | Enables release debug-symbol upload in CI/Fastlane. |
 | `SENTRY_ORG` | Sentry organization used by debug-symbol upload. |
 | `SENTRY_PROJECT` | Sentry project used by debug-symbol upload. |
@@ -63,6 +65,12 @@ falls back to its crate release name when the app release is absent.
 CI loads Sentry upload credentials from the environment-specific Sentry secret.
 If `SENTRY_AUTH_TOKEN` is present, the release build must upload debug symbols
 before publishing.
+
+`ALLOW_RELEASE_LOGS` is a separate logging policy switch. Debug builds allow
+logs by default. Profile and release builds allow logs only when
+`ALLOW_RELEASE_LOGS=true`. CI defaults this flag to `false`; `ont` and `demo`
+release builds opt in explicitly, while production builds keep it `false`.
+Do not infer log allowance from `SENTRY_ENVIRONMENT`.
 
 ## Event Sources
 
@@ -94,6 +102,54 @@ Rust expected errors are dropped. Rust personal-data and uncategorized events ar
 sent only after sensitive message values are removed. Rust unexpected events are
 sent scrubbed. Rust critical events keep their exception messages, but still use
 the shared request, user, and breadcrumb scrubbing rules.
+
+### Device Logs And Sentry Logs
+
+Device logs and Sentry Logs are diagnostics for debug and explicitly opted-in
+non-production release builds. They are not part of production crash-reporting
+telemetry. We do not rely on log-message scrubbing for production privacy; the
+production control is that logs stay disabled.
+
+In this document, logs means diagnostic log records from app-owned logging
+paths, such as Flutter/Fimber messages, Rust `tracing` records, and wallet-owned
+native platform logs emitted through Android `android.util.Log` or iOS `NSLog`.
+These are separate from Sentry crash/error events.
+
+The shared log gate is:
+
+- Debug builds: logs enabled.
+- Profile/release builds with `ALLOW_RELEASE_LOGS=true`: logs enabled.
+- Profile/release builds with `ALLOW_RELEASE_LOGS=false`: logs disabled.
+
+Production builds must use the default `ALLOW_RELEASE_LOGS=false`. This means
+Flutter Fimber logs, Rust tracing logs, Rust Sentry Logs, and wallet-owned
+native platform-support logs are not emitted there. These records are also not
+forwarded to Sentry Logs in production.
+
+When logs are enabled:
+
+- Flutter plants `DebugTree` and, if Sentry is enabled, `SentryLogTree`.
+- Flutter `SentryLogTree` forwards Fimber logs to Sentry Logs.
+- Rust tracing uses a `DEBUG` max level and forwards `debug`, `info`, `warn`,
+  and `error` tracing records to Sentry Logs when Sentry is enabled.
+- Rust ignores `trace` records for Sentry Logs.
+- Android and iOS Rust tracing records are written to the platform log writers.
+- Wallet-owned `platform_support` native code uses the same release-log gate.
+
+When logs are disabled:
+
+- Flutter does not plant `DebugTree` or `SentryLogTree`.
+- Flutter `beforeSendLog` drops Sentry Logs defensively.
+- Rust tracing uses `LevelFilter::OFF`.
+- Rust Sentry `enable_logs` is disabled.
+- Wallet-owned platform-support logs are suppressed.
+
+The platform-support gate applies only to wallet-owned native logging paths. It
+does not make a claim about third-party native libraries that write directly to
+Android Logcat or iOS system logging. Those logs are outside this wrapper and
+are not forwarded to Sentry Logs by our logging integration. Stripping such
+third-party logs from Android release builds would require a separate
+minification/ProGuard change and is not part of the Sentry logging design.
 
 ### Annotated Rust Errors
 
@@ -179,13 +235,15 @@ All layers use the same maximum breadcrumb count of 25.
 
 ## Privacy And PII Handling
 
-Sentry must never become a broad log sink. Events are filtered before sending,
-and breadcrumbs are curated at both insertion time and send time.
+Production Sentry telemetry must not become a broad log sink. Crash/error events
+are filtered before sending, breadcrumbs are curated at both insertion time and
+send time, and device/Sentry Logs are disabled in production by keeping
+`ALLOW_RELEASE_LOGS=false`.
 
 Shared privacy rules:
 
 - `sendDefaultPii` is disabled in Flutter, Android, iOS, and Rust.
-- User IP address and geo fields are removed before sending.
+- SDK-side user IP address and geo fields are removed before sending.
 - Request and transaction data are removed from Rust events.
 - Breadcrumb payload data is removed; only category and message code remain.
 - Non-wallet breadcrumbs are dropped.
@@ -193,10 +251,19 @@ Shared privacy rules:
 - Rust exception values are removed for personal-data, unexpected, and
   uncategorized error events.
 - Rust expected errors are not sent.
+- Production device logs and Sentry Logs are not emitted.
 
 The stable diagnostic signal is the event type, stacktrace, release,
 environment, platform context, curated breadcrumb codes, and Rust error category
 tag. Free-form user data and domain payloads are not part of crash reporting.
+Sentry-side IP/geolocation enrichment is disabled in account/project settings
+where possible, but the SDK cannot fully control metadata derived by Sentry from
+transport-level IP information. Treat any residual IP/geolocation as
+service-side metadata, not app-supplied event payload.
+
+The current `ont` and `demo` Sentry projects are accepted as internal
+non-production projects. Their service-level account setup, including data
+storage region, must not be treated as production policy.
 
 ## Releases And Debug Symbols
 
@@ -208,16 +275,26 @@ Fastlane runs the Sentry Dart plugin for Flutter and app-native debug symbols.
 The plugin runs only when `SENTRY_AUTH_TOKEN` is present and requires
 `SENTRY_ORG`, `SENTRY_PROJECT`, and `SENTRY_URL`.
 
-Android additionally uploads Rust debug symbols from:
+Fastlane computes `SENTRY_RELEASE` once per app build from the app identifier,
+version, and build number unless it is supplied explicitly. The same release
+value is passed to Flutter, Android `BuildConfig`, iOS build settings, Rust
+compile-time environment, and all Sentry upload commands.
+
+Android additionally uploads Rust debug files explicitly from the unstripped
+Rust libraries copied into:
 
 ```text
 wallet_app/android/app/src/main/jniLibs/**/libwallet_core.so
 ```
 
-The Android build keeps line-table debug information for the CI-side Rust symbol
-artifact and lets the Android packaging pipeline strip the distributed app
-artifact. This provides Rust source-line symbolication in Sentry without
-shipping debug symbols in the installed app.
+For Android profile/release builds, Cargo keeps Rust line-table debug
+information in those CI-side libraries with
+`CARGO_PROFILE_RELEASE_DEBUG=line-tables-only` and
+`CARGO_PROFILE_RELEASE_STRIP=none`. Fastlane uploads those files with
+`sentry-cli debug-files upload --include-sources --wait`. The Android packaging
+pipeline then strips the native libraries in the distributed app artifact. This
+provides Rust source-line symbolication in Sentry without shipping debug symbols
+in the installed app.
 
 iOS Rust code is statically linked into the final app binary. Rust symbolication
 therefore uses the app dSYMs from:
@@ -226,25 +303,8 @@ therefore uses the app dSYMs from:
 wallet_app/build/ios/archive/Runner.xcarchive
 ```
 
-The iOS archive is retained as a CI artifact and uploaded through the normal
-Sentry symbol upload path.
-
-## Operational Checks
-
-When changing Sentry setup, validate a Sentry-enabled non-production build with
-the same release name across layers:
-
-- A fatal Dart exception produces one fatal Dart event with a Dart stacktrace.
-- A Rust panic produces one Rust panic event with an aligned release.
-- A categorized Rust non-expected error produces one categorized Rust event.
-- An Android native crash produces a native event with native symbolication.
-- An Android ANR produces an event after system termination and relaunch on
-  Android 11 or newer.
-- An iOS native crash produces a native event with dSYM symbolication.
-- An iOS app hang or watchdog termination produces a native event.
-- Relevant events contain only curated `wallet.flow` and `wallet.native`
-  breadcrumbs.
-- Events do not include user geo, IP address, request data, route names, URLs,
-  identifiers, or arbitrary breadcrumb payload data.
-- Sentry debug files include Flutter/app-native symbols, Android
-  `libwallet_core.so`, and iOS app dSYMs for the same release.
+For iOS profile/release builds, the Xcode build also sets
+`CARGO_PROFILE_RELEASE_DEBUG=line-tables-only` and
+`CARGO_PROFILE_RELEASE_STRIP=none` before compiling Rust. The iOS archive is
+retained as a CI artifact and uploaded through the Sentry Dart plugin path, so
+the dSYMs carry the final app and statically linked Rust symbolication data.
