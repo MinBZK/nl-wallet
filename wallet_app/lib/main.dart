@@ -95,8 +95,8 @@ FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
 }
 
 FutureOr<SentryLog?> beforeSendLog(SentryLog log) async {
-  if (!Environment.allowLogs) return null;
-  return log;
+  if (Environment.allowLogs) return log;
+  return null;
 }
 
 FutureOr<void> mainImpl() async {
