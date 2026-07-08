@@ -6,8 +6,10 @@ use chrono::Utc;
 use crypto::x509::CertificateError;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
-use jwt::error::JwtX5cError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtSignError;
+use jwt::error::JwtVerifyError;
+use jwt::error::JwtX5cVerifyError;
 use jwt::nonce::Nonce;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 
@@ -115,10 +117,13 @@ pub enum DecoderError {
     Jwk(#[from] JwkConversionError),
 
     #[error("error parsing JWT: {0}")]
-    JwtParsing(#[from] JwtError),
+    JwtParsing(#[from] JwtParseError),
 
     #[error("failed to verify SD-JWT: {0}")]
-    JwtVerification(#[from] JwtX5cError),
+    JwtVerification(#[from] JwtVerifyError),
+
+    #[error("failed to verify SD-JWT with x5c: {0}")]
+    JwtX5cVerification(#[from] JwtX5cVerifyError),
 
     #[error("unable to extract DN from issuer certificate: {0}")]
     IssuerDnExtraction(#[from] CertificateError),
@@ -136,7 +141,7 @@ pub enum EncoderError {
     ClaimStructure(#[from] ClaimError),
 
     #[error("signing error: {0}")]
-    Signing(#[from] JwtError),
+    Signing(#[from] JwtSignError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -147,8 +152,11 @@ pub enum KeyBindingError {
     #[error("iat ({0}) not in acceptable window with duration `{1:?}`, current time: `{2}`")]
     InvalidSignatureTimestamp(DateTime<Utc>, Duration, DateTime<Utc>),
 
-    #[error("jwt error: {0}")]
-    Jwt(#[from] JwtError),
+    #[error("jwt verify error: {0}")]
+    JwtVerify(#[from] JwtVerifyError),
+
+    #[error("jwt sign error: {0}")]
+    JwtSign(#[from] JwtSignError),
 
     #[error("unsupported hashing algorithm: {0}")]
     Hasher(#[from] SdAlgHasherNotImplemented),
@@ -160,7 +168,7 @@ pub enum SigningError {
     Jwk(#[from] JwkConversionError),
 
     #[error("error signing: {0}")]
-    Jwt(#[from] JwtError),
+    JwtSign(#[from] JwtSignError),
 
     #[error("invalid KB-JWT: {0}")]
     KeyBinding(#[from] KeyBindingError),

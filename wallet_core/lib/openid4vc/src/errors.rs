@@ -309,6 +309,15 @@ pub enum ParErrorCode {
     InvalidRequest,
     // Authorization error code.
     ServerError,
+
+    /// Invalid Client Attestation / WIA.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
+    InvalidClientAttestation,
+
+    /// Client Attestation / WIA is valid but not fresh enough.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    UseFreshAttestation,
+
     // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
     // Note that this is never to be used by the issuer.
     #[strum(default)]
@@ -318,7 +327,9 @@ pub enum ParErrorCode {
 impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
+                StatusCode::UNAUTHORIZED
+            }
 
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
@@ -333,6 +344,10 @@ impl ErrorWithCode for ParError {
     fn error_code(&self) -> Self::ErrorCode {
         match self {
             Self::UnknownClient(_) => ParErrorCode::InvalidClient,
+
+            Self::Wia(WiaError::Expired) => ParErrorCode::UseFreshAttestation,
+
+            Self::Wia(_) => ParErrorCode::InvalidClientAttestation,
 
             Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
 
@@ -353,6 +368,14 @@ pub enum TokenErrorCode {
     UnsupportedGrantType,
     InvalidScope,
 
+    /// Invalid Client Attestation / WIA.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
+    InvalidClientAttestation,
+
+    /// Client Attestation / WIA is valid but not fresh enough.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    UseFreshAttestation,
+
     /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
     /// This error type is not defined in the specs, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
@@ -369,7 +392,9 @@ impl ErrorStatusCode for TokenErrorCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
+                StatusCode::UNAUTHORIZED
+            }
 
             Self::InvalidGrant | Self::UnauthorizedClient | Self::UnsupportedGrantType | Self::InvalidScope => {
                 StatusCode::BAD_REQUEST
@@ -403,7 +428,7 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::MissingCodeVerifier | Self::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
 
-            Self::MissingClientId | Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
+            Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
 
             Self::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
 
@@ -412,6 +437,10 @@ impl ErrorWithCode for TokenRequestError {
             Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => TokenErrorCode::InvalidRequest,
 
             Self::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
+
+            Self::Wia(WiaError::Expired) => TokenErrorCode::UseFreshAttestation,
+
+            Self::Wia(_) => TokenErrorCode::InvalidClientAttestation,
         }
     }
 }
@@ -550,15 +579,9 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
 
-            Self::MissingWia => CredentialErrorCode::InvalidCredentialRequest,
-
             Self::JwkConversion(_) | Self::MdocConversion(_) | Self::SdJwtConversion(_) => {
                 CredentialErrorCode::ServerError
             }
-
-            Self::Wia(WiaError::MissingNonce) => CredentialErrorCode::InvalidNonce,
-
-            Self::Wia(_) => CredentialErrorCode::InvalidProof,
 
             Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims(_) => CredentialErrorCode::ServerError,
         }
@@ -623,7 +646,7 @@ impl ErrorWithCode for GetAuthRequestError {
 
             Self::ExpiredEphemeralId(_) => GetAuthRequestErrorCode::ExpiredEphemeralId,
 
-            Self::Jwt(_) | Self::ReturnUrlConfigurationMismatch | Self::UnknownUseCase(_) => {
+            Self::JwtSign(_) | Self::ReturnUrlConfigurationMismatch | Self::UnknownUseCase(_) => {
                 GetAuthRequestErrorCode::ServerError
             }
 

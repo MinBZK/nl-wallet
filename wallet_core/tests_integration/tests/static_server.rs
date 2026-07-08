@@ -3,7 +3,7 @@ use std::env;
 
 use http_utils::client::TlsPinningConfig;
 use jwt::SignedJwt;
-use jwt::error::JwtError;
+use jwt::error::JwtVerifyError;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
@@ -153,6 +153,6 @@ async fn test_wallet_config_signature_verification_failed() {
         .await
         .expect_err("Expecting invalid signature error");
 
-    assert_matches!(result, ConfigurationError::Jwt(JwtError::Validation(e))
+    assert_matches!(result, ConfigurationError::JwtVerify(JwtVerifyError::Validation(e))
         if *e.kind() == jsonwebtoken::errors::ErrorKind::InvalidSignature);
 }

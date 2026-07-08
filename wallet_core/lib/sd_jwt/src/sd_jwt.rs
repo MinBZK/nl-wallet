@@ -890,7 +890,7 @@ mod test {
     use jsonwebtoken::jwk::Jwk;
     use jwt::Header;
     use jwt::confirmation::ConfirmationClaim;
-    use jwt::error::JwtError;
+    use jwt::error::JwtVerifyError;
     use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -985,7 +985,7 @@ mod test {
 
         assert_matches!(
             err,
-            DecoderError::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature
+            DecoderError::JwtVerification(JwtVerifyError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature
         );
     }
 

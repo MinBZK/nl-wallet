@@ -13,9 +13,11 @@ use crate::errors::ChangePinError;
 use crate::instruction::HwSignedInstructionClient;
 use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
+use crate::instruction::RemoteWiaClient;
 use crate::pin::change::ChangePinStorage;
 use crate::pin::key::Pin;
 use crate::repository::Repository;
+use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
@@ -65,5 +67,23 @@ where
             Arc::clone(&self.account_provider_client),
             Arc::new(parameters),
         )
+    }
+
+    pub(super) fn new_remote_wia_client(
+        &self,
+        attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
+        registration_data: &RegistrationData,
+        config: &WalletConfiguration,
+    ) -> RemoteWiaClient<S, AKH::AppleKey, AKH::GoogleKey, APC> {
+        RemoteWiaClient::new(self.new_hw_signed_instruction_client(
+            attested_key,
+            InstructionClientParameters::new(
+                registration_data.wallet_id.clone(),
+                registration_data.pin_salt.clone(),
+                registration_data.wallet_certificate.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            ),
+        ))
     }
 }

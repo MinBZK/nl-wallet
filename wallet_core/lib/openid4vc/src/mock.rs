@@ -123,6 +123,6 @@ impl TokenRequest {
     }
 
     pub fn new_mock_with_pre_authorized_code(pre_authorized_code: AuthorizationCode) -> Self {
-        TokenRequest::new_pre_authorized(pre_authorized_code, MOCK_WALLET_CLIENT_ID.to_string())
+        TokenRequest::new_pre_authorized(pre_authorized_code)
     }
 }

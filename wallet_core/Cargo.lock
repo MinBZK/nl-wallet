@@ -4186,6 +4186,7 @@ dependencies = [
 name = "jwt"
 version = "0.6.0-dev"
 dependencies = [
+ "anyhow",
  "attestation_types",
  "axum",
  "base64 0.22.1",
@@ -5144,6 +5145,7 @@ dependencies = [
  "axum-server",
  "crypto",
  "dcql",
+ "derive_more",
  "http",
  "http_utils",
  "indexmap 2.12.1",

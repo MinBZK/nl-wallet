@@ -1,5 +1,6 @@
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
+use crypto::server_keys::generate::Ca;
 use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::HttpJsonClient;
@@ -29,7 +30,8 @@ use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use utils::vec_nonempty;
 use wallet::test::default_wallet_config;
-use wallet_account::NL_WALLET_CLIENT_ID;
+use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+use wscd::mock_remote::MockWiaClient;
 
 /// Test the DigiD connector + BRP proxy integration as consumed by the pid_issuer.
 ///
@@ -51,7 +53,12 @@ use wallet_account::NL_WALLET_CLIENT_ID;
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
     let db_setup = DbSetup::create_clean().await;
-    let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url());
+
+    // `MockWiaClient` creates its own WIA below rather than obtaining one from a real wallet_provider, so the
+    // pid_issuer must be told to trust the CA it is created with.
+    let wia_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let wia_keypair = wia_ca.generate_wia_mock().unwrap();
+    let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url(), Some(&wia_ca));
 
     let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
     pid_settings.authorizing_issuer_settings.wallet_redirect_uris = vec_nonempty![redirect_uri.clone()];
@@ -117,12 +124,14 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);
+    let wia_client = MockWiaClient::new_with_wia_keypair(wia_keypair.clone());
     let issuance_flow = credential_issuer_discovery
         .start(
             &credential_offer,
-            String::from(NL_WALLET_CLIENT_ID),
+            String::from(MOCK_WALLET_CLIENT_ID),
             redirect_uri,
             wallet_config.issuer_trust_anchors(),
+            &wia_client,
         )
         .await
         .unwrap();
@@ -148,7 +157,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Exchange the authorization code for the attestation previews. This is where the DigiD
     // connector is queried for the BSN and the BRP proxy is queried for the attributes.
     let issuance_session = authorization_session
-        .start_issuance(&redirect_url, wallet_config.issuer_trust_anchors())
+        .start_issuance(&redirect_url, &wia_client, wallet_config.issuer_trust_anchors())
         .await
         .unwrap();
 

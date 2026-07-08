@@ -8,6 +8,7 @@ use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
 use http_utils::urls::BaseUrl;
 use jsonwebtoken::Validation;
+use jsonwebtoken::errors::ErrorKind;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -22,11 +23,10 @@ use crate::JwtTyp;
 use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
-use crate::error::JwtError;
-use crate::error::JwtX5cError;
+use crate::error::JwtVerifyError;
+use crate::error::JwtX5cVerifyError;
 use crate::headers::HeaderWithX5c;
 use crate::nonce::Nonce;
-use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WiaClaims {
@@ -77,7 +77,7 @@ impl WiaClaims {
         wallet_info: WiaWalletInfo,
         client_status: ClientStatus,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Self, JwtError> {
+    ) -> Result<Self, JwkConversionError> {
         let now = time.generate().into();
         Ok(Self {
             cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
@@ -92,36 +92,57 @@ impl WiaClaims {
     }
 }
 
+pub const WIA_HEADER_NAME: &str = "oauth-client-attestation";
+pub const WIA_POP_HEADER_NAME: &str = "oauth-client-attestation-pop";
+
 pub const WIA_JWT_TYP: &str = "oauth-client-attestation+jwt";
+pub const WIA_POP_JWT_TYP: &str = "oauth-client-attestation-pop+jwt";
 
 impl JwtTyp for WiaClaims {
     const TYP: &'static str = WIA_JWT_TYP;
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WiaDisclosure(UnverifiedJwt<WiaClaims, HeaderWithX5c>, UnverifiedJwt<JwtPopClaims>);
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WiaPopClaims {
+    pub iss: String,
+    pub aud: String,
+    pub iat: DateTimeSeconds,
+    pub jti: String,
+    pub challenge: Option<Nonce>,
+}
 
-#[cfg(feature = "test")]
+pub type Wia = UnverifiedJwt<WiaClaims, HeaderWithX5c>;
+pub type WiaPop = UnverifiedJwt<WiaPopClaims>;
+
+impl JwtTyp for WiaPopClaims {
+    const TYP: &str = WIA_POP_JWT_TYP;
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
+pub struct WiaDisclosure(Wia, WiaPop);
+
 impl WiaDisclosure {
     pub fn wia(&self) -> &UnverifiedJwt<WiaClaims, HeaderWithX5c> {
         &self.0
     }
 
-    pub fn wia_pop(&self) -> &UnverifiedJwt<JwtPopClaims> {
+    pub fn wia_pop(&self) -> &UnverifiedJwt<WiaPopClaims> {
         &self.1
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum WiaError {
-    #[error("nonce is missing from WIA payload")]
-    MissingNonce,
+    #[error("incorrect nonce")]
+    IncorrectNonce,
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[source] JwkConversionError),
-    #[error("JWT error: {0}")]
-    Jwt(#[source] JwtError),
-    #[error("JWT with certificate error: {0}")]
-    JwtX5c(#[source] JwtX5cError),
+    #[error("JWT verify error: {0}")]
+    JwtVerify(#[source] JwtX5cVerifyError),
+    #[error("incorrect sub field in WIA: found '{0}', expected '{1}'")]
+    IncorrectSub(String, String),
+    #[error("WIA has expired")]
+    Expired,
 }
 
 impl WiaDisclosure {
@@ -130,7 +151,9 @@ impl WiaDisclosure {
         trust_anchors: &TrustAnchors,
         expected_aud: &str,
         accepted_wallet_client_ids: &[impl ToString],
-    ) -> Result<(VerifyingKey, Nonce), WiaError> {
+        expected_challenge: Option<&Nonce>,
+        client_id: Option<&String>,
+    ) -> Result<WiaClaims, WiaError> {
         let (_, verified_wia_claims) = self
             .0
             .parse_and_verify_against_trust_anchors(
@@ -139,7 +162,23 @@ impl WiaDisclosure {
                 CertificateUsage::Wia,
                 &WIA_JWT_VALIDATIONS,
             )
-            .map_err(WiaError::JwtX5c)?;
+            .map_err(|err| match err {
+                JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(e))
+                    if matches!(e.kind(), ErrorKind::ExpiredSignature) =>
+                {
+                    WiaError::Expired
+                }
+                _ => WiaError::JwtVerify(err),
+            })?;
+
+        // "If a client_id is provided in the request containing the Client Attestation, then this client_id
+        // matches the sub claim of the Client Attestation JWT."
+        if let Some(client_id) = client_id
+            && verified_wia_claims.sub != *client_id
+        {
+            return Err(WiaError::IncorrectSub(verified_wia_claims.sub, client_id.clone()));
+        }
+
         let wia_pubkey = verified_wia_claims
             .cnf
             .verifying_key()
@@ -153,11 +192,14 @@ impl WiaDisclosure {
         let (_, wia_disclosure_claims) = self
             .1
             .parse_and_verify(EcdsaDecodingKey::from(&wia_pubkey), &validations)
-            .map_err(WiaError::Jwt)?;
+            .map_err(JwtX5cVerifyError::JwtVerify)
+            .map_err(WiaError::JwtVerify)?;
 
-        let nonce = wia_disclosure_claims.nonce.ok_or(WiaError::MissingNonce)?;
+        if wia_disclosure_claims.challenge.as_ref() != expected_challenge {
+            return Err(WiaError::IncorrectNonce);
+        }
 
-        Ok((wia_pubkey, nonce))
+        Ok(verified_wia_claims)
     }
 }
 
@@ -210,25 +252,37 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
+    use rstest::fixture;
+    use rstest::rstest;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::SignedJwt;
     use crate::UnverifiedJwt;
-    use crate::error::JwtError;
-    use crate::error::JwtX5cError;
+    use crate::error::JwtVerifyError;
+    use crate::error::JwtX5cVerifyError;
     use crate::headers::HeaderWithX5c;
     use crate::nonce::Nonce;
-    use crate::pop::JwtPopClaims;
     use crate::wia::ClientStatus;
     use crate::wia::WiaClaims;
     use crate::wia::WiaDisclosure;
     use crate::wia::WiaError;
+    use crate::wia::WiaPopClaims;
     use crate::wia::WiaWalletInfo;
 
     const AUD: &str = "https://issuer.example.com/";
     const ISS: &str = "https://wia-issuer.example.com/";
     const WALLET_CLIENT_ID: &str = "wallet-client";
+
+    #[fixture]
+    fn ca() -> Ca {
+        Ca::generate_mock()
+    }
+
+    #[fixture]
+    fn holder_key() -> SigningKey {
+        SigningKey::random(&mut OsRng)
+    }
 
     fn make_wia(
         wia_keypair: &KeyPair,
@@ -256,14 +310,15 @@ mod tests {
             .into()
     }
 
-    fn make_pop(holder_key: &SigningKey, nonce: Option<Nonce>, aud: &str) -> UnverifiedJwt<JwtPopClaims> {
+    fn make_pop(holder_key: &SigningKey, nonce: Option<Nonce>, aud: &str) -> UnverifiedJwt<WiaPopClaims> {
         SignedJwt::sign(
-            &JwtPopClaims::new(
-                nonce,
-                WALLET_CLIENT_ID.to_string(),
-                aud.to_string(),
-                &MockTimeGenerator::default(),
-            ),
+            &WiaPopClaims {
+                iss: WALLET_CLIENT_ID.to_string(),
+                aud: aud.to_string(),
+                iat: Utc::now().into(),
+                jti: "jti".to_string(),
+                challenge: nonce,
+            },
             holder_key,
         )
         .now_or_never()
@@ -272,119 +327,125 @@ mod tests {
         .into()
     }
 
-    #[test]
-    fn verify_valid() {
-        let ca = Ca::generate_mock();
+    fn make_wia_disclosure(ca: &Ca, holder_key: &SigningKey, nonce: Option<Nonce>) -> WiaDisclosure {
         let wia_keypair = ca.generate_wia_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-
-        let disclosure = WiaDisclosure::new(
+        WiaDisclosure::new(
             make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
-        );
+            make_pop(holder_key, nonce, AUD),
+        )
+    }
 
-        let (_, nonce) = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
+    #[rstest]
+    fn verify_valid(ca: Ca, holder_key: SigningKey, #[values(Some(Nonce::new_random()), None)] nonce: Option<Nonce>) {
+        let disclosure = make_wia_disclosure(&ca, &holder_key, nonce.clone());
+        disclosure
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID], nonce.as_ref(), None)
             .unwrap();
-
-        assert!(!nonce.as_ref().is_empty());
     }
 
-    #[test]
-    fn verify_pop_signed_with_wrong_key() {
-        let ca = Ca::generate_mock();
+    #[rstest]
+    fn verify_pop_signed_with_wrong_key(ca: Ca, holder_key: SigningKey) {
         let wia_keypair = ca.generate_wia_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
         let wrong_key = SigningKey::random(&mut OsRng);
-
+        let nonce = Nonce::new_random();
         let disclosure = WiaDisclosure::new(
             make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&wrong_key, Some(Nonce::new_random()), AUD),
+            make_pop(&wrong_key, Some(nonce.clone()), AUD),
         );
-
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID], Some(&nonce), None)
             .unwrap_err();
-
-        assert_matches!(error, WiaError::Jwt(_));
+        assert_matches!(error, WiaError::JwtVerify(_));
     }
 
-    #[test]
-    fn verify_pop_wrong_audience() {
-        let ca = Ca::generate_mock();
+    #[rstest]
+    fn verify_pop_wrong_audience(ca: Ca, holder_key: SigningKey) {
         let wia_keypair = ca.generate_wia_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-
+        let nonce = Nonce::new_random();
         let disclosure = WiaDisclosure::new(
             make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&holder_key, Some(Nonce::new_random()), "https://wrong.example.com/"),
+            make_pop(&holder_key, Some(nonce.clone()), "https://wrong.example.com/"),
         );
-
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID], Some(&nonce), None)
             .unwrap_err();
-
-        assert_matches!(error, WiaError::Jwt(_));
+        assert_matches!(error, WiaError::JwtVerify(_));
     }
 
-    #[test]
-    fn verify_unaccepted_wallet_client_id() {
-        let ca = Ca::generate_mock();
-        let wia_keypair = ca.generate_wia_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-
-        let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
-        );
-
+    #[rstest]
+    fn verify_unaccepted_wallet_client_id(ca: Ca, holder_key: SigningKey) {
+        let nonce = Nonce::new_random();
+        let disclosure = make_wia_disclosure(&ca, &holder_key, Some(nonce.clone()));
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &["other-client"])
+            .verify(&TrustAnchors::from(&ca), AUD, &["other-client"], Some(&nonce), None)
             .unwrap_err();
-
-        assert_matches!(error, WiaError::Jwt(_));
+        assert_matches!(error, WiaError::JwtVerify(_));
     }
 
-    #[test]
-    fn verify_missing_nonce() {
-        let ca = Ca::generate_mock();
-        let wia_keypair = ca.generate_wia_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-
-        let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
-            make_pop(&holder_key, None, AUD),
-        );
-
+    #[rstest]
+    fn verify_missing_nonce(ca: Ca, holder_key: SigningKey) {
+        let disclosure = make_wia_disclosure(&ca, &holder_key, None);
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID],
+                Some(&Nonce::new_random()),
+                None,
+            )
             .unwrap_err();
-
-        assert_matches!(error, WiaError::MissingNonce);
+        assert_matches!(error, WiaError::IncorrectNonce);
     }
 
-    #[test]
-    fn verify_wia_not_yet_valid() {
-        let ca = Ca::generate_mock();
+    #[rstest]
+    fn verify_wia_not_yet_valid(ca: Ca, holder_key: SigningKey) {
         let wia_keypair = ca.generate_wia_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-
+        let nonce = Nonce::new_random();
         let disclosure = WiaDisclosure::new(
             make_wia(
                 &wia_keypair,
                 holder_key.verifying_key(),
                 &MockTimeGenerator::new(Utc::now() + TimeDelta::weeks(1)), // WIA will be valid in a week from now
             ),
-            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
+            make_pop(&holder_key, Some(nonce.clone()), AUD),
         );
-
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID], Some(&nonce), None)
             .unwrap_err();
-
         assert_matches!(
             error,
-            WiaError::JwtX5c(JwtX5cError::Jwt(JwtError::Validation(error))) if *error.kind() == jsonwebtoken::errors::ErrorKind::ImmatureSignature
+            WiaError::JwtVerify(JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(error)))
+                if *error.kind() == jsonwebtoken::errors::ErrorKind::ImmatureSignature
         );
+    }
+
+    #[rstest]
+    fn verify_correct_client_id(ca: Ca, holder_key: SigningKey) {
+        let disclosure = make_wia_disclosure(&ca, &holder_key, None);
+        disclosure
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID],
+                None,
+                Some(&WALLET_CLIENT_ID.to_string()),
+            )
+            .unwrap();
+    }
+
+    #[rstest]
+    fn verify_incorrect_client_id(ca: Ca, holder_key: SigningKey) {
+        let disclosure = make_wia_disclosure(&ca, &holder_key, None);
+        let error = disclosure
+            .verify(
+                &TrustAnchors::from(&ca),
+                AUD,
+                &[WALLET_CLIENT_ID],
+                None,
+                Some(&"wrong-client-id".to_string()),
+            )
+            .unwrap_err();
+        assert_matches!(error, WiaError::IncorrectSub(found, expected)
+            if found == WALLET_CLIENT_ID && expected == "wrong-client-id");
     }
 }
