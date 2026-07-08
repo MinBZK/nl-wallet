@@ -5144,6 +5144,7 @@ dependencies = [
  "axum-server",
  "crypto",
  "dcql",
+ "derive_more",
  "http",
  "http_utils",
  "indexmap 2.12.1",

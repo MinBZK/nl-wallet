@@ -305,7 +305,10 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
+    pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Generating OAuth URL, starting issuer discovery");
 
         self.check_session_preconditions()?;
@@ -333,6 +336,10 @@ where
         }
 
         let config = self.config_repository.get();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         info!("Fetching issuer metadata to discover authorization server");
         let authorization_session = self
@@ -341,6 +348,7 @@ where
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await?;
 
@@ -396,7 +404,10 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn start_issuance_from_offer(&mut self, offer_uri: Url) -> Result<IssuanceStartResult, IssuanceError> {
+    pub async fn start_issuance_from_offer(&mut self, offer_uri: Url) -> Result<IssuanceStartResult, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Starting issuance from credential offer URI");
 
         self.check_session_preconditions()?;
@@ -408,6 +419,10 @@ where
         let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
         let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         let flow = self
             .issuance_discovery
@@ -416,6 +431,7 @@ where
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
                 trust_anchors,
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await?;
 
@@ -451,10 +467,10 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn continue_issuance(
-        &mut self,
-        redirect_uri: Url,
-    ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
+    pub async fn continue_issuance(&mut self, redirect_uri: Url) -> Result<Vec<AttestationPresentation>, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Received redirect URI, processing URI and retrieving access token");
 
         self.check_session_preconditions()?;
@@ -486,9 +502,17 @@ where
 
         let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, trust_anchors)
+            .start_issuance(
+                &redirect_uri,
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                trust_anchors,
+            )
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => IssuanceError::AuthorizationDenied,
@@ -618,7 +642,7 @@ where
 
         info!("Signing nonce using Wallet Provider");
         let issuance_result = protocol_state
-            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd, pid_purpose.is_some())
+            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 

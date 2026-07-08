@@ -30,6 +30,7 @@ use url::Url;
 use utils::single_unique::MultipleItemsFound;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
+use wscd::wscd::WiaClient;
 
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
@@ -327,6 +328,7 @@ pub trait IssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
+        wia_client: &impl WiaClient,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
@@ -337,6 +339,7 @@ pub trait IssuanceDiscovery {
         offer_uri: &Url,
         client_id: String,
         redirect_uri: Url,
+        wia_client: &impl WiaClient,
     ) -> Result<Self::Authorization, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
@@ -345,7 +348,7 @@ pub trait IssuanceDiscovery {
     async fn start_pre_authorized_code_flow(
         &self,
         offer_uri: &Url,
-        client_id: String,
+        wia_client: &impl WiaClient,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 
@@ -379,6 +382,7 @@ pub trait AuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
+        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
@@ -389,7 +393,6 @@ pub trait IssuanceSession {
         &mut self,
         trust_anchors: &TrustAnchors,
         wscd: &W,
-        include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd;

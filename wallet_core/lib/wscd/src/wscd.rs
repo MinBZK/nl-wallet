@@ -19,6 +19,10 @@ pub trait IssuanceWscd {
         aud: String,
         nonce: Option<Nonce>,
     ) -> Result<IssuanceResult, Self::Error>;
+}
+
+pub trait WiaClient {
+    type Error: Error + Send + Sync + 'static;
 
     async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error>;
 }

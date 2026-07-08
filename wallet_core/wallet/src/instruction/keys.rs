@@ -26,10 +26,12 @@ use wallet_account::messages::registration::WalletCertificateClaims;
 use wscd::Poa;
 use wscd::wscd::IssuanceResult;
 use wscd::wscd::IssuanceWscd;
+use wscd::wscd::WiaClient;
 
 use super::InstructionClient;
 use super::InstructionError;
 use crate::account_provider::AccountProviderClient;
+use crate::instruction::HwSignedInstructionClient;
 use crate::storage::Storage;
 
 #[derive(Debug, thiserror::Error)]
@@ -141,6 +143,21 @@ where
             issuance_result.pops,
         ))
     }
+}
+
+#[derive(Constructor)]
+pub struct RemoteWiaClient<S, AK, GK, A> {
+    instruction_client: HwSignedInstructionClient<S, AK, GK, A>,
+}
+
+impl<S, AK, GK, A> WiaClient for RemoteWiaClient<S, AK, GK, A>
+where
+    S: Storage,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
+    A: AccountProviderClient,
+{
+    type Error = RemoteEcdsaKeyError;
 
     async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
         Ok(self
@@ -223,14 +240,6 @@ where
             issuance_result.key_identifiers,
             issuance_result.pops,
         ))
-    }
-
-    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
-        Ok(self
-            .instruction_client
-            .send(IssueWia { nonce, aud })
-            .await?
-            .wia_disclosure)
     }
 }
 

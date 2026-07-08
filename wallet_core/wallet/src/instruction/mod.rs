@@ -14,6 +14,7 @@ pub use self::keys::PinRecoveryRemoteEcdsaWscd;
 pub use self::keys::PinRecoveryWscd;
 pub use self::keys::RemoteEcdsaKeyError;
 pub use self::keys::RemoteEcdsaWscd;
+pub use self::keys::RemoteWiaClient;
 use crate::account_provider::AccountProviderError;
 use crate::account_provider::AccountProviderResponseError;
 use crate::storage::StorageError;
