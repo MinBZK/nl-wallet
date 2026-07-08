@@ -183,16 +183,30 @@ impl IssuanceWscd for MockRemoteWscd {
 #[derive(Debug, Default)]
 pub struct MockWiaClient {
     wia_keypair: Option<KeyPair>,
+    client_id: Option<String>,
 }
 
 impl MockWiaClient {
     pub fn new() -> Self {
-        Self { wia_keypair: None }
+        Self {
+            wia_keypair: None,
+            client_id: None,
+        }
     }
 
     pub fn new_with_wia_keypair(wia_keypair: KeyPair) -> Self {
         Self {
             wia_keypair: Some(wia_keypair),
+            client_id: None,
+        }
+    }
+
+    /// Issue a WIA whose `sub` (and PoP `iss`) claim is the given `client_id`, instead of the default
+    /// [`MOCK_WALLET_CLIENT_ID`].
+    pub fn new_with_client_id(wia_keypair: KeyPair, client_id: String) -> Self {
+        Self {
+            wia_keypair: Some(wia_keypair),
+            client_id: Some(client_id),
         }
     }
 }
@@ -209,13 +223,18 @@ impl WiaClient for MockWiaClient {
             .clone()
             .unwrap_or_else(|| Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap());
 
+        let client_id = self
+            .client_id
+            .clone()
+            .unwrap_or_else(|| MOCK_WALLET_CLIENT_ID.to_string());
+
         let exp = Utc::now() + Duration::from_secs(600);
 
         let wia = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
                 wia_key.verifying_key(),
                 wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
-                MOCK_WALLET_CLIENT_ID.to_string(),
+                client_id.clone(),
                 exp.into(),
                 WiaWalletInfo::new_mock(),
                 ClientStatus {
@@ -234,7 +253,7 @@ impl WiaClient for MockWiaClient {
 
         let wia_disclosure = SignedJwt::sign(
             &WiaPopClaims {
-                iss: MOCK_WALLET_CLIENT_ID.to_string(),
+                iss: client_id,
                 aud,
                 iat: Utc::now().into(),
                 jti: "jti".to_string(),

@@ -471,21 +471,24 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
-    // A Token Request with an unknown `client_id` should result in a 401 response with the `invalid_client` error code.
+    // The `client_id` that determines whether the issuer knows the wallet is the WIA's `sub`.
+    // A Token Request backed by a WIA with an unknown `sub` fails WIA verification, resulting in a 401 response
+    // with the `invalid_client_attestation` error code.
     let error = discovery
         .start(
             &credential_offer_url,
-            "unknown_client_id".to_string(),
+            MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
+            &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
         )
         .await
         .expect_err("starting pre-authorized issuance should fail");
 
     assert_matches!(
         error,
-        WalletIssuanceError::TokenRequest(error_response) if error_response.error == TokenErrorCode::InvalidClient
+        WalletIssuanceError::TokenRequest(error_response)
+            if error_response.error == TokenErrorCode::InvalidClientAttestation
     );
 }
 
@@ -527,6 +530,49 @@ async fn par_rejects_unknown_client_id() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let body = response.text().await.unwrap();
     assert!(body.contains("invalid_client"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn par_rejects_client_id_not_matching_wia_sub() {
+    let AuthCodeFlowServer {
+        issuer_identifier,
+        tls_trust_anchor,
+        wia_keypair,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
+
+    // The WIA's `sub` is the known wallet client ID, but the PAR's `client_id` is something else. Even though
+    // `client_id` is itself a known wallet client ID, the mismatch with the WIA should be rejected.
+    let wia = MockWiaClient::new_with_client_id(wia_keypair, "some_other_known_client_id".to_string())
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
+    let response = http_client
+        .post(format!("{base}issuance/par"))
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+        .form(&[
+            ("response_type", "code"),
+            ("client_id", MOCK_WALLET_CLIENT_ID),
+            ("redirect_uri", REDIRECT_URI),
+            ("scope", "com.example.pid_dc+sd-jwt"),
+            ("code_challenge", "some-challenge"),
+            ("code_challenge_method", "S256"),
+        ])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_client_attestation"), "unexpected body: {body}");
 }
 
 #[tokio::test]
