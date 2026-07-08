@@ -29,6 +29,7 @@ use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::nonce::Nonce;
+use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
 use p256::ecdsa::VerifyingKey;
@@ -148,9 +149,6 @@ pub enum TokenRequestError {
 
     #[error("PKCE verification failed")]
     PkceVerificationFailed,
-
-    #[error("received TokenRequest without \"client_id\"")]
-    MissingClientId,
 
     #[error("unknown \"client_id\" in Token Request: {0}")]
     UnknownClient(String),
@@ -431,7 +429,7 @@ impl<K, L> IssuerData<K, L> {
         self.accepted_wallet_client_ids.iter().collect()
     }
 
-    fn verify_wia(&self, wia_disclosure: &WiaDisclosure, client_id: Option<&String>) -> Result<(), WiaError> {
+    fn verify_wia(&self, wia_disclosure: &WiaDisclosure, client_id: Option<&String>) -> Result<WiaClaims, WiaError> {
         // The RFC says we should use the Issuer Identifier of the Authorization for this (see
         // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
         // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
@@ -443,9 +441,7 @@ impl<K, L> IssuerData<K, L> {
             &self.accepted_wallet_client_ids_vec(),
             None,
             client_id,
-        )?;
-
-        Ok(())
+        )
     }
 }
 
@@ -980,7 +976,7 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
         &self,
         wia_disclosure: &WiaDisclosure,
         client_id: Option<&String>,
-    ) -> Result<(), WiaError> {
+    ) -> Result<WiaClaims, WiaError> {
         self.issuer_data.verify_wia(wia_disclosure, client_id)
     }
 }
@@ -1044,41 +1040,30 @@ impl Grant {
         }
     }
 
-    /// Verify that the [`TokenRequest`] contains a `client_id` and:
+    /// Verify the following about the `client_id`:
     ///
     /// - In the Pre-Authorized flow, check that `client_id` is one of the allowed IDs.
     /// - In the Authorization Code flow, check that the `client_id` is exactly the same as the one provided in the
     ///   Authorization Request.
     fn verify_client_id(
         &self,
-        token_request: &TokenRequest,
+        client_id: String,
         accepted_wallet_client_ids: &HashSet<String>,
     ) -> Result<(), TokenRequestError> {
-        // Although according to RFC 6749 the `client_id` in a Token Request is optional, HAIP states as follows:
-        //
-        // "Wallets MUST use, and Issuers MUST require, an OAuth2 Client authentication mechanism at OAuth2 Endpoints
-        // that support client authentication (such as the PAR and Token Endpoints)."
-        //
-        // Source: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.4.1>
-        let client_id = token_request
-            .client_id
-            .as_ref()
-            .ok_or(TokenRequestError::MissingClientId)?;
-
         match self {
             Grant::PreAuthorizedCode => {
-                if !accepted_wallet_client_ids.contains(client_id) {
-                    return Err(TokenRequestError::UnknownClient(client_id.clone()));
+                if !accepted_wallet_client_ids.contains(&client_id) {
+                    return Err(TokenRequestError::UnknownClient(client_id));
                 }
             }
             Grant::AuthorizationCode(AuthRequestValues {
                 client_id: auth_client_id,
                 ..
             }) => {
-                if client_id != auth_client_id {
+                if client_id != *auth_client_id {
                     return Err(TokenRequestError::ClientIdMismatch {
                         expected: auth_client_id.clone(),
-                        actual: client_id.clone(),
+                        actual: client_id,
                     });
                 }
             }
@@ -1157,19 +1142,20 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
     ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
+        let wia_claims = issuer_data
+            .verify_wia(wia_disclosure, token_request.client_id.as_ref())
+            .map_err(TokenRequestError::Wia)?;
+
+        let client_id = wia_claims.sub;
         let session_data = self.session_data();
 
         session_data.grant.verify_grant_type(token_request)?;
         session_data.grant.verify_pkce(token_request)?;
         session_data
             .grant
-            .verify_client_id(token_request, &issuer_data.accepted_wallet_client_ids)?;
+            .verify_client_id(client_id, &issuer_data.accepted_wallet_client_ids)?;
         session_data.grant.verify_scope(token_request)?;
         session_data.grant.verify_redirect_uri(token_request)?;
-
-        issuer_data
-            .verify_wia(wia_disclosure, token_request.client_id.as_ref())
-            .map_err(TokenRequestError::Wia)?;
 
         build_token_response(
             token_request.code(),

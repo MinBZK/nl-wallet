@@ -428,7 +428,7 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::MissingCodeVerifier | Self::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
 
-            Self::MissingClientId | Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
+            Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
 
             Self::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
 

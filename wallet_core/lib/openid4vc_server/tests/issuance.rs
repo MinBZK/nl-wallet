@@ -460,7 +460,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
         issuer,
         trust_anchors,
         tls_trust_anchor,
-        ..
+        wia_keypair,
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
@@ -478,7 +478,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
             "unknown_client_id".to_string(),
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
-            &MockWiaClient::new(),
+            &MockWiaClient::new_with_wia_keypair(wia_keypair),
         )
         .await
         .expect_err("starting pre-authorized issuance should fail");
@@ -1083,12 +1083,13 @@ async fn token_rejects_differing_client_id() {
         .parse()
         .unwrap();
 
-    // A Token Request without a `client_id` should result in a 401 response with the `invalid_client` error code.
+    // A Token Request with a wrong `client_id` should result in a 401 response with the
+    // `invalid_client_attestation` error code.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: None,
+        client_id: Some("wrong_client_id".to_string()),
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
@@ -1111,38 +1112,7 @@ async fn token_rejects_differing_client_id() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_client"), "unexpected body: {body}");
-
-    // A Token Request with a different `client_id` as was used in the Authorization Request should result in a 401
-    // response with the `invalid_client` error code.
-    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
-
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some("other_client_id".to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: None,
-        code_verifier: Some(code_verifier),
-    };
-
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
-        .await
-        .unwrap();
-
-    let response = http_client
-        .post(token_url.clone())
-        .header(WIA_HEADER_NAME, wia.wia().serialization())
-        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
-        .form(&token_request)
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_grant"), "unexpected body: {body}");
+    assert!(body.contains("invalid_client_attestation"), "unexpected body: {body}");
 }
 
 #[tokio::test]

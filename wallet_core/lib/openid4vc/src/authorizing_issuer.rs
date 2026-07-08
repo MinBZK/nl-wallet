@@ -190,6 +190,8 @@ where
             return Err(ParError::UnknownClient(request.oauth_request.client_id));
         }
 
+        // `verify_wia()` checks that the WIA's `sub` matches `client_id`.
+        // <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.1-2.7.1>
         self.issuer
             .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
             .map_err(ParError::Wia)?;

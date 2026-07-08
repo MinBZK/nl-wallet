@@ -155,7 +155,7 @@ impl WiaDisclosure {
         accepted_wallet_client_ids: &[impl ToString],
         expected_challenge: Option<&Nonce>,
         client_id: Option<&String>,
-    ) -> Result<VerifyingKey, WiaError> {
+    ) -> Result<WiaClaims, WiaError> {
         let (_, verified_wia_claims) = self
             .0
             .parse_and_verify_against_trust_anchors(
@@ -198,7 +198,7 @@ impl WiaDisclosure {
             return Err(WiaError::IncorrectNonce);
         }
 
-        Ok(wia_pubkey)
+        Ok(verified_wia_claims)
     }
 }
 
