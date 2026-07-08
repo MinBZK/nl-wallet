@@ -18,14 +18,18 @@ pub enum VpMessageClientError {
     #[error("HTTP request error: {0}")]
     #[category(expected)]
     Http(#[from] reqwest::Error),
+
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+
     #[error("auth request server error response: {0:?}")]
     AuthGetResponse(Box<DisclosureErrorResponse<GetAuthRequestErrorCode>>),
+
     #[error("auth request server error response: {0:?}")]
     AuthPostResponse(Box<DisclosureErrorResponse<PostAuthResponseErrorCode>>),
+
     #[error("JWT error: {0}")]
-    InvalidJwt(#[from] jwt::error::JwtError),
+    InvalidJwt(#[from] jwt::error::JwtParseError),
 }
 
 impl VpMessageClientError {

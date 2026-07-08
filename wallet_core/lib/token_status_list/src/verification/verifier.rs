@@ -184,7 +184,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
-    use jwt::error::JwtError;
+    use jwt::error::JwtParseError;
     use moka::Expiry;
     use url::Url;
     use utils::generator::Generator;
@@ -305,7 +305,7 @@ mod test {
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .returning(|_| Err(StatusListClientError::JwtParsing(JwtError::MissingX5c)));
+            .returning(|_| Err(StatusListClientError::JwtParsing(JwtParseError::MissingKid)));
         let verifier = RevocationVerifier::new(
             Arc::new(client),
             10,

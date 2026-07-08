@@ -15,7 +15,8 @@ use futures::future::join_all;
 use futures::future::try_join_all;
 use http_utils::urls::BaseUrlError;
 use itertools::Itertools;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtSignError;
 use measure::measure;
 use rand::seq::SliceRandom;
 use sea_orm::ColumnTrait;
@@ -158,8 +159,8 @@ pub enum StatusListServiceError {
     #[error("io error for `{0}`: {1}")]
     IOWithPath(PathBuf, #[source] std::io::Error),
 
-    #[error("could write JWT: {0}")]
-    JWT(#[from] JwtError),
+    #[error("could sign JWT: {0}")]
+    JwtSign(#[from] JwtSignError),
 
     #[error("no status list available and could not create one")]
     NoStatusListAvailable,
@@ -1041,8 +1042,8 @@ async fn fetch_attestation_group_id(
 enum TokenReadError {
     #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
-    #[error("JWT error: {0}")]
-    Jwt(#[from] JwtError),
+    #[error("JWT parse error: {0}")]
+    JwtParse(#[from] JwtParseError),
     #[error("no expiry set")]
     NoExpiry,
 }

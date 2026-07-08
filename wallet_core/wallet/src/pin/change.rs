@@ -3,7 +3,7 @@ use std::future::Future;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
-use jwt::error::JwtError;
+use jwt::error::JwtVerifyError;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -87,7 +87,7 @@ pub enum ChangePinError {
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
     #[error("could not validate new registration certificate received from Wallet Provider: {0}")]
-    CertificateValidation(#[source] JwtError),
+    CertificateValidation(#[source] JwtVerifyError),
     #[error(
         "public key in new registration certificate received from Wallet Provider does not match hardware public key"
     )]

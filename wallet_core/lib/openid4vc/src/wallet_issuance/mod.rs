@@ -19,7 +19,7 @@ use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
 use mdoc::utils::cose::CoseError;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
@@ -63,8 +63,8 @@ pub enum WalletIssuanceError {
     #[error("failed to convert key from/to JWK format: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
-    #[error("JWT error: {0}")]
-    Jwt(#[from] JwtError),
+    #[error("JWT parse error: {0}")]
+    JwtParse(#[from] JwtParseError),
 
     #[error("missing c_nonce")]
     #[category(critical)]

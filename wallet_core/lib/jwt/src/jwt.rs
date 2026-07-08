@@ -41,8 +41,10 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::error::JwtError;
-use crate::error::JwtX5cError;
+use crate::error::JwtParseError;
+use crate::error::JwtSignError;
+use crate::error::JwtVerifyError;
+use crate::error::JwtX5cVerifyError;
 use crate::headers::DEFAULT_JWT_TYP;
 use crate::headers::HeaderWithJwk;
 use crate::headers::HeaderWithKid;
@@ -65,7 +67,6 @@ use crate::jwk::jwk_to_p256;
 ///
 /// # Example
 /// ```rust
-/// # use jwt::error::JwtError;
 /// # use jwt::JwtTyp;
 /// # use jwt::UnverifiedJwt;
 /// # use serde::Deserialize;
@@ -83,7 +84,7 @@ use crate::jwk::jwk_to_p256;
 /// let (_, payload) = jwt.dangerous_parse_unverified()?;
 /// assert_eq!(payload.name, "alice");
 ///
-/// # Ok::<(), JwtError>(())
+/// # Ok::<(), anyhow::Error>(())
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{serialization}")]
@@ -96,10 +97,10 @@ pub struct UnverifiedJwt<T, H = HeaderWithTyp> {
 }
 
 impl<T, H> FromStr for UnverifiedJwt<T, H> {
-    type Err = JwtError;
+    type Err = JwtParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let payload_end = s.rfind(".").ok_or(JwtError::UnexpectedNumberOfParts(1))?;
+        let payload_end = s.rfind(".").ok_or(JwtParseError::UnexpectedNumberOfParts(1))?;
 
         Ok(Self {
             serialization: s.to_owned(),
@@ -126,12 +127,17 @@ impl<T, H> UnverifiedJwt<T, H> {
 }
 
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, H> {
-    pub fn dangerous_parse_header_unverified(&self) -> Result<H> {
+    pub fn dangerous_parse_header_unverified(&self) -> Result<H, JwtParseError> {
         let header_end = self
             .signed_slice()
             .find(".")
-            .ok_or(JwtError::UnexpectedNumberOfParts(2))?;
-        let header: H = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(&self.serialization[..header_end])?)?;
+            .ok_or(JwtParseError::UnexpectedNumberOfParts(2))?;
+        let header: H = serde_json::from_slice(
+            &BASE64_URL_SAFE_NO_PAD
+                .decode(&self.serialization[..header_end])
+                .map_err(JwtParseError::Base64Error)?,
+        )
+        .map_err(JwtParseError::JsonParsing)?;
         Ok(header)
     }
 }
@@ -140,35 +146,45 @@ impl<T: DeserializeOwned, H: DeserializeOwned> UnverifiedJwt<T, H> {
     /// Dangerously parse the header and payload without verifying the signature.
     ///
     /// Only use this when the source is trusted and the token was validated earlier.
-    pub fn dangerous_parse_unverified(&self) -> Result<(H, T)> {
+    pub fn dangerous_parse_unverified(&self) -> Result<(H, T), JwtParseError> {
         let parts = self.serialization.split('.').collect_vec();
         if parts.len() != 3 {
-            return Err(JwtError::UnexpectedNumberOfParts(parts.len()));
+            return Err(JwtParseError::UnexpectedNumberOfParts(parts.len()));
         }
 
-        let header: H = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[0])?)?;
-        let payload: T = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[1])?)?;
+        let header: H = serde_json::from_slice(
+            &BASE64_URL_SAFE_NO_PAD
+                .decode(parts[0])
+                .map_err(JwtParseError::Base64Error)?,
+        )
+        .map_err(JwtParseError::JsonParsing)?;
+        let payload: T = serde_json::from_slice(
+            &BASE64_URL_SAFE_NO_PAD
+                .decode(parts[1])
+                .map_err(JwtParseError::Base64Error)?,
+        )
+        .map_err(JwtParseError::JsonParsing)?;
 
         Ok((header, payload))
     }
 }
 
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithX5c<H>> {
-    fn extract_x5c_certificates(&self) -> Result<VecNonEmpty<BorrowingCertificate>, JwtX5cError> {
+    fn extract_x5c_certificates(&self) -> Result<VecNonEmpty<BorrowingCertificate>, JwtParseError> {
         let header = self.dangerous_parse_header_unverified()?;
         Ok(header.x5c)
     }
 }
 
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithJwk<H>> {
-    fn extract_jwk(&self) -> Result<VerifyingKey, JwtError> {
+    fn extract_jwk(&self) -> Result<VerifyingKey, JwtParseError> {
         let header = self.dangerous_parse_header_unverified()?;
-        Ok(header.verifying_key()?)
+        header.verifying_key().map_err(JwtParseError::Jwk)
     }
 }
 
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithKid<H>> {
-    fn extract_kid(&self) -> Result<String, JwtError> {
+    fn extract_kid(&self) -> Result<String, JwtParseError> {
         let header = self.dangerous_parse_header_unverified()?;
         Ok(header.kid)
     }
@@ -184,9 +200,13 @@ where
     ///
     /// - Enforces `JwtTyp::TYP` on the header `typ` value.
     /// - Returns `(header, payload)` on success.
-    pub fn parse_and_verify(&self, pubkey: impl AsRef<DecodingKey>, validation_options: &Validation) -> Result<(H, T)> {
+    pub fn parse_and_verify(
+        &self,
+        pubkey: impl AsRef<DecodingKey>,
+        validation_options: &Validation,
+    ) -> Result<(H, T), JwtVerifyError> {
         let token_data = jsonwebtoken::decode::<T>(&self.serialization, pubkey.as_ref(), validation_options)
-            .map_err(JwtError::Validation)?;
+            .map_err(JwtVerifyError::Validation)?;
 
         T::is_valid_typ(token_data.header.typ.as_deref())?;
 
@@ -194,7 +214,7 @@ where
             token_data
                 .header
                 .try_into()
-                .map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
+                .map_err(|e| JwtVerifyError::ParseError(JwtParseError::HeaderConversion(Box::new(e))))?,
             token_data.claims,
         ))
     }
@@ -204,7 +224,7 @@ where
         self,
         pubkey: &EcdsaDecodingKey,
         validation_options: &Validation,
-    ) -> Result<VerifiedJwt<T, H>> {
+    ) -> Result<VerifiedJwt<T, H>, JwtVerifyError> {
         let (header, payload) = self.parse_and_verify(pubkey, validation_options)?;
 
         Ok(VerifiedJwt {
@@ -229,8 +249,11 @@ where
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         validation_options: &Validation,
-    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cError> {
-        let certificates = self.extract_x5c_certificates()?;
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        let certificates = self
+            .extract_x5c_certificates()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
 
         // Verify the certificate chain against the trust anchors.
         let leaf_cert = certificates.first();
@@ -238,12 +261,12 @@ where
         let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
         leaf_cert
             .verify(Some(certificate_usage), &intermediate_certs, time, trust_anchors)
-            .map_err(JwtX5cError::CertificateValidation)?;
+            .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
         let pubkey = EcdsaDecodingKey::from(leaf_cert.public_key());
         self.parse_and_verify(&pubkey, validation_options)
-            .map_err(JwtX5cError::Jwt)
+            .map_err(JwtX5cVerifyError::JwtVerify)
     }
 
     pub fn into_verified_against_trust_anchors(
@@ -252,7 +275,7 @@ where
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         validation_options: &Validation,
-    ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cError> {
+    ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
 
@@ -274,8 +297,8 @@ where
     pub fn parse_and_verify_with_jwk(
         &self,
         validation_options: &Validation,
-    ) -> Result<(HeaderWithJwk<H>, T), JwtError> {
-        let pubkey = EcdsaDecodingKey::from(&self.extract_jwk()?);
+    ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
+        let pubkey = EcdsaDecodingKey::from(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?);
         self.parse_and_verify(&pubkey, validation_options)
     }
 
@@ -286,14 +309,16 @@ where
         &self,
         expected_verifying_key: &VerifyingKey,
         validation_options: &Validation,
-    ) -> Result<(HeaderWithJwk<H>, T), JwtError> {
+    ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
         let pubkey = EcdsaDecodingKey::from(expected_verifying_key);
         let (header, payload) = self.parse_and_verify(&pubkey, validation_options)?;
 
         // Compare the specified key against the one in the JWT header
-        let contained_key = jwk_to_p256(&header.jwk)?;
+        let contained_key = jwk_to_p256(&header.jwk)
+            .map_err(JwtParseError::Jwk)
+            .map_err(JwtVerifyError::ParseError)?;
         if contained_key != *expected_verifying_key {
-            return Err(JwtError::IncorrectJwkPublicKey(
+            return Err(JwtVerifyError::IncorrectJwkPublicKey(
                 Box::new(*expected_verifying_key),
                 Box::new(contained_key),
             ));
@@ -314,10 +339,10 @@ where
         &self,
         jwks: &JwkSet,
         validation_options: &Validation,
-    ) -> Result<(HeaderWithKid<H>, T), JwtError> {
-        let kid = self.extract_kid()?;
-        let jwk = jwks.find(&kid).ok_or(JwtError::KeyNotFound(kid))?;
-        let key = DecodingKey::from_jwk(jwk).map_err(JwtError::JwkConversion)?;
+    ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
+        let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
+        let jwk = jwks.find(&kid).ok_or(JwtVerifyError::KeyNotFound(kid))?;
+        let key = DecodingKey::from_jwk(jwk).map_err(JwtVerifyError::JwkConversion)?;
         self.parse_and_verify(DecodingKeyWrapper(key), validation_options)
     }
 }
@@ -338,7 +363,6 @@ where
 /// # use jwt::EcdsaDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
-/// # use jwt::error::JwtError;
 /// # use p256::ecdsa::SigningKey;
 /// # use rand_core::OsRng;
 /// # use serde::Deserialize;
@@ -358,7 +382,7 @@ where
 /// let (_, payload) =
 ///     unverified.parse_and_verify(&EcdsaDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
 /// assert_eq!(payload.name, "alice");
-/// # Ok::<(), JwtError>(())
+/// # Ok::<(), anyhow::Error>(())
 /// # });
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay)]
@@ -380,19 +404,25 @@ impl<T, H> SignedJwt<T, H> {
 }
 
 impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
-    async fn sign_with_header(header: H, payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, H>> {
+    async fn sign_with_header(
+        header: H,
+        payload: &T,
+        privkey: &impl EcdsaKey,
+    ) -> Result<SignedJwt<T, H>, JwtSignError> {
         let mut header: Header = header.into();
         header.typ = Some(T::TYP.to_owned());
 
-        let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header)?);
-        let encoded_payload = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
+        let encoded_header =
+            BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header).map_err(JwtSignError::JsonSerializing)?);
+        let encoded_payload =
+            BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload).map_err(JwtSignError::JsonSerializing)?);
 
         let header_and_payload = encoded_header + "." + &encoded_payload;
 
         let signature = privkey
             .try_sign(header_and_payload.as_bytes())
             .await
-            .map_err(|err| JwtError::Signing(Box::new(err)))?;
+            .map_err(|err| JwtSignError::Signing(Box::new(err)))?;
 
         let jwt = Self::from_header_payload_and_signature(header_and_payload, &signature);
         Ok(jwt)
@@ -402,7 +432,7 @@ impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
 impl<T: Serialize + JwtTyp> SignedJwt<T> {
     /// Sign a payload `T` into a JWT using the default [`HeaderWithTyp`]. The `typ` value in injected via
     /// [`JwtTyp::TYP`] based on `T`.
-    pub async fn sign(payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithTyp>> {
+    pub async fn sign(payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithTyp>, JwtSignError> {
         SignedJwt::sign_with_header(HeaderWithTyp::default(), payload, privkey).await
     }
 }
@@ -413,7 +443,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithX5c> {
     pub async fn sign_with_certificate<K: EcdsaKey>(
         payload: &T,
         keypair: &KeyPair<K>,
-    ) -> Result<SignedJwt<T, HeaderWithX5c>, JwtError> {
+    ) -> Result<SignedJwt<T, HeaderWithX5c>, JwtSignError> {
         // The `x5c` header supports certificate chains, but ISO 18013-5 doesn't: it requires that issuer
         // and RP certificates are signed directly by the trust anchor. So we don't support certificate chains
         // here (yet).
@@ -427,7 +457,7 @@ impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, HeaderWith
         payload: &T,
         header: H,
         keypair: &KeyPair<K>,
-    ) -> Result<SignedJwt<T, HeaderWithX5c<H>>, JwtError> {
+    ) -> Result<SignedJwt<T, HeaderWithX5c<H>>, JwtSignError> {
         let header = HeaderWithX5c::new(header, vec_nonempty![keypair.certificate().to_owned()]);
         SignedJwt::sign_with_header(header, payload, keypair.private_key()).await
     }
@@ -436,8 +466,10 @@ impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, HeaderWith
 impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithJwk> {
     /// Sign a payload into a JWT, and put the public key of the provided keypair in the `jwk` field in the header. The
     /// resulting JWT can be verified using [`UnverifiedJwt::parse_and_verify_with_jwk`].
-    pub async fn sign_with_jwk(payload: &T, key: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithJwk>, JwtError> {
-        let header = HeaderWithJwk::try_from_verifying_key(key).await?;
+    pub async fn sign_with_jwk(payload: &T, key: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithJwk>, JwtSignError> {
+        let header = HeaderWithJwk::try_from_verifying_key(key)
+            .await
+            .map_err(JwtSignError::Jwk)?;
         SignedJwt::sign_with_header(header, payload, key).await
     }
 }
@@ -448,7 +480,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
         payloads_and_keys: impl IntoNonEmptyIterator<Item = (&'a T, &'a K)>,
         wscd: &W,
         poa_input: P::Input,
-    ) -> Result<(VecNonEmpty<SignedJwt<T>>, Option<P>)>
+    ) -> Result<(VecNonEmpty<SignedJwt<T>>, Option<P>), JwtSignError>
     where
         T: Serialize + 'a,
         W: DisclosureWscd<Key = K, Poa = P>,
@@ -456,31 +488,33 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
         P: WscdPoa,
     {
         let header = HeaderWithTyp::new::<T>();
-        let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header)?);
+        let encoded_header =
+            BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header).map_err(JwtSignError::JsonSerializing)?);
 
         // Prepare the header and payload combinations for signing, while retaining a copy of that we can return.
         let (headers_and_payloads, messages_and_keys) = payloads_and_keys
             .into_iter()
             .map(|(payload, key)| {
-                let encoded_payload = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
+                let encoded_payload =
+                    BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload).map_err(JwtSignError::JsonSerializing)?);
 
                 let header_and_payload = format!("{encoded_header}.{encoded_payload}");
                 let message = header_and_payload.clone().into_bytes();
 
                 Ok((header_and_payload, (message, vec![key])))
             })
-            .process_results::<_, _, JwtError, (Vec<_>, _)>(|iter| iter.unzip())?;
+            .process_results::<_, _, JwtSignError, (Vec<_>, _)>(|iter| iter.unzip())?;
 
         // Have the WSCD sign the combination of header and payload, also
         // receiving a PoA if more than one unique key was used for signing.
         let DisclosureResult { signatures, poa } = wscd
             .sign(messages_and_keys, poa_input)
             .await
-            .map_err(|err| JwtError::Signing(Box::new(err)))?;
+            .map_err(|err| JwtSignError::Signing(Box::new(err)))?;
 
         // Make sure we received the correct number of signatures.
         if signatures.len() != headers_and_payloads.len() {
-            return Err(JwtError::Signing(
+            return Err(JwtSignError::Signing(
                 format!(
                     "incorrect signature count received from WSCD, expected {}, received {}",
                     headers_and_payloads.len(),
@@ -497,7 +531,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             .map(|(header_and_payload, signatures)| {
                 // Again, make sure we received the correct number of signatures.
                 let signature = signatures.into_iter().exactly_one().map_err(|error| {
-                    JwtError::Signing(
+                    JwtSignError::Signing(
                         format!(
                             "expected to receive a single signature per JWT from WSCD, received {}",
                             error.len()
@@ -509,7 +543,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
                 let jwt = Self::from_header_payload_and_signature(header_and_payload, &signature);
                 Ok(jwt)
             })
-            .collect::<Result<Vec<_>, JwtError>>()?
+            .collect::<Result<Vec<_>, JwtSignError>>()?
             .try_into()
             // this is unreachable as the source iterator for `headers_and_payloads` is non-empty and we check the count
             // of the returned signatures.
@@ -559,7 +593,6 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # use jwt::EcdsaDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
-/// # use jwt::error::JwtError;
 /// # use p256::ecdsa::SigningKey;
 /// # use rand_core::OsRng;
 /// # use serde::Deserialize;
@@ -578,7 +611,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// let unverified = signed.into_unverified();
 /// let verified = unverified.into_verified(&EcdsaDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
 /// assert_eq!(verified.payload().name, "alice");
-/// # Ok::<(), JwtError>(())
+/// # Ok::<(), anyhow::Error>(())
 /// # });
 /// ```
 ///
@@ -588,7 +621,6 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # use jwt::EcdsaDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
-/// # use jwt::error::JwtError;
 /// # use p256::ecdsa::SigningKey;
 /// # use rand_core::OsRng;
 /// # use serde::Deserialize;
@@ -606,7 +638,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 ///
 /// let verified = signed.into_verified();
 /// assert_eq!(verified.payload().name, "alice");
-/// # Ok::<(), JwtError>(())
+/// # Ok::<(), anyhow::Error>(())
 /// # });
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay)]
@@ -621,7 +653,7 @@ pub struct VerifiedJwt<T, H = HeaderWithTyp> {
 /// Dangerously parse a JWT without verifying its signature. These methods should only be used for parsing JWTs that are
 /// read from trusted sources, i.e. databases or configuration files.
 impl<T: DeserializeOwned, H: DeserializeOwned> VerifiedJwt<T, H> {
-    pub fn dangerous_parse_unverified(s: &str) -> Result<Self> {
+    pub fn dangerous_parse_unverified(s: &str) -> Result<Self, JwtParseError> {
         let jwt = s.parse::<UnverifiedJwt<T, H>>()?;
         let (header, payload) = jwt.dangerous_parse_unverified()?;
 
@@ -654,8 +686,6 @@ impl<T, H> VerifiedJwt<T, H> {
         &self.jwt
     }
 }
-
-pub type Result<T, E = JwtError> = std::result::Result<T, E>;
 
 /// EcdsaDecodingKey is an ECDSA public key for use with the `jsonwebtoken` crate. It wraps [`DecodingKey`] and aims to
 /// solve a confusing aspect of the [`DecodingKey`] API: the functions [`DecodingKey::from_ec_der()`] and
@@ -782,7 +812,7 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     /// Verify the JWT, and parse and return its payload.
-    pub fn parse_and_verify_with_sub(&self, pubkey: &EcdsaDecodingKey) -> Result<(H, T)> {
+    pub fn parse_and_verify_with_sub(&self, pubkey: &EcdsaDecodingKey) -> Result<(H, T), JwtVerifyError> {
         let mut validations = SUB_JWT_VALIDATIONS.to_owned();
         validations.sub = Some(T::SUB.to_owned());
         self.parse_and_verify(pubkey, &validations)
@@ -793,7 +823,7 @@ impl<T> SignedJwt<T, HeaderWithTyp>
 where
     T: Serialize + JwtTyp + JwtSub,
 {
-    pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<Self> {
+    pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<Self, JwtSignError> {
         let claims = PayloadWithSub::new(payload);
         SignedJwt::sign(&claims, privkey).await.map(Into::into)
     }
@@ -818,9 +848,9 @@ where
 pub trait JwtTyp {
     const TYP: &'static str = DEFAULT_JWT_TYP;
 
-    fn is_valid_typ(header_typ: Option<&str>) -> Result<(), JwtError> {
+    fn is_valid_typ(header_typ: Option<&str>) -> Result<(), JwtVerifyError> {
         if header_typ.is_none_or(|typ| typ != Self::TYP) {
-            return Err(JwtError::UnexpectedTyp(
+            return Err(JwtVerifyError::UnexpectedTyp(
                 Self::TYP.to_owned(),
                 header_typ.map(str::to_owned),
             ));
@@ -915,7 +945,7 @@ impl<T, H> From<JsonJwt<T, H>> for Vec<UnverifiedJwt<T, H>> {
 }
 
 impl<T, H> TryFrom<VecNonEmpty<UnverifiedJwt<T, H>>> for JsonJwt<T, H> {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(jwts: VecNonEmpty<UnverifiedJwt<T, H>>) -> Result<Self, Self::Error> {
         let split_jwts: VecNonEmpty<_> = jwts
@@ -925,7 +955,7 @@ impl<T, H> TryFrom<VecNonEmpty<UnverifiedJwt<T, H>>> for JsonJwt<T, H> {
 
         let mut first = split_jwts.first().clone();
         if first.len() != 3 {
-            return Err(JwtError::UnexpectedNumberOfParts(first.len()));
+            return Err(JwtParseError::UnexpectedNumberOfParts(first.len()));
         }
         let payload = first.remove(1); // `remove` is like `get`, but also moves out of the vec, so we can avoid cloning
 
@@ -933,10 +963,10 @@ impl<T, H> TryFrom<VecNonEmpty<UnverifiedJwt<T, H>>> for JsonJwt<T, H> {
             .into_nonempty_iter()
             .map(|mut split_jwt| {
                 if split_jwt.len() != 3 {
-                    return Err(JwtError::UnexpectedNumberOfParts(split_jwt.len()));
+                    return Err(JwtParseError::UnexpectedNumberOfParts(split_jwt.len()));
                 }
                 if split_jwt[1] != payload {
-                    return Err(JwtError::DifferentPayloads(split_jwt.remove(1), payload.clone()));
+                    return Err(JwtParseError::DifferentPayloads(split_jwt.remove(1), payload.clone()));
                 }
                 Ok(JsonJwtSignature {
                     signature: split_jwt.remove(2),
@@ -1132,7 +1162,7 @@ mod tests {
             )
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
-        assert_matches!(parsed, JwtError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
+        assert_matches!(parsed, JwtVerifyError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
     }
 
     #[tokio::test]
@@ -1375,7 +1405,7 @@ mod tests {
             .parse_and_verify_with_expected_jwk(wrong_key.verifying_key(), &DEFAULT_VALIDATIONS)
             .expect_err("should fail because the expected key is different from the actual key");
 
-        assert_matches!(error, JwtError::Validation(_));
+        assert_matches!(error, JwtVerifyError::Validation(_));
     }
 
     #[tokio::test]
@@ -1437,7 +1467,7 @@ mod tests {
             .parse_and_verify_with_jwkset(&jwks, &DEFAULT_VALIDATIONS)
             .unwrap_err();
 
-        assert_matches!(err, JwtError::KeyNotFound(_));
+        assert_matches!(err, JwtVerifyError::KeyNotFound(_));
     }
 
     #[tokio::test]
@@ -1469,7 +1499,7 @@ mod tests {
             .parse_and_verify_with_jwkset(&jwks, &DEFAULT_VALIDATIONS)
             .unwrap_err();
 
-        assert_matches!(err, JwtError::Validation(_));
+        assert_matches!(err, JwtVerifyError::Validation(_));
     }
 
     #[tokio::test]
@@ -1545,7 +1575,7 @@ mod tests {
             .unwrap_err();
         assert_matches!(
             err,
-            JwtX5cError::CertificateValidation(CertificateError::Verification(_))
+            JwtX5cVerifyError::CertificateValidation(CertificateError::Verification(_))
         );
     }
 
@@ -1577,7 +1607,7 @@ mod tests {
 
         assert_matches!(
             err,
-            JwtX5cError::CertificateValidation(CertificateError::TrustAnchorInChain)
+            JwtX5cVerifyError::CertificateValidation(CertificateError::TrustAnchorInChain)
         );
     }
 

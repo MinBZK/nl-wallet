@@ -48,7 +48,9 @@ use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtSignError;
+use jwt::error::JwtVerifyError;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
@@ -134,17 +136,23 @@ use crate::wia_issuer::WiaIssuer;
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
     #[error("challenge signing error: {0}")]
-    ChallengeSigning(#[from] JwtError),
+    ChallengeSigning(#[from] JwtSignError),
+
     #[error("could not store challenge: {0}")]
     Storage(#[from] PersistenceError),
+
     #[error("challenge message validation error: {0}")]
     Validation(#[from] wallet_account::error::DecodeError),
+
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
+
     #[error("instruction sequence number validation failed")]
     SequenceNumberValidation,
+
     #[error("account is revoked with data: {0:?}")]
     AccountIsRevoked(AccountRevokedData),
+
     #[error("wallet solution revoked")]
     WalletSolutionRevoked,
 }
@@ -153,32 +161,43 @@ pub enum ChallengeError {
 pub enum WalletCertificateError {
     #[error("registration PIN public key decoding error: {0}")]
     PinPubKeyDecoding(#[source] Box<p256::pkcs8::spki::Error>),
+
     #[error("stored hardware public key does not match provided one")]
     HwPubKeyMismatch,
+
     #[error("stored pin public key does not match provided one")]
     PinPubKeyMismatch,
+
     #[error("validation failed: {0}")]
-    Validation(#[from] JwtError),
+    Validation(#[source] JwtVerifyError),
+
     #[error("no registered wallet user found")]
     UserNotRegistered,
+
     #[error("registered wallet user blocked")]
     UserBlocked,
+
     #[error("could not retrieve registered wallet user: {0}")]
     Persistence(#[from] PersistenceError),
+
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+
     #[error("wallet certificate JWT signing error: {0}")]
-    JwtSigning(#[source] JwtError),
+    JwtSigning(#[source] JwtSignError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidKeyAttestationError {
     #[error("could not decode public key from leaf certificate: {0}")]
     LeafPublicKey(#[source] Box<p256::pkcs8::spki::Error>),
+
     #[error("could not obtain Google certificate revocation list")]
     CrlClient,
+
     #[error("android key attestation verification failed: {0}")]
     Verification(#[from] GoogleKeyAttestationError),
+
     #[error("certificate chain contains at least one revoked certificate")]
     RevokedCertificates,
 }
@@ -187,6 +206,7 @@ pub enum AndroidKeyAttestationError {
 pub enum AndroidAppAttestationError {
     #[error("could not decode integrity toking using Play Integrity API")]
     DecodeIntegrityToken,
+
     #[error("validation of integrity verdict failed: {0}")]
     IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
 }
@@ -195,28 +215,43 @@ pub enum AndroidAppAttestationError {
 pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
+
+    #[error("registration challenge JWT parsing error: {0}")]
+    ChallengeParsing(#[source] JwtParseError),
+
     #[error("registration challenge validation error: {0}")]
-    ChallengeValidation(#[source] JwtError),
+    ChallengeValidation(#[source] JwtVerifyError),
+
     #[error("validation of Apple key and/or app attestation failed: {0}")]
     AppleAttestation(#[from] apple_app_attest::AttestationError),
+
     #[error("validation of Google key attestation failed: {0}")]
     AndroidKeyAttestation(#[from] AndroidKeyAttestationError),
+
     #[error("validation of Google app attestation failed: {0}")]
     AndroidAppAttestation(#[from] AndroidAppAttestationError),
+
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_account::error::DecodeError),
+
     #[error("registration message validation error: {0}")]
     MessageValidation(#[source] wallet_account::error::DecodeError),
+
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
+
     #[error("could not store certificate: {0}")]
     CertificateStorage(#[from] PersistenceError),
+
     #[error("registration PIN public key DER encoding error: {0}")]
     PinPubKeyEncoding(#[source] der::Error),
+
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
+
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+
     #[error("wallet solution revoked")]
     WalletSolutionRevoked,
 }
@@ -239,7 +274,7 @@ pub enum InstructionError {
     AccountBlocked,
 
     #[error("instruction result signing error: {0}")]
-    Signing(#[source] JwtError),
+    Signing(#[source] JwtSignError),
 
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
@@ -260,7 +295,7 @@ pub enum InstructionError {
     JwkConversion(#[from] JwkConversionError),
 
     #[error("error signing PoP: {0}")]
-    PopSigning(#[source] JwtError),
+    PopSigning(#[source] JwtSignError),
 
     #[error("SD JWT error: {0}")]
     SdJwtError(#[from] sd_jwt::error::DecoderError),
@@ -1495,7 +1530,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let jwt: UnverifiedJwt<RegistrationChallengeClaims> = String::from_utf8(challenge.to_owned())
             .map_err(RegistrationError::ChallengeDecoding)?
             .parse()
-            .map_err(RegistrationError::ChallengeValidation)?;
+            .map_err(RegistrationError::ChallengeParsing)?;
         jwt.parse_and_verify_with_sub(certificate_signing_pubkey)
             .map_err(RegistrationError::ChallengeValidation)
             .map(|(_, claims)| claims)

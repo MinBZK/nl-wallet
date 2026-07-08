@@ -47,10 +47,19 @@ pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
     }
 
     let key = VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
-        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.x)?.as_slice().into(),
-        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.y)?.as_slice().into(),
+        BASE64_URL_SAFE_NO_PAD
+            .decode(&ec_params.x)
+            .map_err(JwkConversionError::Base64Error)?
+            .as_slice()
+            .into(),
+        BASE64_URL_SAFE_NO_PAD
+            .decode(&ec_params.y)
+            .map_err(JwkConversionError::Base64Error)?
+            .as_slice()
+            .into(),
         false,
-    ))?;
+    ))
+    .map_err(JwkConversionError::VerifyingKeyConstruction)?;
     Ok(key)
 }
 

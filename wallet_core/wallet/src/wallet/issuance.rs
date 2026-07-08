@@ -14,7 +14,7 @@ use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls;
 use itertools::Itertools;
-use jwt::error::JwtError;
+use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
@@ -155,7 +155,7 @@ pub enum IssuanceError {
     ChangePin(#[from] ChangePinError),
 
     #[error("JWT credential error: {0}")]
-    JwtCredential(#[from] JwtError),
+    JwtCredential(#[from] JwtVerifyError),
 
     #[error("error converting credential payload to attestation: {error}")]
     #[category(critical)]
@@ -745,7 +745,7 @@ where
         match error {
             // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
             // that it is the error type of the `RemoteEcdsaWscd` we provide above.
-            WalletIssuanceError::PrivateKeyGeneration(error) | WalletIssuanceError::Jwt(JwtError::Signing(error)) => {
+            WalletIssuanceError::PrivateKeyGeneration(error) => {
                 match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                     RemoteEcdsaKeyError::Instruction(error) => IssuanceError::Instruction(error),
                     RemoteEcdsaKeyError::Signature(error) => IssuanceError::Signature(error),
@@ -2060,7 +2060,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|| Err(WalletIssuanceError::Jwt(JwtError::Signing(Box::new(key_error)))));
+                .return_once(|| Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(key_error))));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -2402,12 +2402,12 @@ mod tests {
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
             client.expect_accept().return_once(|| {
-                Err(WalletIssuanceError::Jwt(JwtError::Signing(Box::new(
+                Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(
                     RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
                         revocation_reason: RevocationReason::AdminRequest,
                         can_register_new_account: true,
                     })),
-                ))))
+                )))
             });
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client

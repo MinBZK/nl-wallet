@@ -234,7 +234,7 @@ mod test {
     use jsonwebtoken::Algorithm;
     use jwt::EcdsaDecodingKey;
     use jwt::SignedJwt;
-    use jwt::error::JwtError;
+    use jwt::error::JwtVerifyError;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
@@ -512,7 +512,7 @@ mod test {
             .expect_err("should fail validation");
         assert_matches!(
             err,
-            KeyBindingError::Jwt(JwtError::Validation(error))
+            KeyBindingError::JwtVerify(JwtVerifyError::Validation(error))
                 if *error.kind() == jsonwebtoken::errors::ErrorKind::InvalidAudience
         );
     }

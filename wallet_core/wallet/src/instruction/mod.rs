@@ -2,7 +2,7 @@ mod client;
 mod keys;
 
 use error_category::ErrorCategory;
-use jwt::error::JwtError;
+use jwt::error::JwtVerifyError;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountRevokedData;
 
@@ -45,7 +45,7 @@ pub enum InstructionError {
     #[error("could not sign instruction: {0}")]
     Signing(#[source] wallet_account::error::EncodeError),
     #[error("could not validate instruction result received from Wallet Provider: {0}")]
-    InstructionResultValidation(#[source] JwtError),
+    InstructionResultValidation(#[source] JwtVerifyError),
     #[error("could not store instruction sequence number in database: {0}")]
     StoreInstructionSequenceNumber(#[from] StorageError),
     #[error("account is revoked with data: {0:?}")]
