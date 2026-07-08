@@ -130,8 +130,11 @@ pub struct IssuerSettings {
     pub credential_configurations: CredentialConfigurationsSettings,
 
     #[debug(skip)]
+    pub credential_metadata_keypair: KeyPair,
+
+    #[debug(skip)]
     #[serde_as(as = "TryFromInto<Vec<String>>")]
-    pub metadata: TypeMetadataByVct,
+    pub type_metadata: TypeMetadataByVct,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
@@ -382,6 +385,9 @@ pub enum IssuerSettingsError {
     #[error("could not initialize HSM: {0}")]
     Hsm(#[source] HsmError),
 
+    #[error("invalid metadata private key: {0}")]
+    MetadataPrivateKey(#[source] PrivateKeySettingsError),
+
     #[error("could not initialize credential configuration parameters: {0}")]
     CredentialConfigurationParameters(#[source] CredentialConfigurationsSettingsError),
 
@@ -411,6 +417,15 @@ impl IssuerSettings {
     pub fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
         tracing::debug!("verifying issuer settings");
 
+        let time = TimeGenerator;
+
+        verify_key_pairs(
+            &[("credential_metadata", &self.credential_metadata_keypair)],
+            &self.server_settings.wrpac_trust_anchors,
+            None,
+            &time,
+        )?;
+
         for (config_id, attestation) in self.credential_configurations.as_ref() {
             if let Some(certificate_san) = attestation.certificate_san.as_ref() {
                 // If the certificate SAN to be used has been specified, then it has to be present in the certificate.
@@ -436,8 +451,6 @@ impl IssuerSettings {
             }
         }
 
-        let time = TimeGenerator;
-
         let trust_anchors = &self.server_settings.issuer_trust_anchors;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
@@ -447,7 +460,7 @@ impl IssuerSettings {
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.keypair))
             .collect();
 
-        verify_key_pairs(&key_pairs, trust_anchors, CertificateUsage::Mdl, &time)?;
+        verify_key_pairs(&key_pairs, trust_anchors, Some(CertificateUsage::Mdl), &time)?;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
             .credential_configurations
@@ -456,7 +469,12 @@ impl IssuerSettings {
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.status_list.keypair))
             .collect();
 
-        verify_key_pairs(&key_pairs, trust_anchors, CertificateUsage::OAuthStatusSigning, &time)?;
+        verify_key_pairs(
+            &key_pairs,
+            trust_anchors,
+            Some(CertificateUsage::OAuthStatusSigning),
+            &time,
+        )?;
 
         for (config_id, attestation) in self.credential_configurations.as_ref() {
             let attestation_dn = attestation.keypair.certificate.to_canonical_distinguished_name()?;
@@ -529,6 +547,12 @@ impl IssuerSettings {
             }
         };
 
+        let metadata_keypair = self
+            .credential_metadata_keypair
+            .parse(hsm.clone())
+            .await
+            .map_err(IssuerSettingsError::MetadataPrivateKey)?;
+
         let config_params = self
             .credential_configurations
             .into_params(
@@ -536,13 +560,14 @@ impl IssuerSettings {
                 self.public_url.as_base_url().clone(),
                 hsm,
                 &self.status_lists,
-                &self.metadata,
+                &self.type_metadata,
             )
             .await
             .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
 
         let issuer = Issuer::try_new(
             self.public_url,
+            metadata_keypair,
             self.batch_size,
             self.wallet_client_ids,
             config_params,
@@ -661,8 +686,13 @@ mod tests {
     use super::TypeMetadataByVct;
     use crate::settings::IssuerSettingsValidationError;
 
-    fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
-        let keypair = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock())
+    fn mock_settings(wrpac_ca: &Ca, issuer_ca: &Ca) -> IssuerSettings {
+        let wrpac_keypair = wrpac_ca
+            .generate_wrpac_issuer_mock()
+            .expect("generate metadata cert failed")
+            .into();
+
+        let issuance_keypair = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock())
             .expect("generate issuer cert failed")
             .into();
 
@@ -677,7 +707,7 @@ mod tests {
                 "pid_sdjwt".to_string().into(),
                 CredentialConfigurationSettings {
                     credential_kind: CredentialKind::new(Format::SdJwt, "com.example.pid".to_string()),
-                    keypair,
+                    keypair: issuance_keypair,
                     valid_days: 365,
                     status_list: StatusListAttestationSettings {
                         group_name: "pid_sdjwt".to_string(),
@@ -691,7 +721,8 @@ mod tests {
                 },
             )])
             .into(),
-            metadata: TypeMetadataByVct(HashMap::from([{
+            credential_metadata_keypair: wrpac_keypair,
+            type_metadata: TypeMetadataByVct(HashMap::from([{
                 let metadata = UncheckedTypeMetadata::pid_example();
                 let vct = metadata.vct.clone();
                 let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
@@ -717,7 +748,7 @@ mod tests {
                     failed_deletion_minutes: 10.try_into().unwrap(),
                 },
                 issuer_trust_anchors: TrustAnchors::from(issuer_ca),
-                wrpac_trust_anchors: TrustAnchors::empty(),
+                wrpac_trust_anchors: TrustAnchors::from(wrpac_ca),
                 wrprc_trust_anchors: TrustAnchors::empty(),
                 hsm: None,
             },
@@ -735,14 +766,30 @@ mod tests {
 
     #[test]
     fn test_validate() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        mock_settings(&issuer_ca).validate().unwrap();
+        mock_settings(&wrpac_ca, &issuer_ca).validate().unwrap();
+    }
+
+    #[test]
+    fn test_no_wrpac_trust_anchors() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
+
+        settings.server_settings.wrpac_trust_anchors = TrustAnchors::empty();
+
+        assert_matches!(
+            settings.validate().expect_err("should fail"),
+            IssuerSettingsValidationError::CertificateVerification(CertificateVerificationError::MissingTrustAnchors)
+        );
     }
 
     #[test]
     fn test_no_issuer_trust_anchors() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let mut settings = mock_settings(&issuer_ca);
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
 
         settings.server_settings.issuer_trust_anchors = TrustAnchors::empty();
 
@@ -754,8 +801,9 @@ mod tests {
 
     #[test]
     fn test_no_issuer_registration() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let mut settings = mock_settings(&issuer_ca);
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
 
         let issuer_cert_no_registration = issuer_ca
             .generate_issuer_mock()
@@ -794,7 +842,7 @@ mod tests {
         let pid_metadata = TypeMetadata::pid_example().into_inner();
         let pid_metadata_serialized = serde_json::to_vec(&pid_metadata).unwrap();
 
-        settings.metadata = TypeMetadataByVct(HashMap::from([
+        settings.type_metadata = TypeMetadataByVct(HashMap::from([
             (
                 no_registration_metadata.vct.clone(),
                 (no_registration_metadata, no_registration_metadata_serialized),
@@ -812,8 +860,9 @@ mod tests {
 
     #[test]
     fn test_wrong_san_field() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let mut settings = mock_settings(&issuer_ca);
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
 
         let wrong_san: HttpsUri = "https://wrong.san.example.com".parse().unwrap();
 
@@ -828,8 +877,9 @@ mod tests {
 
     #[test]
     fn test_status_list_invalid_usage() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let mut settings = mock_settings(&issuer_ca);
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
 
         let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
         let mut attestation_settings = attestation_settings.clone();
@@ -847,8 +897,9 @@ mod tests {
 
     #[test]
     fn test_different_subject_field() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let mut settings = mock_settings(&issuer_ca);
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
 
         let status_list_keypair = issuer_ca
             .generate_key_pair(

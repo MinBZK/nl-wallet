@@ -2,14 +2,14 @@ services:
   postgres:
     container_name: postgres
     image: docker.io/library/postgres
-    ports:
-      - "${DB_PORT}:5432"
-    network_mode: bridge
     environment:
       # POSTGRES_HOST_AUTH_METHOD=trust is recommended only for development.
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    network_mode: bridge
     volumes:
       - postgres:/var/lib/postgresql
       - ./sql:/docker-entrypoint-initdb.d
@@ -36,8 +36,26 @@ services:
       - ASPNETCORE_ENVIRONMENT=Release
       - ASPNETCORE_URLS=http://+:5010
     ports:
-      - "5010:5010"
+      - "${GBA_HC_MOCK_PORT}:5010"
     network_mode: bridge
+
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:latest
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=${KC_USERNAME}
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_PASSWORD}
+      - KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/data/certs/keycloak.crt
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/data/certs/keycloak.key
+    ports:
+      - "${KC_PORT_HTTP}:8080"
+      - "${KC_PORT_HTTPS}:8443"
+    network_mode: bridge
+    volumes:
+      - keycloak:/opt/keycloak/data
+    command:
+      - start-dev
+      - --import-realm
 
 networks:
   default:
@@ -47,3 +65,5 @@ networks:
 volumes:
   postgres:
     name: postgres
+  keycloak:
+    name: keycloak

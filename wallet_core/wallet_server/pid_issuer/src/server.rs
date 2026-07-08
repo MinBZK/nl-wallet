@@ -32,6 +32,7 @@ use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::HttpDigidClient;
+use crate::pid::digid_mock::MockLoginState;
 
 pub type PidIssuer<B = HttpBrpClient, O = HttpDigidClient> = AuthorizingIssuer<
     PrivateKeyVariant,
@@ -47,6 +48,7 @@ pub async fn serve(
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
+    mock_login: Option<MockLoginState>,
 ) -> Result<()> {
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
@@ -55,10 +57,15 @@ pub async fn serve(
         server_settings,
         serve_status_lists,
         health_checkers,
+        mock_login,
     )
     .await
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "server wiring, including the optional mock login page"
+)]
 pub async fn serve_with_listeners<B, O>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
@@ -66,6 +73,7 @@ pub async fn serve_with_listeners<B, O>(
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
+    mock_login: Option<MockLoginState>,
 ) -> Result<()>
 where
     B: BrpClient + Send + Sync + 'static,
@@ -81,8 +89,21 @@ where
     let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
     let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
     let callback_router = UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(&authorizing_issuer));
-    let mut router =
-        add_cache_control_no_store_layer(issuance_router.merge(authorization_router).merge(callback_router));
+
+    let mut wallet_router = issuance_router.merge(authorization_router).merge(callback_router);
+
+    // Serve the pid_issuer-hosted mock DigiD login page when configured. Its dynamic routes go under no-store with the
+    // rest; its static assets (CSS/JS) are merged outside the no-store layer below so the browser can cache them.
+    let mock_login_assets = mock_login.as_ref().map(MockLoginState::assets_router);
+    if let Some(mock_login) = mock_login {
+        wallet_router = wallet_router.merge(mock_login.page_router());
+    }
+
+    let mut router = add_cache_control_no_store_layer(wallet_router);
+
+    if let Some(mock_login_assets) = mock_login_assets {
+        router = router.merge(mock_login_assets);
+    }
 
     if serve_status_lists {
         let status_list_router = create_serve_router(

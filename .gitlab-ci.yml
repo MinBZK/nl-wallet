@@ -11,7 +11,7 @@ variables:
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
   BUILD_TAG: 260625-bbda8514
-  HSM_CLIENT_TAG: "b68ed1d0"
+  HSM_CLIENT_TAG: "bfca57de"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
   DO_NOT_TRACK: "true"

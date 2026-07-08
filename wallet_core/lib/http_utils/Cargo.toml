@@ -19,6 +19,7 @@ client = ["reqwest/gzip", "serde_with/base64"]
 server = [
     "axum/json",
     "dep:axum-server",
+    "dep:mediatype",
     "dep:rustls",
     "dep:rustls-pki-types",
     "dep:tracing",
@@ -54,6 +55,7 @@ axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 const-decoder = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
+mediatype = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }

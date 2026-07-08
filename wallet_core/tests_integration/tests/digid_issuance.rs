@@ -134,7 +134,6 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
         authorization_session.auth_url().clone(),
-        pid_settings.digid.client_settings.oidc_identifier.as_ref(),
         pid_settings
             .digid
             .client_settings

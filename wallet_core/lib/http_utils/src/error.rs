@@ -169,30 +169,6 @@ mod tests {
     use serde_json::json;
 
     use super::HttpJsonErrorBody;
-    use super::HttpJsonErrorType;
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
-    #[strum(serialize_all = "snake_case")]
-    enum TestErrorType {
-        Teapot,
-        Loop,
-    }
-
-    impl HttpJsonErrorType for TestErrorType {
-        fn title(&self) -> &'static str {
-            match self {
-                Self::Teapot => "I'm a teapot",
-                Self::Loop => "Loop detected.",
-            }
-        }
-
-        fn status_code(&self) -> StatusCode {
-            match self {
-                Self::Teapot => StatusCode::IM_A_TEAPOT,
-                Self::Loop => StatusCode::LOOP_DETECTED,
-            }
-        }
-    }
 
     #[test]
     fn test_http_json_error_body_serialization_basic() {
@@ -265,7 +241,30 @@ mod tests {
 
         use super::super::HttpJsonError;
         use super::super::HttpJsonErrorBody;
-        use super::TestErrorType;
+        use super::super::HttpJsonErrorType;
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
+        #[strum(serialize_all = "snake_case")]
+        enum TestErrorType {
+            Teapot,
+            Loop,
+        }
+
+        impl HttpJsonErrorType for TestErrorType {
+            fn title(&self) -> &'static str {
+                match self {
+                    Self::Teapot => "I'm a teapot",
+                    Self::Loop => "Loop detected.",
+                }
+            }
+
+            fn status_code(&self) -> StatusCode {
+                match self {
+                    Self::Teapot => StatusCode::IM_A_TEAPOT,
+                    Self::Loop => StatusCode::LOOP_DETECTED,
+                }
+            }
+        }
 
         #[tokio::test]
         async fn test_http_json_error_body_into_response() {

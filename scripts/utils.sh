@@ -307,9 +307,9 @@ function generate_config_signing_key_pair {
         -out "${TARGET_DIR}/wallet_provider/config_signing.pub.der"
 }
 
-# Generate an EC key pair for the pid_issuer
-function generate_pid_issuer_key_pair {
-    echo -e "${INFO}Generating PID Issuer key pair in HSM${NC}"
+# Generate an EC key pair for the pid_issuer for issuance
+function generate_pid_issuer_hsm_key_pair {
+    echo -e "${INFO}Generating PID Issuer issuance key pair in HSM${NC}"
 
     generate_hsm_key_pair pid_issuer_key pid_issuer/issuer.pub.pem
 
@@ -333,29 +333,29 @@ function generate_pid_issuer_key_pair {
 }
 
 # Generate an EC key pair for the pid_issuer
-function generate_pid_issuer_tsl_key_pair {
-    echo -e "${INFO}Generating PID Issuer TSL key pair${NC}"
+function generate_pid_issuer_key_pair {
+    echo -e "${INFO}Generating PID Issuer $1 key pair${NC}"
 
     # Generate a private key and certificate
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert --type tsl \
-        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
+        --bin wallet_ca cert --type $1 \
+        --ca-key-file "${TARGET_DIR}/ca.${2:-$1}.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.${2:-$1}.crt.pem" \
         --common-name "${access_certificates[(pid,name)]}" \
         --organization-name "${access_certificates[(pid,legal_name)]}" \
         --organization-id "${access_certificates[(pid,oid)]}" \
         --san-uri "https://pid.example.com" \
-        --file-prefix "${TARGET_DIR}/pid_issuer/tsl" \
+        --file-prefix "${TARGET_DIR}/pid_issuer/$1" \
         --force
 
     # Convert the PEM key to DER format
     openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/pid_issuer/tsl.key.pem" \
-        -out "${TARGET_DIR}/pid_issuer/tsl.key.der" -nocrypt
+        -in "${TARGET_DIR}/pid_issuer/$1.key.pem" \
+        -out "${TARGET_DIR}/pid_issuer/$1.key.der" -nocrypt
 
     # Convert the PEM certificate to DER format
-    openssl x509 -in "${TARGET_DIR}/pid_issuer/tsl.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/pid_issuer/tsl.crt.der"
+    openssl x509 -in "${TARGET_DIR}/pid_issuer/$1.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/pid_issuer/$1.crt.der"
 }
 
 # Generate an EC key pair for the WIA
@@ -434,40 +434,39 @@ function generate_demo_issuer_key_pairs {
 #
 # $1 - Short name of the Issuer
 function generate_demo_issuer_issuance_key_pairs {
+    generate_demo_issuer_issuance_key_pair "$1" issuer
+    generate_demo_issuer_issuance_key_pair "$1" tsl issuer
+    generate_demo_issuer_issuance_key_pair "$1" wrpac
+}
+
+# Generate EC issuance key pair for the demo_issuer
+# $1 - Short name of the Issuer
+# $2 - Type of certificate
+# $3 - Short name of the CA (default to type of certificate)
+function generate_demo_issuer_issuance_key_pair {
+    ca_args=()
+    if [[ ${2:-} == 'issuer' ]]; then
+        ca_args+=(--issuer-auth-file "${DEVENV}/$1_issuer_auth.json")
+    fi
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert --type issuer \
-        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
+        --bin wallet_ca cert --type $2 \
+        --ca-key-file "${TARGET_DIR}/ca.${3:-$2}.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.${3:-$2}.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
         --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
-        --issuer-auth-file "${DEVENV}/$1_issuer_auth.json" \
-        --file-prefix "${TARGET_DIR}/demo_issuer/$1.issuer" \
+        "${ca_args[@]}" \
+        --file-prefix "${TARGET_DIR}/demo_issuer/$1.$2" \
         --force
 
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert --type tsl \
-        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "${access_certificates[($1,name)]}" \
-        --organization-name "${access_certificates[($1,legal_name)]}" \
-        --organization-id "${access_certificates[($1,oid)]}" \
-        --san-uri "https://$1.example.com" \
-        --file-prefix "${TARGET_DIR}/demo_issuer/$1.tsl" \
-        --force
-
-    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.issuer.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.issuer.crt.der"
-    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.tsl.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.tsl.crt.der"
+    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.$2.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.$2.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/demo_issuer/$1.issuer.key.pem" \
-        -out "${TARGET_DIR}/demo_issuer/$1.issuer.key.der" -nocrypt
-    openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/demo_issuer/$1.tsl.key.pem" \
-        -out "${TARGET_DIR}/demo_issuer/$1.tsl.key.der" -nocrypt
+        -in "${TARGET_DIR}/demo_issuer/$1.$2.key.pem" \
+        -out "${TARGET_DIR}/demo_issuer/$1.$2.key.der" -nocrypt
 }
 
 # Generate an EC key pair for the demo_relying_party
@@ -545,4 +544,15 @@ function encrypt_gba_v_responses {
                 "$file"
         fi
     done
+}
+
+# Emit a base64-encoded heredoc that recreates file $1 at path $2.
+#
+# $1 - The file to be encoded
+# $2 - The target path
+function emit_base64_decode_command() {
+    printf 'mkdir -p "%s"\n' "$(dirname "$2")"
+    printf "base64 -d > '%s' <<',EOF'\n" "$2"
+    ${BASE64} < "$1"
+    printf '\n,EOF\n'
 }

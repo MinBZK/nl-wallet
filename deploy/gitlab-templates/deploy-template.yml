@@ -96,7 +96,7 @@ pid-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: pid-issuer
     RELEASE_NAME: pid-issuer
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
 
 acf-demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag

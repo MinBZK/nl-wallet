@@ -107,6 +107,7 @@ wscd.path = "../wscd"
 
 [dev-dependencies]
 httpmock.workspace = true
+jsonwebtoken.workspace = true
 mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true

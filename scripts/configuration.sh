@@ -23,6 +23,7 @@ GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
 DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
+DOCKER_COMPOSE_FILE="${SCRIPTS_DIR}/docker-compose.yml"
 
 # source user variables
 [[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"
@@ -32,6 +33,11 @@ export DIGID_CONNECTOR_APPNAME=${DIGID_CONNECTOR_APPNAME:-"app"}
 export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}/nl-rdo-max"}
 export DIGID_CONNECTOR_REPOSITORY=${DIGID_CONNECTOR_REPOSITORY:-"https://github.com/minvws/nl-rdo-max.git"}
 export DIGID_CONNECTOR_VERSION=${DIGID_CONNECTOR_VERSION:-"v4.0.3"}
+
+export KC_USERNAME="${KC_USERNAME:-keycloak}"
+export KC_PASSWORD="${KC_PASSWORD:-keycloak}"
+export KC_PORT_HTTP="${KC_PORT_HTTP:-11080}"
+export KC_PORT_HTTPS="${KC_PORT_HTTPS:-11443}"
 
 # Set to `10.0.2.2` for android or to `localhost` for ios
 # export SERVICES_HOST=10.0.2.2
@@ -60,6 +66,7 @@ export VERIFICATION_SERVER_IS_PORT=3012
 
 export BRP_SERVER_PORT=3013
 export GBA_HC_CONV_PORT=3014
+export GBA_HC_MOCK_PORT=5010
 
 export REVOCATION_PORTAL_PORT=3020
 

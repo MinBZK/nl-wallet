@@ -217,6 +217,7 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let metadata_keypair = ca.generate_wrpac_issuer_mock().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
     let trust_anchors = TrustAnchors::from(&ca);
     let wia_keypair = ca.generate_wia_mock().unwrap();
@@ -264,6 +265,7 @@ where
 
     let issuer = MockIssuer::try_new(
         issuer_identifier,
+        metadata_keypair,
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         config_params,

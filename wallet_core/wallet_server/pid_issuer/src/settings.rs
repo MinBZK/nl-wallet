@@ -23,6 +23,8 @@ use server_utils::settings::Settings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::pid::digid_mock::MockSubjects;
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct PidIssuerSettings {
@@ -44,6 +46,12 @@ pub struct Digid {
     pub bsn_privkey: Key,
     pub client_id: String,
     pub client_settings: DigidClientSettings,
+
+    /// When non-empty, the pid_issuer serves its own mock DigiD login page (a grid of these identities) instead of
+    /// redirecting to nl-rdo-max's. Maps each BSN to a display name; each BSN must resolve in the BRP proxy's dataset.
+    /// Leave empty for the real DigiD flow.
+    #[serde(default)]
+    pub mock_subjects: MockSubjects,
 }
 
 #[serde_as]
@@ -102,7 +110,7 @@ impl ServerSettings for PidIssuerSettings {
             .with_list_parse_key("wrpac_trust_anchors")
             .with_list_parse_key("wrprc_trust_anchors")
             .with_list_parse_key("digid.client_settings.trust_anchors")
-            .with_list_parse_key("metadata")
+            .with_list_parse_key("type_metadata")
             .with_list_parse_key("wallet_redirect_uris")
             .try_parsing(true);
 
@@ -122,5 +130,58 @@ impl ServerSettings for PidIssuerSettings {
 
     fn server_settings(&self) -> &Settings {
         &self.authorizing_issuer_settings.issuer_settings.server_settings
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use config::Config;
+    use config::Environment;
+    use indexmap::IndexMap;
+
+    use crate::pid::digid_mock::MockSubjects;
+
+    /// Guards the reason `mock_subjects` is a map: the `config` crate builds the nested map from
+    /// `__`-separated environment keys (`PID_ISSUER__DIGID__MOCK_SUBJECTS__<bsn>=<name>`) natively, so
+    /// the identities can be configured without a config file.
+    #[test]
+    fn mock_subjects_deserialize_from_environment() {
+        #[derive(serde::Deserialize)]
+        struct Wrapper {
+            mock_subjects: MockSubjects,
+        }
+
+        let source = IndexMap::from([
+            (
+                "PID_ISSUER__MOCK_SUBJECTS__999991772".to_string(),
+                "Frouke Jansen".to_string(),
+            ),
+            (
+                "PID_ISSUER__MOCK_SUBJECTS__999991905".to_string(),
+                "Linda Strijps".to_string(),
+            ),
+        ]);
+
+        let environment = Environment::with_prefix("pid_issuer")
+            .separator("__")
+            .prefix_separator("__")
+            .source(Some(source));
+
+        let wrapper: Wrapper = Config::builder()
+            .add_source(environment)
+            .build()
+            .unwrap()
+            .try_deserialize()
+            .unwrap();
+
+        assert_eq!(wrapper.mock_subjects.len(), 2);
+        assert_eq!(
+            wrapper.mock_subjects.get("999991772").map(String::as_str),
+            Some("Frouke Jansen")
+        );
+        assert_eq!(
+            wrapper.mock_subjects.get("999991905").map(String::as_str),
+            Some("Linda Strijps")
+        );
     }
 }

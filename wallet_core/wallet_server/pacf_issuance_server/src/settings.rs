@@ -58,7 +58,7 @@ impl ServerSettings for PacfIssuanceServerSettings {
             .with_list_parse_key("issuer_trust_anchors")
             .with_list_parse_key("wrpac_trust_anchors")
             .with_list_parse_key("wrprc_trust_anchors")
-            .with_list_parse_key("metadata")
+            .with_list_parse_key("type_metadata")
             .try_parsing(true);
 
         let config = config_builder

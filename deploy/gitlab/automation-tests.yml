@@ -155,7 +155,7 @@ run-automation-english-tests:
   extends: .run-automation-tests-common-setup
   resource_group: null
   script:
-    - mv browserstack-config/browserstack-samsung-gs25-15-EN.yml ./browserstack.yml
+    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace testA11yBatch${BATCH_NUMBER} -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
   rules:
@@ -424,6 +424,7 @@ run-digid-bridge-test-ont:
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
+    SKIP_KEYCLOAK: "true"
     DB_HOST: "postgres"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"

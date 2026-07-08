@@ -149,6 +149,14 @@ batchSize: 4
 digidClientId:
 digidBaseUrl:
 
+## @section Mock DigiD login
+## When non-empty, the pid_issuer serves its own mock DigiD login page (a grid of these identities)
+## instead of redirecting to nl-rdo-max's. Maps each BSN to a display name; each BSN must resolve in
+## the BRP proxy's dataset.
+## @param mockSubjects [object] Selectable mock identities, as a `bsn: name` map
+mockSubjects: {}
+##  "999991772": "Frouke Jansen"
+
 ## @section WIA trust anchors
 ## Trust anchors against which CAs are validated.
 ## @param wiaTrustAnchors the trust anchors

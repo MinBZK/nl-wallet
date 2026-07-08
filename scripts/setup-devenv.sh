@@ -63,8 +63,8 @@ have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
 # Check if openssl is "real" OpenSSL
 check_openssl
 
-# Only check for docker if we build rdo-max
-if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+# Only check for docker if we configure rdo-max or keycloak
+if [[ -z "${SKIP_DIGID_CONNECTOR:-}" || -z "${SKIP_KEYCLOAK:-}" ]]; then
     have docker
 fi
 
@@ -186,8 +186,17 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   # Don't use the rijksoverheid ui-theme.
   npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
 
-  # Workaround for groupadd existing group
+  # Workaround for groupadd existing group.
   ${SED} -i 's|^RUN groupadd --system|RUN groupadd -f --system|' docker/Dockerfile
+
+  # Make sure we use our single ca if USE_SINGLE_CA is set. This works because setup-secrets.sh, which is indirectly
+  # called by make setup-remote later, will not replace a previously existing set of ca certificate files.
+  if [[ "${USE_SINGLE_CA}" == 1 && -n "${USE_SINGLE_CA_PATH}" && -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" ]]; then
+    echo -e "${INFO}Using single CA for digid-connector${NC}"
+    mkdir -p "${DIGID_CONNECTOR_PATH}/secrets"
+    cp -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt"
+    cp -f "${USE_SINGLE_CA_PATH}/ca.key.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
+  fi
 
   # Create an RDO max container.
   make setup-remote
@@ -223,8 +232,29 @@ else
     export DIGID_CA_CRT
 
     # Set a fake RSA private key so that parsing the settings succeeds.
-    BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
-    export BSN_PRIVKEY
+    # shellcheck disable=SC2089 # JSON string, quotes are intentional.
+    export BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
+fi
+
+########################################################################
+# Configure keycloak
+########################################################################
+
+echo -e "${SECTION}Configure keycloak${NC}"
+
+if [[ -z "${SKIP_KEYCLOAK:-}" ]]; then
+  generate_or_reuse_root_ca "${DEVENV}/keycloak/certs" "keycloak"
+  generate_ssl_key_pair_with_san "${DEVENV}/keycloak/certs" "keycloak" "${DEVENV}/keycloak/certs/ca.crt.pem" "${DEVENV}/keycloak/certs/ca.key.pem"
+
+  # Constructs a shellscript that contains the commands to reproduce a file/directory structure.
+  # The shellscript is fed to docker compose, service: keycloak, command: sh, argument: -s.
+  {
+    printf '%s\n' 'set -eu'
+    emit_base64_decode_command "${DEVENV}/keycloak/certs/keycloak.crt" '/opt/keycloak/data/certs/keycloak.crt'
+    emit_base64_decode_command "${DEVENV}/keycloak/certs/keycloak.key" '/opt/keycloak/data/certs/keycloak.key'
+    emit_base64_decode_command "${DEVENV}/keycloak/import/realm.json"  '/opt/keycloak/data/import/realm.json'
+  } | docker compose --file "${DOCKER_COMPOSE_FILE}" run --rm --no-deps -T --user 1000:0 --entrypoint sh keycloak -s
+
 fi
 
 ########################################################################
@@ -363,9 +393,10 @@ generate_wia_tsl_key_pair
 WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
 export WIA_TSL_CRT
 
-# Generate pid issuer key and cert for issuance and TSL
-generate_pid_issuer_key_pair
-generate_pid_issuer_tsl_key_pair
+# Generate pid issuer key and cert for issuance, TSL and WRPAC
+generate_pid_issuer_hsm_key_pair
+generate_pid_issuer_key_pair tsl issuer
+generate_pid_issuer_key_pair wrpac
 
 export PID_ISSUER_KEY=pid_issuer_key
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
@@ -375,6 +406,11 @@ PID_ISSUER_TSL_KEY=$(< "${TARGET_DIR}/pid_issuer/tsl.key.der" ${BASE64})
 export PID_ISSUER_TSL_KEY
 PID_ISSUER_TSL_CRT=$(< "${TARGET_DIR}/pid_issuer/tsl.crt.der" ${BASE64})
 export PID_ISSUER_TSL_CRT
+
+PID_ISSUER_WRPAC_KEY=$(< "${TARGET_DIR}/pid_issuer/wrpac.key.der" ${BASE64})
+export PID_ISSUER_WRPAC_KEY
+PID_ISSUER_WRPAC_CRT=$(< "${TARGET_DIR}/pid_issuer/wrpac.crt.der" ${BASE64})
+export PID_ISSUER_WRPAC_CRT
 
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
@@ -412,7 +448,7 @@ DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_find
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
-ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
+ISSUER_CA_AKI=$(openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
 export ISSUER_CA_AKI
 
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
@@ -435,6 +471,10 @@ DEMO_ISSUER_KEY_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.key
 export DEMO_ISSUER_KEY_UNIVERSITY_TSL
 DEMO_ISSUER_CRT_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_TSL
+DEMO_ISSUER_KEY_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_UNIVERSITY_WRPAC
+DEMO_ISSUER_CRT_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_UNIVERSITY_WRPAC
 
 # The insurance usecase is issued through the authorization-code flow (acf_demo_issuer), which performs
 # no disclosure, so it only needs issuer and TSL key pairs (no reader cert).
@@ -447,6 +487,10 @@ DEMO_ISSUER_KEY_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.key.d
 export DEMO_ISSUER_KEY_INSURANCE_TSL
 DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_TSL
+DEMO_ISSUER_KEY_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_INSURANCE_WRPAC
+DEMO_ISSUER_CRT_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_INSURANCE_WRPAC
 
 generate_demo_issuer_key_pairs housing
 DEMO_ISSUER_KEY_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.key.der" ${BASE64})
@@ -463,6 +507,10 @@ DEMO_ISSUER_KEY_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.key.der" 
 export DEMO_ISSUER_KEY_HOUSING_TSL
 DEMO_ISSUER_CRT_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_HOUSING_TSL
+DEMO_ISSUER_KEY_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_WRPAC
+DEMO_ISSUER_CRT_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_WRPAC
 
 generate_demo_issuer_issuance_key_pairs loyalty
 DEMO_ISSUER_KEY_LOYALTY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/loyalty.issuer.key.der" ${BASE64})
@@ -473,6 +521,10 @@ DEMO_ISSUER_KEY_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.key.der" 
 export DEMO_ISSUER_KEY_LOYALTY_TSL
 DEMO_ISSUER_CRT_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_LOYALTY_TSL
+DEMO_ISSUER_KEY_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_LOYALTY_WRPAC
+DEMO_ISSUER_CRT_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_LOYALTY_WRPAC
 
 generate_demo_issuer_issuance_key_pairs museum_maandkaart
 DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuer.key.der" ${BASE64})
@@ -483,6 +535,10 @@ DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maan
 export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL
 DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL
+DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC
+DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC
 
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 

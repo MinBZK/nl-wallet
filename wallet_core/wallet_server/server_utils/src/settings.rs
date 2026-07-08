@@ -197,7 +197,7 @@ pub trait ServerSettings: Sized {
 pub fn verify_key_pairs(
     key_pairs: &[(&str, &KeyPair)],
     trust_anchors: &TrustAnchors,
-    usage: CertificateUsage,
+    usage: Option<CertificateUsage>,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), CertificateVerificationError> {
     if trust_anchors.is_empty() {
@@ -209,10 +209,12 @@ pub fn verify_key_pairs(
 
         key_pair
             .certificate
-            .verify(Some(usage), &[], time, trust_anchors)
+            .verify(usage, &[], time, trust_anchors)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
-        if CertificateType::has_certificate_type(usage) {
+        if let Some(usage) = usage
+            && CertificateType::has_certificate_type(usage)
+        {
             CertificateType::from_certificate(&key_pair.certificate)
                 .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
         }
