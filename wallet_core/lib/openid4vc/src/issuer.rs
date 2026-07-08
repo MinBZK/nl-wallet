@@ -1264,6 +1264,10 @@ fn build_token_response<K, L>(
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
+    // The issuer has a choice here to either include `scope` values that refer to the Credential Configurations of the
+    // credentials offered or include an `authorization_details` field that includes both the Credential Configuration
+    // Identifiers and the individual Credential Identifiers. As the former prohibits issuance of multiple credentials
+    // within the same Credential Configuration, we choose the latter.
     let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(
         credential_ids_and_documents
             .nonempty_iter()

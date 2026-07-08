@@ -110,9 +110,9 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         redirect_uri: Url,
         issuer_state: Option<String>,
     ) -> Result<Self, WalletIssuanceError> {
-        // Include the scope values for each Credential Configuration with a supported credential format that was
-        // present in the Credential Offer and return an error if any of them do not include a scope. According
-        // to HAIP:
+        // Include the `scope` values for each Credential Configuration with a supported credential format that was
+        // present in the Credential Offer and return an error if any of them do not include a `scope`. Note that we
+        // include the `scope` values in favour of using the `authorization_details` field. According to HAIP:
         //
         // "For Grant Type authorization_code, the Issuer MUST include a scope value in order to allow the Wallet to
         // identify the desired Credential Type. The Wallet MUST use that value in the scope Authorization parameter."
@@ -269,6 +269,9 @@ impl AuthorizationSession for HttpAuthorizationSession {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);
 
+        // Create the Token Request to be sent to the issuer with the minimal amount of information required. This does
+        // not include either a `scope` or `authorization_details` field, as we have no need to further restrict the
+        // credentials requested at this point.
         let token_request = TokenRequest::new_authorization_code(
             authorization_code,
             self.client_id,
