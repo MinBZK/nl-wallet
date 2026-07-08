@@ -84,6 +84,8 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: wrprc_trust_anchors
+            - name: ACF_DEMO_ISSUER__WIA_TRUST_ANCHORS
+              value: {{ join "," .Values.wiaTrustAnchors | quote }}
             - name: ACF_DEMO_ISSUER__WALLET_REDIRECT_URIS
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: ACF_DEMO_ISSUER__BATCH_SIZE

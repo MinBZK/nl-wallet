@@ -141,6 +141,11 @@ database:
 ##
 batchSize: 4
 
+## @section WIA trust anchors
+## Trust anchors against which CAs are validated.
+## @param wiaTrustAnchors the trust anchors
+wiaTrustAnchors: []
+
 ## @section Migration parameters
 ## Parameters for the migration configuration
 ## @param migration.labels Additional labels for the migration job

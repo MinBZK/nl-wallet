@@ -96,7 +96,7 @@ pid-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: pid-issuer
     RELEASE_NAME: pid-issuer
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,general/wia-trust-anchors.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
 
 acf-demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -108,7 +108,7 @@ acf-demo-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: acf-demo-issuer
     RELEASE_NAME: acf-demo-issuer
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/acf-demo-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,general/wia-trust-anchors.yaml,${DEPLOY_ENV}/acf-demo-issuer.yaml"
 
 demo-rp-verification-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -142,7 +142,7 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer-issuance-server
     RELEASE_NAME: demo-issuer-issuance-server
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,general/wia-trust-anchors.yaml,${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
 
 demo-issuer-pacf-issuance-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -154,7 +154,7 @@ demo-issuer-pacf-issuance-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer-pacf-issuance-server
     RELEASE_NAME: demo-issuer-pacf-issuance-server
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/demo-issuer-pacf-issuance-server.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,general/wia-trust-anchors.yaml,${DEPLOY_ENV}/demo-issuer-pacf-issuance-server.yaml"
 
 demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag

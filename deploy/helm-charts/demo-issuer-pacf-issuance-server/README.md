@@ -114,6 +114,12 @@
 | ----------- | ------------------------------------------------------------------ | ----- |
 | `batchSize` | The maximum amount of credentials a holder will be able to request | `4`   |
 
+### WIA trust anchors
+
+| Name              | Description        | Value |
+| ----------------- | ------------------- | ----- |
+| `wiaTrustAnchors` | WIA trust anchors  | `[]`  |
+
 ### Migration parameters
 
 | Name               | Description                             | Value  |
@@ -126,4 +132,3 @@
 | Name                           | Description                                        | Value |
 | ------------------------------ | -------------------------------------------------- | ----- |
 | `persistence.storageClassName` | Storage class name for the persistent volume claim | `nfs` |
-

@@ -120,6 +120,12 @@
 | ---------------------- | ---------------------------- | ----- |
 | `universalLinkBaseUrl` | Base URL for universal links | `nil` |
 
+### WIA trust anchors
+
+| Name              | Description        | Value |
+| ----------------- | ------------------- | ----- |
+| `wiaTrustAnchors` | WIA trust anchors  | `[]`  |
+
 ### Migration parameters
 
 | Name               | Description                             | Value  |

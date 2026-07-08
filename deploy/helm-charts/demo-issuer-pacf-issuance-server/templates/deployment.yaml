@@ -108,6 +108,8 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: wrprc_trust_anchors
+            - name: PACF_ISSUANCE_SERVER__WIA_TRUST_ANCHORS
+              value: {{ join "," .Values.wiaTrustAnchors | quote }}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

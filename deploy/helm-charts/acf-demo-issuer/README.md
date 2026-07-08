@@ -114,6 +114,12 @@
 | ----------- | ------------------------------------------------------------------ | ----- |
 | `batchSize` | The maximum amount of credentials a holder will be able to request | `10`  |
 
+### WIA trust anchors
+
+| Name              | Description       | Value |
+| ----------------- | ----------------- | ----- |
+| `wiaTrustAnchors` | WIA trust anchors | `[]`  |
+
 ### Wallet redirect uris
 
 | Name                 | Description          | Value |
