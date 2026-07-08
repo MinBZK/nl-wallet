@@ -23,8 +23,8 @@ use crate::JwtTyp;
 use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
-use crate::error::JwtError;
-use crate::error::JwtX5cError;
+use crate::error::JwtVerifyError;
+use crate::error::JwtX5cVerifyError;
 use crate::headers::HeaderWithX5c;
 use crate::nonce::Nonce;
 
@@ -77,7 +77,7 @@ impl WiaClaims {
         wallet_info: WiaWalletInfo,
         client_status: ClientStatus,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Self, JwtError> {
+    ) -> Result<Self, JwkConversionError> {
         let now = time.generate().into();
         Ok(Self {
             cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
@@ -137,10 +137,8 @@ pub enum WiaError {
     IncorrectNonce,
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[source] JwkConversionError),
-    #[error("JWT error: {0}")]
-    Jwt(#[source] JwtError),
-    #[error("JWT with certificate error: {0}")]
-    JwtX5c(#[source] JwtX5cError),
+    #[error("JWT verify error: {0}")]
+    JwtVerify(#[source] JwtX5cVerifyError),
     #[error("incorrect sub field in WIA: found '{0}', expected '{1}'")]
     IncorrectSub(String, String),
     #[error("WIA has expired")]
@@ -165,10 +163,12 @@ impl WiaDisclosure {
                 &WIA_JWT_VALIDATIONS,
             )
             .map_err(|err| match err {
-                JwtX5cError::Jwt(JwtError::Validation(e)) if matches!(e.kind(), ErrorKind::ExpiredSignature) => {
+                JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(e))
+                    if matches!(e.kind(), ErrorKind::ExpiredSignature) =>
+                {
                     WiaError::Expired
                 }
-                _ => WiaError::JwtX5c(err),
+                _ => WiaError::JwtVerify(err),
             })?;
 
         // "If a client_id is provided in the request containing the Client Attestation, then this client_id
@@ -192,7 +192,8 @@ impl WiaDisclosure {
         let (_, wia_disclosure_claims) = self
             .1
             .parse_and_verify(EcdsaDecodingKey::from(&wia_pubkey), &validations)
-            .map_err(WiaError::Jwt)?;
+            .map_err(JwtX5cVerifyError::JwtVerify)
+            .map_err(WiaError::JwtVerify)?;
 
         if wia_disclosure_claims.challenge.as_ref() != expected_challenge {
             return Err(WiaError::IncorrectNonce);
@@ -258,8 +259,8 @@ mod tests {
 
     use crate::SignedJwt;
     use crate::UnverifiedJwt;
-    use crate::error::JwtError;
-    use crate::error::JwtX5cError;
+    use crate::error::JwtVerifyError;
+    use crate::error::JwtX5cVerifyError;
     use crate::headers::HeaderWithX5c;
     use crate::nonce::Nonce;
     use crate::wia::ClientStatus;
@@ -354,7 +355,7 @@ mod tests {
         let error = disclosure
             .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID], Some(&nonce), None)
             .unwrap_err();
-        assert_matches!(error, WiaError::Jwt(_));
+        assert_matches!(error, WiaError::JwtVerify(_));
     }
 
     #[rstest]
@@ -368,7 +369,7 @@ mod tests {
         let error = disclosure
             .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID], Some(&nonce), None)
             .unwrap_err();
-        assert_matches!(error, WiaError::Jwt(_));
+        assert_matches!(error, WiaError::JwtVerify(_));
     }
 
     #[rstest]
@@ -378,7 +379,7 @@ mod tests {
         let error = disclosure
             .verify(&TrustAnchors::from(&ca), AUD, &["other-client"], Some(&nonce), None)
             .unwrap_err();
-        assert_matches!(error, WiaError::Jwt(_));
+        assert_matches!(error, WiaError::JwtVerify(_));
     }
 
     #[rstest]
@@ -413,7 +414,8 @@ mod tests {
             .unwrap_err();
         assert_matches!(
             error,
-            WiaError::JwtX5c(JwtX5cError::Jwt(JwtError::Validation(error))) if *error.kind() == jsonwebtoken::errors::ErrorKind::ImmatureSignature
+            WiaError::JwtVerify(JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(error)))
+                if *error.kind() == jsonwebtoken::errors::ErrorKind::ImmatureSignature
         );
     }
 

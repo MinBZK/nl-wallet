@@ -306,7 +306,7 @@ mod tests {
     use http::StatusCode;
     use http_utils::urls::BaseUrl;
     use itertools::Itertools;
-    use jwt::error::JwtError;
+    use jwt::error::JwtParseError;
     use mdoc::holder::disclosure::PartialMdoc;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
@@ -863,7 +863,7 @@ mod tests {
         #[values(false, true)] error_has_error: bool,
     ) {
         let (error, wallet_messages) =
-            start_disclosure_session_http_error(|| JwtError::MissingTyp.into(), error_has_error);
+            start_disclosure_session_http_error(|| JwtParseError::MissingTyp.into(), error_has_error);
 
         assert_matches!(
             error,

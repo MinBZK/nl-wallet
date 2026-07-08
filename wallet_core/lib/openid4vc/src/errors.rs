@@ -646,7 +646,7 @@ impl ErrorWithCode for GetAuthRequestError {
 
             Self::ExpiredEphemeralId(_) => GetAuthRequestErrorCode::ExpiredEphemeralId,
 
-            Self::Jwt(_) | Self::ReturnUrlConfigurationMismatch | Self::UnknownUseCase(_) => {
+            Self::JwtSign(_) | Self::ReturnUrlConfigurationMismatch | Self::UnknownUseCase(_) => {
                 GetAuthRequestErrorCode::ServerError
             }
 

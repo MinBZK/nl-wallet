@@ -5,7 +5,7 @@ use crypto::keys::EcdsaKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
-use jwt::error::JwtError;
+use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKey;
@@ -73,7 +73,7 @@ pub enum WalletRegistrationError {
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountProviderError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
-    CertificateValidation(#[source] JwtError),
+    CertificateValidation(#[source] JwtVerifyError),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
     #[category(expected)]
     PublicKeyMismatch,

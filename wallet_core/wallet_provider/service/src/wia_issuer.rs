@@ -14,7 +14,8 @@ use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
-use jwt::error::JwtError;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtSignError;
 use jwt::headers::HeaderWithX5c;
 use jwt::wia::ClientStatus;
 use jwt::wia::WiaClaims;
@@ -54,12 +55,19 @@ pub struct HsmWiaIssuer<H, K = HsmEcdsaKey> {
 pub enum HsmWiaIssuerError {
     #[error("HSM error: {0}")]
     Hsm(#[from] HsmError),
-    #[error("JWT error: {0}")]
-    KeyConversion(#[from] JwtError),
+
+    #[error("JWK conversion error: {0}")]
+    KeyConversion(#[source] JwkConversionError),
+
     #[error("public key error: {0}")]
     PublicKeyError(Box<dyn Error + Send + Sync + 'static>),
+
+    #[error("sign error: {0}")]
+    SignError(#[source] JwtSignError),
+
     #[error("Missing Common Name in WIA issuance certificate")]
     MissingCommonName,
+
     #[error("WIA issuance certificate error: {0}")]
     WiaCertificateError(#[source] CertificateError),
 }
@@ -101,10 +109,12 @@ where
                     exp: wallet_exp,
                 },
                 time,
-            )?,
+            )
+            .map_err(HsmWiaIssuerError::KeyConversion)?,
             &self.keypair,
         )
-        .await?
+        .await
+        .map_err(HsmWiaIssuerError::SignError)?
         .into();
 
         Ok((wrapped_privkey, jwt))

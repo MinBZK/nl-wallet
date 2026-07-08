@@ -15,7 +15,7 @@ pub async fn get_config_file(storage_path: &Path) -> Result<Option<WalletConfigJ
     }
 
     let jwt_string = fs::read_to_string(path).await.map_err(FileStorageError::from)?;
-    Ok(Some(jwt_string.parse()?))
+    Ok(Some(jwt_string.parse().map_err(ConfigurationError::JwtParse)?))
 }
 
 pub async fn update_config_file(storage_path: &Path, jwt: &WalletConfigJwt) -> Result<(), FileStorageError> {

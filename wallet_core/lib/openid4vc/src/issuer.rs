@@ -32,7 +32,8 @@ use jwt::Algorithm;
 use jwt::SignedJwt;
 use jwt::Validation;
 use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
+use jwt::error::JwtSignError;
+use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use jwt::wia::WiaClaims;
@@ -213,7 +214,7 @@ pub enum CredentialRequestError {
     UseBatchIssuance,
 
     #[error("invalid proof JWT: {0}")]
-    InvalidProofJwt(#[source] JwtError),
+    InvalidProofJwt(#[source] JwtVerifyError),
 
     #[error("could not extract holder public key from proof JWT: {0}")]
     InvalidProofPublicKey(#[source] JwkConversionError),
@@ -228,7 +229,7 @@ pub enum CredentialRequestError {
     InvalidNonce,
 
     #[error("JWT error: {0}")]
-    Jwt(#[from] JwtError),
+    Jwt(#[from] JwtVerifyError),
 
     #[error("missing credential configuration with identifier: {0}")]
     MissingCredentialConfiguration(CredentialConfigurationId),
@@ -554,7 +555,7 @@ where
         &self,
         ttl: Duration,
         time_generator: G,
-    ) -> Result<SignedJwt<SignedIssuerMetadataPayload<'_>, HeaderWithX5c>, JwtError> {
+    ) -> Result<SignedJwt<SignedIssuerMetadataPayload<'_>, HeaderWithX5c>, JwtSignError> {
         let iat = time_generator.generate();
         let exp = iat + ttl;
         let payload = SignedIssuerMetadataPayload {

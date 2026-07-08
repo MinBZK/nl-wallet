@@ -23,7 +23,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::JwtTyp;
 use crate::error::JwkConversionError;
-use crate::error::JwtError;
+use crate::error::JwtParseError;
 use crate::jwk::jwk_from_p256;
 use crate::jwk::jwk_to_p256;
 
@@ -69,10 +69,10 @@ impl From<HeaderWithTyp> for Header {
 }
 
 impl TryFrom<Header> for HeaderWithTyp {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let typ = value.typ.ok_or(JwtError::MissingTyp)?;
+        let typ = value.typ.ok_or(JwtParseError::MissingTyp)?;
         Ok(HeaderWithTyp {
             alg: value.alg,
             typ: Cow::Owned(typ),
@@ -129,12 +129,14 @@ where
     H: TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let jwk = value.jwk.as_ref().ok_or(JwtError::MissingJwk)?.clone();
+        let jwk = value.jwk.as_ref().ok_or(JwtParseError::MissingJwk)?.clone();
         Ok(HeaderWithJwk {
-            header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
+            header: value
+                .try_into()
+                .map_err(|e| JwtParseError::HeaderConversion(Box::new(e)))?,
             jwk,
         })
     }
@@ -195,28 +197,30 @@ where
     H: TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
         let x5c = value
             .x5c
             .as_ref()
-            .ok_or(JwtError::MissingX5c)?
+            .ok_or(JwtParseError::MissingX5c)?
             .iter()
             .map(|encoded_cert| {
                 BASE64_STANDARD
                     .decode(encoded_cert)
-                    .map_err(|e| JwtError::HeaderConversion(Box::new(e)))
+                    .map_err(|e| JwtParseError::HeaderConversion(Box::new(e)))
                     .and_then(|bytes| {
-                        BorrowingCertificate::from_der(bytes).map_err(|e| JwtError::HeaderConversion(Box::new(e)))
+                        BorrowingCertificate::from_der(bytes).map_err(|e| JwtParseError::HeaderConversion(Box::new(e)))
                     })
             })
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
-            .map_err(|e| JwtError::HeaderConversion(Box::new(e)))?;
+            .map_err(|e| JwtParseError::HeaderConversion(Box::new(e)))?;
 
         Ok(HeaderWithX5c {
-            header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
+            header: value
+                .try_into()
+                .map_err(|e| JwtParseError::HeaderConversion(Box::new(e)))?,
             x5c,
         })
     }
@@ -249,12 +253,14 @@ where
     H: TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let kid = value.kid.as_ref().ok_or(JwtError::MissingKid)?.clone();
+        let kid = value.kid.as_ref().ok_or(JwtParseError::MissingKid)?.clone();
         Ok(HeaderWithKid {
-            header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
+            header: value
+                .try_into()
+                .map_err(|e| JwtParseError::HeaderConversion(Box::new(e)))?,
             kid,
         })
     }

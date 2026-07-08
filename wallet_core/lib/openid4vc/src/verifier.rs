@@ -27,7 +27,7 @@ use http_utils::urls::BaseUrl;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::decryption::JweEcdhSecretKey;
 use jwt::SignedJwt;
-use jwt::error::JwtError;
+use jwt::error::JwtSignError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use ring::hmac;
@@ -141,7 +141,7 @@ pub enum GetAuthRequestError {
     #[error("the ephemeral ID {} has expired", hex::encode(.0))]
     ExpiredEphemeralId(Vec<u8>),
     #[error("error signing Authorization Request JWE: {0}")]
-    Jwt(#[from] JwtError),
+    JwtSign(#[from] JwtSignError),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
     ReturnUrlConfigurationMismatch,
     #[error("unknown use case: {0}")]

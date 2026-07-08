@@ -9,7 +9,8 @@ mod updating_repository;
 use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use jwt::UnverifiedJwt;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtVerifyError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 pub use self::data::UNIVERSAL_LINK_BASE_URL;
@@ -35,8 +36,10 @@ pub use self::mock::LocalConfigurationRepository;
 pub enum ConfigurationError {
     #[error("could not store or load configuration or etag file: {0}")]
     FileStorage(#[from] FileStorageError),
+    #[error("could not parse JWT: {0}")]
+    JwtParse(#[from] JwtParseError),
     #[error("could not validate JWT: {0}")]
-    Jwt(#[from] JwtError),
+    JwtVerify(#[from] JwtVerifyError),
     #[error("http client error: {0}")]
     HttpClient(#[from] HttpClientError),
 }
