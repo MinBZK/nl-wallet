@@ -30,7 +30,7 @@ class SentryLogTree extends LogTree {
       'I' => _logger.info(body, attributes: attributes),
       'W' => _logger.warn(body, attributes: attributes),
       'E' => _logger.error(body, attributes: attributes),
-      _ => _logger.info(body, attributes: attributes),
+      _ => _logger.warn('Unexpected log level "$level": $body', attributes: attributes),
     };
 
     if (result is Future<void>) unawaited(result);

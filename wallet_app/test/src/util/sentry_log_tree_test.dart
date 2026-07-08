@@ -33,8 +33,10 @@ void main() {
       SentryLogLevel.info,
       SentryLogLevel.warn,
       SentryLogLevel.error,
-      SentryLogLevel.info,
+      SentryLogLevel.warn,
     ]);
+
+    expect(logger.records.last.body, contains('Unexpected log level "?"'));
   });
 
   test('preserves message details and logger tag', () {
