@@ -12,7 +12,7 @@ use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::try_join;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
 use jwt::wia::WIA_HEADER_NAME;
@@ -125,11 +125,11 @@ pub trait VcMessageClient {
 
 #[derive(Debug)]
 pub struct HttpVcMessageClient {
-    http_client: HttpJsonClient,
+    http_client: HttpClient,
 }
 
 impl HttpVcMessageClient {
-    pub fn new(http_client: HttpJsonClient) -> Self {
+    pub fn new(http_client: HttpClient) -> Self {
         Self { http_client }
     }
 
@@ -219,7 +219,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
     async fn request_type_metadata(&self, url: Url) -> Result<TypeMetadataDocuments, WalletIssuanceError> {
         self.http_client
-            .get(url)
+            .get_json(url)
             .await
             .map_err(WalletIssuanceError::TypeMetadataHttp)
     }

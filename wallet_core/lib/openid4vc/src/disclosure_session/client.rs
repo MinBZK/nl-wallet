@@ -5,8 +5,8 @@ use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
+use http_utils::reqwest::HttpClient;
 use http_utils::urls::BaseUrl;
-use reqwest::ClientBuilder;
 use serde::Deserialize;
 use tracing::info;
 use tracing::warn;
@@ -41,10 +41,8 @@ pub struct VpDisclosureClient<H = HttpVpMessageClient> {
 }
 
 impl VpDisclosureClient<HttpVpMessageClient> {
-    pub fn new_with_client(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
-        let client = Self::new(HttpVpMessageClient::new(client_builder)?);
-
-        Ok(client)
+    pub fn new_with_client(http_client: HttpClient) -> Self {
+        Self::new(HttpVpMessageClient::new(http_client))
     }
 }
 

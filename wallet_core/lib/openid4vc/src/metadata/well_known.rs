@@ -1,4 +1,4 @@
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use serde::de::DeserializeOwned;
 use url::Url;
 
@@ -46,7 +46,7 @@ pub enum WellKnownError {
 }
 
 pub async fn fetch_well_known<T>(
-    client: &HttpJsonClient,
+    client: &HttpClient,
     issuer: &IssuerIdentifier,
     path: WellKnownPath,
 ) -> Result<T, WellKnownError>
@@ -54,7 +54,7 @@ where
     T: DeserializeOwned + WellKnownMetadata,
 {
     let url = path.url(issuer);
-    let metadata: T = client.get(url).await?;
+    let metadata: T = client.get_json(url).await?;
     if metadata.issuer_identifier() != issuer {
         return Err(WellKnownError::IssuerIdentifierMismatch {
             expected: Box::new(issuer.clone()),

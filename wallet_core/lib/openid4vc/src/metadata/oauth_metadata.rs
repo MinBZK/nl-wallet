@@ -191,7 +191,7 @@ const fn bool_value<const B: bool>() -> bool {
 pub mod tests {
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use httpmock::Method::GET;
     use httpmock::MockServer;
     use serde_json::json;
@@ -223,7 +223,7 @@ pub mod tests {
             })
             .await;
 
-        let client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let metadata = fetch_well_known::<AuthorizationServerMetadata>(
             &client,
             &issuer_identifier,

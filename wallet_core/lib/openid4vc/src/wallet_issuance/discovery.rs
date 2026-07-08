@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crypto::trust_anchor::TrustAnchors;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
 use url::Url;
@@ -33,11 +33,11 @@ use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
 pub struct HttpIssuanceDiscovery {
-    http_client: HttpJsonClient,
+    http_client: HttpClient,
 }
 
 impl HttpIssuanceDiscovery {
-    pub fn new(http_client: HttpJsonClient) -> Self {
+    pub fn new(http_client: HttpClient) -> Self {
         Self { http_client }
     }
 }
@@ -348,7 +348,7 @@ impl HttpIssuanceDiscovery {
             CredentialOfferContainer::CredentialOffer(credential_offer) => *credential_offer,
             CredentialOfferContainer::CredentialOfferUri(credential_offer_uri) => self
                 .http_client
-                .get(credential_offer_uri.into_url())
+                .get_json(credential_offer_uri.into_url())
                 .await
                 .map_err(WalletIssuanceError::CredentialOfferHttp)?,
         };
@@ -513,7 +513,7 @@ mod test {
     use futures::future::try_join_all;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
@@ -808,7 +808,7 @@ mod test {
         .to_credential_offer_url();
 
         // Start issuance based on this Credential Offer URL.
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let flow = discovery
             .start(
                 &offer_url,
@@ -932,7 +932,7 @@ mod test {
 
     #[tokio::test]
     async fn start_missing_query() {
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let offer_url = Url::parse("openid-credential-offer://").unwrap();
 
         let result = discovery
@@ -950,7 +950,7 @@ mod test {
 
     #[tokio::test]
     async fn start_deserialization_error() {
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let offer_url = Url::parse("openid-credential-offer://?credential_offer=invalid_json").unwrap();
 
         let result = discovery
@@ -974,7 +974,7 @@ mod test {
         let offer_url =
             CredentialOfferContainer::new_uri(server.url("/does-not-exist").parse().unwrap()).to_credential_offer_url();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
             .start(
@@ -1012,7 +1012,7 @@ mod test {
             .query_pairs_mut()
             .append_pair("credential_offer", &serde_json::to_string(&credential_offer).unwrap());
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
             .start(
@@ -1046,7 +1046,7 @@ mod test {
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
             .start(
@@ -1081,7 +1081,7 @@ mod test {
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
             .start(
@@ -1115,7 +1115,7 @@ mod test {
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
             .start(
@@ -1153,7 +1153,7 @@ mod test {
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
             .start(
@@ -1189,7 +1189,7 @@ mod test {
         ))
         .to_credential_offer_url();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let error = discovery
             .start(

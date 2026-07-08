@@ -13,7 +13,7 @@ use crypto::trust_anchor::TrustAnchors;
 use http::header;
 use http::header::ACCEPT;
 use http::header::CONTENT_TYPE;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
@@ -238,7 +238,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
 
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(tls_reqwest_client_builder([server
+        HttpClient::try_new(tls_reqwest_client_builder([server
             .tls_trust_anchor
             .clone()
             .into_certificate()]))
@@ -387,7 +387,7 @@ async fn pre_authorized_code_flow(
     let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
     let flow = discovery
@@ -436,7 +436,7 @@ async fn reject_issuance() {
     let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
     let flow = discovery
@@ -475,7 +475,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
     // The `client_id` that determines whether the issuer knows the wallet is the WIA's `sub`.

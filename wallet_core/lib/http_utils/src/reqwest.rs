@@ -9,6 +9,7 @@ use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
 use http::header;
+use http::header::ACCEPT;
 use mime::APPLICATION_JSON;
 use mime::Mime;
 use reqwest::Certificate;
@@ -28,6 +29,8 @@ use crate::urls::BaseUrl;
 
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+
+const APPLICATION_JWT: &str = "application/jwt";
 
 /// Wrapper around a [`Certificate`] implementing `PartialEq`, `Eq` and `Hash`. In addition, it implements
 /// the necessary `From`/`TryFrom` implementations so that it can be (de)serialised using `serde_with`.
@@ -227,7 +230,7 @@ pub fn tls_pinned_client_builder(trust_anchors: impl IntoIterator<Item = Certifi
     tls_reqwest_client_builder(trust_anchors).tls_built_in_root_certs(false)
 }
 
-pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
+fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
     builder.default_headers(HeaderMap::from_iter([(
         header::ACCEPT,
         HeaderValue::from_static(APPLICATION_JSON.as_ref()),
@@ -235,34 +238,57 @@ pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
 }
 
 #[derive(Debug, Clone)]
-pub struct HttpJsonClient(Client);
+pub struct HttpClient(Client);
 
-impl HttpJsonClient {
-    pub fn try_new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
-        let client = client_builder_accept_json(client_builder).build()?;
-
-        Ok(HttpJsonClient(client))
+impl HttpClient {
+    pub fn new(client: Client) -> Self {
+        Self(client)
     }
 
-    pub async fn get<U, T>(&self, url: U) -> Result<T, reqwest::Error>
+    pub fn try_new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+        let client = client_builder.build()?;
+
+        Ok(Self(client))
+    }
+
+    pub async fn get_json<T>(&self, url: impl IntoUrl) -> Result<T, reqwest::Error>
     where
-        U: IntoUrl,
         T: DeserializeOwned,
     {
-        self.0.get(url).send().await?.error_for_status()?.json().await
+        self.0
+            .get(url)
+            .header(ACCEPT, APPLICATION_JSON.as_ref())
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await
     }
 
-    pub async fn post<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
+    pub async fn get_jwt(&self, url: impl IntoUrl) -> Result<String, reqwest::Error> {
+        self.0
+            .get(url)
+            .header(ACCEPT, APPLICATION_JWT)
+            .send()
+            .await?
+            .error_for_status()?
+            .text()
+            .await
+    }
+
+    pub fn request(&self, method: Method, url: impl IntoUrl) -> RequestBuilder {
+        self.0.request(method, url)
+    }
+
+    pub async fn post<F>(&self, url: impl IntoUrl, adapter: F) -> Result<Response, reqwest::Error>
     where
-        U: IntoUrl,
         F: FnOnce(RequestBuilder) -> RequestBuilder,
     {
         adapter(self.0.post(url)).send().await
     }
 
-    pub async fn delete<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
+    pub async fn delete<F>(&self, url: impl IntoUrl, adapter: F) -> Result<Response, reqwest::Error>
     where
-        U: IntoUrl,
         F: FnOnce(RequestBuilder) -> RequestBuilder,
     {
         adapter(self.0.delete(url)).send().await
