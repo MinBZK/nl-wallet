@@ -247,7 +247,7 @@ where
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
+        certificate_usage: Option<CertificateUsage>,
         validation_options: &Validation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
         let certificates = self
@@ -260,7 +260,7 @@ where
 
         let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
         leaf_cert
-            .verify(Some(certificate_usage), &intermediate_certs, time, trust_anchors)
+            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
@@ -273,7 +273,7 @@ where
         self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
+        certificate_usage: Option<CertificateUsage>,
         validation_options: &Validation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
@@ -1353,7 +1353,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -1543,7 +1543,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -1569,7 +1569,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&other_ca),
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap_err();
@@ -1600,7 +1600,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &trust_anchors,
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap_err();

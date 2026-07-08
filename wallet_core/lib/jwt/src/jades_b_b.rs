@@ -109,7 +109,6 @@ mod tests {
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::CertificateUsage;
     use jsonwebtoken::Algorithm;
     use serde_json::Value;
     use serde_json::json;
@@ -245,7 +244,7 @@ mod tests {
     #[tokio::test]
     async fn test_sign_and_verify_jades_b_b_token_roundtrip() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};
 
@@ -265,7 +264,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
-                CertificateUsage::ReaderAuth,
+                None,
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -279,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_verify_jades_b_b_without_iat() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};
 
@@ -305,7 +304,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
-                CertificateUsage::ReaderAuth,
+                None,
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap(); // should parse even without an `iat` field

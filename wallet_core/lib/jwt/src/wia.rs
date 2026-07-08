@@ -159,7 +159,7 @@ impl WiaDisclosure {
             .parse_and_verify_against_trust_anchors(
                 trust_anchors,
                 &TimeGenerator,
-                CertificateUsage::Wia,
+                Some(CertificateUsage::Wia),
                 &WIA_JWT_VALIDATIONS,
             )
             .map_err(|err| match err {

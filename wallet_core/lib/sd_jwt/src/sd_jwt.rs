@@ -175,7 +175,7 @@ impl UnverifiedSdJwt {
         let issuer_signed = self.issuer_signed.into_verified_against_trust_anchors(
             trust_anchors,
             time,
-            CertificateUsage::Mdl,
+            Some(CertificateUsage::Mdl),
             &SD_JWT_VALIDATIONS,
         )?;
 
@@ -526,7 +526,7 @@ impl UnverifiedSdJwtPresentation {
         let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
             trust_anchors,
             time,
-            CertificateUsage::Mdl,
+            Some(CertificateUsage::Mdl),
             &SD_JWT_VALIDATIONS,
         )?;
 
