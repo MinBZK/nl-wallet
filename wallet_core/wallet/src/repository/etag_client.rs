@@ -12,6 +12,7 @@ use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use parking_lot::Mutex;
 use tokio::fs;
+use tracing::warn;
 
 use super::FileStorageError;
 use super::Filename;
@@ -64,7 +65,14 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
         }
 
         let content = fs::read(&etag_file).await?;
-        Ok(Some(HeaderValue::from_bytes(&content)?))
+        match HeaderValue::from_bytes(&content).map_err(FileStorageError::InvalidHeaderValue) {
+            Ok(etag) => Ok(Some(etag)),
+            Err(error) => {
+                warn!("Invalid stored ETag header value, deleting stored ETag file: {error}");
+                fs::remove_file(&etag_file).await?;
+                Ok(None)
+            }
+        }
     }
 
     async fn store_latest_etag(&self, etag: &HeaderValue) -> Result<(), FileStorageError> {
@@ -133,7 +141,6 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::assert_matches;
     use std::convert::Infallible;
     use std::str::FromStr;
 
@@ -144,7 +151,6 @@ mod test {
     use tokio::fs;
 
     use super::EtagHttpClient;
-    use crate::repository::FileStorageError;
     use crate::repository::Filename;
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
@@ -209,19 +215,16 @@ mod test {
             resource_identifier.clone(),
             tempdir.path(),
         );
-        fs::write(etag_file, b"invalid\netag").await.unwrap();
+        fs::write(&etag_file, b"invalid\netag").await.unwrap();
 
-        let err = match EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new(
+        let _client = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new(
             resource_identifier,
             tempdir.path().to_path_buf(),
         )
         .await
-        {
-            Ok(_) => panic!("client construction should fail for invalid stored ETag"),
-            Err(err) => err,
-        };
+        .unwrap();
 
-        assert_matches!(err, HttpClientError::EtagFile(FileStorageError::InvalidHeaderValue(_)));
+        assert!(!fs::try_exists(&etag_file).await.unwrap());
     }
 
     #[tokio::test]
