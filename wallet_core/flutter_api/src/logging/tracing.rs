@@ -6,7 +6,7 @@ use tracing_subscriber::fmt;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-use crate::sentry::allow_logs;
+use super::allow_logs;
 
 pub fn init_tracing_subscriber() {
     let logs_allowed = allow_logs();
