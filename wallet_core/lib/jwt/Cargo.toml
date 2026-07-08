@@ -11,6 +11,7 @@ workspace = true
 doctest = false
 
 [features]
+axum = ["dep:axum"]
 test = []
 mock = []
 
@@ -28,6 +29,8 @@ serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tracing.workspace = true
 
+axum = { workspace = true, optional = true }
+
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
@@ -35,6 +38,7 @@ http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 [dev-dependencies]
+axum.workspace = true
 futures.workspace = true
 rand_core.workspace = true
 rstest.workspace = true

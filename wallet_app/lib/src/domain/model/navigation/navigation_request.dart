@@ -85,6 +85,7 @@ abstract class NavigationRequest with _$NavigationRequest {
     removeUntil: WalletRoutes.dashboardRoute,
     argument: argument,
     navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
+    preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
   );
 
   factory NavigationRequest.issuance({
@@ -94,6 +95,7 @@ abstract class NavigationRequest with _$NavigationRequest {
     removeUntil: WalletRoutes.dashboardRoute,
     argument: argument,
     navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
+    preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
   );
 
   factory NavigationRequest.continueIssuance({

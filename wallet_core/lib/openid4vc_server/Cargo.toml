@@ -18,7 +18,7 @@ required-features = ["issuance"]
 
 [features]
 # Enable issuance
-issuance = ["axum-extra/typed-header", "dep:sd_jwt_vc_metadata"]
+issuance = ["axum-extra/typed-header", "dep:sd_jwt_vc_metadata", "jwt/axum"]
 # Enable disclosure
 disclosure = ["dep:ring"]
 
@@ -26,6 +26,7 @@ disclosure = ["dep:ring"]
 axum = { workspace = true, features = ["form", "json"] }
 derive_more = { workspace = true, features = ["from"] }
 http.workspace = true
+mediatype.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 tower-http = { workspace = true, features = ["cors"] }

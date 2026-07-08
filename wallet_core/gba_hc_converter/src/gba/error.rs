@@ -10,6 +10,8 @@ pub enum Error {
     Transport(#[from] reqwest::Error),
     #[error("JSON error: {0}")]
     Serde(#[from] serde_json::Error),
+    #[error("XML decoding error: {0}")]
+    XmlDecoding(#[from] quick_xml::encoding::EncodingError),
     #[error("XML deserialization error: {0}")]
     XmlDeserialization(#[from] quick_xml::de::DeError),
     #[error("XML error: {0}")]

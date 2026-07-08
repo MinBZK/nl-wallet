@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-06-29T12:59:39+02:00",
+    "@@last_modified": "2026-07-03T12:17:21+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -547,6 +547,8 @@
     "errorScreenNoInternetDescription": "Je verbinding met het internet lijkt niet te werken of is te traag. Controleer je verbinding en probeer het opnieuw.",
     "errorScreenNoInternetDescriptionCloseVariant": "Je verbinding met het internet lijkt niet te werken of is te traag. Controleer je verbinding. Sluit de app en probeer het later opnieuw.",
     "errorScreenNoInternetHeadline": "Sorry, geen internet",
+    "errorScreenPreAuthorizedCodeExpiredDescription": "De QR-code is verlopen of al gebruikt.\n\nGa terug naar de website van de uitgever waar je bent begonnen en probeer het opnieuw. Als het nog steeds niet werkt, neem dan contact op met de uitgever.",
+    "errorScreenPreAuthorizedCodeExpiredTitle": "QR-code is niet langer geldig",
     "errorScreenServerDescription": "Het is niet gelukt om het systeem te bereiken. Dat kan verschillende redenen hebben.\nControleer of je verbonden bent met het internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
     "errorScreenServerDescriptionCloseVariant": "Het is niet gelukt om het systeem te bereiken. Dat kan verschillende redenen hebben.\nControleer je verbinding met het internet. Sluit de app en probeer het later opnieuw.",
     "errorScreenServerHeadline": "Sorry, geen reactie",
@@ -835,9 +837,8 @@
     "invariantErrorScreenTitle": "NL Wallet werkt niet",
     "invariantErrorScreenWhatCanYouDoBullets": "Sluit deze app.\nOpen NL Wallet opnieuw.",
     "invariantErrorScreenWhatCanYouDoTitle": "Wat kun je doen?",
-    "issuanceAuthenticateExternallyCta": "Inloggen",
-    "issuanceAuthenticateExternallyDescription": "Log in om de kaarten op te halen.",
-    "issuanceAuthenticateExternallyTitle": "Inloggen",
+    "issuanceAuthenticateExternallyDescription": "Volg de stappen op de website van de uitgever.\nGa daarna terug naar NL Wallet.",
+    "issuanceAuthenticateExternallyTitle": "Ga verder in de browser",
     "issuanceCheckCardPageConfirmCta": "Ja, volgende",
     "issuanceCheckCardPageOverline": "Kaart {current} van {total}",
     "@issuanceCheckCardPageOverline": {

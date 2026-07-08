@@ -5,8 +5,13 @@ import java.io.ByteArrayOutputStream
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
     id("net.razvan.jacoco-to-cobertura")
+}
+
+// Only applied here for this module's standalone build (i.e. test-app, CI unit tests).
+// When built as part of the Flutter app, the Flutter Gradle Plugin applies this automatically.
+if (project == rootProject) {
+    apply(plugin = "org.jetbrains.kotlin.android")
 }
 
 val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
@@ -85,7 +90,7 @@ android {
     }
 }
 
-kotlin {
+extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension> {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
         freeCompilerArgs = listOf("-Xstring-concat=inline")

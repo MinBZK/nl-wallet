@@ -13,6 +13,7 @@ import '../../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/list_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../../util/launch_util.dart';
 import '../../wallet_assets.dart';
@@ -26,7 +27,6 @@ import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
-import '../common/widget/button/secondary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
@@ -75,8 +75,8 @@ class IssuanceScreen extends StatelessWidget {
           automaticallyImplyLeading: false,
           actions: [
             const HelpIconButton(),
-            CloseIconButton(onPressed: () => _stopIssuance(context)),
-          ],
+            CloseIconButton(onPressed: () => _stopIssuance(context)).takeIf((_) => _showCloseIcon(context)),
+          ].nonNullsList,
           title: _buildTitle(context),
           fadeInTitleOnScroll: false,
           progress: progress,
@@ -97,6 +97,16 @@ class IssuanceScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _showCloseIcon(BuildContext context) {
+    final state = context.watch<IssuanceBloc>().state;
+    return switch (state) {
+      IssuanceInitial() => false,
+      IssuanceLoadInProgress() => false,
+      IssuanceAuthenticateWithIssuer() => false,
+      _ => true,
+    };
   }
 
   Widget _buildPage() {
@@ -406,28 +416,20 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget _buildAuthenticateWithIssuer(BuildContext context, String authUrl) {
-    return TerminalPage(
+    return GenericLoadingPage(
       title: context.l10n.issuanceAuthenticateExternallyTitle,
       description: context.l10n.issuanceAuthenticateExternallyDescription,
-      primaryButton: PrimaryButton(
-        text: Text(context.l10n.issuanceAuthenticateExternallyCta),
-        icon: const Icon(Icons.lock_outline),
-        onPressed: () => context.bloc.add(const IssuanceSessionContinued('mock')),
-      ),
-      secondaryButton: SecondaryButton(
-        text: Text(context.l10n.generalStop),
-        icon: const Icon(Icons.close_outlined),
-        onPressed: () => context.bloc.add(const IssuanceStopRequested()),
-      ),
-      illustration: const PageIllustration(asset: WalletAssets.svg_url_check),
+      onCancel: () => context.bloc.add(const IssuanceStopRequested()),
+      cancelCta: context.l10n.generalStop,
+      loadingIndicator: const SizedBox.shrink(),
     );
   }
 
   void _launchCredentialOfferAuth(BuildContext context, String authUrl) {
     if (authUrl == 'mock://auth_url' && Environment.mockRepositories) {
-      // Await user tapping 'auth'
+      context.bloc.add(const IssuanceSessionContinued('mock'));
     } else {
-      launchUrlStringCatching(authUrl);
+      launchUrlStringCatching(authUrl, mode: .externalApplication);
     }
   }
 }

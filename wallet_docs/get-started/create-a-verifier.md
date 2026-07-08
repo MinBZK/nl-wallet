@@ -318,7 +318,8 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
     --ca-key-file "${CA_DIR}/ca.${IDENTIFIER}.key.pem" \
     --ca-crt-file "${CA_DIR}/ca.${IDENTIFIER}.crt.pem" \
     --common-name "reader.${IDENTIFIER}" \
-    --oin "NTRNL-00000002" \
+    --organization-name "${IDENTIFIER}" \
+    --organization-id "NTRNL-00000002" \
     --reader-auth-file "${TARGET_DIR}/reader_auth.json" \
     --file-prefix "${TARGET_DIR}/reader.${IDENTIFIER}"
 

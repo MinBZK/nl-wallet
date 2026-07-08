@@ -543,9 +543,15 @@ impl ErrorWithCode for CredentialRequestError {
         // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
         // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
         match self {
+            // The session backing the access token is gone (cleaned up) or in a terminal/wrong state:
+            // the token is no longer valid, which per RFC 6750 is `invalid_token`. This is hit when the
+            // session expires during issuance (e.g. the holder dwells on the preview or PIN screen past the
+            // session timeout), so the wallet can translate this to a "session expired" error instead of a
+            // generic one.
             Self::IssuanceError(IssuanceError::UnexpectedState)
-            | Self::IssuanceError(IssuanceError::UnknownSession(_))
-            | Self::IssuanceError(IssuanceError::DpopInvalid(_)) => CredentialErrorCode::InvalidCredentialRequest,
+            | Self::IssuanceError(IssuanceError::UnknownSession(_)) => CredentialErrorCode::InvalidToken,
+
+            Self::IssuanceError(IssuanceError::DpopInvalid(_)) => CredentialErrorCode::InvalidCredentialRequest,
 
             Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialErrorCode::ServerError,
 
@@ -606,7 +612,7 @@ impl ErrorStatusCode for GetAuthRequestErrorCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            // Per RFC 7235 we MUST include a `WWW-Authenticate` HTTP header with this, but we can't do that
+            // Per RFC 9110 we MUST include a `WWW-Authenticate` HTTP header with this, but we can't do that
             // conveniently here. It seems this header is often skipped, and we use it internally here, we skip it too.
             Self::ExpiredEphemeralId => StatusCode::UNAUTHORIZED,
 
@@ -1045,6 +1051,8 @@ mod axum {
 
 #[cfg(test)]
 mod tests {
+    use super::CredentialErrorCode;
+    use super::CredentialRequestError;
     use super::ErrorWithCode;
     use super::TokenErrorCode;
     use crate::issuer::IssuanceError;
@@ -1063,6 +1071,23 @@ mod tests {
         assert_eq!(
             TokenRequestError::IssuanceError(IssuanceError::UnexpectedState).error_code(),
             TokenErrorCode::InvalidGrant
+        );
+    }
+
+    #[test]
+    fn expired_session_at_credential_endpoint_maps_to_invalid_token() {
+        // At the credential endpoint a missing session (cleaned up) or a session in a terminal/wrong
+        // state means the access token's session is gone or expired, which per RFC 6750 is
+        // `invalid_token` (401). This lets the wallet render the "session expired" screen when the
+        // holder dwells past the session timeout mid-issuance.
+        assert_eq!(
+            CredentialRequestError::IssuanceError(IssuanceError::UnexpectedState).error_code(),
+            CredentialErrorCode::InvalidToken
+        );
+        assert_eq!(
+            CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(String::from("test").into()))
+                .error_code(),
+            CredentialErrorCode::InvalidToken
         );
     }
 }

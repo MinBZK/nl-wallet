@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="{{ lang }}">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+        <title>{{ trans.title }}</title>
+        <link rel="stylesheet" href="mock-login/mock_login.css" />
+        <script src="mock-login/mock_login.js" defer></script>
+    </head>
+    <body>
+        <nav class="lang-bar">
+            {% if lang == "nl" %}
+            <span class="active">NL</span>
+            {% else %}
+            <a href="{{ nl_href }}">NL</a>
+            {% endif %}
+            {% if lang == "en" %}
+            <span class="active">EN</span>
+            {% else %}
+            <a href="{{ en_href }}">EN</a>
+            {% endif %}
+        </nav>
+
+        <header>
+            <h1>{{ trans.title }}</h1>
+            <p class="intro">{{ trans.intro }}</p>
+        </header>
+
+        <div class="grid">
+            {% for subject in subjects %}
+            <form class="card" method="post" action="mock-login/select">
+                <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+                <input type="hidden" name="bsn" value="{{ subject.bsn }}" />
+                <button type="submit">
+                    <span class="name">{{ subject.name }}</span>
+                    <span class="bsn">BSN {{ subject.bsn }}</span>
+                </button>
+            </form>
+            {% endfor %}
+
+            <form class="card-custom" method="post" action="mock-login/select">
+                <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+                <label class="name" for="custom-bsn">{{ trans.custom_heading }}</label>
+                <div class="custom-row">
+                    <input
+                        class="bsn-input"
+                        id="custom-bsn"
+                        name="bsn"
+                        inputmode="numeric"
+                        pattern="[0-9]{8,9}"
+                        maxlength="9"
+                        autocomplete="off"
+                        placeholder="{{ trans.custom_placeholder }}"
+                        required
+                    />
+                    <button id="custom-bsn-submit" type="submit">{{ trans.custom_submit }}</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="overlay" hidden>
+            <span class="spinner"></span>
+            <span>{{ trans.signing_in }}</span>
+        </div>
+    </body>
+</html>

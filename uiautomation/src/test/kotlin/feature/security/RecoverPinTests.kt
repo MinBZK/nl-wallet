@@ -18,7 +18,6 @@ import screen.security.ForgotPinScreen
 import screen.security.PinScreen
 import screen.security.RecoverPinSuccesScreen
 import screen.web.digid.DigidLoginMockWebPage
-import screen.web.digid.DigidLoginStartWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC2.3.2 Recover PIN")
@@ -28,7 +27,6 @@ class RecoverPinTests : TestBase() {
     private lateinit var forgotPinScreen: ForgotPinScreen
     private lateinit var menuScreen: MenuScreen
     private lateinit var resetPinDigiDScreen: ResetPinDigiDScreen
-    private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
     private lateinit var digidLoginMockWebPage: DigidLoginMockWebPage
     private lateinit var recoverPinSuccesScreen: RecoverPinSuccesScreen
     private lateinit var dashboardScreen: DashboardScreen
@@ -41,7 +39,6 @@ class RecoverPinTests : TestBase() {
         forgotPinScreen = ForgotPinScreen()
         menuScreen = MenuScreen()
         resetPinDigiDScreen = ResetPinDigiDScreen()
-        digidLoginStartWebPage = DigidLoginStartWebPage()
         digidLoginMockWebPage = DigidLoginMockWebPage()
         recoverPinSuccesScreen = RecoverPinSuccesScreen()
         dashboardScreen = DashboardScreen()
@@ -62,10 +59,7 @@ class RecoverPinTests : TestBase() {
         assertTrue(resetPinDigiDScreen.visible(), "reset pin DigiD screen is not visible")
 
         resetPinDigiDScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
-
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
         pinScreen.switchToNativeContext()
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")

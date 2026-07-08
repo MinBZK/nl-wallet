@@ -45,4 +45,6 @@ enum FlutterApiErrorType {
   deniedDigid,
   @JsonValue('Revoked')
   revoked,
+  @JsonValue('PreAuthorizedCodeExpired')
+  preAuthorizedCodeExpired,
 }

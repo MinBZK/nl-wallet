@@ -49,19 +49,19 @@ pub mod test {
         assert_eq!(count_entries(&store).await, 1);
 
         let result = store.consume(request_uri.as_str()).await.unwrap();
-        assert!(result.is_some());
+        assert!(result.live().is_some());
         assert_eq!(count_entries(&store).await, 0);
 
-        // Consuming the same entry a second time returns None.
+        // Consuming the same entry a second time yields nothing.
         let result = store.consume(request_uri.as_str()).await.unwrap();
-        assert!(result.is_none());
+        assert!(result.live().is_none());
 
-        // Consuming an unknown URI returns None.
+        // Consuming an unknown URI yields nothing.
         let result = store
             .consume("urn:ietf:params:oauth:request_uri:unknown")
             .await
             .unwrap();
-        assert!(result.is_none());
+        assert!(result.live().is_none());
 
         // Cleanup runs without error.
         store.cleanup().await.unwrap();

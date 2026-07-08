@@ -50,6 +50,7 @@ use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::server_state::SessionStore;
+use openid4vc::store::Consumed;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
 use rand::RngCore;
@@ -59,6 +60,7 @@ use server_utils::store::StoreConnection;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
+use tracing::info;
 use tracing::warn;
 use url::Url;
 use utils::path::prefix_local_path;
@@ -90,6 +92,9 @@ pub enum Error {
     #[error("none of the usecase's documents match the requested credential kinds: {}", .0.iter().join(", "))]
     NoRequestedCredentialKinds(HashSet<CredentialKind>),
 
+    #[error("authorization flow state expired before consent was submitted")]
+    ExpiredState,
+
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
 
@@ -102,9 +107,10 @@ impl ErrorWithCode for Error {
 
     fn error_code(&self) -> Self::ErrorCode {
         match self {
-            Self::MissingIssuerState | Self::UnknownUsecase(_) | Self::NoRequestedCredentialKinds(_) => {
-                AuthorizationErrorCode::InvalidRequest
-            }
+            Self::MissingIssuerState
+            | Self::UnknownUsecase(_)
+            | Self::NoRequestedCredentialKinds(_)
+            | Self::ExpiredState => AuthorizationErrorCode::InvalidRequest,
 
             Self::StateBridge(_) => AuthorizationErrorCode::ServerError,
 
@@ -429,12 +435,22 @@ where
 {
     let flow = authorizing_issuer.flow();
 
-    // Since we cannot know the `redirect_uri` yet, the below errors are rendered as responses with plain-text bodies
-    // and an error HTTP status code.
+    // The incoming request carries only the opaque `state` (the bridge key); the wallet's `redirect_uri` lives solely
+    // inside the bridge entry. So once the entry is gone there is nothing left to send the user-agent back to. An
+    // `Absent` entry (never existed, or deleted after the cleanup leeway) therefore dead-ends as a plain-text body. An
+    // `Expired` entry, however, still carries the `redirect_uri`, so we send the user back to the wallet with an OAuth
+    // error instead of a dead-end; this is exactly what the cleanup leeway buys us.
     let context: WalletAuthorizationContext = match flow.state_bridge_store.consume(state.as_str()).await {
-        Ok(Some(context)) => context,
-        Ok(None) => {
-            warn!("consent submit: unknown or expired flow state");
+        Ok(Consumed::Live(context)) => context,
+        Ok(Consumed::Expired(context)) => {
+            info!("consent submit: flow state expired; redirecting to wallet with error");
+
+            return Err(
+                RedirectError::new(Error::ExpiredState, context.request_values.redirect_uri, context.state).into(),
+            );
+        }
+        Ok(Consumed::Absent) => {
+            warn!("consent submit: unknown flow state");
 
             return Err(BodyOrRedirectErrorResponse::new_body(
                 StatusCode::BAD_REQUEST,
@@ -716,6 +732,7 @@ mod tests {
             .consume(flow_state.as_str())
             .await
             .unwrap()
+            .live()
             .expect("the wallet context should have been stored under the flow-state token");
         assert_eq!(stored.issuer_state.as_deref(), Some(USECASE_ID));
         assert_eq!(stored.request_values.client_id, WALLET_CLIENT_ID);

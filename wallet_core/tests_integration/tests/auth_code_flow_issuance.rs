@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crypto::server_keys::generate::Ca;
 use db_test::DbName;
 use db_test::DbSetup;
+use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
@@ -46,7 +47,9 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
     let wia_keypair = wia_ca.generate_wia_mock().unwrap();
     let acf = setup_auth_code_env(&db_setup, Some(&wia_ca)).await;
 
-    let client = default_reqwest_client_builder().build().unwrap();
+    let client = client_builder_accept_json(default_reqwest_client_builder())
+        .build()
+        .unwrap();
 
     // 1. Boot smoke: the issuer serves its OpenID4VCI metadata, advertising the insurance config.
     let metadata = client

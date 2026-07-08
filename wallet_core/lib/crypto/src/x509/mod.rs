@@ -492,19 +492,14 @@ mod tests {
             not_after: Some(later),
             ..Default::default()
         };
-        let dn = DistinguishedName {
-            common_name: "myca".to_string(),
-            country_name: "NL".to_string(),
-            organization_name: "My CA B.V.".to_string(),
-            organization_identifier: "VATNL-123456789B01".to_string(),
-        };
+        let dn = DistinguishedName::new("myca".to_string(), "NL".to_string());
         let ca = Ca::generate(dn.clone(), config).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DARteWNh,2.5.4.6=DAJOTA,2.5.4.10=DApNeSBDQSBCLlYu,1.3.6.1.1.15=DBJWQVROTC0xMjM0NTY3ODlCMDE",
+            "2.5.4.3=DARteWNh,2.5.4.6=DAJOTA",
             certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 

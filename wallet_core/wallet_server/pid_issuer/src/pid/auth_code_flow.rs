@@ -38,6 +38,7 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::SessionStore;
+use openid4vc::store::Consumed;
 use openid4vc::store::Store;
 use openid4vc::token::AuthorizationCode;
 use serde::Deserialize;
@@ -74,6 +75,9 @@ pub enum Error {
 
     #[error("DigiD error: {0}")]
     Digid(#[source] digid::Error),
+
+    #[error("authorization flow state expired before the callback was received")]
+    ExpiredState,
 
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
@@ -112,6 +116,8 @@ impl ErrorWithCode for Error {
     fn error_code(&self) -> Self::ErrorCode {
         match self {
             Self::UnsupportedCredentialType(_) => AuthorizationErrorCode::InvalidScope,
+
+            Self::ExpiredState => AuthorizationErrorCode::InvalidRequest,
 
             Self::Digid(_)
             | Self::StateBridge(_)
@@ -166,6 +172,7 @@ pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidCli
     state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     callback_url: Url,
     client_id: String,
+    mock_login_uri: Option<Url>,
 }
 
 impl UpstreamOidcAuthorizationCodeFlow {
@@ -230,7 +237,15 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             state_bridge_store,
             callback_url: callback_base_url.join(DIGID_CALLBACK_PATH),
             client_id,
+            mock_login_uri: None,
         }
+    }
+
+    /// Enable (or disable) the pid_issuer-hosted mock login page. When `Some`, `authorize` redirects
+    /// the user-agent there instead of directly to nl-rdo-max.
+    pub fn with_mock_login_uri(mut self, mock_login_uri: Option<Url>) -> Self {
+        self.mock_login_uri = mock_login_uri;
+        self
     }
 
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
@@ -354,7 +369,21 @@ where
             .await
             .map_err(Error::StateBridge)?;
 
-        Ok(AuthorizeOutcome::RedirectTo(redirect_url))
+        // Send the user-agent to our own card page instead of straight to nl-rdo-max, carrying the nl-rdo-max authorize
+        // URL so a selected card can drive the bridge. The upstream `state` is present in that URL as well, so the
+        // `/digid/callback` still consumes the same bridge entry.
+        let outcome_url = match &self.mock_login_uri {
+            Some(mock_login_uri) => {
+                let mut mock_login_url = mock_login_uri.clone();
+                mock_login_url
+                    .query_pairs_mut()
+                    .append_pair("authorize_url", redirect_url.as_str());
+                mock_login_url
+            }
+            None => redirect_url,
+        };
+
+        Ok(AuthorizeOutcome::RedirectTo(outcome_url))
     }
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
@@ -385,12 +414,24 @@ where
 {
     let flow = authorizing_issuer.flow();
 
-    // Since we cannot know the `redirect_uri` yet, the below errors are rendered as responses with plain-text bodies
-    // and an error HTTP status code.
+    // The upstream provider echoes back only the opaque `state` (the bridge key); the wallet's `redirect_uri` lives
+    // solely inside the bridge entry. So once the entry is gone there is nothing left to send the user-agent back to.
+    // An `Absent` entry (never existed, or deleted after the cleanup leeway) therefore dead-ends as a plain-text
+    // body. An `Expired` entry, however, still carries the `redirect_uri`, so we send the user back to the wallet
+    // with an OAuth error instead of a dead-end; this is exactly what the cleanup leeway buys us.
     let entry: StateBridgeEntry = match flow.state_bridge_store.consume(state.as_str()).await {
-        Ok(Some(entry)) => entry,
-        Ok(None) => {
-            warn!("digid callback: unknown or expired bridge key");
+        Ok(Consumed::Live(entry)) => entry,
+        Ok(Consumed::Expired(entry)) => {
+            warn!("digid callback: bridge entry expired; redirecting to wallet with error");
+
+            let WalletAuthorizationContext {
+                state, request_values, ..
+            } = entry.context;
+
+            return Err(RedirectError::new(Error::ExpiredState, request_values.redirect_uri, state).into());
+        }
+        Ok(Consumed::Absent) => {
+            warn!("digid callback: unknown bridge key");
 
             return Err(BodyOrRedirectErrorResponse::new_body(
                 StatusCode::BAD_REQUEST,
@@ -756,6 +797,7 @@ mod tests {
             .consume(upstream_state.as_str())
             .await
             .unwrap()
+            .live()
             .expect("a bridge entry should be stored under the bridge key");
 
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));

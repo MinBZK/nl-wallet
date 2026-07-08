@@ -291,7 +291,14 @@ A few things the extended diagram makes visible:
 - **Error handling.** If any callback step (BSN, BRP, document build) fails, the
   flow redirects the browser back to the wallet's `redirect_uri` with an OAuth
   `error` response (carrying the wallet's `state`), rather than surfacing a bare
-  HTTP error.
+  HTTP error. This depends on the `StateBridgeEntry` still being present: the
+  callback carries only the opaque `state` (the bridge key), so the wallet's
+  `redirect_uri` is recoverable _only_ from the entry. If the entry has expired
+  but not yet been deleted, the callback still redirects back with an error;
+  once it is deleted (after `STATE_BRIDGE_DELETE_LEEWAY`), the request dead-ends
+  as a plain-text `400`. How this fits the other issuance timeouts is described
+  in
+  [Issuance with OpenID4VCI § Timeouts and expiry](../architecture/use-cases/issuance-with-openid4vci.md#timeouts-and-expiry).
 
 The protocol-level view of the same exchange — including which parameters live
 in which of the two OAuth exchanges — is in
