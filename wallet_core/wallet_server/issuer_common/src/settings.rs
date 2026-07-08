@@ -71,7 +71,6 @@ pub struct AuthorizingIssuerSettings {
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
-    // TODO (PVW-5550): add mandatory wia_trust_anchors config
 }
 
 impl AuthorizingIssuerSettings {

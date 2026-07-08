@@ -163,10 +163,7 @@ impl ValidateInstruction for DeleteKeys {}
 
 impl ValidateInstruction for IssueWia {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        // Allow during PIN recovery
-        // TODO (PVW-5550): since eventually the WIA is obtained by the wallet before PIN recovery
-        //                  would start, this exception will have to be removed eventually.
-
+        validate_no_pin_recovery_in_progress(wallet_user)?;
         validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
@@ -2307,7 +2304,7 @@ mod tests {
     #[case(Box::new(mock_sign_instruction()), false)]
     #[case(Box::new(DeleteKeys { identifiers: vec_nonempty!["id".to_string()] }), false)]
     #[case(Box::new(mock_start_pin_recovery_instruction()), true)]
-    #[case(Box::new(IssueWia { aud: "aud".to_string(), nonce: None }), true)]
+    #[case(Box::new(IssueWia { aud: "aud".to_string(), nonce: None }), false)]
     fn test_instruction_validation_during_pin_recovery(
         #[case] instruction: Box<dyn ValidateInstruction>,
         #[case] should_succeed: bool,
