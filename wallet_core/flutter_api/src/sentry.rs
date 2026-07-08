@@ -27,6 +27,7 @@ pub(crate) fn init_sentry() {
                     send_default_pii: false,
                     max_breadcrumbs: MAX_BREADCRUMBS,
                     debug: cfg!(debug_assertions),
+                    attach_stacktrace: true,
                     before_send: Some(Arc::new(filter_and_scrub_sensitive_data)),
                     ..Default::default()
                 },
