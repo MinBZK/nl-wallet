@@ -592,9 +592,10 @@ constructor and the <code class="docutils literal notranslate"><span class="pre"
 <code class="docutils literal notranslate"><span class="pre">/nonce</span></code>, <code class="docutils literal notranslate"><span class="pre">/credential</span></code> and the previews. It holds the
 <code class="docutils literal notranslate"><span class="pre">SessionStore&lt;IssuanceData&gt;</span></code> and the nonce store. <code class="docutils literal notranslate"><span class="pre">process_token_request</span></code>
 loads the issuance session keyed by the code, verifies the wallet’s PKCE
-according to the session’s <code class="docutils literal notranslate"><span class="pre">Grant</span></code>, and issues the access token. It does
-<strong>no</strong> upstream interaction and knows nothing about DigiD or a BSN — by
-the time it runs, the issuables are already in the session.</p></li>
+according to the session’s <code class="docutils literal notranslate"><span class="pre">Grant</span></code>, verifies the WIA presented alongside
+the request, and issues the access token. It does <strong>no</strong> upstream
+interaction and knows nothing about DigiD or a BSN — by the time it
+runs, the issuables are already in the session.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">issuer::{AuthCodeIssued,</span> <span class="pre">Grant,</span> <span class="pre">IssuanceData}</span></code> — the issuance session
 data. <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> carries the <code class="docutils literal notranslate"><span class="pre">issuable_documents</span></code> plus a <code class="docutils literal notranslate"><span class="pre">Grant</span></code>:
 either <code class="docutils literal notranslate"><span class="pre">Grant::PreAuthorizedCode</span></code> (no PKCE) or
@@ -604,11 +605,14 @@ writes the pre-authorized variant directly; the auth-code variant is
 written by <code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer::complete_authorization</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">authorizing_issuer::AuthorizingIssuer</span></code> — the <strong>Authorization Phase</strong>
 wrapper around an <code class="docutils literal notranslate"><span class="pre">Issuer</span></code>. Owns the PAR store and an
-<code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code> impl. Serves <code class="docutils literal notranslate"><span class="pre">/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, and exposes
-<code class="docutils literal notranslate"><span class="pre">complete_authorization</span></code>, which mints a fresh issuer-side authorization
-code, writes the <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> session (with
-<code class="docutils literal notranslate"><span class="pre">Grant::AuthorizationCode</span></code>), and builds the wallet-facing redirect URL.
-Deployments doing only the pre-authorized grant never construct one.</p></li>
+<code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code> impl. Serves <code class="docutils literal notranslate"><span class="pre">/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>.
+<code class="docutils literal notranslate"><span class="pre">process_pushed_authorization_request</span></code> validates the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> and
+verifies the WIA presented alongside the PAR — its <code class="docutils literal notranslate"><span class="pre">sub</span></code> must match the
+request’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code> — before storing the request.
+<code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer</span></code> also exposes <code class="docutils literal notranslate"><span class="pre">complete_authorization</span></code>, which mints a
+fresh issuer-side authorization code, writes the <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> session
+(with <code class="docutils literal notranslate"><span class="pre">Grant::AuthorizationCode</span></code>), and builds the wallet-facing redirect
+URL. Deployments doing only the pre-authorized grant never construct one.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">authorization_code_flow::{AuthorizationCodeFlow,</span> <span class="pre">AuthorizeOutcome}</span></code> — the
 trait abstracting a single OAuth authorization-code grant at <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>.
 <code class="docutils literal notranslate"><span class="pre">authorize()</span></code> returns either <code class="docutils literal notranslate"><span class="pre">AuthorizeOutcome::RedirectTo(url)</span></code> (send the
@@ -766,9 +770,9 @@ wallet’s <code class="docutils literal notranslate"><span class="pre">/token</
     participant BRP
 
     Note over W, BRP: POST /issuance/par
-    W -&gt;&gt; H: POST /par (VciAuthorizationRequest)
-    H -&gt;&gt; AI: process_pushed_authorization_request
-    AI -&gt;&gt; AI: validate client_id,&lt;br/&gt;store(request_uri, request) in PAR store
+    W -&gt;&gt; H: POST /par (VciAuthorizationRequest, WIA)
+    H -&gt;&gt; AI: process_pushed_authorization_request(request, wia_disclosure)
+    AI -&gt;&gt; AI: validate client_id,&lt;br/&gt;verify_wia (sub matches client_id),&lt;br/&gt;store(request_uri, request) in PAR store
     AI -&gt;&gt; W: 201 PushedAuthorizationResponse&lt;br/&gt;(request_uri, expires_in)
 
     Note over W, BRP: GET /issuance/authorize
@@ -813,9 +817,9 @@ wallet’s <code class="docutils literal notranslate"><span class="pre">/token</
     F -&gt;&gt; W: 302 Location: &lt;wallet_redirect_uri&gt;?code=code1&amp;state=s1
 
     Note over W, BRP: POST /issuance/token
-    W -&gt;&gt; H: POST /token&lt;br/&gt;(code=code1, code_verifier=v1)
-    H -&gt;&gt; I: process_token_request(token_request, dpop)
-    I -&gt;&gt; I: load session[code1],&lt;br/&gt;verify S256(v1) == c1 (wallet PKCE),&lt;br/&gt;generate access_token + c_nonce&lt;br/&gt;(no upstream interaction)
+    W -&gt;&gt; H: POST /token&lt;br/&gt;(code=code1, code_verifier=v1, WIA)
+    H -&gt;&gt; I: process_token_request(token_request, dpop, wia_disclosure)
+    I -&gt;&gt; I: load session[code1],&lt;br/&gt;verify S256(v1) == c1 (wallet PKCE),&lt;br/&gt;verify_wia (sub matches client_id),&lt;br/&gt;generate access_token + c_nonce&lt;br/&gt;(no upstream interaction)
     I -&gt;&gt; H: TokenResponse
     H -&gt;&gt; W: TokenResponse
     </pre><p>A few things the extended diagram makes visible:</p>

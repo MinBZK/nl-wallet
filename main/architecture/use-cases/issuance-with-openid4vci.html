@@ -575,11 +575,13 @@ attributes to be issued out of band, binds them to a freshly generated
 pre-authorized code in an issuance session, and hands that code to the wallet
 inside an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI Credential Offer</a>. The wallet sends the code to the
 issuer’s <code class="docutils literal notranslate"><span class="pre">/token</span></code> endpoint with
-<code class="docutils literal notranslate"><span class="pre">grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code</span></code>; the issuer
-loads the session keyed by the code to find the attributes to issue (this grant
-carries no PKCE). The wallet then obtains a <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer’s <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce
-endpoint</a> and exchanges proofs of possession for attestations at the
-<code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint.</p>
+<code class="docutils literal notranslate"><span class="pre">grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code</span></code>, authenticating
+itself with a Wallet Instance Attestation (WIA) sent in HTTP headers
+(<a class="reference external" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09">OAuth 2.0 Attestation-Based Client Authentication</a>); the issuer verifies
+the WIA and loads the session keyed by the code to find the attributes to issue
+(this grant carries no PKCE). The wallet then obtains a <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the
+issuer’s <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce endpoint</a> and exchanges proofs of possession for
+attestations at the <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint.</p>
 <p>In our codebase, this flow is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> (the
 disclosure-based-issuance service); see <a class="reference internal" href="disclosure-based-issuance.html"><span class="doc std std-doc">Disclosure-based Issuance</span></a> for the
 end-to-end picture, including how the disclosed attributes are turned into
@@ -625,7 +627,7 @@ described below.</p>
         CI-&gt;&gt;Wallet: c_nonce
         Wallet--&gt;&gt;CI: GET metadata
         CI--&gt;&gt;Wallet: metadata
-        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WIA) to /credential
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token) to /credential
         CI-&gt;&gt;Wallet: Credential Response (attestation copies)
     end
     </pre></section>
@@ -639,8 +641,9 @@ parameters are sent server-to-server and the browser only carries a
 <code class="docutils literal notranslate"><span class="pre">request_uri</span></code>;</p></li>
 <li><p><a class="reference external" href="https://www.rfc-editor.org/rfc/rfc7636">PKCE</a> with <code class="docutils literal notranslate"><span class="pre">S256</span></code> is required;</p></li>
 <li><p>The wallet authenticates itself at both <code class="docutils literal notranslate"><span class="pre">/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/token</span></code> with a Wallet
-Instance Attestation (WIA) carried in a <code class="docutils literal notranslate"><span class="pre">client_assertion</span></code> (<a class="reference external" href="https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-05.html">OAuth 2.0
-Attestation-Based Client Authentication</a>);</p></li>
+Instance Attestation (WIA), carried in <code class="docutils literal notranslate"><span class="pre">OAuth-Client-Attestation</span></code> and
+<code class="docutils literal notranslate"><span class="pre">OAuth-Client-Attestation-PoP</span></code> headers (<a class="reference external" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09">OAuth 2.0 Attestation-Based Client
+Authentication</a>);</p></li>
 <li><p>Access tokens are sender-constrained with <a class="reference external" href="https://www.rfc-editor.org/rfc/rfc9449">DPoP</a>. The <code class="docutils literal notranslate"><span class="pre">/token</span></code> response
 has <code class="docutils literal notranslate"><span class="pre">token_type=DPoP</span></code>, and every subsequent request at the credential issuer
 carries both an <code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">DPoP</span> <span class="pre">&lt;access_token&gt;</span></code> header and a fresh DPoP
@@ -684,7 +687,7 @@ carrying one Proof of Possession per attestation private key.</p></li>
         CI-&gt;&gt;Wallet: c_nonce
         Wallet--&gt;&gt;CI: GET metadata
         CI--&gt;&gt;Wallet: metadata
-        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WIA) to /credential
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token) to /credential
         CI-&gt;&gt;Wallet: Credential Response (attestation copies)
     end
     </pre></section>
@@ -710,8 +713,7 @@ that share no parameters:</p>
 pushes a PAR, calls <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, eventually receives an
 authorization code at its own <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, and exchanges it at the
 <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/token</span></code>. The wallet’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code>,
-PKCE pair, WIA (<code class="docutils literal notranslate"><span class="pre">client_assertion</span></code>) and DPoP all terminate at the
-<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>.</p></li>
+PKCE pair, WIA and DPoP all terminate at the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>.</p></li>
 <li><p><strong>PID Issuer ↔ RDO Max</strong> — a second, freshly minted exchange the
 <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> starts while handling the wallet’s <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>. Every parameter
 here is the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s own: its DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, its own <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>
@@ -732,10 +734,10 @@ while the user is away at DigiD.</p>
 lookup happen <strong>in the <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code> handler</strong>, before the wallet ever calls
 <code class="docutils literal notranslate"><span class="pre">/token</span></code>. By the time the wallet exchanges its code at <code class="docutils literal notranslate"><span class="pre">/token</span></code>, the attributes
 are already determined and stored in the issuance session, so <code class="docutils literal notranslate"><span class="pre">/token</span></code> only
-verifies the wallet’s PKCE <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code> and issues the access token — there
-is no upstream interaction at <code class="docutils literal notranslate"><span class="pre">/token</span></code>. If anything fails in the callback (BSN,
-BRP, document build), the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> redirects the browser back to the
-wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> with an OAuth <code class="docutils literal notranslate"><span class="pre">error</span></code> response.</p>
+verifies the wallet’s PKCE <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code> and WIA, and issues the access
+token — there is no upstream interaction at <code class="docutils literal notranslate"><span class="pre">/token</span></code>. If anything fails in
+the callback (BSN, BRP, document build), the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> redirects the
+browser back to the wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> with an OAuth <code class="docutils literal notranslate"><span class="pre">error</span></code> response.</p>
 <p>Parameter handling, <strong>wallet ↔ PID Issuer</strong> (everything terminates at the PID
 Issuer):</p>
 <table class="docutils align-default">
@@ -760,7 +762,7 @@ Issuer):</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scope</span></code></p></td>
 <td><p>the requested PID credential configuration</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">client_assertion</span></code> (WIA)</p></td>
+<tr class="row-odd"><td><p>WIA headers</p></td>
 <td><p>wallet &lt;-&gt; PID Issuer only</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DPoP</span></code> header</p></td>
@@ -801,9 +803,9 @@ Issuer, on both upstream <code class="docutils literal notranslate"><span class=
 </tbody>
 </table>
 <p>To keep the diagram focused on the OpenID4VCI / RDO Max delegation, the
-wallet-side DPoP layer and the Wallet Instance Attestation (WIA,
-<code class="docutils literal notranslate"><span class="pre">client_assertion</span></code>) are omitted below — both sit strictly between the wallet and
-the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> and do not affect the delegation to RDO Max.</p>
+wallet-side DPoP layer and the Wallet Instance Attestation (WIA) are omitted
+below — both sit strictly between the wallet and the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> and do not
+affect the delegation to RDO Max.</p>
 <p>PKCE tracer values: the wallet uses <code class="docutils literal notranslate"><span class="pre">(v1,</span> <span class="pre">c1)</span></code> toward the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>; the
 <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> uses <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code> toward RDO Max. Each verifier is checked only by
 the party that issued the challenge.</p>

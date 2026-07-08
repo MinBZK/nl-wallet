@@ -303,6 +303,8 @@ update.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> service can now serve a custom DigiD login page, where a
 preconfigured BSN can be selected. For this, the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> offers a
 <code class="docutils literal notranslate"><span class="pre">digid.mock_subjects</span></code> setting.</p></li>
+<li><p>All issuance binaries now require the <code class="docutils literal notranslate"><span class="pre">wia_trust_anchors</span></code> array in their
+configuration file, instead of just the PID issuer.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -378,6 +380,10 @@ involved.</p></li>
 <li><p>SD-JWT VC type metadata is updated to draft 13.</p></li>
 <li><p>All issuance servers can serve signed OpenID4VCI metadata with the WRPAC
 certificate.</p></li>
+<li><p>The WIA, also known as the Wallet Attestation in OpenID4VCI, is now no longer
+sent as part of the <code class="docutils literal notranslate"><span class="pre">CredentialRequest</span></code> data structure, but along with the
+PAR and Token Request as defined in the [“OAuth 2.0 Attestation-Based Client
+Authentication” draft specification][2], in accordance with OpenID4VCI 1.0.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">
