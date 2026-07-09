@@ -25,6 +25,7 @@ use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::errors::AuthorizationErrorCode;
+use openid4vc::errors::RemoteErrorCode;
 use openid4vc::errors::TokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
@@ -494,7 +495,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     assert_matches!(
         error,
         WalletIssuanceError::TokenRequest(error_response)
-            if error_response.error == TokenErrorCode::InvalidClientAttestation
+            if error_response.error == RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation)
     );
 }
 

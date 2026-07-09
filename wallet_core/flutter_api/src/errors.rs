@@ -33,6 +33,7 @@ use wallet::errors::WalletUnlockError;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
 use wallet::errors::openid4vc::CredentialErrorCode;
 use wallet::errors::openid4vc::OAuthError;
+use wallet::errors::openid4vc::RemoteErrorCode;
 use wallet::errors::openid4vc::VpClientError;
 use wallet::errors::openid4vc::VpMessageClientError;
 use wallet::errors::openid4vc::VpMessageClientErrorType;
@@ -298,7 +299,7 @@ impl FlutterApiErrorFields for IssuanceError {
             // no longer usable", so surface the "session expired" screen instead of a generic server
             // error.
             IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(error))
-                if error.error == CredentialErrorCode::InvalidToken =>
+                if error.error == RemoteErrorCode::Known(CredentialErrorCode::InvalidToken) =>
             {
                 FlutterApiErrorType::ExpiredSession
             }
@@ -849,6 +850,7 @@ mod tests {
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OAuthError;
     use wallet::errors::openid4vc::PostAuthResponseErrorCode;
+    use wallet::errors::openid4vc::RemoteErrorCode;
     use wallet::errors::openid4vc::VpClientError;
     use wallet::errors::openid4vc::VpMessageClientError;
     use wallet::errors::openid4vc::WalletIssuanceError;
@@ -902,7 +904,7 @@ mod tests {
     )]
     #[case::issuance_credential_request_invalid_token(
         IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(Box::new(ErrorResponse {
-            error: CredentialErrorCode::InvalidToken,
+            error: RemoteErrorCode::Known(CredentialErrorCode::InvalidToken),
             error_description: None,
             error_uri: None,
         }))),
@@ -911,7 +913,7 @@ mod tests {
     )]
     #[case::issuance_credential_request_other(
         IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(Box::new(ErrorResponse {
-            error: CredentialErrorCode::ServerError,
+            error: RemoteErrorCode::Known(CredentialErrorCode::ServerError),
             error_description: None,
             error_uri: None,
         }))),

@@ -24,6 +24,7 @@ use crate::authorization::VciAuthorizationRequest;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
 use crate::errors::ParErrorCode;
+use crate::errors::RemoteErrorResponse;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -62,7 +63,7 @@ pub enum OAuthError {
 
     #[error("pushed authorization request rejected: {0:?}")]
     #[category(expected)]
-    PushedAuthorizationRequest(Box<ErrorResponse<ParErrorCode>>),
+    PushedAuthorizationRequest(Box<RemoteErrorResponse<ParErrorCode>>),
 
     #[error("user denied authentication")]
     #[category(expected)]
@@ -169,7 +170,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
                 .map_err(WalletIssuanceError::ParHttp)?
         } else {
             let error = response
-                .json::<ErrorResponse<ParErrorCode>>()
+                .json::<RemoteErrorResponse<ParErrorCode>>()
                 .await
                 .map_err(WalletIssuanceError::ParHttp)?;
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
@@ -332,8 +333,6 @@ mod tests {
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::errors::AuthorizationErrorCode;
-    use crate::errors::ErrorResponse;
-    use crate::errors::ParErrorCode;
     use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -571,18 +570,6 @@ mod tests {
 
         assert!(!session.matches_received_redirect_uri(&Url::parse("https://example.com").unwrap()));
         assert!(!session.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
-    }
-
-    #[rstest]
-    #[case(json!({ "error": "invalid_client" }), ParErrorCode::InvalidClient)]
-    #[case(json!({ "error": "server_error" }), ParErrorCode::ServerError)]
-    #[case(json!({ "error": "invalid_request" }), ParErrorCode::InvalidRequest)]
-    // A spec-compliant code the holder doesn't model explicitly falls through to the catch-all,
-    // preserving the original wire value rather than failing to decode.
-    #[case(json!({ "error": "temporarily_unavailable" }), ParErrorCode::Other("temporarily_unavailable".to_string()))]
-    fn test_par_error_code_deserializes_wire_format(#[case] body: serde_json::Value, #[case] expected: ParErrorCode) {
-        let response: ErrorResponse<ParErrorCode> = serde_json::from_value(body).unwrap();
-        assert_eq!(response.error, expected);
     }
 
     #[tokio::test]

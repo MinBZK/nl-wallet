@@ -15,7 +15,7 @@ use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
 use openid4vc::errors::AuthBearerErrorCode;
-use openid4vc::errors::ErrorResponse;
+use openid4vc::errors::RemoteErrorResponse;
 use openid4vc::errors::TokenErrorCode;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::token::TokenRequest;
@@ -39,10 +39,10 @@ pub enum UserInfoError {
     NoJwksUri,
 
     #[error("error requesting access token: {0:?}")]
-    RequestingAccessToken(Box<ErrorResponse<TokenErrorCode>>),
+    RequestingAccessToken(Box<RemoteErrorResponse<TokenErrorCode>>),
 
     #[error("error requesting userinfo: {0:?}")]
-    RequestingUserInfo(Box<ErrorResponse<AuthBearerErrorCode>>),
+    RequestingUserInfo(Box<RemoteErrorResponse<AuthBearerErrorCode>>),
 
     #[error("JWE decryption error: {0}")]
     JweDecryption(#[source] JweStringDecryptionError),
@@ -90,7 +90,7 @@ async fn request_userinfo_jwt(
     let token_response = {
         let status = response.status();
         if status.is_client_error() || status.is_server_error() {
-            let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
+            let error = response.json::<RemoteErrorResponse<TokenErrorCode>>().await?;
             return Err(UserInfoError::RequestingAccessToken(error.into()));
         } else {
             response.json::<TokenResponse>().await?
@@ -109,7 +109,7 @@ async fn request_userinfo_jwt(
     let jwt = {
         let status = response.status();
         if status.is_client_error() || status.is_server_error() {
-            let error = response.json::<ErrorResponse<AuthBearerErrorCode>>().await?;
+            let error = response.json::<RemoteErrorResponse<AuthBearerErrorCode>>().await?;
             return Err(UserInfoError::RequestingUserInfo(error.into()));
         } else {
             response.text().await?
