@@ -50,10 +50,10 @@ use utils::generator::TimeGenerator;
 use utils::spawn::start_recurring_task;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::errors::AuthorizationErrorCode;
-use crate::errors::AuthorizationErrorResponse;
 use crate::errors::BoxedErrorWithCode;
 use crate::errors::PostAuthResponseErrorCode;
+use crate::errors::RemoteAuthorizationErrorResponse;
+use crate::errors::RemoteErrorCode;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::ClientId;
@@ -170,7 +170,7 @@ pub enum PostAuthResponseError {
 
 #[derive(thiserror::Error, Debug)]
 #[error("user aborted with error: {0:?}")]
-pub struct UserError(Box<AuthorizationErrorResponse<VpAuthorizationErrorCode>>);
+pub struct UserError(Box<RemoteAuthorizationErrorResponse<VpAuthorizationErrorCode>>);
 
 #[derive(thiserror::Error, Debug)]
 pub struct WithRedirectUri<T: Error> {
@@ -270,7 +270,7 @@ pub struct VpToken {
 #[serde(untagged)]
 pub enum WalletAuthResponse {
     Response(VpToken),
-    Error(AuthorizationErrorResponse<VpAuthorizationErrorCode>),
+    Error(RemoteAuthorizationErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
@@ -1441,7 +1441,7 @@ impl Session<WaitingForResponse> {
                 // Check if the error code indicates that the user refused to disclose.
                 let user_refused = matches!(
                     err.error(),
-                    VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
+                    RemoteErrorCode::Known(VpAuthorizationErrorCode::AccessDenied)
                 );
 
                 let response = self.err_response();
@@ -1593,8 +1593,6 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
 
-    use super::AuthorizationErrorCode;
-    use super::AuthorizationErrorResponse;
     use super::CLEANUP_INTERVAL;
     use super::ClientId;
     use super::DisclosedAttributesError;
@@ -1625,7 +1623,10 @@ mod tests {
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
     use super::must_use_return_url;
+    use crate::errors::AuthorizationErrorResponse;
     use crate::errors::ErrorResponse;
+    use crate::errors::RemoteAuthorizationErrorResponse;
+    use crate::errors::RemoteErrorCode;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
@@ -1643,11 +1644,11 @@ mod tests {
         StatusListClientStub<SigningKey>,
     >;
 
-    impl From<VpAuthorizationErrorCode> for AuthorizationErrorResponse<VpAuthorizationErrorCode> {
+    impl From<VpAuthorizationErrorCode> for RemoteAuthorizationErrorResponse<VpAuthorizationErrorCode> {
         fn from(error: VpAuthorizationErrorCode) -> Self {
             Self {
                 error_response: ErrorResponse {
-                    error,
+                    error: RemoteErrorCode::Known(error),
                     error_description: None,
                     error_uri: None,
                 },
@@ -1812,9 +1813,7 @@ mod tests {
             .unwrap();
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
-        let end_session_message = WalletAuthResponse::Error(
-            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied).into(),
-        );
+        let end_session_message = WalletAuthResponse::Error(VpAuthorizationErrorCode::AccessDenied.into());
         let ended_session_response = verifier
             .process_authorization_response(&session_token, end_session_message, &TimeGenerator)
             .await
@@ -2207,7 +2206,7 @@ mod tests {
     #[test]
     fn test_wallet_auth_response_error_serializes_without_state_parameter() {
         let body = serde_qs::to_string(&WalletAuthResponse::Error(
-            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied).into(),
+            VpAuthorizationErrorCode::AccessDenied.into(),
         ))
         .unwrap();
 
@@ -2218,7 +2217,7 @@ mod tests {
     fn test_wallet_auth_response_error_serializes_and_deserializes_state_parameter() {
         let expected = WalletAuthResponse::Error(AuthorizationErrorResponse {
             error_response: ErrorResponse {
-                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                error: RemoteErrorCode::Known(VpAuthorizationErrorCode::AccessDenied),
                 error_description: None,
                 error_uri: None,
             },

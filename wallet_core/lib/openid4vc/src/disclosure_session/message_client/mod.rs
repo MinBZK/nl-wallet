@@ -9,7 +9,6 @@ use url::Url;
 pub use self::error::VpMessageClientError;
 pub use self::error::VpMessageClientErrorType;
 pub use self::http::HttpVpMessageClient;
-use crate::errors::AuthorizationErrorCode;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -49,7 +48,7 @@ pub trait VpMessageClient {
             url,
             AuthorizationErrorResponse {
                 error_response: ErrorResponse {
-                    error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                    error: VpAuthorizationErrorCode::AccessDenied,
                     error_description: None,
                     error_uri: None,
                 },

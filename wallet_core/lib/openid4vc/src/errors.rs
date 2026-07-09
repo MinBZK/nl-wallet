@@ -145,6 +145,8 @@ where
     }
 }
 
+pub type RemoteAuthorizationErrorResponse<T> = AuthorizationErrorResponse<RemoteErrorCode<T>>;
+
 /// Wrapper of [`ErrorResponse`] that adds the optional `state` parameter used by authorization error responses.
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -160,6 +162,18 @@ pub struct AuthorizationErrorResponse<T> {
 impl<T> AuthorizationErrorResponse<T> {
     pub fn error(&self) -> &T {
         &self.error_response.error
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<T> From<AuthorizationErrorResponse<T>> for AuthorizationErrorResponse<RemoteErrorCode<T>> {
+    fn from(value: AuthorizationErrorResponse<T>) -> Self {
+        let AuthorizationErrorResponse { error_response, state } = value;
+
+        Self {
+            error_response: error_response.into(),
+            state,
+        }
     }
 }
 
@@ -749,18 +763,22 @@ impl ErrorWithCode for PostAuthResponseError {
 }
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
-/// See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.5
+/// See <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1> and
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.5>
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
+    // Error codes from RFC 6749.
+    InvalidRequest,
+    AccessDenied,
+    UnsupportedResponseType,
+
+    // Error codes from OpenID4VP.
     InvalidClient,
     VpFormatsNotSupported,
     InvalidRequestUriMethod,
     InvalidTransactionData,
     WalletUnavailable,
-
-    #[strum(default)]
-    AuthorizationError(AuthorizationErrorCode),
 }
 
 // The RP error types and `VerificationErrorCode` are handled differently from the errors above:

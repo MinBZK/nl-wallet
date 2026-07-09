@@ -1293,7 +1293,7 @@ where
 
         let response = self
             .verifier
-            .process_authorization_response(&session_token, WalletAuthResponse::Error(error), &TimeGenerator)
+            .process_authorization_response(&session_token, WalletAuthResponse::Error(error.into()), &TimeGenerator)
             .await
             .map_err(|error| {
                 let error_response = DisclosureErrorResponse::<PostAuthResponseErrorCode>::from(error);
