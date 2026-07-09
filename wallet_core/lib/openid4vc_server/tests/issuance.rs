@@ -53,7 +53,7 @@ use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::issuance_session::HttpIssuanceSession;
 use openid4vc_server::issuer::create_authorization_router;
@@ -201,27 +201,26 @@ fn verify_issued_credentials(
 ) {
     assert_eq!(issued_creds.len(), expected_attestations);
     assert_eq!(
-        issued_creds.first().unwrap().copies.as_ref().len().get(),
+        match &issued_creds.first().unwrap().copies {
+            IssuedCredentialCopies::Mdoc(mdocs) => mdocs.len().get(),
+            IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts.len().get(),
+        },
         expected_copies
     );
 
     issued_creds
         .into_iter()
         .zip(credential_previews)
-        .for_each(|(credential, preview_data)| {
-            credential
-                .copies
-                .into_inner()
-                .into_iter()
-                .for_each(|issued_credential| match issued_credential {
-                    IssuedCredential::MsoMdoc { .. } => {
-                        panic!("mdoc should not be issued");
-                    }
-                    IssuedCredential::SdJwt { sd_jwt, .. } => {
-                        let payload = CredentialPayload::from_sd_jwt(sd_jwt).unwrap();
-                        assert_eq!(payload.previewable_payload, preview_data.credential_payload);
-                    }
-                })
+        .for_each(|(credential, preview_data)| match credential.copies {
+            IssuedCredentialCopies::Mdoc(_) => {
+                panic!("mdoc should not be issued");
+            }
+            IssuedCredentialCopies::SdJwt(sd_jwts) => {
+                sd_jwts.into_iter().for_each(|(_, sd_jwt)| {
+                    let payload = CredentialPayload::from_sd_jwt(sd_jwt).unwrap();
+                    assert_eq!(payload.previewable_payload, preview_data.credential_payload);
+                });
+            }
         });
 }
 

@@ -32,7 +32,6 @@ use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -69,6 +68,9 @@ use tracing::warn;
 #[cfg(not(debug_assertions))]
 use utils::built_info::db_version_identifier;
 use utils::generator::Generator;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 use super::DatabaseExport;
@@ -1248,11 +1250,10 @@ fn create_attestation_copy_models(
     attestation_id: Uuid,
     copies: IssuedCredentialCopies,
 ) -> StorageResult<Vec<attestation_copy::ActiveModel>> {
-    copies
-        .into_inner()
-        .into_iter()
-        .map(|credential| match credential {
-            IssuedCredential::MsoMdoc { mdoc } => {
+    match copies {
+        IssuedCredentialCopies::Mdoc(mdocs) => mdocs
+            .into_nonempty_iter()
+            .map(|mdoc| {
                 let issuer_certificate_dn = mdoc
                     .issuer_leaf_certificate()
                     .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
@@ -1261,61 +1262,64 @@ fn create_attestation_copy_models(
 
                 let (mso, private_key_id, issuer_signed) = mdoc.into_components();
 
-                let attestation_bytes = cbor_serialize(&issuer_signed)?;
-                let (status_uri, status_index) = mso
-                    .status
-                    .map(|status| match status {
-                        StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
-                    })
-                    .unwrap_or((None, None));
+                let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
 
-                let model = attestation_copy::ActiveModel {
-                    id: Set(Uuid::now_v7()),
-                    disclosure_count: Set(0),
-                    attestation_id: Set(attestation_id),
-                    attestation_format: Set(AttestationFormat::Mdoc),
-                    key_identifier: Set(private_key_id),
-                    status_list_url: Set(status_uri),
-                    status_list_index: Set(status_index),
-                    issuer_certificate_dn: Set(issuer_certificate_dn),
-                    revocation_status: Set(None),
-                    attestation: Set(CompressedBlob::new(&attestation_bytes)?),
-                };
-
-                Ok::<_, StorageError>(model)
-            }
-            IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
+                Ok((
+                    AttestationFormat::Mdoc,
+                    mso.status,
+                    private_key_id,
+                    issuer_certificate_dn,
+                    attestation_bytes,
+                ))
+            })
+            .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
+        IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
+            .into_nonempty_iter()
+            .map(|(key_identifier, sd_jwt)| {
                 let issuer_certificate_dn = sd_jwt
                     .issuer_leaf_certificate()
                     .to_canonical_distinguished_name()
                     .expect("the issuer certificate should contain a valid DN at this point");
+
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
+                let status = sd_jwt.into_claims().status;
 
-                let (status_uri, status_index) = sd_jwt
-                    .into_claims()
-                    .status
-                    .map(|status| match status {
-                        StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
-                    })
-                    .unwrap_or((None, None));
+                Ok((
+                    AttestationFormat::SdJwt,
+                    status,
+                    key_identifier,
+                    issuer_certificate_dn,
+                    attestation_bytes,
+                ))
+            })
+            .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
+    }
+    .into_iter()
+    .map(
+        |(format, status, key_identifier, issuer_certificate_dn, attestation_bytes)| {
+            let (status_uri, status_index) = status
+                .map(|status| match status {
+                    StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                })
+                .unwrap_or((None, None));
 
-                let model = attestation_copy::ActiveModel {
-                    id: Set(Uuid::now_v7()),
-                    disclosure_count: Set(0),
-                    attestation_id: Set(attestation_id),
-                    attestation_format: Set(AttestationFormat::SdJwt),
-                    key_identifier: Set(key_identifier),
-                    status_list_url: Set(status_uri),
-                    status_list_index: Set(status_index),
-                    issuer_certificate_dn: Set(issuer_certificate_dn),
-                    revocation_status: Set(None),
-                    attestation: Set(CompressedBlob::new(&attestation_bytes)?),
-                };
+            let model = attestation_copy::ActiveModel {
+                id: Set(Uuid::now_v7()),
+                disclosure_count: Set(0),
+                attestation_id: Set(attestation_id),
+                attestation_format: Set(format),
+                key_identifier: Set(key_identifier),
+                status_list_url: Set(status_uri),
+                status_list_index: Set(status_index),
+                issuer_certificate_dn: Set(issuer_certificate_dn),
+                revocation_status: Set(None),
+                attestation: Set(CompressedBlob::new(&attestation_bytes)?),
+            };
 
-                Ok(model)
-            }
-        })
-        .try_collect()
+            Ok(model)
+        },
+    )
+    .try_collect()
 }
 
 fn determine_revocation_status(revocation_statuses: &[Option<RevocationStatus>]) -> Option<RevocationStatus> {
@@ -1803,12 +1807,7 @@ pub(crate) mod tests {
         let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
         let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, mdoc.into_private_key_id()).unwrap();
 
-        let credential = IssuedCredential::MsoMdoc { mdoc: mdoc.clone() };
-        let issued_mdoc_copies = IssuedCredentialCopies::new_or_panic(
-            vec![credential.clone(), credential.clone(), credential.clone()]
-                .try_into()
-                .unwrap(),
-        );
+        let issued_mdoc_copies = IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc.clone(), mdoc.clone(), mdoc.clone()]);
 
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
@@ -2021,16 +2020,12 @@ pub(crate) mod tests {
 
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
 
-        let issued_copies = IssuedCredentialCopies::new_or_panic(
-            vec![credential.clone(), credential.clone(), credential.clone()]
-                .try_into()
-                .unwrap(),
-        );
+        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone())
+        ]);
 
         let attestation_type = sd_jwt.claims().vct.clone();
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
@@ -2206,15 +2201,12 @@ pub(crate) mod tests {
         // Create issued_copies that will be inserted into the database
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
-        let issued_copies = IssuedCredentialCopies::new_or_panic(
-            vec![credential.clone(), credential.clone(), credential.clone()]
-                .try_into()
-                .unwrap(),
-        );
+
+        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone())
+        ]);
 
         let attestation_type = sd_jwt.claims().vct.clone();
 
@@ -2270,15 +2262,12 @@ pub(crate) mod tests {
         // Create new issued_copies that will be updated
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt,
-        };
-        let issued_copies = IssuedCredentialCopies::new_or_panic(
-            vec![credential.clone(), credential.clone(), credential.clone()]
-                .try_into()
-                .unwrap(),
-        );
+
+        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
+            ("sd_jwt_key_id".to_string(), sd_jwt.clone())
+        ]);
 
         attestation_presentation.identity = AttestationIdentity::Fixed {
             id: attestations[0].attestation_id,
@@ -2557,12 +2546,10 @@ pub(crate) mod tests {
 
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
 
-        let issued_copies = IssuedCredentialCopies::new_or_panic(vec_nonempty![credential.clone()]);
+        let issued_copies =
+            IssuedCredentialCopies::SdJwt(vec_nonempty![("sd_jwt_key_id".to_string(), sd_jwt.clone()),]);
+
         let attestation_type = sd_jwt.claims().vct.clone();
 
         // Insert sd_jwts
@@ -2789,11 +2776,10 @@ pub(crate) mod tests {
     ) -> (Uuid, VerifiedSdJwt) {
         let sd_jwt =
             SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: key_identifier.to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
-        let issued_copies = IssuedCredentialCopies::new_or_panic(vec_nonempty![credential; copies]);
+
+        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
+            (key_identifier.to_string(), sd_jwt.clone()); copies
+        ]);
 
         storage
             .insert_credentials(
@@ -2948,12 +2934,10 @@ pub(crate) mod tests {
         renewed_presentation.identity = AttestationIdentity::Fixed { id: attestation_id };
         renewed_presentation.attestation_type = "mock_renewed".to_string();
 
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "renewed_key_id".to_string(),
-            sd_jwt: SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key())
-                .into_verified(),
-        };
-        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential].try_into().unwrap());
+        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![(
+            "renewed_key_id".to_string(),
+            SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified()
+        )]);
 
         storage
             .update_credentials(Utc::now(), vec![(issued_copies, renewed_presentation.clone())])
@@ -2987,22 +2971,30 @@ pub(crate) mod tests {
     #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Revoked)], Some(RevocationStatus::Valid))]
     #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
     #[case(vec![Some(RevocationStatus::Valid), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Valid))]
-    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Valid), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Valid)
+    )]
     #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Valid), None], Some(RevocationStatus::Valid))]
     // Rule 2: Invalid if one copy is Invalid and no copy is Valid
     #[case(vec![Some(RevocationStatus::Revoked)], Some(RevocationStatus::Revoked))]
-    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Revoked)
+    )]
     #[case(vec![Some(RevocationStatus::Revoked), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Revoked))]
-    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Revoked), None], Some(RevocationStatus::Revoked))]
-    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Revoked), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Revoked))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Revoked), None], Some(RevocationStatus::Revoked)
+    )]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Revoked), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Revoked)
+    )]
     // Rule 3: Undetermined if one copy is Undetermined and no copy is Valid | Invalid
     #[case(vec![Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined))]
-    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Undetermined))]
-    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Undetermined), None], Some(RevocationStatus::Undetermined))]
-    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined))]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Undetermined)
+    )]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Undetermined), None], Some(RevocationStatus::Undetermined)
+    )]
+    #[case(vec![Some(RevocationStatus::Undetermined), Some(RevocationStatus::Undetermined)], Some(RevocationStatus::Undetermined)
+    )]
     // Rule 4: Corrupted if all copies are Corrupted
     #[case(vec![Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
-    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted))]
+    #[case(vec![Some(RevocationStatus::Corrupted), Some(RevocationStatus::Corrupted)], Some(RevocationStatus::Corrupted)
+    )]
     // None when status hasn't been checked yet
     #[case(vec![None], None)]
     #[case(vec![None, None], None)]
