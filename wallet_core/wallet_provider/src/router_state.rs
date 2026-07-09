@@ -37,8 +37,8 @@ use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::pin_policy::PinPolicy;
-use wallet_provider_service::wia_issuer::HsmWiaIssuer;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
+use wallet_provider_service::wia_issuer::WiaIssuer;
 
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
@@ -171,7 +171,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let wia_issuer = HsmWiaIssuer::new(
+        let wia_issuer = WiaIssuer::new(
             KeyPair::new(
                 HsmEcdsaKey::new(
                     settings.wia_settings.wia_signing_key_identifier,

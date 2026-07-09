@@ -28,14 +28,14 @@ pub const WIA_ATTESTATION_TYPE_IDENTIFIER: &str = "wia";
 const WIA_VALIDITY: Duration = Duration::hours(10);
 
 #[derive(Constructor)]
-pub struct HsmWiaIssuer<K = HsmEcdsaKey> {
+pub struct WiaIssuer<K = HsmEcdsaKey> {
     keypair: KeyPair<K>,
     sub: String,
     wallet_info: WiaWalletInfo,
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
-pub enum HsmWiaIssuerError {
+pub enum WiaIssuerError {
     #[error("JWK conversion error: {0}")]
     KeyConversion(#[source] JwkConversionError),
 
@@ -52,7 +52,7 @@ pub enum HsmWiaIssuerError {
     PopSignError(#[source] JwtSignError),
 }
 
-impl<K> HsmWiaIssuer<K>
+impl<K> WiaIssuer<K>
 where
     K: SecureEcdsaKey,
 {
@@ -62,14 +62,14 @@ where
         status_claim: StatusClaim,
         pop_claims: &WiaPopClaims,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<WiaDisclosure, HsmWiaIssuerError> {
+    ) -> Result<WiaDisclosure, WiaIssuerError> {
         let wia_exp = (time.generate() + WIA_VALIDITY).into();
         let iss = self
             .keypair
             .certificate()
             .common_name()
-            .map_err(HsmWiaIssuerError::WiaCertificateError)?
-            .ok_or(HsmWiaIssuerError::MissingCommonName)?
+            .map_err(WiaIssuerError::WiaCertificateError)?
+            .ok_or(WiaIssuerError::MissingCommonName)?
             .to_string();
 
         // The WIA private key is not persisted in the WP database: it is generated here, used here, and forgotten
@@ -90,16 +90,16 @@ where
                 },
                 time,
             )
-            .map_err(HsmWiaIssuerError::KeyConversion)?,
+            .map_err(WiaIssuerError::KeyConversion)?,
             &self.keypair,
         )
         .await
-        .map_err(HsmWiaIssuerError::SignError)?
+        .map_err(WiaIssuerError::SignError)?
         .into();
 
         let wia_pop = SignedJwt::sign(pop_claims, &wia_privkey)
             .await
-            .map_err(HsmWiaIssuerError::PopSignError)?
+            .map_err(WiaIssuerError::PopSignError)?
             .into();
 
         Ok(WiaDisclosure::new(wia, wia_pop))
@@ -117,9 +117,9 @@ pub mod mock {
     use jwt::wia::WiaWalletInfo;
     use p256::ecdsa::SigningKey;
 
-    use crate::wia_issuer::HsmWiaIssuer;
+    use crate::wia_issuer::WiaIssuer;
 
-    pub type MockWiaIssuer = HsmWiaIssuer<SigningKey>;
+    pub type MockWiaIssuer = WiaIssuer<SigningKey>;
 
     impl MockWiaIssuer {
         pub fn new_mock() -> Self {
@@ -150,7 +150,7 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
 
-    use super::HsmWiaIssuer;
+    use super::WiaIssuer;
 
     #[tokio::test]
     async fn it_works() {
@@ -158,7 +158,7 @@ mod tests {
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let sub = "sub";
 
-        let wia_issuer = HsmWiaIssuer::new(wia_keypair, sub.to_string(), WiaWalletInfo::new_mock());
+        let wia_issuer = WiaIssuer::new(wia_keypair, sub.to_string(), WiaWalletInfo::new_mock());
 
         let pop_claims = WiaPopClaims {
             iss: "wallet".to_string(),

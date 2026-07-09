@@ -132,7 +132,7 @@ use crate::revocation::RevocationError;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wia_issuer::HsmWiaIssuer;
+use crate::wia_issuer::WiaIssuer;
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
@@ -556,7 +556,7 @@ pub struct UserState<R, F, H, K, S> {
     pub repositories: R,
     pub flags: F,
     pub wallet_user_hsm: H,
-    pub wia_issuer: HsmWiaIssuer<K>,
+    pub wia_issuer: WiaIssuer<K>,
     pub wia_status_tracking_validity: Duration,
     pub wrapping_key_identifier: String,
     pub pid_issuer_trust_anchors: TrustAnchors,
