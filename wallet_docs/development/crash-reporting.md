@@ -86,8 +86,8 @@ capture handled exceptions when the event is useful for diagnostics.
 
 Android native Sentry captures native crashes, ANRs, NDK/tombstone artifacts,
 and raw tombstone data where supported by the SDK and platform. Android 11 and
-newer report ANRs through `ApplicationExitInfo`; a recoverable stall that does
-not terminate the process is not an ANR event.
+newer report ANRs through `ApplicationExitInfo`; a stall that recovers without
+terminating the process is not reported as an ANR event.
 
 iOS native Sentry captures native crashes, app hangs, watchdog terminations, and
 the app dSYM-based symbolication data for the final app binary.
