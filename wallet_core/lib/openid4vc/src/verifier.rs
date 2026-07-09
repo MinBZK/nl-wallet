@@ -50,11 +50,11 @@ use utils::generator::TimeGenerator;
 use utils::spawn::start_recurring_task;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::AuthorizationErrorCode;
-use crate::AuthorizationErrorResponse;
-use crate::BoxedErrorWithCode;
-use crate::PostAuthResponseErrorCode;
-use crate::VpAuthorizationErrorCode;
+use crate::errors::AuthorizationErrorCode;
+use crate::errors::AuthorizationErrorResponse;
+use crate::errors::BoxedErrorWithCode;
+use crate::errors::PostAuthResponseErrorCode;
+use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::ClientId;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
@@ -1625,7 +1625,7 @@ mod tests {
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
     use super::must_use_return_url;
-    use crate::ErrorResponse;
+    use crate::errors::ErrorResponse;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;

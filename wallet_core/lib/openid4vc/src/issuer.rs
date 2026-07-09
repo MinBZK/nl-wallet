@@ -1730,8 +1730,6 @@ mod tests {
     use wscd::wscd::WiaClient;
 
     use super::*;
-    use crate::CredentialErrorCode;
-    use crate::TokenErrorCode;
     use crate::cleanup::CLEANUP_INTERVAL;
     use crate::cleanup::start_cleanup_task;
     use crate::credential::CredentialRequest;
@@ -1740,6 +1738,8 @@ mod tests {
     use crate::credential::CredentialResponse;
     use crate::credential::CredentialResponses;
     use crate::dpop::Dpop;
+    use crate::errors::CredentialErrorCode;
+    use crate::errors::TokenErrorCode;
     use crate::issuable_document::IssuableDocument;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
