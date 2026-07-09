@@ -10,6 +10,7 @@ use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::errors::PostAuthResponseErrorCode;
+use openid4vc::errors::RemoteErrorCode;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -119,7 +120,8 @@ where
 
             // If the issuer has no attestations to issue, return an empty Vec.
             Err(DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(err))))
-                if err.error_response.error == PostAuthResponseErrorCode::NoIssuableAttestations =>
+                if err.error_response.error
+                    == RemoteErrorCode::Known(PostAuthResponseErrorCode::NoIssuableAttestations) =>
             {
                 return Ok(vec![]);
             }
@@ -189,10 +191,10 @@ mod tests {
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::errors::BoxedErrorWithCode;
-    use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::ErrorWithCode;
     use openid4vc::errors::PostAuthResponseErrorCode;
+    use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
@@ -388,10 +390,11 @@ mod tests {
                 disclosure_session::DisclosureError::new(
                     DataDisclosed::Disclosed,
                     VpSessionError::Client(VpClientError::Request(
-                        DisclosureErrorResponse {
+                        RemoteDisclosureErrorResponse {
                             error_response: ErrorResponse::<PostAuthResponseErrorCode>::from(
                                 PostAuthResponseError::HandlingDisclosureResult(BoxedErrorWithCode::new(MockError)),
-                            ),
+                            )
+                            .into(),
                             redirect_uri: None,
                         }
                         .into(),

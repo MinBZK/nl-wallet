@@ -115,7 +115,7 @@ pub struct ErrorResponse<T> {
     pub error_uri: Option<Url>,
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 impl<T> From<ErrorResponse<T>> for ErrorResponse<RemoteErrorCode<T>> {
     fn from(value: ErrorResponse<T>) -> Self {
         let ErrorResponse {
@@ -232,6 +232,8 @@ where
     }
 }
 
+pub type RemoteDisclosureErrorResponse<T> = DisclosureErrorResponse<RemoteErrorCode<T>>;
+
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
 /// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
@@ -248,6 +250,21 @@ pub struct DisclosureErrorResponse<T> {
 impl<T> DisclosureErrorResponse<T> {
     pub fn error(&self) -> &T {
         &self.error_response.error
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<T> From<DisclosureErrorResponse<T>> for DisclosureErrorResponse<RemoteErrorCode<T>> {
+    fn from(value: DisclosureErrorResponse<T>) -> Self {
+        let DisclosureErrorResponse {
+            error_response,
+            redirect_uri,
+        } = value;
+
+        Self {
+            error_response: error_response.into(),
+            redirect_uri,
+        }
     }
 }
 
@@ -621,11 +638,6 @@ pub enum GetAuthRequestErrorCode {
     UnknownSession,
 
     ServerError,
-
-    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the verifier.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for GetAuthRequestErrorCode {
@@ -639,7 +651,7 @@ impl ErrorStatusCode for GetAuthRequestErrorCode {
 
             Self::ExpiredSession | Self::CancelledSession | Self::UnknownSession => StatusCode::NOT_FOUND,
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -692,11 +704,6 @@ pub enum PostAuthResponseErrorCode {
     /// An NL Wallet specific error code, meaning the following: in a disclosure based issuance session,
     /// the issuer found no attestations to issue.
     NoIssuableAttestations,
-
-    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the verifier.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for PostAuthResponseErrorCode {
@@ -709,8 +716,6 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
 
             Self::NoIssuableAttestations => StatusCode::NOT_FOUND,
-
-            Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

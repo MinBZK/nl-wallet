@@ -1043,6 +1043,7 @@ mod tests {
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetAuthRequestErrorCode;
     use openid4vc::errors::PostAuthResponseErrorCode;
+    use openid4vc::errors::RemoteErrorCode;
     use openid4vc::verifier::SessionType;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1744,7 +1745,7 @@ mod tests {
             Err(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: GetAuthRequestErrorCode::ServerError,
+                        error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
                         error_description: None,
                         error_uri: None,
                     },
@@ -2331,7 +2332,7 @@ mod tests {
             Err(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: GetAuthRequestErrorCode::ServerError,
+                        error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
                         error_description: None,
                         error_uri: None,
                     },
@@ -2716,7 +2717,7 @@ mod tests {
     #[case(
         || DisclosureErrorResponse {
             error_response: ErrorResponse {
-                error: PostAuthResponseErrorCode::InvalidRequest,
+                error: RemoteErrorCode::Known(PostAuthResponseErrorCode::InvalidRequest),
                 error_description: None,
                 error_uri: None,
             },
@@ -2728,7 +2729,7 @@ mod tests {
     #[case(
         || DisclosureErrorResponse {
             error_response: ErrorResponse {
-                error: PostAuthResponseErrorCode::InvalidRequest,
+                error: RemoteErrorCode::Known(PostAuthResponseErrorCode::InvalidRequest),
                 error_description: None,
                 error_uri: None,
             },

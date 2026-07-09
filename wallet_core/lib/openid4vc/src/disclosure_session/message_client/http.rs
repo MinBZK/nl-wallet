@@ -16,9 +16,9 @@ use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use super::VpMessageClient;
 use super::VpMessageClientError;
 use crate::errors::AuthorizationErrorResponse;
-use crate::errors::DisclosureErrorResponse;
 use crate::errors::GetAuthRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
+use crate::errors::RemoteDisclosureErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpResponse;
@@ -43,12 +43,12 @@ impl HttpVpMessageClient {
     where
         T: FromStr,
         T::Err: Display,
-        DisclosureErrorResponse<T>: Into<VpMessageClientError>,
+        RemoteDisclosureErrorResponse<T>: Into<VpMessageClientError>,
     {
         // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
         let status = response.status();
         if status.is_client_error() || status.is_server_error() {
-            let error = response.json::<DisclosureErrorResponse<T>>().await?;
+            let error = response.json::<RemoteDisclosureErrorResponse<T>>().await?;
 
             return Err(error.into());
         }
@@ -63,7 +63,7 @@ impl HttpVpMessageClient {
     where
         T: FromStr,
         T::Err: Display,
-        DisclosureErrorResponse<T>: Into<VpMessageClientError>,
+        RemoteDisclosureErrorResponse<T>: Into<VpMessageClientError>,
     {
         let response_body = Self::get_body_from_response(response).await?;
         let response: VpResponse = serde_json::from_str(&response_body)?;

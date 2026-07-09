@@ -60,8 +60,10 @@ use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::errors::AuthorizationErrorResponse;
 use openid4vc::errors::BoxedErrorWithCode;
+use openid4vc::errors::DisclosureErrorResponse;
 use openid4vc::errors::GetAuthRequestErrorCode;
 use openid4vc::errors::PostAuthResponseErrorCode;
+use openid4vc::errors::RemoteErrorCode;
 use openid4vc::errors::VpAuthorizationErrorCode;
 use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
@@ -645,7 +647,7 @@ async fn test_client_and_server_cancel_after_created() {
     assert_matches!(
         error,
         VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthGetResponse(error)))
-            if error.error_response.error == GetAuthRequestErrorCode::CancelledSession
+            if error.error_response.error == RemoteErrorCode::Known(GetAuthRequestErrorCode::CancelledSession)
     );
 }
 
@@ -703,7 +705,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(
         error.error,
         VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthPostResponse(error)))
-            if error.error_response.error == PostAuthResponseErrorCode::CancelledSession
+            if error.error_response.error == RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession)
     );
 }
 
@@ -783,7 +785,7 @@ async fn test_disclosure_invalid_poa() {
     assert_matches!(
         error.error,
         VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthPostResponse(error)))
-            if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
+            if error.error_response.error == RemoteErrorCode::Known(PostAuthResponseErrorCode::InvalidRequest)
     );
 }
 
@@ -1247,7 +1249,11 @@ where
                 wallet_nonce,
             )
             .await
-            .map_err(|error| VpMessageClientError::AuthGetResponse(Box::new(error.into())))?;
+            .map_err(|error| {
+                let error_response = DisclosureErrorResponse::<GetAuthRequestErrorCode>::from(error);
+
+                VpMessageClientError::AuthGetResponse(Box::new(error_response.into()))
+            })?;
 
         Ok(jws.into())
     }
@@ -1268,7 +1274,11 @@ where
                 &TimeGenerator,
             )
             .await
-            .map_err(|error| VpMessageClientError::AuthPostResponse(Box::new(error.into())))?;
+            .map_err(|error| {
+                let error_response = DisclosureErrorResponse::<PostAuthResponseErrorCode>::from(error);
+
+                VpMessageClientError::AuthPostResponse(Box::new(error_response.into()))
+            })?;
 
         Ok(response.redirect_uri)
     }
@@ -1285,7 +1295,11 @@ where
             .verifier
             .process_authorization_response(&session_token, WalletAuthResponse::Error(error), &TimeGenerator)
             .await
-            .map_err(|error| VpMessageClientError::AuthPostResponse(Box::new(error.into())))?;
+            .map_err(|error| {
+                let error_response = DisclosureErrorResponse::<PostAuthResponseErrorCode>::from(error);
+
+                VpMessageClientError::AuthPostResponse(Box::new(error_response.into()))
+            })?;
 
         Ok(response.redirect_uri)
     }

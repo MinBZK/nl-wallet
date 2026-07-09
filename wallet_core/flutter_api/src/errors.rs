@@ -977,7 +977,7 @@ mod tests {
             Box::new(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: PostAuthResponseErrorCode::CancelledSession,
+                        error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
                         error_description: None,
                         error_uri: None
                     },
@@ -999,7 +999,7 @@ mod tests {
                 Box::new(
                     DisclosureErrorResponse {
                         error_response: ErrorResponse {
-                            error: PostAuthResponseErrorCode::CancelledSession,
+                            error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
                             error_description: None,
                             error_uri: None
                         },
