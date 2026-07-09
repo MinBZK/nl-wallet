@@ -121,12 +121,6 @@
 | `digidClientId` | Client ID for the DigiD service | `nil` |
 | `digidBaseUrl`  | Base URL for the DigiD service  | `nil` |
 
-### WIA trust anchors
-
-| Name              | Description       | Value |
-| ----------------- | ----------------- | ----- |
-| `wiaTrustAnchors` | the trust anchors | `[]`  |
-
 ### Wallet redirect uris
 
 | Name                 | Description          | Value |

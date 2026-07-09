@@ -30,6 +30,7 @@ pub(crate) fn init_sentry() {
                     max_breadcrumbs: MAX_BREADCRUMBS,
                     debug: cfg!(debug_assertions),
                     enable_logs: allow_logs(),
+                    attach_stacktrace: true,
                     before_send: Some(Arc::new(filter_and_scrub_sensitive_data)),
                     ..Default::default()
                 },

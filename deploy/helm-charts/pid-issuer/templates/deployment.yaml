@@ -106,7 +106,10 @@ spec:
             - name: PID_ISSUER__BRP_SERVER
               value: "http://brpproxy/"
             - name: PID_ISSUER__WIA_TRUST_ANCHORS
-              value: {{ join "," .Values.wiaTrustAnchors | quote }}
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: wia_trust_anchors
             - name: PID_ISSUER__WALLET_REDIRECT_URIS
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: PID_ISSUER__TYPE_METADATA
