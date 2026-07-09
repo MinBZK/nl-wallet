@@ -17,14 +17,19 @@ private let breadcrumbMessagePattern = try! NSRegularExpression(pattern: "^[a-z0
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    initializeSentry()
+    let appConfig = dartDefines()
+    let allowLogs = Self.allowLogs(appConfig)
 
+    initializeSentry(appConfig)
     self.platformSupport = PlatformSupport.shared
+    self.platformSupport?.allowReleaseLogs = appConfig["ALLOW_RELEASE_LOGS"] == "true"
 
     let dummy = dummy_method_to_enforce_bundling()
-    print(dummy)
     let dummy_frb = dummy_method_to_enforce_bundling_frb()
-    print(dummy_frb)
+    if allowLogs {
+      print(dummy)
+      print(dummy_frb)
+    }
 
     initializeLocalNotifications()
     initializeWorkmanager()
@@ -32,8 +37,7 @@ private let breadcrumbMessagePattern = try! NSRegularExpression(pattern: "^[a-z0
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  fileprivate func initializeSentry() {
-    let sentryConfig = dartDefines()
+  fileprivate func initializeSentry(_ sentryConfig: [String: String]) {
     guard let dsn = sentryConfig["SENTRY_DSN"], !dsn.isEmpty else { return }
 
     SentrySDK.start { options in
@@ -84,6 +88,14 @@ private let breadcrumbMessagePattern = try! NSRegularExpression(pattern: "^[a-z0
       result[String(parts[0])] = String(parts[1])
     }
     return result
+  }
+
+  fileprivate static func allowLogs(_ appConfig: [String: String]) -> Bool {
+    #if DEBUG
+    return true
+    #else
+    return appConfig["ALLOW_RELEASE_LOGS"] == "true"
+    #endif
   }
 
   fileprivate func isCuratedWalletBreadcrumb(_ breadcrumb: Breadcrumb) -> Bool {

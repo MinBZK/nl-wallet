@@ -8,6 +8,8 @@ pub use sentry::ClientOptions;
 pub use sentry::init;
 pub use sentry::release_name;
 
+use crate::logging::allow_logs;
+
 static SENTRY: OnceLock<Option<ClientInitGuard>> = OnceLock::new();
 const MAX_BREADCRUMBS: usize = 25;
 
@@ -27,6 +29,7 @@ pub(crate) fn init_sentry() {
                     send_default_pii: false,
                     max_breadcrumbs: MAX_BREADCRUMBS,
                     debug: cfg!(debug_assertions),
+                    enable_logs: allow_logs(),
                     attach_stacktrace: true,
                     before_send: Some(Arc::new(filter_and_scrub_sensitive_data)),
                     ..Default::default()
