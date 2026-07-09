@@ -462,13 +462,11 @@ where
 
 fn create_issuance_keys(
     wrapped_keys: Vec<WrappedKey>,
-    wia_key: Option<WrappedKey>,
     is_blocked: bool,
     uuid_generator: &impl Generator<Uuid>,
 ) -> Vec<WalletUserKey> {
     wrapped_keys
         .into_iter()
-        .chain(wia_key)
         .map(|key| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
             key,
@@ -603,7 +601,7 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, wrapped_keys) = perform_issuance(self, user_state, generators).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), None, false, generators);
+        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), false, generators);
 
         let tx = user_state.repositories.begin_transaction().await?;
         persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;
