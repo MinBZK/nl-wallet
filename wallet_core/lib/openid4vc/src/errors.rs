@@ -327,13 +327,15 @@ pub enum ParErrorCode {
 impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
-                StatusCode::UNAUTHORIZED
-            }
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
 
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+
+            Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
+
+            Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -392,13 +394,13 @@ impl ErrorStatusCode for TokenErrorCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
-                StatusCode::UNAUTHORIZED
-            }
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
 
             Self::InvalidGrant | Self::UnauthorizedClient | Self::UnsupportedGrantType | Self::InvalidScope => {
                 StatusCode::BAD_REQUEST
             }
+
+            Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
 
             Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -426,6 +428,10 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
 
+            Self::Wia(WiaError::Expired) => TokenErrorCode::UseFreshAttestation,
+
+            Self::Wia(_) => TokenErrorCode::InvalidClientAttestation,
+
             Self::MissingCodeVerifier | Self::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
 
             Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
@@ -439,10 +445,6 @@ impl ErrorWithCode for TokenRequestError {
             Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => TokenErrorCode::InvalidRequest,
 
             Self::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
-
-            Self::Wia(WiaError::Expired) => TokenErrorCode::UseFreshAttestation,
-
-            Self::Wia(_) => TokenErrorCode::InvalidClientAttestation,
         }
     }
 }

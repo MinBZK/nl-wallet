@@ -151,6 +151,9 @@ pub enum TokenRequestError {
     #[error("session not found for the supplied code")]
     SessionNotFound,
 
+    #[error("error verifying WIA: {0}")]
+    Wia(#[source] WiaError),
+
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType { expected: String, actual: String },
 
@@ -194,9 +197,6 @@ pub enum TokenRequestError {
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
-
-    #[error("error verifying WIA: {0}")]
-    Wia(#[source] WiaError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
