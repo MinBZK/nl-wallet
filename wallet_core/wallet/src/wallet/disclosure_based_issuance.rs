@@ -133,8 +133,9 @@ where
             .issuance_discovery
             .start_pre_authorized_code_flow(
                 &redirect_uri,
-                &self.new_remote_wia_client(attested_key, &registration_data, &config),
                 config.issuer_trust_anchors(),
+                &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;

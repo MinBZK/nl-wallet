@@ -174,6 +174,7 @@ where
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
                 &self.new_remote_wia_client(attested_key.to_owned(), registration_data, config),
+                config.wrpac_trust_anchors(),
             )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
@@ -237,8 +238,8 @@ where
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
-                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
                 config.issuer_trust_anchors(),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await
             .map_err(|e| match e {

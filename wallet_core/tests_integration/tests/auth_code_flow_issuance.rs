@@ -5,6 +5,7 @@ use db_test::DbName;
 use db_test::DbSetup;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
+use jwt::UnverifiedJwt;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use openid4vc::authorization::PushedAuthorizationResponse;
@@ -13,6 +14,7 @@ use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
+use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::scope::Scope;
@@ -50,13 +52,21 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
     let client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
 
     // 1. Boot smoke: the issuer serves its OpenID4VCI metadata, advertising the insurance config.
-    let metadata = client
+    let metadata: UnverifiedJwt<SignedIssuerMetadataPayload> = client
         .get_jwt(acf.public.as_base_url().join(".well-known/openid-credential-issuer"))
         .await
+        .unwrap()
+        .parse()
         .unwrap();
-    assert!(
-        metadata.contains("com.example.insurance"),
-        "metadata should advertise the insurance credential configuration"
+    let (_, SignedIssuerMetadataPayload { metadata, .. }) = metadata.dangerous_parse_unverified().unwrap();
+    let config_ids = metadata
+        .credential_configurations_supported
+        .keys()
+        .map(|config_id| config_id.as_ref())
+        .collect::<HashSet<_>>();
+    assert_eq!(
+        config_ids,
+        HashSet::from(["com.example.jum.bonuskaart", "com.example.insurance"]),
     );
 
     // 2. Push an authorization request carrying issuer_state = "insurance". The client_id must match the

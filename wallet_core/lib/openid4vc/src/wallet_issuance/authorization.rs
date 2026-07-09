@@ -280,8 +280,8 @@ impl AuthorizationSession for HttpAuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
+        wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);

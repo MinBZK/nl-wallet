@@ -689,7 +689,9 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                     let CredentialRequestProof::Jwt { jwt } = &proof;
 
                     // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
-                    let header = jwt.dangerous_parse_header_unverified()?;
+                    let header = jwt
+                        .dangerous_parse_header_unverified()
+                        .map_err(WalletIssuanceError::JwtParse)?;
 
                     let pubkey = header
                         .verifying_key()

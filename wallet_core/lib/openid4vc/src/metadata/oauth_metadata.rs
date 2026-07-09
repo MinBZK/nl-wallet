@@ -208,7 +208,7 @@ pub mod tests {
 
         let mock = server
             .mock_async(|when, then| {
-                when.method(GET).path("/.well-known/openid-configuration");
+                when.method(GET).path("/.well-known/oauth-authorization-server");
 
                 then.status(200)
                     .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
@@ -227,7 +227,7 @@ pub mod tests {
         let metadata = fetch_well_known::<AuthorizationServerMetadata>(
             &client,
             &issuer_identifier,
-            WellKnownPath::OpenidConfiguration,
+            WellKnownPath::OauthAuthorizationServer,
         )
         .await
         .unwrap();

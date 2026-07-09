@@ -20,6 +20,7 @@ use error_category::ErrorCategory;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
+use jwt::error::JwtX5cVerifyError;
 use mdoc::utils::cose::CoseError;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
@@ -225,9 +226,22 @@ pub enum WalletIssuanceError {
     #[error("not all authorization endpoints present: {0}")]
     AuthorizationEndpoints(#[source] AuthorizationEndpointsError),
 
-    #[error("error discovering Credential Issuer metadata: {0}")]
+    #[error("could not retrieve Credential Issuer metadata: {0}")]
     #[category(expected)]
-    CredentialIssuerDiscovery(#[source] WellKnownError),
+    CredentialIssuerMetadataHttp(#[source] reqwest::Error),
+
+    #[error(
+        "issuer identifier in Credential Issuer metadata does not match, expected: {expected}, received: {received}"
+    )]
+    #[category(expected)]
+    CredentialIssuerMetadataIdentifierMismatch {
+        expected: Box<IssuerIdentifier>,
+        received: Box<IssuerIdentifier>,
+    },
+
+    #[error("could not verify Credential Issuer metadata: {0}")]
+    #[category(expected)]
+    CredentialIssuerMetadataVerify(#[source] JwtX5cVerifyError),
 
     #[error(
         "authorization server specified in Credential Offer is not present in OAuth metadata: {} not in {}",
@@ -322,6 +336,10 @@ pub trait IssuanceDiscovery {
     /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow (if the Credential
     /// Offer resolves to an Authorization Code flow) or immediately returns an [`IssuanceSession`] that the caller can
     /// use to request issued credentials (if the Credential Offer contains a Pre-Authorized Code).
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "helper method that calls either of two functions"
+    )]
     async fn start(
         &self,
         offer_uri: &Url,
@@ -329,6 +347,7 @@ pub trait IssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
         wia_client: &impl WiaClient,
+        wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
@@ -340,6 +359,7 @@ pub trait IssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
         wia_client: &impl WiaClient,
+        wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Authorization, WalletIssuanceError>;
 
     /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
@@ -348,8 +368,9 @@ pub trait IssuanceDiscovery {
     async fn start_pre_authorized_code_flow(
         &self,
         offer_uri: &Url,
-        wia_client: &impl WiaClient,
         issuer_trust_anchors: &TrustAnchors,
+        wia_client: &impl WiaClient,
+        wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 
     /// Rebuilds an [`AuthorizationSession`] from data that was persisted before the app left memory.
@@ -382,8 +403,8 @@ pub trait AuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
+        wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 

@@ -20,7 +20,7 @@ impl WellKnownPath {
         }
     }
 
-    fn url(self, issuer: &IssuerIdentifier) -> Url {
+    pub fn url(self, issuer: &IssuerIdentifier) -> Url {
         let url = issuer.as_base_url().as_ref();
         let path = url.path();
         let path = path.strip_suffix('/').unwrap_or(path);
@@ -66,6 +66,7 @@ where
 
 #[cfg(test)]
 mod tests {
+
     use rstest::rstest;
 
     use super::*;

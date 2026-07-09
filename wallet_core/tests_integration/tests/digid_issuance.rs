@@ -132,6 +132,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             redirect_uri,
             wallet_config.issuer_trust_anchors(),
             &wia_client,
+            wallet_config.wrpac_trust_anchors(),
         )
         .await
         .unwrap();
@@ -157,7 +158,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Exchange the authorization code for the attestation previews. This is where the DigiD
     // connector is queried for the BSN and the BRP proxy is queried for the attributes.
     let issuance_session = authorization_session
-        .start_issuance(&redirect_url, &wia_client, wallet_config.issuer_trust_anchors())
+        .start_issuance(&redirect_url, wallet_config.issuer_trust_anchors(), &wia_client)
         .await
         .unwrap();
 

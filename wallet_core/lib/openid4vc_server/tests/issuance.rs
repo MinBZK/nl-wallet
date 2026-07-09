@@ -253,6 +253,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
             redirect_uri.clone(),
             &server.trust_anchors,
             &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
+            &server.trust_anchors,
         )
         .await
         .unwrap();
@@ -309,8 +310,8 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     auth_session
         .start_issuance(
             &received_redirect,
-            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
             &server.trust_anchors,
+            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
         )
         .await
         .unwrap()
@@ -397,6 +398,7 @@ async fn pre_authorized_code_flow(
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
+            &trust_anchors,
         )
         .await
         .unwrap();
@@ -446,6 +448,7 @@ async fn reject_issuance() {
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
+            &trust_anchors,
         )
         .await
         .unwrap();
@@ -488,6 +491,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
             REDIRECT_URI.parse().unwrap(),
             &trust_anchors,
             &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
+            &trust_anchors,
         )
         .await
         .expect_err("starting pre-authorized issuance should fail");
