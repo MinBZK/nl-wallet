@@ -37,7 +37,6 @@ mock_secure_keys = ["crypto/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
     "dep:anyhow",
-    "dep:rand_core",
     "apple_app_attest/mock",
     "attestation_data/generate",
     "attestation_data/mock",
@@ -76,6 +75,7 @@ futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 parking_lot.workspace = true
+rand_core.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 semver.workspace = true
@@ -90,7 +90,6 @@ uuid = { workspace = true, features = ["v4"] }
 trait-variant.workspace = true
 
 anyhow = { workspace = true, optional = true }
-rand_core = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
 
@@ -118,7 +117,6 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 anyhow.workspace = true
 mockall.workspace = true
 rand.workspace = true
-rand_core.workspace = true
 rstest.workspace = true
 tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }

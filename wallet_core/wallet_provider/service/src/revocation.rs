@@ -5,6 +5,7 @@ use audit_log::model::AuditLog;
 use audit_log::model::FromAuditLogError;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::keys::SecureEcdsaKey;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
 use itertools::Itertools;
@@ -26,7 +27,6 @@ use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::account_server::UserState;
 use crate::flags::WalletFlags;
-use crate::wia_issuer::WiaIssuer;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RevocationError {
@@ -65,7 +65,7 @@ impl FromAuditLogError for RevocationError {
 pub async fn revoke_wallet_by_revocation_code<T, R, F, H>(
     #[audit] revocation_code: RevocationCode,
     revocation_code_key_identifier: &str,
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<DateTime<Utc>, RevocationError>
@@ -122,7 +122,7 @@ where
 #[audited]
 pub async fn revoke_wallets_by_recovery_code<T, R, F, H>(
     #[audit] recovery_code: &RecoveryCode,
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<usize, RevocationError>
@@ -135,7 +135,7 @@ where
 
 pub async fn system_revoke_wallets_by_recovery_code<T, R, F, H>(
     recovery_code: &RecoveryCode,
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<usize, RevocationError>
 where
@@ -177,7 +177,7 @@ where
 #[audited]
 pub async fn revoke_wallets_by_wallet_id<T, R, F, H>(
     #[audit] wallet_ids: &HashSet<WalletId>,
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
@@ -228,7 +228,7 @@ where
 
 #[audited]
 pub async fn revoke_solution<R, F, H>(
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
 where
@@ -244,7 +244,7 @@ where
 }
 
 pub async fn restore_solution<R, F, H>(
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
 ) -> Result<(), RevocationError>
 where
     R: WalletFlagRepository,
@@ -259,7 +259,7 @@ where
 }
 
 pub async fn list_wallets<T, R, F, H>(
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
 ) -> Result<Vec<WalletUserIsRevoked>, RevocationError>
 where
     T: Committable,
@@ -274,7 +274,7 @@ where
 }
 
 pub async fn list_denied_recovery_codes<T, R, F, H>(
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
 ) -> Result<Vec<RecoveryCode>, RevocationError>
 where
     T: Committable,
@@ -289,7 +289,7 @@ where
 }
 
 pub async fn remove_denied_recovery_code<T, R, F, H>(
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     recovery_code: &RecoveryCode,
 ) -> Result<(), RevocationError>
 where

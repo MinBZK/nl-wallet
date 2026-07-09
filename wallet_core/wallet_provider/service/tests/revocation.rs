@@ -63,7 +63,6 @@ use wallet_provider_service::revocation::revoke_wallets_by_recovery_code;
 use wallet_provider_service::revocation::revoke_wallets_by_wallet_id;
 use wallet_provider_service::wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER;
 use wallet_provider_service::wallet_certificate::mock::setup_hsm;
-use wallet_provider_service::wia_issuer::mock::MockWiaIssuer;
 
 async fn setup_state(
     db_setup: &DbSetup,
@@ -73,7 +72,7 @@ async fn setup_state(
         Repositories,
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
-        MockWiaIssuer,
+        SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
     PostgresRevocationHelper,
@@ -123,7 +122,7 @@ async fn register_wallets_with_wias(
         Repositories,
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
-        MockWiaIssuer,
+        SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
 ) -> (Vec<WalletId>, Vec<Vec<(Uuid, StatusClaim)>>) {
@@ -193,7 +192,7 @@ async fn verify_revocation(
         Repositories,
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
-        MockWiaIssuer,
+        SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
     revocation_helper: &PostgresRevocationHelper,
@@ -254,7 +253,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
         Repositories,
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
-        MockWiaIssuer,
+        SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
     revocation_code_key_identifier: &str,
