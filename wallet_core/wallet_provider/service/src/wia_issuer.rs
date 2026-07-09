@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Duration;
@@ -29,19 +27,6 @@ pub const WIA_ATTESTATION_TYPE_IDENTIFIER: &str = "wia";
 /// How long issued WIAs will be valid (the token itself, not the wallet it represents).
 const WIA_VALIDITY: Duration = Duration::hours(10);
 
-pub trait WiaIssuer {
-    type Error: Error + Send + Sync + 'static;
-
-    async fn issue_wia(
-        &self,
-        exp: DateTimeSeconds,
-        status_claim: StatusClaim,
-        pop_claims: &WiaPopClaims,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<WiaDisclosure, Self::Error>;
-    async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
-}
-
 #[derive(Constructor)]
 pub struct HsmWiaIssuer<K = HsmEcdsaKey> {
     keypair: KeyPair<K>,
@@ -67,19 +52,17 @@ pub enum HsmWiaIssuerError {
     PopSignError(#[source] JwtSignError),
 }
 
-impl<K> WiaIssuer for HsmWiaIssuer<K>
+impl<K> HsmWiaIssuer<K>
 where
     K: SecureEcdsaKey,
 {
-    type Error = HsmWiaIssuerError;
-
-    async fn issue_wia(
+    pub async fn issue_wia(
         &self,
         wallet_exp: DateTimeSeconds,
         status_claim: StatusClaim,
         pop_claims: &WiaPopClaims,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<WiaDisclosure, Self::Error> {
+    ) -> Result<WiaDisclosure, HsmWiaIssuerError> {
         let wia_exp = (time.generate() + WIA_VALIDITY).into();
         let iss = self
             .keypair
@@ -122,14 +105,15 @@ where
         Ok(WiaDisclosure::new(wia, wia_pop))
     }
 
-    async fn public_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(*self.keypair.certificate().public_key())
+    pub fn public_key(&self) -> VerifyingKey {
+        *self.keypair.certificate().public_key()
     }
 }
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use crypto::{server_keys::generate::Ca, x509::DistinguishedName};
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::DistinguishedName;
     use jwt::wia::WiaWalletInfo;
     use p256::ecdsa::SigningKey;
 
@@ -167,7 +151,6 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
 
     use super::HsmWiaIssuer;
-    use super::WiaIssuer;
 
     #[tokio::test]
     async fn it_works() {

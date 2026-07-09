@@ -48,7 +48,6 @@ use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
-use wallet_provider_service::wia_issuer::mock::MockWiaIssuer;
 
 async fn do_registration(
     account_server: &MockAccountServer,
@@ -65,7 +64,7 @@ async fn do_registration(
         Repositories,
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
-        MockWiaIssuer,
+        SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
 ) {

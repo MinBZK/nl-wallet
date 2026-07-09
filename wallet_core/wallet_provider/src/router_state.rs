@@ -47,7 +47,7 @@ type ProductionUserState = UserState<
     Repositories,
     WalletRepoFlags<Repositories>,
     Pkcs11Hsm,
-    HsmWiaIssuer,
+    HsmEcdsaKey,
     PostgresStatusListService<HsmEcdsaKey, WalletRepoFlags<Repositories>>,
 >;
 

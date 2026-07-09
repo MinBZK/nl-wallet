@@ -30,6 +30,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::keys::SecureEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use derive_more::From;
@@ -131,7 +132,7 @@ use crate::revocation::RevocationError;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wia_issuer::WiaIssuer;
+use crate::wia_issuer::HsmWiaIssuer;
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
@@ -551,11 +552,11 @@ pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityCl
     play_integrity_client: PIC,
 }
 
-pub struct UserState<R, F, H, W, S> {
+pub struct UserState<R, F, H, K, S> {
     pub repositories: R,
     pub flags: F,
     pub wallet_user_hsm: H,
-    pub wia_issuer: W,
+    pub wia_issuer: HsmWiaIssuer<K>,
     pub wia_status_tracking_validity: Duration,
     pub wrapping_key_identifier: String,
     pub pid_issuer_trust_anchors: TrustAnchors,
@@ -565,10 +566,10 @@ pub struct UserState<R, F, H, W, S> {
 impl<GRC, PIC> AccountServer<GRC, PIC> {
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
-    pub async fn registration_challenge<T, R, F, H, W, S>(
+    pub async fn registration_challenge<T, R, F, H, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -596,11 +597,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(challenge)
     }
 
-    pub async fn register<T, R, F, H, W, S>(
+    pub async fn register<T, R, F, H, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         registration_message: ChallengeResponse<Registration>,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<(WalletCertificate, RevocationCode), RegistrationError>
     where
         GRC: GoogleCrlProvider,
@@ -850,11 +851,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok((wallet_certificate, revocation_code))
     }
 
-    pub async fn instruction_challenge<T, R, F, H, W, S>(
+    pub async fn instruction_challenge<T, R, F, H, S>(
         &self,
         challenge_request: InstructionChallengeRequest,
         time_generator: &impl Generator<DateTime<Utc>>,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -961,7 +962,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -1002,7 +1003,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: HwSignedInstruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -1092,7 +1093,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<InstructionResult<WalletCertificate>, InstructionError>
     where
         T: Committable,
@@ -1177,7 +1178,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<InstructionResult<()>, InstructionError>
     where
         T: Committable,
@@ -1223,7 +1224,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<StartPinRecovery>,
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
-        user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     ) -> Result<InstructionResult<StartPinRecoveryResult>, InstructionError>
     where
         T: Committable,
@@ -1342,7 +1343,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<I>,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
         pin_pubkey: P,
     ) -> Result<(WalletUser, I), InstructionError>
     where
@@ -1383,14 +1384,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     /// Verify the provided user's PIN and the provided instruction.
     ///
     /// The `pin_pubkey` is used if provided; if not, the PIN public key from the `wallet_user` is used.
-    async fn verify_pin_and_extract_instruction<T, R, F, I, G, H, W, S>(
+    async fn verify_pin_and_extract_instruction<T, R, F, I, G, H, S>(
         &self,
         wallet_user: &WalletUser,
         instruction: Instruction<I>,
         generators: &G,
         pin_pubkey: Encrypted<VerifyingKey>,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<I, InstructionError>
     where
         T: Committable,
@@ -1818,13 +1819,8 @@ pub mod mock {
         )
     }
 
-    pub type MockUserState = UserState<
-        WalletUserTestRepo,
-        StubWalletFlags,
-        MockPkcs11Client<HsmError>,
-        MockWiaIssuer,
-        MockStatusListService,
-    >;
+    pub type MockUserState =
+        UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService>;
 
     pub fn user_state<R, F, S>(
         repositories: R,
@@ -1833,8 +1829,8 @@ pub mod mock {
         wrapping_key_identifier: String,
         pid_issuer_trust_anchors: TrustAnchors,
         status_list_service: S,
-    ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
-        UserState::<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
+    ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
+        UserState::<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
             repositories,
             flags,
             wallet_user_hsm,
@@ -3730,7 +3726,7 @@ mod tests {
             MockTransactionalWalletUserRepository,
             StubWalletFlags,
             MockPkcs11Client<HsmError>,
-            MockWiaIssuer,
+            SigningKey,
             MockStatusListService,
         >,
         WalletCertificateSetup,
