@@ -31,7 +31,6 @@ import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.issuer.IssuerWebPage
 import screen.web.digid.DigidLoginMockWebPage
-import screen.web.digid.DigidLoginStartWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer")
@@ -52,7 +51,6 @@ class RenewCardTests : TestBase() {
     private lateinit var cardDetailScreen: CardDetailScreen
     private lateinit var historyOverviewScreen: HistoryOverviewScreen
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
-    private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
     private lateinit var digidLoginMockWebPage: DigidLoginMockWebPage
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
 
@@ -74,7 +72,6 @@ class RenewCardTests : TestBase() {
         cardDetailScreen = CardDetailScreen()
         historyOverviewScreen = HistoryOverviewScreen()
         personalizeInformScreen = PersonalizeInformScreen()
-        digidLoginStartWebPage = DigidLoginStartWebPage()
         digidLoginMockWebPage = DigidLoginMockWebPage()
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
 
@@ -130,9 +127,8 @@ class RenewCardTests : TestBase() {
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         cardDetailScreen.renewPidCard()
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToBrowser()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToBrowser()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
         personalizePidPreviewScreen.switchToNativeContext()
         assertAll(

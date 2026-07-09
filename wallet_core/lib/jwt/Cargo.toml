@@ -38,6 +38,7 @@ http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 [dev-dependencies]
+anyhow.workspace = true
 axum.workspace = true
 futures.workspace = true
 rand_core.workspace = true

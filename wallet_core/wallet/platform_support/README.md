@@ -34,6 +34,17 @@ Wallet Android Project --> wallet_core --> platform_support
             \----->  PlatformSupport  -------/
 ```
 
+### Logging
+
+Wallet-owned Kotlin code in `platform_support` should use `PlatformLogger`
+instead of calling `android.util.Log` directly. `PlatformLogger` writes logs in
+debug builds and in release builds only when `ALLOW_RELEASE_LOGS=true`; release
+builds suppress these logs by default.
+
+This wrapper only controls logging from wallet-owned platform support code.
+Logs emitted directly by third-party Android libraries are not routed through
+`PlatformLogger` and therefore are not suppressed by this wrapper.
+
 ### Play Integrity
 
 The Android app supports Play Integrity integration. Currently, this is enabled

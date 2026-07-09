@@ -37,9 +37,10 @@ The `PID Issuer` process is assembled from three crates:
       `/nonce`, `/credential` and the previews. It holds the
       `SessionStore<IssuanceData>` and the nonce store. `process_token_request`
       loads the issuance session keyed by the code, verifies the wallet's PKCE
-      according to the session's `Grant`, and issues the access token. It does
-      **no** upstream interaction and knows nothing about DigiD or a BSN — by
-      the time it runs, the issuables are already in the session.
+      according to the session's `Grant`, verifies the WIA presented alongside
+      the request, and issues the access token. It does **no** upstream
+      interaction and knows nothing about DigiD or a BSN — by the time it
+      runs, the issuables are already in the session.
     - `issuer::{AuthCodeIssued, Grant, IssuanceData}` — the issuance session
       data. `AuthCodeIssued` carries the `issuable_documents` plus a `Grant`:
       either `Grant::PreAuthorizedCode` (no PKCE) or
@@ -49,11 +50,14 @@ The `PID Issuer` process is assembled from three crates:
       written by `AuthorizingIssuer::complete_authorization`.
     - `authorizing_issuer::AuthorizingIssuer` — the **Authorization Phase**
       wrapper around an `Issuer`. Owns the PAR store and an
-      `AuthorizationCodeFlow` impl. Serves `/par` and `/authorize`, and exposes
-      `complete_authorization`, which mints a fresh issuer-side authorization
-      code, writes the `AuthCodeIssued` session (with
-      `Grant::AuthorizationCode`), and builds the wallet-facing redirect URL.
-      Deployments doing only the pre-authorized grant never construct one.
+      `AuthorizationCodeFlow` impl. Serves `/par` and `/authorize`.
+      `process_pushed_authorization_request` validates the `client_id` and
+      verifies the WIA presented alongside the PAR — its `sub` must match the
+      request's `client_id` — before storing the request.
+      `AuthorizingIssuer` also exposes `complete_authorization`, which mints a
+      fresh issuer-side authorization code, writes the `AuthCodeIssued` session
+      (with `Grant::AuthorizationCode`), and builds the wallet-facing redirect
+      URL. Deployments doing only the pre-authorized grant never construct one.
     - `authorization_code_flow::{AuthorizationCodeFlow, AuthorizeOutcome}` — the
       trait abstracting a single OAuth authorization-code grant at `/authorize`.
       `authorize()` returns either `AuthorizeOutcome::RedirectTo(url)` (send the
@@ -208,9 +212,9 @@ sequenceDiagram
     participant BRP
 
     Note over W, BRP: POST /issuance/par
-    W ->> H: POST /par (VciAuthorizationRequest)
-    H ->> AI: process_pushed_authorization_request
-    AI ->> AI: validate client_id,<br/>store(request_uri, request) in PAR store
+    W ->> H: POST /par (VciAuthorizationRequest, WIA)
+    H ->> AI: process_pushed_authorization_request(request, wia_disclosure)
+    AI ->> AI: validate client_id,<br/>verify_wia (sub matches client_id),<br/>store(request_uri, request) in PAR store
     AI ->> W: 201 PushedAuthorizationResponse<br/>(request_uri, expires_in)
 
     Note over W, BRP: GET /issuance/authorize
@@ -255,9 +259,9 @@ sequenceDiagram
     F ->> W: 302 Location: <wallet_redirect_uri>?code=code1&state=s1
 
     Note over W, BRP: POST /issuance/token
-    W ->> H: POST /token<br/>(code=code1, code_verifier=v1)
-    H ->> I: process_token_request(token_request, dpop)
-    I ->> I: load session[code1],<br/>verify S256(v1) == c1 (wallet PKCE),<br/>generate access_token + c_nonce<br/>(no upstream interaction)
+    W ->> H: POST /token<br/>(code=code1, code_verifier=v1, WIA)
+    H ->> I: process_token_request(token_request, dpop, wia_disclosure)
+    I ->> I: load session[code1],<br/>verify S256(v1) == c1 (wallet PKCE),<br/>verify_wia (sub matches client_id),<br/>generate access_token + c_nonce<br/>(no upstream interaction)
     I ->> H: TokenResponse
     H ->> W: TokenResponse
 ```

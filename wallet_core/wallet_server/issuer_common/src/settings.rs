@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CanonicalDistinguishedName;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
@@ -27,7 +28,6 @@ use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WiaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -71,7 +71,6 @@ pub struct AuthorizingIssuerSettings {
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
-    // TODO (PVW-5550): add mandatory wia_trust_anchors config
 }
 
 impl AuthorizingIssuerSettings {
@@ -107,8 +106,7 @@ impl AuthorizingIssuerSettings {
             issuer_settings,
         } = self;
 
-        let (issuer, database_checkers, store_connection, server_settings) =
-            issuer_settings.into_issuer(hsm, None).await?;
+        let (issuer, database_checkers, store_connection, server_settings) = issuer_settings.into_issuer(hsm).await?;
 
         let par_store = IssuerParStore::new(store_connection.clone());
         let flow =
@@ -151,6 +149,10 @@ pub struct IssuerSettings {
     pub server_settings: Settings,
 
     pub status_lists: StatusListsSettings,
+
+    /// Trust anchors for verifying the wallet attestation (Wallet Instance Attestation).
+    #[debug(skip)]
+    pub wia_trust_anchors: TrustAnchors,
 }
 
 #[derive(Debug, Clone, AsRef)]
@@ -498,7 +500,6 @@ impl IssuerSettings {
     pub async fn into_issuer(
         self,
         hsm: Option<Pkcs11Hsm>,
-        wia_config: Option<WiaConfig>,
     ) -> Result<
         (
             Issuer<
@@ -571,7 +572,7 @@ impl IssuerSettings {
             self.batch_size,
             self.wallet_client_ids,
             config_params,
-            wia_config,
+            self.wia_trust_anchors,
             Arc::new(sessions),
             proof_nonce_store,
         )
@@ -701,6 +702,9 @@ mod tests {
             .expect("generate tsl cert failed")
             .into();
 
+        // Normally this is its own CA; here we just reuse the issuer_ca.
+        let wia_trust_anchors = vec![issuer_ca.to_borrowing_trust_anchor()].try_into().unwrap();
+
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
             credential_configurations: HashMap::from([(
@@ -761,6 +765,7 @@ mod tests {
                 ttl_in_minutes: None,
                 serve: true,
             },
+            wia_trust_anchors,
         }
     }
 

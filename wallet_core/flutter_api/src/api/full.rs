@@ -64,7 +64,8 @@ pub async fn init() -> anyhow::Result<()> {
         // init_logging() should not fail when being called more than once.
         init_logging();
 
-        // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
+        // Setup logging to console and enable standard panic backtraces. Handled Sentry errors attach
+        // stacktraces through the Rust Sentry client options.
         set_env_if_unset("RUST_BACKTRACE", "1");
         set_env_if_unset("RUST_LIB_BACKTRACE", "0");
 

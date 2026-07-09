@@ -55,7 +55,8 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
 use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
+use jwt::error::JwtSignError;
+use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithJwk;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -79,29 +80,37 @@ pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 pub enum DpopError {
     #[error("unsupported JWT: {0}")]
     #[category(critical)]
-    UnsupportedJwt(#[source] JwtError),
+    InvalidJwt(#[source] JwtVerifyError),
+
     #[error("incorrect DPoP JWT HTTP method")]
     #[category(critical)]
     IncorrectMethod,
+
     #[error("incorrect DPoP JWT url")]
     #[category(critical)]
     IncorrectUrl,
+
     #[error("incorrect DPoP JWT nonce")]
     #[category(critical)]
     IncorrectNonce,
+
     #[error("incorrect DPoP JWT access token hash")]
     #[category(critical)]
     IncorrectAccessTokenHash,
+
     #[error("missing JWK")]
     #[category(critical)]
     MissingJwk,
+
     #[error("incorrect JWK public key")]
     #[category(critical)]
     IncorrectJwkPublicKey,
+
     #[error("failed to convert key from/to JWK format: {0}")]
     JwkConversion(#[from] JwkConversionError),
-    #[error("JWT error: {0}")]
-    Jwt(#[from] JwtError),
+
+    #[error("JWT sign error: {0}")]
+    JwtSign(#[source] JwtSignError),
 }
 
 pub type Result<T, E = DpopError> = std::result::Result<T, E>;
@@ -157,7 +166,8 @@ impl Dpop {
         let jwt = SignedJwt::sign_with_jwk(&payload, signing_key)
             // This is safe, as the `EcdsaKey::try_sign()` implementation on `SigningKey` will return immediately.
             .now_or_never()
-            .unwrap()?;
+            .unwrap()
+            .map_err(DpopError::JwtSign)?;
 
         Ok(Self(jwt.into()))
     }
@@ -194,7 +204,10 @@ impl Dpop {
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
-        let (header, payload) = self.0.parse_and_verify_with_jwk(&DPOP_VALIDATION_OPTIONS)?;
+        let (header, payload) = self
+            .0
+            .parse_and_verify_with_jwk(&DPOP_VALIDATION_OPTIONS)
+            .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, None)?;
         Ok(header.verifying_key()?)
     }
@@ -210,7 +223,8 @@ impl Dpop {
     ) -> Result<()> {
         let (_, payload) = self
             .0
-            .parse_and_verify_with_expected_jwk(expected_verifying_key, &DPOP_VALIDATION_OPTIONS)?;
+            .parse_and_verify_with_expected_jwk(expected_verifying_key, &DPOP_VALIDATION_OPTIONS)
+            .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, nonce)?;
 
         Ok(())

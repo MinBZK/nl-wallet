@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wallet_core/core.dart' as core;
 import 'package:workmanager/workmanager.dart';
 
+import '../../../environment.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../domain/model/notification/notification_channel.dart';
 import '../../domain/model/notification/os_notification.dart';
@@ -76,7 +77,7 @@ class WorkManagerService {
 /// Entry point for the background isolate, required by the [Workmanager] plugin.
 @pragma('vm:entry-point')
 void callbackDispatcher() {
-  if (kDebugMode) Fimber.plantTree(DebugTree());
+  if (Environment.allowLogs) Fimber.plantTree(DebugTree());
   Workmanager().executeTask(executeTask);
 }
 

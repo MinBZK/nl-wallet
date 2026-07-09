@@ -22,6 +22,7 @@ use jwt::pop::JwtPopClaims;
 use jwt::wia::ClientStatus;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaPopClaims;
 use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -34,6 +35,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::Poa;
 use crate::wscd::IssuanceResult;
 use crate::wscd::IssuanceWscd;
+use crate::wscd::WiaClient;
 
 pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
@@ -44,7 +46,6 @@ pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 #[derive(Debug)]
 pub struct MockRemoteWscd {
     pub disclosure: DisclosureMockRemoteWscd,
-    wia_keypair: Option<KeyPair>,
 }
 
 impl MockRemoteWscd {
@@ -57,14 +58,6 @@ impl MockRemoteWscd {
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             disclosure: DisclosureMockRemoteWscd::new_signing_keys(signing_keys),
-            wia_keypair: None,
-        }
-    }
-
-    pub fn new_with_wia_keypair(wia_keypair: KeyPair) -> Self {
-        Self {
-            wia_keypair: Some(wia_keypair),
-            ..Default::default()
         }
     }
 
@@ -185,8 +178,43 @@ impl IssuanceWscd for MockRemoteWscd {
             pops,
         })
     }
+}
 
-    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+#[derive(Debug, Default)]
+pub struct MockWiaClient {
+    wia_keypair: Option<KeyPair>,
+    client_id: Option<String>,
+}
+
+impl MockWiaClient {
+    pub fn new() -> Self {
+        Self {
+            wia_keypair: None,
+            client_id: None,
+        }
+    }
+
+    pub fn new_with_wia_keypair(wia_keypair: KeyPair) -> Self {
+        Self {
+            wia_keypair: Some(wia_keypair),
+            client_id: None,
+        }
+    }
+
+    /// Issue a WIA whose `sub` (and PoP `iss`) claim is the given `client_id`, instead of the default
+    /// [`MOCK_WALLET_CLIENT_ID`].
+    pub fn new_with_client_id(wia_keypair: KeyPair, client_id: String) -> Self {
+        Self {
+            wia_keypair: Some(wia_keypair),
+            client_id: Some(client_id),
+        }
+    }
+}
+
+impl WiaClient for MockWiaClient {
+    type Error = MockRemoteWscdError;
+
+    async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
         let wia_key = SigningKey::random(&mut OsRng);
         let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
 
@@ -195,13 +223,18 @@ impl IssuanceWscd for MockRemoteWscd {
             .clone()
             .unwrap_or_else(|| Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap());
 
+        let client_id = self
+            .client_id
+            .clone()
+            .unwrap_or_else(|| MOCK_WALLET_CLIENT_ID.to_string());
+
         let exp = Utc::now() + Duration::from_secs(600);
 
         let wia = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
                 wia_key.verifying_key(),
                 wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
-                MOCK_WALLET_CLIENT_ID.to_string(),
+                client_id.clone(),
                 exp.into(),
                 WiaWalletInfo::new_mock(),
                 ClientStatus {
@@ -219,12 +252,13 @@ impl IssuanceWscd for MockRemoteWscd {
         .into();
 
         let wia_disclosure = SignedJwt::sign(
-            &JwtPopClaims::new(
-                nonce,
-                MOCK_WALLET_CLIENT_ID.to_string(),
+            &WiaPopClaims {
+                iss: client_id,
                 aud,
-                &MockTimeGenerator::default(),
-            ),
+                iat: Utc::now().into(),
+                jti: "jti".to_string(),
+                challenge,
+            },
             &wia_key,
         )
         .now_or_never()

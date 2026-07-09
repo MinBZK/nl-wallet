@@ -22,6 +22,7 @@ import 'src/feature/root/root_checker.dart';
 import 'src/feature/update/update_checker.dart';
 import 'src/util/helper/onboarding_helper.dart';
 import 'src/util/sentry_breadcrumbs.dart';
+import 'src/util/sentry_log_tree.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
 import 'src/wallet_error_handler.dart';
@@ -71,11 +72,13 @@ void configureSentry(SentryFlutterOptions options) {
         Environment.sentryRelease() // default applies when SENTRY_RELEASE not set
     ..debug = kDebugMode
     ..sendDefaultPii = false
+    ..enableLogs = Environment.allowLogs
     ..autoInitializeNativeSdk = false
     ..enableNativeCrashHandling = false
     ..maxBreadcrumbs = SentryBreadcrumbs.maxBreadcrumbs
     ..beforeBreadcrumb = SentryBreadcrumbs.beforeBreadcrumb
-    ..beforeSend = beforeSend;
+    ..beforeSend = beforeSend
+    ..beforeSendLog = beforeSendLog;
 }
 
 FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
@@ -91,10 +94,22 @@ FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
   return event;
 }
 
+FutureOr<SentryLog?> beforeSendLog(SentryLog log) async {
+  if (Environment.allowLogs) return log;
+  return null;
+}
+
 FutureOr<void> mainImpl() async {
+  if (Environment.allowLogs && Sentry.isEnabled) {
+    Fimber.plantTree(SentryLogTree());
+  }
+
+  if (Environment.allowLogs) {
+    Fimber.plantTree(DebugTree());
+  }
+
   // Debug specific setup
   if (kDebugMode) {
-    Fimber.plantTree(DebugTree());
     Bloc.observer = WalletAppBlocObserver();
   }
 

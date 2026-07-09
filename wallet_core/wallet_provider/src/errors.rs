@@ -88,6 +88,7 @@ impl From<WalletProviderError> for AccountError {
             },
             WalletProviderError::Registration(error) => match error {
                 RegistrationError::ChallengeDecoding(_) => Self::ChallengeValidation,
+                RegistrationError::ChallengeParsing(_) => Self::ChallengeValidation,
                 RegistrationError::ChallengeValidation(_) => Self::ChallengeValidation,
                 RegistrationError::AppleAttestation(_) => Self::AttestationValidation,
                 RegistrationError::AndroidKeyAttestation(_) => Self::AttestationValidation,

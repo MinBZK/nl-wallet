@@ -23,7 +23,7 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Either;
 use itertools::Itertools;
-use jwt::error::JwtError;
+use jwt::error::JwtSignError;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
@@ -247,7 +247,7 @@ impl From<VpSessionError> for DisclosureError {
             VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
                 signing_error,
             ))))
-            | VpSessionError::Client(VpClientError::SdJwtSigning(SigningError::Jwt(JwtError::Signing(
+            | VpSessionError::Client(VpClientError::SdJwtSigning(SigningError::JwtSign(JwtSignError::Signing(
                 signing_error,
             )))) if matches!(
                 signing_error.downcast_ref::<RemoteEcdsaKeyError>(),

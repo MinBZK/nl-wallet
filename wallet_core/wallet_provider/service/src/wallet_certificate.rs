@@ -71,7 +71,9 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (_, claims) = certificate.parse_and_verify_with_sub(certificate_signing_pubkey)?;
+    let (_, claims) = certificate
+        .parse_and_verify_with_sub(certificate_signing_pubkey)
+        .map_err(WalletCertificateError::Validation)?;
 
     debug!("Starting database transaction");
 

@@ -9,7 +9,8 @@ use utils::generator::Generator;
 
 use crate::JwtTyp;
 use crate::SignedJwt;
-use crate::error::JwtError;
+use crate::error::JwtParseError;
+use crate::error::JwtSignError;
 use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
 
@@ -65,14 +66,14 @@ impl From<JadesbbInnerHeader> for Header {
 }
 
 impl TryFrom<Header> for JadesbbInnerHeader {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
         let iat = value
             .extras
             .get::<i64>("iat")
-            .map_err(JwtError::InvalidIat)? // the `iat` field is present but not a valid timestamp
-            .map(|t| DateTime::from_timestamp(t, 0).ok_or(JwtError::IatOutOfRange(t))) // the `iat` field is a valid i64 but out of range for DateTime<Utc>
+            .map_err(JwtParseError::InvalidIat)? // the `iat` field is present but not a valid timestamp
+            .map(|t| DateTime::from_timestamp(t, 0).ok_or(JwtParseError::IatOutOfRange(t))) // the `iat` field is a valid i64 but out of range for DateTime<Utc>
             .transpose()?;
 
         Ok(JadesbbInnerHeader {
@@ -87,7 +88,7 @@ impl<C: Serialize + JwtTyp> SignedJwt<C, JadesbbHeader> {
         payload: &C,
         keypair: &KeyPair<K>,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<SignedJwt<C, JadesbbHeader>, JwtError> {
+    ) -> Result<SignedJwt<C, JadesbbHeader>, JwtSignError> {
         let header = JadesbbInnerHeader {
             inner: HeaderWithTyp::new::<C>(),
             iat: Some(time.generate()),

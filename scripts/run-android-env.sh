@@ -20,6 +20,7 @@ WALLET_CONFIG_DIR="${WALLET_CONFIG_DIR:-${BASE_DIR}/wallet_core/wallet}"
 UL_HOSTNAME="${UL_HOSTNAME:-}"
 UNIVERSAL_LINK_PATH="${UNIVERSAL_LINK_PATH:-/deeplink/}"
 SHOW_DEBUG_OPTIONS="${SHOW_DEBUG_OPTIONS:-true}"
+ALLOW_RELEASE_LOGS="${ALLOW_RELEASE_LOGS:-false}"
 MOCK_REPOSITORIES="${MOCK_REPOSITORIES:-false}"
 DEMO_INDEX_URL="${DEMO_INDEX_URL:-}"
 PIPELINE_ID="${PIPELINE_ID:-}"
@@ -167,6 +168,7 @@ echo -e "  UL_HOSTNAME=${CYAN}${UL_HOSTNAME}${NC}"
 echo -e "  UNIVERSAL_LINK_BASE=${CYAN}${UNIVERSAL_LINK_BASE}${NC}"
 echo -e "  APPLICATION_ID=${CYAN}${APPLICATION_ID}${NC}"
 echo -e "  APP_NAME=${CYAN}${APP_NAME}${NC}"
+echo -e "  ALLOW_RELEASE_LOGS=${CYAN}${ALLOW_RELEASE_LOGS}${NC}"
 echo -e "${WARN}Use a physical Android device. Emulators will not pass attestation against ${ANDROID_ENV_NAME}.${NC}"
 
 check_android_signing_configuration
@@ -180,6 +182,7 @@ exec flutter run \
     --release \
     --dart-define=MOCK_REPOSITORIES="${MOCK_REPOSITORIES}" \
     --dart-define=SHOW_DEBUG_OPTIONS="${SHOW_DEBUG_OPTIONS}" \
+    --dart-define=ALLOW_RELEASE_LOGS="${ALLOW_RELEASE_LOGS}" \
     --dart-define=UL_HOSTNAME="${UL_HOSTNAME}" \
     --dart-define=DEMO_INDEX_URL="${DEMO_INDEX_URL}" \
     "${EXTRA_ARGS[@]}"

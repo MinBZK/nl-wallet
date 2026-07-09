@@ -157,11 +157,6 @@ digidBaseUrl:
 mockSubjects: {}
 ##  "999991772": "Frouke Jansen"
 
-## @section WIA trust anchors
-## Trust anchors against which CAs are validated.
-## @param wiaTrustAnchors the trust anchors
-wiaTrustAnchors: []
-
 ## @section Wallet redirect uris
 ## Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization Request.
 ## @param walletRedirectUris wallet redirect uris

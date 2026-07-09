@@ -31,6 +31,7 @@ axum = [
     "dep:mediatype",
     "dep:utoipa-axum",
     "axum/json",
+    "http_utils/server",
     "tower-http/compression-gzip",
     "tower-http/cors",
     "utoipa/uuid",

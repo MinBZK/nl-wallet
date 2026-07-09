@@ -10,7 +10,8 @@ use jwt::Header;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
 use openid4vc::AuthBearerErrorCode;
@@ -46,8 +47,11 @@ pub enum UserInfoError {
     #[error("JWE decryption error: {0}")]
     JweDecryption(#[source] JweStringDecryptionError),
 
+    #[error("error parsing JWT: {0}")]
+    JwtParse(#[from] JwtParseError),
+
     #[error("error verifying JWT: {0}")]
-    JwtError(#[from] JwtError),
+    JwtVerify(#[from] JwtVerifyError),
 
     #[error("config has no userinfo url")]
     NoUserinfoUrl,
@@ -59,7 +63,7 @@ pub struct UserInfo {
 }
 
 impl JwtTyp for UserInfo {
-    fn is_valid_typ(_header_typ: Option<&str>) -> Result<(), JwtError> {
+    fn is_valid_typ(_header_typ: Option<&str>) -> Result<(), JwtVerifyError> {
         // no `typ` field is set for JWTs provided by RDO-MAX
         Ok(())
     }
@@ -185,7 +189,7 @@ mod tests {
     use jwt::Algorithm;
     use jwt::EncodingKey;
     use jwt::Header;
-    use jwt::error::JwtError;
+    use jwt::error::JwtVerifyError;
     use jwt::jwk::Jwk;
     use jwt::jwk::JwkSet;
     use openid4vc::AuthBearerErrorCode;
@@ -206,7 +210,6 @@ mod tests {
     fn create_token_request() -> TokenRequest {
         TokenRequest::new_authorization_code(
             AuthorizationCode::from("test-code".to_string()),
-            "test-client".to_string(),
             "https://example.com/callback".parse::<Url>().unwrap(),
             "test-verifier".to_string(),
         )
@@ -428,7 +431,8 @@ mod tests {
 
         assert_matches!(
             error,
-            UserInfoError::JwtError(JwtError::JsonParsing(error)) if error.to_string().contains("missing field `kid`")
+            UserInfoError::JwtVerify(JwtVerifyError::ParseError(JwtParseError::JsonParsing(parse_error)))
+                if parse_error.to_string().contains("missing field `kid`")
         );
     }
 
@@ -442,7 +446,7 @@ mod tests {
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::JwtError(JwtError::KeyNotFound(_)));
+        assert_matches!(error, UserInfoError::JwtVerify(JwtVerifyError::KeyNotFound(_)));
     }
 
     #[test]
@@ -453,7 +457,7 @@ mod tests {
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::JwtError(_));
+        assert_matches!(error, UserInfoError::JwtVerify(_));
     }
 
     #[test]
@@ -464,7 +468,7 @@ mod tests {
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::JwtError(_));
+        assert_matches!(error, UserInfoError::JwtVerify(_));
     }
 
     fn create_test_decrypter() -> JweDecrypter {
