@@ -14,7 +14,6 @@ use jwt::error::JwtParseError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
-use openid4vc::errors::AuthBearerErrorCode;
 use openid4vc::errors::RemoteErrorResponse;
 use openid4vc::errors::TokenErrorCode;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
@@ -24,6 +23,7 @@ use reqwest::header;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use strum::EnumString;
 
 use super::jwks::HttpJwksClient;
 use super::jwks::JwksError;
@@ -55,6 +55,19 @@ pub enum UserInfoError {
 
     #[error("config has no userinfo url")]
     NoUserinfoUrl,
+}
+
+/// Source: <https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1>
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum AuthBearerErrorCode {
+    InvalidRequest,
+    InvalidToken,
+    InsufficientScope,
+
+    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
+    #[strum(default)]
+    Other(String),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -192,7 +205,6 @@ mod tests {
     use jwt::error::JwtVerifyError;
     use jwt::jwk::Jwk;
     use jwt::jwk::JwkSet;
-    use openid4vc::errors::AuthBearerErrorCode;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::TokenErrorCode;
     use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -205,6 +217,7 @@ mod tests {
     use serde_json::json;
     use url::Url;
 
+    use super::AuthBearerErrorCode;
     use super::*;
 
     fn create_token_request() -> TokenRequest {

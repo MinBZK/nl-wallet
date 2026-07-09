@@ -913,22 +913,6 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
     }
 }
 
-// Other OAuth error codes
-
-/// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum AuthBearerErrorCode {
-    InvalidRequest,
-    InvalidToken,
-    InsufficientScope,
-
-    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
-    // Note that this is never to be used by a server.
-    #[strum(default)]
-    Other(String),
-}
-
 #[cfg(feature = "axum")]
 mod axum {
     use std::fmt::Debug;
