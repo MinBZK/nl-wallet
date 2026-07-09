@@ -811,7 +811,7 @@ impl HttpJsonErrorType for VerificationErrorCode {
 
             Self::UnknownSession => StatusCode::NOT_FOUND,
 
-            // See the other comment on `StatusCode::UNAUTHORIZED`
+            // See the comment on `StatusCode::UNAUTHORIZED` for `GetAuthRequestErrorCode`.
             Self::Nonce => StatusCode::UNAUTHORIZED,
 
             Self::SessionState => StatusCode::BAD_REQUEST,
