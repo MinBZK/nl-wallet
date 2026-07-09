@@ -264,7 +264,7 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
 #[derive(Debug, Clone, Serialize)]
 struct IssuanceErrorData {
     #[serde_as(as = "Option<DisplayFromStr>")]
-    redirect_error: Option<AuthorizationErrorCode>,
+    redirect_error: Option<RemoteErrorCode<AuthorizationErrorCode>>,
     organization_name: Option<String>,
     revocation_data: Option<AccountRevokedData>,
 }
@@ -883,7 +883,7 @@ mod tests {
     #[case::issuance_oauth_session(
         IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
-                error: AuthorizationErrorCode::InvalidRequest,
+                error: RemoteErrorCode::Known(AuthorizationErrorCode::InvalidRequest),
                 error_description: None,
                 error_uri: None,
             })
@@ -894,7 +894,7 @@ mod tests {
     #[case::issuance_oauth_session_other(
         IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
-                error: AuthorizationErrorCode::Other("some_error".to_string()),
+                error: RemoteErrorCode::Unknown("some_error".to_string()),
                 error_description: None,
                 error_uri: None,
             })
@@ -1015,7 +1015,7 @@ mod tests {
         CancelSessionError::Issuance(
             IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
                 Box::new(ErrorResponse {
-                    error: AuthorizationErrorCode::Other("some_error".to_string()),
+                    error: RemoteErrorCode::Unknown("some_error".to_string()),
                     error_description: None,
                     error_uri: None,
                 })

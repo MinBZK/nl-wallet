@@ -22,8 +22,8 @@ use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::errors::AuthorizationErrorCode;
-use crate::errors::ErrorResponse;
 use crate::errors::ParErrorCode;
+use crate::errors::RemoteErrorCode;
 use crate::errors::RemoteErrorResponse;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
@@ -47,7 +47,7 @@ pub enum OAuthError {
     ErrorResponseUrlDecoding(#[source] serde_qs::Error),
 
     #[error("error requesting authorization code: {0:?}")]
-    RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
+    RedirectUriError(Box<RemoteErrorResponse<AuthorizationErrorCode>>),
 
     #[error("invalid state token received in redirect URI")]
     #[category(critical)]
@@ -214,10 +214,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
-            let err_response: ErrorResponse<AuthorizationErrorCode> =
+            let err_response: RemoteErrorResponse<AuthorizationErrorCode> =
                 serde_qs::from_str(auth_response).map_err(OAuthError::ErrorResponseUrlDecoding)?;
 
-            return if err_response.error == AuthorizationErrorCode::AccessDenied {
+            return if err_response.error == RemoteErrorCode::Known(AuthorizationErrorCode::AccessDenied) {
                 Err(OAuthError::Denied)
             } else {
                 Err(OAuthError::RedirectUriError(Box::new(err_response)))
@@ -333,6 +333,7 @@ mod tests {
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::errors::AuthorizationErrorCode;
+    use crate::errors::RemoteErrorCode;
     use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -598,7 +599,7 @@ mod tests {
         assert_matches!(
             error,
             OAuthError::RedirectUriError(response)
-                if matches!(response.error, AuthorizationErrorCode::InvalidRequest)
+                if matches!(response.error, RemoteErrorCode::Known(AuthorizationErrorCode::InvalidRequest))
                 && response.error_description == Some("this is the error description".to_string())
         );
     }

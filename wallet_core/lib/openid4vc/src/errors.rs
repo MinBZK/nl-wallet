@@ -313,11 +313,6 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
-
-    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the verifier.
-    #[strum(default)]
-    Other(String),
 }
 
 impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode> {
