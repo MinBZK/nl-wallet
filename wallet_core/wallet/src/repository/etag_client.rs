@@ -12,6 +12,7 @@ use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use parking_lot::Mutex;
 use tokio::fs;
+use tracing::warn;
 
 use super::FileStorageError;
 use super::Filename;
@@ -64,7 +65,14 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
         }
 
         let content = fs::read(&etag_file).await?;
-        Ok(Some(HeaderValue::from_bytes(&content).unwrap()))
+        match HeaderValue::from_bytes(&content) {
+            Ok(etag) => Ok(Some(etag)),
+            Err(error) => {
+                warn!("Invalid stored ETag header value, deleting stored ETag file: {error}");
+                fs::remove_file(&etag_file).await?;
+                Ok(None)
+            }
+        }
     }
 
     async fn store_latest_etag(&self, etag: &HeaderValue) -> Result<(), FileStorageError> {
@@ -140,8 +148,10 @@ mod test {
     use http_utils::client::TlsPinningConfig;
     use httpmock::Method::GET;
     use httpmock::MockServer;
+    use tokio::fs;
 
     use super::EtagHttpClient;
+    use crate::repository::Filename;
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
     use crate::repository::HttpResponse;
@@ -195,6 +205,26 @@ mod test {
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::NotModified));
         mock_not_modified.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn test_etag_http_client_invalid_stored_etag() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let resource_identifier: Filename = "config".parse().unwrap();
+        let etag_file = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::etag_file(
+            resource_identifier.clone(),
+            tempdir.path(),
+        );
+        fs::write(&etag_file, b"invalid\netag").await.unwrap();
+
+        let _client = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new(
+            resource_identifier,
+            tempdir.path().to_path_buf(),
+        )
+        .await
+        .unwrap();
+
+        assert!(!fs::try_exists(&etag_file).await.unwrap());
     }
 
     #[tokio::test]
