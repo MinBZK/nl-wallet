@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -78,6 +79,30 @@ where
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+pub enum RemoteErrorCode<T> {
+    Known(T),
+    Unknown(String),
+}
+
+impl<T> FromStr for RemoteErrorCode<T>
+where
+    T: FromStr,
+{
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let error_type = match s.parse() {
+            Ok(error_type) => Self::Known(error_type),
+            Err(_) => Self::Unknown(s.to_string()),
+        };
+
+        Ok(error_type)
+    }
+}
+
+pub type RemoteErrorResponse<T> = ErrorResponse<RemoteErrorCode<T>>;
+
 /// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[serde_as]
 #[skip_serializing_none]
@@ -88,6 +113,23 @@ pub struct ErrorResponse<T> {
     pub error: T,
     pub error_description: Option<String>,
     pub error_uri: Option<Url>,
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<T> From<ErrorResponse<T>> for ErrorResponse<RemoteErrorCode<T>> {
+    fn from(value: ErrorResponse<T>) -> Self {
+        let ErrorResponse {
+            error,
+            error_description,
+            error_uri,
+        } = value;
+
+        Self {
+            error: RemoteErrorCode::Known(error),
+            error_description,
+            error_uri,
+        }
+    }
 }
 
 impl<E, T> From<E> for ErrorResponse<T>
@@ -102,6 +144,8 @@ where
         }
     }
 }
+
+pub type RemoteAuthorizationErrorResponse<T> = AuthorizationErrorResponse<RemoteErrorCode<T>>;
 
 /// Wrapper of [`ErrorResponse`] that adds the optional `state` parameter used by authorization error responses.
 #[skip_serializing_none]
@@ -118,6 +162,18 @@ pub struct AuthorizationErrorResponse<T> {
 impl<T> AuthorizationErrorResponse<T> {
     pub fn error(&self) -> &T {
         &self.error_response.error
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<T> From<AuthorizationErrorResponse<T>> for AuthorizationErrorResponse<RemoteErrorCode<T>> {
+    fn from(value: AuthorizationErrorResponse<T>) -> Self {
+        let AuthorizationErrorResponse { error_response, state } = value;
+
+        Self {
+            error_response: error_response.into(),
+            state,
+        }
     }
 }
 
@@ -190,6 +246,8 @@ where
     }
 }
 
+pub type RemoteDisclosureErrorResponse<T> = DisclosureErrorResponse<RemoteErrorCode<T>>;
+
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
 /// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
@@ -206,6 +264,21 @@ pub struct DisclosureErrorResponse<T> {
 impl<T> DisclosureErrorResponse<T> {
     pub fn error(&self) -> &T {
         &self.error_response.error
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<T> From<DisclosureErrorResponse<T>> for DisclosureErrorResponse<RemoteErrorCode<T>> {
+    fn from(value: DisclosureErrorResponse<T>) -> Self {
+        let DisclosureErrorResponse {
+            error_response,
+            redirect_uri,
+        } = value;
+
+        Self {
+            error_response: error_response.into(),
+            redirect_uri,
+        }
     }
 }
 
@@ -240,11 +313,6 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
-
-    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the verifier.
-    #[strum(default)]
-    Other(String),
 }
 
 impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode> {
@@ -298,8 +366,7 @@ impl ErrorWithCode for CompleteAuthorizationError {
 /// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1>, i.e. the token endpoint error codes or the
 /// authorization endpoint error codes.
 ///
-/// This type represents a selection among these error codes, containing only those that the issuer returns. Any other
-/// error code that a third-party issuer sends to the wallet will use the `Other` variant.
+/// This type represents a selection among these error codes, containing only those that the issuer returns.
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
@@ -317,11 +384,6 @@ pub enum ParErrorCode {
     /// Client Attestation / WIA is valid but not fresh enough.
     /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
     UseFreshAttestation,
-
-    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for ParErrorCode {
@@ -333,7 +395,7 @@ impl ErrorStatusCode for ParErrorCode {
 
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -380,11 +442,6 @@ pub enum TokenErrorCode {
     /// This error type is not defined in the specs, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
     ServerError,
-
-    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for TokenErrorCode {
@@ -400,7 +457,7 @@ impl ErrorStatusCode for TokenErrorCode {
                 StatusCode::BAD_REQUEST
             }
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -452,11 +509,6 @@ pub enum CredentialPreviewErrorCode {
     InvalidRequest,
     InvalidToken,
     ServerError,
-
-    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for CredentialPreviewErrorCode {
@@ -466,7 +518,7 @@ impl ErrorStatusCode for CredentialPreviewErrorCode {
 
             Self::InvalidToken => StatusCode::UNAUTHORIZED,
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -508,11 +560,6 @@ pub enum CredentialErrorCode {
     /// This error type is not defined in the spec, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the spec, so we have freedom to return what we want.
     ServerError,
-
-    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the issuer.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for CredentialErrorCode {
@@ -531,7 +578,7 @@ impl ErrorStatusCode for CredentialErrorCode {
 
             Self::InsufficientScope => StatusCode::FORBIDDEN,
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -600,11 +647,6 @@ pub enum GetAuthRequestErrorCode {
     UnknownSession,
 
     ServerError,
-
-    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the verifier.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for GetAuthRequestErrorCode {
@@ -618,7 +660,7 @@ impl ErrorStatusCode for GetAuthRequestErrorCode {
 
             Self::ExpiredSession | Self::CancelledSession | Self::UnknownSession => StatusCode::NOT_FOUND,
 
-            Self::ServerError | Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -671,11 +713,6 @@ pub enum PostAuthResponseErrorCode {
     /// An NL Wallet specific error code, meaning the following: in a disclosure based issuance session,
     /// the issuer found no attestations to issue.
     NoIssuableAttestations,
-
-    // Catch-all variant, in case the verifier sends an error code that the holder is not aware of.
-    // Note that this is never to be used by the verifier.
-    #[strum(default)]
-    Other(String),
 }
 
 impl ErrorStatusCode for PostAuthResponseErrorCode {
@@ -688,8 +725,6 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
 
             Self::NoIssuableAttestations => StatusCode::NOT_FOUND,
-
-            Self::Other(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -723,18 +758,22 @@ impl ErrorWithCode for PostAuthResponseError {
 }
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
-/// See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.5
+/// See <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1> and
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.5>
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
+    // Error codes from RFC 6749.
+    InvalidRequest,
+    AccessDenied,
+    UnsupportedResponseType,
+
+    // Error codes from OpenID4VP.
     InvalidClient,
     VpFormatsNotSupported,
     InvalidRequestUriMethod,
     InvalidTransactionData,
     WalletUnavailable,
-
-    #[strum(default)]
-    AuthorizationError(AuthorizationErrorCode),
 }
 
 // The RP error types and `VerificationErrorCode` are handled differently from the errors above:
@@ -772,7 +811,7 @@ impl HttpJsonErrorType for VerificationErrorCode {
 
             Self::UnknownSession => StatusCode::NOT_FOUND,
 
-            // See the other comment on `StatusCode::UNAUTHORIZED`
+            // See the comment on `StatusCode::UNAUTHORIZED` for `GetAuthRequestErrorCode`.
             Self::Nonce => StatusCode::UNAUTHORIZED,
 
             Self::SessionState => StatusCode::BAD_REQUEST,
@@ -885,22 +924,6 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
 
         Self::new(r#type, detail, data)
     }
-}
-
-// Other OAuth error codes
-
-/// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum AuthBearerErrorCode {
-    InvalidRequest,
-    InvalidToken,
-    InsufficientScope,
-
-    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
-    // Note that this is never to be used by a server.
-    #[strum(default)]
-    Other(String),
 }
 
 #[cfg(feature = "axum")]
@@ -1051,12 +1074,36 @@ mod axum {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+    use serde_json::json;
+
     use super::CredentialErrorCode;
     use super::CredentialRequestError;
     use super::ErrorWithCode;
+    use super::ParErrorCode;
+    use super::RemoteErrorCode;
+    use super::RemoteErrorResponse;
     use super::TokenErrorCode;
     use crate::issuer::IssuanceError;
     use crate::issuer::TokenRequestError;
+
+    #[rstest]
+    #[case(json!({"error": "invalid_client"}), RemoteErrorCode::Known(ParErrorCode::InvalidClient))]
+    #[case(json!({"error": "server_error"}), RemoteErrorCode::Known(ParErrorCode::ServerError))]
+    #[case(json!({"error": "invalid_request"}), RemoteErrorCode::Known(ParErrorCode::InvalidRequest))]
+    // A spec-compliant code the holder doesn't model explicitly falls through to the catch-all,
+    // preserving the original wire value rather than failing to decode.
+    #[case(
+        json!({"error": "temporarily_unavailable"}),
+        RemoteErrorCode::Unknown("temporarily_unavailable".to_string())
+    )]
+    fn test_par_error_code_deserializes_wire_format(
+        #[case] body: serde_json::Value,
+        #[case] expected: RemoteErrorCode<ParErrorCode>,
+    ) {
+        let response: RemoteErrorResponse<ParErrorCode> = serde_json::from_value(body).unwrap();
+        assert_eq!(response.error, expected);
+    }
 
     #[test]
     fn expired_or_used_session_maps_to_invalid_grant() {

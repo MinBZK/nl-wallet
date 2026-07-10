@@ -18,12 +18,13 @@ use super::WalletIssuanceError;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
-use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
-use crate::ParErrorCode;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::errors::AuthorizationErrorCode;
+use crate::errors::ParErrorCode;
+use crate::errors::RemoteErrorCode;
+use crate::errors::RemoteErrorResponse;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -46,7 +47,7 @@ pub enum OAuthError {
     ErrorResponseUrlDecoding(#[source] serde_qs::Error),
 
     #[error("error requesting authorization code: {0:?}")]
-    RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
+    RedirectUriError(Box<RemoteErrorResponse<AuthorizationErrorCode>>),
 
     #[error("invalid state token received in redirect URI")]
     #[category(critical)]
@@ -62,7 +63,7 @@ pub enum OAuthError {
 
     #[error("pushed authorization request rejected: {0:?}")]
     #[category(expected)]
-    PushedAuthorizationRequest(Box<ErrorResponse<ParErrorCode>>),
+    PushedAuthorizationRequest(Box<RemoteErrorResponse<ParErrorCode>>),
 
     #[error("user denied authentication")]
     #[category(expected)]
@@ -169,7 +170,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
                 .map_err(WalletIssuanceError::ParHttp)?
         } else {
             let error = response
-                .json::<ErrorResponse<ParErrorCode>>()
+                .json::<RemoteErrorResponse<ParErrorCode>>()
                 .await
                 .map_err(WalletIssuanceError::ParHttp)?;
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
@@ -213,10 +214,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
-            let err_response: ErrorResponse<AuthorizationErrorCode> =
+            let err_response: RemoteErrorResponse<AuthorizationErrorCode> =
                 serde_qs::from_str(auth_response).map_err(OAuthError::ErrorResponseUrlDecoding)?;
 
-            return if err_response.error == AuthorizationErrorCode::AccessDenied {
+            return if err_response.error == RemoteErrorCode::Known(AuthorizationErrorCode::AccessDenied) {
                 Err(OAuthError::Denied)
             } else {
                 Err(OAuthError::RedirectUriError(Box::new(err_response)))
@@ -331,9 +332,8 @@ mod tests {
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
-    use super::ParErrorCode;
-    use crate::AuthorizationErrorCode;
-    use crate::ErrorResponse;
+    use crate::errors::AuthorizationErrorCode;
+    use crate::errors::RemoteErrorCode;
     use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -573,18 +573,6 @@ mod tests {
         assert!(!session.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
     }
 
-    #[rstest]
-    #[case(json!({ "error": "invalid_client" }), ParErrorCode::InvalidClient)]
-    #[case(json!({ "error": "server_error" }), ParErrorCode::ServerError)]
-    #[case(json!({ "error": "invalid_request" }), ParErrorCode::InvalidRequest)]
-    // A spec-compliant code the holder doesn't model explicitly falls through to the catch-all,
-    // preserving the original wire value rather than failing to decode.
-    #[case(json!({ "error": "temporarily_unavailable" }), ParErrorCode::Other("temporarily_unavailable".to_string()))]
-    fn test_par_error_code_deserializes_wire_format(#[case] body: serde_json::Value, #[case] expected: ParErrorCode) {
-        let response: ErrorResponse<ParErrorCode> = serde_json::from_value(body).unwrap();
-        assert_eq!(response.error, expected);
-    }
-
     #[tokio::test]
     async fn test_redirect_uri_mismatch() {
         let session = create_session();
@@ -611,7 +599,7 @@ mod tests {
         assert_matches!(
             error,
             OAuthError::RedirectUriError(response)
-                if matches!(response.error, AuthorizationErrorCode::InvalidRequest)
+                if matches!(response.error, RemoteErrorCode::Known(AuthorizationErrorCode::InvalidRequest))
                 && response.error_description == Some("this is the error description".to_string())
         );
     }

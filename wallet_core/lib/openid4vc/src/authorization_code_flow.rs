@@ -18,11 +18,11 @@ use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::AuthorizationErrorCode;
-use crate::ErrorWithCode;
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::credential_configurations::CredentialConfigurations;
+use crate::errors::AuthorizationErrorCode;
+use crate::errors::ErrorWithCode;
 use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthRequestValues;

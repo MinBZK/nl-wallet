@@ -36,12 +36,12 @@ use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
 use self::issuance_session::IssuanceTypeMetadata;
-use crate::CredentialErrorCode;
-use crate::CredentialPreviewErrorCode;
-use crate::ErrorResponse;
-use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
+use crate::errors::CredentialErrorCode;
+use crate::errors::CredentialPreviewErrorCode;
+use crate::errors::RemoteErrorResponse;
+use crate::errors::TokenErrorCode;
 use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
@@ -109,7 +109,7 @@ pub enum WalletIssuanceError {
 
     #[error("retrieving access token from issuer reported an error: {0:?}")]
     #[category(pd)]
-    TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
+    TokenRequest(Box<RemoteErrorResponse<TokenErrorCode>>),
 
     #[error("pre-authorized code is no longer valid: it has expired or was already used")]
     #[category(expected)]
@@ -121,7 +121,7 @@ pub enum WalletIssuanceError {
 
     #[error("retrieving credential preview from issuer reported an error: {0:?}")]
     #[category(pd)]
-    CredentialPreview(Box<ErrorResponse<CredentialPreviewErrorCode>>),
+    CredentialPreview(Box<RemoteErrorResponse<CredentialPreviewErrorCode>>),
 
     #[error("could not retrieve type metadata from issuer: {0:?}")]
     #[category(expected)]
@@ -137,7 +137,7 @@ pub enum WalletIssuanceError {
 
     #[error("retrieving credential(s) from issuer reported an error: {0:?}")]
     #[category(pd)]
-    CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
+    CredentialRequest(Box<RemoteErrorResponse<CredentialErrorCode>>),
 
     #[error("could not reject credential(s) from issuer: {0:?}")]
     #[category(expected)]
@@ -145,7 +145,7 @@ pub enum WalletIssuanceError {
 
     #[error("rejecting credential(s) from issuer reported an error: {0:?}")]
     #[category(pd)]
-    CredentialRejection(Box<ErrorResponse<CredentialErrorCode>>),
+    CredentialRejection(Box<RemoteErrorResponse<CredentialErrorCode>>),
 
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
