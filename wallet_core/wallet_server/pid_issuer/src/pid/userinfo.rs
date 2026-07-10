@@ -1,5 +1,6 @@
 use futures::TryFutureExt;
 use futures::try_join;
+use http_utils::reqwest::APPLICATION_JWT;
 use http_utils::reqwest::HttpClient;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
@@ -27,8 +28,6 @@ use strum::EnumString;
 
 use super::jwks::HttpJwksClient;
 use super::jwks::JwksError;
-
-const APPLICATION_JWT: &str = "application/jwt";
 
 #[derive(Debug, thiserror::Error)]
 pub enum UserInfoError {

@@ -30,7 +30,7 @@ use crate::urls::BaseUrl;
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
-const APPLICATION_JWT: &str = "application/jwt";
+pub const APPLICATION_JWT: &str = "application/jwt";
 
 /// Wrapper around a [`Certificate`] implementing `PartialEq`, `Eq` and `Hash`. In addition, it implements
 /// the necessary `From`/`TryFrom` implementations so that it can be (de)serialised using `serde_with`.
