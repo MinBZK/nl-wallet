@@ -329,6 +329,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int dco_decode_u_16(dynamic raw);
 
   @protected
+  int dco_decode_u_32(dynamic raw);
+
+  @protected
   BigInt dco_decode_u_64(dynamic raw);
 
   @protected
@@ -640,6 +643,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer);
@@ -1845,6 +1851,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_u_16(int raw);
 
   @protected
+  int cst_encode_u_32(int raw);
+
+  @protected
   int cst_encode_u_8(int raw);
 
   @protected
@@ -2167,6 +2176,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer);
@@ -2697,15 +2709,16 @@ class WalletCoreWire implements BaseWire {
         )
       >();
 
-  void wire__crate__api__full__get_history(int port_) {
-    return _wire__crate__api__full__get_history(port_);
+  void wire__crate__api__full__get_history(int port_, int page, int page_size) {
+    return _wire__crate__api__full__get_history(port_, page, page_size);
   }
 
-  late final _wire__crate__api__full__get_historyPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__get_history',
-  );
+  late final _wire__crate__api__full__get_historyPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Uint32, ffi.Uint32)>>(
+        'frbgen_wallet_core_wire__crate__api__full__get_history',
+      );
   late final _wire__crate__api__full__get_history = _wire__crate__api__full__get_historyPtr
-      .asFunction<void Function(int)>();
+      .asFunction<void Function(int, int, int)>();
 
   void wire__crate__api__full__get_history_for_card(
     int port_,

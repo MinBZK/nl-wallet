@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-07-03T12:17:21+02:00",
+    "@@last_modified": "2026-07-08T15:04:52+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -802,6 +802,7 @@
     "historyDetailScreenTitleForCardRenewed": "{card} vernieuwd",
     "historyDetailScreenTitleForDisclosure": "Gedeeld met {organization}",
     "historyDetailScreenTitleForLogin": "Ingelogd bij {organization}",
+    "historyOverviewScreenLoadingNextPage": "Meer data laden. Even geduld.",
     "historyOverviewScreenTitle": "Activiteiten",
     "idleWarningDialogContinueCta": "Ja, doorgaan",
     "idleWarningDialogDescription": "Je wordt bijna uitgelogd omdat je even niets hebt gedaan. Kies 'Ja, doorgaan' voor meer tijd.",

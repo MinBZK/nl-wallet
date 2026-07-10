@@ -35,8 +35,8 @@ import 'package:wallet/src/domain/usecase/close_proximity/start_close_proximity_
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
+import 'package:wallet/src/domain/usecase/event/get_wallet_events_page_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_pid_usecase.dart';
-import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
@@ -261,7 +261,7 @@ List<SingleChildWidget> _getUseCaseProviders() {
     RepositoryProvider<GetWalletCardUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetWalletCardsUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetWalletEventsForCardUseCase>(create: (c) => Mocks.create()),
-    RepositoryProvider<GetWalletEventsUseCase>(create: (c) => Mocks.create()),
+    RepositoryProvider<GetWalletEventsPageUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetWalletStateUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<InitWalletTransferUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => Mocks.create()),

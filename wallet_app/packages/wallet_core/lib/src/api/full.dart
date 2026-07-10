@@ -168,7 +168,8 @@ Future<TransferSessionState> getWalletTransferState() => WalletCore.instance.api
 
 Future<WalletState> getWalletState() => WalletCore.instance.api.crateApiFullGetWalletState();
 
-Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGetHistory();
+Future<List<WalletEvent>> getHistory({required int page, required int pageSize}) =>
+    WalletCore.instance.api.crateApiFullGetHistory(page: page, pageSize: pageSize);
 
 Future<List<WalletEvent>> getHistoryForCard({required String attestationId}) =>
     WalletCore.instance.api.crateApiFullGetHistoryForCard(attestationId: attestationId);

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/event/event_section.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../../util/extension/wallet_event_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/history_section_sliver.dart';
+import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
@@ -17,8 +19,43 @@ import '../../common/widget/wallet_scrollbar.dart';
 import '../detail/argument/history_detail_screen_argument.dart';
 import 'bloc/history_overview_bloc.dart';
 
-class HistoryOverviewScreen extends StatelessWidget {
+/// Distance from the bottom (in pixels) at which the next page is pre-fetched.
+const double _kScrollLoadMoreThreshold = 400;
+
+class HistoryOverviewScreen extends StatefulWidget {
   const HistoryOverviewScreen({super.key});
+
+  @override
+  State<HistoryOverviewScreen> createState() => _HistoryOverviewScreenState();
+}
+
+class _HistoryOverviewScreenState extends State<HistoryOverviewScreen> {
+  final _scrollController = ScrollController();
+
+  /// Whether there are more pages available to be loaded when scrolling.
+  bool _hasNextPage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Avoid adding events when there are no more pages to load.
+    if (!_hasNextPage) return;
+
+    final position = _scrollController.position;
+    if (position.extentAfter <= _kScrollLoadMoreThreshold) {
+      context.read<HistoryOverviewBloc>().add(const HistoryOverviewLoadNextPageTriggered());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +76,8 @@ class HistoryOverviewScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    return BlocBuilder<HistoryOverviewBloc, HistoryOverviewState>(
+    return BlocConsumer<HistoryOverviewBloc, HistoryOverviewState>(
+      listener: (_, state) => _hasNextPage = tryCast<HistoryOverviewLoadSuccess>(state)?.hasNextPage ?? false,
       builder: (context, state) {
         final content = switch (state) {
           HistoryOverviewInitial() => _buildLoadingSliver(context),
@@ -48,7 +86,9 @@ class HistoryOverviewScreen extends StatelessWidget {
           HistoryOverviewLoadFailure() => _buildErrorSliver(context),
         };
         return WalletScrollbar(
+          controller: _scrollController,
           child: CustomScrollView(
+            controller: _scrollController,
             slivers: [
               content,
             ],
@@ -76,10 +116,10 @@ class HistoryOverviewScreen extends StatelessWidget {
   }
 
   Widget _buildSectionedEventsSliver(BuildContext context, HistoryOverviewLoadSuccess state) {
-    final List<Widget> slivers = state.events.sectionedByMonth
+    final List<Widget> slivers = state.eventsByYearMonth.entries
         .map(
-          (section) => HistorySectionSliver(
-            section: section,
+          (entry) => HistorySectionSliver(
+            section: EventSection(entry.key, entry.value),
             onRowPressed: (event) => _onEventPressed(context, event),
           ),
         )
@@ -94,8 +134,34 @@ class HistoryOverviewScreen extends StatelessWidget {
           ),
         ),
         ...slivers,
-        const SliverSizedBox(height: 24),
+        if (state.isLoadingMore) _buildLoadingNextPageSliver() else const SliverSizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _buildLoadingNextPageSliver() {
+    return SliverToBoxAdapter(
+      child: Container(
+        alignment: .center,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Row(
+          mainAxisSize: .min,
+          mainAxisAlignment: .center,
+          crossAxisAlignment: .center,
+          children: [
+            const SizedBox(
+              height: 24,
+              width: 24,
+              child: LoadingIndicator(),
+            ),
+            const SizedBox(width: 16),
+            Text.rich(
+              context.l10n.historyOverviewScreenLoadingNextPage.toTextSpan(context),
+              style: context.textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
@@ -246,7 +247,8 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<WalletEvent>> crateApiFullGetHistory() async => _eventLog.log;
+  Future<List<WalletEvent>> crateApiFullGetHistory({required int page, required int pageSize}) async =>
+      _eventLog.log.slices(pageSize).elementAtOrNull(page) ?? [];
 
   @override
   Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId}) async =>

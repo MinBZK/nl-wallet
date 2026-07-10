@@ -159,7 +159,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<WalletInstructionResult> crateApiFullDeleteAttestation({required String pin, required String attestationId});
 
-  Future<List<WalletEvent>> crateApiFullGetHistory();
+  Future<List<WalletEvent>> crateApiFullGetHistory({required int page, required int pageSize});
 
   Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId});
 
@@ -966,18 +966,20 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<List<WalletEvent>> crateApiFullGetHistory() {
+  Future<List<WalletEvent>> crateApiFullGetHistory({required int page, required int pageSize}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          return wire.wire__crate__api__full__get_history(port_);
+          var arg0 = cst_encode_u_32(page);
+          var arg1 = cst_encode_u_32(pageSize);
+          return wire.wire__crate__api__full__get_history(port_, arg0, arg1);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_list_wallet_event,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullGetHistoryConstMeta,
-        argValues: [],
+        argValues: [page, pageSize],
         apiImpl: this,
       ),
     );
@@ -985,7 +987,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullGetHistoryConstMeta => const TaskConstMeta(
     debugName: "get_history",
-    argNames: [],
+    argNames: ["page", "pageSize"],
   );
 
   @override
@@ -2829,6 +2831,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   BigInt dco_decode_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeU64(raw);
@@ -3999,6 +4007,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
+  }
+
+  @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getBigUint64();
@@ -4295,6 +4309,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @protected
   int cst_encode_u_16(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_u_32(int raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
   }
@@ -5252,6 +5272,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_u_16(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint16(self);
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
   }
 
   @protected

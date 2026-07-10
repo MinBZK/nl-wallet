@@ -1,8 +1,12 @@
+import 'dart:collection';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/history/overview/bloc/history_overview_bloc.dart';
 import 'package:wallet/src/feature/history/overview/history_overview_screen.dart';
@@ -15,8 +19,20 @@ import '../../../test_util/test_utils.dart';
 class MockHistoryOverviewBloc extends MockBloc<HistoryOverviewEvent, HistoryOverviewState>
     implements HistoryOverviewBloc {}
 
+/// Convenience helper – wraps a flat event list in the rolling-window state shape.
+HistoryOverviewLoadSuccess successState(
+  List<WalletEvent> events, {
+  bool hasNextPage = false,
+  bool isLoadingMore = false,
+}) => HistoryOverviewLoadSuccess(
+  pages: SplayTreeMap<int, List<WalletEvent>>()..[0] = events,
+  lastLoadedPage: 0,
+  hasNextPage: hasNextPage,
+  isLoadingMore: isLoadingMore,
+);
+
 void main() {
-  final historyOverviewLoadSuccessMock = HistoryOverviewLoadSuccess(
+  final historyOverviewLoadSuccessMock = successState(
     [
       WalletMockData.disclosureEvent,
       WalletMockData.disclosureEvent,
@@ -67,6 +83,26 @@ void main() {
       );
       await screenMatchesGolden('error.light');
     });
+
+    testGoldens('HistoryOverviewLoadSuccess loading more light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
+          MockHistoryOverviewBloc(),
+          successState(
+            [
+              WalletMockData.disclosureEvent,
+              WalletMockData.disclosureEvent,
+              WalletMockData.disclosureEvent,
+              WalletMockData.disclosureEvent,
+              WalletMockData.signEvent,
+            ],
+            hasNextPage: true,
+            isLoadingMore: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('success.loading_more.light');
+    });
   });
 
   group('widgets', () {
@@ -74,7 +110,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.issuanceEvent,
           ]),
         ),
@@ -87,7 +123,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.signEvent,
           ]),
         ),
@@ -101,7 +137,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.disclosureEvent,
           ]),
         ),
@@ -128,7 +164,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.disclosureEvent,
             WalletMockData.loginEvent,
           ]),
@@ -147,7 +183,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.cancelledDisclosureEvent,
           ]),
         ),
@@ -160,7 +196,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.failedDisclosureEvent,
           ]),
         ),
@@ -173,7 +209,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.issuanceEvent,
           ]),
         ),
@@ -191,7 +227,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          HistoryOverviewLoadSuccess([
+          successState([
             WalletMockData.disclosureEvent,
             WalletMockData.loginEvent,
             WalletMockData.issuanceEvent,
@@ -207,6 +243,46 @@ void main() {
       expect(find.text('December 2023'), findsOneWidget);
       expect(find.text('February 2024'), findsOneWidget);
       expect(find.text('March 2024'), findsOneWidget);
+    });
+
+    testWidgets('scrolls to bottom triggers HistoryOverviewLoadNextPageTriggered when a next page is available', (
+      tester,
+    ) async {
+      final bloc = MockHistoryOverviewBloc();
+      final events = List.generate(20, (index) => WalletMockData.disclosureEvent);
+
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
+          bloc,
+          successState(events, hasNextPage: true),
+        ),
+      );
+
+      // Scroll to the bottom to trigger the load more
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -2000));
+      await tester.pump();
+
+      verify(() => bloc.add(const HistoryOverviewLoadNextPageTriggered())).called(1);
+    });
+
+    testWidgets('scrolls to bottom does not trigger HistoryOverviewLoadNextPageTriggered when there is no next page', (
+      tester,
+    ) async {
+      final bloc = MockHistoryOverviewBloc();
+      final events = List.generate(20, (index) => WalletMockData.disclosureEvent);
+
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
+          bloc,
+          successState(events, hasNextPage: false),
+        ),
+      );
+
+      // Scroll to the bottom; no more pages are available so no event should be dispatched
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -2000));
+      await tester.pump();
+
+      verifyNever(() => bloc.add(const HistoryOverviewLoadNextPageTriggered()));
     });
   });
 }
