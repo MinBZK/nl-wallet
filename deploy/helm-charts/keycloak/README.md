@@ -160,20 +160,20 @@ Step-by-step:
 
 ### Container probes
 
-| Name                                     | Description                                                       | Value   |
-| ---------------------------------------- | ----------------------------------------------------------------- | ------- |
-| `probes.config.liveness`                 | Additional configuration for liveness probe                       | `{}`    |
-| `probes.config.readiness`                | Additional configuration for readiness probe                      | `{}`    |
-| `probes.config.startup.periodSeconds`    | Seconds between startup probe checks                              | `10`    |
-| `probes.config.startup.failureThreshold` | Number of failed startup probes before the container is restarted | `60`    |
-| `probes.disableLiveness`                 | Disable liveness probe                                            | `false` |
-| `probes.useLivenessAsReadiness`          | Use liveness endpoint for readiness                               | `false` |
+| Name                                     | Description                                                              | Value    |
+| ---------------------------------------- | ------------------------------------------------------------------------ | -------- |
+| `probes.config.liveness`                 | Additional configuration for liveness probe                              | `{}`     |
+| `probes.config.readiness`                | Additional configuration for readiness probe                             | `{}`     |
+| `probes.config.startup.periodSeconds`    | Seconds between startup probe checks                                     | `10`     |
+| `probes.config.startup.failureThreshold` | Number of failed startup probes before the container is restarted        | `60`     |
+| `probes.port`                            | Named container port for probe targets (defaults to "http" in sp-common) | `health` |
+| `probes.disableLiveness`                 | Disable liveness probe                                                   | `false`  |
+| `probes.useLivenessAsReadiness`          | Use liveness endpoint for readiness                                      | `false`  |
 
 ### Keycloak parameters
 
 | Name                                        | Description                                                                                       | Value                      |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------- |
-| `keycloak.hostname`                         | Value for KC_HOSTNAME (external hostname of the ingress)                                          | `localhost`                |
 | `keycloak.database`                         | Value for KC_DB (defaults to dev-file backed by the PVC)                                          | `dev-file`                 |
 | `keycloak.proxyHeaders`                     | Value for KC_PROXY_HEADERS (xforwarded or forwarded)                                              | `xforwarded`               |
 | `keycloak.realm.existingSecret.name`        | Name of the secret holding the realm import JSON (the nl-wallet realm; must exist before install) | `nl-wallet-keycloak-realm` |

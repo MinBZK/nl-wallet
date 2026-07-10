@@ -108,7 +108,6 @@ probes:
   useLivenessAsReadiness: false
 
 ## @section Keycloak parameters
-## @param keycloak.hostname Value for KC_HOSTNAME (external hostname of the ingress)
 ## @param keycloak.database Value for KC_DB (defaults to dev-file backed by the PVC)
 ## @param keycloak.proxyHeaders Value for KC_PROXY_HEADERS (xforwarded or forwarded)
 ## @param keycloak.realm.existingSecret.name Name of the secret holding the realm import JSON (the nl-wallet realm; must exist before install)
@@ -119,7 +118,6 @@ probes:
 ## @param keycloak.extraEnv Additional environment variables
 ##
 keycloak:
-  hostname: localhost
   database: dev-file
   proxyHeaders: xforwarded
   realm:

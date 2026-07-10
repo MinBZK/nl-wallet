@@ -58,12 +58,10 @@ spec:
           env:
             - name: KC_HTTP_ENABLED
               value: "true"
-            - name: KC_HTTP_PORT
-              value: "8080"
             - name: KC_HEALTH_ENABLED
               value: "true"
             - name: KC_HOSTNAME
-              value: {{ .Values.keycloak.hostname | quote }}
+              value: {{ first .Values.httpRoute.hostnames | quote }}
             - name: KC_PROXY_HEADERS
               value: {{ .Values.keycloak.proxyHeaders | quote }}
             - name: KC_DB
