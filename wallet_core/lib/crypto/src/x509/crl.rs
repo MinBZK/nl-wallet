@@ -1,3 +1,7 @@
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+
 use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
@@ -5,6 +9,7 @@ use webpki::OwnedCertRevocationList;
 use x509_parser::extensions::DistributionPointName;
 use x509_parser::extensions::GeneralName;
 use x509_parser::extensions::ParsedExtension;
+use x509_parser::revocation_list::CertificateRevocationList;
 
 use crate::x509::BorrowingCertificate;
 
@@ -66,23 +71,111 @@ pub fn parse_crl_der(crl_der: &[u8]) -> Result<CertRevocationList<'static>, webp
     Ok(CertRevocationList::from(owned))
 }
 
+/// Return remaining time until the CRL's `nextUpdate` field expires.
+/// Returns `None` if the CRL has no `nextUpdate` or is already past expiry.
+/// Used by callers to derive cache TTL.
+pub fn ttl_from_next_update(crl: &CertificateRevocationList) -> Option<Duration> {
+    let next_update_secs = crl.next_update()?.to_datetime().unix_timestamp();
+    let now_secs = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs() as i64;
+    let remaining = (next_update_secs - now_secs).max(0) as u64;
+    Some(Duration::from_secs(remaining))
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
 
-    use rcgen::RevokedCertParams;
+    use crl::*;
+    use der::Encode;
+    use der::asn1::BitStringRef;
+    use der::asn1::ObjectIdentifier;
+    use der::asn1::SequenceOf;
+    use der::asn1::UtcTime;
     use rcgen::RevocationReason;
+    use rcgen::RevokedCertParams;
     use rcgen::SerialNumber;
     use rustls_pki_types::UnixTime;
     use time::OffsetDateTime;
     use url::Url;
     use webpki::RevocationReason as WebpkiRevocationReason;
+    use x509_parser::parse_x509_crl;
 
     use super::*;
     use crate::server_keys::generate::Ca;
     use crate::x509::CertificateConfiguration;
     use crate::x509::DistinguishedName;
     use crate::x509::NO_SAN;
+
+    mod crl {
+        //! Minimal CertificateList datatypes, to support tests parsing an optional nextUpdate parameter.
+        //! Needed because rcgen::CertificateRevocationList requires nextUpdate.
+        use der::Sequence;
+        use der::asn1::BitStringRef;
+        use der::asn1::ObjectIdentifier;
+        use der::asn1::SequenceOf;
+        use der::asn1::UtcTime;
+
+        /// `AlgorithmIdentifier ::= SEQUENCE { algorithm OBJECT IDENTIFIER }` (RFC 5280, 4.1.1.2),
+        /// simplified by leaving out the OPTIONAL `parameters` field.
+        #[derive(Sequence)]
+        pub(super) struct AlgorithmIdentifier {
+            pub(super) algorithm: ObjectIdentifier,
+        }
+
+        /// ```text
+        /// TBSCertList ::= SEQUENCE {
+        ///      signature               AlgorithmIdentifier,
+        ///      issuer                  Name,
+        ///      thisUpdate              Time }
+        /// ```
+        /// (RFC 5280, 5.1.2), with `version`, `nextUpdate`, `revokedCertificates` and
+        /// `crlExtensions` left out, since all are OPTIONAL and `nextUpdate` is the field under test.
+        #[derive(Sequence)]
+        pub(super) struct TbsCertList {
+            pub(super) signature: AlgorithmIdentifier,
+            pub(super) issuer: SequenceOf<ObjectIdentifier, 0>,
+            pub(super) this_update: UtcTime,
+        }
+
+        /// ```text
+        /// CertificateList ::= SEQUENCE {
+        ///      tbsCertList          TBSCertList,
+        ///      signatureAlgorithm   AlgorithmIdentifier,
+        ///      signatureValue       BIT STRING }
+        /// ```
+        /// (RFC 5280, 5.1.1).
+        #[derive(Sequence)]
+        pub(super) struct CertificateList<'a> {
+            pub(super) tbs_cert_list: TbsCertList,
+            pub(super) signature_algorithm: AlgorithmIdentifier,
+            pub(super) signature_value: BitStringRef<'a>,
+        }
+    }
+
+    const OID_SHA256_WITH_RSA_ENCRYPTION: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.11");
+
+    /// Build a minimal, DER-encoded `CertificateList` (RFC 5280) whose `TBSCertList` goes
+    /// straight from `thisUpdate` to the signature, omitting the optional `nextUpdate` field.
+    /// rcgen always emits `nextUpdate`, so this case cannot be constructed through it.
+    fn crl_der_without_next_update() -> Vec<u8> {
+        let tbs_cert_list = TbsCertList {
+            signature: AlgorithmIdentifier {
+                algorithm: OID_SHA256_WITH_RSA_ENCRYPTION,
+            },
+            issuer: SequenceOf::new(), // empty Name
+            this_update: UtcTime::from_unix_duration(Duration::ZERO).unwrap(),
+        };
+
+        CertificateList {
+            tbs_cert_list,
+            signature_algorithm: AlgorithmIdentifier {
+                algorithm: OID_SHA256_WITH_RSA_ENCRYPTION,
+            },
+            signature_value: BitStringRef::from_bytes(&[]).unwrap(),
+        }
+        .to_der()
+        .unwrap()
+    }
 
     fn generate_cert_with_cdps(urls: Vec<Url>) -> BorrowingCertificate {
         let ca = Ca::generate_mock();
@@ -154,5 +247,41 @@ mod tests {
     #[test]
     fn parse_invalid_crl_der() {
         assert!(parse_crl_der(b"not a crl").is_err());
+    }
+
+    #[test]
+    fn ttl_from_next_update_returns_remaining_duration() {
+        let ca = Ca::generate_mock();
+        let now = OffsetDateTime::now_utc();
+        let next_update = now + Duration::from_secs(3600);
+        let crl = ca.generate_crl_with_validity(vec![], now, next_update).unwrap();
+
+        let (_, parsed) = parse_x509_crl(crl.der()).unwrap();
+        let ttl = ttl_from_next_update(&parsed).unwrap();
+
+        // Allow some slack for the time elapsed during test execution.
+        assert!(ttl <= Duration::from_secs(3600));
+        assert!(ttl > Duration::from_secs(3600 - 60));
+    }
+
+    #[test]
+    fn ttl_from_next_update_returns_zero_when_expired() {
+        let ca = Ca::generate_mock();
+        let this_update = OffsetDateTime::UNIX_EPOCH;
+        let next_update = this_update + Duration::from_secs(3600);
+        let crl = ca.generate_crl_with_validity(vec![], this_update, next_update).unwrap();
+
+        let (_, parsed) = parse_x509_crl(crl.der()).unwrap();
+        let ttl = ttl_from_next_update(&parsed).unwrap();
+
+        assert_eq!(ttl, Duration::ZERO);
+    }
+
+    #[test]
+    fn ttl_from_next_update_returns_none_without_next_update() {
+        let der = crl_der_without_next_update();
+        let (_, parsed) = parse_x509_crl(&der).unwrap();
+
+        assert!(ttl_from_next_update(&parsed).is_none());
     }
 }

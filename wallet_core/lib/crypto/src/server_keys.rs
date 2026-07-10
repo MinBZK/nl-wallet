@@ -94,9 +94,9 @@ pub mod generate {
     use rcgen::SanType;
     use rcgen::SerialNumber;
     use rcgen::SubjectPublicKeyInfo;
-    use time::Duration;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
+    use time::Duration;
     use time::OffsetDateTime;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
@@ -213,17 +213,33 @@ pub mod generate {
         }
 
         /// Generate a signed CRL from this CA, revoking the given certificates.
-        pub fn generate_crl(&self, revoked_certs: Vec<RevokedCertParams>) -> Result<CertificateRevocationList, CertificateError> {
+        pub fn generate_crl(
+            &self,
+            revoked_certs: Vec<RevokedCertParams>,
+        ) -> Result<CertificateRevocationList, CertificateError> {
             let now = OffsetDateTime::now_utc();
+            self.generate_crl_with_validity(revoked_certs, now, now + Duration::days(7))
+        }
+
+        /// Generate a signed CRL from this CA, revoking the given certificates, with explicit
+        /// `thisUpdate`/`nextUpdate` fields. Used to test CRL expiry handling.
+        pub fn generate_crl_with_validity(
+            &self,
+            revoked_certs: Vec<RevokedCertParams>,
+            this_update: OffsetDateTime,
+            next_update: OffsetDateTime,
+        ) -> Result<CertificateRevocationList, CertificateError> {
             let params = CertificateRevocationListParams {
-                this_update: now,
-                next_update: now + Duration::days(7),
+                this_update,
+                next_update,
                 crl_number: SerialNumber::from(1u64),
                 issuing_distribution_point: None,
                 revoked_certs,
                 key_identifier_method: KeyIdMethod::Sha256,
             };
-            params.signed_by(&self.issuer).map_err(CertificateError::GeneratingFailed)
+            params
+                .signed_by(&self.issuer)
+                .map_err(CertificateError::GeneratingFailed)
         }
 
         /// Generate a new intermediate CA key pair, with any constraint
