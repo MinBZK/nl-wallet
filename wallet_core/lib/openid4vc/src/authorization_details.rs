@@ -36,7 +36,7 @@ pub enum AuthorizationDetailsError {
     DuplicateCredentialConfigIds(Vec<CredentialConfigurationId>),
 }
 
-/// This represents a list of `authorization_details` entries with the following guarantuees:
+/// This represents a list of `authorization_details` entries with the following guarantees:
 ///
 /// - There is at least one entry.
 /// - There is at least one `openid_credential` entry.
@@ -115,7 +115,7 @@ where
 }
 
 /// The data structure for an `authorization_details` entry, based on what is defined in Section 2 of RFC9396. Any other
-/// fields defined in RFC9396 besides `locations` are not used in OpenID4VCI 1.0 are therefor omitted.
+/// fields defined in RFC9396 besides `locations` are not used in OpenID4VCI 1.0 are therefore omitted.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

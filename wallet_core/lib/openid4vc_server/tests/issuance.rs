@@ -1053,9 +1053,6 @@ async fn token_rejects_authorization_details() {
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
-    // Plant an authorization-code session, then try to redeem its code using the pre-authorized-code
-    // grant. The code is placed in the `pre-authorized_code` field so the session is still found, and
-    // the grant-type mismatch is what the handler must reject.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
@@ -1066,6 +1063,8 @@ async fn token_rejects_authorization_details() {
         .parse()
         .unwrap();
 
+    // Create a Token Request that contains (valid) `authorization_details`. The issuer should reject this as
+    // being unsupported.
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
         client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
