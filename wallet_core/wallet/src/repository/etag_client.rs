@@ -65,7 +65,7 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
         }
 
         let content = fs::read(&etag_file).await?;
-        match HeaderValue::from_bytes(&content).map_err(FileStorageError::InvalidHeaderValue) {
+        match HeaderValue::from_bytes(&content) {
             Ok(etag) => Ok(Some(etag)),
             Err(error) => {
                 warn!("Invalid stored ETag header value, deleting stored ETag file: {error}");
