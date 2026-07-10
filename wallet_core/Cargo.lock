@@ -2451,6 +2451,7 @@ name = "entity"
 version = "0.6.0-dev"
 dependencies = [
  "attestation_data",
+ "attestation_types",
  "chrono",
  "crypto",
  "derive_more",

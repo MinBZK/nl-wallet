@@ -1,3 +1,4 @@
+use attestation_types::credential_format::Format;
 use mdoc::holder::Mdoc;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
@@ -38,4 +39,13 @@ impl CredentialWithMetadata {
 pub enum IssuedCredentialCopies {
     Mdoc(VecNonEmpty<Mdoc>),
     SdJwt(VecNonEmpty<(String, VerifiedSdJwt)>),
+}
+
+impl IssuedCredentialCopies {
+    pub fn format(&self) -> Format {
+        match self {
+            IssuedCredentialCopies::Mdoc(_) => Format::MsoMdoc,
+            IssuedCredentialCopies::SdJwt(_) => Format::SdJwt,
+        }
+    }
 }

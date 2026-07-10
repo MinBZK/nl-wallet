@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use entity::attestation_copy::AttestationFormat;
+use entity::attestation::AttestationFormat;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::timestamp_with_time_zone_null;
 use sea_orm_migration::sea_orm::Iterable;
@@ -19,6 +19,14 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Attestation::Type).text().not_null())
                     .col(timestamp_with_time_zone_null(Attestation::ExpirationDateTime))
                     .col(timestamp_with_time_zone_null(Attestation::NotBeforeDateTime))
+                    .col(
+                        ColumnDef::new(Attestation::Format)
+                            // SQLite doesn't have proper enum support, so we simulate that here with a custom type
+                            // (SQLite is dynamically typed) and a check expression.
+                            .custom(Attestation::EnumText)
+                            .check(Expr::col(Attestation::Format).is_in(AttestationFormat::iter()))
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Attestation::ExtendedTypes).json().not_null())
                     .col(ColumnDef::new(Attestation::TypeMetadata).json().not_null())
                     .to_owned(),
@@ -43,14 +51,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AttestationCopy::StatusListIndex).integer().null())
                     .col(ColumnDef::new(AttestationCopy::IssuerCertificateDn).text().not_null())
                     .col(ColumnDef::new(AttestationCopy::RevocationStatus).string().null())
-                    .col(
-                        ColumnDef::new(AttestationCopy::Format)
-                            // SQLite doesn't have proper enum support, so we simulate that here with a custom type
-                            // (SQLite is dynamically typed) and a check expression.
-                            .custom(AttestationCopy::EnumText)
-                            .check(Expr::col(AttestationCopy::Format).is_in(AttestationFormat::iter()))
-                            .not_null(),
-                    )
                     .col(ColumnDef::new(AttestationCopy::Attestation).binary().not_null())
                     // In sqlite/sqlcipher foreign keys can only be created as part of the create table statement.
                     .foreign_key(
@@ -88,6 +88,9 @@ pub enum Attestation {
     Type,
     ExpirationDateTime,
     NotBeforeDateTime,
+    #[sea_orm(iden = "attestation_format")]
+    Format,
+    EnumText,
     ExtendedTypes,
     TypeMetadata,
 }
@@ -99,10 +102,7 @@ enum AttestationCopy {
     DisclosureCount,
     AttestationId,
     KeyIdentifier,
-    #[sea_orm(iden = "attestation_format")]
-    Format,
     Attestation,
-    EnumText,
     StatusListUrl,
     StatusListIndex,
     IssuerCertificateDn,

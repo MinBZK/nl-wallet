@@ -13,10 +13,10 @@ use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::attestation;
+use entity::attestation::AttestationFormat;
 use entity::attestation::ExtendedTypesModel;
 use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
-use entity::attestation_copy::AttestationFormat;
 use entity::compressed_blob::CompressedBlob;
 use entity::deletion_event;
 use entity::disclosure_event;
@@ -207,9 +207,9 @@ impl<K> DatabaseStorage<K> {
             .inner_join(attestation::Entity)
             .column(attestation_copy::Column::Id)
             .column(attestation_copy::Column::AttestationId)
-            .column(attestation_copy::Column::AttestationFormat)
             .column(attestation_copy::Column::KeyIdentifier)
             .column(attestation_copy::Column::Attestation)
+            .column(attestation::Column::AttestationFormat)
             .column(attestation::Column::Expiration)
             .column(attestation::Column::NotBefore)
             .column(attestation::Column::TypeMetadata)
@@ -235,14 +235,14 @@ impl<K> DatabaseStorage<K> {
                 |(
                     attestation_copy_id,
                     attestation_id,
-                    attestation_format,
                     key_identifier,
                     attestation_bytes,
+                    attestation_format,
                     expiration,
                     not_before,
                     metadata,
                     revocation_statuses,
-                ): (_, _, _, _, CompressedBlob, _, _, TypeMetadataModel, String)| {
+                ): (_, _, _, CompressedBlob, _, _, _, TypeMetadataModel, String)| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -327,8 +327,7 @@ impl<K> DatabaseStorage<K> {
 
         // If a specific format was requested, add that to condition.
         let condition = if let Some(format) = format {
-            condition
-                .add(attestation_copy::Column::AttestationFormat.eq(attestation_format_for_credential_format(format)))
+            condition.add(attestation::Column::AttestationFormat.eq(attestation_format_for_credential_format(format)))
         } else {
             condition
         };
@@ -719,6 +718,7 @@ where
                     let attestation_model = attestation::ActiveModel {
                         id: Set(attestation_id),
                         attestation_type: Set(attestation_type),
+                        attestation_format: Set(copies.format().into()),
                         expiration: Set(expiration.map(Into::into)),
                         not_before: Set(not_before.map(Into::into)),
                         extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
@@ -1264,13 +1264,7 @@ fn create_attestation_copy_models(
 
                 let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
 
-                Ok((
-                    AttestationFormat::Mdoc,
-                    mso.status,
-                    private_key_id,
-                    issuer_certificate_dn,
-                    attestation_bytes,
-                ))
+                Ok((mso.status, private_key_id, issuer_certificate_dn, attestation_bytes))
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
         IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
@@ -1284,41 +1278,32 @@ fn create_attestation_copy_models(
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
                 let status = sd_jwt.into_claims().status;
 
-                Ok((
-                    AttestationFormat::SdJwt,
-                    status,
-                    key_identifier,
-                    issuer_certificate_dn,
-                    attestation_bytes,
-                ))
+                Ok((status, key_identifier, issuer_certificate_dn, attestation_bytes))
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
     }
     .into_nonempty_iter()
-    .map(
-        |(format, status, key_identifier, issuer_certificate_dn, attestation_bytes)| {
-            let (status_uri, status_index) = status
-                .map(|status| match status {
-                    StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
-                })
-                .unwrap_or((None, None));
+    .map(|(status, key_identifier, issuer_certificate_dn, attestation_bytes)| {
+        let (status_uri, status_index) = status
+            .map(|status| match status {
+                StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
+            })
+            .unwrap_or((None, None));
 
-            let model = attestation_copy::ActiveModel {
-                id: Set(Uuid::now_v7()),
-                disclosure_count: Set(0),
-                attestation_id: Set(attestation_id),
-                attestation_format: Set(format),
-                key_identifier: Set(key_identifier),
-                status_list_url: Set(status_uri),
-                status_list_index: Set(status_index),
-                issuer_certificate_dn: Set(issuer_certificate_dn),
-                revocation_status: Set(None),
-                attestation: Set(CompressedBlob::new(&attestation_bytes)?),
-            };
+        let model = attestation_copy::ActiveModel {
+            id: Set(Uuid::now_v7()),
+            disclosure_count: Set(0),
+            attestation_id: Set(attestation_id),
+            key_identifier: Set(key_identifier),
+            status_list_url: Set(status_uri),
+            status_list_index: Set(status_index),
+            issuer_certificate_dn: Set(issuer_certificate_dn),
+            revocation_status: Set(None),
+            attestation: Set(CompressedBlob::new(&attestation_bytes)?),
+        };
 
-            Ok(model)
-        },
-    )
+        Ok(model)
+    })
     .collect::<Result<_, _>>()
 }
 
