@@ -21,7 +21,7 @@ use jwt::VerifiedJwt;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use openid4vc::authorization::PushedAuthorizationResponse;
-use openid4vc::authorization_details::AuthorizationDetailsEntry;
+use openid4vc::authorization_details::EntryContainer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
@@ -1071,7 +1071,7 @@ async fn token_rejects_authorization_details() {
         scope: None,
         code_verifier: Some(code_verifier),
         authorization_details: Some(
-            vec_nonempty![AuthorizationDetailsEntry::new_vci(
+            vec_nonempty![EntryContainer::new_credential_config(
                 "com.example.pid_dc+sd-jwt".to_string().into()
             )]
             .try_into()

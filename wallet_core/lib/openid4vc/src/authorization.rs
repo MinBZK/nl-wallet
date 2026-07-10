@@ -221,7 +221,6 @@ mod tests {
     use super::PkceCodeChallenge;
     use super::ResponseType;
     use super::VciAuthorizationRequest;
-    use crate::authorization_details::TypedAuthorizationDetailsEntry;
 
     fn example_vci_request() -> VciAuthorizationRequest {
         let scope = HashSet::from(["openid".parse().unwrap(), "profile".parse().unwrap()]);
@@ -364,18 +363,14 @@ mod tests {
             .as_ref()
             .expect("authorization_details should be present in Authorization Request");
 
-        let entry = authorization_details
+        let entry_container = authorization_details
             .as_ref()
             .iter()
             .exactly_one()
             .expect("there should exactly one authorization_details entry");
 
-        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) = &entry.typed_entry else {
-            panic!("authorization details entry should be of type openid_credential");
-        };
-
         assert_eq!(
-            vci_entry.credential_configuration_id.as_ref(),
+            entry_container.entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
     }

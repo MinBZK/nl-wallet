@@ -420,7 +420,7 @@ mod tests {
     use crate::authorization_code_flow::AuthorizeOutcome;
     use crate::authorization_code_flow::InvalidAuthorizationRequest;
     use crate::authorization_code_flow::WalletAuthorizationContext;
-    use crate::authorization_details::AuthorizationDetailsEntry;
+    use crate::authorization_details::EntryContainer;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::ErrorWithCode;
     use crate::errors::RedirectError;
@@ -603,7 +603,7 @@ mod tests {
 
         let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
         request.authorization_details = Some(
-            vec_nonempty![AuthorizationDetailsEntry::new_vci(
+            vec_nonempty![EntryContainer::new_credential_config(
                 "credential_config_id".to_string().into()
             )]
             .try_into()

@@ -1,13 +1,11 @@
-use std::str::FromStr;
-
 use derive_more::AsRef;
-use derive_more::Display;
 use derive_more::Into;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+use strum::EnumString;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
@@ -15,19 +13,15 @@ use utils::vec_at_least::VecNonEmptyUnique;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 
 // Type aliases for the `authorization_details` field as contained in the Authorization Request and Token Request.
-pub type WalletAuthorizationDetails = AuthorizationDetails<VciAuthorizationDetailsEntry>;
-pub type WalletAuthorizationDetailsEntries = VecNonEmpty<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>;
+pub type WalletAuthorizationDetails = AuthorizationDetails<CredentialConfigEntry>;
+pub type WalletAuthorizationDetailsEntries = VecNonEmpty<EntryContainer<CredentialConfigEntry>>;
 
 // Type aliases for the `authorization_details` field as contained in the Token Response.
-pub type IssuerAuthorizationDetails = AuthorizationDetails<VciIdentifierAuthorizationDetailsEntry>;
-pub type IssuerAuthorizationDetailsEntries =
-    VecNonEmpty<AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry>>;
+pub type IssuerAuthorizationDetails = AuthorizationDetails<CredentialEntry>;
+pub type IssuerAuthorizationDetailsEntries = VecNonEmpty<EntryContainer<CredentialEntry>>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthorizationDetailsError {
-    #[error("none of the authorization details entries are of type openid_credential")]
-    NoOpenidCredentialTypes,
-
     #[error("duplicate credential_configuration_id in authorization details: {}", .0.iter().join(", "))]
     DuplicateCredentialConfigIds(Vec<CredentialConfigurationId>),
 }
@@ -35,27 +29,20 @@ pub enum AuthorizationDetailsError {
 /// This represents a list of `authorization_details` entries with the following guarantees:
 ///
 /// - There is at least one entry.
-/// - There is at least one `openid_credential` entry.
+/// - All entries are of the `openid_credential` type.
 /// - All of the `credential_configuration_id` values of the `openid_credential` entries are unique.
 #[derive(Debug, Clone, AsRef, Into)]
-pub struct AuthorizationDetails<T>(VecNonEmpty<AuthorizationDetailsEntry<T>>);
+pub struct AuthorizationDetails<T>(VecNonEmpty<EntryContainer<T>>);
 
 impl<T> AuthorizationDetails<T>
 where
-    T: CredentialEntry,
+    T: EntryWithConfigId,
 {
-    pub fn try_new(auth_details: VecNonEmpty<AuthorizationDetailsEntry<T>>) -> Result<Self, AuthorizationDetailsError> {
+    pub fn try_new(auth_details: VecNonEmpty<EntryContainer<T>>) -> Result<Self, AuthorizationDetailsError> {
+        // Note that `counts_by_credential_id` cannot be empty, as the input `auth_details` is not empty.
         let counts_by_credential_id = auth_details
             .iter()
-            .filter_map(|entry| match &entry.typed_entry {
-                TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) => Some(vci_entry),
-                TypedAuthorizationDetailsEntry::Other { .. } => None,
-            })
-            .counts_by(|vci_entry| vci_entry.credential_config_id());
-
-        if counts_by_credential_id.is_empty() {
-            return Err(AuthorizationDetailsError::NoOpenidCredentialTypes);
-        }
+            .counts_by(|entry_container| entry_container.entry.credential_config_id());
 
         let duplicate_credential_ids = counts_by_credential_id
             .into_iter()
@@ -73,7 +60,7 @@ where
     }
 }
 
-impl AuthorizationDetails<VciIdentifierAuthorizationDetailsEntry> {
+impl AuthorizationDetails<CredentialEntry> {
     pub fn from_credential_ids_and_identifiers<'a>(
         credential_ids_and_identifiers: impl IntoNonEmptyIterator<Item = (&'a CredentialConfigurationId, String)>,
     ) -> Self {
@@ -82,7 +69,7 @@ impl AuthorizationDetails<VciIdentifierAuthorizationDetailsEntry> {
             .into_group_map()
             .into_iter()
             .map(|(config_id, identifiers)| {
-                AuthorizationDetailsEntry::new_vci_identifier(
+                EntryContainer::new_credential(
                     config_id.clone(),
                     VecNonEmpty::try_from(identifiers)
                         .expect("into_group_map() values should never contain an empty Vec")
@@ -99,25 +86,36 @@ impl AuthorizationDetails<VciIdentifierAuthorizationDetailsEntry> {
     }
 }
 
-impl<T> TryFrom<VecNonEmpty<AuthorizationDetailsEntry<T>>> for AuthorizationDetails<T>
+impl<T> TryFrom<VecNonEmpty<EntryContainer<T>>> for AuthorizationDetails<T>
 where
-    T: CredentialEntry,
+    T: EntryWithConfigId,
 {
     type Error = AuthorizationDetailsError;
 
-    fn try_from(value: VecNonEmpty<AuthorizationDetailsEntry<T>>) -> Result<Self, Self::Error> {
+    fn try_from(value: VecNonEmpty<EntryContainer<T>>) -> Result<Self, Self::Error> {
         Self::try_new(value)
     }
 }
 
-/// The data structure for an `authorization_details` entry, based on what is defined in Section 2 of RFC9396. Any other
-/// fields defined in RFC9396 are either not used in OpenID4VCI 1.0 or not supported by this implementation and are
-/// therefore omitted.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum EntryType {
+    #[default]
+    OpenidCredential,
+}
+
+/// The data structure for an `authorization_details` entry of type `openid_credential`, based on what is defined in
+/// Section 2 of RFC9396. Any other fields defined in RFC9396 are either not used in OpenID4VCI 1.0 or not supported by
+/// this implementation and are therefore omitted.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct AuthorizationDetailsEntry<T> {
+pub struct EntryContainer<T> {
+    #[serde(rename = "type")]
+    pub entry_type: EntryType,
+
     #[serde(flatten)]
-    pub typed_entry: TypedAuthorizationDetailsEntry<T>,
+    pub entry: T,
     // OpenID4VCI states the following:
     //
     // "If the Credential Issuer metadata contains an authorization_servers parameter, the authorization detail's
@@ -129,87 +127,48 @@ pub struct AuthorizationDetailsEntry<T> {
     // field from the struct.
 }
 
-impl AuthorizationDetailsEntry<VciAuthorizationDetailsEntry> {
-    pub fn new_vci(credential_configuration_id: CredentialConfigurationId) -> Self {
+impl EntryContainer<CredentialConfigEntry> {
+    pub fn new_credential_config(credential_configuration_id: CredentialConfigurationId) -> Self {
         Self {
-            typed_entry: TypedAuthorizationDetailsEntry::OpenidCredential(VciAuthorizationDetailsEntry {
+            entry_type: EntryType::OpenidCredential,
+            entry: CredentialConfigEntry {
                 credential_configuration_id,
-            }),
+            },
         }
     }
 }
 
-impl AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry> {
-    pub fn new_vci_identifier(
+impl EntryContainer<CredentialEntry> {
+    pub fn new_credential(
         credential_configuration_id: CredentialConfigurationId,
         credential_identifiers: VecNonEmptyUnique<String>,
     ) -> Self {
         Self {
-            typed_entry: TypedAuthorizationDetailsEntry::OpenidCredential(VciIdentifierAuthorizationDetailsEntry {
-                vci_entry: VciAuthorizationDetailsEntry {
+            entry_type: EntryType::OpenidCredential,
+            entry: CredentialEntry {
+                config_entry: CredentialConfigEntry {
                     credential_configuration_id,
                 },
                 credential_identifiers,
-            }),
+            },
         }
     }
 }
 
-/// A newtype around [`String`] that is anything but `openid_credential`, for use in [`TypedAuthorizationDetailsEntry`].
-#[derive(Debug, Clone, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
-#[as_ref(str)]
-pub struct NotOpenidCredentialType(String);
-
-impl NotOpenidCredentialType {
-    fn try_new(entry_type: String) -> Result<Self, String> {
-        if entry_type == "openid_credential" {
-            Err(entry_type)
-        } else {
-            Ok(Self(entry_type))
-        }
-    }
-}
-
-impl FromStr for NotOpenidCredentialType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::try_new(s.to_string())
-    }
-}
-
-/// An enum wrapper around both the `type` field of `authorization_details` and the custom fields provided by that type.
-/// Note that only the `openid_credential` type is supported. Other types are relegated to the `Other` variant, which
-/// captures the `type` field but discards any other custom fields on deserialization.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum TypedAuthorizationDetailsEntry<T> {
-    OpenidCredential(T),
-
-    #[serde(untagged)]
-    Other {
-        // Capture any `type` field in `authorization_details` that is explicitly not `openid_credential`. This
-        // workaround is needed in order to prevent any `VciIdentifierAuthorizationDetailsEntry` or
-        // `VciAuthorizationDetailsEntry` value that fails to parse from being deserialized to this enum variant.
-        #[serde(rename = "type")]
-        entry_type: NotOpenidCredentialType,
-    },
-}
-
-pub trait CredentialEntry {
+pub trait EntryWithConfigId {
     fn credential_config_id(&self) -> &CredentialConfigurationId;
 }
 
 /// The custom OpenID4VCI fields of `authorization_details` the Issuer may include in the Token Response. This is a
-/// superset of [`VciAuthorizationDetailsEntry`] that includes the `credential_identifiers` field in order to uniquely
-/// identify credential instances.
+/// superset of [`CredentialConfigEntry`] that includes the `credential_identifiers` field in order to uniquely identify
+/// credential instances.
 ///
 /// Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.2>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub struct VciIdentifierAuthorizationDetailsEntry {
+pub struct CredentialEntry {
     #[serde(flatten)]
-    pub vci_entry: VciAuthorizationDetailsEntry,
+    pub config_entry: CredentialConfigEntry,
 
     /// A non-empty array of strings, each uniquely identifying a Credential Dataset that can be issued using the
     /// Access Token returned in this response. Each of these Credential Datasets corresponds to the Credential
@@ -218,9 +177,9 @@ pub struct VciIdentifierAuthorizationDetailsEntry {
     pub credential_identifiers: VecNonEmptyUnique<String>,
 }
 
-impl CredentialEntry for VciIdentifierAuthorizationDetailsEntry {
+impl EntryWithConfigId for CredentialEntry {
     fn credential_config_id(&self) -> &CredentialConfigurationId {
-        &self.vci_entry.credential_configuration_id
+        &self.config_entry.credential_configuration_id
     }
 }
 
@@ -230,7 +189,7 @@ impl CredentialEntry for VciIdentifierAuthorizationDetailsEntry {
 /// Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.1>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub struct VciAuthorizationDetailsEntry {
+pub struct CredentialConfigEntry {
     /// String specifying a unique identifier of the Credential being described in the
     /// credential_configurations_supported map in the Credential Issuer Metadata.
     pub credential_configuration_id: CredentialConfigurationId,
@@ -241,7 +200,7 @@ pub struct VciAuthorizationDetailsEntry {
     // <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-B.1>
 }
 
-impl CredentialEntry for VciAuthorizationDetailsEntry {
+impl EntryWithConfigId for CredentialConfigEntry {
     fn credential_config_id(&self) -> &CredentialConfigurationId {
         &self.credential_configuration_id
     }
@@ -257,11 +216,10 @@ mod tests {
     use utils::vec_nonempty;
 
     use super::AuthorizationDetails;
-    use super::AuthorizationDetailsEntry;
     use super::AuthorizationDetailsError;
-    use super::TypedAuthorizationDetailsEntry;
-    use super::VciAuthorizationDetailsEntry;
-    use super::VciIdentifierAuthorizationDetailsEntry;
+    use super::CredentialConfigEntry;
+    use super::CredentialEntry;
+    use super::EntryContainer;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
 
     #[test]
@@ -282,14 +240,11 @@ mod tests {
 
         let entries = VecNonEmpty::from(authorization_details)
             .into_iter()
-            .map(|entry| match entry.typed_entry {
-                TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) => (
-                    vci_id_entry.vci_entry.credential_configuration_id,
-                    vci_id_entry.credential_identifiers,
-                ),
-                TypedAuthorizationDetailsEntry::Other { .. } => {
-                    panic!("type of AuthorizationDetailsEntry should be OpenidCredential")
-                }
+            .map(|entry_container| {
+                (
+                    entry_container.entry.config_entry.credential_configuration_id,
+                    entry_container.entry.credential_identifiers,
+                )
             })
             .sorted_by(|(left, _), (right, _)| Ord::cmp(left.as_ref(), right.as_ref()))
             .collect_vec();
@@ -357,64 +312,54 @@ mod tests {
 
     #[test]
     fn test_authorization_details_deserialize_other_type() {
-        let auth_details = serde_json::from_value::<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>(
-            other_type_auth_details_example_json(),
-        )
-        .expect("deserializing AuthorizationDetailsEntry should succeed");
+        // Deserializing a completely different type of `authorization_details` entry should return an error.
+        let _ = serde_json::from_value::<EntryContainer<CredentialConfigEntry>>(other_type_auth_details_example_json())
+            .expect_err("deserializing EntryContainer should fail");
+    }
 
-        let TypedAuthorizationDetailsEntry::Other { entry_type } = &auth_details.typed_entry else {
-            panic!("type of AuthorizationDetailsEntry should be Other");
-        };
+    #[test]
+    fn test_authorization_details_deserialize_incorrect_type() {
+        // Deserializing an `authorization_details` entry where only the type field is incorrect should return an error.
+        let mut json = auth_request_auth_details_example_json();
+        *json.get_mut("type").unwrap() = serde_json::Value::String("account_information".to_string());
 
-        assert_eq!(entry_type.as_ref(), "account_information");
+        let _ = serde_json::from_value::<EntryContainer<CredentialConfigEntry>>(json)
+            .expect_err("deserializing EntryContainer should fail");
     }
 
     #[test]
     fn test_wallet_authorization_details_deserialize_and_serialize() {
-        let auth_details = serde_json::from_value::<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>(
-            auth_request_auth_details_example_json(),
-        )
-        .expect("deserializing AuthorizationDetailsEntry should succeed");
-
-        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) = &auth_details.typed_entry else {
-            panic!("type of AuthorizationDetailsEntry should be OpenidCredential");
-        };
+        let entry_container =
+            serde_json::from_value::<EntryContainer<CredentialConfigEntry>>(auth_request_auth_details_example_json())
+                .expect("deserializing EntryContainer should succeed");
 
         assert_eq!(
-            vci_entry.credential_configuration_id.as_ref(),
+            entry_container.entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
 
-        let serialized =
-            serde_json::to_value(auth_details).expect("serializing AuthorizationDetailsEntry should succeed");
+        let serialized = serde_json::to_value(entry_container).expect("serializing EntryContainer should succeed");
 
         assert_eq!(serialized, auth_request_auth_details_example_json());
 
-        // Deserializing as `VciIdentifierAuthorizationDetailsEntry` should fail, as it requires
-        // `credential_identifiers`.
-        let _ = serde_json::from_value::<AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry>>(
-            auth_request_auth_details_example_json(),
-        )
-        .expect_err("deserializing AuthorizationDetailsEntry should fail");
+        // Deserializing as `CredentialEntry` should fail, as it requires `credential_identifiers`.
+        let _ = serde_json::from_value::<EntryContainer<CredentialEntry>>(auth_request_auth_details_example_json())
+            .expect_err("deserializing EntryContainer should fail");
     }
 
     #[test]
     fn test_issuer_authorization_details_deserialize_and_serialize() {
-        let auth_details = serde_json::from_value::<AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry>>(
-            token_response_auth_details_example_json(),
-        )
-        .expect("deserializing AuthorizationDetailsEntry should succeed");
-
-        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) = &auth_details.typed_entry else {
-            panic!("type of AuthorizationDetailsEntry should be OpenidCredential");
-        };
+        let entry_container =
+            serde_json::from_value::<EntryContainer<CredentialEntry>>(token_response_auth_details_example_json())
+                .expect("deserializing EntryContainer should succeed");
 
         assert_eq!(
-            vci_id_entry.vci_entry.credential_configuration_id.as_ref(),
+            entry_container.entry.config_entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
         assert_eq!(
-            vci_id_entry
+            entry_container
+                .entry
                 .credential_identifiers
                 .iter()
                 .map(String::as_str)
@@ -422,24 +367,21 @@ mod tests {
             vec!["CivilEngineeringDegree-2023", "ElectricalEngineeringDegree-2023"]
         );
 
-        let serialized =
-            serde_json::to_value(auth_details).expect("serializing AuthorizationDetailsEntry should succeed");
+        let serialized = serde_json::to_value(entry_container).expect("serializing EntryContainer should succeed");
 
         assert_eq!(serialized, token_response_auth_details_example_json());
     }
 
     #[test]
     fn test_authorization_details_with_claims_deserialize() {
-        let auth_details = serde_json::from_value::<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>(
-            auth_details_example_with_claims_json(),
-        )
-        .expect("deserializing AuthorizationDetailsEntry should succeed");
+        let auth_details =
+            serde_json::from_value::<EntryContainer<CredentialConfigEntry>>(auth_details_example_with_claims_json())
+                .expect("deserializing EntryContainer should succeed");
 
-        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) = auth_details.typed_entry else {
-            panic!("type of AuthorizationDetailsEntry should be OpenidCredential");
-        };
-
-        assert_eq!(vci_entry.credential_configuration_id.as_ref(), "org.iso.18013.5.1.mDL");
+        assert_eq!(
+            auth_details.entry.credential_configuration_id.as_ref(),
+            "org.iso.18013.5.1.mDL"
+        );
 
         // Note that we cannot test re-serialization, as we do not support the `claims` field.
     }
@@ -448,34 +390,16 @@ mod tests {
     fn test_authorization_details_deserialize_ok() {
         let json = json!([
             auth_request_auth_details_example_json(),
-            other_type_auth_details_example_json(),
             auth_details_example_with_claims_json()
         ]);
 
-        let auth_details =
-            serde_json::from_value::<VecNonEmpty<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>>(json)
-                .expect("deserializing Vec of AuthorizationDetailsEntry should succeed");
+        let entries = serde_json::from_value::<VecNonEmpty<EntryContainer<CredentialConfigEntry>>>(json)
+            .expect("deserializing Vec of EntryContainer should succeed");
 
         let auth_details =
-            AuthorizationDetails::try_new(auth_details).expect("creating AuthorizationDetails should succeed");
+            AuthorizationDetails::try_new(entries).expect("creating AuthorizationDetails should succeed");
 
-        assert_eq!(auth_details.as_ref().len().get(), 3);
-    }
-
-    #[test]
-    fn test_authorization_details_deserialize_error_no_openid_credential_types() {
-        let json = json!([
-            other_type_auth_details_example_json(),
-            other_type_auth_details_example_json()
-        ]);
-
-        let auth_details =
-            serde_json::from_value::<VecNonEmpty<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>>(json)
-                .expect("deserializing Vec of AuthorizationDetailsEntry should succeed");
-
-        let error = AuthorizationDetails::try_new(auth_details).expect_err("creating AuthorizationDetails should fail");
-
-        assert_matches!(error, AuthorizationDetailsError::NoOpenidCredentialTypes);
+        assert_eq!(auth_details.as_ref().len().get(), 2);
     }
 
     #[test]
@@ -486,11 +410,10 @@ mod tests {
             auth_request_auth_details_example_json()
         ]);
 
-        let auth_details =
-            serde_json::from_value::<VecNonEmpty<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>>(json)
-                .expect("deserializing Vec of AuthorizationDetailsEntry should succeed");
+        let entries = serde_json::from_value::<VecNonEmpty<EntryContainer<CredentialConfigEntry>>>(json)
+            .expect("deserializing Vec of EntryContainer should succeed");
 
-        let error = AuthorizationDetails::try_new(auth_details).expect_err("creating AuthorizationDetails should fail");
+        let error = AuthorizationDetails::try_new(entries).expect_err("creating AuthorizationDetails should fail");
 
         assert_matches!(
             error,
