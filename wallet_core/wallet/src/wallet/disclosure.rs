@@ -277,16 +277,16 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations<T> {
+pub(super) enum WalletDisclosureAttestations<T, A = DisclosableAttestation> {
     Missing,
-    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation>>),
+    Proposal(IndexMap<T, VecNonEmpty<A>>),
 }
 
-impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
+impl<T: Hash + Eq, A> WalletDisclosureAttestations<T, A> {
     /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
-    /// [`WalletDisclosureAttestations`] is not a propsal or any of the indices is out of bounds, as this is considered
+    /// [`WalletDisclosureAttestations`] is not a proposal or any of the indices is out of bounds, as this is considered
     /// programmer error.
-    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation> {
+    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &A> {
         match self {
             Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
@@ -456,9 +456,9 @@ where
 {
     /// Increments the usage count for every attestation copy referenced in the proposal, and collects
     /// [`AttestationPresentation`]s from those same attestations for use in disclosure event logging.
-    pub(super) async fn increment_usage_count_and_collect_presentations(
+    pub(super) async fn increment_usage_count_and_collect_presentations<P>(
         &self,
-        attestation_values: VecNonEmpty<&DisclosableAttestation>,
+        attestation_values: VecNonEmpty<&DisclosableAttestation<P>>,
     ) -> (VecNonEmpty<AttestationPresentation>, Result<(), StorageError>)
     where
         S: Storage,

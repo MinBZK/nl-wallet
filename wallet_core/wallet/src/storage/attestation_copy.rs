@@ -82,9 +82,9 @@ pub enum PartialAttestation {
 /// user for approval. This type is always derived from [`StoredAttestationCopy`].
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(derive_more::Constructor))]
-pub struct DisclosableAttestation {
+pub struct DisclosableAttestation<P = PartialAttestation> {
     attestation_copy_id: Uuid,
-    partial_attestation: PartialAttestation,
+    partial_attestation: P,
     presentation: AttestationPresentation,
 }
 
@@ -354,17 +354,30 @@ impl DisclosableAttestation {
 
         Ok(disclosable_attestation)
     }
+}
 
+impl<P> DisclosableAttestation<P> {
     pub fn attestation_copy_id(&self) -> Uuid {
         self.attestation_copy_id
     }
 
-    pub fn partial_attestation(&self) -> &PartialAttestation {
+    pub fn partial_attestation(&self) -> &P {
         &self.partial_attestation
     }
 
-    pub fn into_partial_attestation(self) -> PartialAttestation {
+    pub fn into_partial_attestation(self) -> P {
         self.partial_attestation
+    }
+
+    pub(crate) fn try_map_partial_attestation<T, E>(
+        self,
+        map: impl FnOnce(P) -> Result<T, E>,
+    ) -> Result<DisclosableAttestation<T>, E> {
+        Ok(DisclosableAttestation {
+            attestation_copy_id: self.attestation_copy_id,
+            partial_attestation: map(self.partial_attestation)?,
+            presentation: self.presentation,
+        })
     }
 
     pub fn presentation(&self) -> &AttestationPresentation {
