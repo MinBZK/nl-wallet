@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::convert::identity;
 
@@ -774,20 +775,16 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                             })
                             .collect::<Result<Vec<_>, _>>()?
                             .try_into()
-                            .expect("the resulting vector is never empty since 'copies' is nonzero"),
+                            .expect("the resulting vector is never empty since 'copy_count' is nonzero"),
                     ),
                 };
 
                 // Verify that each of the resulting credentials contain exactly the same metadata integrity digest.
-                let integrity = match &copies {
+                let unique_integrities: HashSet<_> = match &copies {
                     IssuedCredentialCopies::Mdoc(mdocs) => mdocs
                         .iter()
                         .map(|mdoc| mdoc.type_metadata_integrity().map_err(WalletIssuanceError::Metadata))
-                        .process_results(|iter| {
-                            iter.unique()
-                                .exactly_one()
-                                .map_err(|_| WalletIssuanceError::MetadataIntegrityInconsistent)
-                        })??,
+                        .try_collect()?,
                     IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
                         .iter()
                         .map(|(_, sd_jwt)| {
@@ -797,12 +794,12 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                                 .as_ref()
                                 .ok_or(WalletIssuanceError::MetadataIntegrityMissing)
                         })
-                        .process_results(|iter| {
-                            iter.unique()
-                                .exactly_one()
-                                .map_err(|_| WalletIssuanceError::MetadataIntegrityInconsistent)
-                        })??,
+                        .try_collect()?,
                 };
+                let integrity = unique_integrities
+                    .into_iter()
+                    .exactly_one()
+                    .map_err(|_| WalletIssuanceError::MetadataIntegrityInconsistent)?;
 
                 // Check that the integrity hash received in the credential matches
                 // that of encoded JSON of the first metadata document.
