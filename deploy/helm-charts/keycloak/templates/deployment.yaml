@@ -38,29 +38,7 @@ spec:
           {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
           image: {{ printf "%s:%s" (list .Values.global.imageRegistry .Values.image.repository | compact | join "/") $tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if not .Values.probes.disableLiveness }}
-          livenessProbe:
-            httpGet:
-              path: /health/live
-              port: health
-            {{- with .Values.probes.config.liveness }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          {{- end }}
-          readinessProbe:
-            httpGet:
-              path: /health/{{ if .Values.probes.useLivenessAsReadiness }}live{{ else }}ready{{ end }}
-              port: health
-            {{- with .Values.probes.config.readiness }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          startupProbe:
-            httpGet:
-              path: /health/started
-              port: health
-            {{- with .Values.probes.config.startup }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 14 }}

@@ -92,10 +92,12 @@ httpRoute:
 ## @param probes.config.readiness Additional configuration for readiness probe
 ## @param probes.config.startup.periodSeconds Seconds between startup probe checks
 ## @param probes.config.startup.failureThreshold Number of failed startup probes before the container is restarted
+## @param probes.port Named container port for probe targets (defaults to "http" in sp-common)
 ## @param probes.disableLiveness Disable liveness probe
 ## @param probes.useLivenessAsReadiness Use liveness endpoint for readiness
 ##
 probes:
+  port: health
   config:
     liveness: {}
     readiness: {}
