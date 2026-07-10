@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.3.10"
+  default = "tahoe-wallet:0.3.11"
 }
 
 source "tart-cli" "tart" {
@@ -78,9 +78,9 @@ build {
     inline = [
       "source ~/.zprofile",
       "set -eux",
-      "rustup toolchain install 1.96.0 --profile minimal --component clippy",
-      "rustup default 1.96.0",
-      "cargo install cargo-expand --locked --version 1.0.121",
+      "rustup toolchain install 1.97.0 --profile minimal --component clippy",
+      "rustup default 1.97.0",
+      "cargo install cargo-expand --locked --version 1.0.123",
       "cargo install lcov2xml --locked --version 1.0.9",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
     ]
