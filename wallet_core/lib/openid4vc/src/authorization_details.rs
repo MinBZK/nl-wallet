@@ -8,12 +8,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
-use serde_with::skip_serializing_none;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
-use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 
 // Type aliases for the `authorization_details` field as contained in the Authorization Request and Token Request.
@@ -113,17 +111,22 @@ where
 }
 
 /// The data structure for an `authorization_details` entry, based on what is defined in Section 2 of RFC9396. Any other
-/// fields defined in RFC9396 besides `locations` are not used in OpenID4VCI 1.0 are therefore omitted.
-#[skip_serializing_none]
+/// fields defined in RFC9396 are either not used in OpenID4VCI 1.0 or not supported by this implementation and are
+/// therefore omitted.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct AuthorizationDetailsEntry<T> {
     #[serde(flatten)]
     pub typed_entry: TypedAuthorizationDetailsEntry<T>,
-
-    /// If the Credential Issuer metadata contains an authorization_servers parameter, the authorization detail's
-    /// locations common data field MUST be set to the Credential Issuer Identifier value.
-    pub locations: Option<VecNonEmpty<IssuerIdentifier>>,
+    // OpenID4VCI states the following:
+    //
+    // "If the Credential Issuer metadata contains an authorization_servers parameter, the authorization detail's
+    //  locations common data field MUST be set to the Credential Issuer Identifier value."
+    //
+    // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.1-7>
+    //
+    // However, as we choose to have the wallet never send an `authorization_details` value, we can safely omit this
+    // field from the struct.
 }
 
 impl AuthorizationDetailsEntry<VciAuthorizationDetailsEntry> {
@@ -132,7 +135,6 @@ impl AuthorizationDetailsEntry<VciAuthorizationDetailsEntry> {
             typed_entry: TypedAuthorizationDetailsEntry::OpenidCredential(VciAuthorizationDetailsEntry {
                 credential_configuration_id,
             }),
-            locations: None,
         }
     }
 }
@@ -149,7 +151,6 @@ impl AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry> {
                 },
                 credential_identifiers,
             }),
-            locations: None,
         }
     }
 }
@@ -281,17 +282,13 @@ mod tests {
 
         let entries = VecNonEmpty::from(authorization_details)
             .into_iter()
-            .map(|entry| {
-                assert!(entry.locations.is_none());
-
-                match entry.typed_entry {
-                    TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) => (
-                        vci_id_entry.vci_entry.credential_configuration_id,
-                        vci_id_entry.credential_identifiers,
-                    ),
-                    TypedAuthorizationDetailsEntry::Other { .. } => {
-                        panic!("type of AuthorizationDetailsEntry should be OpenidCredential")
-                    }
+            .map(|entry| match entry.typed_entry {
+                TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) => (
+                    vci_id_entry.vci_entry.credential_configuration_id,
+                    vci_id_entry.credential_identifiers,
+                ),
+                TypedAuthorizationDetailsEntry::Other { .. } => {
+                    panic!("type of AuthorizationDetailsEntry should be OpenidCredential")
                 }
             })
             .sorted_by(|(left, _), (right, _)| Ord::cmp(left.as_ref(), right.as_ref()))
@@ -364,11 +361,6 @@ mod tests {
             other_type_auth_details_example_json(),
         )
         .expect("deserializing AuthorizationDetailsEntry should succeed");
-
-        assert_eq!(
-            auth_details.locations,
-            Some(vec_nonempty!["https://example.com/accounts".parse().unwrap()])
-        );
 
         let TypedAuthorizationDetailsEntry::Other { entry_type } = &auth_details.typed_entry else {
             panic!("type of AuthorizationDetailsEntry should be Other");

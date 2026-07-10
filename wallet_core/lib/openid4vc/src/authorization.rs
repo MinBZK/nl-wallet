@@ -370,8 +370,6 @@ mod tests {
             .exactly_one()
             .expect("there should exactly one authorization_details entry");
 
-        assert!(entry.locations.is_none());
-
         let TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) = &entry.typed_entry else {
             panic!("authorization details entry should be of type openid_credential");
         };
