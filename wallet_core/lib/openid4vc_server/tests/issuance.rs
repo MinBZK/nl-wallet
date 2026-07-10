@@ -1274,11 +1274,10 @@ async fn setup_metadata_test() -> (Arc<MockIssuer>, RequestBuilder) {
 }
 
 #[rstest]
-#[case(None, true)]
-#[case(Some("application/json"), false)]
-#[case(Some("application/jwt"), true)]
+#[case(None)]
+#[case(Some("application/jwt"))]
 #[tokio::test]
-async fn openid_metadata_signed(#[case] accept_header: Option<&str>, #[case] signed: bool) {
+async fn openid_metadata_signed(#[case] accept_header: Option<&str>) {
     let (issuer, mut request) = setup_metadata_test().await;
 
     if let Some(accept_header) = accept_header {
@@ -1287,30 +1286,23 @@ async fn openid_metadata_signed(#[case] accept_header: Option<&str>, #[case] sig
     let response = request.send().await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let metadata = if signed {
-        assert_eq!(response.headers()[CONTENT_TYPE], "application/jwt");
-        let text = response.text().await.unwrap();
-        let jwt: VerifiedJwt<SignedIssuerMetadataPayload> =
-            VerifiedJwt::dangerous_parse_unverified(text.as_str()).unwrap();
+    assert_eq!(response.headers()[CONTENT_TYPE], "application/jwt");
+    let text = response.text().await.unwrap();
+    let jwt: VerifiedJwt<SignedIssuerMetadataPayload> = VerifiedJwt::dangerous_parse_unverified(text.as_str()).unwrap();
 
-        let payload = jwt.into_payload();
-        let ttl = (*payload.exp.unwrap().as_ref() - *payload.iat.as_ref())
-            .to_std()
-            .unwrap();
-        assert_eq!(ttl, Duration::from_secs(3600));
+    let payload = jwt.into_payload();
+    let ttl = (*payload.exp.unwrap().as_ref() - *payload.iat.as_ref())
+        .to_std()
+        .unwrap();
+    assert_eq!(ttl, Duration::from_secs(3600));
 
-        payload.metadata.into_owned()
-    } else {
-        assert_eq!(response.headers()[CONTENT_TYPE], "application/json");
-        response.json().await.unwrap()
-    };
-
-    assert_eq!(&metadata.credential_issuer, issuer.issuer_identifier());
+    assert_eq!(&payload.sub.as_ref(), &issuer.issuer_identifier());
+    assert_eq!(&payload.metadata.credential_issuer, issuer.issuer_identifier());
 }
 
 #[rstest]
-#[case("text/json", 406)]
-#[case("text/jsoß", 400)]
+#[case("application/json", 406)]
+#[case("application/jßon", 400)]
 #[tokio::test]
 async fn openid_metadata_error(#[case] accept_header: &str, #[case] status_code: u16) {
     let (_, request) = setup_metadata_test().await;
