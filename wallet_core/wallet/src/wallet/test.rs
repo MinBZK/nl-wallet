@@ -566,6 +566,10 @@ where
         .into()
 }
 
+/// Mock an issuance session.
+///
+/// This function is used to create a mock issuance session for testing purposes using the provided stored attestations.
+/// They do not need to be stored at all, we're simply reusing that type here for convenience.
 pub fn mock_issuance_session(
     stored_attestations: impl IntoIterator<Item = (StoredAttestation, VerifiedTypeMetadataDocuments)>,
 ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
