@@ -1,0 +1,576 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crash Reporting &mdash; NL Wallet 0.6.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=dfe61b34" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9ff6a3c4"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Generic Issuance" href="generic-issuance.html" />
+    <link rel="prev" title="Authorized attributes" href="authorized-attributes.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/use-cases.html">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/close-proximity-disclosure.html">Disclosure with ISO 18013-5 (close proximity)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-provider-instruction.html">Wallet Provider instructions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/notifications.html">Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Crash Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="keycloak-setup.html">Keycloak Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid-issuer-architecture.html">PID Issuer architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.1.html">v0.4.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.5.0.html">v0.5.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0 (dev)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Crash Reporting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/development/crash-reporting.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="crash-reporting">
+<h1>Crash Reporting<a class="headerlink" href="#crash-reporting" title="Link to this heading"></a></h1>
+<p>The mobile app uses Sentry for crash reporting, fatal exception capture, native
+crash diagnostics, Rust panic diagnostics, and a small curated breadcrumb trail.
+Selected non-production release builds can also opt into device logs and Sentry
+Logs for troubleshooting. The setup is intentionally split across Flutter,
+native Android/iOS, and Rust so each layer owns the failures it can diagnose best
+while using the same release, environment, and privacy rules.</p>
+<p>Sentry is enabled only when a non-empty <code class="docutils literal notranslate"><span class="pre">SENTRY_DSN</span></code> is provided. The configured
+environment labels events but does not decide whether logs are enabled. Builds
+without a DSN run without Sentry telemetry.</p>
+<section id="runtime-ownership">
+<h2>Runtime Ownership<a class="headerlink" href="#runtime-ownership" title="Link to this heading"></a></h2>
+<p>Each runtime owns one failure domain:</p>
+<ul class="simple">
+<li><p>Flutter owns uncaught Dart exceptions and explicit Dart-side error events.</p></li>
+<li><p>Android and iOS own native crashes, Android ANRs, iOS app hangs, watchdog
+terminations, tombstones, and native crash artifacts.</p></li>
+<li><p>Rust owns Rust panics and categorized Rust error events emitted through
+<code class="docutils literal notranslate"><span class="pre">#[sentry_capture_error]</span></code>.</p></li>
+</ul>
+<p>Native Sentry startup lives in the app shells:</p>
+<ul class="simple">
+<li><p>Android initializes Sentry from <code class="docutils literal notranslate"><span class="pre">WalletApplication</span></code>.</p></li>
+<li><p>iOS initializes Sentry from <code class="docutils literal notranslate"><span class="pre">AppDelegate</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">platform_support</span></code> stays limited to bridge/runtime support and does not own
+crash-reporting policy.</p></li>
+</ul>
+<p>Flutter initializes Sentry around the app runner and disables implicit native
+SDK ownership:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">autoInitializeNativeSdk</span> <span class="pre">=</span> <span class="pre">false</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enableNativeCrashHandling</span> <span class="pre">=</span> <span class="pre">false</span></code></p></li>
+</ul>
+<p>That keeps native crash capture under the explicit Android and iOS SDK
+configuration while still allowing Flutter to capture Dart events.</p>
+<p>Rust initializes Sentry during <code class="docutils literal notranslate"><span class="pre">WalletCore.init()</span></code>. The panic integration is
+installed before the wallet panic policy so the Rust SDK can capture and flush a
+panic before the process exits.</p>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>The same build inputs feed Flutter, native, and Rust:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SENTRY_DSN</span></code></p></td>
+<td><p>Enables Sentry and selects the Sentry project endpoint.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SENTRY_ENVIRONMENT</span></code></p></td>
+<td><p>Labels events with the build/runtime environment.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SENTRY_RELEASE</span></code></p></td>
+<td><p>Aligns Flutter, native, Rust, and uploaded debug files to one release.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS</span></code></p></td>
+<td><p>Enables device logs and Sentry Logs in profile/release builds.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SENTRY_AUTH_TOKEN</span></code></p></td>
+<td><p>Enables release debug-symbol upload in CI/Fastlane.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SENTRY_ORG</span></code></p></td>
+<td><p>Sentry organization used by debug-symbol upload.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SENTRY_PROJECT</span></code></p></td>
+<td><p>Sentry project used by debug-symbol upload.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SENTRY_URL</span></code></p></td>
+<td><p>Sentry base URL used by debug-symbol upload.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Fastlane computes <code class="docutils literal notranslate"><span class="pre">SENTRY_RELEASE</span></code> from the app identifier, version, and build
+number when no release is supplied explicitly. The computed release is passed to
+Flutter as a Dart define, into Android <code class="docutils literal notranslate"><span class="pre">BuildConfig</span></code>, into iOS build settings,
+and into the Rust compile environment. Rust prefers <code class="docutils literal notranslate"><span class="pre">SENTRY_RELEASE</span></code> and only
+falls back to its crate release name when the app release is absent.</p>
+<p>CI loads Sentry upload credentials from the environment-specific Sentry secret.
+If <code class="docutils literal notranslate"><span class="pre">SENTRY_AUTH_TOKEN</span></code> is present, the release build must upload debug symbols
+before publishing.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS</span></code> is a separate logging policy switch. Debug builds allow
+logs by default. Profile and release builds allow logs only when
+<code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=true</span></code>. CI defaults this flag to <code class="docutils literal notranslate"><span class="pre">false</span></code>; <code class="docutils literal notranslate"><span class="pre">ont</span></code> and <code class="docutils literal notranslate"><span class="pre">demo</span></code>
+release builds opt in explicitly, while production builds keep it <code class="docutils literal notranslate"><span class="pre">false</span></code>.
+Do not infer log allowance from <code class="docutils literal notranslate"><span class="pre">SENTRY_ENVIRONMENT</span></code>.</p>
+</section>
+<section id="event-sources">
+<h2>Event Sources<a class="headerlink" href="#event-sources" title="Link to this heading"></a></h2>
+<p>Fatal Dart failures are captured through one fatal path. The app installs a
+<code class="docutils literal notranslate"><span class="pre">PlatformDispatcher.onError</span></code> integration inside Sentry, captures one fatal
+Sentry event with the original Dart stacktrace, gives the transport a short time
+to drain, closes Sentry, and exits the process. The same fatal handler is
+installed without Sentry when no DSN is configured, so fatal Dart behavior is
+consistent.</p>
+<p>Explicit Dart captures remain explicit events. Repository and bridge code
+capture handled exceptions when the event is useful for diagnostics.</p>
+<p>Android native Sentry captures native crashes, ANRs, NDK/tombstone artifacts,
+and raw tombstone data where supported by the SDK and platform. Android 11 and
+newer report ANRs through <code class="docutils literal notranslate"><span class="pre">ApplicationExitInfo</span></code>; a stall that recovers without
+terminating the process is not reported as an ANR event.</p>
+<p>iOS native Sentry captures native crashes, app hangs, watchdog terminations, and
+the app dSYM-based symbolication data for the final app binary.</p>
+<p>Rust Sentry captures:</p>
+<ul class="simple">
+<li><p>Rust panics through the Rust panic integration.</p></li>
+<li><p>Categorized Rust errors emitted through <code class="docutils literal notranslate"><span class="pre">#[sentry_capture_error]</span></code>.</p></li>
+<li><p>A Rust breadcrumb for non-expected categorized errors.</p></li>
+</ul>
+<p>Rust expected errors are dropped. Rust personal-data and uncategorized events are
+sent only after sensitive message values are removed. Rust unexpected events are
+sent scrubbed. Rust critical events keep their exception messages, but still use
+the shared request, user, and breadcrumb scrubbing rules.</p>
+<section id="device-logs-and-sentry-logs">
+<h3>Device Logs And Sentry Logs<a class="headerlink" href="#device-logs-and-sentry-logs" title="Link to this heading"></a></h3>
+<p>Device logs and Sentry Logs are diagnostics for debug and explicitly opted-in
+non-production release builds. They are not part of production crash-reporting
+telemetry. We do not rely on log-message scrubbing for production privacy; the
+production control is that logs stay disabled.</p>
+<p>In this document, logs means diagnostic log records from app-owned logging
+paths, such as Flutter/Fimber messages, Rust <code class="docutils literal notranslate"><span class="pre">tracing</span></code> records, and wallet-owned
+native platform logs emitted through Android <code class="docutils literal notranslate"><span class="pre">android.util.Log</span></code> or iOS <code class="docutils literal notranslate"><span class="pre">NSLog</span></code>.
+These are separate from Sentry crash/error events.</p>
+<p>The shared log gate is:</p>
+<ul class="simple">
+<li><p>Debug builds: logs enabled.</p></li>
+<li><p>Profile/release builds with <code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=true</span></code>: logs enabled.</p></li>
+<li><p>Profile/release builds with <code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=false</span></code>: logs disabled.</p></li>
+</ul>
+<p>Production builds must use the default <code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=false</span></code>. This means
+Flutter Fimber logs, Rust tracing logs, Rust Sentry Logs, and wallet-owned
+native platform-support logs are not emitted there. These records are also not
+forwarded to Sentry Logs in production.</p>
+<p>When logs are enabled:</p>
+<ul class="simple">
+<li><p>Flutter plants <code class="docutils literal notranslate"><span class="pre">DebugTree</span></code> and, if Sentry is enabled, <code class="docutils literal notranslate"><span class="pre">SentryLogTree</span></code>.</p></li>
+<li><p>Flutter <code class="docutils literal notranslate"><span class="pre">SentryLogTree</span></code> forwards Fimber logs to Sentry Logs.</p></li>
+<li><p>Rust tracing uses a <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code> max level and forwards <code class="docutils literal notranslate"><span class="pre">debug</span></code>, <code class="docutils literal notranslate"><span class="pre">info</span></code>, <code class="docutils literal notranslate"><span class="pre">warn</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">error</span></code> tracing records to Sentry Logs when Sentry is enabled.</p></li>
+<li><p>Rust ignores <code class="docutils literal notranslate"><span class="pre">trace</span></code> records for Sentry Logs.</p></li>
+<li><p>Android and iOS Rust tracing records are written to the platform log writers.</p></li>
+<li><p>Wallet-owned <code class="docutils literal notranslate"><span class="pre">platform_support</span></code> native code uses the same release-log gate.</p></li>
+</ul>
+<p>When logs are disabled:</p>
+<ul class="simple">
+<li><p>Flutter does not plant <code class="docutils literal notranslate"><span class="pre">DebugTree</span></code> or <code class="docutils literal notranslate"><span class="pre">SentryLogTree</span></code>.</p></li>
+<li><p>Flutter <code class="docutils literal notranslate"><span class="pre">beforeSendLog</span></code> drops Sentry Logs defensively.</p></li>
+<li><p>Rust tracing uses <code class="docutils literal notranslate"><span class="pre">LevelFilter::OFF</span></code>.</p></li>
+<li><p>Rust Sentry <code class="docutils literal notranslate"><span class="pre">enable_logs</span></code> is disabled.</p></li>
+<li><p>Wallet-owned platform-support logs are suppressed.</p></li>
+</ul>
+<p>The platform-support gate applies only to wallet-owned native logging paths. It
+does not make a claim about third-party native libraries that write directly to
+Android Logcat or iOS system logging. Those logs are outside this wrapper and
+are not forwarded to Sentry Logs by our logging integration. Stripping such
+third-party logs from Android release builds would require a separate
+minification/ProGuard change and is not part of the Sentry logging design.</p>
+</section>
+<section id="annotated-rust-errors">
+<h3>Annotated Rust Errors<a class="headerlink" href="#annotated-rust-errors" title="Link to this heading"></a></h3>
+<p>Rust non-panic diagnostics are sent through functions and implementations
+annotated with <code class="docutils literal notranslate"><span class="pre">#[sentry_capture_error]</span></code>. The annotation captures returned
+errors from the annotated scope and sends them through the Rust
+<code class="docutils literal notranslate"><span class="pre">ErrorCategory</span></code> policy. The error type must derive or implement
+<code class="docutils literal notranslate"><span class="pre">ErrorCategory</span></code>, and every variant or field must resolve to one of the Sentry
+categories.</p>
+<p>Rust error categories map to Sentry behavior as follows:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Category</p></th>
+<th class="head"><p>Sentry behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">expected</span></code></p></td>
+<td><p>Drop the event.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">critical</span></code></p></td>
+<td><p>Send the event with exception messages intact.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pd</span></code></p></td>
+<td><p>Send the event with sensitive exception messages removed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">unexpected</span></code></p></td>
+<td><p>Log locally and send the event with sensitive exception messages removed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">defer</span></code></p></td>
+<td><p>Resolve the category from the wrapped or nested error.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The annotation is transitive across called functions: an unhandled categorized
+error returned through an annotated function is classified at that boundary. For
+non-expected categories, Rust also emits a curated <code class="docutils literal notranslate"><span class="pre">wallet.native</span></code> breadcrumb
+with the message code <code class="docutils literal notranslate"><span class="pre">rust.error.&lt;category&gt;</span></code>.</p>
+<p>Adding or changing a <code class="docutils literal notranslate"><span class="pre">#[sentry_capture_error]</span></code> boundary is a privacy-sensitive
+change. The matching error types need category annotations before the boundary
+is useful, and any variant whose display text can contain domain data, URLs,
+tokens, identifiers, or user-controlled text belongs in <code class="docutils literal notranslate"><span class="pre">#[category(pd)]</span></code> or a
+deferred wrapper that resolves to <code class="docutils literal notranslate"><span class="pre">pd</span></code>.</p>
+<p>Native crash artifacts belong only to native failures. Dart exceptions and Rust
+categorized errors do not need separate minidump or coredump artifacts.</p>
+</section>
+</section>
+<section id="breadcrumbs">
+<h2>Breadcrumbs<a class="headerlink" href="#breadcrumbs" title="Link to this heading"></a></h2>
+<p>Breadcrumbs provide recent failure context. They are not logs, route traces, or
+analytics. The app keeps only a small wallet-owned breadcrumb vocabulary that is
+safe to copy between Flutter, native, and Rust Sentry scopes.</p>
+<p>Allowed breadcrumb shape:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Allowed value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">category</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wallet.flow</span></code> or <code class="docutils literal notranslate"><span class="pre">wallet.native</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">message</span></code></p></td>
+<td><p>Lowercase dotted code, for example <code class="docutils literal notranslate"><span class="pre">issuance.start</span></code> or <code class="docutils literal notranslate"><span class="pre">rust.error.critical</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">data</span></code></p></td>
+<td><p>Removed before the breadcrumb is stored or sent.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">level</span></code></p></td>
+<td><p>Forced to <code class="docutils literal notranslate"><span class="pre">info</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">type</span></code></p></td>
+<td><p>Forced to <code class="docutils literal notranslate"><span class="pre">default</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The message format is:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>^[a-z0-9_]+(\.[a-z0-9_]+)*$
+</pre></div>
+</div>
+<p>Examples:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">setup.start</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">setup.fail.config_load</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuance.start</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">disclosure.blocked.finish_active_disclosure_session</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">native.bridge_missing.method_channel</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rust.error.critical</span></code></p></li>
+</ul>
+<p>Breadcrumbs must not contain route names, organization names, document types,
+URLs, user identifiers, free text, PIN state, payload fragments, or arbitrary
+metadata. Add a breadcrumb only when it materially improves failure diagnosis.</p>
+<p>Flutter is the cross-layer breadcrumb bridge:</p>
+<ul class="simple">
+<li><p>Flutter emits curated <code class="docutils literal notranslate"><span class="pre">wallet.flow</span></code> breadcrumbs around major wallet-core
+calls and failure boundaries.</p></li>
+<li><p>Rust emits curated <code class="docutils literal notranslate"><span class="pre">wallet.native</span></code> breadcrumbs for panic and categorized-error
+context.</p></li>
+<li><p>Rust forwards its breadcrumb message to Flutter after wallet-core
+initialization.</p></li>
+<li><p>Native Sentry scopes apply the same category, message, and payload filter so
+native crash, ANR, app-hang, and watchdog events retain the same recent
+curated context.</p></li>
+</ul>
+<p>All layers use the same maximum breadcrumb count of 25.</p>
+</section>
+<section id="privacy-and-pii-handling">
+<h2>Privacy And PII Handling<a class="headerlink" href="#privacy-and-pii-handling" title="Link to this heading"></a></h2>
+<p>Production Sentry telemetry must not become a broad log sink. Crash/error events
+are filtered before sending, breadcrumbs are curated at both insertion time and
+send time, and device/Sentry Logs are disabled in production by keeping
+<code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=false</span></code>.</p>
+<p>Shared privacy rules:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sendDefaultPii</span></code> is disabled in Flutter, Android, iOS, and Rust.</p></li>
+<li><p>SDK-side user IP address and geo fields are removed before sending.</p></li>
+<li><p>Request and transaction data are removed from Rust events.</p></li>
+<li><p>Breadcrumb payload data is removed; only category and message code remain.</p></li>
+<li><p>Non-wallet breadcrumbs are dropped.</p></li>
+<li><p>Flutter exception values are removed before sending. Stacktraces remain.</p></li>
+<li><p>Rust exception values are removed for personal-data, unexpected, and
+uncategorized error events.</p></li>
+<li><p>Rust expected errors are not sent.</p></li>
+<li><p>Production device logs and Sentry Logs are not emitted.</p></li>
+</ul>
+<p>The stable diagnostic signal is the event type, stacktrace, release,
+environment, platform context, curated breadcrumb codes, and Rust error category
+tag. Free-form user data and domain payloads are not part of crash reporting.
+Sentry-side IP/geolocation enrichment is disabled in account/project settings
+where possible, but the SDK cannot fully control metadata derived by Sentry from
+transport-level IP information. Treat any residual IP/geolocation as
+service-side metadata, not app-supplied event payload.</p>
+<p>The current <code class="docutils literal notranslate"><span class="pre">ont</span></code> and <code class="docutils literal notranslate"><span class="pre">demo</span></code> Sentry projects are accepted as internal
+non-production projects. Their service-level account setup, including data
+storage region, must not be treated as production policy.</p>
+</section>
+<section id="releases-and-debug-symbols">
+<h2>Releases And Debug Symbols<a class="headerlink" href="#releases-and-debug-symbols" title="Link to this heading"></a></h2>
+<p>Release names must align across Flutter, native Android/iOS, Rust, and uploaded
+debug files. Symbol uploads are a release requirement whenever Sentry is enabled
+for a publishable build.</p>
+<p>Fastlane runs the Sentry Dart plugin for Flutter and app-native debug symbols.
+The plugin runs only when <code class="docutils literal notranslate"><span class="pre">SENTRY_AUTH_TOKEN</span></code> is present and requires
+<code class="docutils literal notranslate"><span class="pre">SENTRY_ORG</span></code>, <code class="docutils literal notranslate"><span class="pre">SENTRY_PROJECT</span></code>, and <code class="docutils literal notranslate"><span class="pre">SENTRY_URL</span></code>.</p>
+<p>Fastlane computes <code class="docutils literal notranslate"><span class="pre">SENTRY_RELEASE</span></code> once per app build from the app identifier,
+version, and build number unless it is supplied explicitly. The same release
+value is passed to Flutter, Android <code class="docutils literal notranslate"><span class="pre">BuildConfig</span></code>, iOS build settings, Rust
+compile-time environment, and all Sentry upload commands.</p>
+<p>Android additionally uploads Rust debug files explicitly from the unstripped
+Rust libraries copied into:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>wallet_app/android/app/src/main/jniLibs/**/libwallet_core.so
+</pre></div>
+</div>
+<p>For Android profile/release builds, Cargo keeps Rust line-table debug
+information in those CI-side libraries with
+<code class="docutils literal notranslate"><span class="pre">CARGO_PROFILE_RELEASE_DEBUG=line-tables-only</span></code> and
+<code class="docutils literal notranslate"><span class="pre">CARGO_PROFILE_RELEASE_STRIP=none</span></code>. Fastlane uploads those files with
+<code class="docutils literal notranslate"><span class="pre">sentry-cli</span> <span class="pre">debug-files</span> <span class="pre">upload</span> <span class="pre">--include-sources</span> <span class="pre">--wait</span></code>. The Android packaging
+pipeline then strips the native libraries in the distributed app artifact. This
+provides Rust source-line symbolication in Sentry without shipping debug symbols
+in the installed app.</p>
+<p>iOS Rust code is statically linked into the final app binary. Rust symbolication
+therefore uses the app dSYMs from:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>wallet_app/build/ios/archive/Runner.xcarchive
+</pre></div>
+</div>
+<p>For iOS profile/release builds, the Xcode build also sets
+<code class="docutils literal notranslate"><span class="pre">CARGO_PROFILE_RELEASE_DEBUG=line-tables-only</span></code> and
+<code class="docutils literal notranslate"><span class="pre">CARGO_PROFILE_RELEASE_STRIP=none</span></code> before compiling Rust. The iOS archive is
+retained as a CI artifact and uploaded through the Sentry Dart plugin path, so
+the dSYMs carry the final app and statically linked Rust symbolication data.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="authorized-attributes.html" class="btn btn-neutral float-left" title="Authorized attributes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="generic-issuance.html" class="btn btn-neutral float-right" title="Generic Issuance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="crash-reporting.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>
