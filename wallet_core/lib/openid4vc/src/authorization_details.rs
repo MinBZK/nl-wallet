@@ -370,13 +370,13 @@ mod tests {
     }
 
     #[test]
-    fn test_wallet_authorization_details_deserialize() {
+    fn test_wallet_authorization_details_deserialize_and_serialize() {
         let auth_details = serde_json::from_value::<AuthorizationDetailsEntry<VciAuthorizationDetailsEntry>>(
             auth_request_auth_details_example_json(),
         )
         .expect("deserializing AuthorizationDetailsEntry should succeed");
 
-        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) = auth_details.typed_entry else {
+        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_entry) = &auth_details.typed_entry else {
             panic!("type of AuthorizationDetailsEntry should be OpenidCredential");
         };
 
@@ -384,6 +384,11 @@ mod tests {
             vci_entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
+
+        let serialized =
+            serde_json::to_value(auth_details).expect("serializing AuthorizationDetailsEntry should succeed");
+
+        assert_eq!(serialized, auth_request_auth_details_example_json());
 
         // Deserializing as `VciIdentifierAuthorizationDetailsEntry` should fail, as it requires
         // `credential_identifiers`.
@@ -394,13 +399,13 @@ mod tests {
     }
 
     #[test]
-    fn test_issuer_authorization_details_deserialize() {
+    fn test_issuer_authorization_details_deserialize_and_serialize() {
         let auth_details = serde_json::from_value::<AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry>>(
             token_response_auth_details_example_json(),
         )
         .expect("deserializing AuthorizationDetailsEntry should succeed");
 
-        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) = auth_details.typed_entry else {
+        let TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) = &auth_details.typed_entry else {
             panic!("type of AuthorizationDetailsEntry should be OpenidCredential");
         };
 
@@ -416,6 +421,11 @@ mod tests {
                 .collect_vec(),
             vec!["CivilEngineeringDegree-2023", "ElectricalEngineeringDegree-2023"]
         );
+
+        let serialized =
+            serde_json::to_value(auth_details).expect("serializing AuthorizationDetailsEntry should succeed");
+
+        assert_eq!(serialized, token_response_auth_details_example_json());
     }
 
     #[test]
@@ -430,6 +440,8 @@ mod tests {
         };
 
         assert_eq!(vci_entry.credential_configuration_id.as_ref(), "org.iso.18013.5.1.mDL");
+
+        // Note that we cannot test re-serialization, as we do not support the `claims` field.
     }
 
     #[test]
