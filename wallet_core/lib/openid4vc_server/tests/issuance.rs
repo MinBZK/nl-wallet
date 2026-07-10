@@ -1014,7 +1014,6 @@ async fn token_rejects_grant_type_mismatch() {
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::PreAuthorizedCode {
             pre_authorized_code: code,
-            tx_code: None,
         },
         client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),

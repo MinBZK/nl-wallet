@@ -140,10 +140,7 @@ impl TokenRequest {
 
     pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode) -> Self {
         Self {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                pre_authorized_code,
-                tx_code: None,
-            },
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
             client_id: None, // Not required as our implementation sends a WIA which contains the client_id in the sub
             redirect_uri: None,
             scope: None,
@@ -174,10 +171,11 @@ pub enum TokenRequestGrantType {
     PreAuthorizedCode {
         #[serde(rename = "pre-authorized_code")]
         pre_authorized_code: AuthorizationCode,
-
-        /// String value containing a Transaction Code value itself. This value MUST be present if a tx_code object was
-        /// present in the Credential Offer (including if the object was empty)
-        tx_code: Option<String>,
+        // According to OpenID4VCI, a Token Request containing a pre-authorized code also must contain a `tx_code` if
+        // the inciting Credential Offer contains a `tx_code` field itself. However, as the wallet does not support the
+        // concept of a transaction code, we do not include it in the data structure here.
+        //
+        // See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.1-3.2>
     },
 }
 
@@ -325,7 +323,6 @@ mod tests {
             serde_qs::to_string(&TokenRequest {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
                     pre_authorized_code: "123".to_string().into(),
-                    tx_code: None,
                 },
                 client_id: Some("myclient".to_string()),
                 redirect_uri: Some("https://example.com".parse().unwrap()),
@@ -409,16 +406,11 @@ mod tests {
         let token_request =
             serde_qs::from_str::<TokenRequest>(example).expect("deserializing TokenRequest should succeed");
 
-        let TokenRequestGrantType::PreAuthorizedCode {
-            pre_authorized_code,
-            tx_code,
-        } = &token_request.grant_type
-        else {
+        let TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } = &token_request.grant_type else {
             panic!("grant type should be pre-authorized");
         };
 
         assert_eq!(pre_authorized_code.as_ref(), "SplxlOBeZQQYbYS6WxSbIA");
-        assert_eq!(tx_code.as_deref(), Some("493536"));
 
         assert!(token_request.client_id.is_none());
         assert!(token_request.redirect_uri.is_none());
