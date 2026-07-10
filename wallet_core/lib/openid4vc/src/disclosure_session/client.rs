@@ -202,7 +202,7 @@ where
             };
 
             if let Some(response_uri) = response_uri {
-                return Err(self.report_error_back(response_uri, state, error).await)?;
+                return Err(self.report_error_back(response_uri, state, error).await.into());
             }
             return Err(error.into());
         }
@@ -261,7 +261,8 @@ where
             let error = VpVerifierError::VpFormatsNotSupported(format);
             return Err(self
                 .report_error_back(auth_request.response_uri, auth_request.state, error)
-                .await)?;
+                .await
+                .into());
         }
 
         let session = VpDisclosureSession::new(
