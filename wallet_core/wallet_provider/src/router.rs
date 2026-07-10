@@ -70,7 +70,6 @@ use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
-use wallet_provider_service::wia_issuer::WiaIssuer;
 
 use crate::errors::WalletProviderError;
 use crate::internal;
@@ -425,7 +424,7 @@ struct PublicKeys {
 async fn public_keys<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
 ) -> Result<(StatusCode, Json<PublicKeys>)> {
-    let (certificate_public_key, instruction_result_public_key, wia_signing_key) = try_join!(
+    let (certificate_public_key, instruction_result_public_key) = try_join!(
         state
             .certificate_signing_key
             .verifying_key()
@@ -434,18 +433,13 @@ async fn public_keys<GRC, PIC>(
             .instruction_result_signing_key
             .verifying_key()
             .map_err(WalletProviderError::Hsm),
-        state
-            .user_state
-            .wia_issuer
-            .public_key()
-            .map_err(WalletProviderError::Wia)
     )
     .inspect_err(|error| warn!("getting wallet provider public keys failed: {}", error))?;
 
     let body = PublicKeys {
         certificate_public_key: certificate_public_key.into(),
         instruction_result_public_key: instruction_result_public_key.into(),
-        wia_signing_key: wia_signing_key.into(),
+        wia_signing_key: state.user_state.wia_issuer.public_key().into(),
     };
 
     Ok((StatusCode::OK, body.into()))

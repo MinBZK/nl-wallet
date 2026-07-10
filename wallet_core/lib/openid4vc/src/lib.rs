@@ -31,7 +31,6 @@ pub mod verifier;
 
 // Errors used throughout the crate.
 pub mod errors;
-pub use errors::*;
 
 pub mod cleanup;
 pub mod cose;

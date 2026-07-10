@@ -48,10 +48,6 @@ use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredential;
 use super::credential::IssuedCredentialCopies;
-use crate::CredentialErrorCode;
-use crate::CredentialPreviewErrorCode;
-use crate::ErrorResponse;
-use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -62,6 +58,11 @@ use crate::credential::CredentialResponses;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
+use crate::errors::CredentialErrorCode;
+use crate::errors::CredentialPreviewErrorCode;
+use crate::errors::RemoteErrorCode;
+use crate::errors::RemoteErrorResponse;
+use crate::errors::TokenErrorCode;
 use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
@@ -167,7 +168,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
                 if status.is_client_error() || status.is_server_error() {
                     let error = response
-                        .json::<ErrorResponse<TokenErrorCode>>()
+                        .json::<RemoteErrorResponse<TokenErrorCode>>()
                         .await
                         .map_err(WalletIssuanceError::TokenRequestHttp)?;
 
@@ -199,7 +200,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
                 if status.is_client_error() || status.is_server_error() {
                     let error = response
-                        .json::<ErrorResponse<CredentialPreviewErrorCode>>()
+                        .json::<RemoteErrorResponse<CredentialPreviewErrorCode>>()
                         .await
                         .map_err(WalletIssuanceError::CredentialPreviewHttp)?;
 
@@ -274,7 +275,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
                 if status.is_client_error() || status.is_server_error() {
                     let error = response
-                        .json::<ErrorResponse<CredentialErrorCode>>()
+                        .json::<RemoteErrorResponse<CredentialErrorCode>>()
                         .await
                         .map_err(WalletIssuanceError::CredentialRejectionHttp)?;
 
@@ -310,7 +311,7 @@ impl HttpVcMessageClient {
 
                 if status.is_client_error() || status.is_server_error() {
                     let error = response
-                        .json::<ErrorResponse<CredentialErrorCode>>()
+                        .json::<RemoteErrorResponse<CredentialErrorCode>>()
                         .await
                         .map_err(WalletIssuanceError::CredentialRequestHttp)?;
 
@@ -403,7 +404,7 @@ fn map_pre_authorized_token_error(error: WalletIssuanceError, token_request: &To
 
     match &error {
         WalletIssuanceError::TokenRequest(response)
-            if is_pre_authorized && response.error == TokenErrorCode::InvalidGrant =>
+            if is_pre_authorized && response.error == RemoteErrorCode::Known(TokenErrorCode::InvalidGrant) =>
         {
             WalletIssuanceError::PreAuthorizedCodeExpired
         }
@@ -1087,6 +1088,8 @@ mod tests {
 
     use super::*;
     use crate::authorization_details::AuthorizationDetails;
+    use crate::errors::ErrorResponse;
+    use crate::errors::RemoteErrorCode;
     use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::IssuerMetadata;
@@ -1101,7 +1104,7 @@ mod tests {
 
     fn invalid_grant_error() -> WalletIssuanceError {
         WalletIssuanceError::TokenRequest(Box::new(ErrorResponse {
-            error: TokenErrorCode::InvalidGrant,
+            error: RemoteErrorCode::Known(TokenErrorCode::InvalidGrant),
             error_description: None,
             error_uri: None,
         }))
@@ -1133,7 +1136,7 @@ mod tests {
 
         // Any other error code in the pre-authorized flow is left untouched.
         let other = WalletIssuanceError::TokenRequest(Box::new(ErrorResponse {
-            error: TokenErrorCode::InvalidRequest,
+            error: RemoteErrorCode::Known(TokenErrorCode::InvalidRequest),
             error_description: None,
             error_uri: None,
         }));

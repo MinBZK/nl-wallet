@@ -226,7 +226,8 @@ class TypedWalletCore {
     runnable: core.resetWallet,
   );
 
-  Future<List<core.WalletEvent>> getHistory() => call(core.getHistory);
+  Future<List<core.WalletEvent>> getHistory({required int page, required int pageSize}) =>
+      call(() => core.getHistory(page: page, pageSize: pageSize));
 
   Future<List<core.WalletEvent>> getHistoryForCard(String attestationId) =>
       call(() => core.getHistoryForCard(attestationId: attestationId));

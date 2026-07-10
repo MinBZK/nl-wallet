@@ -33,14 +33,14 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::AuthorizationErrorCode;
-use crate::ErrorWithCode;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::errors::AuthorizationErrorCode;
+use crate::errors::ErrorWithCode;
 use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;

@@ -37,8 +37,8 @@ use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::pin_policy::PinPolicy;
-use wallet_provider_service::wia_issuer::HsmWiaIssuer;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
+use wallet_provider_service::wia_issuer::WiaIssuer;
 
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
@@ -47,7 +47,7 @@ type ProductionUserState = UserState<
     Repositories,
     WalletRepoFlags<Repositories>,
     Pkcs11Hsm,
-    HsmWiaIssuer<Pkcs11Hsm>,
+    HsmEcdsaKey,
     PostgresStatusListService<HsmEcdsaKey, WalletRepoFlags<Repositories>>,
 >;
 
@@ -171,7 +171,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let wia_issuer = HsmWiaIssuer::new(
+        let wia_issuer = WiaIssuer::new(
             KeyPair::new(
                 HsmEcdsaKey::new(
                     settings.wia_settings.wia_signing_key_identifier,
@@ -181,8 +181,6 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             )
             .await?,
             NL_WALLET_CLIENT_ID.to_string(),
-            wallet_user_hsm.clone(),
-            settings.attestation_wrapping_key_identifier.clone(),
             WiaWalletInfo {
                 wallet_name: settings.wia_settings.wia_wallet_name,
                 wallet_link: settings.wia_settings.wia_wallet_link,

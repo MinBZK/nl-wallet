@@ -11,24 +11,24 @@ class CheckNavigationPrerequisitesUseCaseImpl extends CheckNavigationPrerequisit
   @override
   Future<bool> invoke(List<NavigationPrerequisite> prerequisites) async {
     for (final prerequisite in prerequisites) {
-      switch (prerequisite) {
-        case NavigationPrerequisite.walletUnlocked:
-          final isLocked = await _walletRepository.isLockedStream.first;
-          if (isLocked) return false;
-        case NavigationPrerequisite.walletInitialized:
-          final isInitialized = await _walletRepository.isRegistered();
-          if (!isInitialized) return false;
-        case NavigationPrerequisite.pidInitialized:
-          final containsPid = await _walletRepository.containsPid();
-          if (!containsPid) return false;
-        case NavigationPrerequisite.walletInReadyState:
-          final inReadyState = await _walletRepository.getWalletState() is WalletStateReady;
-          if (!inReadyState) return false;
-        case NavigationPrerequisite.walletInIssuanceState:
-          final inIssuanceState = await _walletRepository.getWalletState() is WalletStateInIssuanceFlow;
-          if (!inIssuanceState) return false;
-      }
+      final isMet = await _isPrerequisiteMet(prerequisite);
+      if (!isMet) return false;
     }
     return true;
+  }
+
+  Future<bool> _isPrerequisiteMet(NavigationPrerequisite prerequisite) async {
+    switch (prerequisite) {
+      case NavigationPrerequisite.walletUnlocked:
+        return !(await _walletRepository.isLockedStream.first);
+      case NavigationPrerequisite.walletInitialized:
+        return _walletRepository.isRegistered();
+      case NavigationPrerequisite.pidInitialized:
+        return _walletRepository.containsPid();
+      case NavigationPrerequisite.walletInReadyState:
+        return (await _walletRepository.getWalletState()) is WalletStateReady;
+      case NavigationPrerequisite.walletInIssuanceState:
+        return (await _walletRepository.getWalletState()) is WalletStateInIssuanceFlow;
+    }
   }
 }

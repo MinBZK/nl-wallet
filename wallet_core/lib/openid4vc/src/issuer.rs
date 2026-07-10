@@ -1749,8 +1749,6 @@ mod tests {
     use wscd::wscd::WiaClient;
 
     use super::*;
-    use crate::CredentialErrorCode;
-    use crate::TokenErrorCode;
     use crate::cleanup::CLEANUP_INTERVAL;
     use crate::cleanup::start_cleanup_task;
     use crate::credential::CredentialRequest;
@@ -1759,6 +1757,11 @@ mod tests {
     use crate::credential::CredentialResponse;
     use crate::credential::CredentialResponses;
     use crate::dpop::Dpop;
+    use crate::errors::CredentialErrorCode;
+    use crate::errors::CredentialPreviewErrorCode;
+    use crate::errors::ErrorResponse;
+    use crate::errors::RemoteErrorCode;
+    use crate::errors::TokenErrorCode;
     use crate::issuable_document::IssuableDocument;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -1949,7 +1952,11 @@ mod tests {
                 .issuer
                 .process_token_request(token_request.clone(), dpop_header.clone(), wia.clone())
                 .await
-                .map_err(|err| WalletIssuanceError::TokenRequest(Box::new(err.into())))?;
+                .map_err(|error| {
+                    let error_response = ErrorResponse::<TokenErrorCode>::from(error);
+
+                    WalletIssuanceError::TokenRequest(Box::new(error_response.into()))
+                })?;
             Ok((token_response, Some(dpop_nonce)))
         }
 
@@ -1961,7 +1968,11 @@ mod tests {
             self.issuer
                 .process_credential_preview(access_token.clone())
                 .await
-                .map_err(|err| WalletIssuanceError::CredentialPreview(Box::new(err.into())))
+                .map_err(|error| {
+                    let error_response = ErrorResponse::<CredentialPreviewErrorCode>::from(error);
+
+                    WalletIssuanceError::CredentialPreview(Box::new(error_response.into()))
+                })
         }
 
         async fn request_type_metadata(&self, url: Url) -> Result<TypeMetadataDocuments, WalletIssuanceError> {
@@ -1988,7 +1999,11 @@ mod tests {
                     self.tamper_credential_request(credential_request.clone()),
                 )
                 .await
-                .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
+                .map_err(|error| {
+                    let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
+
+                    WalletIssuanceError::CredentialRequest(Box::new(error_response.into()))
+                })
         }
 
         async fn request_credentials(
@@ -2005,7 +2020,11 @@ mod tests {
                     self.tamper_credential_requests(credential_requests.clone()),
                 )
                 .await
-                .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
+                .map_err(|error| {
+                    let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
+
+                    WalletIssuanceError::CredentialRequest(Box::new(error_response.into()))
+                })
         }
 
         async fn reject(
@@ -2021,7 +2040,11 @@ mod tests {
                     "batch_credential",
                 )
                 .await
-                .map_err(|err| WalletIssuanceError::CredentialRejection(Box::new(err.into())))
+                .map_err(|error| {
+                    let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
+
+                    WalletIssuanceError::CredentialRejection(Box::new(error_response.into()))
+                })
         }
     }
 
@@ -2149,7 +2172,8 @@ mod tests {
             start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
         assert_matches!(
             error,
-            WalletIssuanceError::TokenRequest(err) if matches!(err.error, TokenErrorCode::InvalidClientAttestation)
+            WalletIssuanceError::TokenRequest(err)
+                if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
         );
     }
 
@@ -2172,7 +2196,8 @@ mod tests {
             start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
         assert_matches!(
             error,
-            WalletIssuanceError::TokenRequest(err) if matches!(err.error, TokenErrorCode::InvalidClientAttestation)
+            WalletIssuanceError::TokenRequest(err)
+                if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
         );
     }
 
@@ -2187,7 +2212,8 @@ mod tests {
         let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
-            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
+            WalletIssuanceError::CredentialRequest(err)
+                if matches!(err.error, RemoteErrorCode::Known(CredentialErrorCode::InvalidToken))
         );
     }
 
@@ -2202,7 +2228,8 @@ mod tests {
         let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
-            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+            WalletIssuanceError::CredentialRequest(err)
+                if matches!(err.error, RemoteErrorCode::Known(CredentialErrorCode::InvalidCredentialRequest))
         );
     }
 
@@ -2217,7 +2244,8 @@ mod tests {
         let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
-            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+            WalletIssuanceError::CredentialRequest(err)
+                if matches!(err.error, RemoteErrorCode::Known(CredentialErrorCode::InvalidProof))
         );
     }
 

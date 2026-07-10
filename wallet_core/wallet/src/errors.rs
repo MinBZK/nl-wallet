@@ -13,6 +13,7 @@ pub mod openid4vc {
     pub use openid4vc::errors::DisclosureErrorResponse;
     pub use openid4vc::errors::ErrorResponse;
     pub use openid4vc::errors::PostAuthResponseErrorCode;
+    pub use openid4vc::errors::RemoteErrorCode;
     pub use openid4vc::wallet_issuance::WalletIssuanceError;
     pub use openid4vc::wallet_issuance::authorization::OAuthError;
 }

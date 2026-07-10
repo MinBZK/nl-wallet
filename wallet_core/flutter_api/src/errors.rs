@@ -33,6 +33,7 @@ use wallet::errors::WalletUnlockError;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
 use wallet::errors::openid4vc::CredentialErrorCode;
 use wallet::errors::openid4vc::OAuthError;
+use wallet::errors::openid4vc::RemoteErrorCode;
 use wallet::errors::openid4vc::VpClientError;
 use wallet::errors::openid4vc::VpMessageClientError;
 use wallet::errors::openid4vc::VpMessageClientErrorType;
@@ -263,7 +264,7 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
 #[derive(Debug, Clone, Serialize)]
 struct IssuanceErrorData {
     #[serde_as(as = "Option<DisplayFromStr>")]
-    redirect_error: Option<AuthorizationErrorCode>,
+    redirect_error: Option<RemoteErrorCode<AuthorizationErrorCode>>,
     organization_name: Option<String>,
     revocation_data: Option<AccountRevokedData>,
 }
@@ -298,7 +299,7 @@ impl FlutterApiErrorFields for IssuanceError {
             // no longer usable", so surface the "session expired" screen instead of a generic server
             // error.
             IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(error))
-                if error.error == CredentialErrorCode::InvalidToken =>
+                if error.error == RemoteErrorCode::Known(CredentialErrorCode::InvalidToken) =>
             {
                 FlutterApiErrorType::ExpiredSession
             }
@@ -849,6 +850,7 @@ mod tests {
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OAuthError;
     use wallet::errors::openid4vc::PostAuthResponseErrorCode;
+    use wallet::errors::openid4vc::RemoteErrorCode;
     use wallet::errors::openid4vc::VpClientError;
     use wallet::errors::openid4vc::VpMessageClientError;
     use wallet::errors::openid4vc::WalletIssuanceError;
@@ -881,7 +883,7 @@ mod tests {
     #[case::issuance_oauth_session(
         IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
-                error: AuthorizationErrorCode::InvalidRequest,
+                error: RemoteErrorCode::Known(AuthorizationErrorCode::InvalidRequest),
                 error_description: None,
                 error_uri: None,
             })
@@ -892,7 +894,7 @@ mod tests {
     #[case::issuance_oauth_session_other(
         IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
-                error: AuthorizationErrorCode::Other("some_error".to_string()),
+                error: RemoteErrorCode::Unknown("some_error".to_string()),
                 error_description: None,
                 error_uri: None,
             })
@@ -902,7 +904,7 @@ mod tests {
     )]
     #[case::issuance_credential_request_invalid_token(
         IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(Box::new(ErrorResponse {
-            error: CredentialErrorCode::InvalidToken,
+            error: RemoteErrorCode::Known(CredentialErrorCode::InvalidToken),
             error_description: None,
             error_uri: None,
         }))),
@@ -911,7 +913,7 @@ mod tests {
     )]
     #[case::issuance_credential_request_other(
         IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(Box::new(ErrorResponse {
-            error: CredentialErrorCode::ServerError,
+            error: RemoteErrorCode::Known(CredentialErrorCode::ServerError),
             error_description: None,
             error_uri: None,
         }))),
@@ -975,7 +977,7 @@ mod tests {
             Box::new(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: PostAuthResponseErrorCode::CancelledSession,
+                        error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
                         error_description: None,
                         error_uri: None
                     },
@@ -997,7 +999,7 @@ mod tests {
                 Box::new(
                     DisclosureErrorResponse {
                         error_response: ErrorResponse {
-                            error: PostAuthResponseErrorCode::CancelledSession,
+                            error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
                             error_description: None,
                             error_uri: None
                         },
@@ -1013,7 +1015,7 @@ mod tests {
         CancelSessionError::Issuance(
             IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
                 Box::new(ErrorResponse {
-                    error: AuthorizationErrorCode::Other("some_error".to_string()),
+                    error: RemoteErrorCode::Unknown("some_error".to_string()),
                     error_description: None,
                     error_uri: None,
                 })

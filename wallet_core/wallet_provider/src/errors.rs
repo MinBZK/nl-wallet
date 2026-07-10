@@ -21,7 +21,6 @@ use wallet_provider_service::account_server::InstructionError;
 use wallet_provider_service::account_server::InstructionValidationError;
 use wallet_provider_service::account_server::RegistrationError;
 use wallet_provider_service::account_server::WalletCertificateError;
-use wallet_provider_service::wia_issuer::HsmWiaIssuerError;
 
 // Make a newtype to circumvent the orphan rule.
 #[derive(Debug, Clone, From, AsRef, Display, FromStr)]
@@ -37,8 +36,6 @@ pub enum WalletProviderError {
     Instruction(#[from] InstructionError),
     #[error("{0}")]
     Hsm(#[from] HsmError),
-    #[error("{0}")]
-    Wia(#[from] HsmWiaIssuerError),
 }
 
 impl HttpJsonErrorType for WalletProviderErrorType {
@@ -151,7 +148,6 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::SystemRevocationError(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
-            WalletProviderError::Wia(_) => Self::Unexpected,
         }
     }
 }
@@ -195,7 +191,6 @@ fn register_error_metric(error: &WalletProviderError) {
             }
         }
         WalletProviderError::Hsm(inner) => Cow::Borrowed(inner.into()),
-        WalletProviderError::Wia(inner) => Cow::Borrowed(inner.into()),
     };
 
     let error: &'static str = error.into();
