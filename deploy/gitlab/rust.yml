@@ -6,6 +6,8 @@
 lint-rust:
   extends: .rust
   rules: !reference [.default-or-merge-request, rules]
+  variables:
+    CARGO_BUILD_WARNINGS: "deny"
   before_script:
     - set -euxo pipefail
   script:
@@ -13,15 +15,15 @@ lint-rust:
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo +nightly fmt
       --manifest-path {} -- --check
     # Check clippy
-    - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+    - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests
     - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy
-      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests
     # Again clippy with json
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests
-      --message-format=json -- -Dwarnings > wallet_core/clippy.json
+      --message-format=json > wallet_core/clippy.json
     - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy
-      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests --message-format=json --
-      -Dwarnings >> wallet_core/clippy.json
+      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests
+      --message-format=json >> wallet_core/clippy.json
   artifacts:
     name: lint-rust
     paths:
@@ -119,7 +121,7 @@ test-rust-doctest:
 .test-rust-compilation:
   rules: !reference [.default-or-merge-request, rules]
   variables:
-    RUSTFLAGS: "-D warnings"
+    CARGO_BUILD_WARNINGS: "deny"
     CONFIG_ENV: "dev"
   before_script:
     - cd wallet_core
@@ -179,7 +181,7 @@ test-sea-orm-generate-entity:
       artifacts: false
       optional: true
   variables:
-    RUSTFLAGS: "-D warnings"
+    CARGO_BUILD_WARNINGS: "deny"
   before_script:
     - set -euxo pipefail
     - cd wallet_core
