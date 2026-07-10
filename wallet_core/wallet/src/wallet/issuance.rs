@@ -16,6 +16,7 @@ use http_utils::urls;
 use itertools::Itertools;
 use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
@@ -530,9 +531,9 @@ where
         pid_purpose: Option<PidIssuancePurpose>,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         let previews = issuance_session.credential_previews();
-        let preview_attestation_types = previews
+        let preview_attestation_types_and_formats = previews
             .iter()
-            .map(|preview| preview.credential_payload.attestation_type.clone())
+            .map(|preview| CredentialKind::new(preview.format, preview.credential_payload.attestation_type.clone()))
             .collect();
         let type_metadata = issuance_session.type_metadata();
 
@@ -549,7 +550,7 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_types(&preview_attestation_types)
+            .fetch_unique_attestations_by_credential_kinds(&preview_attestation_types_and_formats)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -878,6 +879,7 @@ fn compare_contents(
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::ops::Add;
     use std::sync::LazyLock;
 
@@ -1270,12 +1272,12 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types()
+            .expect_fetch_unique_attestations_by_credential_kinds()
             .return_once(move |_| Ok(vec![stored]));
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_unique_attestations_by_types_and_single_format()
             .return_once(move |_, _| Ok(vec![stored_clone]));
 
         // Continuing PID issuance should result in one preview `Attestation`.
@@ -1578,10 +1580,10 @@ mod tests {
 
         let storage = wallet.mut_storage();
         storage
-            .expect_fetch_unique_attestations_by_types()
+            .expect_fetch_unique_attestations_by_credential_kinds()
             .return_once(move |_attestation_types| Ok(vec![stored]));
         storage
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_unique_attestations_by_types_and_single_format()
             .return_once(move |_attestation_types, _format| Ok(vec![stored_clone]));
 
         // Set up the `MockIssuanceSession` directly.
@@ -1612,6 +1614,60 @@ mod tests {
                 assert_matches!(&attestation.identity, AttestationIdentity::Ephemeral);
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_issuance_process_previews_fetches_stored_attestations_by_type_and_format() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let time_generator = MockTimeGenerator::default();
+
+        let (sd_jwt_preview, sd_jwt_type_metadata) = create_example_preview_data(
+            &time_generator,
+            Format::SdJwt,
+            "some_attestation_type",
+            "sd_jwt_config_id".to_string().into(),
+        );
+        let (mdoc_preview, mdoc_type_metadata) = create_example_preview_data(
+            &time_generator,
+            Format::MsoMdoc,
+            "some_attestation_type",
+            "mdoc_config_id".to_string().into(),
+        );
+
+        let expected_types_and_formats = HashSet::from([
+            CredentialKind::new(Format::SdJwt, "some_attestation_type".to_string()),
+            CredentialKind::new(Format::MsoMdoc, "some_attestation_type".to_string()),
+        ]);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .withf(move |actual_types_and_formats| actual_types_and_formats == &expected_types_and_formats)
+            .return_once(|_| Ok(vec![]));
+
+        let mut issuance_session = MockIssuanceSession::new();
+        issuance_session.expect_type_metadata().return_const(HashMap::from([
+            (sd_jwt_preview.config_id.clone(), sd_jwt_type_metadata),
+            (mdoc_preview.config_id.clone(), mdoc_type_metadata),
+        ]));
+        issuance_session
+            .expect_credential_previews()
+            .return_const(vec![sd_jwt_preview, mdoc_preview]);
+        issuance_session
+            .expect_issuer()
+            .return_const(IssuerRegistration::new_mock());
+
+        let attestations = wallet
+            .issuance_process_previews(issuance_session, None)
+            .await
+            .expect("Could not process issuance previews");
+
+        assert_eq!(attestations.len(), 2);
+        assert!(
+            attestations
+                .iter()
+                .all(|attestation| matches!(attestation.identity, AttestationIdentity::Ephemeral))
+        );
     }
 
     #[tokio::test]
@@ -1712,7 +1768,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types()
+            .expect_fetch_unique_attestations_by_credential_kinds()
             .return_once(|_| Ok(vec![]));
 
         let result = wallet

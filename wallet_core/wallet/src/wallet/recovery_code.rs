@@ -98,7 +98,7 @@ where
         self.storage
             .read()
             .await
-            .fetch_unique_attestations_by_types_and_format(pid_attestation_types, Format::SdJwt)
+            .fetch_unique_attestations_by_types_and_single_format(pid_attestation_types, Format::SdJwt)
             .await
             .map_err(RecoveryCodeError::AttestationQuery)?
             .pop()

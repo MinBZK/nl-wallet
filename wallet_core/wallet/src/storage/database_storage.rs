@@ -31,6 +31,7 @@ use itertools::Itertools;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
@@ -334,6 +335,35 @@ impl<K> DatabaseStorage<K> {
         };
 
         self.query_unique_attestations(Some(condition)).await
+    }
+
+    async fn query_unique_attestations_by_credential_kinds(
+        &self,
+        credential_kinds: &HashSet<CredentialKind>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        if credential_kinds.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let type_and_format_condition = credential_kinds.iter().fold(
+            Condition::any(),
+            |condition,
+             CredentialKind {
+                 attestation_type,
+                 format,
+             }| {
+                condition.add(
+                    Condition::all()
+                        .add(attestation::Column::AttestationType.eq(attestation_type))
+                        .add(
+                            attestation::Column::AttestationFormat
+                                .eq(attestation_format_for_credential_format(*format)),
+                        ),
+                )
+            },
+        );
+
+        self.query_unique_attestations(Some(type_and_format_condition)).await
     }
 
     fn combine_events(
@@ -865,15 +895,15 @@ where
         self.query_unique_attestations(None).await
     }
 
-    async fn fetch_unique_attestations_by_types(
+    async fn fetch_unique_attestations_by_credential_kinds(
         &self,
-        attestation_types: &HashSet<String>,
+        credential_kinds: &HashSet<CredentialKind>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations_with_parameters(attestation_types, None, None)
+        self.query_unique_attestations_by_credential_kinds(credential_kinds)
             .await
     }
 
-    async fn fetch_unique_attestations_by_types_and_format(
+    async fn fetch_unique_attestations_by_types_and_single_format(
         &self,
         attestation_types: &HashSet<String>,
         format: Format,
@@ -1849,9 +1879,11 @@ pub(crate) mod tests {
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is SD-JWT.
         let attestation_types = HashSet::from([mdoc.doc_type().to_owned()]);
+        let attestation_types_and_formats =
+            HashSet::from([CredentialKind::new(Format::MsoMdoc, mdoc.doc_type().to_owned())]);
 
         let fetched_unique_any = storage
-            .fetch_unique_attestations_by_types(&attestation_types)
+            .fetch_unique_attestations_by_credential_kinds(&attestation_types_and_formats)
             .await
             .expect("Could not fetch unique attestations by types");
 
@@ -1991,11 +2023,59 @@ pub(crate) mod tests {
 
         // Fetching extended VCTs without specifying a format should not return anything.
         let fetched_unique = storage
-            .fetch_unique_attestations_by_types(&extended_vcts)
+            .fetch_unique_attestations_by_credential_kinds(
+                &extended_vcts
+                    .into_iter()
+                    .map(|attestation_type| CredentialKind::new(Format::SdJwt, attestation_type))
+                    .collect(),
+            )
             .await
             .expect("Could not fetch unique attestations by types");
 
         assert!(fetched_unique.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_fetch_unique_attestations_by_types_and_formats_respects_format() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let mdoc = Mdoc::new_mock().await;
+        let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
+        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, mdoc.into_private_key_id()).unwrap();
+
+        let attestation_type = mdoc.doc_type().to_string();
+        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
+
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc]),
+                        attestation_type.clone(),
+                        None,
+                        None,
+                        normalized_metadata.extended_vcts(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
+            .await
+            .expect("Could not insert mdoc credential");
+
+        let fetched = storage
+            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([CredentialKind::new(
+                Format::SdJwt,
+                attestation_type,
+            )]))
+            .await
+            .expect("Could not fetch unique attestations by types and formats");
+
+        assert!(
+            fetched.is_empty(),
+            "querying an mdoc attestation type as SD-JWT must not return the mdoc copy"
+        );
     }
 
     #[tokio::test]
@@ -2078,11 +2158,12 @@ pub(crate) mod tests {
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is mdoc.
-        let attestation_types = HashSet::from([attestation_type]);
+        let attestation_types = HashSet::from([attestation_type.clone()]);
+        let attestation_types_and_formats = HashSet::from([CredentialKind::new(Format::SdJwt, attestation_type)]);
         let fetched_unique_any = storage
-            .fetch_unique_attestations_by_types(&attestation_types)
+            .fetch_unique_attestations_by_credential_kinds(&attestation_types_and_formats)
             .await
-            .expect("Could not fetch unique attestations by types");
+            .expect("Could not fetch unique attestations by types and formats");
 
         let fetched_unique_mdoc = storage
             .fetch_valid_unique_attestations_by_types_and_format(
@@ -2158,12 +2239,16 @@ pub(crate) mod tests {
 
         // Fetching extended VCTs without specifying a format should not return anything.
         let fetched_unique = storage
-            .fetch_unique_attestations_by_types(&extended_vcts)
+            .fetch_unique_attestations_by_credential_kinds(
+                &extended_vcts
+                    .into_iter()
+                    .map(|attestation_type| CredentialKind::new(Format::SdJwt, attestation_type))
+                    .collect(),
+            )
             .await
-            .expect("Could not fetch unique attestations by types");
+            .expect("Could not fetch unique attestations by types and formats");
 
         assert!(fetched_unique.is_empty());
-
         // Should not return not yet valid attestations.
         let fetched = storage
             .fetch_valid_unique_attestations_by_types_and_format(

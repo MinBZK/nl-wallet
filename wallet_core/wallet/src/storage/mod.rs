@@ -22,6 +22,7 @@ use derive_more::Constructor;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
+use openid4vc::issuable_document::CredentialKind;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -187,20 +188,19 @@ pub trait Storage: Send {
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to one of
-    /// types requested. The format of the copy returned is undetermined.
-    async fn fetch_unique_attestations_by_types(
+    /// Returns a single attestation copy for each stored attestation whose attestation type and format match one of the
+    /// requested `CredentialKind` instances.
+    async fn fetch_unique_attestations_by_credential_kinds(
         &self,
-        attestation_types: &HashSet<String>,
+        credential_kinds: &HashSet<CredentialKind>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to
-    /// one of types requested and for which at least one copy of the requested format exists. The returned copy
-    /// will be of the requested format.
+    /// one of the types requested and the requested format.
     ///
     /// Additionally, if `Format::SdJwt` is requested, the returned attestation copies will also include those
     /// that extend at least one of the requested attestation types.
-    async fn fetch_unique_attestations_by_types_and_format(
+    async fn fetch_unique_attestations_by_types_and_single_format(
         &self,
         attestation_types: &HashSet<String>,
         format: Format,
