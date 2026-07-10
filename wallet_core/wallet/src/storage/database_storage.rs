@@ -1249,7 +1249,7 @@ where
 fn create_attestation_copy_models(
     attestation_id: Uuid,
     copies: IssuedCredentialCopies,
-) -> StorageResult<Vec<attestation_copy::ActiveModel>> {
+) -> StorageResult<VecNonEmpty<attestation_copy::ActiveModel>> {
     match copies {
         IssuedCredentialCopies::Mdoc(mdocs) => mdocs
             .into_nonempty_iter()
@@ -1294,7 +1294,7 @@ fn create_attestation_copy_models(
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
     }
-    .into_iter()
+    .into_nonempty_iter()
     .map(
         |(format, status, key_identifier, issuer_certificate_dn, attestation_bytes)| {
             let (status_uri, status_index) = status
@@ -1319,7 +1319,7 @@ fn create_attestation_copy_models(
             Ok(model)
         },
     )
-    .try_collect()
+    .collect::<Result<_, _>>()
 }
 
 fn determine_revocation_status(revocation_statuses: &[Option<RevocationStatus>]) -> Option<RevocationStatus> {
