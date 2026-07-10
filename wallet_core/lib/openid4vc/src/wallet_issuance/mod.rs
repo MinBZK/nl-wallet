@@ -17,6 +17,7 @@ use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
@@ -46,6 +47,7 @@ use crate::errors::TokenErrorCode;
 use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
+use crate::jose::JwsAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
 use crate::token::CredentialPreview;
@@ -319,6 +321,24 @@ pub enum WalletIssuanceError {
     #[error("the Credential Offer did not contain a Pre-Authorized Code")]
     #[category(expected)]
     CredentialOfferNoPreAuthorizedCode,
+
+    #[error("the Authorization Server does not support attestation-based client authentication")]
+    #[category(expected)]
+    NoAttestationBasedClientAuthSupport,
+
+    #[error(
+        "the Authorization Server does not support ES256 for client attestation signing: {}",
+        .0.as_ref().map(|algs| algs.iter().join(", ")).unwrap_or_else(|| "<none>".to_string())
+    )]
+    #[category(expected)]
+    ClientAttestationSigningAlgNotSupported(Option<IndexSet<JwsAlgorithm>>),
+
+    #[error(
+        "the Authorization Server does not support ES256 for client attestation PoP signing: {}",
+        .0.as_ref().map(|algs| algs.iter().join(", ")).unwrap_or_else(|| "<none>".to_string())
+    )]
+    #[category(expected)]
+    ClientAttestationPopSigningAlgNotSupported(Option<IndexSet<JwsAlgorithm>>),
 }
 
 #[derive(Debug)]
