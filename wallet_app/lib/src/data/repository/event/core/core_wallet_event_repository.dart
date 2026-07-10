@@ -20,8 +20,16 @@ class CoreWalletEventRepository extends WalletEventRepository with PidFilterMixi
       () async => _flutterAppConfigurationMapper.map(await _walletCore.observeConfig().first);
 
   @override
-  Future<List<WalletEvent>> getEvents({bool removeDuplicatePidEvents = true}) async {
-    final coreEvents = await _walletCore.getHistory();
+  Future<List<WalletEvent>> getEvents({
+    int? page,
+    int? pageSize,
+    bool removeDuplicatePidEvents = true,
+  }) async {
+    final isPaginated = page != null || pageSize != null;
+    if (isPaginated && removeDuplicatePidEvents) {
+      throw ArgumentError('Pagination cannot be combined with removeDuplicatePidEvents=true');
+    }
+    final coreEvents = await _walletCore.getHistory(page: page ?? 0, pageSize: pageSize ?? 0);
     final events = _walletEventMapper.mapList(coreEvents);
     if (!removeDuplicatePidEvents) return events;
     return filterDuplicatePidEvents(events);

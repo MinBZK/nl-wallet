@@ -740,7 +740,11 @@ fn wire__crate__api__full__delete_attestation_impl(
         },
     )
 }
-fn wire__crate__api__full__get_history_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+fn wire__crate__api__full__get_history_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    page: impl CstDecode<u32>,
+    page_size: impl CstDecode<u32>,
+) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_history",
@@ -748,10 +752,12 @@ fn wire__crate__api__full__get_history_impl(port_: flutter_rust_bridge::for_gene
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
+            let api_page = page.cst_decode();
+            let api_page_size = page_size.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::get_history().await?;
+                        let output_ok = crate::api::full::get_history(api_page, api_page_size).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1791,6 +1797,12 @@ impl CstDecode<crate::models::transfer::TransferSessionState> for i32 {
 impl CstDecode<u16> for u16 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> u16 {
+        self
+    }
+}
+impl CstDecode<u32> for u32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> u32 {
         self
     }
 }
@@ -2981,6 +2993,13 @@ impl SseDecode for u16 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u16::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u32::<NativeEndian>().unwrap()
     }
 }
 
@@ -5330,6 +5349,13 @@ impl SseEncode for u16 {
     }
 }
 
+impl SseEncode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
+    }
+}
+
 impl SseEncode for u64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -7170,8 +7196,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_history(port_: i64) {
-        wire__crate__api__full__get_history_impl(port_)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_history(port_: i64, page: u32, page_size: u32) {
+        wire__crate__api__full__get_history_impl(port_, page, page_size)
     }
 
     #[unsafe(no_mangle)]

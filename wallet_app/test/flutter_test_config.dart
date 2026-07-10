@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -12,6 +13,7 @@ import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.
 import 'package:wallet/src/domain/model/configuration/maintenance_window.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
+import 'package:wallet/src/domain/model/event/wallet_events_page.dart';
 import 'package:wallet/src/domain/model/help/help_category.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
@@ -164,6 +166,7 @@ void _setupMockitoDummies() {
 
   // Result dummies - collections
   provideDummy<Result<List<WalletEvent>>>(const Result.success([]));
+  provideDummy<Result<WalletEventsPage>>(Result.success(WalletEventsPage(pages: SplayTreeMap(), hasNextPage: false)));
   provideDummy<Result<List<Attribute>>>(const Result.success([]));
   provideDummy<Result<List<WalletCard>>>(const Result.success([]));
   provideDummy<Result<List<TourVideo>>>(const Result.success([]));

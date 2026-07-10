@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-07-03T12:17:21+02:00",
+    "@@last_modified": "2026-07-08T15:04:52+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -806,6 +806,7 @@
     "historyDetailScreenTitleForCardRenewed": "{card} renewed",
     "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
     "historyDetailScreenTitleForLogin": "Logged in to {organization}",
+    "historyOverviewScreenLoadingNextPage": "Loading more data. Please wait.",
     "historyOverviewScreenTitle": "Activities",
     "idleWarningDialogContinueCta": "Yes, continue",
     "idleWarningDialogDescription": "You will be logged out soon because you haven’t used the app for a while. Choose \"Yes, continue\" for more time.",

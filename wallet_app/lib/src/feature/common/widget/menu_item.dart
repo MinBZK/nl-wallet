@@ -63,16 +63,21 @@ class MenuItem extends StatefulWidget {
 
 class _MenuItemState extends State<MenuItem> {
   late WidgetStatesController _statesController;
+  bool _disposed = false;
 
   @override
   void initState() {
     super.initState();
     _statesController = WidgetStatesController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController.addListener(() => setState(() {})));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_disposed) return; // Fixes issue with fast scrolling in long list (context.mounted was insufficient)
+      _statesController.addListener(() => setState(() {}));
+    });
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _statesController.dispose();
     super.dispose();
   }

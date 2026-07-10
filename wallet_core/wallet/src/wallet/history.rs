@@ -51,6 +51,11 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<WalletEvent>) + Send + Sync>;
 
+pub struct Pagination {
+    pub page: usize,
+    pub size: usize,
+}
+
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     S: Storage,
@@ -89,7 +94,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_history(&self) -> HistoryResult<Vec<WalletEvent>> {
+    pub async fn get_history(&self, pagination: Option<Pagination>) -> HistoryResult<Vec<WalletEvent>> {
         info!("Retrieving history");
 
         info!("Checking if blocked");
@@ -111,7 +116,14 @@ where
         let storage = self.storage.read().await;
         let events = storage.fetch_wallet_events().await?;
 
-        Ok(events)
+        match pagination {
+            Some(Pagination { page, size }) => {
+                // TODO (PVW-6108): Replace with proper pagination
+                let offset = page * size;
+                Ok(events.into_iter().skip(offset).take(size).collect())
+            }
+            None => Ok(events),
+        }
     }
 
     #[instrument(skip_all)]
@@ -197,6 +209,7 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::HistoryError;
+    use super::Pagination;
     use crate::AttestationPresentation;
     use crate::DisclosureStatus;
     use crate::WalletEvent;
@@ -210,7 +223,7 @@ mod tests {
         let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         let error = wallet
-            .get_history()
+            .get_history(Some(Pagination { page: 0, size: 25 }))
             .await
             .expect_err("Expect error when Wallet is not registered");
         assert_matches!(error, HistoryError::NotRegistered);
@@ -229,7 +242,7 @@ mod tests {
         wallet.lock();
 
         let error = wallet
-            .get_history()
+            .get_history(Some(Pagination { page: 0, size: 25 }))
             .await
             .expect_err("Expect error when Wallet is locked");
         assert_matches!(error, HistoryError::Locked);
@@ -249,7 +262,7 @@ mod tests {
         let reader_key = generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock()).unwrap();
 
         // history should be empty
-        let history = wallet.get_history().await.unwrap();
+        let history = wallet.get_history(None).await.unwrap();
         assert!(history.is_empty());
 
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
@@ -304,7 +317,7 @@ mod tests {
             .unwrap();
 
         // get history should return both events, in correct order, newest first
-        let history = wallet.get_history().await.unwrap();
+        let history = wallet.get_history(None).await.unwrap();
         let timestamps = history.iter().map(|event| event.timestamp()).collect_vec();
         assert_eq!(
             timestamps,
@@ -315,6 +328,46 @@ mod tests {
                 &timestamp_older,
             ]
         );
+    }
+
+    #[tokio::test]
+    async fn test_history_pagination() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
+        let reader_key = generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock()).unwrap();
+
+        let base = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
+
+        for i in 0..4u64 {
+            wallet
+                .store_disclosure_event(
+                    base + Duration::days(i as i64),
+                    None,
+                    reader_key.certificate().clone(),
+                    DisclosureType::Regular,
+                    DisclosureStatus::Success,
+                    DataDisclosed::Disclosed,
+                )
+                .await
+                .unwrap();
+        }
+
+        // page 0 of size 2 returns the 2 newest events
+        let page0 = wallet.get_history(Some(Pagination { page: 0, size: 2 })).await.unwrap();
+        assert_eq!(page0.len(), 2);
+        assert_eq!(page0[0].timestamp(), &(base + Duration::days(3)));
+        assert_eq!(page0[1].timestamp(), &(base + Duration::days(2)));
+
+        // page 1 of size 2 returns the next 2
+        let page1 = wallet.get_history(Some(Pagination { page: 1, size: 2 })).await.unwrap();
+        assert_eq!(page1.len(), 2);
+        assert_eq!(page1[0].timestamp(), &(base + Duration::days(1)));
+        assert_eq!(page1[1].timestamp(), &base);
+
+        // page 2 of size 2 is empty
+        let page2 = wallet.get_history(Some(Pagination { page: 2, size: 2 })).await.unwrap();
+        assert!(page2.is_empty());
     }
 
     // Tests both setting and clearing the recent_history callback on an unregistered `Wallet`.

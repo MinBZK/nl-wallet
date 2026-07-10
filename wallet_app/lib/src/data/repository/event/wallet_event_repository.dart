@@ -1,7 +1,7 @@
 import '../../../domain/model/event/wallet_event.dart';
 
 abstract class WalletEventRepository {
-  Future<List<WalletEvent>> getEvents({bool removeDuplicatePidEvents = true});
+  Future<List<WalletEvent>> getEvents({int? page, int? pageSize, bool removeDuplicatePidEvents = true});
 
   Future<List<WalletEvent>> getEventsForCard(String attestationId);
 

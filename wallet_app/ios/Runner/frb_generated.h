@@ -660,7 +660,9 @@ void frbgen_wallet_core_wire__crate__api__full__delete_attestation(int64_t port_
                                                                    struct wire_cst_list_prim_u_8_strict *pin,
                                                                    struct wire_cst_list_prim_u_8_strict *attestation_id);
 
-void frbgen_wallet_core_wire__crate__api__full__get_history(int64_t port_);
+void frbgen_wallet_core_wire__crate__api__full__get_history(int64_t port_,
+                                                            uint32_t page,
+                                                            uint32_t page_size);
 
 void frbgen_wallet_core_wire__crate__api__full__get_history_for_card(int64_t port_,
                                                                      struct wire_cst_list_prim_u_8_strict *attestation_id);
