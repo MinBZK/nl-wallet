@@ -49,6 +49,7 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
+use super::credential::SdJwtCopy;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -791,8 +792,9 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                         .try_collect()?,
                     IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
                         .iter()
-                        .map(|(_, sd_jwt)| {
-                            sd_jwt
+                        .map(|sd_jwt_copy| {
+                            sd_jwt_copy
+                                .sd_jwt
                                 .claims()
                                 .vct_integrity
                                 .as_ref()
@@ -965,7 +967,7 @@ impl Credential {
         preview: &CredentialPreview,
         normalized_type_metadata: &NormalizedTypeMetadata,
         trust_anchors: &TrustAnchors,
-    ) -> Result<(String, VerifiedSdJwt), WalletIssuanceError> {
+    ) -> Result<SdJwtCopy, WalletIssuanceError> {
         match self {
             Self::MsoMdoc { .. } => Err(WalletIssuanceError::UnexpectedCredentialResponseType {
                 expected: preview.format.to_string(),
@@ -995,7 +997,7 @@ impl Credential {
                 // This validation is SD-JWT specific, and therefore cannot be part of `validate_credential`.
                 Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized_type_metadata.clone())?;
 
-                Ok((key_identifier, sd_jwt))
+                Ok(SdJwtCopy { key_identifier, sd_jwt })
             }
         }
     }

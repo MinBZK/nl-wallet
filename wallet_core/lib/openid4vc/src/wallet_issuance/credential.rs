@@ -35,10 +35,16 @@ impl CredentialWithMetadata {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
+pub struct SdJwtCopy {
+    pub key_identifier: String,
+    pub sd_jwt: VerifiedSdJwt,
+}
+
+#[derive(Debug, Clone)]
 pub enum IssuedCredentialCopies {
     Mdoc(VecNonEmpty<Mdoc>),
-    SdJwt(VecNonEmpty<(String, VerifiedSdJwt)>),
+    SdJwt(VecNonEmpty<SdJwtCopy>),
 }
 
 impl IssuedCredentialCopies {

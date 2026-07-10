@@ -27,6 +27,7 @@ use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -773,7 +774,7 @@ where
             .find_map(|cred| {
                 let pid_paths = pid_attributes.sd_jwt.get(&cred.attestation_type)?;
 
-                let (_, sd_jwt) = match &cred.copies {
+                let SdJwtCopy { sd_jwt, .. } = match &cred.copies {
                     IssuedCredentialCopies::Mdoc(_) => None,
                     IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.first()),
                 }?;

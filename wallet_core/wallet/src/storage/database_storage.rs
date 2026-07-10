@@ -33,6 +33,7 @@ use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sea_orm::ActiveModelTrait;
@@ -1269,7 +1270,7 @@ fn create_attestation_copy_models(
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
         IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
             .into_nonempty_iter()
-            .map(|(key_identifier, sd_jwt)| {
+            .map(|SdJwtCopy { key_identifier, sd_jwt }| {
                 let issuer_certificate_dn = sd_jwt
                     .issuer_leaf_certificate()
                     .to_canonical_distinguished_name()
@@ -1454,6 +1455,7 @@ pub(crate) mod tests {
     use itertools::Itertools;
     use mdoc::holder::Mdoc;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+    use openid4vc::wallet_issuance::credential::SdJwtCopy;
     use p256::ecdsa::SigningKey;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
@@ -2007,9 +2009,18 @@ pub(crate) mod tests {
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone())
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
         ]);
 
         let attestation_type = sd_jwt.claims().vct.clone();
@@ -2188,9 +2199,18 @@ pub(crate) mod tests {
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone())
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
         ]);
 
         let attestation_type = sd_jwt.claims().vct.clone();
@@ -2249,9 +2269,18 @@ pub(crate) mod tests {
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone()),
-            ("sd_jwt_key_id".to_string(), sd_jwt.clone())
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
+            SdJwtCopy {
+                key_identifier: "sd_jwt_key_id".to_string(),
+                sd_jwt: sd_jwt.clone()
+            },
         ]);
 
         attestation_presentation.identity = AttestationIdentity::Fixed {
@@ -2532,8 +2561,10 @@ pub(crate) mod tests {
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
 
-        let issued_copies =
-            IssuedCredentialCopies::SdJwt(vec_nonempty![("sd_jwt_key_id".to_string(), sd_jwt.clone()),]);
+        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone()
+        }]);
 
         let attestation_type = sd_jwt.claims().vct.clone();
 
@@ -2763,7 +2794,7 @@ pub(crate) mod tests {
             SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
-            (key_identifier.to_string(), sd_jwt.clone()); copies
+            SdJwtCopy { key_identifier: key_identifier.to_string(), sd_jwt: sd_jwt.clone() }; copies
         ]);
 
         storage
@@ -2919,10 +2950,11 @@ pub(crate) mod tests {
         renewed_presentation.identity = AttestationIdentity::Fixed { id: attestation_id };
         renewed_presentation.attestation_type = "mock_renewed".to_string();
 
-        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![(
-            "renewed_key_id".to_string(),
-            SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified()
-        )]);
+        let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
+            key_identifier: "renewed_key_id".to_string(),
+            sd_jwt: SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key())
+                .into_verified()
+        }]);
 
         storage
             .update_credentials(Utc::now(), vec![(issued_copies, renewed_presentation.clone())])

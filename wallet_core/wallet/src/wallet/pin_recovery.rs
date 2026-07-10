@@ -410,7 +410,7 @@ where
             .filter(|attestation| attestation.attestation_type == pid_attestation_type)
             .find_map(|attestation| match attestation.copies {
                 IssuedCredentialCopies::Mdoc(_) => None,
-                IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().1),
+                IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().sd_jwt),
             })
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
