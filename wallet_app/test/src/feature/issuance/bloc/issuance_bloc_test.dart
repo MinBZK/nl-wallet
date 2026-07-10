@@ -25,6 +25,8 @@ final _kDefaultReadyToDiscloseResponse = StartIssuanceReadyToDisclose(
   sharedDataWithOrganizationBefore: false,
 );
 
+const _kBlockProcessDelay = Duration(milliseconds: 50);
+
 void main() {
   final MockStartIssuanceUseCase startIssuanceUseCase = MockStartIssuanceUseCase();
   final MockCancelSessionUseCase cancelSessionUseCase = MockCancelSessionUseCase();
@@ -78,13 +80,13 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(IssuanceApproveCards(cards: [WalletMockData.altCard]));
       bloc.add(const IssuancePinForIssuanceConfirmed());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceCheckOrganization>(),
@@ -107,13 +109,13 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(IssuanceApproveCards(cards: [WalletMockData.altCard]));
       bloc.add(const IssuancePinForIssuanceConfirmed());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceCheckOrganization>(),
@@ -138,10 +140,10 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(IssuanceApproveCards(cards: [WalletMockData.card]));
       bloc.add(const IssuancePinForIssuanceConfirmed());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceReviewCards>(),
@@ -166,12 +168,12 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceSessionContinued('https://example.org/callback'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(IssuanceApproveCards(cards: [WalletMockData.card]));
       bloc.add(const IssuancePinForIssuanceConfirmed());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceAuthenticateWithIssuer>().having(
@@ -201,9 +203,9 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceSessionContinued('https://example.org/callback'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceAuthenticateWithIssuer>(),
@@ -249,11 +251,11 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuancePinForDisclosureConfirmed(cards: []));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceCheckOrganization>(),
@@ -273,7 +275,7 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(const IssuanceBackPressed());
     },
@@ -294,10 +296,10 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(IssuanceApproveCards(cards: [WalletMockData.altCard]));
       bloc.add(const IssuanceBackPressed());
     },
@@ -339,7 +341,7 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(const IssuanceConfirmPinFailed(error: NetworkError(hasInternet: true, sourceError: 'test')));
     },
@@ -362,10 +364,10 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(IssuanceApproveCards(cards: [WalletMockData.altCard]));
       bloc.add(const IssuanceConfirmPinFailed(error: NetworkError(hasInternet: true, sourceError: 'test')));
     },
@@ -395,14 +397,14 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(
         const IssuanceConfirmPinFailed(
           error: SessionError(state: SessionState.expired, sourceError: 'test'),
         ),
       );
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceCheckOrganization>(),
@@ -423,14 +425,14 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(
         const IssuanceConfirmPinFailed(
           error: SessionError(state: SessionState.cancelled, sourceError: 'test'),
         ),
       );
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
     },
     expect: () => [
       isA<IssuanceCheckOrganization>(),
@@ -454,10 +456,10 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       bloc.add(const IssuanceApproveCards(cards: []));
     },
     expect: () => [
@@ -480,7 +482,7 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
 
       // Select a different card
       final cardRequest = _kDefaultReadyToDiscloseResponse.cardRequests.first;
@@ -493,10 +495,10 @@ void main() {
       bloc.add(IssuanceAlternativeCardSelected(update));
       // Navigate to Pin Input
       bloc.add(const IssuanceOrganizationApproved());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       // Navigate back to Check Organization
       bloc.add(const IssuanceBackPressed());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(_kBlockProcessDelay);
       // Navigate back to Pin Input
       bloc.add(const IssuanceOrganizationApproved());
     },
