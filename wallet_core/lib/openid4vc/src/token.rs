@@ -437,7 +437,6 @@ mod tests {
             vci_entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
-        assert!(vci_entry.claims.is_none());
     }
 
     #[test]
@@ -492,7 +491,6 @@ mod tests {
             vci_id_entry.vci_entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
-        assert!(vci_id_entry.vci_entry.claims.is_none());
         assert_eq!(
             vci_id_entry.credential_identifiers,
             vec_nonempty![

@@ -380,6 +380,5 @@ mod tests {
             vci_entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
-        assert!(vci_entry.claims.is_none());
     }
 }

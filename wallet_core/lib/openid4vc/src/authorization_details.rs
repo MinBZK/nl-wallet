@@ -1,7 +1,5 @@
-use std::ops::Not;
 use std::str::FromStr;
 
-use attestation_types::claim_path::ClaimPath;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::Into;
@@ -133,7 +131,6 @@ impl AuthorizationDetailsEntry<VciAuthorizationDetailsEntry> {
         Self {
             typed_entry: TypedAuthorizationDetailsEntry::OpenidCredential(VciAuthorizationDetailsEntry {
                 credential_configuration_id,
-                claims: None,
             }),
             locations: None,
         }
@@ -149,7 +146,6 @@ impl AuthorizationDetailsEntry<VciIdentifierAuthorizationDetailsEntry> {
             typed_entry: TypedAuthorizationDetailsEntry::OpenidCredential(VciIdentifierAuthorizationDetailsEntry {
                 vci_entry: VciAuthorizationDetailsEntry {
                     credential_configuration_id,
-                    claims: None,
                 },
                 credential_identifiers,
             }),
@@ -231,43 +227,23 @@ impl CredentialEntry for VciIdentifierAuthorizationDetailsEntry {
 /// and Token Request.
 ///
 /// Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.1>
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct VciAuthorizationDetailsEntry {
     /// String specifying a unique identifier of the Credential being described in the
     /// credential_configurations_supported map in the Credential Issuer Metadata.
     pub credential_configuration_id: CredentialConfigurationId,
-
-    /// A non-empty array of claims description objects.
-    pub claims: Option<VecNonEmpty<VciAuthorizationDetailsClaim>>,
+    // Note that we leave out the `claims` field here. As the wallet does not support requesting specific claims for a
+    // credential and the issuer does not support interpreting them, the field will never be used.
+    //
+    // See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.1-3.3> and
+    // <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-B.1>
 }
 
 impl CredentialEntry for VciAuthorizationDetailsEntry {
     fn credential_config_id(&self) -> &CredentialConfigurationId {
         &self.credential_configuration_id
     }
-}
-
-/// A claims description object as used in authorization details is an object that defines the requirements for the
-/// claims that the Wallet requests to be included in the Credential.
-///
-/// Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-B.1>
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct VciAuthorizationDetailsClaim {
-    /// Non-empty array. Claim path pointer as defined in Appendix C to identify the claim(s) in the Credential.
-    pub path: VecNonEmpty<ClaimPath>,
-
-    /// Boolean which, when set to true, indicates that the Wallet will only accept a Credential that includes this
-    /// claim. If set to false, the claim is not required to be included in the Credential. If the mandatory parameter
-    /// is omitted, the default value is false.
-    #[serde(default = "bool_value::<false>", skip_serializing_if = "<&bool>::not")]
-    pub mandatory: bool,
-}
-
-const fn bool_value<const B: bool>() -> bool {
-    B
 }
 
 #[cfg(test)]
@@ -309,14 +285,10 @@ mod tests {
                 assert!(entry.locations.is_none());
 
                 match entry.typed_entry {
-                    TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) => {
-                        assert!(vci_id_entry.vci_entry.claims.is_none());
-
-                        (
-                            vci_id_entry.vci_entry.credential_configuration_id,
-                            vci_id_entry.credential_identifiers,
-                        )
-                    }
+                    TypedAuthorizationDetailsEntry::OpenidCredential(vci_id_entry) => (
+                        vci_id_entry.vci_entry.credential_configuration_id,
+                        vci_id_entry.credential_identifiers,
+                    ),
                     TypedAuthorizationDetailsEntry::Other { .. } => {
                         panic!("type of AuthorizationDetailsEntry should be OpenidCredential")
                     }
@@ -420,7 +392,6 @@ mod tests {
             vci_entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
-        assert!(vci_entry.claims.is_none());
 
         // Deserializing as `VciIdentifierAuthorizationDetailsEntry` should fail, as it requires
         // `credential_identifiers`.
@@ -445,7 +416,6 @@ mod tests {
             vci_id_entry.vci_entry.credential_configuration_id.as_ref(),
             "UniversityDegreeCredential"
         );
-        assert!(vci_id_entry.vci_entry.claims.is_none());
         assert_eq!(
             vci_id_entry
                 .credential_identifiers
@@ -468,22 +438,6 @@ mod tests {
         };
 
         assert_eq!(vci_entry.credential_configuration_id.as_ref(), "org.iso.18013.5.1.mDL");
-        assert_eq!(
-            vci_entry
-                .claims
-                .as_ref()
-                .map(|claims| claims.len().get())
-                .unwrap_or_default(),
-            4
-        );
-
-        for claim in vci_entry.claims.as_ref().unwrap() {
-            assert_eq!(claim.path.len().get(), 2);
-
-            for path in &claim.path {
-                assert!(path.try_key_path().is_some());
-            }
-        }
     }
 
     #[test]
