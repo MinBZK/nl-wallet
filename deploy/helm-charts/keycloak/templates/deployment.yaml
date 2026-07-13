@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  {{- with .Values.extraAnnotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+  {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+    {{- include "common.labels.selectorLabels" . | nindent 6 }}
+  {{- with .Values.deployment }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+      {{- include "common.labels.standard" . | nindent 8 }}
+      {{- with .Values.extraPodLabels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      containers:
+        - name: {{ include "common.names.fullname" . }}
+          {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
+          image: {{ printf "%s:%s" (list .Values.global.imageRegistry .Values.image.repository | compact | join "/") $tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 14 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 14 }}
+          {{- end }}
+          args:
+            - start
+            - --import-realm
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: health
+              containerPort: 9000
+          env:
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: KC_HOSTNAME
+              value: {{ first .Values.httpRoute.hostnames | quote }}
+            - name: KC_PROXY_HEADERS
+              value: {{ .Values.keycloak.proxyHeaders | quote }}
+            - name: KC_DB
+              value: {{ .Values.keycloak.database | quote }}
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.admin.existingSecret.name }}
+                  key: {{ .Values.keycloak.admin.existingSecret.usernameKey }}
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.admin.existingSecret.name }}
+                  key: {{ .Values.keycloak.admin.existingSecret.passwordKey }}
+          {{- with .Values.keycloak.extraEnv }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+          {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /opt/keycloak/data
+          {{- end }}
+            - name: import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+      volumes:
+        - name: import
+          secret:
+            secretName: {{ .Values.keycloak.realm.existingSecret.name }}
+            optional: true
+            items:
+              - key: {{ .Values.keycloak.realm.existingSecret.key }}
+                path: realm.json
+      {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}-data
+      {{- end }}

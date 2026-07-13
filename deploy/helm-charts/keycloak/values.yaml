@@ -1,0 +1,146 @@
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## @param fullnameOverride String to completely override chart's fullname
+## @param nameOverride String to partially override chart's fullname
+## @param replicaCount Number of replicas
+##
+fullnameOverride: ""
+nameOverride: ""
+replicaCount: 1
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag (defaults to Chart.appVersion)
+##
+image:
+  repository: quay.io/keycloak/keycloak
+  pullPolicy: IfNotPresent
+  tag: null
+
+## @section Image pull secrets
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Deployment parameters
+## @param deployment.strategy Strategy used to replace old pods by new ones. Defaults to Recreate because the chart uses a RWO PVC (dev-file database); switch to RollingUpdate only after moving to a shared database.
+## @param deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
+## @param deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
+##
+deployment:
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+
+## @section Security parameters
+## @param serviceAccountName Name of the service account
+## @param podSecurityContext Security context for the pod
+## @param securityContext Security context for the container
+##
+serviceAccountName: null
+podSecurityContext: {}
+securityContext: {}
+
+## @section Annotations and labels
+## @param extraAnnotations Additional annotations for the deployment
+## @param extraPodLabels Additional labels for the pods
+##
+extraAnnotations: {}
+extraPodLabels: {}
+
+## @section Resource requests and limits
+## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
+##
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+## @section HTTP route parameters
+## @param httpRoute.enabled Enable or disable the route
+## @param httpRoute.parentRefs Parent references to the gateway
+## @param httpRoute.hostnames Hostnames for the route
+## @param httpRoute.contextPath Optional context path for the route
+## @param httpRoute.labels Additional labels for the route
+## @param httpRoute.annotations Additional annotations for the route
+##
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hostnames: []
+  contextPath: null
+  labels: {}
+  annotations: {}
+
+## @section Container probes
+## Keycloak serves /health/* on the management interface (port 9000), not on http (8080).
+## First-boot (image augmentation + liquibase init + realm import) can take ~60s on a
+## cold PVC, hence the generous startup-probe defaults below.
+## @param probes.config.liveness Additional configuration for liveness probe
+## @param probes.config.readiness Additional configuration for readiness probe
+## @param probes.config.startup.periodSeconds Seconds between startup probe checks
+## @param probes.config.startup.failureThreshold Number of failed startup probes before the container is restarted
+## @param probes.port Named container port for probe targets (defaults to "http" in sp-common)
+## @param probes.disableLiveness Disable liveness probe
+## @param probes.useLivenessAsReadiness Use liveness endpoint for readiness
+##
+probes:
+  port: health
+  config:
+    liveness: {}
+    readiness: {}
+    startup:
+      periodSeconds: 10
+      failureThreshold: 15
+  disableLiveness: false
+  useLivenessAsReadiness: false
+
+## @section Keycloak parameters
+## @param keycloak.database Value for KC_DB (defaults to dev-file backed by the PVC)
+## @param keycloak.proxyHeaders Value for KC_PROXY_HEADERS (xforwarded or forwarded)
+## @param keycloak.realm.existingSecret.name Name of the secret holding the realm import JSON (the nl-wallet realm; must exist before install)
+## @param keycloak.realm.existingSecret.key Key in the secret whose value is the realm JSON file
+## @param keycloak.admin.existingSecret.name Name of the secret holding the admin credentials
+## @param keycloak.admin.existingSecret.usernameKey Key in the secret for the admin username (KC_BOOTSTRAP_ADMIN_USERNAME)
+## @param keycloak.admin.existingSecret.passwordKey Key in the secret for the admin password (KC_BOOTSTRAP_ADMIN_PASSWORD)
+## @param keycloak.extraEnv Additional environment variables
+##
+keycloak:
+  database: dev-file
+  proxyHeaders: xforwarded
+  realm:
+    existingSecret:
+      name: nl-wallet-keycloak-realm
+      key: realm.json
+  admin:
+    existingSecret:
+      name: nl-wallet-keycloak-admin
+      usernameKey: username
+      passwordKey: password
+  extraEnv: []
+
+## @section Persistence parameters
+## Keycloak stores realm + user data in /opt/keycloak/data. For replicaCount > 1, switch to a real database.
+## @param persistence.enabled Enable a PVC for /opt/keycloak/data
+## @param persistence.accessMode PVC access mode
+## @param persistence.size PVC size
+## @param persistence.storageClassName Optional storage class
+##
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClassName: null

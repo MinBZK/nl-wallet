@@ -1,0 +1,10 @@
+apiVersion: v2
+type: application
+name: keycloak
+version: 1.0.0
+appVersion: "26.3.5"
+description: A helm-chart for Keycloak.
+dependencies:
+  - name: sp-common
+    repository: "file://../sp-common"
+    version: 1.x.x

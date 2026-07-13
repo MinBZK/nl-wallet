@@ -121,6 +121,12 @@
 | `digidClientId` | Client ID for the DigiD service | `nil` |
 | `digidBaseUrl`  | Base URL for the DigiD service  | `nil` |
 
+### Mock DigiD login
+
+| Name           | Description                                      | Value |
+| -------------- | ------------------------------------------------ | ----- |
+| `mockSubjects` | Selectable mock identities, as a `bsn: name` map | `{}`  |
+
 ### Wallet redirect uris
 
 | Name                 | Description          | Value |
