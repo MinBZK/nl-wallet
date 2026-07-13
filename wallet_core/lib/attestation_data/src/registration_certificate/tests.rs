@@ -1,18 +1,87 @@
 use std::assert_matches;
+use std::sync::Arc;
+use std::time::Duration;
 
 use attestation_types::status_claim::StatusListClaim;
 use chrono::TimeZone;
+use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::CanonicalDistinguishedName;
 use crypto::x509::DistinguishedName;
 use dcql::CredentialQueryFormat;
+use jwt::error::JwtParseError;
 use rstest::rstest;
 use serde_json::Value;
 use serde_json::json;
+use token_status_list::status_list::StatusList;
+use token_status_list::status_list::StatusType;
+use token_status_list::status_list_token::StatusListToken;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::client::StatusListClientError;
+use token_status_list::verification::verifier::RevocationVerifier;
+use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 
 use super::*;
 
 const ANNEX_C_EXAMPLE: &str = include_str!("../../examples/spec/registration_certificate_annex_c.json");
 const STATUS_LIST_URI: &str = "https://example.com/statuslists/1";
+
+#[derive(Debug)]
+struct StaticStatusListClient(StatusListToken);
+
+impl StatusListClient for StaticStatusListClient {
+    async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
+        Ok(self.0.clone())
+    }
+}
+
+#[derive(Debug)]
+struct FailingStatusListClient;
+
+impl StatusListClient for FailingStatusListClient {
+    async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
+        Err(StatusListClientError::JwtParsing(JwtParseError::MissingKid))
+    }
+}
+
+struct StatusValidationContext {
+    verifier: RevocationVerifier<StaticStatusListClient>,
+    trust_anchors: TrustAnchors,
+    signing_certificate_dn: CanonicalDistinguishedName,
+    time: MockTimeGenerator,
+}
+
+async fn status_validation_context(status: StatusType, status_list_length: usize) -> StatusValidationContext {
+    let ca = Ca::generate_mock();
+    let status_list_signer = ca.generate_issuer_status_list_mock().unwrap();
+    let registration_certificate_signer = ca.generate_issuer_mock().unwrap();
+    let mut status_list = StatusList::new(status_list_length);
+    if status != StatusType::Valid {
+        assert_eq!(status_list.insert(0, status), None);
+    }
+    let status_list_token = StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack())
+        .sign(&status_list_signer)
+        .await
+        .unwrap();
+    let time = MockTimeGenerator::default();
+
+    StatusValidationContext {
+        verifier: RevocationVerifier::new(
+            Arc::new(StaticStatusListClient(status_list_token)),
+            0,
+            Duration::ZERO,
+            Duration::ZERO,
+            time.clone(),
+        ),
+        trust_anchors: TrustAnchors::from(&ca),
+        signing_certificate_dn: registration_certificate_signer
+            .certificate()
+            .to_canonical_distinguished_name()
+            .unwrap(),
+        time,
+    }
+}
 
 fn valid_payload_json() -> Value {
     let mut payload: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
@@ -527,6 +596,112 @@ fn status_converts_to_existing_status_list_claim() {
     assert_eq!(StatusListClaim::from(status), expected);
 }
 
+#[tokio::test]
+async fn accept_registration_certificate_with_valid_referenced_status() {
+    let context = status_validation_context(StatusType::Valid, 8).await;
+    let certificate = valid_payload()
+        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        .unwrap()
+        .validate_status(
+            &context.verifier,
+            &context.trust_anchors,
+            context.signing_certificate_dn,
+            &context.time,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(certificate.id(), "wrprc-example-1");
+}
+
+#[tokio::test]
+async fn reject_registration_certificate_with_revoked_status() {
+    let context = status_validation_context(StatusType::Invalid, 8).await;
+    let result = valid_payload()
+        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        .unwrap()
+        .validate_status(
+            &context.verifier,
+            &context.trust_anchors,
+            context.signing_certificate_dn,
+            &context.time,
+        )
+        .await;
+
+    assert_matches!(result, Err(RegistrationCertificateStatusValidationError::NotValid));
+}
+
+#[tokio::test]
+async fn reject_registration_certificate_with_out_of_bounds_status_index() {
+    let context = status_validation_context(StatusType::Valid, 8).await;
+    let mut payload = valid_payload();
+    payload.status = StatusListClaim {
+        idx: 8,
+        uri: STATUS_LIST_URI.parse().unwrap(),
+    }
+    .into();
+    let result = payload
+        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        .unwrap()
+        .validate_status(
+            &context.verifier,
+            &context.trust_anchors,
+            context.signing_certificate_dn,
+            &context.time,
+        )
+        .await;
+
+    assert_matches!(
+        result,
+        Err(RegistrationCertificateStatusValidationError::InvalidStatusListReference)
+    );
+}
+
+#[tokio::test]
+async fn reject_status_list_not_signed_under_registration_certificate_trust_anchor() {
+    let context = status_validation_context(StatusType::Valid, 8).await;
+    let untrusted_ca = Ca::generate_mock();
+    let result = valid_payload()
+        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        .unwrap()
+        .validate_status(
+            &context.verifier,
+            &TrustAnchors::from(&untrusted_ca),
+            context.signing_certificate_dn,
+            &context.time,
+        )
+        .await;
+
+    assert_matches!(
+        result,
+        Err(RegistrationCertificateStatusValidationError::InvalidStatusListReference)
+    );
+}
+
+#[tokio::test]
+async fn reject_registration_certificate_when_status_cannot_be_determined() {
+    let context = status_validation_context(StatusType::Valid, 8).await;
+    let verifier = RevocationVerifier::new(
+        Arc::new(FailingStatusListClient),
+        0,
+        Duration::ZERO,
+        Duration::ZERO,
+        context.time.clone(),
+    );
+    let result = valid_payload()
+        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        .unwrap()
+        .validate_status(
+            &verifier,
+            &context.trust_anchors,
+            context.signing_certificate_dn,
+            &context.time,
+        )
+        .await;
+
+    assert_matches!(result, Err(RegistrationCertificateStatusValidationError::Undetermined));
+}
+
 #[test]
 fn registration_certificate_payload_types_use_jades_type() {
     assert_eq!(
@@ -535,6 +710,10 @@ fn registration_certificate_payload_types_use_jades_type() {
     );
     assert_eq!(
         <StructurallyValidatedRegistrationCertificate as jwt::JwtTyp>::TYP,
+        jwt::jades_b_b::JADES_B_B_JWT_TYP
+    );
+    assert_eq!(
+        <StatusValidatedRegistrationCertificate as jwt::JwtTyp>::TYP,
         jwt::jades_b_b::JADES_B_B_JWT_TYP
     );
 }

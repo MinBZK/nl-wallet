@@ -3,6 +3,8 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Months;
 use chrono::Utc;
+use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::CanonicalDistinguishedName;
 use dcql::ClaimsQuery;
 use dcql::CredentialQueryFormat;
 use language_tags::LanguageTag;
@@ -13,7 +15,11 @@ use serde::Serializer;
 use serde::de;
 use serde::ser::SerializeStruct;
 use serde_with::skip_serializing_none;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationStatus;
+use token_status_list::verification::verifier::RevocationVerifier;
 use url::Url;
+use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::x509::RelyingParty;
@@ -287,7 +293,8 @@ pub struct UncheckedRegistrationCertificate {
 
 /// A registration-certificate payload that passed all synchronous structural and direct-WRPAC-binding checks.
 ///
-/// Header, signature, and referenced status-list validation are handled separately.
+/// Header and signature validation are handled by PVW-5898 and PVW-5899. Verification of the referenced status list is
+/// a separate asynchronous step; use [`Self::validate_status`] to perform it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 pub struct StructurallyValidatedRegistrationCertificate(UncheckedRegistrationCertificate);
@@ -319,9 +326,87 @@ impl StructurallyValidatedRegistrationCertificate {
     pub fn status(&self) -> &RegistrationCertificateStatus {
         &self.0.status
     }
+
+    /// Verifies the referenced status-list token using the registration-certificate trust anchors.
+    ///
+    /// The signing-certificate distinguished name must come from the already verified registration-certificate
+    /// envelope. The status-list signer is required to have the same distinguished name.
+    pub async fn validate_status<C>(
+        self,
+        revocation_verifier: &RevocationVerifier<C>,
+        registration_certificate_trust_anchors: &TrustAnchors,
+        registration_certificate_signing_certificate_dn: CanonicalDistinguishedName,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<StatusValidatedRegistrationCertificate, RegistrationCertificateStatusValidationError>
+    where
+        C: StatusListClient,
+    {
+        let status = revocation_verifier
+            .verify(
+                registration_certificate_trust_anchors,
+                registration_certificate_signing_certificate_dn,
+                self.status().status_claim().clone(),
+                time,
+            )
+            .await;
+
+        match status {
+            RevocationStatus::Valid => Ok(StatusValidatedRegistrationCertificate(self)),
+            RevocationStatus::Revoked => Err(RegistrationCertificateStatusValidationError::NotValid),
+            RevocationStatus::Undetermined => Err(RegistrationCertificateStatusValidationError::Undetermined),
+            RevocationStatus::Corrupted => {
+                Err(RegistrationCertificateStatusValidationError::InvalidStatusListReference)
+            }
+        }
+    }
 }
 
 impl AsRef<UncheckedRegistrationCertificate> for StructurallyValidatedRegistrationCertificate {
+    fn as_ref(&self) -> &UncheckedRegistrationCertificate {
+        self.payload()
+    }
+}
+
+/// A structurally validated registration-certificate payload whose referenced status-list entry is valid.
+///
+/// Registration-certificate header and signature validation remain the responsibility of PVW-5898 and PVW-5899.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
+pub struct StatusValidatedRegistrationCertificate(StructurallyValidatedRegistrationCertificate);
+
+impl StatusValidatedRegistrationCertificate {
+    pub fn structurally_validated(&self) -> &StructurallyValidatedRegistrationCertificate {
+        &self.0
+    }
+
+    pub fn into_structurally_validated(self) -> StructurallyValidatedRegistrationCertificate {
+        self.0
+    }
+
+    pub fn payload(&self) -> &UncheckedRegistrationCertificate {
+        self.0.payload()
+    }
+
+    pub fn id(&self) -> &str {
+        self.0.id()
+    }
+
+    pub fn subject_type(&self) -> SubjectType {
+        self.0.subject_type()
+    }
+
+    pub fn status(&self) -> &RegistrationCertificateStatus {
+        self.0.status()
+    }
+}
+
+impl AsRef<StructurallyValidatedRegistrationCertificate> for StatusValidatedRegistrationCertificate {
+    fn as_ref(&self) -> &StructurallyValidatedRegistrationCertificate {
+        self.structurally_validated()
+    }
+}
+
+impl AsRef<UncheckedRegistrationCertificate> for StatusValidatedRegistrationCertificate {
     fn as_ref(&self) -> &UncheckedRegistrationCertificate {
         self.payload()
     }
@@ -416,6 +501,16 @@ pub enum RegistrationCertificateValidationError {
     ExpirationTooLate,
     #[error("policy_id does not contain the WRPRC policy identifier")]
     MissingPolicyIdentifier,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RegistrationCertificateStatusValidationError {
+    #[error("registration certificate status is not valid")]
+    NotValid,
+    #[error("registration certificate status could not be determined")]
+    Undetermined,
+    #[error("registration-certificate status-list token or reference is invalid")]
+    InvalidStatusListReference,
 }
 
 pub fn validate_multi_language_string_set(
@@ -655,6 +750,10 @@ impl jwt::JwtTyp for UncheckedRegistrationCertificate {
 }
 
 impl jwt::JwtTyp for StructurallyValidatedRegistrationCertificate {
+    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
+}
+
+impl jwt::JwtTyp for StatusValidatedRegistrationCertificate {
     const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
 }
 
