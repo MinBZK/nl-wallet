@@ -100,6 +100,7 @@ impl<T, H> FromStr for UnverifiedJwt<T, H> {
     type Err = JwtParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.trim_ascii_end();
         let payload_end = s.rfind(".").ok_or(JwtParseError::UnexpectedNumberOfParts(1))?;
 
         Ok(Self {
@@ -1043,7 +1044,7 @@ mod tests {
         assert_eq!(
             parsed,
             UnverifiedJwt {
-                serialization: jwt.to_string(),
+                serialization: jwt.trim_ascii_end().to_string(),
                 payload_end: signed_slice.len(),
                 _jwt_type: PhantomData
             }
@@ -1641,6 +1642,26 @@ mod tests {
         let deserialized: PayloadWithSub<U> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.payload, t.payload);
         assert_eq!(deserialized.sub, t.sub);
+    }
+
+    #[tokio::test]
+    async fn test_verify_with_trailing_spaces() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let t = ToyMessage::default();
+        let signed_jwt = SignedJwt::sign(&t, &private_key).await.unwrap();
+
+        // Parse JWT from text with trailing spaces
+        let text_jwt = signed_jwt.clone().into_unverified().serialization + "\n";
+        let verified_jwt = text_jwt
+            .parse::<UnverifiedJwt<_>>()
+            .unwrap()
+            .into_verified(
+                &EcdsaDecodingKey::from(private_key.verifying_key()),
+                &DEFAULT_VALIDATIONS,
+            )
+            .unwrap();
+
+        assert_eq!(signed_jwt.into_verified(), verified_jwt);
     }
 
     #[tokio::test]
