@@ -426,6 +426,7 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::DisclosureUri(_)
             | DisclosureError::HistoryRetrieval(_)
             | DisclosureError::AttestationRetrieval(_)
+            | DisclosureError::UnexpectedAttestationFormat
             | DisclosureError::AttributesNotAvailable(_)
             | DisclosureError::IncrementUsageCount(_)
             | DisclosureError::EventStorage(_)
@@ -447,6 +448,7 @@ impl FlutterApiErrorFields for DisclosureError {
             },
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => Some(false),
+            DisclosureError::UnexpectedAttestationFormat => Some(false),
             DisclosureError::CloseProximityDisclosureSessionError(inner) => match inner {
                 // Platform errors are transient and worth retrying.
                 CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => {
@@ -668,8 +670,7 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::InvalidCertificate { .. }
             | CloseProximityDisclosureError::MissingCommonName { .. } => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::DeviceResponseEncoding(_)
-            | CloseProximityDisclosureError::DeviceResponse(_)
-            | CloseProximityDisclosureError::UnsupportedAttestationFormat => FlutterApiErrorType::Generic,
+            | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,
             CloseProximityDisclosureError::Disconnected => FlutterApiErrorType::CloseProximityDisconnected,
             CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
         }
@@ -969,6 +970,14 @@ mod tests {
                 "revocation_reason": "user_request",
                 "can_register_new_account": true
             }
+        })
+    )]
+    #[case::disclosure_unexpected_attestation_format(
+        DisclosureError::UnexpectedAttestationFormat,
+        FlutterApiErrorType::Generic,
+        json!({
+            "session_type": "cross_device",
+            "can_retry": false
         })
     )]
     #[case::disclosure_returnurl(

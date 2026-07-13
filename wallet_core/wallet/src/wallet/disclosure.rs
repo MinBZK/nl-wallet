@@ -143,6 +143,10 @@ pub enum DisclosureError {
     #[error("could not fetch candidate attestations from database: {0}")]
     AttestationRetrieval(#[source] StorageError),
 
+    #[error("close proximity disclosure received an unexpected attestation format")]
+    #[category(critical)]
+    UnexpectedAttestationFormat,
+
     #[error("not all requested attributes are available, requested: {:?}", .0.requested_attributes)]
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable(AttributesNotAvailable),
@@ -213,7 +217,9 @@ impl DisclosureError {
     pub fn session_type(&self) -> Option<SessionType> {
         match self {
             Self::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => Some(*session_type),
-            Self::CloseProximityDisclosureSessionError(_) => Some(SessionType::CrossDevice),
+            Self::CloseProximityDisclosureSessionError(_) | Self::UnexpectedAttestationFormat => {
+                Some(SessionType::CrossDevice)
+            }
             _ => None,
         }
     }

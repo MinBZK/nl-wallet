@@ -104,12 +104,15 @@ type CloseProximityDisclosableAttestation = DisclosableAttestation<PartialMdoc>;
 type CloseProximityDisclosureAttestations = WalletDisclosureAttestations<usize, PartialMdoc>;
 
 impl TryFrom<VpDisclosableAttestation> for CloseProximityDisclosableAttestation {
-    type Error = CloseProximityDisclosureError;
+    type Error = DisclosureError;
 
     fn try_from(attestation: VpDisclosableAttestation) -> Result<Self, Self::Error> {
         attestation.try_map_partial_attestation(|partial_attestation| {
             let PartialAttestation::MsoMdoc { partial_mdoc } = partial_attestation else {
-                return Err(CloseProximityDisclosureError::UnsupportedAttestationFormat);
+                // `ItemsRequest` only requests mdocs, and storage is expected to filter candidates by that format.
+                // Receiving an SD-JWT here means that soft contract was violated. Handle this defensively so the
+                // programming error remains observable as a distinct Sentry error.
+                return Err(DisclosureError::UnexpectedAttestationFormat);
             };
 
             Ok(*partial_mdoc)
@@ -124,11 +127,9 @@ fn close_proximity_disclosure_proposal(
         .into_iter()
         .map(|(id, candidates)| {
             let candidates = candidates
-                .into_iter()
+                .into_nonempty_iter()
                 .map(CloseProximityDisclosableAttestation::try_from)
-                .collect::<Result<Vec<_>, _>>()?
-                .try_into()
-                .map_err(|_| DisclosureError::SessionState)?;
+                .collect::<Result<VecNonEmpty<_>, _>>()?;
 
             Ok((id, candidates))
         })
@@ -276,10 +277,6 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
 
-    #[error("close proximity disclosure only supports mdoc attestations")]
-    #[category(critical)]
-    UnsupportedAttestationFormat,
-
     #[error("could not extract Common Name from certificate: {error}")]
     #[category(critical)]
     InvalidCertificate {
@@ -318,8 +315,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
         | CloseProximityDisclosureError::PlatformError(_)
         | CloseProximityDisclosureError::Disconnected
-        | CloseProximityDisclosureError::DeviceResponse(_)
-        | CloseProximityDisclosureError::UnsupportedAttestationFormat => None,
+        | CloseProximityDisclosureError::DeviceResponse(_) => None,
     }
 }
 
@@ -2256,7 +2252,7 @@ mod tests {
     }
 
     #[test]
-    fn test_close_proximity_disclosure_proposal_error_unsupported_attestation_format() {
+    fn test_close_proximity_disclosure_proposal_error_unexpected_attestation_format() {
         let credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
             &[PID_ATTESTATION_TYPE],
             &[&[PID_GIVEN_NAME]],
@@ -2269,12 +2265,7 @@ mod tests {
             close_proximity_disclosure_proposal(IndexMap::from([(0, vec_nonempty![sd_jwt_disclosable_attestation])]))
                 .expect_err("a close proximity disclosure proposal should not contain SD-JWT attestations");
 
-        assert_matches!(
-            error,
-            DisclosureError::CloseProximityDisclosureSessionError(
-                CloseProximityDisclosureError::UnsupportedAttestationFormat
-            )
-        );
+        assert_matches!(error, DisclosureError::UnexpectedAttestationFormat);
     }
 
     #[tokio::test]
