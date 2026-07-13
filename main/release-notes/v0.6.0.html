@@ -378,6 +378,9 @@ passed using the <code class="docutils literal notranslate"><span class="pre">cr
 it sends in the Authorization Code flow, as retrieved from the Issuer
 Metadata. The Issuer issues credentials based on these particular <code class="docutils literal notranslate"><span class="pre">scope</span></code>
 values.</p></li>
+<li><p>The Issuer in turn includes the correct <code class="docutils literal notranslate"><span class="pre">authorization_details</span></code> value in
+its Token Response, containing both the Credential Configuration
+Identifiers and the Credential Identifiers.</p></li>
 </ul>
 </li>
 <li><p>The well-known path is now derived according to spec for Credential Issuer
