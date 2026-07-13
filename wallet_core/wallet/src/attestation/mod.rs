@@ -183,7 +183,7 @@ pub mod mock {
                     summary: None,
                     rendering: None,
                 }],
-                issuer: Organization::new_mock(),
+                issuer: Organization::new_mock().into(),
                 validity: AttestationValidity {
                     revocation_status: None,
                     validity_window: ValidityWindow::new_valid_mock(),

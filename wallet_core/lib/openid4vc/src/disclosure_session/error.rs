@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::x509::CertificateTypeError;
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
@@ -89,13 +88,6 @@ pub enum VpVerifierError {
 
     #[error("error parsing RP certificate: {0}")]
     RpCertificate(#[source] CertificateTypeError),
-
-    #[error("RP certificate is not a reader certificate")]
-    #[category(critical)]
-    NoReaderCertificate,
-
-    #[error("error validating requested attributes: {0}")]
-    RequestedAttributesValidation(#[source] ValidationError),
 
     #[error("verifier vp_formats_supported does not include required algorithm for format {0}")]
     #[category(critical)]

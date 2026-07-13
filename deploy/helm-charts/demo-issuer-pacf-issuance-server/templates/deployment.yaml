@@ -93,11 +93,6 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: issuer_trust_anchors
-            - name: PACF_ISSUANCE_SERVER__READER_TRUST_ANCHORS
-              valueFrom:
-                configMapKeyRef:
-                  name: nl-wallet-server-trust-anchors
-                  key: reader_trust_anchors
             - name: PACF_ISSUANCE_SERVER__WRPAC_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:

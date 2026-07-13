@@ -8,7 +8,6 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateUsage;
 use dcql::Query;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use derive_more::Debug;
@@ -65,10 +64,10 @@ pub struct IssuanceServerSettings {
 pub struct VerifierSettings {
     pub disclosure_settings: HashMap<String, AttestationSettings>,
 
-    /// Reader trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
+    /// WRPAC trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
     /// application startup.
     #[debug(skip)]
-    pub reader_trust_anchors: TrustAnchors,
+    pub wrpac_trust_anchors: TrustAnchors,
 
     pub universal_link_base_url: BaseUrl,
 
@@ -147,7 +146,6 @@ impl ServerSettings for IssuanceServerSettings {
             .prefix_separator("__")
             .list_separator(",")
             .with_list_parse_key("issuer_trust_anchors")
-            .with_list_parse_key("reader_trust_anchors")
             .with_list_parse_key("wrpac_trust_anchors")
             .with_list_parse_key("wrprc_trust_anchors")
             .with_list_parse_key("wia_trust_anchors")
@@ -199,12 +197,7 @@ impl VerifierSettings {
             .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &self.reader_trust_anchors,
-            Some(CertificateUsage::ReaderAuth),
-            &time,
-        )?;
+        verify_key_pairs(&key_pairs, &self.wrpac_trust_anchors, None, &time)?;
 
         Ok(())
     }

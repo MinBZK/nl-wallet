@@ -346,7 +346,7 @@ mod tests {
             .issuer_signed
             .issuer_auth
             .verify_against_trust_anchors(
-                CertificateUsage::Mdl,
+                Some(CertificateUsage::Mdl),
                 &IsoCertTimeGenerator,
                 &Examples::iaca_trust_anchors(),
             )

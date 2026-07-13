@@ -49,7 +49,8 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
-    pub relying_party_certificate: Vec<u8>,
+    pub organization: String,
+    pub organization_id: String,
     pub status: EventStatus,
     pub r#type: EventType,
 }

@@ -12,8 +12,8 @@ part 'organization.g.dart';
 abstract class Organization with _$Organization {
   const factory Organization({
     required String id,
-    @LocalizedTextConverter() required String legalName,
-    @LocalizedTextConverter() required String displayName,
+    required String legalName,
+    required String displayName,
     @LocalizedTextConverter() required LocalizedText? category,
     @LocalizedTextConverter() required LocalizedText? description,
     @AppImageDataConverter() required AppImageData logo,

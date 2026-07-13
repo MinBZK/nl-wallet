@@ -16,11 +16,8 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(DisclosureEvent::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(DisclosureEvent::Timestamp).timestamp().not_null())
-                    .col(
-                        ColumnDef::new(DisclosureEvent::RelyingPartyCertificate)
-                            .binary()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(DisclosureEvent::Organization).text().not_null())
+                    .col(ColumnDef::new(DisclosureEvent::OrganizationId).text().not_null())
                     .col(ColumnDef::new(DisclosureEvent::Status).text().not_null())
                     .col(ColumnDef::new(DisclosureEvent::Type).text().not_null())
                     .to_owned(),
@@ -134,7 +131,20 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(DeletionEvent::AttestationPresentation).json().not_null())
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("disclosure_event_organization_id")
+                    .table(DisclosureEvent::Table)
+                    .col(DisclosureEvent::OrganizationId)
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -156,7 +166,9 @@ impl MigrationTrait for Migration {
 
         manager
             .drop_table(Table::drop().table(IssuanceEvent::Table).to_owned())
-            .await
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -172,7 +184,8 @@ enum DisclosureEvent {
     Table,
     Id,
     Timestamp,
-    RelyingPartyCertificate,
+    Organization,
+    OrganizationId,
     Status,
     Type,
 }

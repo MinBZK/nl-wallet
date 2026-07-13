@@ -8,13 +8,11 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
-use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -118,7 +116,8 @@ async fn internal_server_settings_and_listener() -> (ServerAuth, Option<TcpListe
 
 async fn wallet_server_settings_and_listener(
     internal_server: ServerAuth,
-    request: &StartDisclosureRequest,
+    // TODO PVW-5866 Unused request should be used to create proper registration certificate
+    _request: &StartDisclosureRequest,
 ) -> (VerifierSettings, TcpListener, Ca, TrustAnchors) {
     // Set up the listener.
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -132,15 +131,12 @@ async fn wallet_server_settings_and_listener(
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
 
-    // Create the RP CA, derive the trust anchor from it and generate
-    // a reader registration, based on the example items request.
-    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
-    let reader_trust_anchors = TrustAnchors::from(&rp_ca);
-    let rp_trust_anchor = TrustAnchors::from(&rp_ca);
-    let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
+    // Create the WRPAC CA, derive the trust anchor from it
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+    let wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap();
+    let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -177,7 +173,6 @@ async fn wallet_server_settings_and_listener(
         ephemeral_id_secret: crypto::utils::random_bytes(64).try_into().unwrap(),
 
         allow_origins: None,
-        reader_trust_anchors,
 
         public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
 
@@ -192,7 +187,7 @@ async fn wallet_server_settings_and_listener(
         status_list_token_cache_settings: StatusListTokenCacheSettings::default(),
     };
 
-    (settings, listener, issuer_ca, rp_trust_anchor)
+    (settings, listener, issuer_ca, wrpac_trust_anchors)
 }
 
 async fn start_wallet_server<S, C>(

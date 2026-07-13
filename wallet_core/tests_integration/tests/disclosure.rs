@@ -60,6 +60,7 @@ async fn assert_disclosure_ok(
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
         dcql_query: Some(dcql_query),
+        // QQQ
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,

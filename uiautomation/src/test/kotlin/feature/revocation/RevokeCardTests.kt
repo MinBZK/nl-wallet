@@ -1,6 +1,6 @@
 package feature.revocation
 
-import helper.OrganizationAuthMetadataHelper
+import helper.OrganizationMetadataHelper
 import helper.RevocationHelper
 import helper.TasDataHelper
 import helper.TestBase
@@ -32,7 +32,7 @@ class RevokeCardTests : TestBase() {
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
     private lateinit var cardIssuanceScreen: CardIssuanceScreen
     private lateinit var pinScreen: PinScreen
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var attributesMissingErrorScreen: AttributesMissingErrorScreen
     private lateinit var revocationHelper: RevocationHelper
@@ -46,7 +46,7 @@ class RevokeCardTests : TestBase() {
         indexWebPage = DemoIndexWebPage()
         issuerWebPage = IssuerWebPage()
         pinScreen = PinScreen()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         cardIssuanceScreen = CardIssuanceScreen()
         dashboardScreen = DashboardScreen()

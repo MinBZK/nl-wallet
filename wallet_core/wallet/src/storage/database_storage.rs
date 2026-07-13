@@ -3,15 +3,13 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::BorrowingCertificate;
-use crypto::x509::BorrowingCertificateExtension;
 use entity::attestation;
 use entity::attestation::ExtendedTypesModel;
 use entity::attestation::TypeMetadataModel;
@@ -363,18 +361,14 @@ impl<K> DatabaseStorage<K> {
             |mut acc, (event, att_opt)| {
                 // Lookup wallet_event or create new one
                 let wallet_event = acc.entry(event.id).or_insert_with(|| {
-                    // Unwrapping here is safe since the certificate has been parsed before
-                    let reader_certificate = BorrowingCertificate::from_der(event.relying_party_certificate).unwrap();
-                    let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
-                        .unwrap()
-                        .unwrap();
-
+                    // Unwrapping here is safe since the organization has been parsed before
+                    // TODO: PVW-5917 replace with proper error
+                    let organization = serde_json::from_str(&event.organization).unwrap();
                     WalletEvent::Disclosure {
                         id: event.id,
                         attestations: Default::default(),
                         timestamp: event.timestamp,
-                        reader_certificate: Box::new(reader_certificate),
-                        reader_registration: Box::new(reader_registration),
+                        organization,
                         status: event.status,
                         r#type: event.r#type.into(),
                     }
@@ -925,7 +919,7 @@ where
         &mut self,
         timestamp: DateTime<Utc>,
         proposed_attestation_presentations: Vec<AttestationPresentation>,
-        reader_certificate: BorrowingCertificate,
+        organization: &Organization,
         status: DisclosureStatus,
         r#type: DisclosureType,
     ) -> StorageResult<()> {
@@ -936,7 +930,8 @@ where
         let disclosure_event = disclosure_event::ActiveModel {
             id: Set(event_id),
             timestamp: Set(timestamp),
-            relying_party_certificate: Set(reader_certificate.to_vec()),
+            organization: Set(serde_json::to_string(&organization)?),
+            organization_id: Set(organization.identifier.to_string()),
             status: Set(status),
             r#type: Set(r#type.into()),
         };
@@ -1072,8 +1067,8 @@ where
         Self::combine_events(issuance_events, disclosure_events, vec![])
     }
 
-    // TODO (PVW-4135): Fix logic to uniquely identify an RP, since its certificate may change.
-    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool> {
+    // TODO (PVW-5866): Use registration certificate to distinguish between natural person and legal person
+    async fn did_share_data_with_relying_party(&self, organization: &Organization) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column((disclosure_event::Entity, disclosure_event::Column::Id))
             .from(disclosure_event_attestation::Entity)
@@ -1084,18 +1079,18 @@ where
                     disclosure_event_attestation::Column::DisclosureEventId,
                 ))),
             )
-            .and_where(Expr::col(disclosure_event::Column::RelyingPartyCertificate).eq(certificate.as_ref()))
+            .and_where(Expr::col(disclosure_event::Column::OrganizationId).eq(organization.identifier.clone()))
             .and_where(Expr::col(disclosure_event::Column::Status).eq(EventStatus::Success))
             .limit(1)
             .take();
 
         let exists_query = Query::select()
-            .expr_as(Expr::exists(select_statement), Alias::new("certificate_exists"))
+            .expr_as(Expr::exists(select_statement), Alias::new("organization_exists"))
             .to_owned();
 
         let exists_result = self.execute_query(exists_query).await?;
         let exists = exists_result
-            .map(|result| result.try_get("", "certificate_exists"))
+            .map(|result| result.try_get("", "organization_exists"))
             .transpose()?
             .unwrap_or(false);
 
@@ -1451,11 +1446,9 @@ pub(crate) mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Days;
@@ -1495,12 +1488,6 @@ pub(crate) mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
         generate_issuer_mock_with_registration(&issuer_ca, &IssuerRegistration::new_mock()).unwrap()
-    });
-
-    static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-
-        generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock()).unwrap()
     });
 
     #[test]
@@ -2352,21 +2339,17 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let organization = Organization::new_mock();
 
         // No data shared with RP
-        assert!(
-            !storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());
 
         // Log cancel event
         storage
             .log_disclosure_event(
                 timestamp,
                 vec![],
-                READER_KEY.certificate().clone(),
+                &organization,
                 DisclosureStatus::Cancelled,
                 DisclosureType::Regular,
             )
@@ -2380,12 +2363,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
 
         // Still no data shared with RP
-        assert!(
-            !storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());
     }
 
     #[tokio::test]
@@ -2397,21 +2375,17 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let organization = Organization::new_mock();
 
         // No data shared with RP
-        assert!(
-            !storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());
 
         // Log error event
         storage
             .log_disclosure_event(
                 timestamp,
                 vec![],
-                READER_KEY.certificate().clone(),
+                &organization,
                 DisclosureStatus::Error,
                 DisclosureType::Regular,
             )
@@ -2425,12 +2399,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
 
         // Still no data shared with RP
-        assert!(
-            !storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());
     }
 
     #[tokio::test]
@@ -2444,29 +2413,20 @@ pub(crate) mod tests {
         let issuance_timestamp = Utc::now();
         let disclosure_timestamp = Utc::now().add(Duration::days(1));
         let earlier_disclosure_timestamp = Utc::now().sub(Duration::days(32));
+        let organization = Organization::new_mock();
 
         // No data shared with RP
-        assert!(
-            !storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());
 
         let (attestation_id, sd_jwt) =
             insert_sd_jwt_credential(&mut storage, "sd_jwt_key_id", issuance_timestamp, 1).await;
 
         let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-        let issuer_leaf_certificate = sd_jwt.issuer_leaf_certificate();
-        let issuer_registration = IssuerRegistration::from_certificate(issuer_leaf_certificate)
-            .unwrap()
-            .unwrap();
-
         let attestation = AttestationPresentation::create_from_sd_jwt_claims(
             AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
-            issuer_registration.organization,
+            organization.clone().into(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
@@ -2480,7 +2440,7 @@ pub(crate) mod tests {
             .log_disclosure_event(
                 disclosure_timestamp,
                 vec![attestation.clone(), attestation.clone()],
-                READER_KEY.certificate().clone(),
+                &organization,
                 DisclosureStatus::Error,
                 DisclosureType::Regular,
             )
@@ -2490,7 +2450,7 @@ pub(crate) mod tests {
             .log_disclosure_event(
                 earlier_disclosure_timestamp,
                 vec![attestation.clone(), attestation],
-                READER_KEY.certificate().clone(),
+                &organization,
                 DisclosureStatus::Error,
                 DisclosureType::Regular,
             )
@@ -2508,12 +2468,7 @@ pub(crate) mod tests {
         assert_matches!(&fetched_events[2], WalletEvent::Disclosure { attestations, .. } if attestations.len() == 2);
 
         // Still no data has been shared with RP, because we only consider Successful events
-        assert!(
-            !storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());
 
         let events_by_attestation_id = storage
             .fetch_wallet_events_by_attestation_id(attestation_id)
@@ -2543,6 +2498,7 @@ pub(crate) mod tests {
         let timestamp2 = Utc.with_ymd_and_hms(2023, 11, 25, 12, 00, 00).unwrap();
         let timestamp3 = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp4 = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
+        let organization = Organization::new_mock();
 
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
@@ -2604,17 +2560,12 @@ pub(crate) mod tests {
 
                 let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-                let issuer_leaf_certificate = sd_jwt.issuer_leaf_certificate();
-                let issuer_registration = IssuerRegistration::from_certificate(issuer_leaf_certificate)
-                    .unwrap()
-                    .unwrap();
-
                 let payload = CredentialPayload::from_sd_jwt(sd_jwt).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
                     Format::SdJwt,
                     normalized_metadata,
-                    issuer_registration.organization,
+                    organization.clone().into(),
                     AttestationValidity {
                         revocation_status: None,
                         validity_window: ValidityWindow::new_valid_mock(),
@@ -2627,12 +2578,7 @@ pub(crate) mod tests {
             .collect_vec();
 
         // No data shared with RP
-        assert!(
-            !storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());
 
         let AttestationIdentity::Fixed { id: attestation1_id } = attestations[0].identity else {
             panic!("expected fixed identity");
@@ -2644,7 +2590,7 @@ pub(crate) mod tests {
             .log_disclosure_event(
                 timestamp4,
                 vec![attestation1],
-                READER_KEY.certificate().clone(),
+                &organization,
                 DisclosureStatus::Success,
                 DisclosureType::Regular,
             )
@@ -2655,7 +2601,7 @@ pub(crate) mod tests {
             .log_disclosure_event(
                 timestamp3,
                 vec![attestation2],
-                READER_KEY.certificate().clone(),
+                &organization,
                 DisclosureStatus::Success,
                 DisclosureType::Regular,
             )
@@ -2663,12 +2609,7 @@ pub(crate) mod tests {
             .unwrap();
 
         // Data has been shared with RP
-        assert!(
-            storage
-                .did_share_data_with_relying_party(READER_KEY.certificate())
-                .await
-                .unwrap()
-        );
+        assert!(storage.did_share_data_with_relying_party(&organization).await.unwrap());
 
         storage.delete_attestation(timestamp2, attestation1_id).await.unwrap();
 
@@ -2854,7 +2795,7 @@ pub(crate) mod tests {
             .log_disclosure_event(
                 Utc::now(),
                 vec![disclosed_attestation],
-                READER_KEY.certificate().clone(),
+                &Organization::new_mock(),
                 DisclosureStatus::Success,
                 DisclosureType::Regular,
             )

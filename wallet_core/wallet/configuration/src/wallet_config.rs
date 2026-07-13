@@ -30,7 +30,6 @@ pub struct WalletConfiguration {
     pub account_server: AccountServerConfiguration,
     pub pid_attributes: PidAttributesConfiguration,
     pub pid_credential_offer: Url,
-    pub disclosure: DisclosureConfiguration,
     #[debug(skip)]
     pub issuer_trust_anchors: TrustAnchors,
     #[debug(skip)]
@@ -163,16 +162,4 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
 pub struct PidAttributePaths {
     pub login: VecNonEmpty<String>,
     pub recovery_code: VecNonEmpty<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DisclosureConfiguration {
-    #[debug(skip)]
-    pub rp_trust_anchors: TrustAnchors,
-}
-
-impl DisclosureConfiguration {
-    pub fn rp_trust_anchors(&self) -> &TrustAnchors {
-        &self.rp_trust_anchors
-    }
 }
