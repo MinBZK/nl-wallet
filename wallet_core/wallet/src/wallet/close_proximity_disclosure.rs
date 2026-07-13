@@ -101,7 +101,7 @@ pub type CloseProximityDisclosureCallback =
 pub struct MdocUri(String);
 
 type CloseProximityDisclosableAttestation = DisclosableAttestation<PartialMdoc>;
-type CloseProximityDisclosureAttestations = WalletDisclosureAttestations<usize, CloseProximityDisclosableAttestation>;
+type CloseProximityDisclosureAttestations = WalletDisclosureAttestations<usize, PartialMdoc>;
 
 impl TryFrom<VpDisclosableAttestation> for CloseProximityDisclosableAttestation {
     type Error = CloseProximityDisclosureError;

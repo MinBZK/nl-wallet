@@ -277,16 +277,16 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations<T, A> {
+pub(super) enum WalletDisclosureAttestations<T, P> {
     Missing,
-    Proposal(IndexMap<T, VecNonEmpty<A>>),
+    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation<P>>>),
 }
 
-impl<T: Hash + Eq, A> WalletDisclosureAttestations<T, A> {
+impl<T: Hash + Eq, P> WalletDisclosureAttestations<T, P> {
     /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
     /// [`WalletDisclosureAttestations`] is not a proposal or any of the indices is out of bounds, as this is considered
     /// programmer error.
-    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &A> {
+    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation<P>> {
         match self {
             Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
@@ -321,7 +321,7 @@ impl<T: Hash + Eq, A> WalletDisclosureAttestations<T, A> {
 }
 
 pub(super) type VpDisclosableAttestation = DisclosableAttestation<PartialAttestation>;
-type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, VpDisclosableAttestation>;
+type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, PartialAttestation>;
 
 #[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
