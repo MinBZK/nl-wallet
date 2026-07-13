@@ -791,11 +791,6 @@ where
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AttestationChallenge {
-    pub attestation_challenge: Nonce,
-}
-
 impl<K, L, S, N> Issuer<K, L, S, N>
 where
     N: NonceStore,

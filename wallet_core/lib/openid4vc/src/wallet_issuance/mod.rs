@@ -158,6 +158,10 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     WiaIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
+    #[error("failed to retrieve WIA challenge: {0}")]
+    #[category(pd)]
+    WiaChallenge(#[source] reqwest::Error),
+
     #[error("public key contained in mdoc not equal to expected value")]
     #[category(critical)]
     PublicKeyMismatch,

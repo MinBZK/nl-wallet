@@ -20,6 +20,7 @@ pub struct AuthorizationEndpoints {
     pub authorization_endpoint: Url,
     pub par_endpoint: Url,
     pub token_endpoint: Url,
+    pub challenge_endpoint: Option<Url>,
 }
 
 impl TryFrom<AuthorizationServerMetadata> for AuthorizationEndpoints {
@@ -38,6 +39,7 @@ impl TryFrom<AuthorizationServerMetadata> for AuthorizationEndpoints {
             authorization_endpoint,
             par_endpoint: pushed_authorization_request_endpoint,
             token_endpoint: value.token_endpoint,
+            challenge_endpoint: value.challenge_endpoint,
         };
 
         Ok(endpoints)

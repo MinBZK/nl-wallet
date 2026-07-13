@@ -21,6 +21,7 @@ use super::issuance_session::HttpVcMessageClient;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::client_auth::fetch_client_auth_challenge;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ParErrorCode;
 use crate::errors::RemoteErrorCode;
@@ -148,8 +149,9 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
+        let challenge = fetch_client_auth_challenge(&http_client, auth_endpoints.challenge_endpoint).await?;
         let wia = wia_client
-            .issue_wia(authorization_server.to_string(), None)
+            .issue_wia(authorization_server.to_string(), challenge)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
@@ -423,11 +425,13 @@ mod tests {
         let authorization_endpoint = base_url.join("/authorize");
         let pushed_authorization_request_endpoint = base_url.join("/issuance/par");
         let token_endpoint = base_url.join("/issuance/token");
+        let challenge_endpoint = Some(base_url.join("/issuance/client_auth_challenge"));
 
         AuthorizationEndpoints {
             authorization_endpoint,
             par_endpoint: pushed_authorization_request_endpoint,
             token_endpoint,
+            challenge_endpoint,
         }
     }
 
