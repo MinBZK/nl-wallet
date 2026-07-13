@@ -2268,6 +2268,171 @@ pub(crate) mod tests {
         assert!(!has_any);
     }
 
+    /// Inserts an SD-JWT attestation of the provided attestation type, which extends the provided attestation types and
+    /// of which the single copy is identified by the provided key identifier. Note that the attestation type and the
+    /// extended attestation types are stored as provided and do not have to match the contents of the SD-JWT or its
+    /// type metadata, which allows for attestations that extend more than one attestation type.
+    async fn insert_sd_jwt_extending_types(
+        storage: &mut MockHardwareDatabaseStorage,
+        attestation_type: &str,
+        key_identifier: &str,
+        extended_attestation_types: &[&str],
+    ) {
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
+                            key_identifier: key_identifier.to_string(),
+                            sd_jwt,
+                        }]),
+                        attestation_type.to_string(),
+                        None,
+                        None,
+                        extended_attestation_types.iter().copied(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
+            .await
+            .expect("Could not insert SD-JWT credential");
+    }
+
+    #[tokio::test]
+    async fn test_fetch_valid_unique_attestations_matches_multiple_extended_types() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        insert_sd_jwt_extending_types(
+            &mut storage,
+            "urn:example:child:1",
+            "child",
+            &["urn:example:parent_a:1", "urn:example:parent_b:1"],
+        )
+        .await;
+        insert_sd_jwt_extending_types(
+            &mut storage,
+            "urn:example:other_child:1",
+            "other_child",
+            &["urn:example:parent_c:1"],
+        )
+        .await;
+
+        async fn fetch_key_identifiers(
+            storage: &MockHardwareDatabaseStorage,
+            attestation_types: &[&str],
+            format: Format,
+        ) -> Vec<String> {
+            storage
+                .fetch_valid_unique_attestations_by_types_and_format(
+                    &attestation_types.iter().map(ToString::to_string).collect(),
+                    format,
+                    MockTimeGenerator::default(),
+                )
+                .await
+                .expect("Could not fetch valid unique attestations by types and format")
+                .iter()
+                .map(|copy| match &copy.attestation {
+                    StoredAttestation::SdJwt { key_identifier, .. } => key_identifier.clone(),
+                    StoredAttestation::MsoMdoc { .. } => panic!("should not match an mdoc attestation"),
+                })
+                .sorted()
+                .collect()
+        }
+
+        // Requesting either of the extended attestation types should match the attestation that extends it.
+        assert_eq!(
+            fetch_key_identifiers(&storage, &["urn:example:parent_a:1"], Format::SdJwt).await,
+            vec!["child"]
+        );
+        assert_eq!(
+            fetch_key_identifiers(&storage, &["urn:example:parent_b:1"], Format::SdJwt).await,
+            vec!["child"]
+        );
+
+        // Requesting both extended attestation types of the same attestation should still match it only once.
+        assert_eq!(
+            fetch_key_identifiers(
+                &storage,
+                &["urn:example:parent_a:1", "urn:example:parent_b:1"],
+                Format::SdJwt
+            )
+            .await,
+            vec!["child"]
+        );
+
+        // A requested attestation type that matches nothing should not suppress one that does.
+        assert_eq!(
+            fetch_key_identifiers(
+                &storage,
+                &["urn:example:parent_a:1", "urn:example:unknown:1"],
+                Format::SdJwt
+            )
+            .await,
+            vec!["child"]
+        );
+
+        // Extended attestation types of different attestations should match each of those attestations.
+        assert_eq!(
+            fetch_key_identifiers(
+                &storage,
+                &["urn:example:parent_a:1", "urn:example:parent_c:1"],
+                Format::SdJwt
+            )
+            .await,
+            vec!["child", "other_child"]
+        );
+
+        // Requesting an attestation type directly should match it, in combination with an extended type of the other.
+        assert_eq!(
+            fetch_key_identifiers(
+                &storage,
+                &["urn:example:child:1", "urn:example:parent_c:1"],
+                Format::SdJwt
+            )
+            .await,
+            vec!["child", "other_child"]
+        );
+
+        // Requesting only attestation types that match nothing should return nothing.
+        assert!(
+            fetch_key_identifiers(
+                &storage,
+                &["urn:example:unknown_a:1", "urn:example:unknown_b:1"],
+                Format::SdJwt
+            )
+            .await
+            .is_empty()
+        );
+
+        // The attestations are stored in the SD-JWT format, so requesting their extended attestation types as mdoc
+        // should not match them.
+        assert!(
+            fetch_key_identifiers(
+                &storage,
+                &["urn:example:parent_a:1", "urn:example:parent_c:1"],
+                Format::MsoMdoc
+            )
+            .await
+            .is_empty()
+        );
+
+        // Matching the attestation type exactly should never take the extended attestation types into account.
+        let fetched = storage
+            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([
+                CredentialKind::new(Format::SdJwt, "urn:example:parent_a:1".to_string()),
+                CredentialKind::new(Format::SdJwt, "urn:example:parent_c:1".to_string()),
+            ]))
+            .await
+            .expect("Could not fetch unique attestations by credential kinds");
+
+        assert!(fetched.is_empty());
+    }
+
     #[tokio::test]
     async fn test_sd_jwt_storage() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;

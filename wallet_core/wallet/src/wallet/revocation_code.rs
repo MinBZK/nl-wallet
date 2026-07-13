@@ -137,6 +137,7 @@ mod test {
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
     use crate::instruction::InstructionError;
+    use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
 
@@ -146,9 +147,14 @@ mod test {
     async fn test_wallet_get_revocation_code_before_pid() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
+        // Retrieving the revocation code is blocked by a PID in either format, so all of the configured
+        // PID credential kinds should be requested from storage.
+        let expected_credential_kinds = wallet.config_repository.get().pid_attributes.credential_kinds();
+
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_credential_kinds()
+            .withf(move |credential_kinds| *credential_kinds == expected_credential_kinds)
             .return_once(|_| Ok(false));
 
         let _ = wallet
