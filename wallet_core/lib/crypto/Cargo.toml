@@ -35,6 +35,7 @@ p256 = { workspace = true, features = ["pem"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 rand.workspace = true
+reqwest.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -59,7 +60,6 @@ rand_core = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 time = { workspace = true, optional = true }
-reqwest.workspace = true
 
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
