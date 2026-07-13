@@ -119,6 +119,8 @@ where
             .await?
             .ok_or(DeleteAttestationError::AttestationNotFound)?;
 
+        // Deliberately match the attestation type without taking its format into account. Any attestation that has a
+        // PID attestation type should be protected from deletion, regardless of the format it happens to be stored in.
         if config
             .pid_attributes
             .pid_attestation_types()
