@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use crypto::trust_anchor::TrustAnchors;
@@ -11,7 +12,6 @@ use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
-use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 use wscd::wscd::WiaClient;
 
@@ -442,7 +442,7 @@ impl HttpIssuanceDiscovery {
         wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<
         (
-            VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+            HashMap<CredentialConfigurationId, CredentialConfiguration>,
             IssuerIdentifier,
             IssuerEndpoints,
             CredentialOfferFlow,
@@ -465,7 +465,7 @@ impl HttpIssuanceDiscovery {
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
         // error.
-        let (credential_configs, missing_ids): (Vec<_>, HashSet<_>) = credential_offer
+        let (credential_configs, missing_ids): (HashMap<_, _>, HashSet<_>) = credential_offer
             .credential_configuration_ids
             .into_iter()
             .enumerate()
@@ -479,8 +479,6 @@ impl HttpIssuanceDiscovery {
         if !missing_ids.is_empty() {
             return Err(WalletIssuanceError::MissingCredentialConfigId(missing_ids));
         }
-        let credential_configs =
-            VecNonEmpty::try_from(credential_configs).expect("credential_configuration_ids is VecNonEmpty");
 
         // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
         // offer a nonce endpoint. As the wallet, we interpret this a bit more loosely and reject issuance whenever any
@@ -489,8 +487,8 @@ impl HttpIssuanceDiscovery {
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
         if issuer_endpoints.nonce_endpoint.is_none()
             && credential_configs
-                .iter()
-                .any(|(_, config)| config.cryptographic_binding.is_some())
+                .values()
+                .any(|config| config.cryptographic_binding.is_some())
         {
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
@@ -540,7 +538,7 @@ impl HttpIssuanceDiscovery {
     async fn create_issuance_session(
         &self,
         pre_authorized_code: AuthorizationCode,
-        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
         token_endpoint: &Url,

@@ -418,7 +418,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     #[expect(clippy::too_many_arguments, reason = "constructor method")]
     pub(crate) async fn create(
         message_client: H,
-        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
         token_endpoint: &Url,
@@ -497,7 +497,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     }
 
     async fn request_previews(
-        credential_configurations: &VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+        credential_configurations: &HashMap<CredentialConfigurationId, CredentialConfiguration>,
         preview_endpoint: &Url,
         access_token: &AccessToken,
         message_client: &H,
@@ -505,11 +505,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let CredentialPreviewResponse { credential_previews } = message_client
             .request_credential_preview(preview_endpoint, access_token)
             .await?;
-
-        let credential_configs = credential_configurations
-            .iter()
-            .map(|(id, config)| (id, config))
-            .collect::<HashMap<_, _>>();
 
         // Check that each Credential Configuration ID received in the preview matches one that was present in the
         // inciting Credential Offer. Note that we do not check if ALL offered credential configuration IDs are present,
@@ -519,7 +514,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 // During the authorization phase, a credential configuration with an unsupported format should never be
                 // requested. However, in order to avoid panicking, we treat such a credential configuration as a
                 // mismatch with the preview.
-                let credential_kind = credential_configs
+                let credential_kind = credential_configurations
                     .get(&preview.config_id)
                     .and_then(|config| config.format.credential_kind());
 
@@ -560,14 +555,14 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     }
 
     async fn fetch_type_metadata(
-        credential_configurations: &VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+        credential_configurations: &HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, IssuanceTypeMetadata>, WalletIssuanceError> {
         // Get all unique type metadata uris
         let type_metadata_uris: HashMap<IssuerUrl, Vec<(&CredentialConfigurationId, &CredentialConfiguration)>> =
             credential_configurations
-                .into_iter()
+                .iter()
                 .map(|(config_id, config)| {
                     let uri = config
                         .type_metadata_uri
@@ -1242,16 +1237,10 @@ mod tests {
             });
 
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
-        let credential_configs = issuer_metadata
-            .credential_configurations_supported
-            .into_iter()
-            .collect_vec()
-            .try_into()
-            .unwrap();
 
         HttpIssuanceSession::create(
             mock_msg_client,
-            credential_configs,
+            issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
@@ -1511,13 +1500,6 @@ mod tests {
         );
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
 
-        let credential_configs: VecNonEmpty<_> = issuer_metadata
-            .credential_configurations_supported
-            .into_iter()
-            .collect_vec()
-            .try_into()
-            .unwrap();
-
         let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(vec_nonempty![
             (&config_id_mdoc, random_string(16)),
             (&config_id_sd_jwt, random_string(16))
@@ -1566,7 +1548,7 @@ mod tests {
 
         let error = HttpIssuanceSession::create(
             mock_msg_client,
-            credential_configs,
+            issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,

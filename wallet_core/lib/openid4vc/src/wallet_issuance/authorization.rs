@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use crypto::trust_anchor::TrustAnchors;
@@ -10,7 +12,6 @@ use jwt::wia::WIA_POP_HEADER_NAME;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
@@ -73,7 +74,7 @@ pub enum OAuthError {
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationSession<P = S256PkcePair> {
-    credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+    credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
@@ -88,7 +89,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct HttpAuthorizationSessionData {
-    credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+    credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
@@ -106,7 +107,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(super) async fn create(
         http_client: HttpClient,
-        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
         auth_endpoints: AuthorizationEndpoints,
@@ -324,7 +325,6 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use httpmock::Method::POST;
     use httpmock::MockServer;
-    use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -375,12 +375,7 @@ mod tests {
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
         HttpAuthorizationSession {
-            credential_configurations: issuer_metadata
-                .credential_configurations_supported
-                .into_iter()
-                .collect_vec()
-                .try_into()
-                .unwrap(),
+            credential_configurations: issuer_metadata.credential_configurations_supported,
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
@@ -484,12 +479,7 @@ mod tests {
         );
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            issuer_metadata
-                .credential_configurations_supported
-                .into_iter()
-                .collect_vec()
-                .try_into()
-                .unwrap(),
+            issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
             auth_endpoints,
@@ -533,17 +523,9 @@ mod tests {
             config.scope = None;
         }
 
-        let credential_configurations = issuer_metadata
-            .credential_configurations_supported
-            .clone()
-            .into_iter()
-            .collect_vec()
-            .try_into()
-            .unwrap();
-
         let error = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            credential_configurations,
+            issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
             auth_endpoints,
@@ -652,12 +634,7 @@ mod tests {
             )],
         );
         let persisted = HttpAuthorizationSessionData {
-            credential_configurations: issuer_metadata
-                .credential_configurations_supported
-                .into_iter()
-                .collect_vec()
-                .try_into()
-                .unwrap(),
+            credential_configurations: issuer_metadata.credential_configurations_supported,
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
