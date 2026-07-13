@@ -566,7 +566,7 @@ where
             metadata: Cow::Borrowed(&self.issuer_data.metadata),
 
             iss: None,
-            sub: Cow::Borrowed(self.issuer_identifier().as_ref()),
+            sub: Cow::Borrowed(self.issuer_identifier()),
             iat: iat.into(),
             exp: Some(exp.into()),
         };
@@ -1798,7 +1798,7 @@ mod tests {
 
         let (_, payload) = signed_metadata.into_unverified().dangerous_parse_unverified().unwrap();
         assert_eq!(payload.iss, None);
-        assert_eq!(payload.sub, payload.metadata.credential_issuer.as_ref());
+        assert_eq!(payload.sub.as_ref(), &payload.metadata.credential_issuer);
         assert_eq!(payload.iat, now.into());
         assert_eq!(payload.exp, Some((now + ttl).into()));
     }

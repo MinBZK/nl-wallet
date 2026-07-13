@@ -183,7 +183,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
-                CertificateUsage::Wia,
+                Some(CertificateUsage::Wia),
                 &WIA_JWT_VALIDATIONS,
             )
             .unwrap();

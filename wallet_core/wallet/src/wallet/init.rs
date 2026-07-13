@@ -7,7 +7,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use futures::try_join;
 use http_utils::client::TlsPinningConfig;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -185,9 +185,8 @@ where
     APC: Default,
 {
     pub fn new() -> Result<Self, reqwest::Error> {
-        let credential_issuer_discovery =
-            HttpIssuanceDiscovery::new(HttpJsonClient::try_new(reqwest_client_builder())?);
-        let disclosure_client = VpDisclosureClient::new_with_client(reqwest_client_builder())?;
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?);
+        let disclosure_client = VpDisclosureClient::new_with_client(HttpClient::try_new(reqwest_client_builder())?);
         // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 

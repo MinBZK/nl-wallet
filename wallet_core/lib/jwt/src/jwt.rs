@@ -100,6 +100,7 @@ impl<T, H> FromStr for UnverifiedJwt<T, H> {
     type Err = JwtParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.trim_ascii_end();
         let payload_end = s.rfind(".").ok_or(JwtParseError::UnexpectedNumberOfParts(1))?;
 
         Ok(Self {
@@ -247,7 +248,7 @@ where
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
+        certificate_usage: Option<CertificateUsage>,
         validation_options: &Validation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
         let certificates = self
@@ -260,7 +261,7 @@ where
 
         let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
         leaf_cert
-            .verify(Some(certificate_usage), &intermediate_certs, time, trust_anchors)
+            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
@@ -273,7 +274,7 @@ where
         self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
+        certificate_usage: Option<CertificateUsage>,
         validation_options: &Validation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
@@ -1043,7 +1044,7 @@ mod tests {
         assert_eq!(
             parsed,
             UnverifiedJwt {
-                serialization: jwt.to_string(),
+                serialization: jwt.trim_ascii_end().to_string(),
                 payload_end: signed_slice.len(),
                 _jwt_type: PhantomData
             }
@@ -1353,7 +1354,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -1543,7 +1544,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -1569,7 +1570,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&other_ca),
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap_err();
@@ -1600,7 +1601,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &trust_anchors,
                 &TimeGenerator,
-                CertificateUsage::ReaderAuth,
+                Some(CertificateUsage::ReaderAuth),
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap_err();
@@ -1641,6 +1642,26 @@ mod tests {
         let deserialized: PayloadWithSub<U> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.payload, t.payload);
         assert_eq!(deserialized.sub, t.sub);
+    }
+
+    #[tokio::test]
+    async fn test_verify_with_trailing_spaces() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let t = ToyMessage::default();
+        let signed_jwt = SignedJwt::sign(&t, &private_key).await.unwrap();
+
+        // Parse JWT from text with trailing spaces
+        let text_jwt = signed_jwt.clone().into_unverified().serialization + "\n";
+        let verified_jwt = text_jwt
+            .parse::<UnverifiedJwt<_>>()
+            .unwrap()
+            .into_verified(
+                &EcdsaDecodingKey::from(private_key.verifying_key()),
+                &DEFAULT_VALIDATIONS,
+            )
+            .unwrap();
+
+        assert_eq!(signed_jwt.into_verified(), verified_jwt);
     }
 
     #[tokio::test]

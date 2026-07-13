@@ -290,9 +290,9 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let par_store = MemoryStore::new(PAR_TTL);
-    let (issuer, trust_anchor, wia_keypair) =
+    let (issuer, trust_anchors, wia_keypair) =
         setup_mock_issuer_from_sd_jwt_metadata(issuer_identifier, type_metadata, sessions);
     let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
 
-    (authorizing_issuer, trust_anchor, wia_keypair)
+    (authorizing_issuer, trust_anchors, wia_keypair)
 }

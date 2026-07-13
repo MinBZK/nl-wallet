@@ -436,7 +436,7 @@ impl VpAuthorizationRequest {
         let (header, auth_request) = jws.parse_and_verify_against_trust_anchors(
             trust_anchors,
             &TimeGenerator,
-            CertificateUsage::ReaderAuth,
+            Some(CertificateUsage::ReaderAuth),
             &validation_options,
         )?;
 

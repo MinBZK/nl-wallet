@@ -210,7 +210,7 @@ impl IntoResponse for RequestUriRespone {
         let mut headers = HeaderMap::new();
         headers.insert(
             header::CONTENT_TYPE,
-            HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
+            HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT),
         );
 
         (headers, self.0.to_string()).into_response()
