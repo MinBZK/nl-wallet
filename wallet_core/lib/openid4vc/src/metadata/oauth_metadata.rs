@@ -127,6 +127,9 @@ pub struct AuthorizationServerMetadata {
     /// in Attestation-Based Client Authentication.
     #[serde(default)]
     pub client_attestation_pop_signing_alg_values_supported: Option<IndexSet<JwsAlgorithm>>,
+
+    #[serde(default)]
+    pub challenge_endpoint: Option<Url>,
 }
 
 impl AuthorizationServerMetadata {
@@ -173,6 +176,7 @@ impl AuthorizationServerMetadata {
             require_pushed_authorization_requests: false,
             client_attestation_signing_alg_values_supported: None,
             client_attestation_pop_signing_alg_values_supported: None,
+            challenge_endpoint: None,
         }
     }
 }

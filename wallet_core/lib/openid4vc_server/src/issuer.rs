@@ -32,6 +32,7 @@ use http::header::ACCEPT;
 use http::request::Parts;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
+
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use jwt::wia::Wia;
@@ -57,6 +58,7 @@ use openid4vc::errors::CredentialPreviewErrorCode;
 use openid4vc::errors::ErrorResponse;
 use openid4vc::errors::ParErrorCode;
 use openid4vc::errors::TokenErrorCode;
+use openid4vc::issuer::AttestationChallenge;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
@@ -152,6 +154,7 @@ where
         .route("/issuance/credential", delete(reject_credential))
         .route("/issuance/batch_credential", post(batch_credential))
         .route("/issuance/batch_credential", delete(reject_batch_credential))
+        .route("/issuance/client_auth_challenge", post(client_auth_challenge))
         .with_state(IssuanceState { issuer })
 }
 
@@ -236,6 +239,27 @@ where
     // See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-7.2-3>
     let header = TypedHeader(CacheControl::new().with_no_store());
     let body = Json(NonceResponse { c_nonce });
+
+    Ok((header, body))
+}
+
+async fn client_auth_challenge<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+) -> Result<(TypedHeader<CacheControl>, Json<AttestationChallenge>), StatusCode>
+where
+    N: NonceStore,
+{
+    let attestation_challenge = state.issuer.generate_proof_nonce().await.map_err(|error| {
+        warn!("generating fresh attestation_challenge failed: {}", error);
+
+        // Any error that occurs while generating the nonce is de facto a problem with the server.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Including this header is mandatory.
+    // See: <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#section-6.1>
+    let header = TypedHeader(CacheControl::new().with_no_store());
+    let body = Json(AttestationChallenge { attestation_challenge });
 
     Ok((header, body))
 }

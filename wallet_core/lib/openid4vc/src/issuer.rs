@@ -773,6 +773,11 @@ where
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AttestationChallenge {
+    pub attestation_challenge: Nonce,
+}
+
 impl<K, L, S, N> Issuer<K, L, S, N>
 where
     N: NonceStore,
@@ -794,6 +799,7 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
             authorization_endpoint: Some(issuer_url.join("/issuance/authorize")),
             pushed_authorization_request_endpoint: Some(issuer_url.join("/issuance/par")),
             require_pushed_authorization_requests: true,
+            challenge_endpoint: Some(issuer_url.join("/issuance/client_auth_challenge")),
             token_endpoint_auth_methods_supported: Some(IndexSet::from([WIA_CLIENT_AUTH_METHOD.to_string()])),
             client_attestation_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
             client_attestation_pop_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
