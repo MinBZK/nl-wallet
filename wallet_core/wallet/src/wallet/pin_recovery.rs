@@ -12,7 +12,7 @@ use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
-use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use p256::ecdsa::VerifyingKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -407,10 +407,9 @@ where
         let pid = issuance_result
             .into_iter()
             .filter(|attestation| attestation.attestation_type == pid_attestation_type)
-            .flat_map(|attestation| attestation.copies.into_inner().into_iter())
-            .find_map(|copy| match copy {
-                IssuedCredential::MsoMdoc { .. } => None,
-                IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
+            .find_map(|attestation| match attestation.copies {
+                IssuedCredentialCopies::Mdoc(_) => None,
+                IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().1),
             })
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
@@ -497,7 +496,6 @@ mod tests {
     use jwt::nonce::Nonce;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
-    use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -977,11 +975,11 @@ mod tests {
 
         let (pid_issuer, _) = mock_issuance_session([
             (
-                IssuedCredential::MsoMdoc { mdoc },
+                StoredAttestation::MsoMdoc { mdoc },
                 VerifiedTypeMetadataDocuments::nl_pid_example(),
             ),
             (
-                IssuedCredential::SdJwt {
+                StoredAttestation::SdJwt {
                     key_identifier: "key_id".to_string(),
                     sd_jwt: sd_jwt.clone(),
                 },
