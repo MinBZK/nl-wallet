@@ -223,43 +223,6 @@ scripts/start-devenv.sh<span class="w"> </span>keycloak<span class="w"> </span>-
 <p>Administration user: <code class="docutils literal notranslate"><span class="pre">keycloak</span></code> / <code class="docutils literal notranslate"><span class="pre">keycloak</span></code>, HTTP <code class="docutils literal notranslate"><span class="pre">:11080</span></code>, HTTPS <code class="docutils literal notranslate"><span class="pre">:11443</span></code>.
 Overridable with: <code class="docutils literal notranslate"><span class="pre">KC_USERNAME</span></code>, <code class="docutils literal notranslate"><span class="pre">KC_PASSWORD</span></code>, <code class="docutils literal notranslate"><span class="pre">KC_PORT_HTTP</span></code>, <code class="docutils literal notranslate"><span class="pre">KC_PORT_HTTPS</span></code>.</p>
 </section>
-<section id="kubernetes-ont-demo">
-<h2>Kubernetes (ont/demo)<a class="headerlink" href="#kubernetes-ont-demo" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">keycloak</span></code> helm-chart in <code class="docutils literal notranslate"><span class="pre">deploy/helm-charts/keycloak</span></code> deploys the same
-container to a Kubernetes namespace. Differences from local dev:</p>
-<ul>
-<li><p>TLS is terminated by the gateway; the pod serves plain HTTP on <code class="docutils literal notranslate"><span class="pre">:8080</span></code>
-(<code class="docutils literal notranslate"><span class="pre">KC_HTTP_ENABLED=true</span></code>, no in-pod certificates). The Service exposes <code class="docutils literal notranslate"><span class="pre">:80</span></code>
-→ <code class="docutils literal notranslate"><span class="pre">:8080</span></code>.</p></li>
-<li><p>The whole <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> realm import JSON (roles, users, passwords, clients)
-is supplied by an existing secret (<code class="docutils literal notranslate"><span class="pre">keycloak.realm.existingSecret</span></code>, default
-<code class="docutils literal notranslate"><span class="pre">nl-wallet-keycloak-realm</span></code>, key <code class="docutils literal notranslate"><span class="pre">realm.json</span></code>) and mounted read-only at
-<code class="docutils literal notranslate"><span class="pre">/opt/keycloak/data/import/realm.json</span></code>. The chart itself ships no realm
-contents and holds no realm secrets; creating the secret is a deploy-time
-concern handled out-of-band (separate repositories / pipelines for ont and
-demo). For a throw-away local cluster, the dev realm from
-<code class="docutils literal notranslate"><span class="pre">scripts/devenv/keycloak/import</span></code> can be used:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>nl-wallet-keycloak-realm<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-file<span class="o">=</span>realm.json<span class="o">=</span>scripts/devenv/keycloak/import/realm.json
-</pre></div>
-</div>
-</li>
-<li><p>The admin user credentials come from an existing secret
-(<code class="docutils literal notranslate"><span class="pre">keycloak.admin.existingSecret</span></code>); set <code class="docutils literal notranslate"><span class="pre">KC_BOOTSTRAP_ADMIN_USERNAME</span></code> /
-<code class="docutils literal notranslate"><span class="pre">KC_BOOTSTRAP_ADMIN_PASSWORD</span></code> keys.</p></li>
-<li><p>State (<code class="docutils literal notranslate"><span class="pre">/opt/keycloak/data</span></code>) is on a PVC (if <code class="docutils literal notranslate"><span class="pre">persistence.enabled</span></code>). Defaults
-to the embedded <code class="docutils literal notranslate"><span class="pre">dev-file</span></code> database; switch <code class="docutils literal notranslate"><span class="pre">keycloak.database</span></code> to a real DB
-for <code class="docutils literal notranslate"><span class="pre">replicaCount</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> (and disable persistence, since that would then be
-handled by the real DB).</p></li>
-</ul>
-<blockquote>
-<div><p><strong>Import runs once.</strong> <code class="docutils literal notranslate"><span class="pre">--import-realm</span></code> only imports a realm that does not
-exist yet. With <code class="docutils literal notranslate"><span class="pre">persistence.enabled</span></code> the realm stays on the PVC, so later
-realm changes are not applied. Re-import requires wiping the realm or PVC.</p>
-</div></blockquote>
-<p>Run <code class="docutils literal notranslate"><span class="pre">helm</span> <span class="pre">dependency</span> <span class="pre">build</span> <span class="pre">deploy/helm-charts/keycloak</span></code> before install (the
-chart depends on <code class="docutils literal notranslate"><span class="pre">sp-common</span></code>).</p>
-</section>
 <section id="realm-configuration">
 <h2>Realm Configuration<a class="headerlink" href="#realm-configuration" title="Link to this heading"></a></h2>
 <p>Realm name: <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code>
