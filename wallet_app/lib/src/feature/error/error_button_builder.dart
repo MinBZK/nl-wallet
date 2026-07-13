@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/model/result/application_error.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/sheet/error_details_sheet.dart';
@@ -39,6 +40,15 @@ class ErrorButtonBuilder {
       text: Text.rich(context.l10n.generalShowDetailsCta.toTextSpan(context)),
       icon: const Icon(Icons.info_outline_rounded),
       onPressed: () => ErrorDetailsSheet.show(context, error: error),
+    );
+  }
+
+  /// Directs the user to the in-app help desk (contact) screen.
+  static FitsWidthWidget buildHelpdeskButton(BuildContext context) {
+    return TertiaryButton(
+      text: Text.rich(context.l10n.errorScreenAttestationFailedHelpdeskCta.toTextSpan(context)),
+      icon: const Icon(Icons.north_east_outlined),
+      onPressed: () => Navigator.of(context).pushNamed(WalletRoutes.contactRoute),
     );
   }
 }

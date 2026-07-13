@@ -42,6 +42,11 @@ class CoreHardwareKeyUnsupportedError extends CoreError {
   const CoreHardwareKeyUnsupportedError(super.description, {super.data});
 }
 
+/// Key and/or app attestation failed during registration; the device could not be verified.
+class CoreAttestationError extends CoreError {
+  const CoreAttestationError(super.description, {super.data});
+}
+
 class CoreDisclosureSourceMismatchError extends CoreError {
   final bool isCrossDevice;
 

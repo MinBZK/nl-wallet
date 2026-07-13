@@ -66,6 +66,12 @@ class HardwareUnsupportedError extends ApplicationError {
   const HardwareUnsupportedError({required super.sourceError});
 }
 
+/// Indicates key and/or app attestation failed during registration, so the device
+/// can not be used with the app (e.g. an outdated OS or an unofficial app install).
+class AttestationFailedError extends ApplicationError {
+  const AttestationFailedError({required super.sourceError});
+}
+
 /// Unrecoverable wallet_core invariant violation (programming error / panic)
 class ApplicationStateError extends ApplicationError {
   const ApplicationStateError({required super.sourceError});

@@ -82,6 +82,9 @@ enum FlutterApiErrorType {
     /// Device does not support hardware backed keys.
     HardwareKeyUnsupported,
 
+    /// Key and/or app attestation failed during registration; the device could not be verified.
+    Attestation,
+
     /// The disclosure URI source (universal link or QR code) does not match the received session type.
     DisclosureSourceMismatch,
 
@@ -190,6 +193,10 @@ impl FlutterApiErrorFields for WalletRegistrationError {
     fn typ(&self) -> FlutterApiErrorType {
         if self.is_attestation_not_supported() {
             return FlutterApiErrorType::HardwareKeyUnsupported;
+        }
+
+        if self.is_attestation_failed() {
+            return FlutterApiErrorType::Attestation;
         }
 
         match self {
@@ -843,6 +850,7 @@ mod tests {
     use wallet::errors::RecoveryCodeError;
     use wallet::errors::RevocationCodeError;
     use wallet::errors::TransferError;
+    use wallet::errors::WalletRegistrationError;
     use wallet::errors::WalletUnlockError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
     use wallet::errors::openid4vc::CredentialErrorCode;
@@ -1106,6 +1114,16 @@ mod tests {
                 "can_register_new_account": true
             }
         })
+    )]
+    #[case::registration_attestation(
+        WalletRegistrationError::Attestation("attestation failed".into()),
+        FlutterApiErrorType::Attestation,
+        serde_json::Value::Null
+    )]
+    #[case::registration_key_generation(
+        WalletRegistrationError::KeyGeneration("key generation failed".into()),
+        FlutterApiErrorType::Attestation,
+        serde_json::Value::Null
     )]
     fn test_errors<E>(
         #[case] source_error: E,
