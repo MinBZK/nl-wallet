@@ -98,6 +98,11 @@ pub const WIA_POP_HEADER_NAME: &str = "oauth-client-attestation-pop";
 pub const WIA_JWT_TYP: &str = "oauth-client-attestation+jwt";
 pub const WIA_POP_JWT_TYP: &str = "oauth-client-attestation-pop+jwt";
 
+/// The `token_endpoint_auth_methods_supported` value for Attestation-Based Client Authentication using a client
+/// attestation PoP JWT, as defined by
+/// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#name-authorization-server-and-re).
+pub const WIA_CLIENT_AUTH_METHOD: &str = "attest_jwt_client_auth";
+
 impl JwtTyp for WiaClaims {
     const TYP: &'static str = WIA_JWT_TYP;
 }

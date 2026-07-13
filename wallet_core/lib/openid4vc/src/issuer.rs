@@ -27,6 +27,7 @@ use derive_more::Debug;
 use futures::future::try_join_all;
 use futures::join;
 use http_utils::urls::BaseUrl;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use jwt::Algorithm;
 use jwt::SignedJwt;
@@ -36,6 +37,7 @@ use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
+use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
@@ -73,6 +75,7 @@ use crate::dpop::DpopError;
 use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::jose::JwsAlgorithm;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -791,6 +794,9 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
             authorization_endpoint: Some(issuer_url.join("/issuance/authorize")),
             pushed_authorization_request_endpoint: Some(issuer_url.join("/issuance/par")),
             require_pushed_authorization_requests: true,
+            token_endpoint_auth_methods_supported: Some(IndexSet::from([WIA_CLIENT_AUTH_METHOD.to_string()])),
+            client_attestation_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
+            client_attestation_pop_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
             ..AuthorizationServerMetadata::new(
                 self.issuer_data.metadata.credential_issuer.clone(),
                 issuer_url.join("issuance/token"),
