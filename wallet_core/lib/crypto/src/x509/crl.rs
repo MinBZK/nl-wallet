@@ -177,6 +177,7 @@ pub fn ttl_from_next_update(crl: &CertificateRevocationList) -> Option<Duration>
 mod tests {
     use std::time::Duration;
 
+    use crl::*;
     use der::Encode;
     use der::asn1::BitStringRef;
     use der::asn1::ObjectIdentifier;
@@ -193,8 +194,6 @@ mod tests {
     use url::Url;
     use webpki::RevocationReason as WebpkiRevocationReason;
     use x509_parser::parse_x509_crl;
-
-    use crl::*;
 
     use super::*;
     use crate::server_keys::generate::Ca;
