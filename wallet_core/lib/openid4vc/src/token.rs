@@ -218,7 +218,7 @@ impl CredentialPreview {
         // credential preview, which implicitly authenticates the issuer because only it could
         // have produced an mdoc against that certificate.
         self.issuer_certificate
-            .verify(Some(CertificateUsage::Mdl), &[], &TimeGenerator, trust_anchors)?;
+            .verify(Some(CertificateUsage::Mdl), &[], &TimeGenerator, trust_anchors, None)?;
 
         // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
         if !self
