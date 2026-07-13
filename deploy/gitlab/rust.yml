@@ -16,13 +16,14 @@ lint-rust:
       --manifest-path {} -- --check
     # Check clippy
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests
+      --keep-going
     - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy
-      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests
+      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests --keep-going
     # Again clippy with json
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests
-      --message-format=json > wallet_core/clippy.json
+      --keep-going --message-format=json > wallet_core/clippy.json
     - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy
-      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests
+      --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests --keep-going
       --message-format=json >> wallet_core/clippy.json
   artifacts:
     name: lint-rust
