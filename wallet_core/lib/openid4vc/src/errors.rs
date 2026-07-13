@@ -25,6 +25,7 @@ use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
 use crate::issuer::TokenRequestError;
+use crate::issuer::WiaVerificationError;
 use crate::verifier::CancelSessionError;
 use crate::verifier::DisclosedAttributesError;
 use crate::verifier::GetAuthRequestError;
@@ -407,7 +408,9 @@ impl ErrorWithCode for ParError {
         match self {
             Self::UnknownClient(_) => ParErrorCode::InvalidClient,
 
-            Self::Wia(WiaError::Expired) => ParErrorCode::UseFreshAttestation,
+            Self::Wia(WiaVerificationError::WiaVerification(WiaError::Expired)) => ParErrorCode::UseFreshAttestation,
+
+            Self::Wia(WiaVerificationError::ChallengeStore(_)) => ParErrorCode::ServerError,
 
             Self::Wia(_) => ParErrorCode::InvalidClientAttestation,
 
@@ -483,7 +486,9 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
 
-            Self::Wia(WiaError::Expired) => TokenErrorCode::UseFreshAttestation,
+            Self::Wia(WiaVerificationError::WiaVerification(WiaError::Expired)) => TokenErrorCode::UseFreshAttestation,
+
+            Self::Wia(WiaVerificationError::ChallengeStore(_)) => TokenErrorCode::ServerError,
 
             Self::Wia(_) => TokenErrorCode::InvalidClientAttestation,
 

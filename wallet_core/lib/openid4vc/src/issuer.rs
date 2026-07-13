@@ -154,9 +154,6 @@ pub enum TokenRequestError {
     #[error("session not found for the supplied code")]
     SessionNotFound,
 
-    #[error("error verifying WIA: {0}")]
-    Wia(#[source] WiaError),
-
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType { expected: String, actual: String },
 
@@ -200,6 +197,24 @@ pub enum TokenRequestError {
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
+
+    #[error("error verifying WIA and WIA PoP: {0}")]
+    Wia(#[from] WiaVerificationError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WiaVerificationError {
+    #[error("error verifying WIA: {0}")]
+    WiaVerification(#[source] WiaError),
+
+    #[error("no challenge present in WIA PoP")]
+    MissingChallenge,
+
+    #[error("invalid or already used challenge in WIA PoP")]
+    InvalidChallenge,
+
+    #[error("could not check challenge against storage: {0}")]
+    ChallengeStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -446,7 +461,11 @@ impl<K, L> IssuerData<K, L> {
         self.accepted_wallet_client_ids.iter().collect()
     }
 
-    fn verify_wia(&self, wia_disclosure: &WiaDisclosure, client_id: Option<&String>) -> Result<WiaClaims, WiaError> {
+    fn verify_wia(
+        &self,
+        wia_disclosure: &WiaDisclosure,
+        client_id: Option<&String>,
+    ) -> Result<(WiaClaims, Option<Nonce>), WiaError> {
         // The RFC says we should use the Issuer Identifier of the Authorization for this (see
         // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
         // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
@@ -456,7 +475,6 @@ impl<K, L> IssuerData<K, L> {
             &self.wia_trust_anchors,
             expected_aud,
             &self.accepted_wallet_client_ids_vec(),
-            None,
             client_id,
         )
     }
@@ -872,6 +890,7 @@ impl<K, L, S, N> Issuer<K, L, S, N>
 where
     K: EcdsaKey,
     S: SessionStore<IssuanceData>,
+    N: NonceStore,
 {
     /// Process a token request. The session must already exist, populated by a flow-specific
     /// provisioner: either via [`Issuer::new_preauthorized_session`] for the pre-authorized-code
@@ -900,7 +919,9 @@ where
                 &wia_disclosure,
                 &self.issuer_data.server_url,
                 &self.issuer_data,
-            );
+                self.proof_nonce_store.as_ref(),
+            )
+            .await;
 
         let (response, next) = match result {
             Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
@@ -1022,14 +1043,48 @@ where
     }
 }
 
-impl<K, L, S, N> Issuer<K, L, S, N> {
-    pub(super) fn verify_wia(
+impl<K, L, S, N> Issuer<K, L, S, N>
+where
+    N: NonceStore,
+{
+    pub(super) async fn verify_wia(
         &self,
         wia_disclosure: &WiaDisclosure,
         client_id: Option<&String>,
-    ) -> Result<WiaClaims, WiaError> {
-        self.issuer_data.verify_wia(wia_disclosure, client_id)
+    ) -> Result<(), WiaVerificationError> {
+        verify_wia_and_consume_nonce(
+            &self.issuer_data,
+            self.proof_nonce_store.as_ref(),
+            wia_disclosure,
+            client_id,
+        )
+        .await
+        .map(|_| ())
     }
+}
+
+/// Verify the WIA (and its PoP), then check that the challenge it carries is a nonce that this issuer
+/// generated and that has not been used before, consuming it from `nonce_store` in the process.
+async fn verify_wia_and_consume_nonce<K, L>(
+    issuer_data: &IssuerData<K, L>,
+    nonce_store: &impl NonceStore,
+    wia_disclosure: &WiaDisclosure,
+    client_id: Option<&String>,
+) -> Result<WiaClaims, WiaVerificationError> {
+    let (wia_claims, nonce) = issuer_data
+        .verify_wia(wia_disclosure, client_id)
+        .map_err(WiaVerificationError::WiaVerification)?;
+
+    let nonce_status = nonce_store
+        .check_nonce_status_and_remove([nonce.as_ref().ok_or(WiaVerificationError::MissingChallenge)?])
+        .await
+        .map_err(|error| WiaVerificationError::ChallengeStore(error.into()))?;
+
+    if !matches!(nonce_status, NonceStatus::AllValid) {
+        return Err(WiaVerificationError::InvalidChallenge);
+    }
+
+    Ok(wia_claims)
 }
 
 impl TryFrom<SessionState<IssuanceData>> for Session<AuthCodeIssued> {
@@ -1171,31 +1226,50 @@ impl Grant {
 }
 
 impl Session<AuthCodeIssued> {
-    fn process_token_request<K, L>(
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "passes through validate_and_build_token_response's parameters"
+    )]
+    async fn process_token_request<K, L>(
         self,
         token_request: &TokenRequest,
         dpop: Dpop,
         wia_disclosure: &WiaDisclosure,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
+        nonce_store: &impl NonceStore,
     ) -> ProcessTokenRequest {
-        let result =
-            self.validate_and_build_token_response(token_request, dpop, wia_disclosure, server_url, issuer_data);
+        let result = self
+            .validate_and_build_token_response(
+                token_request,
+                dpop,
+                wia_disclosure,
+                server_url,
+                issuer_data,
+                nonce_store,
+            )
+            .await;
 
         self.finalize_token_response(result)
     }
 
-    fn validate_and_build_token_response<K, L>(
+    #[expect(clippy::too_many_arguments, reason = "no natural grouping of these parameters")]
+    async fn validate_and_build_token_response<K, L>(
         &self,
         token_request: &TokenRequest,
         dpop: Dpop,
         wia_disclosure: &WiaDisclosure,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
+        nonce_store: &impl NonceStore,
     ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
-        let wia_claims = issuer_data
-            .verify_wia(wia_disclosure, token_request.client_id.as_ref())
-            .map_err(TokenRequestError::Wia)?;
+        let wia_claims = verify_wia_and_consume_nonce(
+            issuer_data,
+            nonce_store,
+            wia_disclosure,
+            token_request.client_id.as_ref(),
+        )
+        .await?;
 
         let client_id = wia_claims.sub;
         let session_data = self.session_data();
@@ -1751,6 +1825,8 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
     use tracing_test::traced_test;
@@ -2211,6 +2287,107 @@ mod tests {
             WalletIssuanceError::TokenRequest(err)
                 if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
         );
+    }
+
+    /// Builds a `TokenRequest` for a fresh pre-authorized session on `issuer`, along with a `Dpop`
+    /// proof that verifies against the issuer's token endpoint
+    async fn mock_token_request_and_dpop(issuer: &MockIssuer) -> (TokenRequest, Dpop) {
+        let code = issuer
+            .new_preauthorized_session(mock_issuable_documents(NonZeroUsize::MIN))
+            .await
+            .unwrap()
+            .grants
+            .unwrap()
+            .pre_authorized_code
+            .unwrap()
+            .pre_authorized_code;
+
+        let token_request = TokenRequest::new_mock_with_pre_authorized_code(code);
+        let dpop = Dpop::new(
+            &SigningKey::random(&mut OsRng),
+            issuer.issuer_data.server_url.join("token"),
+            &Method::POST,
+            None,
+            None,
+        )
+        .unwrap();
+
+        (token_request, dpop)
+    }
+
+    #[tokio::test]
+    async fn token_request_accepts_valid_wia_nonce() {
+        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
+
+        let nonce = issuer.generate_proof_nonce().await.unwrap();
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia(issuer_identifier.to_string(), Some(nonce))
+            .await
+            .unwrap();
+
+        issuer.process_token_request(token_request, dpop, wia).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn token_request_rejects_missing_wia_nonce() {
+        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
+
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia(issuer_identifier.to_string(), None)
+            .await
+            .unwrap();
+
+        let error = issuer
+            .process_token_request(token_request, dpop, wia)
+            .await
+            .unwrap_err();
+        assert_matches!(error, TokenRequestError::Wia(WiaVerificationError::MissingChallenge));
+    }
+
+    #[tokio::test]
+    async fn token_request_rejects_unknown_wia_nonce() {
+        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
+
+        // This nonce was never issued by (and thus never stored in) the issuer.
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia(issuer_identifier.to_string(), Some(Nonce::new_random()))
+            .await
+            .unwrap();
+
+        let error = issuer
+            .process_token_request(token_request, dpop, wia)
+            .await
+            .unwrap_err();
+        assert_matches!(error, TokenRequestError::Wia(WiaVerificationError::InvalidChallenge));
+    }
+
+    #[tokio::test]
+    async fn token_request_rejects_replayed_wia_nonce() {
+        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+
+        let nonce = issuer.generate_proof_nonce().await.unwrap();
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia(issuer_identifier.to_string(), Some(nonce))
+            .await
+            .unwrap();
+
+        // The first request consumes the nonce.
+        let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
+        issuer
+            .process_token_request(token_request, dpop, wia.clone())
+            .await
+            .unwrap();
+
+        // A second session replaying the same WIA (and therefore the same nonce) must be rejected.
+        let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
+        let error = issuer
+            .process_token_request(token_request, dpop, wia)
+            .await
+            .unwrap_err();
+        assert_matches!(error, TokenRequestError::Wia(WiaVerificationError::InvalidChallenge));
     }
 
     #[tokio::test]

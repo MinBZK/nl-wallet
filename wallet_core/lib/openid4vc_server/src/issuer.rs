@@ -32,7 +32,6 @@ use http::header::ACCEPT;
 use http::request::Parts;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
-
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use jwt::wia::Wia;
@@ -121,7 +120,7 @@ where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    N: Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
     AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
@@ -353,6 +352,7 @@ async fn token<K, L, S, N>(
 where
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
+    N: NonceStore,
 {
     let (response, dpop_nonce) = state
         .issuer
@@ -380,6 +380,7 @@ async fn pushed_authorization_request<K, L, S, N, PAS, AF>(
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
     PAS: Store<String, VciAuthorizationRequest>,
+    N: NonceStore,
 {
     let response = state
         .authorizing_issuer

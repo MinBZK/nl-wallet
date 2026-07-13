@@ -16,7 +16,6 @@ use derive_more::Constructor;
 use futures::join;
 use itertools::Itertools;
 use jwt::wia::WiaDisclosure;
-use jwt::wia::WiaError;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -41,6 +40,7 @@ use crate::issuer::Grant;
 use crate::issuer::IssuableDocumentError;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
+use crate::issuer::WiaVerificationError;
 use crate::nonce::store::NonceStore;
 use crate::par;
 use crate::par::PAR_TTL;
@@ -56,9 +56,6 @@ pub enum ParError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
 
-    #[error("error verifying WIA: {0}")]
-    Wia(#[source] WiaError),
-
     #[error("a PAR containing authorization_details is not supported")]
     AuthorizationDetailsUnsupported,
 
@@ -67,6 +64,9 @@ pub enum ParError {
 
     #[error("storing PAR request failed: {0}")]
     Store(#[source] Box<dyn Error + Send + Sync + 'static>),
+
+    #[error("error verifying WIA and WIA PoP: {0}")]
+    Wia(#[from] WiaVerificationError),
 }
 
 /// Errors that can occur during calls to the `authorize` endpoint, before the PAR has been retrieved from storage.
@@ -179,6 +179,7 @@ where
 impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF>
 where
     PAS: Store<String, VciAuthorizationRequest>,
+    N: NonceStore,
 {
     pub async fn process_pushed_authorization_request(
         &self,
@@ -197,7 +198,7 @@ where
         // <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.1-2.7.1>
         self.issuer
             .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
-            .map_err(ParError::Wia)?;
+            .await?;
 
         if request.authorization_details.is_some() {
             return Err(ParError::AuthorizationDetailsUnsupported);
@@ -401,6 +402,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use crypto::server_keys::KeyPair;
     use futures::FutureExt;
+    use jwt::nonce::Nonce;
     use jwt::wia::WiaDisclosure;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
@@ -428,6 +430,7 @@ mod tests {
     use crate::issuer::AuthRequestValues;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
+    use crate::issuer::WiaVerificationError;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::nonce::memory_store::MemoryNonceStore;
@@ -552,11 +555,12 @@ mod tests {
         let (authorizing_issuer, _sessions, wia_keypair) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
+        let nonce = authorizing_issuer.issuer.generate_proof_nonce().await.unwrap();
         let response = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
                 &MockWiaClient::new_with_wia_keypair(wia_keypair)
-                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), Some(nonce))
                     .await
                     .unwrap(),
             )
@@ -627,6 +631,76 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn process_par_rejects_missing_wia_nonce() {
+        let (authorizing_issuer, _sessions, wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(
+                vci_request(MOCK_WALLET_CLIENT_ID),
+                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+                    .await
+                    .unwrap(),
+            )
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::Wia(WiaVerificationError::MissingChallenge));
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_unknown_wia_nonce() {
+        let (authorizing_issuer, _sessions, wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        // This nonce was never issued by (and thus never stored in) the issuer.
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(
+                vci_request(MOCK_WALLET_CLIENT_ID),
+                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                    .issue_wia(
+                        authorizing_issuer.issuer.issuer_identifier().to_string(),
+                        Some(Nonce::new_random()),
+                    )
+                    .await
+                    .unwrap(),
+            )
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::Wia(WiaVerificationError::InvalidChallenge));
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_replayed_wia_nonce() {
+        let (authorizing_issuer, _sessions, wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        let nonce = authorizing_issuer.issuer.generate_proof_nonce().await.unwrap();
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), Some(nonce))
+            .await
+            .unwrap();
+
+        // The first PAR request consumes the nonce.
+        authorizing_issuer
+            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID), &wia)
+            .await
+            .unwrap();
+
+        // Replaying the same WIA (and therefore the same nonce) must be rejected.
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID), &wia)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::Wia(WiaVerificationError::InvalidChallenge));
+    }
+
+    #[tokio::test]
     async fn process_par_rejects_disallowed_redirect_uri() {
         let (issuer, par_store, _sessions, wia_keypair) = issuer_and_par(vec![]);
         // The client_id is accepted, but the allowlist does not contain WALLET_REDIRECT_URI, so the
@@ -638,11 +712,12 @@ mod tests {
             vec_nonempty!["https://other.example.com/callback".parse().unwrap()],
         );
 
+        let nonce = authorizing_issuer.issuer.generate_proof_nonce().await.unwrap();
         let error = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
                 &MockWiaClient::new_with_wia_keypair(wia_keypair)
-                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), Some(nonce))
                     .await
                     .unwrap(),
             )
