@@ -119,7 +119,7 @@ pub struct AuthorizationServerMetadata {
 
     /// JWS signing algorithms supported by the authorization server for validating client attestation JWTs used in
     /// Attestation-Based Client Authentication, as defined by
-    /// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth).
+    /// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10).
     #[serde(default)]
     pub client_attestation_signing_alg_values_supported: Option<IndexSet<JwsAlgorithm>>,
 
