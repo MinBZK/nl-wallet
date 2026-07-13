@@ -162,10 +162,14 @@ impl PackedStatusList {
         &self.bits
     }
 
-    pub fn single_unpack(&self, index: usize) -> StatusType {
-        let byte = self.lst[self.bits.packed_index(index)];
+    pub fn get(&self, index: usize) -> Option<StatusType> {
+        let byte = self.lst.get(self.bits.packed_index(index))?;
         let status = (byte >> self.bits.shift_for_index(index)) & self.bits.mask();
-        StatusType::from(status)
+        Some(StatusType::from(status))
+    }
+
+    pub fn single_unpack(&self, index: usize) -> StatusType {
+        self.get(index).expect("status list index should be in bounds")
     }
 
     pub fn partial_unpack(&self, indices: &[usize]) -> Vec<StatusType> {
