@@ -196,10 +196,8 @@ pub trait Storage: Send {
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to
-    /// one of the types requested and the requested format.
-    ///
-    /// Additionally, if `Format::SdJwt` is requested, the returned attestation copies will also include those
-    /// that extend at least one of the requested attestation types.
+    /// one of the types requested and the requested format. Attestations that extend one of the requested
+    /// attestation types are not included.
     async fn fetch_unique_attestations_by_types_and_single_format(
         &self,
         attestation_types: &HashSet<String>,
