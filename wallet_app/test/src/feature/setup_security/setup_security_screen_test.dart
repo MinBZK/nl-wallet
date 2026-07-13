@@ -308,5 +308,47 @@ void main() {
         expect(tryAgainCtaFinder, findsOneWidget);
       },
     );
+
+    testWidgets(
+      'ltc51 SetupSecurityScreen shows the attestation failed error when attestation fails',
+      (
+        tester,
+      ) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityError(error: AttestationFailedError(sourceError: 'test')),
+          ),
+          providers: [
+            RepositoryProvider<WalletRepository>(
+              create: (_) {
+                final mockRepo = MockWalletRepository();
+                when(mockRepo.isLockedStream).thenAnswer((_) => Stream.value(false));
+                return mockRepo;
+              },
+            ),
+            RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
+            RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
+            RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+            RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+          ],
+        );
+
+        await tester.pumpAndSettle();
+
+        final l10n = await TestUtils.englishLocalizations;
+
+        // Verify the 'device does not work with NL Wallet' explanation is shown
+        final headlineFinder = find.text(l10n.errorScreenAttestationFailedHeadline, findRichText: true);
+        final descriptionFinder = find.text(l10n.errorScreenAttestationFailedDescription, findRichText: true);
+        expect(headlineFinder, findsAtLeastNWidgets(1));
+        expect(descriptionFinder, findsOneWidget);
+
+        // Verify the 'to help desk' cta is shown (and not the retry cta from the generic error)
+        final helpdeskCtaFinder = find.text(l10n.errorScreenAttestationFailedHelpdeskCta, findRichText: true);
+        expect(helpdeskCtaFinder, findsOneWidget);
+        expect(find.text(l10n.generalRetry, findRichText: true), findsNothing);
+      },
+    );
   });
 }

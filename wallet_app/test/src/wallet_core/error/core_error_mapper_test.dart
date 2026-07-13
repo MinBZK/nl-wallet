@@ -157,6 +157,17 @@ void main() {
       expect(result, const CoreHardwareKeyUnsupportedError(defaultDescription));
     });
 
+    test('mapping FlutterApiErrorType.attestation results in CoreAttestationError', () {
+      final error = const FlutterApiError(
+        type: FlutterApiErrorType.attestation,
+        description: defaultDescription,
+        data: null,
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, const CoreAttestationError(defaultDescription));
+    });
+
     test('mapping FlutterApiErrorType.disclosureSourceMismatch results in CoreDisclosureSourceMismatchError', () {
       final error = const FlutterApiError(
         type: FlutterApiErrorType.disclosureSourceMismatch,

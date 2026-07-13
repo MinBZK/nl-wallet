@@ -90,6 +90,8 @@ class ErrorPage extends StatelessWidget {
       case HardwareUnsupportedError():
         Fimber.i('Hardware unsupported, primary action always defaults to resetToSplash');
         return ErrorPage.deviceIncompatible(context);
+      case AttestationFailedError():
+        return ErrorPage.attestationFailed(context);
       default:
         Fimber.i('No specific handling defined for $error, defaulting to generic error page.');
         return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
@@ -180,6 +182,16 @@ class ErrorPage extends StatelessWidget {
         onPressed: () => Navigator.of(context).resetToSplash(),
       ),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
+  /// Creates an [ErrorPage] for when key and/or app attestation fails during registration.
+  factory ErrorPage.attestationFailed(BuildContext context) {
+    return ErrorPage(
+      title: context.l10n.errorScreenAttestationFailedHeadline,
+      description: context.l10n.errorScreenAttestationFailedDescription,
+      illustration: WalletAssets.svg_error_config_update,
+      primaryButton: ErrorButtonBuilder.buildHelpdeskButton(context),
     );
   }
 

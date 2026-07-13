@@ -16,6 +16,7 @@ extension CoreErrorExtension on CoreError {
       CoreNetworkError() => _mapNetworkError(error),
       CoreRedirectUriError() => RedirectUriError(redirectError: error.redirectError, sourceError: error),
       CoreHardwareKeyUnsupportedError() => HardwareUnsupportedError(sourceError: error),
+      CoreAttestationError() => AttestationFailedError(sourceError: error),
       CoreDisclosureSourceMismatchError() => _mapDisclosureSourceMismatchError(error),
       CoreExpiredSessionError() => SessionError(
         state: SessionState.expired,

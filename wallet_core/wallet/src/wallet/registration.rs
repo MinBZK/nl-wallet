@@ -100,6 +100,29 @@ impl WalletRegistrationError {
             _ => false,
         }
     }
+
+    /// Returns `true` when registration failed because key and/or app attestation could not be
+    /// performed or was rejected. This covers both on-device attestation failures and a server-side
+    /// rejection of the attestation by the Wallet Provider.
+    ///
+    /// The "attestation not supported" case is deliberately excluded here, as it warrants a different
+    /// message to the user (see [`Self::is_attestation_not_supported`]).
+    pub fn is_attestation_failed(&self) -> bool {
+        if self.is_attestation_not_supported() {
+            return false;
+        }
+        matches!(
+            self,
+            Self::KeyGeneration(_)
+                | Self::Attestation(_)
+                | Self::AndroidCertificateChain(_)
+                | Self::AttestedPublicKey(_)
+                | Self::RegistrationRequest(AccountProviderError::Response(AccountProviderResponseError::Account(
+                    AccountError::AttestationValidation,
+                    _
+                )))
+        )
+    }
 }
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
@@ -352,6 +375,7 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
     use wallet_account::RevocationCode;
+    use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::registration::RegistrationAttestation;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::SequenceNumberComparison;
@@ -367,6 +391,28 @@ mod tests {
     use crate::wallet::test::valid_certificate_claims;
 
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
+
+    #[rstest]
+    #[case::attestation(WalletRegistrationError::Attestation("failed".into()), true)]
+    #[case::key_generation(WalletRegistrationError::KeyGeneration("failed".into()), true)]
+    #[case::attested_public_key(WalletRegistrationError::AttestedPublicKey("failed".into()), true)]
+    #[case::server_attestation_validation(
+        WalletRegistrationError::RegistrationRequest(AccountProviderError::Response(
+            AccountProviderResponseError::Account(AccountError::AttestationValidation, None)
+        )),
+        true
+    )]
+    #[case::already_registered(WalletRegistrationError::AlreadyRegistered, false)]
+    #[case::public_key_mismatch(WalletRegistrationError::PublicKeyMismatch, false)]
+    #[case::server_other_account_error(
+        WalletRegistrationError::RegistrationRequest(AccountProviderError::Response(
+            AccountProviderResponseError::Account(AccountError::ChallengeValidation, None)
+        )),
+        false
+    )]
+    fn test_is_attestation_failed(#[case] error: WalletRegistrationError, #[case] expected: bool) {
+        assert_eq!(error.is_attestation_failed(), expected);
+    }
 
     async fn test_register_success(wallet: &mut TestWalletInMemoryStorage) {
         // The wallet should report that it is currently unregistered and locked.
