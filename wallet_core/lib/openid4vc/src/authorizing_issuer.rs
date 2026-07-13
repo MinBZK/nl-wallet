@@ -399,6 +399,7 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use crypto::server_keys::KeyPair;
     use futures::FutureExt;
     use jwt::wia::WiaDisclosure;
@@ -424,7 +425,6 @@ mod tests {
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::ErrorWithCode;
     use crate::errors::RedirectError;
-    use crate::issuable_document::CredentialKind;
     use crate::issuer::AuthRequestValues;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;

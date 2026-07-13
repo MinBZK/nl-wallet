@@ -13,6 +13,7 @@ use std::io;
 
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
@@ -22,7 +23,6 @@ use derive_more::Constructor;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
-use openid4vc::issuable_document::CredentialKind;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;

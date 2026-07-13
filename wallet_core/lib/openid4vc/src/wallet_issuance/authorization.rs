@@ -316,6 +316,7 @@ mod tests {
     use std::collections::HashMap;
 
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpClient;
@@ -337,7 +338,6 @@ mod tests {
     use super::OAuthError;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::RemoteErrorCode;
-    use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
