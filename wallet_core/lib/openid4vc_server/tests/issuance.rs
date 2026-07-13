@@ -17,6 +17,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use itertools::Itertools;
 use jwt::VerifiedJwt;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
@@ -51,6 +52,8 @@ use openid4vc::token::AuthorizationCode;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
+use openid4vc::token::TokenResponse;
+use openid4vc::token::TokenType;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceFlow;
@@ -888,6 +891,78 @@ async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) ->
         .unwrap();
 
     (code, pkce_pair.into_code_verifier())
+}
+
+#[tokio::test]
+async fn token_ok() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        wia_keypair,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+        scope: None,
+        code_verifier: Some(code_verifier),
+        authorization_details: None,
+    };
+
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let token_response = response
+        .json::<TokenResponse>()
+        .await
+        .expect("response body should deserialize to TokenResponse");
+
+    assert_eq!(token_response.token_type, TokenType::DPoP);
+    assert!(token_response.refresh_token.is_none());
+    assert_eq!(token_response.scope, HashSet::new());
+    assert!(token_response.expires_in.is_none());
+
+    let EntryContainer { entry, .. } = token_response
+        .authorization_details
+        .as_ref()
+        .expect("TokenResponse should contain authorization_details")
+        .as_ref()
+        .iter()
+        .exactly_one()
+        .expect("authorization_details should contain a single entry");
+
+    assert_eq!(
+        entry.config_entry.credential_configuration_id.as_ref(),
+        "com.example.pid_dc+sd-jwt"
+    );
+    assert_eq!(entry.credential_identifiers.len().get(), 1);
 }
 
 #[tokio::test]
