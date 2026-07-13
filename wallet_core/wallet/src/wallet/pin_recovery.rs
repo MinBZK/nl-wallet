@@ -608,9 +608,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_single_format()
+            .expect_fetch_unique_attestations_by_credential_kinds()
             .once()
-            .returning(|_, _| {
+            .returning(|_| {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
@@ -907,9 +907,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_single_format()
+            .expect_fetch_unique_attestations_by_credential_kinds()
             .once()
-            .returning(|_, _| {
+            .returning(|_| {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),

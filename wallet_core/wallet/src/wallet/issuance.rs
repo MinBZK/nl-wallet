@@ -1273,17 +1273,12 @@ mod tests {
                 None,
             )
         };
-        let stored_clone = stored.clone();
-
+        // The stored PID is fetched both when matching the previews against it and when
+        // comparing its recovery code, which now both query by credential kind.
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .return_once(move |_| Ok(vec![stored]));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_single_format()
-            .return_once(move |_, _| Ok(vec![stored_clone]));
+            .returning(move |_| Ok(vec![stored.clone()]));
 
         // Continuing PID issuance should result in one preview `Attestation`.
         let attestations = wallet
@@ -1580,16 +1575,14 @@ mod tests {
             None,
         );
 
-        let stored_clone = stored.clone();
         let attestation_id = stored.attestation_id();
 
+        // The stored PID is fetched both when matching the previews against it and when
+        // comparing its recovery code, which now both query by credential kind.
         let storage = wallet.mut_storage();
         storage
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .return_once(move |_attestation_types| Ok(vec![stored]));
-        storage
-            .expect_fetch_unique_attestations_by_types_and_single_format()
-            .return_once(move |_attestation_types, _format| Ok(vec![stored_clone]));
+            .returning(move |_credential_kinds| Ok(vec![stored.clone()]));
 
         // Set up the `MockIssuanceSession` directly.
         let mut issuance_session = MockIssuanceSession::new();

@@ -12,7 +12,6 @@ use std::collections::HashSet;
 use std::io;
 
 use attestation_data::disclosure_type::DisclosureType;
-use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
@@ -192,32 +191,24 @@ pub trait Storage: Send {
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy for each stored attestation whose attestation type and format match one of the
-    /// requested `CredentialKind` instances.
+    /// requested [`CredentialKind`] instances. Attestations that merely extend one of the requested attestation types
+    /// are not returned.
     async fn fetch_unique_attestations_by_credential_kinds(
         &self,
         credential_kinds: &HashSet<CredentialKind>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to
-    /// one of the types requested and the requested format. Attestations that extend one of the requested
-    /// attestation types are not included.
-    async fn fetch_unique_attestations_by_types_and_single_format(
-        &self,
-        attestation_types: &HashSet<String>,
-        format: Format,
-    ) -> StorageResult<Vec<StoredAttestationCopy>>;
-
-    /// Returns a single valid attestation copy of each stored attestation for which the attestation type is equal to
-    /// one of types requested and for which at least one copy of the requested format exists. The returned copy
-    /// will be of the requested format. Valid in this context means describes the revocation status.
+    /// Returns a single valid attestation copy for each stored attestation whose attestation type and format match one
+    /// of the requested [`CredentialKind`] instances. Valid in this context describes the revocation status and the
+    /// validity window of the attestation.
     ///
-    /// Additionally, if `Format::SdJwt` is requested, the returned attestation copies will also include those
-    /// that extend at least one of the requested attestation types.
+    /// In addition to the attestations of the requested attestation types themselves, the returned attestation copies
+    /// include those of which the type metadata extends one of the requested attestation types. Note that this can only
+    /// apply to attestations in the SD-JWT format, as mdoc doc types have no extension mechanism.
     #[cfg_attr(test, mockall::concretize)]
-    async fn fetch_valid_unique_attestations_by_types_and_format<T>(
+    async fn fetch_valid_unique_attestations_by_credential_kinds<T>(
         &self,
-        attestation_types: &HashSet<String>,
-        format: Format,
+        credential_kinds: &HashSet<CredentialKind>,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
     where
