@@ -54,6 +54,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
+use crate::authorization_details::AuthorizationDetails;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
 use crate::credential::Credential;
@@ -150,6 +151,9 @@ pub enum TokenRequestError {
     #[error("session not found for the supplied code")]
     SessionNotFound,
 
+    #[error("error verifying WIA: {0}")]
+    Wia(#[source] WiaError),
+
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType { expected: String, actual: String },
 
@@ -167,6 +171,9 @@ pub enum TokenRequestError {
          {expected}, got {actual}"
     )]
     ClientIdMismatch { expected: String, actual: String },
+
+    #[error("a Token Request containing authorization_details is not supported")]
+    AuthorizationDetailsUnsupported,
 
     #[error(
         "scope received in Token Request does not match scope requested in Authorization Request: \
@@ -190,9 +197,6 @@ pub enum TokenRequestError {
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
-
-    #[error("error verifying WIA: {0}")]
-    Wia(#[source] WiaError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -1189,6 +1193,11 @@ impl Session<AuthCodeIssued> {
         session_data
             .grant
             .verify_client_id(client_id, &issuer_data.accepted_wallet_client_ids)?;
+
+        if token_request.authorization_details.is_some() {
+            return Err(TokenRequestError::AuthorizationDetailsUnsupported);
+        }
+
         session_data.grant.verify_scope(token_request)?;
         session_data.grant.verify_redirect_uri(token_request)?;
 
@@ -1240,6 +1249,16 @@ fn build_token_response<K, L>(
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
+    // The issuer has a choice here to either include `scope` values that refer to the Credential Configurations of the
+    // credentials offered or include an `authorization_details` field that includes both the Credential Configuration
+    // Identifiers and the individual Credential Identifiers. As the former prohibits issuance of multiple credentials
+    // within the same Credential Configuration, we choose the latter.
+    let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(
+        credential_ids_and_documents
+            .nonempty_iter()
+            .map(|(config_id, document)| (config_id, document.id.to_string())),
+    );
+
     let prepared_credentials = credential_ids_and_documents
         .into_nonempty_iter()
         .map(|(config_id, document)| {
@@ -1249,7 +1268,7 @@ fn build_token_response<K, L>(
         .collect::<Result<_, _>>()?;
 
     let dpop_nonce = random_string(32);
-    let token_response = TokenResponse::new(AccessToken::new(token_request_auth_code));
+    let token_response = TokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
 
     Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))
 }

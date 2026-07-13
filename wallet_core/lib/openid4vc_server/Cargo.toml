@@ -49,6 +49,7 @@ sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true }
 [dev-dependencies]
 axum-server.workspace = true
 indexmap.workspace = true
+itertools.workspace = true
 p256.workspace = true
 rand_core.workspace = true
 reqwest.workspace = true

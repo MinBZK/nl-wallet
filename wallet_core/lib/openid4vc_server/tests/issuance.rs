@@ -17,10 +17,12 @@ use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use itertools::Itertools;
 use jwt::VerifiedJwt;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use openid4vc::authorization::PushedAuthorizationResponse;
+use openid4vc::authorization_details::EntryContainer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
@@ -50,6 +52,8 @@ use openid4vc::token::AuthorizationCode;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
+use openid4vc::token::TokenResponse;
+use openid4vc::token::TokenType;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceFlow;
@@ -893,6 +897,78 @@ async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) ->
 }
 
 #[tokio::test]
+async fn token_ok() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        wia_keypair,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+        scope: None,
+        code_verifier: Some(code_verifier),
+        authorization_details: None,
+    };
+
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let token_response = response
+        .json::<TokenResponse>()
+        .await
+        .expect("response body should deserialize to TokenResponse");
+
+    assert_eq!(token_response.token_type, TokenType::DPoP);
+    assert!(token_response.refresh_token.is_none());
+    assert_eq!(token_response.scope, HashSet::new());
+    assert!(token_response.expires_in.is_none());
+
+    let EntryContainer { entry, .. } = token_response
+        .authorization_details
+        .as_ref()
+        .expect("TokenResponse should contain authorization_details")
+        .as_ref()
+        .iter()
+        .exactly_one()
+        .expect("authorization_details should contain a single entry");
+
+    assert_eq!(
+        entry.config_entry.credential_configuration_id.as_ref(),
+        "com.example.pid_dc+sd-jwt"
+    );
+    assert_eq!(entry.credential_identifiers.len().get(), 1);
+}
+
+#[tokio::test]
 async fn token_rejects_missing_code_verifier() {
     let AuthCodeFlowServer {
         authorizing_issuer,
@@ -918,6 +994,7 @@ async fn token_rejects_missing_code_verifier() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: None,
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
@@ -966,6 +1043,7 @@ async fn token_rejects_unknown_code_verifier() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
@@ -1019,6 +1097,7 @@ async fn token_rejects_grant_type_mismatch() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
@@ -1039,6 +1118,63 @@ async fn token_rejects_grant_type_mismatch() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
     assert!(body.contains("unsupported_grant_type"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn token_rejects_authorization_details() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        wia_keypair,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    // Create a Token Request that contains (valid) `authorization_details`. The issuer should reject this as
+    // being unsupported.
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+        scope: None,
+        code_verifier: Some(code_verifier),
+        authorization_details: Some(
+            vec_nonempty![EntryContainer::new_credential_config(
+                "com.example.pid_dc+sd-jwt".to_string().into()
+            )]
+            .try_into()
+            .unwrap(),
+        ),
+    };
+
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(issuer_identifier.to_string(), None)
+        .await
+        .unwrap();
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_request"), "unexpected body: {body}");
 }
 
 #[tokio::test]
@@ -1068,6 +1204,7 @@ async fn token_rejects_scope_mismatch() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: Some(HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()])),
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
@@ -1101,6 +1238,7 @@ async fn token_rejects_scope_mismatch() {
             "other_scope".parse().unwrap(),
         ])),
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
@@ -1149,6 +1287,7 @@ async fn token_rejects_differing_client_id() {
         redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
@@ -1198,6 +1337,7 @@ async fn token_rejects_differing_redirect_uri() {
         redirect_uri: None,
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
@@ -1229,6 +1369,7 @@ async fn token_rejects_differing_redirect_uri() {
         redirect_uri: Some("https://wallet.example.com/other_path".parse().unwrap()),
         scope: None,
         code_verifier: Some(code_verifier),
+        authorization_details: None,
     };
 
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
