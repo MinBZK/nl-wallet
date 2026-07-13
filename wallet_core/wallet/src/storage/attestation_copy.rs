@@ -82,7 +82,7 @@ pub enum PartialAttestation {
 /// user for approval. This type is always derived from [`StoredAttestationCopy`].
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(derive_more::Constructor))]
-pub struct DisclosableAttestation<P = PartialAttestation> {
+pub struct DisclosableAttestation<P> {
     attestation_copy_id: Uuid,
     partial_attestation: P,
     presentation: AttestationPresentation,
@@ -302,7 +302,7 @@ impl PartialAttestation {
     }
 }
 
-impl DisclosableAttestation {
+impl DisclosableAttestation<PartialAttestation> {
     pub fn try_new<'a>(
         attestation_copy: StoredAttestationCopy,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,

@@ -277,7 +277,7 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations<T, A = DisclosableAttestation> {
+pub(super) enum WalletDisclosureAttestations<T, A> {
     Missing,
     Proposal(IndexMap<T, VecNonEmpty<A>>),
 }
@@ -320,11 +320,14 @@ impl<T: Hash + Eq, A> WalletDisclosureAttestations<T, A> {
     }
 }
 
+pub(super) type VpDisclosableAttestation = DisclosableAttestation<PartialAttestation>;
+type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, VpDisclosableAttestation>;
+
 #[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: WalletDisclosureAttestations<CredentialQueryIdentifier>,
+    pub attestations: VpDisclosureAttestations,
     pub protocol_state: DCS,
 }
 
@@ -332,7 +335,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>,
+        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<VpDisclosableAttestation>>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -396,7 +399,7 @@ pub(super) fn is_request_for_recovery_code(
 impl DisclosureProposalPresentation {
     /// Converts a collection of candidate attestations into a [`DisclosureProposalPresentation`].
     pub(super) fn from_candidates(
-        candidate_attestations: VecNonEmpty<VecNonEmpty<DisclosableAttestation>>,
+        candidate_attestations: VecNonEmpty<VecNonEmpty<VpDisclosableAttestation>>,
         reader_registration: ReaderRegistration,
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
@@ -491,7 +494,7 @@ where
         storage: &S,
         request: &impl AttestationRequest,
         presentation_config: &impl AttestationPresentationConfig,
-    ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
+    ) -> Result<Option<VecNonEmpty<VpDisclosableAttestation>>, StorageError> {
         let credential_types = request.credential_types().collect();
 
         let stored_attestations = storage
@@ -531,7 +534,7 @@ where
         attestation_requests: &[&impl AttestationRequest],
         pid_attributes: &PidAttributesConfiguration,
         verifier_certificate: &VerifierCertificate,
-    ) -> Result<(Vec<Option<VecNonEmpty<DisclosableAttestation>>>, bool), DisclosureError> {
+    ) -> Result<(Vec<Option<VecNonEmpty<VpDisclosableAttestation>>>, bool), DisclosureError> {
         // Check for recovery code request
         if attestation_requests
             .iter()
@@ -679,7 +682,7 @@ where
     fn verify_non_selectively_disclosable_claims<'a>(
         candidate_attestations: impl IntoIterator<
             Item = (
-                Option<VecNonEmpty<DisclosableAttestation>>,
+                Option<VecNonEmpty<VpDisclosableAttestation>>,
                 &'a NormalizedCredentialRequest,
             ),
         >,

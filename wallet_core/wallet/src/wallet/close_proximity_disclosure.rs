@@ -75,6 +75,7 @@ use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
 use crate::wallet::disclosure::RedirectUriPurpose;
+use crate::wallet::disclosure::VpDisclosableAttestation;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
 use crate::wallet::disclosure::instruction_error_from_signing_error;
 use crate::wallet::disclosure::requested_attribute_paths;
@@ -102,10 +103,10 @@ pub struct MdocUri(String);
 type CloseProximityDisclosableAttestation = DisclosableAttestation<PartialMdoc>;
 type CloseProximityDisclosureAttestations = WalletDisclosureAttestations<usize, CloseProximityDisclosableAttestation>;
 
-impl TryFrom<DisclosableAttestation> for DisclosableAttestation<PartialMdoc> {
+impl TryFrom<VpDisclosableAttestation> for CloseProximityDisclosableAttestation {
     type Error = CloseProximityDisclosureError;
 
-    fn try_from(attestation: DisclosableAttestation) -> Result<Self, Self::Error> {
+    fn try_from(attestation: VpDisclosableAttestation) -> Result<Self, Self::Error> {
         attestation.try_map_partial_attestation(|partial_attestation| {
             let PartialAttestation::MsoMdoc { partial_mdoc } = partial_attestation else {
                 return Err(CloseProximityDisclosureError::UnsupportedAttestationFormat);
@@ -117,7 +118,7 @@ impl TryFrom<DisclosableAttestation> for DisclosableAttestation<PartialMdoc> {
 }
 
 fn close_proximity_disclosure_proposal(
-    attestations: IndexMap<usize, VecNonEmpty<DisclosableAttestation>>,
+    attestations: IndexMap<usize, VecNonEmpty<VpDisclosableAttestation>>,
 ) -> Result<CloseProximityDisclosureAttestations, DisclosureError> {
     let attestations = attestations
         .into_iter()
@@ -969,6 +970,7 @@ mod tests {
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::DisclosureError;
     use crate::wallet::Session;
+    use crate::wallet::disclosure::VpDisclosableAttestation;
     use crate::wallet::test::READER_CA;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
@@ -1962,7 +1964,7 @@ mod tests {
             });
     }
 
-    fn pid_given_name_disclosable_attestation() -> (DisclosableAttestation, SigningKey) {
+    fn pid_given_name_disclosable_attestation() -> (VpDisclosableAttestation, SigningKey) {
         let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(
             &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])],
             None,
@@ -1979,7 +1981,7 @@ mod tests {
     fn disclosable_attestation_from_credential_requests(
         stored_attestation_copy: StoredAttestationCopy,
         credential_requests: &NormalizedCredentialRequests,
-    ) -> DisclosableAttestation {
+    ) -> VpDisclosableAttestation {
         DisclosableAttestation::try_new(
             stored_attestation_copy,
             credential_requests.as_ref().first().unwrap().claim_paths(),
