@@ -314,7 +314,6 @@ mod tests {
     use super::super::message_client::mock::WalletMessage;
     use super::VpDisclosureSession;
     use crate::disclosure_session::error::DataDisclosed;
-    use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::openid4vp::VpRequestUriMethod;
     use crate::verifier::SessionType;
@@ -585,7 +584,7 @@ mod tests {
         let wallet_messages = verifier_session.wallet_messages.lock();
 
         assert_eq!(wallet_messages.len(), 1);
-        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
+        let expected_error_code = VpAuthorizationErrorCode::AccessDenied;
         assert_matches!(
             wallet_messages.last().unwrap(),
             WalletMessage::Error(response)
@@ -616,7 +615,7 @@ mod tests {
         let wallet_messages = wallet_messages.lock();
 
         assert_eq!(wallet_messages.len(), 1);
-        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
+        let expected_error_code = VpAuthorizationErrorCode::AccessDenied;
         assert_matches!(
             wallet_messages.last().unwrap(),
             WalletMessage::Error(response)

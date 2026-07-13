@@ -1,5 +1,6 @@
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
 pub mod authorization;
+pub mod authorization_details;
 pub mod credential;
 pub mod credential_offer;
 pub mod issuer_identifier;
@@ -30,7 +31,6 @@ pub mod verifier;
 
 // Errors used throughout the crate.
 pub mod errors;
-pub use errors::*;
 
 pub mod cleanup;
 pub mod cose;

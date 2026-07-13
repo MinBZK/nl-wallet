@@ -24,7 +24,7 @@ async fn main_impl(settings: PacfIssuanceServerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    let (issuer, database_checkers, _, server_settings) = settings.0.into_issuer(hsm, None).await?;
+    let (issuer, database_checkers, _, server_settings) = settings.0.into_issuer(hsm).await?;
 
     let health_checkers = health_checkers::boxed(hsm_checker)
         .into_iter()

@@ -99,14 +99,33 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-pid-issuer-digid-http-trust-anchors
                   key: trust_anchors
+            {{- range $bsn, $name := .Values.mockSubjects }}
+            - name: PID_ISSUER__DIGID__MOCK_SUBJECTS__{{ $bsn }}
+              value: {{ $name | quote }}
+            {{- end }}
             - name: PID_ISSUER__BRP_SERVER
               value: "http://brpproxy/"
             - name: PID_ISSUER__WIA_TRUST_ANCHORS
-              value: {{ join "," .Values.wiaTrustAnchors | quote }}
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: wia_trust_anchors
             - name: PID_ISSUER__WALLET_REDIRECT_URIS
               value: {{ join "," .Values.walletRedirectUris | quote }}
-            - name: PID_ISSUER__METADATA
+            - name: PID_ISSUER__TYPE_METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json"
+            - name: PID_ISSUER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pid-issuer-wrpac
+                  key: certificate
+            - name: PID_ISSUER__CREDENTIAL_METADATA_KEYPAIR__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pid-issuer-wrpac
+                  key: private_key
+            - name: PID_ISSUER__CREDENTIAL_METADATA_KEYPAIR__PRIVATE_KEY_TYPE
+              value: "software"
             - name: PID_ISSUER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: PID_ISSUER__STORAGE__URL

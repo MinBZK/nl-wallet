@@ -33,19 +33,18 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::AuthorizationErrorCode;
-use crate::ErrorWithCode;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::errors::AuthorizationErrorCode;
+use crate::errors::ErrorWithCode;
 use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
@@ -217,6 +216,7 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let metadata_keypair = ca.generate_wrpac_issuer_mock().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
     let trust_anchors = TrustAnchors::from(&ca);
     let wia_keypair = ca.generate_wia_mock().unwrap();
@@ -264,12 +264,11 @@ where
 
     let issuer = MockIssuer::try_new(
         issuer_identifier,
+        metadata_keypair,
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         config_params,
-        Some(WiaConfig {
-            wia_trust_anchors: trust_anchors.clone(),
-        }),
+        trust_anchors.clone(),
         sessions,
         MemoryNonceStore::new(),
     )
@@ -291,9 +290,9 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let par_store = MemoryStore::new(PAR_TTL);
-    let (issuer, trust_anchor, wia_keypair) =
+    let (issuer, trust_anchors, wia_keypair) =
         setup_mock_issuer_from_sd_jwt_metadata(issuer_identifier, type_metadata, sessions);
     let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
 
-    (authorizing_issuer, trust_anchor, wia_keypair)
+    (authorizing_issuer, trust_anchors, wia_keypair)
 }

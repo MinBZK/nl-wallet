@@ -1,7 +1,6 @@
 package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 
 import android.content.Context
-import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityManager.*
@@ -13,6 +12,7 @@ import kotlinx.coroutines.withContext
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.PlatformLogger
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.retryable
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
@@ -52,7 +52,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             }
 
             // Configure cloud project number, initialize manager and token provider request.
-            Log.d("attest", "initializing integrity token provider using google cloud project number: $googleCloudProjectNumber")
+            PlatformLogger.d("attest", "initializing integrity token provider using google cloud project number: $googleCloudProjectNumber")
 
             // Initialize integrity manager.
             val integrityManager = IntegrityManagerFactory.createStandard(context.applicationContext)
@@ -107,7 +107,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             try {
                 delete(identifier)
             } catch (ex: Exception) {
-                Log.w("attest", "failed to delete key with id '$identifier'", ex)
+                PlatformLogger.w("attest", "failed to delete key with id '$identifier'", ex)
             }
             e.wrapAndThrow("failed to attest key")
         }

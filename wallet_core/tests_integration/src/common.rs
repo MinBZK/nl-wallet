@@ -19,7 +19,9 @@ use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
+use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use ctor::ctor;
 use db_test::DbSetup;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -104,6 +106,7 @@ use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
+use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
 use crate::logging::init_logging;
 use crate::utils::read_file;
@@ -176,7 +179,7 @@ pub async fn setup_wallet_and_default_env(
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
@@ -292,7 +295,7 @@ pub async fn setup_env_default(
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         verification_server_settings(db_setup.verification_server_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await
@@ -589,8 +592,12 @@ pub async fn setup_pre_auth_env(db_setup: &DbSetup) -> IssuerUrl {
 
 /// Start just the authorization-code-flow issuer (`acf_demo_issuer`). Its keys are software-backed, so
 /// no HSM is required.
-pub async fn setup_auth_code_env(db_setup: &DbSetup) -> IssuerUrl {
-    start_acf_demo_issuer_server(acf_demo_issuer_settings(db_setup.acf_demo_issuer_url())).await
+pub async fn setup_auth_code_env(db_setup: &DbSetup, wia_ca_override: Option<&Ca>) -> IssuerUrl {
+    start_acf_demo_issuer_server(acf_demo_issuer_settings(
+        db_setup.acf_demo_issuer_url(),
+        wia_ca_override,
+    ))
+    .await
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -743,7 +750,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings(db_url: Url) -> PidIssuerSettings {
+pub fn pid_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> PidIssuerSettings {
     let mut pid_settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     pid_settings
@@ -765,6 +772,18 @@ pub fn pid_issuer_settings(db_url: Url) -> PidIssuerSettings {
         .server_settings
         .wallet_server
         .port = 0;
+
+    if let Some(wia_ca) = wia_ca_override {
+        pid_settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .wia_trust_anchors = TrustAnchors::from(wia_ca);
+        pid_settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .wallet_client_ids
+            .insert(MOCK_WALLET_CLIENT_ID.to_string());
+    }
 
     pid_settings
 }
@@ -897,7 +916,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     let serve_status_lists = settings.issuer_settings.status_lists.serve;
 
     let (issuer, _, store_connection, server_settings) =
-        settings.issuer_settings.into_issuer(hsm.clone(), None).await.unwrap();
+        settings.issuer_settings.into_issuer(hsm.clone()).await.unwrap();
 
     let issuer = Arc::new(issuer);
 
@@ -956,7 +975,7 @@ pub async fn start_pacf_issuance_server(mut settings: PacfIssuanceServerSettings
 
     let serve_status_lists = settings.0.status_lists.serve;
 
-    let (issuer, _, _, server_settings) = settings.0.into_issuer(None, None).await.unwrap();
+    let (issuer, _, _, server_settings) = settings.0.into_issuer(None).await.unwrap();
 
     let issuer = Arc::new(issuer);
 
@@ -995,7 +1014,7 @@ pub fn wallet_issuance_redirect_uri() -> Url {
     issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner()
 }
 
-pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
+pub fn acf_demo_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> AcfDemoIssuerSettings {
     let mut settings =
         AcfDemoIssuerSettings::new("acf_demo_issuer.toml", "acf_demo_issuer").expect("Could not read settings");
 
@@ -1007,6 +1026,16 @@ pub fn acf_demo_issuer_settings(db_url: Url) -> AcfDemoIssuerSettings {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
         port: 0,
     });
+
+    if let Some(wia_ca) = wia_ca_override {
+        settings.authorizing_issuer_settings.issuer_settings.wia_trust_anchors = TrustAnchors::from(wia_ca);
+        // `MockWiaClient` always issues WIAs with `sub` set to `MOCK_WALLET_CLIENT_ID`.
+        settings
+            .authorizing_issuer_settings
+            .issuer_settings
+            .wallet_client_ids
+            .insert(MOCK_WALLET_CLIENT_ID.to_string());
+    }
 
     settings
 }
@@ -1120,6 +1149,7 @@ where
                 server_settings,
                 serve_status_lists,
                 [],
+                None,
             )
             .await
             {

@@ -3,14 +3,12 @@ import 'dart:convert';
 import 'package:fimber/fimber.dart';
 import 'package:meta/meta.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:wallet_core/core.dart';
 
 import '../../../../../environment.dart';
 import '../../../../domain/model/navigation/navigation_request.dart';
 import '../../../../domain/model/qr/edi_qr_code.dart';
-import '../../../../feature/disclosure/argument/disclosure_screen_argument.dart';
-import '../../../../feature/issuance/argument/issuance_screen_argument.dart';
 import '../../../../feature/sign/argument/sign_screen_argument.dart';
+import '../../../../navigation/navigation_request_resolver.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../qr_repository.dart';
 
@@ -44,35 +42,10 @@ class CoreQrRepository implements QrRepository {
 
   Future<NavigationRequest> _processRawValue(String rawValue) async {
     if (Environment.mockRepositories) {
-      // When wallet_core supports sign requests, this logic should be removed.
+      // Once wallet_core supports sign requests, this logic should be removed.
       if (rawValue.contains('sign')) return NavigationRequest.sign(argument: SignScreenArgument(uri: rawValue));
     }
     final uriType = await _walletCore.identifyUri(rawValue);
-    switch (uriType) {
-      case IdentifyUriResult.PidIssuance:
-        return NavigationRequest.pidIssuance(rawValue);
-      case IdentifyUriResult.PidRenewal:
-        return NavigationRequest.pidRenewal(rawValue);
-      case IdentifyUriResult.PinRecovery:
-        return NavigationRequest.pinRecovery(rawValue);
-      case IdentifyUriResult.Disclosure:
-        return NavigationRequest.disclosure(
-          argument: DisclosureScreenArgument(type: .remote(rawValue, isQrCode: true)),
-        );
-      case IdentifyUriResult.DisclosureBasedIssuance:
-        return NavigationRequest.issuance(
-          argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true, issuanceType: .disclosureBasedIssuance),
-        );
-      case IdentifyUriResult.Transfer:
-        return NavigationRequest.walletTransferSource(rawValue);
-      case IdentifyUriResult.CredentialOffer:
-        return NavigationRequest.issuance(
-          argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true, issuanceType: .credentialOffer),
-        );
-      case IdentifyUriResult.GenericIssuance:
-        return NavigationRequest.continueIssuance(
-          argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true, issuanceType: .authorizationCallback),
-        );
-    }
+    return resolveNavigationRequest(uriType, rawValue, isQrCode: true);
   }
 }

@@ -12,7 +12,7 @@ use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
-use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use p256::ecdsa::VerifyingKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -160,6 +160,12 @@ where
 
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
 
+        info!("Checking if registered");
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| PinRecoveryError::NotRegistered)?;
+
         info!("Fetching issuer metadata to discover authorization server");
         let authorization_session = self
             .issuance_discovery
@@ -167,6 +173,8 @@ where
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                &self.new_remote_wia_client(attested_key.to_owned(), registration_data, config),
+                config.wrpac_trust_anchors(),
             )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
@@ -198,9 +206,10 @@ where
         }
 
         info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(PinRecoveryError::NotRegistered);
-        }
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| PinRecoveryError::NotRegistered)?;
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
@@ -223,10 +232,15 @@ where
             return Err(PinRecoveryError::SessionState);
         };
 
-        // Fetch issuance previews
         let config = self.config_repository.get();
+
+        // Fetch issuance previews
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, config.issuer_trust_anchors())
+            .start_issuance(
+                &redirect_uri,
+                config.issuer_trust_anchors(),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+            )
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::AuthorizationDenied,
@@ -358,7 +372,7 @@ where
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
         let issuance_result = issuance_session
-            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd, true)
+            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
@@ -394,10 +408,9 @@ where
         let pid = issuance_result
             .into_iter()
             .filter(|attestation| attestation.attestation_type == pid_attestation_type)
-            .flat_map(|attestation| attestation.copies.into_inner().into_iter())
-            .find_map(|copy| match copy {
-                IssuedCredential::MsoMdoc { .. } => None,
-                IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
+            .find_map(|attestation| match attestation.copies {
+                IssuedCredentialCopies::Mdoc(_) => None,
+                IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().1),
             })
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
@@ -482,10 +495,8 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
-    use jwt::wia::WiaDisclosure;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
-    use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -965,11 +976,11 @@ mod tests {
 
         let (pid_issuer, _) = mock_issuance_session([
             (
-                IssuedCredential::MsoMdoc { mdoc },
+                StoredAttestation::MsoMdoc { mdoc },
                 VerifiedTypeMetadataDocuments::nl_pid_example(),
             ),
             (
-                IssuedCredential::SdJwt {
+                StoredAttestation::SdJwt {
                     key_identifier: "key_id".to_string(),
                     sd_jwt: sd_jwt.clone(),
                 },
@@ -995,10 +1006,6 @@ mod tests {
             _aud: String,
             _nonce: Option<Nonce>,
         ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
-            unimplemented!()
-        }
-
-        async fn issue_wia(&self, _aud: String, _nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
             unimplemented!()
         }
     }

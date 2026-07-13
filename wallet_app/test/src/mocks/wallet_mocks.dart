@@ -57,8 +57,8 @@ import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.d
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
+import 'package:wallet/src/domain/usecase/event/get_wallet_events_page_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_pid_usecase.dart';
-import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
@@ -228,7 +228,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<GetWalletCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletEventsForCardUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletEventsForPidUseCase>()])
-@GenerateNiceMocks([MockSpec<GetWalletEventsUseCase>()])
+@GenerateNiceMocks([MockSpec<GetWalletEventsPageUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletStateUseCase>()])
 @GenerateNiceMocks([MockSpec<InitWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<IsBiometricLoginEnabledUseCase>()])
@@ -384,7 +384,7 @@ class Mocks {
     sl.registerFactory<GetWalletCardsUseCase>(MockGetWalletCardsUseCase.new);
     sl.registerFactory<GetWalletEventsForCardUseCase>(MockGetWalletEventsForCardUseCase.new);
     sl.registerFactory<GetWalletEventsForPidUseCase>(MockGetWalletEventsForPidUseCase.new);
-    sl.registerFactory<GetWalletEventsUseCase>(MockGetWalletEventsUseCase.new);
+    sl.registerFactory<GetWalletEventsPageUseCase>(MockGetWalletEventsPageUseCase.new);
     sl.registerFactory<GetWalletStateUseCase>(MockGetWalletStateUseCase.new);
     sl.registerFactory<InitWalletTransferUseCase>(MockInitWalletTransferUseCase.new);
     sl.registerFactory<IsBiometricLoginEnabledUseCase>(MockIsBiometricLoginEnabledUseCase.new);

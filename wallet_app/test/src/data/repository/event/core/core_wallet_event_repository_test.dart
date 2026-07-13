@@ -101,7 +101,9 @@ void main() {
         ),
       ];
 
-      when(walletCore.getHistory()).thenAnswer((_) async => coreEvents);
+      when(
+        walletCore.getHistory(page: anyNamed('page'), pageSize: anyNamed('pageSize')),
+      ).thenAnswer((_) async => coreEvents);
       when(walletEventMapper.mapList(coreEvents)).thenReturn(mappedEvents);
 
       final config = createConfig([]);
@@ -123,7 +125,7 @@ void main() {
       final result = await repository.getEvents();
 
       expect(result, mappedEvents);
-      verify(walletCore.getHistory()).called(1);
+      verify(walletCore.getHistory(page: anyNamed('page'), pageSize: anyNamed('pageSize'))).called(1);
     });
 
     test('getEvents with removeDuplicatePidEvents: false should return all events without filtering', () async {
@@ -153,14 +155,27 @@ void main() {
         ),
       ];
 
-      when(walletCore.getHistory()).thenAnswer((_) async => coreEvents);
+      when(
+        walletCore.getHistory(page: anyNamed('page'), pageSize: anyNamed('pageSize')),
+      ).thenAnswer((_) async => coreEvents);
       when(walletEventMapper.mapList(coreEvents)).thenReturn(mappedEvents);
 
-      final result = await repository.getEvents(removeDuplicatePidEvents: false);
+      final result = await repository.getEvents(page: 0, pageSize: 100, removeDuplicatePidEvents: false);
 
       expect(result, mappedEvents);
-      verify(walletCore.getHistory()).called(1);
+      verify(walletCore.getHistory(page: anyNamed('page'), pageSize: anyNamed('pageSize'))).called(1);
       verifyNever(walletCore.observeConfig()); // Filtering relies on config, so make sure it's not fetched.
+    });
+
+    test('getEvents throws when pagination is combined with removeDuplicatePidEvents: true', () async {
+      expect(
+        () => repository.getEvents(page: 0, pageSize: 100, removeDuplicatePidEvents: true),
+        throwsArgumentError,
+      );
+      expect(
+        () => repository.getEvents(page: 0, pageSize: 100),
+        throwsArgumentError,
+      );
     });
 
     test('getEvents with removeDuplicatePidEvents: true should filter events', () async {
@@ -182,7 +197,7 @@ void main() {
 
       final mappedEvents = [eventSdJwt, eventMdoc];
 
-      when(walletCore.getHistory()).thenAnswer((_) async => []);
+      when(walletCore.getHistory(page: anyNamed('page'), pageSize: anyNamed('pageSize'))).thenAnswer((_) async => []);
       when(walletEventMapper.mapList(any)).thenReturn(mappedEvents);
 
       final config = createConfig([const PidAttestation(attestationType: 'pid', format: AttestationFormat.sdJwt)]);

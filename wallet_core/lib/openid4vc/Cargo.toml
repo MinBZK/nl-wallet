@@ -63,7 +63,6 @@ http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 jwk-simple.workspace = true
-mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["serde"] }
 rand_core.workspace = true
@@ -107,6 +106,8 @@ wscd.path = "../wscd"
 
 [dev-dependencies]
 httpmock.workspace = true
+jsonwebtoken.workspace = true
+mime.workspace = true
 mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true

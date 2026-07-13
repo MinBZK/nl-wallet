@@ -25,6 +25,8 @@ enum FlutterApiErrorType {
   walletState,
   @JsonValue('HardwareKeyUnsupported')
   hardwareKeyUnsupported,
+  @JsonValue('Attestation')
+  attestation,
   @JsonValue('RedirectUri')
   redirectUri,
   @JsonValue('DisclosureSourceMismatch')

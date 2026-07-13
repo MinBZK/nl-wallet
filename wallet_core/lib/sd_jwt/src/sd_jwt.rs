@@ -175,7 +175,7 @@ impl UnverifiedSdJwt {
         let issuer_signed = self.issuer_signed.into_verified_against_trust_anchors(
             trust_anchors,
             time,
-            CertificateUsage::Mdl,
+            Some(CertificateUsage::Mdl),
             &SD_JWT_VALIDATIONS,
         )?;
 
@@ -526,7 +526,7 @@ impl UnverifiedSdJwtPresentation {
         let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
             trust_anchors,
             time,
-            CertificateUsage::Mdl,
+            Some(CertificateUsage::Mdl),
             &SD_JWT_VALIDATIONS,
         )?;
 
@@ -890,7 +890,7 @@ mod test {
     use jsonwebtoken::jwk::Jwk;
     use jwt::Header;
     use jwt::confirmation::ConfirmationClaim;
-    use jwt::error::JwtError;
+    use jwt::error::JwtVerifyError;
     use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -985,7 +985,7 @@ mod test {
 
         assert_matches!(
             err,
-            DecoderError::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature
+            DecoderError::JwtVerification(JwtVerifyError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature
         );
     }
 

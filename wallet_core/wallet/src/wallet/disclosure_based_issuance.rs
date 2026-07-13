@@ -4,19 +4,19 @@ use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
-use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
+use openid4vc::errors::PostAuthResponseErrorCode;
+use openid4vc::errors::RemoteErrorCode;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
-use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::DisclosureError;
@@ -101,7 +101,11 @@ where
                 selected_indices,
                 pin,
                 RedirectUriPurpose::Issuance,
-                (attested_key, registration_data, Arc::clone(&config)),
+                (
+                    Arc::clone(&attested_key),
+                    registration_data.clone(),
+                    Arc::clone(&config),
+                ),
             )
             .await
         {
@@ -116,7 +120,8 @@ where
 
             // If the issuer has no attestations to issue, return an empty Vec.
             Err(DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(err))))
-                if err.error_response.error == PostAuthResponseErrorCode::NoIssuableAttestations =>
+                if err.error_response.error
+                    == RemoteErrorCode::Known(PostAuthResponseErrorCode::NoIssuableAttestations) =>
             {
                 return Ok(vec![]);
             }
@@ -128,8 +133,9 @@ where
             .issuance_discovery
             .start_pre_authorized_code_flow(
                 &redirect_uri,
-                NL_WALLET_CLIENT_ID.to_string(),
                 config.issuer_trust_anchors(),
+                &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
@@ -178,11 +184,6 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;
     use mdoc::holder::disclosure::PartialMdoc;
-    use openid4vc::BoxedErrorWithCode;
-    use openid4vc::DisclosureErrorResponse;
-    use openid4vc::ErrorResponse;
-    use openid4vc::ErrorWithCode;
-    use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
     use openid4vc::disclosure_session;
@@ -190,6 +191,11 @@ mod tests {
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
+    use openid4vc::errors::BoxedErrorWithCode;
+    use openid4vc::errors::ErrorResponse;
+    use openid4vc::errors::ErrorWithCode;
+    use openid4vc::errors::PostAuthResponseErrorCode;
+    use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
@@ -385,10 +391,11 @@ mod tests {
                 disclosure_session::DisclosureError::new(
                     DataDisclosed::Disclosed,
                     VpSessionError::Client(VpClientError::Request(
-                        DisclosureErrorResponse {
+                        RemoteDisclosureErrorResponse {
                             error_response: ErrorResponse::<PostAuthResponseErrorCode>::from(
                                 PostAuthResponseError::HandlingDisclosureResult(BoxedErrorWithCode::new(MockError)),
-                            ),
+                            )
+                            .into(),
                             redirect_uri: None,
                         }
                         .into(),

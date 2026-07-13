@@ -56,7 +56,6 @@ async fn main() {
     let verification_server_url = option_env!("VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
     let internal_verification_server_url =
         option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
-    let digid_url = option_env!("DIGID_BASE_URL").unwrap_or("https://localhost:8006");
     let digid_trust_anchors: Vec<Certificate> = option_env!("DIGID_TRUST_ANCHORS")
         .unwrap_or_default()
         .split(',')
@@ -103,7 +102,7 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(authorization_url, digid_url, digid_trust_anchors, "999991772").await;
+    let redirect_url = fake_digid_auth(authorization_url, digid_trust_anchors, "999991772").await;
 
     let _attestations = wallet
         .continue_issuance(redirect_url)

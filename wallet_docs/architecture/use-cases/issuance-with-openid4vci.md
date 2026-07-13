@@ -19,11 +19,13 @@ attributes to be issued out of band, binds them to a freshly generated
 pre-authorized code in an issuance session, and hands that code to the wallet
 inside an [OpenID4VCI Credential Offer][2]. The wallet sends the code to the
 issuer's `/token` endpoint with
-`grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code`; the issuer
-loads the session keyed by the code to find the attributes to issue (this grant
-carries no PKCE). The wallet then obtains a `c_nonce` from the issuer's [nonce
-endpoint][14] and exchanges proofs of possession for attestations at the
-`/credential` endpoint.
+`grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code`, authenticating
+itself with a Wallet Instance Attestation (WIA) sent in HTTP headers
+([OAuth 2.0 Attestation-Based Client Authentication][12]); the issuer verifies
+the WIA and loads the session keyed by the code to find the attributes to issue
+(this grant carries no PKCE). The wallet then obtains a `c_nonce` from the
+issuer's [nonce endpoint][14] and exchanges proofs of possession for
+attestations at the `/credential` endpoint.
 
 In our codebase, this flow is implemented by the `issuance_server` (the
 disclosure-based-issuance service); see [Disclosure-based Issuance][8] for the
@@ -71,7 +73,7 @@ sequenceDiagram
         CI->>Wallet: c_nonce
         Wallet-->>CI: GET metadata
         CI-->>Wallet: metadata
-        Wallet->>CI: POST Credential Request<br/>(access_token, WIA) to /credential
+        Wallet->>CI: POST Credential Request<br/>(access_token) to /credential
         CI->>Wallet: Credential Response (attestation copies)
     end
 ```
@@ -88,8 +90,9 @@ of additional requirements:
 - [PKCE][11] with `S256` is required;
 
 - The wallet authenticates itself at both `/par` and `/token` with a Wallet
-  Instance Attestation (WIA) carried in a `client_assertion` ([OAuth 2.0
-  Attestation-Based Client Authentication][12]);
+  Instance Attestation (WIA), carried in `OAuth-Client-Attestation` and
+  `OAuth-Client-Attestation-PoP` headers ([OAuth 2.0 Attestation-Based Client
+  Authentication][12]);
 
 - Access tokens are sender-constrained with [DPoP][13]. The `/token` response
   has `token_type=DPoP`, and every subsequent request at the credential issuer
@@ -135,7 +138,7 @@ sequenceDiagram
         CI->>Wallet: c_nonce
         Wallet-->>CI: GET metadata
         CI-->>Wallet: metadata
-        Wallet->>CI: POST Credential Request<br/>(access_token, WIA) to /credential
+        Wallet->>CI: POST Credential Request<br/>(access_token) to /credential
         CI->>Wallet: Credential Response (attestation copies)
     end
 ```
@@ -165,8 +168,7 @@ that share no parameters:
    pushes a PAR, calls `PID Issuer`'s `/authorize`, eventually receives an
    authorization code at its own `redirect_uri`, and exchanges it at the
    `PID Issuer`'s `/token`. The wallet's `client_id`, `redirect_uri`, `state`,
-   PKCE pair, WIA (`client_assertion`) and DPoP all terminate at the
-   `PID Issuer`.
+   PKCE pair, WIA and DPoP all terminate at the `PID Issuer`.
 
 2. **PID Issuer ↔ RDO Max** — a second, freshly minted exchange the
    `PID Issuer` starts while handling the wallet's `/authorize`. Every parameter
@@ -189,10 +191,10 @@ Because the upstream round-trip is terminated at the `PID Issuer`, the upstream
 lookup happen **in the `/digid/callback` handler**, before the wallet ever calls
 `/token`. By the time the wallet exchanges its code at `/token`, the attributes
 are already determined and stored in the issuance session, so `/token` only
-verifies the wallet's PKCE `code_verifier` and issues the access token — there
-is no upstream interaction at `/token`. If anything fails in the callback (BSN,
-BRP, document build), the `PID Issuer` redirects the browser back to the
-wallet's `redirect_uri` with an OAuth `error` response.
+verifies the wallet's PKCE `code_verifier` and WIA, and issues the access
+token — there is no upstream interaction at `/token`. If anything fails in
+the callback (BSN, BRP, document build), the `PID Issuer` redirects the
+ browser back to the wallet's `redirect_uri` with an OAuth `error` response.
 
 Parameter handling, **wallet ↔ PID Issuer** (everything terminates at the PID
 Issuer):
@@ -204,7 +206,7 @@ Issuer):
 | `state`                    | remembered in the state bridge, echoed on the final wallet redirect      |
 | `code_challenge`/`_method` | wallet's PKCE (`c1`, `S256`); verified at the PID Issuer's `/token`      |
 | `scope`                    | the requested PID credential configuration                               |
-| `client_assertion` (WIA)   | wallet <-> PID Issuer only                                               |
+| WIA headers                | wallet <-> PID Issuer only                                               |
 | `DPoP` header              | wallet <-> PID Issuer only                                               |
 
 Parameter handling, **PID Issuer → RDO Max** (all freshly generated by the PID
@@ -221,9 +223,9 @@ Issuer, on both upstream `/authorize` and `/token`):
 | `code_verifier` (`/token`) | the PID Issuer's own verifier (`v2`); upstream client auth applied |
 
 To keep the diagram focused on the OpenID4VCI / RDO Max delegation, the
-wallet-side DPoP layer and the Wallet Instance Attestation (WIA,
-`client_assertion`) are omitted below — both sit strictly between the wallet and
-the `PID Issuer` and do not affect the delegation to RDO Max.
+wallet-side DPoP layer and the Wallet Instance Attestation (WIA) are omitted
+below — both sit strictly between the wallet and the `PID Issuer` and do not
+affect the delegation to RDO Max.
 
 PKCE tracer values: the wallet uses `(v1, c1)` toward the `PID Issuer`; the
 `PID Issuer` uses `(v2, c2)` toward RDO Max. Each verifier is checked only by
@@ -462,7 +464,7 @@ sequenceDiagram
 [10]: https://www.rfc-editor.org/rfc/rfc9126
 [11]: https://www.rfc-editor.org/rfc/rfc7636
 [12]:
-    https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-05.html
+    https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09
 [13]: https://www.rfc-editor.org/rfc/rfc9449
 [14]:
     https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint

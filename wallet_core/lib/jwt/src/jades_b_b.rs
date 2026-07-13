@@ -9,7 +9,8 @@ use utils::generator::Generator;
 
 use crate::JwtTyp;
 use crate::SignedJwt;
-use crate::error::JwtError;
+use crate::error::JwtParseError;
+use crate::error::JwtSignError;
 use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
 
@@ -65,14 +66,14 @@ impl From<JadesbbInnerHeader> for Header {
 }
 
 impl TryFrom<Header> for JadesbbInnerHeader {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
         let iat = value
             .extras
             .get::<i64>("iat")
-            .map_err(JwtError::InvalidIat)? // the `iat` field is present but not a valid timestamp
-            .map(|t| DateTime::from_timestamp(t, 0).ok_or(JwtError::IatOutOfRange(t))) // the `iat` field is a valid i64 but out of range for DateTime<Utc>
+            .map_err(JwtParseError::InvalidIat)? // the `iat` field is present but not a valid timestamp
+            .map(|t| DateTime::from_timestamp(t, 0).ok_or(JwtParseError::IatOutOfRange(t))) // the `iat` field is a valid i64 but out of range for DateTime<Utc>
             .transpose()?;
 
         Ok(JadesbbInnerHeader {
@@ -87,7 +88,7 @@ impl<C: Serialize + JwtTyp> SignedJwt<C, JadesbbHeader> {
         payload: &C,
         keypair: &KeyPair<K>,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<SignedJwt<C, JadesbbHeader>, JwtError> {
+    ) -> Result<SignedJwt<C, JadesbbHeader>, JwtSignError> {
         let header = JadesbbInnerHeader {
             inner: HeaderWithTyp::new::<C>(),
             iat: Some(time.generate()),
@@ -108,7 +109,6 @@ mod tests {
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::CertificateUsage;
     use jsonwebtoken::Algorithm;
     use serde_json::Value;
     use serde_json::json;
@@ -244,7 +244,7 @@ mod tests {
     #[tokio::test]
     async fn test_sign_and_verify_jades_b_b_token_roundtrip() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};
 
@@ -264,7 +264,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
-                CertificateUsage::ReaderAuth,
+                None,
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -278,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_verify_jades_b_b_without_iat() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};
 
@@ -304,7 +304,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
-                CertificateUsage::ReaderAuth,
+                None,
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap(); // should parse even without an `iat` field

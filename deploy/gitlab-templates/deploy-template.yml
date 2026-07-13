@@ -96,7 +96,7 @@ pid-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: pid-issuer
     RELEASE_NAME: pid-issuer
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
 
 acf-demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -262,6 +262,16 @@ digid-connector-${DEPLOY_ENV}:
     CHART_NAME: rdo-max
     RELEASE_NAME: digid-connector
     CONFIG_FILES: "general/global.yaml,general/rdo-max.yaml,${DEPLOY_ENV}/digid-connector.yaml"
+
+keycloak-${DEPLOY_ENV}:
+  extends: .deploy-helm
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: keycloak
+    RELEASE_NAME: keycloak
+    CONFIG_FILES: "general/global.yaml,general/keycloak.yaml,${DEPLOY_ENV}/keycloak.yaml"
 
 run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
   extends: .deploy-base

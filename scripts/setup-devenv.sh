@@ -393,9 +393,10 @@ generate_wia_tsl_key_pair
 WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
 export WIA_TSL_CRT
 
-# Generate pid issuer key and cert for issuance and TSL
-generate_pid_issuer_key_pair
-generate_pid_issuer_tsl_key_pair
+# Generate pid issuer key and cert for issuance, TSL and WRPAC
+generate_pid_issuer_hsm_key_pair
+generate_pid_issuer_key_pair tsl issuer
+generate_pid_issuer_key_pair wrpac
 
 export PID_ISSUER_KEY=pid_issuer_key
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
@@ -405,6 +406,11 @@ PID_ISSUER_TSL_KEY=$(< "${TARGET_DIR}/pid_issuer/tsl.key.der" ${BASE64})
 export PID_ISSUER_TSL_KEY
 PID_ISSUER_TSL_CRT=$(< "${TARGET_DIR}/pid_issuer/tsl.crt.der" ${BASE64})
 export PID_ISSUER_TSL_CRT
+
+PID_ISSUER_WRPAC_KEY=$(< "${TARGET_DIR}/pid_issuer/wrpac.key.der" ${BASE64})
+export PID_ISSUER_WRPAC_KEY
+PID_ISSUER_WRPAC_CRT=$(< "${TARGET_DIR}/pid_issuer/wrpac.crt.der" ${BASE64})
+export PID_ISSUER_WRPAC_CRT
 
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
@@ -465,6 +471,10 @@ DEMO_ISSUER_KEY_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.key
 export DEMO_ISSUER_KEY_UNIVERSITY_TSL
 DEMO_ISSUER_CRT_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_TSL
+DEMO_ISSUER_KEY_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_UNIVERSITY_WRPAC
+DEMO_ISSUER_CRT_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_UNIVERSITY_WRPAC
 
 # The insurance usecase is issued through the authorization-code flow (acf_demo_issuer), which performs
 # no disclosure, so it only needs issuer and TSL key pairs (no reader cert).
@@ -477,6 +487,10 @@ DEMO_ISSUER_KEY_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.key.d
 export DEMO_ISSUER_KEY_INSURANCE_TSL
 DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_TSL
+DEMO_ISSUER_KEY_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_INSURANCE_WRPAC
+DEMO_ISSUER_CRT_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_INSURANCE_WRPAC
 
 generate_demo_issuer_key_pairs housing
 DEMO_ISSUER_KEY_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.key.der" ${BASE64})
@@ -493,6 +507,10 @@ DEMO_ISSUER_KEY_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.key.der" 
 export DEMO_ISSUER_KEY_HOUSING_TSL
 DEMO_ISSUER_CRT_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_HOUSING_TSL
+DEMO_ISSUER_KEY_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_HOUSING_WRPAC
+DEMO_ISSUER_CRT_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_HOUSING_WRPAC
 
 generate_demo_issuer_issuance_key_pairs loyalty
 DEMO_ISSUER_KEY_LOYALTY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/loyalty.issuer.key.der" ${BASE64})
@@ -503,6 +521,10 @@ DEMO_ISSUER_KEY_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.key.der" 
 export DEMO_ISSUER_KEY_LOYALTY_TSL
 DEMO_ISSUER_CRT_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_LOYALTY_TSL
+DEMO_ISSUER_KEY_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_LOYALTY_WRPAC
+DEMO_ISSUER_CRT_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_LOYALTY_WRPAC
 
 generate_demo_issuer_issuance_key_pairs museum_maandkaart
 DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuer.key.der" ${BASE64})
@@ -513,6 +535,10 @@ DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maan
 export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL
 DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL
+DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC
+DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC
 
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 

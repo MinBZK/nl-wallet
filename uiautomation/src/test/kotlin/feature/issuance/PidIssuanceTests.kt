@@ -29,7 +29,6 @@ import screen.issuance.PersonalizeSuccessScreen
 import screen.issuance.StartTransferWalletScreen
 import screen.security.PinScreen
 import screen.web.digid.DigidLoginMockWebPage
-import screen.web.digid.DigidLoginStartWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 3.1 Obtain PID")
@@ -37,7 +36,6 @@ class PidIssuanceTests : TestBase() {
 
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
     private lateinit var personalizeAuthenticatingWithDigidScreen: PersonalizeAuthenticatingWithDigidScreen
-    private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
     private lateinit var personalizePidDataIncorrectScreen: PersonalizePidDataIncorrectScreen
     private lateinit var digidLoginMockWebPage: DigidLoginMockWebPage
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
@@ -55,7 +53,6 @@ class PidIssuanceTests : TestBase() {
 
         personalizeInformScreen = PersonalizeInformScreen()
         personalizeAuthenticatingWithDigidScreen = PersonalizeAuthenticatingWithDigidScreen()
-        digidLoginStartWebPage = DigidLoginStartWebPage()
         personalizePidDataIncorrectScreen = PersonalizePidDataIncorrectScreen()
         digidLoginMockWebPage = DigidLoginMockWebPage()
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
@@ -64,7 +61,6 @@ class PidIssuanceTests : TestBase() {
         dashboardScreen = DashboardScreen()
         noInternetErrorScreen = NoInternetErrorScreen()
         startTransferWalletScreen = StartTransferWalletScreen()
-        digidLoginStartWebPage = DigidLoginStartWebPage()
 
         gbaData = GbaDataHelper()
     }
@@ -78,8 +74,8 @@ class PidIssuanceTests : TestBase() {
 
         personalizeInformScreen.clickDigidLoginButton()
 
-        digidLoginStartWebPage.switchToWebViewContext()
-        assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
+        digidLoginMockWebPage.switchToWebViewContext()
+
 
         personalizeAuthenticatingWithDigidScreen.openApp()
         personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
@@ -88,9 +84,8 @@ class PidIssuanceTests : TestBase() {
             { assertTrue(personalizeAuthenticatingWithDigidScreen.digidLoadingStopCtaVisible(), "stop button is not visible") },
         )
 
-        digidLoginStartWebPage.switchToBrowser()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToBrowser()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()
@@ -134,8 +129,7 @@ class PidIssuanceTests : TestBase() {
     fun verifySessionCanceledScreen(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.enterBsn("123456789")
         digidLoginMockWebPage.clickLoginButton()
         personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
@@ -151,8 +145,7 @@ class PidIssuanceTests : TestBase() {
     fun verifyBackButton(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
         personalizePidPreviewScreen.switchToNativeContext()
 
@@ -167,8 +160,7 @@ class PidIssuanceTests : TestBase() {
     fun pidIssuanceFails(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()

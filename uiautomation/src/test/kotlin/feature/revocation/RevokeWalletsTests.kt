@@ -25,7 +25,6 @@ import screen.revocation.WalletBlockedByWalletIdScreen
 import screen.revocation.WalletSolutionBlockedScreen
 import screen.security.PinScreen
 import screen.web.digid.DigidLoginMockWebPage
-import screen.web.digid.DigidLoginStartWebPage
 import screen.web.revocation_portal.RevocationPortalWebPage
 import util.EnvironmentUtil
 import util.MobileActions
@@ -46,7 +45,6 @@ class RevokeWalletsTests : TestBase() {
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
     private lateinit var revocationCodeScreen: RevocationCodeSetupScreen
     private lateinit var personalizeAuthenticatingWithDigidScreen: PersonalizeAuthenticatingWithDigidScreen
-    private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
     private lateinit var digidLoginMockWebPage: DigidLoginMockWebPage
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
     private lateinit var personalizeSuccessScreen: PersonalizeSuccessScreen
@@ -66,7 +64,6 @@ class RevokeWalletsTests : TestBase() {
         revocationCodeScreen = RevocationCodeSetupScreen()
         personalizeInformScreen = PersonalizeInformScreen()
         personalizeAuthenticatingWithDigidScreen = PersonalizeAuthenticatingWithDigidScreen()
-        digidLoginStartWebPage = DigidLoginStartWebPage()
         digidLoginMockWebPage = DigidLoginMockWebPage()
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
         personalizeSuccessScreen = PersonalizeSuccessScreen()
@@ -83,12 +80,11 @@ class RevokeWalletsTests : TestBase() {
         revocationCodeScreen.confirmReceive()
         personalizeInformScreen.clickDigidLoginButton()
 
-        digidLoginStartWebPage.switchToWebViewContext()
+        digidLoginMockWebPage.switchToWebViewContext()
         personalizeAuthenticatingWithDigidScreen.openApp()
         personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
-        digidLoginStartWebPage.switchToBrowser()
-        digidLoginStartWebPage.switchToWebViewContext()
-        digidLoginStartWebPage.clickMockLoginButton()
+        digidLoginMockWebPage.switchToBrowser()
+        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()

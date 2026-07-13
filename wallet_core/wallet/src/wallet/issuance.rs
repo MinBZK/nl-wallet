@@ -14,7 +14,7 @@ use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls;
 use itertools::Itertools;
-use jwt::error::JwtError;
+use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
@@ -26,7 +26,7 @@ use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -155,7 +155,7 @@ pub enum IssuanceError {
     ChangePin(#[from] ChangePinError),
 
     #[error("JWT credential error: {0}")]
-    JwtCredential(#[from] JwtError),
+    JwtCredential(#[from] JwtVerifyError),
 
     #[error("error converting credential payload to attestation: {error}")]
     #[category(critical)]
@@ -305,7 +305,10 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
+    pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Generating OAuth URL, starting issuer discovery");
 
         self.check_session_preconditions()?;
@@ -333,6 +336,10 @@ where
         }
 
         let config = self.config_repository.get();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         info!("Fetching issuer metadata to discover authorization server");
         let authorization_session = self
@@ -341,6 +348,8 @@ where
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -396,7 +405,10 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn start_issuance_from_offer(&mut self, offer_uri: Url) -> Result<IssuanceStartResult, IssuanceError> {
+    pub async fn start_issuance_from_offer(&mut self, offer_uri: Url) -> Result<IssuanceStartResult, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Starting issuance from credential offer URI");
 
         self.check_session_preconditions()?;
@@ -406,8 +418,11 @@ where
         }
 
         let config = self.config_repository.get();
-        let trust_anchors = config.issuer_trust_anchors();
         let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         let flow = self
             .issuance_discovery
@@ -415,7 +430,9 @@ where
                 &offer_uri,
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
-                trust_anchors,
+                config.issuer_trust_anchors(),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -451,10 +468,10 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn continue_issuance(
-        &mut self,
-        redirect_uri: Url,
-    ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
+    pub async fn continue_issuance(&mut self, redirect_uri: Url) -> Result<Vec<AttestationPresentation>, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Received redirect URI, processing URI and retrieving access token");
 
         self.check_session_preconditions()?;
@@ -485,10 +502,17 @@ where
         };
 
         let config = self.config_repository.get();
-        let trust_anchors = config.issuer_trust_anchors();
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered))?;
 
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, trust_anchors)
+            .start_issuance(
+                &redirect_uri,
+                config.issuer_trust_anchors(),
+                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+            )
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => IssuanceError::AuthorizationDenied,
@@ -618,7 +642,7 @@ where
 
         info!("Signing nonce using Wallet Provider");
         let issuance_result = protocol_state
-            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd, pid_purpose.is_some())
+            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 
@@ -721,7 +745,7 @@ where
         match error {
             // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
             // that it is the error type of the `RemoteEcdsaWscd` we provide above.
-            WalletIssuanceError::PrivateKeyGeneration(error) | WalletIssuanceError::Jwt(JwtError::Signing(error)) => {
+            WalletIssuanceError::PrivateKeyGeneration(error) => {
                 match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                     RemoteEcdsaKeyError::Instruction(error) => IssuanceError::Instruction(error),
                     RemoteEcdsaKeyError::Signature(error) => IssuanceError::Signature(error),
@@ -749,10 +773,10 @@ where
             .find_map(|cred| {
                 let pid_paths = pid_attributes.sd_jwt.get(&cred.attestation_type)?;
 
-                let sd_jwt = cred.copies.as_ref().iter().find_map(|copy| match copy {
-                    IssuedCredential::MsoMdoc { .. } => None,
-                    IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
-                })?;
+                let (_, sd_jwt) = match &cred.copies {
+                    IssuedCredentialCopies::Mdoc(_) => None,
+                    IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.first()),
+                }?;
 
                 Some((sd_jwt, pid_paths))
             })
@@ -868,7 +892,6 @@ mod tests {
     use itertools::multiunzip;
     use mockall::predicate::*;
     use openid4vc::wallet_issuance::IssuanceFlow;
-    use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1754,23 +1777,25 @@ mod tests {
 
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
-    fn sd_jwt_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+    fn sd_jwt_pid() -> (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
         let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
-        (credential, metadata_docs, normalized_metadata)
+        (
+            StoredAttestation::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt,
+            },
+            metadata_docs,
+            normalized_metadata,
+        )
     }
 
-    fn mdoc_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+    fn mdoc_pid() -> (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
         let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
-        let credential = IssuedCredential::MsoMdoc { mdoc };
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
-        (credential, metadata_docs, normalized_metadata)
+        (StoredAttestation::MsoMdoc { mdoc }, metadata_docs, normalized_metadata)
     }
 
     #[rstest]
@@ -1782,7 +1807,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance(
         #[case] pid_credentials: impl IntoIterator<
-            Item = (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata),
+            Item = (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata),
         >,
     ) {
         // Prepare a registered and unlocked wallet.
@@ -1803,30 +1828,24 @@ mod tests {
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
         wallet.mut_storage().checkpoint();
 
-        let (issuer_credentials, stored_copies) = pid_credentials
+        let (stored_attestations, stored_copies) = pid_credentials
             .into_iter()
-            .map(|(credential, metadata_docs, normalized_metadata)| {
-                let stored_attestation = match credential.clone() {
-                    IssuedCredential::MsoMdoc { mdoc } => StoredAttestation::MsoMdoc { mdoc },
-                    IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
-                        StoredAttestation::SdJwt { key_identifier, sd_jwt }
-                    }
-                };
+            .map(|(stored_attestation, metadata_docs, normalized_metadata)| {
                 let stored_copy = StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    stored_attestation,
+                    stored_attestation.clone(),
                     normalized_metadata,
                     None,
                 );
 
-                ((credential, metadata_docs), stored_copy)
+                ((stored_attestation, metadata_docs), stored_copy)
             })
             .unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let credential_count = issuer_credentials.len();
-        let (pid_issuer, attestations) = mock_issuance_session(issuer_credentials);
+        let credential_count = stored_attestations.len();
+        let (pid_issuer, attestations) = mock_issuance_session(stored_attestations);
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
@@ -2036,7 +2055,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|| Err(WalletIssuanceError::Jwt(JwtError::Signing(Box::new(key_error)))));
+                .return_once(|| Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(key_error))));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -2378,12 +2397,12 @@ mod tests {
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
             client.expect_accept().return_once(|| {
-                Err(WalletIssuanceError::Jwt(JwtError::Signing(Box::new(
+                Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(
                     RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
                         revocation_reason: RevocationReason::AdminRequest,
                         can_register_new_account: true,
                     })),
-                ))))
+                )))
             });
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client

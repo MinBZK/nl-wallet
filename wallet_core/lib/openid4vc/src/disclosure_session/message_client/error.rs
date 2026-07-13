@@ -1,9 +1,10 @@
 use error_category::ErrorCategory;
 use url::Url;
 
-use crate::errors::DisclosureErrorResponse;
 use crate::errors::GetAuthRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
+use crate::errors::RemoteDisclosureErrorResponse;
+use crate::errors::RemoteErrorCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VpMessageClientErrorType {
@@ -18,14 +19,18 @@ pub enum VpMessageClientError {
     #[error("HTTP request error: {0}")]
     #[category(expected)]
     Http(#[from] reqwest::Error),
+
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+
     #[error("auth request server error response: {0:?}")]
-    AuthGetResponse(Box<DisclosureErrorResponse<GetAuthRequestErrorCode>>),
+    AuthGetResponse(Box<RemoteDisclosureErrorResponse<GetAuthRequestErrorCode>>),
+
     #[error("auth request server error response: {0:?}")]
-    AuthPostResponse(Box<DisclosureErrorResponse<PostAuthResponseErrorCode>>),
+    AuthPostResponse(Box<RemoteDisclosureErrorResponse<PostAuthResponseErrorCode>>),
+
     #[error("JWT error: {0}")]
-    InvalidJwt(#[from] jwt::error::JwtError),
+    InvalidJwt(#[from] jwt::error::JwtParseError),
 }
 
 impl VpMessageClientError {
@@ -33,15 +38,25 @@ impl VpMessageClientError {
         match self {
             // Consider the different error codes when getting the disclosure request.
             Self::AuthGetResponse(response) => match response.error() {
-                GetAuthRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
-                GetAuthRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
-                GetAuthRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
+                RemoteErrorCode::Known(GetAuthRequestErrorCode::ExpiredEphemeralId) => {
+                    VpMessageClientErrorType::Expired { can_retry: true }
+                }
+                RemoteErrorCode::Known(GetAuthRequestErrorCode::ExpiredSession) => {
+                    VpMessageClientErrorType::Expired { can_retry: false }
+                }
+                RemoteErrorCode::Known(GetAuthRequestErrorCode::CancelledSession) => {
+                    VpMessageClientErrorType::Cancelled
+                }
                 _ => VpMessageClientErrorType::Other,
             },
             // Consider the different error codes when posting the disclosure response.
             Self::AuthPostResponse(response) => match response.error() {
-                PostAuthResponseErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
-                PostAuthResponseErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
+                RemoteErrorCode::Known(PostAuthResponseErrorCode::ExpiredSession) => {
+                    VpMessageClientErrorType::Expired { can_retry: false }
+                }
+                RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession) => {
+                    VpMessageClientErrorType::Cancelled
+                }
                 _ => VpMessageClientErrorType::Other,
             },
             // Any other reported error is classified under `VpMessageClientErrorType::Other`.
@@ -58,14 +73,14 @@ impl VpMessageClientError {
     }
 }
 
-impl From<DisclosureErrorResponse<GetAuthRequestErrorCode>> for VpMessageClientError {
-    fn from(value: DisclosureErrorResponse<GetAuthRequestErrorCode>) -> Self {
+impl From<RemoteDisclosureErrorResponse<GetAuthRequestErrorCode>> for VpMessageClientError {
+    fn from(value: RemoteDisclosureErrorResponse<GetAuthRequestErrorCode>) -> Self {
         Self::AuthGetResponse(value.into())
     }
 }
 
-impl From<DisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClientError {
-    fn from(value: DisclosureErrorResponse<PostAuthResponseErrorCode>) -> Self {
+impl From<RemoteDisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClientError {
+    fn from(value: RemoteDisclosureErrorResponse<PostAuthResponseErrorCode>) -> Self {
         Self::AuthPostResponse(value.into())
     }
 }

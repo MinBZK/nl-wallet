@@ -321,8 +321,8 @@ void main() {
 
   group('history', () {
     test('getHistory is passed on to core', () async {
-      await typedWalletCore.getHistory();
-      verify(core.crateApiFullGetHistory()).called(1);
+      await typedWalletCore.getHistory(page: 0, pageSize: 100);
+      verify(core.crateApiFullGetHistory(page: 0, pageSize: 100)).called(1);
     });
 
     test('getHistoryForCard is passed on to core', () async {
@@ -623,8 +623,8 @@ void main() {
     });
 
     test('getHistory', () async {
-      when(core.crateApiFullGetHistory()).thenThrow(ffiException);
-      expect(() => typedWalletCore.getHistory(), throwsA(isA<CoreError>()));
+      when(core.crateApiFullGetHistory(page: anyNamed('page'), pageSize: anyNamed('pageSize'))).thenThrow(ffiException);
+      expect(() => typedWalletCore.getHistory(page: 0, pageSize: 100), throwsA(isA<CoreError>()));
     });
 
     test('getHistoryForCard', () async {

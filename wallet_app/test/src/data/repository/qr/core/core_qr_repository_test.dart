@@ -109,6 +109,44 @@ void main() {
       );
     });
 
+    test('Credential Offer QR code should result in an IssuanceNavigationRequest', () async {
+      const testUri = 'https://credential_offer.org';
+      when(
+        mockWalletCore.identifyUri(testUri),
+      ).thenAnswer((realInvocation) async => IdentifyUriResult.CredentialOffer);
+      final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
+      expect(
+        result,
+        NavigationRequest.issuance(
+          argument: const IssuanceScreenArgument(uri: testUri, isQrCode: true, issuanceType: .credentialOffer),
+        ),
+      );
+      expect(
+        result.argument,
+        const IssuanceScreenArgument(uri: testUri, isQrCode: true, issuanceType: .credentialOffer),
+        reason: 'The IssuanceScreenArgument should contain the testUri and isQrCode=true flag',
+      );
+    });
+
+    test('Generic Issuance QR code should result in a continueIssuance NavigationRequest', () async {
+      const testUri = 'https://generic_issuance.org';
+      when(
+        mockWalletCore.identifyUri(testUri),
+      ).thenAnswer((realInvocation) async => IdentifyUriResult.GenericIssuance);
+      final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
+      expect(
+        result,
+        NavigationRequest.continueIssuance(
+          argument: const IssuanceScreenArgument(uri: testUri, isQrCode: true, issuanceType: .authorizationCallback),
+        ),
+      );
+      expect(
+        result.argument,
+        const IssuanceScreenArgument(uri: testUri, isQrCode: true, issuanceType: .authorizationCallback),
+        reason: 'The IssuanceScreenArgument should contain the testUri and isQrCode=true flag',
+      );
+    });
+
     test('Legacy Barcode is still supported (on mock builds)', () async {
       /// Create the json of a legacy EdiQrCode, as embedded in the mock QR codes
       const legacyQrCode = EdiQrCode(id: 'OPEN_BANK_ACCOUNT', type: EdiQrType.disclosure);

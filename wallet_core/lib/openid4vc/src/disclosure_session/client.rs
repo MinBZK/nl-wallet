@@ -5,8 +5,8 @@ use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
+use http_utils::reqwest::HttpClient;
 use http_utils::urls::BaseUrl;
-use reqwest::ClientBuilder;
 use serde::Deserialize;
 use tracing::info;
 use tracing::warn;
@@ -23,7 +23,6 @@ use super::message_client::HttpVpMessageClient;
 use super::message_client::VpMessageClient;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
-use crate::errors::AuthorizationErrorCode;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -42,10 +41,8 @@ pub struct VpDisclosureClient<H = HttpVpMessageClient> {
 }
 
 impl VpDisclosureClient<HttpVpMessageClient> {
-    pub fn new_with_client(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
-        let client = Self::new(HttpVpMessageClient::new(client_builder)?);
-
-        Ok(client)
+    pub fn new_with_client(http_client: HttpClient) -> Self {
+        Self::new(HttpVpMessageClient::new(http_client))
     }
 }
 
@@ -60,18 +57,14 @@ impl<H> VpDisclosureClient<H> {
             VpVerifierError::AuthRequestValidation(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 ..
-            }) => Some(VpAuthorizationErrorCode::AuthorizationError(
-                AuthorizationErrorCode::UnsupportedResponseType,
-            )),
+            }) => Some(VpAuthorizationErrorCode::UnsupportedResponseType),
 
             // Invalid request.
             VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
             | VpVerifierError::RpCertificate(_)
             | VpVerifierError::NoReaderCertificate
-            | VpVerifierError::RequestedAttributesValidation(_) => Some(VpAuthorizationErrorCode::AuthorizationError(
-                AuthorizationErrorCode::InvalidRequest,
-            )),
+            | VpVerifierError::RequestedAttributesValidation(_) => Some(VpAuthorizationErrorCode::InvalidRequest),
 
             // None.
             VpVerifierError::Request(_) => None,
@@ -306,7 +299,7 @@ mod tests {
     use http::StatusCode;
     use http_utils::urls::BaseUrl;
     use itertools::Itertools;
-    use jwt::error::JwtError;
+    use jwt::error::JwtParseError;
     use mdoc::holder::disclosure::PartialMdoc;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
@@ -335,7 +328,6 @@ mod tests {
     use super::super::message_client::mock::request_uri;
     use super::super::session::VpDisclosureSession;
     use super::VpDisclosureClient;
-    use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::openid4vp::AuthRequestValidationError;
@@ -863,7 +855,7 @@ mod tests {
         #[values(false, true)] error_has_error: bool,
     ) {
         let (error, wallet_messages) =
-            start_disclosure_session_http_error(|| JwtError::MissingTyp.into(), error_has_error);
+            start_disclosure_session_http_error(|| JwtParseError::MissingTyp.into(), error_has_error);
 
         assert_matches!(
             error,
@@ -931,7 +923,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 2);
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // This error should be reported back to the verifier.
-        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
+        let expected_error_code = VpAuthorizationErrorCode::InvalidRequest;
         assert_matches!(
             &wallet_messages[1],
             WalletMessage::Error(response)
@@ -971,7 +963,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 2);
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // This error should be reported back to the verifier.
-        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
+        let expected_error_code = VpAuthorizationErrorCode::InvalidRequest;
         assert_matches!(
             &wallet_messages[1],
             WalletMessage::Error(response) if response.error() == &expected_error_code
@@ -1015,7 +1007,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 2);
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // This error should be reported back to the verifier.
-        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
+        let expected_error_code = VpAuthorizationErrorCode::InvalidRequest;
         assert_matches!(
             &wallet_messages[1],
             WalletMessage::Error(response) if response.error() == &expected_error_code
@@ -1068,7 +1060,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 2);
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // A termination message should be sent to the verifier.
-        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
+        let expected_error_code = VpAuthorizationErrorCode::AccessDenied;
         assert_matches!(
             &wallet_messages[1],
             WalletMessage::Error(response)

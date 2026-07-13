@@ -75,7 +75,7 @@ where
         let hw_pubkey = registration_data
             .wallet_certificate
             .parse_and_verify_with_sub(&certificate_public_key.into())
-            .expect("stored wallet certificate should be valid")
+            .map_err(ChangePinError::CertificateValidation)?
             .1
             .hw_pubkey
             .into_inner();
@@ -178,6 +178,8 @@ mod tests {
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::Instruction;
 
+    use super::WalletRegistration;
+    use crate::pin::change::ChangePinError;
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
     use crate::wallet::test::TestWalletInMemoryStorage;
@@ -238,5 +240,22 @@ mod tests {
             .await
             .expect("could not read change_pin_state");
         assert_eq!(change_pin_state, None);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_begin_change_pin_error_invalid_stored_wallet_certificate() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let WalletRegistration::Registered { data, .. } = &mut wallet.registration else {
+            unreachable!();
+        };
+        data.wallet_certificate = "this.isa.jwt".parse().unwrap();
+
+        let error = wallet
+            .begin_change_pin("123456".into(), "111122".into())
+            .await
+            .expect_err("beginning PIN change should not succeed with an invalid stored wallet certificate");
+
+        assert_matches!(error, ChangePinError::CertificateValidation(_));
     }
 }

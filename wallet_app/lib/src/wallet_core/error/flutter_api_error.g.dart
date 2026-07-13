@@ -24,6 +24,7 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.networking: 'Networking',
   FlutterApiErrorType.walletState: 'WalletState',
   FlutterApiErrorType.hardwareKeyUnsupported: 'HardwareKeyUnsupported',
+  FlutterApiErrorType.attestation: 'Attestation',
   FlutterApiErrorType.redirectUri: 'RedirectUri',
   FlutterApiErrorType.disclosureSourceMismatch: 'DisclosureSourceMismatch',
   FlutterApiErrorType.expiredSession: 'ExpiredSession',

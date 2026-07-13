@@ -347,7 +347,7 @@ async fn setup_revocation_env(
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),
         verification_server_settings(db_setup.verification_server_url()),
-        pid_issuer_settings(db_setup.pid_issuer_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
     .await;

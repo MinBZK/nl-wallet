@@ -30,6 +30,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::keys::SecureEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use derive_more::From;
@@ -48,7 +49,9 @@ use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtSignError;
+use jwt::error::JwtVerifyError;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
@@ -134,17 +137,23 @@ use crate::wia_issuer::WiaIssuer;
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
     #[error("challenge signing error: {0}")]
-    ChallengeSigning(#[from] JwtError),
+    ChallengeSigning(#[from] JwtSignError),
+
     #[error("could not store challenge: {0}")]
     Storage(#[from] PersistenceError),
+
     #[error("challenge message validation error: {0}")]
     Validation(#[from] wallet_account::error::DecodeError),
+
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
+
     #[error("instruction sequence number validation failed")]
     SequenceNumberValidation,
+
     #[error("account is revoked with data: {0:?}")]
     AccountIsRevoked(AccountRevokedData),
+
     #[error("wallet solution revoked")]
     WalletSolutionRevoked,
 }
@@ -153,32 +162,43 @@ pub enum ChallengeError {
 pub enum WalletCertificateError {
     #[error("registration PIN public key decoding error: {0}")]
     PinPubKeyDecoding(#[source] Box<p256::pkcs8::spki::Error>),
+
     #[error("stored hardware public key does not match provided one")]
     HwPubKeyMismatch,
+
     #[error("stored pin public key does not match provided one")]
     PinPubKeyMismatch,
+
     #[error("validation failed: {0}")]
-    Validation(#[from] JwtError),
+    Validation(#[source] JwtVerifyError),
+
     #[error("no registered wallet user found")]
     UserNotRegistered,
+
     #[error("registered wallet user blocked")]
     UserBlocked,
+
     #[error("could not retrieve registered wallet user: {0}")]
     Persistence(#[from] PersistenceError),
+
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+
     #[error("wallet certificate JWT signing error: {0}")]
-    JwtSigning(#[source] JwtError),
+    JwtSigning(#[source] JwtSignError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidKeyAttestationError {
     #[error("could not decode public key from leaf certificate: {0}")]
     LeafPublicKey(#[source] Box<p256::pkcs8::spki::Error>),
+
     #[error("could not obtain Google certificate revocation list")]
     CrlClient,
+
     #[error("android key attestation verification failed: {0}")]
     Verification(#[from] GoogleKeyAttestationError),
+
     #[error("certificate chain contains at least one revoked certificate")]
     RevokedCertificates,
 }
@@ -187,6 +207,7 @@ pub enum AndroidKeyAttestationError {
 pub enum AndroidAppAttestationError {
     #[error("could not decode integrity toking using Play Integrity API")]
     DecodeIntegrityToken,
+
     #[error("validation of integrity verdict failed: {0}")]
     IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
 }
@@ -195,28 +216,43 @@ pub enum AndroidAppAttestationError {
 pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
+
+    #[error("registration challenge JWT parsing error: {0}")]
+    ChallengeParsing(#[source] JwtParseError),
+
     #[error("registration challenge validation error: {0}")]
-    ChallengeValidation(#[source] JwtError),
+    ChallengeValidation(#[source] JwtVerifyError),
+
     #[error("validation of Apple key and/or app attestation failed: {0}")]
     AppleAttestation(#[from] apple_app_attest::AttestationError),
+
     #[error("validation of Google key attestation failed: {0}")]
     AndroidKeyAttestation(#[from] AndroidKeyAttestationError),
+
     #[error("validation of Google app attestation failed: {0}")]
     AndroidAppAttestation(#[from] AndroidAppAttestationError),
+
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_account::error::DecodeError),
+
     #[error("registration message validation error: {0}")]
     MessageValidation(#[source] wallet_account::error::DecodeError),
+
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
+
     #[error("could not store certificate: {0}")]
     CertificateStorage(#[from] PersistenceError),
+
     #[error("registration PIN public key DER encoding error: {0}")]
     PinPubKeyEncoding(#[source] der::Error),
+
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
+
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+
     #[error("wallet solution revoked")]
     WalletSolutionRevoked,
 }
@@ -239,7 +275,7 @@ pub enum InstructionError {
     AccountBlocked,
 
     #[error("instruction result signing error: {0}")]
-    Signing(#[source] JwtError),
+    Signing(#[source] JwtSignError),
 
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
@@ -260,7 +296,7 @@ pub enum InstructionError {
     JwkConversion(#[from] JwkConversionError),
 
     #[error("error signing PoP: {0}")]
-    PopSigning(#[source] JwtError),
+    PopSigning(#[source] JwtSignError),
 
     #[error("SD JWT error: {0}")]
     SdJwtError(#[from] sd_jwt::error::DecoderError),
@@ -516,11 +552,11 @@ pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityCl
     play_integrity_client: PIC,
 }
 
-pub struct UserState<R, F, H, W, S> {
+pub struct UserState<R, F, H, K, S> {
     pub repositories: R,
     pub flags: F,
     pub wallet_user_hsm: H,
-    pub wia_issuer: W,
+    pub wia_issuer: WiaIssuer<K>,
     pub wia_status_tracking_validity: Duration,
     pub wrapping_key_identifier: String,
     pub pid_issuer_trust_anchors: TrustAnchors,
@@ -530,10 +566,10 @@ pub struct UserState<R, F, H, W, S> {
 impl<GRC, PIC> AccountServer<GRC, PIC> {
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
-    pub async fn registration_challenge<T, R, F, H, W, S>(
+    pub async fn registration_challenge<T, R, F, H, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -561,11 +597,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(challenge)
     }
 
-    pub async fn register<T, R, F, H, W, S>(
+    pub async fn register<T, R, F, H, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         registration_message: ChallengeResponse<Registration>,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<(WalletCertificate, RevocationCode), RegistrationError>
     where
         GRC: GoogleCrlProvider,
@@ -815,11 +851,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok((wallet_certificate, revocation_code))
     }
 
-    pub async fn instruction_challenge<T, R, F, H, W, S>(
+    pub async fn instruction_challenge<T, R, F, H, S>(
         &self,
         challenge_request: InstructionChallengeRequest,
         time_generator: &impl Generator<DateTime<Utc>>,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -926,7 +962,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -967,7 +1003,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: HwSignedInstruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -1057,7 +1093,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<InstructionResult<WalletCertificate>, InstructionError>
     where
         T: Committable,
@@ -1142,7 +1178,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<InstructionResult<()>, InstructionError>
     where
         T: Committable,
@@ -1188,7 +1224,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<StartPinRecovery>,
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
-        user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     ) -> Result<InstructionResult<StartPinRecoveryResult>, InstructionError>
     where
         T: Committable,
@@ -1307,7 +1343,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<I>,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
         pin_pubkey: P,
     ) -> Result<(WalletUser, I), InstructionError>
     where
@@ -1348,14 +1384,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     /// Verify the provided user's PIN and the provided instruction.
     ///
     /// The `pin_pubkey` is used if provided; if not, the PIN public key from the `wallet_user` is used.
-    async fn verify_pin_and_extract_instruction<T, R, F, I, G, H, W, S>(
+    async fn verify_pin_and_extract_instruction<T, R, F, I, G, H, S>(
         &self,
         wallet_user: &WalletUser,
         instruction: Instruction<I>,
         generators: &G,
         pin_pubkey: Encrypted<VerifyingKey>,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, W, S>,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<I, InstructionError>
     where
         T: Committable,
@@ -1495,7 +1531,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let jwt: UnverifiedJwt<RegistrationChallengeClaims> = String::from_utf8(challenge.to_owned())
             .map_err(RegistrationError::ChallengeDecoding)?
             .parse()
-            .map_err(RegistrationError::ChallengeValidation)?;
+            .map_err(RegistrationError::ChallengeParsing)?;
         jwt.parse_and_verify_with_sub(certificate_signing_pubkey)
             .map_err(RegistrationError::ChallengeValidation)
             .map(|(_, claims)| claims)
@@ -1783,13 +1819,8 @@ pub mod mock {
         )
     }
 
-    pub type MockUserState = UserState<
-        WalletUserTestRepo,
-        StubWalletFlags,
-        MockPkcs11Client<HsmError>,
-        MockWiaIssuer,
-        MockStatusListService,
-    >;
+    pub type MockUserState =
+        UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService>;
 
     pub fn user_state<R, F, S>(
         repositories: R,
@@ -1798,12 +1829,12 @@ pub mod mock {
         wrapping_key_identifier: String,
         pid_issuer_trust_anchors: TrustAnchors,
         status_list_service: S,
-    ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
-        UserState::<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
+    ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
+        UserState::<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
             repositories,
             flags,
             wallet_user_hsm,
-            wia_issuer: MockWiaIssuer,
+            wia_issuer: MockWiaIssuer::new_mock(),
             wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier,
             pid_issuer_trust_anchors,
@@ -2142,7 +2173,7 @@ mod tests {
             repositories: wallet_user_repo,
             flags: StubWalletFlags::default(),
             wallet_user_hsm: hsm,
-            wia_issuer: MockWiaIssuer,
+            wia_issuer: MockWiaIssuer::new_mock(),
             wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
             pid_issuer_trust_anchors: TrustAnchors::empty(), /* not needed in these
@@ -3599,7 +3630,7 @@ mod tests {
                 assert_eq!(state, WalletUserState::RecoveringPin);
                 Ok(())
             });
-        repositories.expect_save_keys().times(2).returning(move |_, _| Ok(()));
+        repositories.expect_save_keys().times(1).returning(move |_, _| Ok(()));
 
         let user_state = UserState {
             repositories,
@@ -3695,7 +3726,7 @@ mod tests {
             MockTransactionalWalletUserRepository,
             StubWalletFlags,
             MockPkcs11Client<HsmError>,
-            MockWiaIssuer,
+            SigningKey,
             MockStatusListService,
         >,
         WalletCertificateSetup,
@@ -3705,7 +3736,7 @@ mod tests {
             repositories: MockTransactionalWalletUserRepository::new(),
             flags: StubWalletFlags::default(),
             wallet_user_hsm: setup_hsm().await,
-            wia_issuer: MockWiaIssuer,
+            wia_issuer: MockWiaIssuer::new_mock(),
             wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier: "my_wrapping_key_identifier".to_string(),
             pid_issuer_trust_anchors: TrustAnchors::empty(),

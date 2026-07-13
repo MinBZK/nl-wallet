@@ -12,7 +12,7 @@ class GetMostRecentWalletEventUsecaseImpl extends GetMostRecentWalletEventUseCas
   @override
   Future<WalletEvent?> invoke() async {
     try {
-      final events = await _walletEventRepository.getEvents();
+      final events = await _walletEventRepository.getEvents(page: 0, pageSize: 1, removeDuplicatePidEvents: false);
       return events.first;
     } catch (ex) {
       Fimber.e('Failed to get last event', ex: ex);

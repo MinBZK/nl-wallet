@@ -69,5 +69,33 @@ void main() {
       final result = await uriRepository.processUri(Uri.parse(testUri));
       expect(result, NavigationRequest.walletTransferSource(testUri));
     });
+
+    test('Credential Offer uri should result in an IssuanceNavigationRequest', () async {
+      const testUri = 'https://credential_offer.org';
+      when(
+        mockWalletCore.identifyUri(testUri),
+      ).thenAnswer((realInvocation) async => IdentifyUriResult.CredentialOffer);
+      final result = await uriRepository.processUri(Uri.parse(testUri));
+      expect(
+        result,
+        NavigationRequest.issuance(
+          argument: const IssuanceScreenArgument(uri: testUri, isQrCode: false, issuanceType: .credentialOffer),
+        ),
+      );
+    });
+
+    test('Generic Issuance uri should result in a continueIssuance NavigationRequest', () async {
+      const testUri = 'https://generic_issuance.org';
+      when(
+        mockWalletCore.identifyUri(testUri),
+      ).thenAnswer((realInvocation) async => IdentifyUriResult.GenericIssuance);
+      final result = await uriRepository.processUri(Uri.parse(testUri));
+      expect(
+        result,
+        NavigationRequest.continueIssuance(
+          argument: const IssuanceScreenArgument(uri: testUri, isQrCode: false, issuanceType: .authorizationCallback),
+        ),
+      );
+    });
   });
 }

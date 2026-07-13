@@ -1,6 +1,7 @@
 use futures::TryFutureExt;
 use futures::try_join;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::APPLICATION_JWT;
+use http_utils::reqwest::HttpClient;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
@@ -10,12 +11,12 @@ use jwt::Header;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
-use openid4vc::AuthBearerErrorCode;
-use openid4vc::ErrorResponse;
-use openid4vc::TokenErrorCode;
+use openid4vc::errors::RemoteErrorResponse;
+use openid4vc::errors::TokenErrorCode;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
@@ -23,11 +24,10 @@ use reqwest::header;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use strum::EnumString;
 
 use super::jwks::HttpJwksClient;
 use super::jwks::JwksError;
-
-const APPLICATION_JWT: &str = "application/jwt";
 
 #[derive(Debug, thiserror::Error)]
 pub enum UserInfoError {
@@ -38,19 +38,35 @@ pub enum UserInfoError {
     NoJwksUri,
 
     #[error("error requesting access token: {0:?}")]
-    RequestingAccessToken(Box<ErrorResponse<TokenErrorCode>>),
+    RequestingAccessToken(Box<RemoteErrorResponse<TokenErrorCode>>),
 
     #[error("error requesting userinfo: {0:?}")]
-    RequestingUserInfo(Box<ErrorResponse<AuthBearerErrorCode>>),
+    RequestingUserInfo(Box<RemoteErrorResponse<AuthBearerErrorCode>>),
 
     #[error("JWE decryption error: {0}")]
     JweDecryption(#[source] JweStringDecryptionError),
 
+    #[error("error parsing JWT: {0}")]
+    JwtParse(#[from] JwtParseError),
+
     #[error("error verifying JWT: {0}")]
-    JwtError(#[from] JwtError),
+    JwtVerify(#[from] JwtVerifyError),
 
     #[error("config has no userinfo url")]
     NoUserinfoUrl,
+}
+
+/// Source: <https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1>
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum AuthBearerErrorCode {
+    InvalidRequest,
+    InvalidToken,
+    InsufficientScope,
+
+    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
+    #[strum(default)]
+    Other(String),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -59,14 +75,14 @@ pub struct UserInfo {
 }
 
 impl JwtTyp for UserInfo {
-    fn is_valid_typ(_header_typ: Option<&str>) -> Result<(), JwtError> {
+    fn is_valid_typ(_header_typ: Option<&str>) -> Result<(), JwtVerifyError> {
         // no `typ` field is set for JWTs provided by RDO-MAX
         Ok(())
     }
 }
 
 async fn request_userinfo_jwt(
-    http_client: &HttpJsonClient,
+    http_client: &HttpClient,
     config: &OidcProviderMetadata,
     token_request: TokenRequest,
 ) -> Result<String, UserInfoError> {
@@ -86,7 +102,7 @@ async fn request_userinfo_jwt(
     let token_response = {
         let status = response.status();
         if status.is_client_error() || status.is_server_error() {
-            let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
+            let error = response.json::<RemoteErrorResponse<TokenErrorCode>>().await?;
             return Err(UserInfoError::RequestingAccessToken(error.into()));
         } else {
             response.json::<TokenResponse>().await?
@@ -105,7 +121,7 @@ async fn request_userinfo_jwt(
     let jwt = {
         let status = response.status();
         if status.is_client_error() || status.is_server_error() {
-            let error = response.json::<ErrorResponse<AuthBearerErrorCode>>().await?;
+            let error = response.json::<RemoteErrorResponse<AuthBearerErrorCode>>().await?;
             return Err(UserInfoError::RequestingUserInfo(error.into()));
         } else {
             response.text().await?
@@ -116,7 +132,7 @@ async fn request_userinfo_jwt(
 }
 
 pub async fn request_userinfo<C>(
-    http_client: &HttpJsonClient,
+    http_client: &HttpClient,
     config: &OidcProviderMetadata,
     token_request: TokenRequest,
     client_id: &str,
@@ -171,7 +187,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
@@ -185,12 +201,11 @@ mod tests {
     use jwt::Algorithm;
     use jwt::EncodingKey;
     use jwt::Header;
-    use jwt::error::JwtError;
+    use jwt::error::JwtVerifyError;
     use jwt::jwk::Jwk;
     use jwt::jwk::JwkSet;
-    use openid4vc::AuthBearerErrorCode;
-    use openid4vc::ErrorResponse;
-    use openid4vc::TokenErrorCode;
+    use openid4vc::errors::ErrorResponse;
+    use openid4vc::errors::TokenErrorCode;
     use openid4vc::issuer_identifier::IssuerIdentifier;
     use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
     use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
@@ -201,12 +216,12 @@ mod tests {
     use serde_json::json;
     use url::Url;
 
+    use super::AuthBearerErrorCode;
     use super::*;
 
     fn create_token_request() -> TokenRequest {
         TokenRequest::new_authorization_code(
             AuthorizationCode::from("test-code".to_string()),
-            "test-client".to_string(),
             "https://example.com/callback".parse::<Url>().unwrap(),
             "test-verifier".to_string(),
         )
@@ -241,7 +256,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_eq!(result.unwrap(), "the.userinfo.jwt");
@@ -266,7 +281,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_matches!(result, Err(UserInfoError::RequestingAccessToken(_)));
@@ -301,7 +316,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_matches!(result, Err(UserInfoError::RequestingUserInfo(_)));
@@ -314,7 +329,7 @@ mod tests {
         let token_endpoint = issuer_identifier.as_base_url().as_ref().join("/token").unwrap();
         let metadata = OidcProviderMetadata::new(AuthorizationServerMetadata::new(issuer_identifier, token_endpoint));
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_matches!(result, Err(UserInfoError::NoUserinfoUrl));
@@ -428,7 +443,8 @@ mod tests {
 
         assert_matches!(
             error,
-            UserInfoError::JwtError(JwtError::JsonParsing(error)) if error.to_string().contains("missing field `kid`")
+            UserInfoError::JwtVerify(JwtVerifyError::ParseError(JwtParseError::JsonParsing(parse_error)))
+                if parse_error.to_string().contains("missing field `kid`")
         );
     }
 
@@ -442,7 +458,7 @@ mod tests {
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::JwtError(JwtError::KeyNotFound(_)));
+        assert_matches!(error, UserInfoError::JwtVerify(JwtVerifyError::KeyNotFound(_)));
     }
 
     #[test]
@@ -453,7 +469,7 @@ mod tests {
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::JwtError(_));
+        assert_matches!(error, UserInfoError::JwtVerify(_));
     }
 
     #[test]
@@ -464,7 +480,7 @@ mod tests {
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
-        assert_matches!(error, UserInfoError::JwtError(_));
+        assert_matches!(error, UserInfoError::JwtVerify(_));
     }
 
     fn create_test_decrypter() -> JweDecrypter {
@@ -519,7 +535,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo::<UserInfo>(
             &http_client,
             &metadata,

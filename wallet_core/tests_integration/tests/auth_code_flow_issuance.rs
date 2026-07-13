@@ -1,14 +1,20 @@
 use std::collections::HashSet;
 
+use crypto::server_keys::generate::Ca;
 use db_test::DbName;
 use db_test::DbSetup;
+use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
+use jwt::UnverifiedJwt;
+use jwt::wia::WIA_HEADER_NAME;
+use jwt::wia::WIA_POP_HEADER_NAME;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
+use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::scope::Scope;
@@ -16,13 +22,15 @@ use reqwest::StatusCode;
 use reqwest::header;
 use reqwest::redirect::Policy;
 use serial_test::serial;
-use server_utils::settings::NL_WALLET_CLIENT_ID;
 use tests_integration::common::*;
 use url::Url;
 use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
 use wallet::IssuanceStartResult;
 use wallet::Pin;
+use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+use wscd::mock_remote::MockWiaClient;
+use wscd::wscd::WiaClient;
 
 /// The `issuer_state` carried by the auth-code credential offer, identifying the demo usecase.
 const ISSUER_STATE: &str = "insurance";
@@ -37,25 +45,34 @@ const ISSUER_STATE: &str = "insurance";
 async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
     let db_setup = DbSetup::create_clean_only([DbName::AcfDemoIssuer]).await;
 
-    let acf = setup_auth_code_env(&db_setup).await;
+    let wia_ca = Ca::generate_mock();
+    let wia_keypair = wia_ca.generate_wia_mock().unwrap();
+    let acf = setup_auth_code_env(&db_setup, Some(&wia_ca)).await;
 
-    let client = default_reqwest_client_builder().build().unwrap();
+    let client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
 
     // 1. Boot smoke: the issuer serves its OpenID4VCI metadata, advertising the insurance config.
-    let metadata = client
-        .get(acf.public.as_base_url().join(".well-known/openid-credential-issuer"))
-        .send()
+    let metadata: UnverifiedJwt<SignedIssuerMetadataPayload> = client
+        .get_jwt(acf.public.as_base_url().join(".well-known/openid-credential-issuer"))
         .await
+        .unwrap()
+        .parse()
         .unwrap();
-    assert!(metadata.status().is_success(), "issuer metadata should be served");
-    assert!(
-        metadata.text().await.unwrap().contains("com.example.insurance"),
-        "metadata should advertise the insurance credential configuration"
+    let (_, SignedIssuerMetadataPayload { metadata, .. }) = metadata.dangerous_parse_unverified().unwrap();
+    let config_ids = metadata
+        .credential_configurations_supported
+        .keys()
+        .map(|config_id| config_id.as_ref())
+        .collect::<HashSet<_>>();
+    assert_eq!(
+        config_ids,
+        HashSet::from(["com.example.jum.bonuskaart", "com.example.insurance"]),
     );
 
-    // 2. Push an authorization request carrying issuer_state = "insurance".
+    // 2. Push an authorization request carrying issuer_state = "insurance". The client_id must match the
+    // `sub` claim `MockWiaClient` puts in the WIA it issues below.
     let par_request = VciAuthorizationRequest::for_auth_code(
-        NL_WALLET_CLIENT_ID.to_string(),
+        MOCK_WALLET_CLIENT_ID.to_string(),
         wallet_issuance_redirect_uri(),
         "wallet-state".to_string(),
         Some(ISSUER_STATE.to_string()),
@@ -63,10 +80,18 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
         &S256PkcePair::generate(),
     );
 
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        .issue_wia(acf.public.to_string(), None)
+        .await
+        .unwrap();
+
     let par_response = client
-        .post(acf.public.as_base_url().join("issuance/par"))
-        .form(&par_request)
-        .send()
+        .post(acf.public.as_base_url().join("issuance/par"), |builder| {
+            builder
+                .header(WIA_HEADER_NAME, wia.wia().serialization())
+                .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+                .form(&par_request)
+        })
         .await
         .unwrap();
     assert_eq!(par_response.status(), StatusCode::CREATED, "PAR should be accepted");
@@ -81,7 +106,7 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
         .get(acf.public.as_base_url().join("issuance/authorize"))
         .query(&[
             ("request_uri", par_response.request_uri.as_str()),
-            ("client_id", NL_WALLET_CLIENT_ID),
+            ("client_id", MOCK_WALLET_CLIENT_ID),
         ])
         .send()
         .await
@@ -124,7 +149,7 @@ async fn test_acf_demo_issuer_wallet_issuance() {
     let pin: Pin = "112233".into();
 
     let wallet = setup_wallet_env(&db_setup, WalletDeviceVendor::Apple).await;
-    let acf = setup_auth_code_env(&db_setup).await;
+    let acf = setup_auth_code_env(&db_setup, None).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     // The demo issuer's QR: a static auth-code offer selecting the insurance usecase via issuer_state.
@@ -170,7 +195,7 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
     let pin: Pin = "112233".into();
 
     let wallet = setup_wallet_env(&db_setup, WalletDeviceVendor::Apple).await;
-    let acf = setup_auth_code_env(&db_setup).await;
+    let acf = setup_auth_code_env(&db_setup, None).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     let offer_uri = create_auth_code_credential_offer(&acf.public, "loyalty", "com.example.jum.bonuskaart");

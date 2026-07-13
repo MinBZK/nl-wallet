@@ -1,5 +1,5 @@
 use derive_more::Constructor;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use jwt::jwk::JwkSet;
 use url::Url;
 
@@ -11,12 +11,12 @@ pub enum JwksError {
 
 #[derive(Debug, Clone, Constructor)]
 pub struct HttpJwksClient {
-    client: HttpJsonClient,
+    client: HttpClient,
 }
 
 impl HttpJwksClient {
     pub async fn jwks(&self, uri: Url) -> Result<JwkSet, JwksError> {
-        let jwks = self.client.get(uri).await?;
+        let jwks = self.client.get_json(uri).await?;
         Ok(jwks)
     }
 }

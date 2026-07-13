@@ -27,11 +27,11 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
-use openid4vc::DisclosureErrorResponse;
-use openid4vc::GetAuthRequestErrorCode;
-use openid4vc::PostAuthResponseErrorCode;
-use openid4vc::VerificationErrorCode;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
+use openid4vc::errors::DisclosureErrorResponse;
+use openid4vc::errors::GetAuthRequestErrorCode;
+use openid4vc::errors::PostAuthResponseErrorCode;
+use openid4vc::errors::VerificationErrorCode;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpResponse;
 use openid4vc::openid4vp::WalletRequest;
@@ -210,7 +210,7 @@ impl IntoResponse for RequestUriRespone {
         let mut headers = HeaderMap::new();
         headers.insert(
             header::CONTENT_TYPE,
-            HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
+            HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT),
         );
 
         (headers, self.0.to_string()).into_response()

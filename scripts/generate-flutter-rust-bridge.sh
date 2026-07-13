@@ -22,7 +22,7 @@ if [[ -z ${CI:-} ]]; then
 fi
 
 flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
-flutter pub run build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 
 # `flutter_rust_bridge_codegen` already formats the generated code, but it apparently doesn't match our style
 dart format . --line-length 120

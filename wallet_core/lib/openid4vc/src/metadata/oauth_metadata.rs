@@ -12,6 +12,7 @@ use url::Url;
 
 use super::well_known::WellKnownMetadata;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::jose::JwsAlgorithm;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
 /// published at `.well-known/oauth-authorization-server`.
@@ -115,6 +116,17 @@ pub struct AuthorizationServerMetadata {
     /// If omitted, the default value is false.
     #[serde(default)]
     pub require_pushed_authorization_requests: bool,
+
+    /// JWS signing algorithms supported by the authorization server for validating client attestation JWTs used in
+    /// Attestation-Based Client Authentication, as defined by
+    /// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10).
+    #[serde(default)]
+    pub client_attestation_signing_alg_values_supported: Option<IndexSet<JwsAlgorithm>>,
+
+    /// JWS signing algorithms supported by the authorization server for validating client attestation PoP JWTs used
+    /// in Attestation-Based Client Authentication.
+    #[serde(default)]
+    pub client_attestation_pop_signing_alg_values_supported: Option<IndexSet<JwsAlgorithm>>,
 }
 
 impl AuthorizationServerMetadata {
@@ -159,6 +171,8 @@ impl AuthorizationServerMetadata {
             code_challenge_methods_supported: None,
             pushed_authorization_request_endpoint: None,
             require_pushed_authorization_requests: false,
+            client_attestation_signing_alg_values_supported: None,
+            client_attestation_pop_signing_alg_values_supported: None,
         }
     }
 }
@@ -191,7 +205,7 @@ const fn bool_value<const B: bool>() -> bool {
 pub mod tests {
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use httpmock::Method::GET;
     use httpmock::MockServer;
     use serde_json::json;
@@ -208,7 +222,7 @@ pub mod tests {
 
         let mock = server
             .mock_async(|when, then| {
-                when.method(GET).path("/.well-known/openid-configuration");
+                when.method(GET).path("/.well-known/oauth-authorization-server");
 
                 then.status(200)
                     .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
@@ -223,11 +237,11 @@ pub mod tests {
             })
             .await;
 
-        let client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let metadata = fetch_well_known::<AuthorizationServerMetadata>(
             &client,
             &issuer_identifier,
-            WellKnownPath::OpenidConfiguration,
+            WellKnownPath::OauthAuthorizationServer,
         )
         .await
         .unwrap();

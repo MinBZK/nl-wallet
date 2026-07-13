@@ -25,6 +25,7 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
         error.description,
         data: error.data,
       ),
+      FlutterApiErrorType.attestation => CoreAttestationError(error.description, data: error.data),
       FlutterApiErrorType.disclosureSourceMismatch => _mapDisclosureSourceMismatchError(error),
       FlutterApiErrorType.expiredSession => _mapExpiredSessionError(error),
       FlutterApiErrorType.cancelledSession => CoreCancelledSessionError(error.description, data: error.data),

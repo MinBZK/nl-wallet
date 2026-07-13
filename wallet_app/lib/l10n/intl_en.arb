@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-07-03T12:17:21+02:00",
+    "@@last_modified": "2026-07-08T15:04:52+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -540,6 +540,9 @@
     "disclosureSuccessPageToDashboardCta": "To my overview",
     "disclosureSuccessPageToWebsiteCta": "Go to website",
     "errorDetailsSheetTitle": "Error details",
+    "errorScreenAttestationFailedDescription": "This may happen if you use an old version or if this device is not supported.\n\nUpdate your device in Settings > Software update. Then open NL Wallet again.\n\nStill having problems? Contact the help desk.",
+    "errorScreenAttestationFailedHeadline": "Your device does not work with NL Wallet",
+    "errorScreenAttestationFailedHelpdeskCta": "To help desk",
     "errorScreenCancelledSessionDescription": "It seems you have stopped on the webpage. {organization} may not have received your information.",
     "errorScreenCancelledSessionDescriptionUnknownOrganization": "It seems you have stopped on the webpage. The organization may not have received your information.",
     "errorScreenCancelledSessionHeadline": "Stopped",
@@ -806,6 +809,7 @@
     "historyDetailScreenTitleForCardRenewed": "{card} renewed",
     "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
     "historyDetailScreenTitleForLogin": "Logged in to {organization}",
+    "historyOverviewScreenLoadingNextPage": "Loading more data. Please wait.",
     "historyOverviewScreenTitle": "Activities",
     "idleWarningDialogContinueCta": "Yes, continue",
     "idleWarningDialogDescription": "You will be logged out soon because you haven’t used the app for a while. Choose \"Yes, continue\" for more time.",

@@ -354,6 +354,11 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () => ErrorScreen.show(context, const HardwareUnsupportedError(sourceError: 'error')),
           child: const Text('Device Incompatible Screen'),
         ),
+        const ThemeSectionSubHeader(title: 'Attestation Failed Screen'),
+        TextButton(
+          onPressed: () => ErrorScreen.show(context, const AttestationFailedError(sourceError: 'error')),
+          child: const Text('Attestation Failed Screen'),
+        ),
         const ThemeSectionSubHeader(title: 'Session Expired Screen'),
         TextButton(
           onPressed: () => ErrorScreen.show(context, const SessionError(state: .expired, sourceError: 'test')),

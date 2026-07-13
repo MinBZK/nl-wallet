@@ -10,6 +10,11 @@ import Foundation
 public final class PlatformSupport {
     public static let shared = PlatformSupport()
 
+    public var allowReleaseLogs: Bool {
+        get { PlatformSupportLogging.allowReleaseLogs }
+        set { PlatformSupportLogging.allowReleaseLogs = newValue }
+    }
+
     private let signingKey: SigningKey
     private let encryptionKey: EncryptionKey
     private let attestedKey: AttestedKey
@@ -30,5 +35,17 @@ public final class PlatformSupport {
             utils: self.utilities,
             closeProximityDisclosure: self.closeProximityDisclosure
         )
+    }
+}
+
+enum PlatformSupportLogging {
+    static var allowReleaseLogs = false
+
+    static var allowLogs: Bool {
+        #if DEBUG
+        return true
+        #else
+        return allowReleaseLogs
+        #endif
     }
 }

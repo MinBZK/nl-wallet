@@ -14,6 +14,9 @@ structured_logging = false
 # Array of CAs with trusted issuers
 issuer_trust_anchors = ["MII..."]
 
+# Array of CAs for Wallet Instance Attestation (WIA) certificates
+wia_trust_anchors = ["MII..."]
+
 # The wallet must be able to reach the server at this URL. The consent page is served at
 # `<public_url>/consent`.
 public_url = 'http://localhost:8001/'

@@ -9,10 +9,10 @@ use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use itertools::Itertools;
-use openid4vc::BoxedErrorWithCode;
-use openid4vc::ErrorWithCode;
-use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOfferContainer;
+use openid4vc::errors::BoxedErrorWithCode;
+use openid4vc::errors::ErrorWithCode;
+use openid4vc::errors::PostAuthResponseErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -174,10 +174,10 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
-    use openid4vc::ErrorWithCode;
-    use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_offer::CredentialOffer;
+    use openid4vc::errors::ErrorWithCode;
+    use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::issuable_document::CredentialKind;
     use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::Grant;
@@ -261,6 +261,7 @@ mod tests {
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let metadata_keypair = ca.generate_wrpac_issuer_mock().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
 
         let mut status_list = MockStatusListService::new();
@@ -282,12 +283,16 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
 
+        // Normally this is its own CA; here we just reuse the ca we have.
+        let wia_trust_anchors = vec![ca.to_borrowing_trust_anchor()].try_into().unwrap();
+
         Issuer::try_new(
             "https://example.com".parse().unwrap(),
+            metadata_keypair,
             NonZeroU8::MIN,
             HashSet::new(),
             [("credential_config_id".to_string().into(), config_params)].into(),
-            None,
+            wia_trust_anchors,
             sessions,
             MemoryNonceStore::new(),
         )

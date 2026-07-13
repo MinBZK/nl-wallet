@@ -1,4 +1,4 @@
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
 use url::Url;
 
 use crate::status_list_token::StatusListToken;
@@ -9,7 +9,7 @@ pub enum StatusListClientError {
     Networking(#[from] reqwest::Error),
 
     #[error("jwt parsing error: {0}")]
-    JwtParsing(#[from] JwtError),
+    JwtParsing(#[from] JwtParseError),
 }
 
 #[trait_variant::make(Send)]
@@ -86,7 +86,8 @@ pub mod mock {
             let status_list_token = StatusListToken::builder(url, StatusList::new(10).pack())
                 .ttl(Some(Duration::from_secs(3600)))
                 .sign(keypair)
-                .await?;
+                .await
+                .unwrap();
 
             Ok(status_list_token)
         }

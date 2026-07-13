@@ -49,9 +49,14 @@ fun Map<String, String>.nonEmptyDartDefine(key: String): String? =
 val sentryDsn = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_DSN")
 val sentryEnvironment = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_ENVIRONMENT")
 val sentryRelease = dartEnvironmentVariables.nonEmptyDartDefine("SENTRY_RELEASE")
+val allowReleaseLogs = dartEnvironmentVariables.nonEmptyDartDefine("ALLOW_RELEASE_LOGS")
 
 check(sentryDsn == null || sentryEnvironment != null) {
     "SENTRY_ENVIRONMENT must be set when SENTRY_DSN is set"
+}
+
+check(allowReleaseLogs == null || allowReleaseLogs == "true" || allowReleaseLogs == "false") {
+    "ALLOW_RELEASE_LOGS must be 'true' or 'false'"
 }
 
 val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
@@ -249,6 +254,7 @@ mapOf(
             "SENTRY_DSN" to sentryDsn,
             "SENTRY_ENVIRONMENT" to sentryEnvironment,
             "SENTRY_RELEASE" to sentryRelease,
+            "ALLOW_RELEASE_LOGS" to allowReleaseLogs,
         ).forEach { (key, value) ->
             value?.let { environment(key, it) }
         }

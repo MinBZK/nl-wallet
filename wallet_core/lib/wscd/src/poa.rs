@@ -12,7 +12,8 @@ use jwt::JsonJwt;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
-use jwt::error::JwtError;
+use jwt::error::JwtParseError;
+use jwt::error::JwtSignError;
 use jwt::jwk::AlgorithmParameters;
 use jwt::jwk::Jwk;
 use jwt::jwk::jwk_alg_from_p256;
@@ -53,7 +54,7 @@ pub struct JwtPoaInput {
 }
 
 impl TryFrom<VecNonEmpty<UnverifiedJwt<PoaPayload>>> for Poa {
-    type Error = JwtError;
+    type Error = JwtParseError;
 
     fn try_from(source: VecNonEmpty<UnverifiedJwt<PoaPayload>>) -> Result<Self, Self::Error> {
         let json_jwt: JsonJwt<_, _> = source.try_into()?;
@@ -85,14 +86,13 @@ impl Poa {
             .unwrap(), // our iterable is a VecAtLeastTwo
         };
 
-        let jwts: VecNonEmpty<_> = try_join_all(
-            keys.as_slice()
-                .iter()
-                .map(async |key| Result::<_, JwtError>::Ok(SignedJwt::sign(&payload, *key).await?.into_unverified())),
-        )
-        .await?
-        .try_into()
-        .unwrap(); // our iterable is a `VecAtLeastTwo`
+        let jwts: VecNonEmpty<_> =
+            try_join_all(keys.as_slice().iter().map(async |key| {
+                Result::<_, JwtSignError>::Ok(SignedJwt::sign(&payload, *key).await?.into_unverified())
+            }))
+            .await?
+            .try_into()
+            .unwrap(); // our iterable is a `VecAtLeastTwo`
 
         // This unwrap() is safe because we correctly constructed the `jwts` above.
         Ok(jwts.try_into().unwrap())

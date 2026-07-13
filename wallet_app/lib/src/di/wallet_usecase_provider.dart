@@ -37,12 +37,12 @@ import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import '../domain/usecase/event/get_wallet_events_for_card_usecase.dart';
+import '../domain/usecase/event/get_wallet_events_page_usecase.dart';
 import '../domain/usecase/event/get_wallet_events_pid_usecase.dart';
-import '../domain/usecase/event/get_wallet_events_usecase.dart';
 import '../domain/usecase/event/impl/get_most_recent_wallet_event_usecase_impl.dart';
 import '../domain/usecase/event/impl/get_wallet_events_for_card_usecase_impl.dart';
 import '../domain/usecase/event/impl/get_wallet_events_for_pid_usecase_impl.dart';
-import '../domain/usecase/event/impl/get_wallet_events_usecase_impl.dart';
+import '../domain/usecase/event/impl/get_wallet_events_page_usecase_impl.dart';
 import '../domain/usecase/event/impl/observe_recent_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import '../domain/usecase/help/get_help_categories_usecase.dart';
@@ -346,8 +346,8 @@ class WalletUseCaseProvider extends StatelessWidget {
     RepositoryProvider<ObserveRecentWalletEventsUseCase>(
       create: (context) => ObserveRecentWalletEventsUseCaseImpl(context.read()),
     ),
-    RepositoryProvider<GetWalletEventsUseCase>(
-      create: (context) => GetWalletEventsUseCaseImpl(context.read()),
+    RepositoryProvider<GetWalletEventsPageUseCase>(
+      create: (context) => GetWalletEventsPageUseCaseImpl(context.read(), context.read()),
     ),
     RepositoryProvider<GetWalletEventsForCardUseCase>(
       create: (context) => GetWalletEventsForCardUseCaseImpl(context.read()),
@@ -491,9 +491,7 @@ class WalletUseCaseProvider extends StatelessWidget {
       create: (context) => RequestPermissionUseCaseImpl(),
     ),
     RepositoryProvider<ObserveVersionStateUsecase>(
-      create: (context) => ObserveVersionStateUsecaseImpl(
-        context.read(),
-      ),
+      create: (context) => ObserveVersionStateUsecaseImpl(context.read()),
     ),
     RepositoryProvider<GetVersionStringUseCase>(
       create: (context) => GetVersionStringUseCaseImpl(context.read()),

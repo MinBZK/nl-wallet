@@ -55,6 +55,7 @@ pub use self::disclosure::DisclosureUriSource;
 use self::disclosure::WalletDisclosureSession;
 pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
+pub use self::history::Pagination;
 pub use self::history::RecentHistoryCallback;
 pub use self::init::WalletClients;
 pub use self::init::WalletInitError;

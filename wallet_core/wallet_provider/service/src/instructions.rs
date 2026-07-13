@@ -6,6 +6,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::DerSignature;
 use futures::future;
 use hsm::model::encrypter::Encrypter;
@@ -18,6 +19,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaPopClaims;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -77,7 +79,6 @@ use crate::account_server::UserState;
 use crate::flags::WalletFlags;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
-use crate::wia_issuer::WiaIssuer;
 
 fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     validate_wallet_user_not_revoked(wallet_user)?;
@@ -162,10 +163,7 @@ impl ValidateInstruction for DeleteKeys {}
 
 impl ValidateInstruction for IssueWia {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        // Allow during PIN recovery
-        // TODO (PVW-5550): since eventually the WIA is obtained by the wallet before PIN recovery
-        //                  would start, this exception will have to be removed eventually.
-
+        validate_no_pin_recovery_in_progress(wallet_user)?;
         validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
@@ -364,7 +362,7 @@ pub trait HandleInstruction {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -381,7 +379,7 @@ impl HandleInstruction for CheckPin {
         self,
         _wallet_user: &WalletUser,
         _generators: &G,
-        _user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        _user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -401,7 +399,7 @@ impl HandleInstruction for ChangePinCommit {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -426,7 +424,7 @@ impl HandleInstruction for ChangePinCommit {
 /// Helper for the [`PerformIssuance`] instruction handler.
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
-    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(PerformIssuanceResult, VecNonEmpty<WrappedKey>), InstructionError>
 where
@@ -464,13 +462,11 @@ where
 
 fn create_issuance_keys(
     wrapped_keys: Vec<WrappedKey>,
-    wia_key: Option<WrappedKey>,
     is_blocked: bool,
     uuid_generator: &impl Generator<Uuid>,
 ) -> Vec<WalletUserKey> {
     wrapped_keys
         .into_iter()
-        .chain(wia_key)
         .map(|key| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
             key,
@@ -482,7 +478,7 @@ fn create_issuance_keys(
 async fn persist_keys<T, R, H>(
     tx: &T,
     wallet_user: &WalletUser,
-    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
     db_keys: Vec<WalletUserKey>,
     uuid_generator: &impl Generator<Uuid>,
 ) -> Result<(), InstructionError>
@@ -506,11 +502,11 @@ where
 }
 
 async fn wia<T, R, H, G>(
-    claims: &JwtPopClaims,
+    pop_claims: &WiaPopClaims,
     wallet_user: &WalletUser,
-    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
     generators: &G,
-) -> Result<(WrappedKey, WiaDisclosure), InstructionError>
+) -> Result<WiaDisclosure, InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -540,18 +536,13 @@ where
         .await?;
     tx.commit().await?;
 
-    let (wia_wrapped_key, wia) = user_state
+    let wia_disclosure = user_state
         .wia_issuer
-        .issue_wia(exp.into(), status_claim, generators)
+        .issue_wia(exp.into(), status_claim, pop_claims, generators)
         .await
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
-    let wia_disclosure = SignedJwt::sign(claims, &attestation_key(&wia_wrapped_key, user_state))
-        .await
-        .map_err(InstructionError::PopSigning)?
-        .into();
-
-    Ok((wia_wrapped_key, WiaDisclosure::new(wia, wia_disclosure)))
+    Ok(wia_disclosure)
 }
 
 async fn issuance_pops<H>(
@@ -578,7 +569,7 @@ where
 
 fn attestation_key<'a, T, R, H>(
     wrapped_key: &'a WrappedKey,
-    user_state: &'a UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &'a UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
     T: Committable,
@@ -599,7 +590,7 @@ impl HandleInstruction for PerformIssuance {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -610,7 +601,7 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, wrapped_keys) = perform_issuance(self, user_state, generators).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), None, false, generators);
+        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), false, generators);
 
         let tx = user_state.repositories.begin_transaction().await?;
         persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;
@@ -627,7 +618,7 @@ impl HandleInstruction for IssueWia {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -637,9 +628,17 @@ impl HandleInstruction for IssueWia {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         // The JWT claims to be signed in the PoPs.
-        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud, generators);
+        let jti: Uuid = generators.generate();
+        let iat: DateTime<Utc> = generators.generate();
+        let claims = WiaPopClaims {
+            iss: NL_WALLET_CLIENT_ID.to_string(),
+            aud: self.aud,
+            iat: iat.into(),
+            jti: jti.to_string(),
+            challenge: self.nonce,
+        };
 
-        let (wia_wrapped_key, wia_disclosure) = wia(&claims, wallet_user, user_state, generators).await?;
+        let wia_disclosure = wia(&claims, wallet_user, user_state, generators).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -652,19 +651,6 @@ impl HandleInstruction for IssueWia {
                 .delete_all_blocked_keys(&tx, wallet_user.id)
                 .await?;
         }
-
-        persist_keys(
-            &tx,
-            wallet_user,
-            user_state,
-            vec![WalletUserKey {
-                wallet_user_key_id: generators.generate(),
-                key: wia_wrapped_key,
-                is_blocked: false,
-            }],
-            generators,
-        )
-        .await?;
 
         tx.commit().await?;
 
@@ -679,7 +665,7 @@ impl HandleInstruction for Sign {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
     where
@@ -754,7 +740,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -850,7 +836,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -902,7 +888,7 @@ impl HandleInstruction for PairTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -951,7 +937,7 @@ impl HandleInstruction for CancelTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1002,7 +988,7 @@ impl HandleInstruction for ResetTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1048,7 +1034,7 @@ impl HandleInstruction for GetTransferStatus {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1082,7 +1068,7 @@ impl HandleInstruction for ConfirmTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1128,7 +1114,7 @@ impl HandleInstruction for SendWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1175,7 +1161,7 @@ impl HandleInstruction for ReceiveWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<ReceiveWalletPayloadResult, InstructionError>
     where
@@ -1216,7 +1202,7 @@ impl HandleInstruction for CompleteTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1273,7 +1259,7 @@ impl HandleInstruction for DeleteKeys {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1298,7 +1284,7 @@ impl HandleInstruction for DeleteKeys {
 async fn check_recovery_code<T, R, F, H>(
     wallet_user: &WalletUser,
     disclosed: &RecoveryCode,
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     generators: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), InstructionError>
 where
@@ -1512,12 +1498,11 @@ mod tests {
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
-    use crate::wia_issuer::mock::MockWiaIssuer;
 
     pub async fn user_state<R>(
         repositories: R,
         wrapping_key_identifier: &str,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWiaIssuer, MockStatusListService> {
+    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService> {
         mock_user_state(
             repositories,
             StubWalletFlags::default(),
@@ -1532,7 +1517,7 @@ mod tests {
         repositories: R,
         wrapping_key_identifier: &str,
         ca: &Ca,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWiaIssuer, MockStatusListService> {
+    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService> {
         mock_user_state(
             repositories,
             StubWalletFlags::default(),
@@ -2311,7 +2296,7 @@ mod tests {
     #[case(Box::new(mock_sign_instruction()), false)]
     #[case(Box::new(DeleteKeys { identifiers: vec_nonempty!["id".to_string()] }), false)]
     #[case(Box::new(mock_start_pin_recovery_instruction()), true)]
-    #[case(Box::new(IssueWia { aud: "aud".to_string(), nonce: None }), true)]
+    #[case(Box::new(IssueWia { aud: "aud".to_string(), nonce: None }), false)]
     fn test_instruction_validation_during_pin_recovery(
         #[case] instruction: Box<dyn ValidateInstruction>,
         #[case] should_succeed: bool,

@@ -1,15 +1,11 @@
-use std::sync::LazyLock;
-
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
-use mime::Mime;
 use url::Url;
 
 pub use self::error::VpMessageClientError;
 pub use self::error::VpMessageClientErrorType;
 pub use self::http::HttpVpMessageClient;
-use crate::errors::AuthorizationErrorCode;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -21,11 +17,7 @@ mod http;
 #[cfg(test)]
 pub mod mock;
 
-pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: LazyLock<Mime> = LazyLock::new(|| {
-    "application/oauth-authz-req+jwt"
-        .parse()
-        .expect("could not parse MIME type")
-});
+pub const APPLICATION_OAUTH_AUTHZ_REQ_JWT: &str = "application/oauth-authz-req+jwt";
 
 /// Contract for sending OpenID4VP protocol messages.
 pub trait VpMessageClient {
@@ -49,7 +41,7 @@ pub trait VpMessageClient {
             url,
             AuthorizationErrorResponse {
                 error_response: ErrorResponse {
-                    error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                    error: VpAuthorizationErrorCode::AccessDenied,
                     error_description: None,
                     error_uri: None,
                 },

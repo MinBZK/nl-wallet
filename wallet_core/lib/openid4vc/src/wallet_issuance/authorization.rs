@@ -2,25 +2,29 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwt::wia::WIA_HEADER_NAME;
+use jwt::wia::WIA_POP_HEADER_NAME;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
 use super::WalletIssuanceError;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
-use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
-use crate::ParErrorCode;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::errors::AuthorizationErrorCode;
+use crate::errors::ParErrorCode;
+use crate::errors::RemoteErrorCode;
+use crate::errors::RemoteErrorResponse;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -43,7 +47,7 @@ pub enum OAuthError {
     ErrorResponseUrlDecoding(#[source] serde_qs::Error),
 
     #[error("error requesting authorization code: {0:?}")]
-    RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
+    RedirectUriError(Box<RemoteErrorResponse<AuthorizationErrorCode>>),
 
     #[error("invalid state token received in redirect URI")]
     #[category(critical)]
@@ -59,7 +63,7 @@ pub enum OAuthError {
 
     #[error("pushed authorization request rejected: {0:?}")]
     #[category(expected)]
-    PushedAuthorizationRequest(Box<ErrorResponse<ParErrorCode>>),
+    PushedAuthorizationRequest(Box<RemoteErrorResponse<ParErrorCode>>),
 
     #[error("user denied authentication")]
     #[category(expected)]
@@ -73,10 +77,10 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
-    http_client: HttpJsonClient,
+    authorization_server: IssuerIdentifier,
+    http_client: HttpClient,
 
     auth_url: Url,
-    client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
     state: String,
@@ -88,8 +92,8 @@ pub struct HttpAuthorizationSessionData {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
+    authorization_server: IssuerIdentifier,
     auth_url: Url,
-    client_id: String,
     redirect_uri: Url,
     code_verifier: String,
     state: String,
@@ -101,7 +105,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     /// the PAR request is rejected, or the URL cannot be constructed.
     #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(super) async fn create(
-        http_client: HttpJsonClient,
+        http_client: HttpClient,
         credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
@@ -109,10 +113,12 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         client_id: String,
         redirect_uri: Url,
         issuer_state: Option<String>,
+        wia_client: &impl WiaClient,
+        authorization_server: IssuerIdentifier,
     ) -> Result<Self, WalletIssuanceError> {
-        // Include the scope values for each Credential Configuration with a supported credential format that was
-        // present in the Credential Offer and return an error if any of them do not include a scope. According
-        // to HAIP:
+        // Include the `scope` values for each Credential Configuration with a supported credential format that was
+        // present in the Credential Offer and return an error if any of them do not include a `scope`. Note that we
+        // include the `scope` values in favour of using the `authorization_details` field. According to HAIP:
         //
         // "For Grant Type authorization_code, the Issuer MUST include a scope value in order to allow the Wallet to
         // identify the desired Credential Type. The Wallet MUST use that value in the scope Authorization parameter."
@@ -142,8 +148,18 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
+        let wia = wia_client
+            .issue_wia(authorization_server.to_string(), None)
+            .await
+            .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
+
         let response = http_client
-            .post(auth_endpoints.par_endpoint, |builder| builder.form(&par_request))
+            .post(auth_endpoints.par_endpoint, |builder| {
+                builder
+                    .form(&par_request)
+                    .header(WIA_HEADER_NAME, wia.wia().serialization())
+                    .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+            })
             .await
             .map_err(WalletIssuanceError::ParHttp)?;
 
@@ -154,7 +170,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
                 .map_err(WalletIssuanceError::ParHttp)?
         } else {
             let error = response
-                .json::<ErrorResponse<ParErrorCode>>()
+                .json::<RemoteErrorResponse<ParErrorCode>>()
                 .await
                 .map_err(WalletIssuanceError::ParHttp)?;
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
@@ -171,9 +187,9 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             credential_issuer,
             issuer_endpoints,
             token_endpoint: auth_endpoints.token_endpoint,
+            authorization_server,
             http_client,
             auth_url,
-            client_id,
             redirect_uri,
             pkce_pair,
             state,
@@ -198,10 +214,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
-            let err_response: ErrorResponse<AuthorizationErrorCode> =
+            let err_response: RemoteErrorResponse<AuthorizationErrorCode> =
                 serde_qs::from_str(auth_response).map_err(OAuthError::ErrorResponseUrlDecoding)?;
 
-            return if err_response.error == AuthorizationErrorCode::AccessDenied {
+            return if err_response.error == RemoteErrorCode::Known(AuthorizationErrorCode::AccessDenied) {
                 Err(OAuthError::Denied)
             } else {
                 Err(OAuthError::RedirectUriError(Box::new(err_response)))
@@ -219,15 +235,15 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 }
 
 impl HttpAuthorizationSession {
-    pub fn restore(http_client: HttpJsonClient, data: HttpAuthorizationSessionData) -> Self {
+    pub fn restore(http_client: HttpClient, data: HttpAuthorizationSessionData) -> Self {
         Self {
             credential_configurations: data.credential_configurations,
             credential_issuer: data.credential_issuer,
             issuer_endpoints: data.issuer_endpoints,
             token_endpoint: data.token_endpoint,
+            authorization_server: data.authorization_server,
             http_client,
             auth_url: data.auth_url,
-            client_id: data.client_id,
             redirect_uri: data.redirect_uri,
             pkce_pair: S256PkcePair::from_code_verifier(data.code_verifier),
             state: data.state,
@@ -253,8 +269,8 @@ impl AuthorizationSession for HttpAuthorizationSession {
             credential_issuer: self.credential_issuer.clone(),
             issuer_endpoints: self.issuer_endpoints.clone(),
             token_endpoint: self.token_endpoint.clone(),
+            authorization_server: self.authorization_server.clone(),
             auth_url: self.auth_url.clone(),
-            client_id: self.client_id.clone(),
             redirect_uri: self.redirect_uri.clone(),
             code_verifier: self.pkce_pair.code_verifier().to_string(),
             state: self.state.clone(),
@@ -265,13 +281,16 @@ impl AuthorizationSession for HttpAuthorizationSession {
         self,
         received_redirect_uri: &Url,
         trust_anchors: &TrustAnchors,
+        wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);
 
+        // Create the Token Request to be sent to the issuer with the minimal amount of information required. This does
+        // not include either a `scope` or `authorization_details` field, as we have no need to further restrict the
+        // credentials requested at this point.
         let token_request = TokenRequest::new_authorization_code(
             authorization_code,
-            self.client_id,
             self.redirect_uri,
             self.pkce_pair.into_code_verifier(),
         );
@@ -283,6 +302,8 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.issuer_endpoints,
             &self.token_endpoint,
             token_request,
+            wia_client,
+            &self.authorization_server,
             trust_anchors,
         )
         .await
@@ -297,7 +318,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use http_utils::reqwest::default_reqwest_client_builder;
     use http_utils::urls::BaseUrl;
     use httpmock::Method::POST;
@@ -307,15 +328,15 @@ mod tests {
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
+    use wscd::mock_remote::MockWiaClient;
 
     use super::super::AuthorizationSession;
     use super::super::WalletIssuanceError;
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
-    use super::ParErrorCode;
-    use crate::AuthorizationErrorCode;
-    use crate::ErrorResponse;
+    use crate::errors::AuthorizationErrorCode;
+    use crate::errors::RemoteErrorCode;
     use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -327,7 +348,6 @@ mod tests {
 
     const ISSUER_URL: &str = "https://example.com";
     const TOKEN_ENDPOINT: &str = "/issuance/token";
-    const CLIENT_ID: &str = "client-1";
     const REDIRECT_URI: &str = "redirect://here";
     const CSRF_TOKEN: &str = "csrf_token";
     const CODE: &str = "code";
@@ -364,9 +384,9 @@ mod tests {
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
-            http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            authorization_server: ISSUER_URL.parse().unwrap(),
+            http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
-            client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair,
             state: CSRF_TOKEN.to_string(),
@@ -463,19 +483,21 @@ mod tests {
             )],
         );
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
-            HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             issuer_metadata
                 .credential_configurations_supported
                 .into_iter()
                 .collect_vec()
                 .try_into()
                 .unwrap(),
-            issuer_metadata.credential_issuer,
+            issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             issuer_state.map(str::to_string),
+            &MockWiaClient::new(),
+            issuer_metadata.credential_issuer,
         )
         .await
         .unwrap();
@@ -520,14 +542,16 @@ mod tests {
             .unwrap();
 
         let error = HttpAuthorizationSession::<MockPkcePair>::create(
-            HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             credential_configurations,
-            issuer_metadata.credential_issuer,
+            issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             None,
+            &MockWiaClient::new(),
+            issuer_metadata.credential_issuer,
         )
         .await
         .expect_err("creating authorization session should fail");
@@ -550,18 +574,6 @@ mod tests {
 
         assert!(!session.matches_received_redirect_uri(&Url::parse("https://example.com").unwrap()));
         assert!(!session.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
-    }
-
-    #[rstest]
-    #[case(json!({ "error": "invalid_client" }), ParErrorCode::InvalidClient)]
-    #[case(json!({ "error": "server_error" }), ParErrorCode::ServerError)]
-    #[case(json!({ "error": "invalid_request" }), ParErrorCode::InvalidRequest)]
-    // A spec-compliant code the holder doesn't model explicitly falls through to the catch-all,
-    // preserving the original wire value rather than failing to decode.
-    #[case(json!({ "error": "temporarily_unavailable" }), ParErrorCode::Other("temporarily_unavailable".to_string()))]
-    fn test_par_error_code_deserializes_wire_format(#[case] body: serde_json::Value, #[case] expected: ParErrorCode) {
-        let response: ErrorResponse<ParErrorCode> = serde_json::from_value(body).unwrap();
-        assert_eq!(response.error, expected);
     }
 
     #[tokio::test]
@@ -590,7 +602,7 @@ mod tests {
         assert_matches!(
             error,
             OAuthError::RedirectUriError(response)
-                if matches!(response.error, AuthorizationErrorCode::InvalidRequest)
+                if matches!(response.error, RemoteErrorCode::Known(AuthorizationErrorCode::InvalidRequest))
                 && response.error_description == Some("this is the error description".to_string())
         );
     }
@@ -650,10 +662,10 @@ mod tests {
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             auth_url: ISSUER_URL.parse().unwrap(),
-            client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             code_verifier: "verifier".to_string(),
             state: CSRF_TOKEN.to_string(),
+            authorization_server: ISSUER_URL.parse().unwrap(),
         };
 
         let session = HttpAuthorizationSession {
@@ -661,22 +673,21 @@ mod tests {
             credential_issuer: persisted.credential_issuer,
             issuer_endpoints: persisted.issuer_endpoints,
             token_endpoint: persisted.token_endpoint,
-            http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
-            client_id: persisted.client_id.clone(),
             redirect_uri: persisted.redirect_uri.clone(),
             pkce_pair: S256PkcePair::from_code_verifier(persisted.code_verifier.clone()),
             state: persisted.state.clone(),
+            authorization_server: ISSUER_URL.parse().unwrap(),
         };
 
         let restored = HttpAuthorizationSession::restore(
-            HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             session.persist(),
         );
         let restored_persisted = restored.persist();
 
         assert_eq!(restored_persisted.auth_url, persisted.auth_url);
-        assert_eq!(restored_persisted.client_id, persisted.client_id);
         assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
         assert_eq!(restored_persisted.code_verifier, persisted.code_verifier);
         assert_eq!(restored_persisted.state, persisted.state);

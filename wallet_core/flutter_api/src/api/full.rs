@@ -8,6 +8,7 @@ use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
 use url::Url;
 use wallet::DisclosureUriSource;
+use wallet::Pagination;
 use wallet::PidIssuancePurpose;
 use wallet::UnlockMethod;
 use wallet::Wallet;
@@ -64,7 +65,8 @@ pub async fn init() -> anyhow::Result<()> {
         // init_logging() should not fail when being called more than once.
         init_logging();
 
-        // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
+        // Setup logging to console and enable standard panic backtraces. Handled Sentry errors attach
+        // stacktraces through the Rust Sentry client options.
         set_env_if_unset("RUST_BACKTRACE", "1");
         set_env_if_unset("RUST_LIB_BACKTRACE", "0");
 
@@ -618,9 +620,13 @@ pub async fn get_wallet_state() -> anyhow::Result<WalletState> {
 }
 
 #[flutter_api_error]
-pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
+pub async fn get_history(page: u32, page_size: u32) -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
-    let history = wallet.get_history().await?;
+    let pagination = (page_size != 0).then_some(Pagination {
+        page: page as usize,
+        size: page_size as usize,
+    });
+    let history = wallet.get_history(pagination).await?;
     let history = history.into_iter().map(WalletEvent::from).collect();
     Ok(history)
 }

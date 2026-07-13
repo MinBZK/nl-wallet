@@ -42,7 +42,7 @@ use jwt::Algorithm;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
-use jwt::error::JwtX5cError;
+use jwt::error::JwtX5cVerifyError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
@@ -411,7 +411,7 @@ pub enum AuthRequestValidationError {
         certificate_hash: String,
     },
     #[error("failed to verify Authorization Request JWT: {0}")]
-    JwtVerification(#[from] JwtX5cError),
+    JwtVerification(#[from] JwtX5cVerifyError),
     #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
     #[category(critical)]
     WalletNonceMismatch,
@@ -436,7 +436,7 @@ impl VpAuthorizationRequest {
         let (header, auth_request) = jws.parse_and_verify_against_trust_anchors(
             trust_anchors,
             &TimeGenerator,
-            CertificateUsage::ReaderAuth,
+            Some(CertificateUsage::ReaderAuth),
             &validation_options,
         )?;
 

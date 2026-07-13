@@ -41,6 +41,7 @@ pub use crate::wallet::InvocationUri;
 pub use crate::wallet::IssuanceResult;
 pub use crate::wallet::IssuanceStartResult;
 pub use crate::wallet::LockCallback;
+pub use crate::wallet::Pagination;
 pub use crate::wallet::PidIssuancePurpose;
 pub use crate::wallet::RedirectUri;
 pub use crate::wallet::ScheduledNotificationsCallback;

@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::ops::Not;
@@ -13,6 +14,7 @@ use derive_more::Into;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
+use jwt::JwtTyp;
 use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
@@ -24,6 +26,7 @@ use serde_with::MapPreventDuplicates;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -99,6 +102,24 @@ pub struct IssuerMetadata {
     /// Credential.
     #[serde_as(as = "MapPreventDuplicates<_, _>")]
     pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignedIssuerMetadataPayload<'a> {
+    #[serde(flatten)]
+    pub metadata: Cow<'a, IssuerMetadata>,
+
+    // Standard JWT fields.
+    // https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-signed-metadata
+    pub iss: Option<Cow<'a, str>>,
+    pub sub: Cow<'a, IssuerIdentifier>,
+    pub iat: DateTimeSeconds,
+    pub exp: Option<DateTimeSeconds>,
+}
+
+impl JwtTyp for SignedIssuerMetadataPayload<'_> {
+    const TYP: &'static str = "openidvci-issuer-metadata+jwt";
 }
 
 #[skip_serializing_none]
@@ -732,9 +753,11 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
 
+    use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
+    use jwt::VerifiedJwt;
     use serde_json::json;
 
     use super::CoseAlgorithmIdentifier;
@@ -744,6 +767,8 @@ mod tests {
     use super::IssuerMetadata;
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
+    use super::SignedIssuerMetadataPayload;
+    use crate::issuer_identifier::IssuerIdentifier;
     use crate::jwe::JweCompressionAlgorithm;
 
     #[test]
@@ -886,6 +911,21 @@ mod tests {
         let metadata = serde_json::from_value::<IssuerMetadata>(example_json.clone())
             .expect("deserializing IssuerMetadata from example JSON should succeed");
 
+        assert_example_metadata(&metadata, 10, true, true, true, true);
+
+        let serialized_metadata =
+            serde_json::to_value(metadata).expect("serializing IssuerMetadata to JSON should succeed");
+        assert_eq!(serialized_metadata, example_json);
+    }
+
+    fn assert_example_metadata(
+        metadata: &IssuerMetadata,
+        batch_size: u64,
+        has_nonce_endpoint: bool,
+        has_request_encryption: bool,
+        supports_zip_algorithms: bool,
+        has_display_logo: bool,
+    ) {
         assert_eq!(
             metadata.credential_issuer.as_ref(),
             "https://credential-issuer.example.com"
@@ -900,30 +940,34 @@ mod tests {
                 .nonce_endpoint
                 .as_ref()
                 .map(|url| url.as_ref().as_ref().as_str()),
-            Some("https://credential-issuer.example.com/nonce")
+            has_nonce_endpoint.then_some("https://credential-issuer.example.com/nonce")
         );
 
-        let request_encryption = metadata
-            .credential_request_encryption
-            .as_ref()
-            .expect("IssuerMetadata should contain CredentialRequestEncryption");
-        assert_eq!(request_encryption.jwks.len().get(), 1);
-        assert_matches!(request_encryption.jwks.first().params(), KeyParams::Ec(_));
-        assert!(
-            request_encryption
-                .enc_values_supported
-                .iter()
-                .eq(&[EncryptionAlgorithm::A128Gcm.into()])
-        );
-        assert!(
-            request_encryption
-                .zip_values_supported
+        if has_request_encryption {
+            let request_encryption = metadata
+                .credential_request_encryption
                 .as_ref()
-                .map(|values| values.iter())
-                .unwrap_or_default()
-                .eq(&[JweCompressionAlgorithm::Deflate])
-        );
-        assert!(request_encryption.encryption_required);
+                .expect("IssuerMetadata should contain CredentialRequestEncryption");
+            assert_eq!(request_encryption.jwks.len().get(), 1);
+            assert_matches!(request_encryption.jwks.first().params(), KeyParams::Ec(_));
+            assert!(
+                request_encryption
+                    .enc_values_supported
+                    .iter()
+                    .eq(&[EncryptionAlgorithm::A128Gcm.into()])
+            );
+            assert!(
+                request_encryption
+                    .zip_values_supported
+                    .as_ref()
+                    .map(|values| values.iter())
+                    .unwrap_or_default()
+                    .eq(&[JweCompressionAlgorithm::Deflate])
+            );
+            assert!(request_encryption.encryption_required);
+        } else {
+            assert!(metadata.credential_request_encryption.is_none());
+        }
 
         let response_encryption = metadata
             .credential_response_encryption
@@ -936,17 +980,21 @@ mod tests {
                 .iter()
                 .eq(&[EncryptionAlgorithm::A128Gcm.into()])
         );
-        assert!(
-            response_encryption
-                .zip_values_supported
-                .as_ref()
-                .map(|values| values.iter())
-                .unwrap_or_default()
-                .eq(&[JweCompressionAlgorithm::Deflate])
-        );
-        assert!(response_encryption.encryption_required);
+        if supports_zip_algorithms {
+            assert!(
+                response_encryption
+                    .zip_values_supported
+                    .as_ref()
+                    .map(|values| values.iter())
+                    .unwrap_or_default()
+                    .eq(&[JweCompressionAlgorithm::Deflate])
+            );
+        } else {
+            assert!(response_encryption.zip_values_supported.is_none());
+        }
+        assert_eq!(response_encryption.encryption_required, has_request_encryption);
 
-        assert_eq!(metadata.batch_size().get(), 10);
+        assert_eq!(metadata.batch_size().get(), batch_size);
         assert_eq!(
             metadata
                 .display
@@ -964,18 +1012,29 @@ mod tests {
                 .map(|display| display.name_locale.locale.as_deref())
                 .eq([Some("en-US"), Some("fr-FR")])
         );
-        assert!(
-            metadata
-                .display
-                .as_ref()
-                .map(|display| display.iter())
-                .unwrap_or_default()
-                .map(|display| display.logo.as_ref().map(|logo| logo.uri.as_str()))
-                .eq([
-                    Some("https://university.example.edu/public/logo.png"),
-                    Some("https://university.example.edu/public/logo.png")
-                ])
-        );
+        if has_display_logo {
+            assert!(
+                metadata
+                    .display
+                    .as_ref()
+                    .map(|display| display.iter())
+                    .unwrap_or_default()
+                    .map(|display| display.logo.as_ref().map(|logo| logo.uri.as_str()))
+                    .eq([
+                        Some("https://university.example.edu/public/logo.png"),
+                        Some("https://university.example.edu/public/logo.png")
+                    ])
+            );
+        } else {
+            assert!(
+                metadata
+                    .display
+                    .as_ref()
+                    .map(|display| display.iter())
+                    .unwrap_or_default()
+                    .all(|display| display.logo.is_none())
+            );
+        }
 
         assert_eq!(metadata.credential_configurations_supported.len(), 1);
         let (config_id, config) = metadata.credential_configurations_supported.iter().next().unwrap();
@@ -1030,10 +1089,79 @@ mod tests {
                 .unwrap_or_default(),
             13
         );
+    }
 
-        let serialized_metadata =
-            serde_json::to_value(metadata).expect("serializing IssuerMetadata to JSON should succeed");
-        assert_eq!(serialized_metadata, example_json);
+    #[test]
+    fn test_sd_jwt_signed_issuer_metadata_deserialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-I.1
+        let example_jwt = "eyJhbGciOiJFUzI1NiIsInR5cCI6Im9wZW5pZHZjaS1pc3N1ZXItbWV0YWRhdGErand0Ii\
+                           wieDVjIjpbIk1JSUI5RENDQVpxZ0F3SUJBZ0lVRkFIcFd2VjdOR1J4T05JSFQvQ0N3RUU5\
+                           QmE0d0NnWUlLb1pJemowRUF3SXdLREVtTUNRR0ExVUVBd3dkWTNKbFpHVnVkR2xoYkMxcG\
+                           MzTjFaWEl1WlhoaGJYQnNaUzVqYjIwd0lCY05NalV3TnpJeU1EZ3lPREEyV2hnUE1qQTFO\
+                           VEEzTVRVd09ESTRNRFphTUNneEpqQWtCZ05WQkFNTUhXTnlaV1JsYm5ScFlXd3RhWE56ZF\
+                           dWeUxtVjRZVzF3YkdVdVkyOXRNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFn\
+                           QUVsSG50aWhHdTV2Q3RrWituMllhQ28rdW5ubndrd2xVUHBUc25PMk9TdnpvVHNYdGQxaz\
+                           E4WWhBUGhPTjYvbERXei9mN0FNcmRWN0xNZ0JZU3BwMndKS09CbnpDQm5EQWRCZ05WSFE0\
+                           RUZnUVVhTWo0bmEvUWpjdHA3V2dyR2xxam0zUFQxU2t3SHdZRFZSMGpCQmd3Rm9BVWFNaj\
+                           RuYS9RamN0cDdXZ3JHbHFqbTNQVDFTa3dEd1lEVlIwVEFRSC9CQVV3QXdFQi96QkpCZ05W\
+                           SFJFRVFqQkFnaDFqY21Wa1pXNTBhV0ZzTFdsemMzVmxjaTVsZUdGdGNHeGxMbU52YllJZk\
+                           tpNWpjbVZrWlc1MGFXRnNMV2x6YzNWbGNpNWxlR0Z0Y0d4bExtTnZiVEFLQmdncWhrak9Q\
+                           UVFEQWdOSUFEQkZBaUJMWjNuTGhMT1diR2hBTGNSUHhQTGlIdFV1bGRqRFQ0MUZrOTBUan\
+                           d5MEpRSWhBT3NtWXpTcHNGenBqTjBPV1R2UEV5dURrL05nUnVmSjNkRGFnOHNaSjZkTSJd\
+                           fQ.eyJzdWIiOiJodHRwczovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF\
+                           0IjoxNTE2MjM5MDIyLCJjcmVkZW50aWFsX2lzc3VlciI6Imh0dHBzOi8vY3JlZGVudGlhb\
+                           C1pc3N1ZXIuZXhhbXBsZS5jb20iLCJhdXRob3JpemF0aW9uX3NlcnZlcnMiOlsiaHR0cHM\
+                           6Ly9zZXJ2ZXIuZXhhbXBsZS5jb20iXSwiY3JlZGVudGlhbF9lbmRwb2ludCI6Imh0dHBzO\
+                           i8vY3JlZGVudGlhbC1pc3N1ZXIuZXhhbXBsZS5jb20vY3JlZGVudGlhbCIsImRlZmVycmV\
+                           kX2NyZWRlbnRpYWxfZW5kcG9pbnQiOiJodHRwczovL2NyZWRlbnRpYWwtaXNzdWVyLmV4Y\
+                           W1wbGUuY29tL2RlZmVycmVkX2NyZWRlbnRpYWwiLCJjcmVkZW50aWFsX3Jlc3BvbnNlX2V\
+                           uY3J5cHRpb24iOnsiYWxnX3ZhbHVlc19zdXBwb3J0ZWQiOlsiRUNESC1FUyJdLCJlbmNfd\
+                           mFsdWVzX3N1cHBvcnRlZCI6WyJBMTI4R0NNIl0sImVuY3J5cHRpb25fcmVxdWlyZWQiOmZ\
+                           hbHNlfSwiZGlzcGxheSI6W3sibmFtZSI6IkV4YW1wbGUgVW5pdmVyc2l0eSIsImxvY2FsZ\
+                           SI6ImVuLVVTIn0seyJuYW1lIjoiRXhhbXBsZSBVbml2ZXJzaXTDqSIsImxvY2FsZSI6ImZ\
+                           yLUZSIn1dLCJjcmVkZW50aWFsX2NvbmZpZ3VyYXRpb25zX3N1cHBvcnRlZCI6eyJTRF9KV\
+                           1RfVkNfZXhhbXBsZV9pbl9PcGVuSUQ0VkNJIjp7ImZvcm1hdCI6ImRjK3NkLWp3dCIsInN\
+                           jb3BlIjoiU0RfSldUX1ZDX2V4YW1wbGVfaW5fT3BlbklENFZDSSIsImNyeXB0b2dyYXBoa\
+                           WNfYmluZGluZ19tZXRob2RzX3N1cHBvcnRlZCI6WyJqd2siXSwiY3JlZGVudGlhbF9zaWd\
+                           uaW5nX2FsZ192YWx1ZXNfc3VwcG9ydGVkIjpbIkVTMjU2Il0sInByb29mX3R5cGVzX3N1c\
+                           HBvcnRlZCI6eyJqd3QiOnsicHJvb2Zfc2lnbmluZ19hbGdfdmFsdWVzX3N1cHBvcnRlZCI\
+                           6WyJFUzI1NiJdLCJrZXlfYXR0ZXN0YXRpb25zX3JlcXVpcmVkIjp7ImtleV9zdG9yYWdlI\
+                           jpbImlzb18xODA0NV9tb2RlcmF0ZSJdLCJ1c2VyX2F1dGhlbnRpY2F0aW9uIjpbImlzb18\
+                           xODA0NV9tb2RlcmF0ZSJdfX19LCJ2Y3QiOiJTRF9KV1RfVkNfZXhhbXBsZV9pbl9PcGVuS\
+                           UQ0VkNJIiwiY3JlZGVudGlhbF9tZXRhZGF0YSI6eyJkaXNwbGF5IjpbeyJuYW1lIjoiSWR\
+                           lbnRpdHlDcmVkZW50aWFsIiwibG9nbyI6eyJ1cmkiOiJodHRwczovL3VuaXZlcnNpdHkuZ\
+                           XhhbXBsZS5lZHUvcHVibGljL2xvZ28ucG5nIiwiYWx0X3RleHQiOiJhIHNxdWFyZSBsb2d\
+                           vIG9mIGEgdW5pdmVyc2l0eSJ9LCJsb2NhbGUiOiJlbi1VUyIsImJhY2tncm91bmRfY29sb\
+                           3IiOiIjMTIxMDdjIiwidGV4dF9jb2xvciI6IiNGRkZGRkYifV0sImNsYWltcyI6W3sicGF\
+                           0aCI6WyJnaXZlbl9uYW1lIl0sImRpc3BsYXkiOlt7Im5hbWUiOiJHaXZlbiBOYW1lIiwib\
+                           G9jYWxlIjoiZW4tVVMifSx7Im5hbWUiOiJWb3JuYW1lIiwibG9jYWxlIjoiZGUtREUifV1\
+                           9LHsicGF0aCI6WyJmYW1pbHlfbmFtZSJdLCJkaXNwbGF5IjpbeyJuYW1lIjoiU3VybmFtZ\
+                           SIsImxvY2FsZSI6ImVuLVVTIn0seyJuYW1lIjoiTmFjaG5hbWUiLCJsb2NhbGUiOiJkZS1\
+                           ERSJ9XX0seyJwYXRoIjpbImVtYWlsIl19LHsicGF0aCI6WyJwaG9uZV9udW1iZXIiXX0se\
+                           yJwYXRoIjpbImFkZHJlc3MiXSwiZGlzcGxheSI6W3sibmFtZSI6IlBsYWNlIG9mIHJlc2l\
+                           kZW5jZSIsImxvY2FsZSI6ImVuLVVTIn0seyJuYW1lIjoiV29obnNpdHoiLCJsb2NhbGUiO\
+                           iJkZS1ERSJ9XX0seyJwYXRoIjpbImFkZHJlc3MiLCJzdHJlZXRfYWRkcmVzcyJdfSx7InB\
+                           hdGgiOlsiYWRkcmVzcyIsImxvY2FsaXR5Il19LHsicGF0aCI6WyJhZGRyZXNzIiwicmVna\
+                           W9uIl19LHsicGF0aCI6WyJhZGRyZXNzIiwiY291bnRyeSJdfSx7InBhdGgiOlsiYmlydGh\
+                           kYXRlIl19LHsicGF0aCI6WyJpc19vdmVyXzE4Il19LHsicGF0aCI6WyJpc19vdmVyXzIxI\
+                           l19LHsicGF0aCI6WyJpc19vdmVyXzY1Il19XX19fX0.KkM97TGKU9yTAPnbTfSPVFT3Ryw\
+                           X9_5QPEtNwMhiu8V_UPBGMYA2mkVc-VxGTm9vdeV482-TWnVfbub_kzS9Eg";
+
+        let jwt: VerifiedJwt<SignedIssuerMetadataPayload> = VerifiedJwt::dangerous_parse_unverified(example_jwt)
+            .expect("deserializing signed IssuerMetadata from example JWT should succeed");
+
+        let header = jwt.header();
+        assert_eq!(header.alg, jsonwebtoken::Algorithm::ES256);
+        assert_eq!(header.typ, "openidvci-issuer-metadata+jwt");
+
+        let payload = jwt.payload();
+        let issuer_identifier = IssuerIdentifier::try_new("https://credential-issuer.example.com".into()).unwrap();
+        assert_eq!(payload.iss, None);
+        assert_eq!(payload.sub.as_ref(), &issuer_identifier,);
+        assert_eq!(payload.iat, DateTime::from_timestamp_secs(1516239022).unwrap().into());
+        assert_eq!(payload.exp, None);
+
+        assert_example_metadata(payload.metadata.as_ref(), 1, false, false, false, false);
     }
 
     #[test]

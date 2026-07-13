@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
 import 'package:wallet/src/feature/error/error_page.dart';
+import 'package:wallet/src/navigation/wallet_routes.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -33,6 +35,13 @@ void main() {
         ),
       );
       await screenMatchesGolden('page/generic_close');
+    });
+
+    testGoldens('ErrorPage.attestationFailed', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const Builder(builder: ErrorPage.attestationFailed),
+      );
+      await screenMatchesGolden('page/attestation_failed');
     });
 
     testGoldens('ErrorPage.network', (tester) async {
@@ -174,6 +183,16 @@ void main() {
 
       await tester.tap(find.byType(PrimaryButton));
       expect(pressed, isTrue);
+    });
+
+    testWidgets('help desk button on attestationFailed navigates to contactRoute', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const Builder(builder: ErrorPage.attestationFailed));
+      final l10n = await TestUtils.englishLocalizations;
+
+      await tester.tap(find.text(l10n.errorScreenAttestationFailedHelpdeskCta, findRichText: true));
+      await tester.pumpAndSettle();
+
+      expect(find.text(WalletRoutes.contactRoute), findsOneWidget);
     });
   });
 
@@ -357,6 +376,25 @@ void main() {
               style: ErrorCtaStyle.retry,
             );
             final expected = ErrorPage.deviceIncompatible(context);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps AttestationFailedError to ErrorPage.attestationFailed', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const AttestationFailedError(sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.attestationFailed(context);
             expect(page.title, expected.title);
             expect(page.description, expected.description);
             return const SizedBox.shrink();

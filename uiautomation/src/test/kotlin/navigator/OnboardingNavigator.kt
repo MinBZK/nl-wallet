@@ -14,7 +14,6 @@ import screen.revocation.RevocationCodeSetupScreen
 import screen.security.PinScreen
 import screen.security.SecuritySetupCompletedScreen
 import screen.web.digid.DigidLoginMockWebPage
-import screen.web.digid.DigidLoginStartWebPage
 import util.MobileActions
 
 class OnboardingNavigator {
@@ -30,7 +29,6 @@ class OnboardingNavigator {
         if (screen > OnboardingNavigatorScreen.SecuritySetupCompleted) SecuritySetupCompletedScreen().clickNextButton()
         if (screen > OnboardingNavigatorScreen.RevocationCode) RevocationCodeSetupScreen().confirmReceive()
         if (screen > OnboardingNavigatorScreen.PersonalizeInform) PersonalizeInformScreen().clickDigidLoginButton()
-        if (screen > OnboardingNavigatorScreen.DigidLoginStartWebPage) DigidLoginStartWebPage().clickMockLoginButton()
         if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().login(bsn)
         if (screen > OnboardingNavigatorScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()
         if (screen > OnboardingNavigatorScreen.PersonalizeConfirmIssuance) PinScreen().enterPin(DEFAULT_PIN)

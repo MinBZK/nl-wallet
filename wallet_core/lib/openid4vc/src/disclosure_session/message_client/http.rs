@@ -2,11 +2,10 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 use futures::TryFutureExt;
-use http_utils::reqwest::client_builder_accept_json;
+use http_utils::reqwest::HttpClient;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
-use reqwest::ClientBuilder;
 use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::ACCEPT;
@@ -16,9 +15,9 @@ use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use super::VpMessageClient;
 use super::VpMessageClientError;
 use crate::errors::AuthorizationErrorResponse;
-use crate::errors::DisclosureErrorResponse;
 use crate::errors::GetAuthRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
+use crate::errors::RemoteDisclosureErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpResponse;
@@ -27,28 +26,24 @@ use crate::verifier::VpToken;
 
 #[derive(Debug, Clone)]
 pub struct HttpVpMessageClient {
-    http_client: reqwest::Client,
+    http_client: HttpClient,
 }
 
 impl HttpVpMessageClient {
-    pub fn new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
-        let http_client = client_builder_accept_json(client_builder).build()?;
-
-        let message_client = Self { http_client };
-
-        Ok(message_client)
+    pub fn new(http_client: HttpClient) -> Self {
+        Self { http_client }
     }
 
     async fn get_body_from_response<T>(response: Response) -> Result<String, VpMessageClientError>
     where
         T: FromStr,
         T::Err: Display,
-        DisclosureErrorResponse<T>: Into<VpMessageClientError>,
+        RemoteDisclosureErrorResponse<T>: Into<VpMessageClientError>,
     {
         // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
         let status = response.status();
         if status.is_client_error() || status.is_server_error() {
-            let error = response.json::<DisclosureErrorResponse<T>>().await?;
+            let error = response.json::<RemoteDisclosureErrorResponse<T>>().await?;
 
             return Err(error.into());
         }
@@ -63,7 +58,7 @@ impl HttpVpMessageClient {
     where
         T: FromStr,
         T::Err: Display,
-        DisclosureErrorResponse<T>: Into<VpMessageClientError>,
+        RemoteDisclosureErrorResponse<T>: Into<VpMessageClientError>,
     {
         let response_body = Self::get_body_from_response(response).await?;
         let response: VpResponse = serde_json::from_str(&response_body)?;
@@ -86,7 +81,7 @@ impl VpMessageClient for HttpVpMessageClient {
         let mut request = self
             .http_client
             .request(method, url.into_inner())
-            .header(ACCEPT, APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref());
+            .header(ACCEPT, APPLICATION_OAUTH_AUTHZ_REQ_JWT);
 
         if wallet_nonce.is_some() {
             request = request.form(&WalletRequest { wallet_nonce });
@@ -111,9 +106,7 @@ impl VpMessageClient for HttpVpMessageClient {
         jwe: String,
     ) -> Result<Option<Url>, VpMessageClientError> {
         self.http_client
-            .post(url.into_inner())
-            .form(&VpToken { response: jwe })
-            .send()
+            .post(url.into_inner(), |builder| builder.form(&VpToken { response: jwe }))
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
                 let redirect_uri = Self::handle_vp_response::<PostAuthResponseErrorCode>(response).await?;
@@ -129,9 +122,7 @@ impl VpMessageClient for HttpVpMessageClient {
         error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<Url>, VpMessageClientError> {
         self.http_client
-            .post(url.into_inner())
-            .form(&error)
-            .send()
+            .post(url.into_inner(), |builder| builder.form(&error))
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
                 let redirect_uri = Self::handle_vp_response::<PostAuthResponseErrorCode>(response).await?;

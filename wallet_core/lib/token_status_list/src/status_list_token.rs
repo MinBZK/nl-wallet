@@ -11,7 +11,7 @@ use derive_more::FromStr;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
-use jwt::error::JwtError;
+use jwt::error::JwtSignError;
 use jwt::headers::HeaderWithX5c;
 use serde::Deserialize;
 use serde::Serialize;
@@ -60,7 +60,7 @@ impl StatusListTokenBuilder {
         self
     }
 
-    pub async fn sign(self, keypair: &KeyPair<impl EcdsaKey>) -> Result<StatusListToken, JwtError> {
+    pub async fn sign(self, keypair: &KeyPair<impl EcdsaKey>) -> Result<StatusListToken, JwtSignError> {
         let claims = StatusListClaims {
             iat: Utc::now(),
             exp: self.exp,
@@ -115,7 +115,7 @@ pub mod verification {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use jwt::DEFAULT_VALIDATIONS;
-    use jwt::error::JwtX5cError;
+    use jwt::error::JwtX5cVerifyError;
     use url::Url;
     use utils::generator::Generator;
 
@@ -127,7 +127,7 @@ pub mod verification {
     #[derive(Debug, thiserror::Error)]
     pub enum StatusListTokenVerificationError {
         #[error("JWT verification failed: {0}")]
-        JwtVerification(#[from] JwtX5cError),
+        JwtVerification(#[from] JwtX5cVerifyError),
 
         #[error("JWT is expired")]
         Expired,
@@ -156,7 +156,7 @@ pub mod verification {
             let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
                 issuer_trust_anchors,
                 time,
-                CertificateUsage::OAuthStatusSigning,
+                Some(CertificateUsage::OAuthStatusSigning),
                 &DEFAULT_VALIDATIONS,
             )?;
 
@@ -252,7 +252,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use jwt::DEFAULT_VALIDATIONS;
-    use jwt::error::JwtX5cError;
+    use jwt::error::JwtX5cVerifyError;
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
@@ -300,7 +300,7 @@ mod test {
             .expect_err("should not verify for empty trust anchors");
         assert_matches!(
             err,
-            StatusListTokenVerificationError::JwtVerification(JwtX5cError::CertificateValidation(_))
+            StatusListTokenVerificationError::JwtVerification(JwtX5cVerifyError::CertificateValidation(_))
         );
 
         let err = signed

@@ -23,7 +23,7 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Either;
 use itertools::Itertools;
-use jwt::error::JwtError;
+use jwt::error::JwtSignError;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
@@ -247,7 +247,7 @@ impl From<VpSessionError> for DisclosureError {
             VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
                 signing_error,
             ))))
-            | VpSessionError::Client(VpClientError::SdJwtSigning(SigningError::Jwt(JwtError::Signing(
+            | VpSessionError::Client(VpClientError::SdJwtSigning(SigningError::JwtSign(JwtSignError::Signing(
                 signing_error,
             )))) if matches!(
                 signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
@@ -1029,7 +1029,6 @@ mod tests {
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use mockall::predicate::function;
-    use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::DisclosableAttestations;
@@ -1043,6 +1042,8 @@ mod tests {
     use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetAuthRequestErrorCode;
+    use openid4vc::errors::PostAuthResponseErrorCode;
+    use openid4vc::errors::RemoteErrorCode;
     use openid4vc::verifier::SessionType;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1744,7 +1745,7 @@ mod tests {
             Err(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: GetAuthRequestErrorCode::ServerError,
+                        error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
                         error_description: None,
                         error_uri: None,
                     },
@@ -2331,7 +2332,7 @@ mod tests {
             Err(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
-                        error: GetAuthRequestErrorCode::ServerError,
+                        error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
                         error_description: None,
                         error_uri: None,
                     },
@@ -2716,7 +2717,7 @@ mod tests {
     #[case(
         || DisclosureErrorResponse {
             error_response: ErrorResponse {
-                error: PostAuthResponseErrorCode::InvalidRequest,
+                error: RemoteErrorCode::Known(PostAuthResponseErrorCode::InvalidRequest),
                 error_description: None,
                 error_uri: None,
             },
@@ -2728,7 +2729,7 @@ mod tests {
     #[case(
         || DisclosureErrorResponse {
             error_response: ErrorResponse {
-                error: PostAuthResponseErrorCode::InvalidRequest,
+                error: RemoteErrorCode::Known(PostAuthResponseErrorCode::InvalidRequest),
                 error_description: None,
                 error_uri: None,
             },
