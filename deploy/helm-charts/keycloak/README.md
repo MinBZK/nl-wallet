@@ -6,10 +6,11 @@ on first start. (see also: `wallet_docs/development/keycloak-setup.md`).
 
 ## Prerequisites
 
-- Kubernetes with Gateway API.
+- Kubernetes with a deployed gateway
 - Helm + this helm-chart.
-- The pod-label `ingress-controller-frontoffice-policy: allow` (set via
-  `extraPodLabels`) so the frontoffice gateway can reach the pod.
+- If your environment requires labels to be set so you can access the pod (for
+  example, if your environment utilizes NetworkPolicy objects), then make sure
+  you add those to `extraPodLabels`.
 - Two secrets in the namespace:
 
   ```bash
@@ -42,9 +43,10 @@ Step-by-step:
 
 2. Create a values override file (e.g. `values-ont.yaml`) for the settings
    that have no usable default. For ont/demo this typically routes the image
-   pull through the Harbor proxy, points the HTTPRoute at the internal gateway
+   pull through the Harbor proxy, points the HTTPRoute at a "private" gateway
    with its wildcard cert, and admits the pod to the gateway via the
-   frontoffice label. Here is an example that matches our setup somewhat:
+   a label that is associated with the correct network policy. Here is an
+   example that matches our setup somewhat:
 
    ```yaml
    global:
@@ -165,7 +167,7 @@ Step-by-step:
 | `probes.config.liveness`                 | Additional configuration for liveness probe                              | `{}`     |
 | `probes.config.readiness`                | Additional configuration for readiness probe                             | `{}`     |
 | `probes.config.startup.periodSeconds`    | Seconds between startup probe checks                                     | `10`     |
-| `probes.config.startup.failureThreshold` | Number of failed startup probes before the container is restarted        | `60`     |
+| `probes.config.startup.failureThreshold` | Number of failed startup probes before the container is restarted        | `15`     |
 | `probes.port`                            | Named container port for probe targets (defaults to "http" in sp-common) | `health` |
 | `probes.disableLiveness`                 | Disable liveness probe                                                   | `false`  |
 | `probes.useLivenessAsReadiness`          | Use liveness endpoint for readiness                                      | `false`  |

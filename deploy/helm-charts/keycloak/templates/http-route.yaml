@@ -25,7 +25,7 @@ spec:
   rules:
     - backendRefs:
         - name: {{ $name }}
-          port: 443
+          port: 80
     {{- if .Values.httpRoute.contextPath }}
       matches:
         - path:

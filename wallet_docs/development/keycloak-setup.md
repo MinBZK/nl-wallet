@@ -40,8 +40,8 @@ Overridable with: `KC_USERNAME`, `KC_PASSWORD`, `KC_PORT_HTTP`, `KC_PORT_HTTPS`.
 The `keycloak` helm-chart in `deploy/helm-charts/keycloak` deploys the same
 container to a Kubernetes namespace. Differences from local dev:
 
-- TLS is terminated by the ingress/gateway; the pod serves plain HTTP on `:8080`
-  (`KC_HTTP_ENABLED=true`, no in-pod certificates). The Service exposes `:443`
+- TLS is terminated by the gateway; the pod serves plain HTTP on `:8080`
+  (`KC_HTTP_ENABLED=true`, no in-pod certificates). The Service exposes `:80`
   → `:8080`.
 - The whole `nl-wallet` realm import JSON (roles, users, passwords, clients)
   is supplied by an existing secret (`keycloak.realm.existingSecret`, default
@@ -62,7 +62,8 @@ container to a Kubernetes namespace. Differences from local dev:
   `KC_BOOTSTRAP_ADMIN_PASSWORD` keys.
 - State (`/opt/keycloak/data`) is on a PVC (if `persistence.enabled`). Defaults
   to the embedded `dev-file` database; switch `keycloak.database` to a real DB
-  for `replicaCount > 1`.
+  for `replicaCount > 1` (and disable persistence, since that would then be
+  handled by the real DB).
 
 > **Import runs once.** `--import-realm` only imports a realm that does not
 > exist yet. With `persistence.enabled` the realm stays on the PVC, so later

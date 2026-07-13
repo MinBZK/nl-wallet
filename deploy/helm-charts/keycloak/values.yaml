@@ -29,12 +29,13 @@ image:
 imagePullSecrets: []
 
 ## @section Deployment parameters
-## @param deployment.strategy Strategy used to replace old pods by new ones
+## @param deployment.strategy Strategy used to replace old pods by new ones. Defaults to Recreate because the chart uses a RWO PVC (dev-file database); switch to RollingUpdate only after moving to a shared database.
 ## @param deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
 ## @param deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
 ##
 deployment:
-  strategy: null
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 2
   progressDeadlineSeconds: 300
 
@@ -103,7 +104,7 @@ probes:
     readiness: {}
     startup:
       periodSeconds: 10
-      failureThreshold: 60
+      failureThreshold: 15
   disableLiveness: false
   useLivenessAsReadiness: false
 
