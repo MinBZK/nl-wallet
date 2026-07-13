@@ -59,7 +59,7 @@ fn body_to_string(bytes: &Bytes, headers: &HeaderMap<HeaderValue>) -> String {
         "application/json",
         "application/x-www-form-urlencoded",
         "text/plain",
-        APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref(),
+        APPLICATION_OAUTH_AUTHZ_REQ_JWT,
         APPLICATION_PROBLEM_JSON.as_ref(),
     ]
     .into_iter()

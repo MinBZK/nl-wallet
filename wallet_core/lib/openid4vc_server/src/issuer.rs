@@ -28,6 +28,7 @@ use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
+use http::header::ACCEPT;
 use http::request::Parts;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
@@ -73,8 +74,6 @@ use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
 use utils::generator::TimeGenerator;
 
-const APPLICATION_JSON_MEDIA_TYPE: MediaType =
-    MediaType::new(mediatype::names::APPLICATION, mediatype::names::JSON, None);
 const APPLICATION_JWT_MEDIA_TYPE: MediaType =
     MediaType::new(mediatype::names::APPLICATION, mediatype::names::JWT, None);
 
@@ -164,32 +163,12 @@ where
     K: EcdsaKeySend,
 {
     // Check for signed request
-    let signed = match find_content_type_from_accept(
-        headers.get("Accept"),
-        |mt| {
-            if mt == APPLICATION_JWT_MEDIA_TYPE {
-                Some(true)
-            } else if mt == APPLICATION_JSON_MEDIA_TYPE {
-                Some(false)
-            } else {
-                None
-            }
-        },
-        // OpenID4VCI and HAIP do not specify what to do on Accept (or */* is specified)
-        // HAIP mandates support for signed metadata, so that is used as default
-        true,
+    match find_content_type_from_accept(
+        headers.get(ACCEPT),
+        |mt| (mt == APPLICATION_JWT_MEDIA_TYPE).then_some(()),
+        (),
     ) {
-        Ok(Some(signed)) => Ok(signed),
-        Ok(None) => Err(StatusCode::NOT_ACCEPTABLE),
-        Err(err) => {
-            tracing::info!("invalid accept header: {err}");
-            Err(StatusCode::BAD_REQUEST)
-        }
-    }?;
-
-    if signed {
-        // TODO: PVW-6104 Implement caching of signing
-        state
+        Ok(Some(_)) => state
             .issuer
             .signed_metadata(ISSUER_METADATA_TTL, TimeGenerator)
             .await
@@ -197,9 +176,12 @@ where
             .map_err(|err| {
                 warn!("Could not sign issuer metadata: {err:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
-            })
-    } else {
-        Ok(Json(state.issuer.metadata()).into_response())
+            }),
+        Ok(None) => Err(StatusCode::NOT_ACCEPTABLE),
+        Err(err) => {
+            tracing::info!("Invalid accept header: {err}");
+            Err(StatusCode::BAD_REQUEST)
+        }
     }
 }
 

@@ -113,7 +113,7 @@ pub struct SignedIssuerMetadataPayload<'a> {
     // Standard JWT fields.
     // https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-signed-metadata
     pub iss: Option<Cow<'a, str>>,
-    pub sub: Cow<'a, str>,
+    pub sub: Cow<'a, IssuerIdentifier>,
     pub iat: DateTimeSeconds,
     pub exp: Option<DateTimeSeconds>,
 }
@@ -768,6 +768,7 @@ mod tests {
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
     use super::SignedIssuerMetadataPayload;
+    use crate::issuer_identifier::IssuerIdentifier;
     use crate::jwe::JweCompressionAlgorithm;
 
     #[test]
@@ -1154,8 +1155,9 @@ mod tests {
         assert_eq!(header.typ, "openidvci-issuer-metadata+jwt");
 
         let payload = jwt.payload();
+        let issuer_identifier = IssuerIdentifier::try_new("https://credential-issuer.example.com".into()).unwrap();
         assert_eq!(payload.iss, None);
-        assert_eq!(payload.sub, "https://credential-issuer.example.com");
+        assert_eq!(payload.sub.as_ref(), &issuer_identifier,);
         assert_eq!(payload.iat, DateTime::from_timestamp_secs(1516239022).unwrap().into());
         assert_eq!(payload.exp, None);
 

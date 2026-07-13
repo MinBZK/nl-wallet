@@ -349,6 +349,7 @@ where
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -417,7 +418,6 @@ where
         }
 
         let config = self.config_repository.get();
-        let trust_anchors = config.issuer_trust_anchors();
         let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
         let (attested_key, registration_data) = self
             .registration
@@ -430,8 +430,9 @@ where
                 &offer_uri,
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
-                trust_anchors,
+                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -501,7 +502,6 @@ where
         };
 
         let config = self.config_repository.get();
-        let trust_anchors = config.issuer_trust_anchors();
         let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
@@ -510,8 +510,8 @@ where
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
+                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
-                trust_anchors,
             )
             .await
             .map_err(|e| match e {
