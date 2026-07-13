@@ -194,6 +194,7 @@ mod tests {
     use josekit::jwe::JweHeader;
     use josekit::jwe::alg::rsaes::RsaesJweAlgorithm;
     use josekit::jwk::Jwk as JosekitJwk;
+    use josekit::jwk::alg::rsa;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwe::algorithm::RsaAlgorithm;
     use jwe::decryption::JweDecrypter;
@@ -213,6 +214,7 @@ mod tests {
     use openid4vc::token::AuthorizationCode;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenResponse;
+    use rsa::RsaKeyPair;
     use serde_json::json;
     use url::Url;
 
@@ -348,14 +350,14 @@ mod tests {
     });
 
     fn create_jws(include_kid: bool) -> (String, JwkSet) {
-        let algoritm = Algorithm::HS256;
-        let kid = "hmac_key_id";
+        let algoritm = Algorithm::RS256; // RDO-max uses RS256
+        let kid = "key_id";
 
         let mut header = Header::new(algoritm);
         if include_kid {
             header.kid = Some(kid.to_string());
         }
-        let encoding_key = EncodingKey::from_secret(b"secret hmac key");
+        let encoding_key = EncodingKey::from_rsa_der(&RsaKeyPair::generate(2048).unwrap().to_raw_private_key());
         let jws = jsonwebtoken::encode(&header, LazyLock::force(&JWS_PAYLOAD), &encoding_key).unwrap();
 
         let mut jwk = Jwk::from_encoding_key(&encoding_key, algoritm).unwrap();
@@ -420,7 +422,7 @@ mod tests {
     fn test_verify_against_keys_success() {
         let (jws, jwks) = create_jws(true);
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
         let payload =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect("verifying JWS should succeed");
 
@@ -437,7 +439,7 @@ mod tests {
     fn test_verify_against_keys_error_missing_key_id() {
         let (jws, jwks) = create_jws(false);
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
@@ -454,7 +456,7 @@ mod tests {
 
         jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS256);
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
@@ -465,7 +467,7 @@ mod tests {
     fn test_verify_against_keys_error_wrong_aud() {
         let (jws, jwks) = create_jws(true);
 
-        let validation = userinfo_validation("wrong_aud", Algorithm::HS256);
+        let validation = userinfo_validation("wrong_aud", Algorithm::RS256);
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
 
@@ -542,7 +544,7 @@ mod tests {
             create_token_request(),
             "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
             &create_test_decrypter(),
-            (Algorithm::HS256, EncryptionAlgorithm::A128CbcHs256),
+            (Algorithm::RS256, EncryptionAlgorithm::A128CbcHs256),
         )
         .await;
 

@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use crypto::PublicKey;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
@@ -128,7 +129,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
     // Perform the same sanity checks as during registration, with the addition of checking the received wallet_id.
     pub fn validate_certificate(&self, certificate: &WalletCertificate) -> ChangePinResult<()> {
         let (_, cert_claims) = certificate
-            .parse_and_verify_with_sub(&self.certificate_public_key.into())
+            .parse_and_verify_with_sub(&PublicKey::from(*self.certificate_public_key).into())
             .map_err(ChangePinError::CertificateValidation)?;
 
         if cert_claims.hw_pubkey.as_inner() != self.hw_pubkey {

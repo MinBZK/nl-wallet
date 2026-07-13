@@ -3,13 +3,13 @@ use std::sync::LazyLock;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
 use http_utils::urls::BaseUrl;
 use jsonwebtoken::Validation;
 use jsonwebtoken::errors::ErrorKind;
-use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -70,7 +70,7 @@ pub struct ClientStatus {
 impl WiaClaims {
     #[expect(clippy::too_many_arguments, reason = "constructor")]
     pub fn new(
-        holder_pubkey: &VerifyingKey,
+        holder_pubkey: &PublicKey,
         iss: String,
         sub: String,
         exp: DateTimeSeconds,
@@ -80,7 +80,7 @@ impl WiaClaims {
     ) -> Result<Self, JwkConversionError> {
         let now = time.generate().into();
         Ok(Self {
-            cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
+            cnf: ConfirmationClaim::try_from_public_key(holder_pubkey)?,
             iss,
             sub,
             exp,
@@ -185,7 +185,7 @@ impl WiaDisclosure {
 
         let wia_pubkey = verified_wia_claims
             .cnf
-            .verifying_key()
+            .try_to_public_key()
             .map_err(WiaError::JwkConversion)?;
         tracing::debug!("WIA status claim: {:?}", verified_wia_claims.client_status.status);
 
@@ -245,12 +245,12 @@ mod tests {
     use chrono::Duration;
     use chrono::TimeDelta;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
-    use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
     use rstest::fixture;
     use rstest::rstest;
@@ -287,7 +287,7 @@ mod tests {
 
     fn make_wia(
         wia_keypair: &KeyPair,
-        holder_pubkey: &VerifyingKey,
+        holder_pubkey: &PublicKey,
         time: &impl Generator<DateTime<Utc>>,
     ) -> UnverifiedJwt<WiaClaims, JadesbbHeader> {
         let wia_claims = WiaClaims::new(
@@ -331,7 +331,11 @@ mod tests {
     fn make_wia_disclosure(ca: &Ca, holder_key: &SigningKey, nonce: Option<Nonce>) -> WiaDisclosure {
         let wia_keypair = ca.generate_wia_mock().unwrap();
         WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
+            make_wia(
+                &wia_keypair,
+                &PublicKey::from(*holder_key.verifying_key()),
+                &MockTimeGenerator::default(),
+            ),
             make_pop(holder_key, nonce, AUD),
         )
     }
@@ -351,7 +355,11 @@ mod tests {
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let wrong_key = SigningKey::random(&mut OsRng);
         let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
+            make_wia(
+                &wia_keypair,
+                &PublicKey::from(*holder_key.verifying_key()),
+                &MockTimeGenerator::default(),
+            ),
             make_pop(&wrong_key, None, AUD),
         );
         let error = disclosure
@@ -364,7 +372,11 @@ mod tests {
     fn verify_pop_wrong_audience(ca: Ca, holder_key: SigningKey) {
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let disclosure = WiaDisclosure::new(
-            make_wia(&wia_keypair, holder_key.verifying_key(), &MockTimeGenerator::default()),
+            make_wia(
+                &wia_keypair,
+                &PublicKey::from(*holder_key.verifying_key()),
+                &MockTimeGenerator::default(),
+            ),
             make_pop(&holder_key, None, "https://wrong.example.com/"),
         );
         let error = disclosure
@@ -388,7 +400,7 @@ mod tests {
         let disclosure = WiaDisclosure::new(
             make_wia(
                 &wia_keypair,
-                holder_key.verifying_key(),
+                &PublicKey::from(*holder_key.verifying_key()),
                 &MockTimeGenerator::new(Utc::now() + TimeDelta::weeks(1)), // WIA will be valid in a week from now
             ),
             make_pop(&holder_key, None, AUD),

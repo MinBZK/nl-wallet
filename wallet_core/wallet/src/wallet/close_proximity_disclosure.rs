@@ -839,6 +839,7 @@ mod tests {
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
     use ciborium::value::Value;
+    use crypto::PublicKey;
     use crypto::WithVerifyingKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
@@ -1892,7 +1893,10 @@ mod tests {
             .unwrap(),
         ];
 
-        let expected_keys = [key1.verifying_key().to_owned(), key2.verifying_key().to_owned()];
+        let expected_keys = [
+            PublicKey::from(*key1.verifying_key()),
+            PublicKey::from(*key2.verifying_key()),
+        ];
 
         let remote_key1 = MockRemoteEcdsaKey::new(key_id1, key1);
         let remote_key2 = MockRemoteEcdsaKey::new(key_id2, key2);

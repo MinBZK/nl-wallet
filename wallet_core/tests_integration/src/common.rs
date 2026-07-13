@@ -19,6 +19,7 @@ use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
+use crypto::PublicKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
@@ -500,7 +501,7 @@ where
     F: AsyncFnOnce() -> MockHardwareDatabaseStorage,
 {
     let config_repository = HttpConfigurationRepository::new(
-        config_server_config.signing_public_key.as_inner().into(),
+        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         tempfile::tempdir().unwrap().keep(),
         wallet_config,
     )

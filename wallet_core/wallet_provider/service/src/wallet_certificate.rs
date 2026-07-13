@@ -329,13 +329,13 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use crypto::PublicKey;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::JwtDecodingKey;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
@@ -421,7 +421,7 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &((&setup.signing_pubkey).into()),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -455,7 +455,7 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &JwtDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -507,7 +507,7 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &JwtDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -543,7 +543,7 @@ mod tests {
 
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
-            &((&setup.signing_pubkey).into()),
+            &PublicKey::from(setup.signing_pubkey).into(),
             false,
             &user_state.repositories,
         )
@@ -577,7 +577,7 @@ mod tests {
 
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
-            &JwtDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             false,
             &user_state.repositories,
         )

@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use attestation_types::status_claim::StatusClaim;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -232,7 +233,7 @@ impl WiaClient for MockWiaClient {
 
         let wia = SignedJwt::sign_with_iat(
             &WiaClaims::new(
-                wia_key.verifying_key(),
+                &PublicKey::from(*wia_key.verifying_key()),
                 wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
                 client_id.clone(),
                 exp.into(),

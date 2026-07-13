@@ -1,11 +1,11 @@
+use crypto::PublicKey;
 use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::error::JwkConversionError;
-use crate::jwk::jwk_from_p256;
-use crate::jwk::jwk_to_p256;
+use crate::jwk::jwk_from_public_key;
+use crate::jwk::jwk_to_public_key;
 
 /// Proof of possession of a given key.
 ///
@@ -19,13 +19,12 @@ pub enum ConfirmationClaim {
 }
 
 impl ConfirmationClaim {
-    pub fn from_verifying_key(pubkey: &VerifyingKey) -> Result<Self, JwkConversionError> {
-        let jwk = jwk_from_p256(pubkey)?;
-        Ok(Self::Jwk(jwk))
+    pub fn try_from_public_key(pubkey: &PublicKey) -> Result<Self, JwkConversionError> {
+        Ok(Self::Jwk(jwk_from_public_key(pubkey)?))
     }
 
-    pub fn verifying_key(&self) -> Result<VerifyingKey, JwkConversionError> {
+    pub fn try_to_public_key(&self) -> Result<PublicKey, JwkConversionError> {
         let Self::Jwk(jwk) = self;
-        jwk_to_p256(jwk)
+        jwk_to_public_key(jwk)
     }
 }

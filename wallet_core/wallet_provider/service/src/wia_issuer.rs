@@ -2,6 +2,7 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::x509::CertificateError;
@@ -79,7 +80,7 @@ where
 
         let wia = SignedJwt::sign_with_iat(
             &WiaClaims::new(
-                wia_privkey.verifying_key(),
+                &PublicKey::from(*wia_privkey.verifying_key()),
                 iss,
                 self.sub.clone(),
                 wia_exp,

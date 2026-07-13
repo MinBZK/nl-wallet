@@ -20,6 +20,7 @@ use chrono::DurationRound;
 use chrono::Utc;
 use crypto::EcdsaKey;
 use crypto::EcdsaKeySend;
+use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
@@ -42,7 +43,6 @@ use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
-use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
@@ -329,7 +329,7 @@ pub enum Grant {
 pub struct AccessTokenIssued {
     pub access_token: AccessToken,
     pub prepared_credentials: VecNonEmpty<PreparedCredential>,
-    pub dpop_public_key: VerifyingKey,
+    pub dpop_public_key: PublicKey,
     pub dpop_nonce: String,
 }
 
@@ -1013,7 +1013,7 @@ where
         }
 
         dpop.verify_expecting_key(
-            &session_data.dpop_public_key,
+            session_data.dpop_public_key.to_owned(),
             &self.issuer_data.server_url.join(endpoint_name),
             &Method::DELETE,
             Some(&access_token),
@@ -1256,7 +1256,7 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &impl NonceStore,
-    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
+    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
         let wia_claims = verify_wia_and_consume_nonce(
             issuer_data,
             nonce_store,
@@ -1296,7 +1296,7 @@ impl Session<AuthCodeIssued> {
     /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
     fn finalize_token_response(
         self,
-        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError>,
+        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
             Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
@@ -1325,7 +1325,7 @@ fn build_token_response<K, L>(
     server_url: &BaseUrl,
     credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
     issuer_data: &IssuerData<K, L>,
-) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
+) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -1436,7 +1436,7 @@ impl Session<AccessTokenIssued> {
 
         // Check that the DPoP is valid and its key matches the one from the Token Request
         dpop.verify_expecting_key(
-            &session_data.dpop_public_key,
+            session_data.dpop_public_key.to_owned(),
             &server_url.join(endpoint),
             &Method::POST,
             Some(access_token),
@@ -1724,7 +1724,7 @@ impl CredentialRequest {
         &self,
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &IssuerIdentifier,
-    ) -> Result<(VerifyingKey, Nonce), CredentialRequestError> {
+    ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
         let (holder_pubkey, nonce) = self
             .proof
             .as_ref()
@@ -1740,7 +1740,7 @@ impl CredentialResponse {
         credential_format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
-        holder_pubkey: &VerifyingKey,
+        holder_pubkey: &PublicKey,
         credential_config: &CredentialConfiguration<K, L>,
         status_claim: StatusClaim,
     ) -> Result<CredentialResponse, CredentialRequestError>
@@ -1797,7 +1797,7 @@ impl CredentialRequestProof {
         &self,
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &IssuerIdentifier,
-    ) -> Result<(VerifyingKey, Nonce), CredentialRequestError> {
+    ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
         let CredentialRequestProof::Jwt { jwt } = self;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
@@ -1810,7 +1810,7 @@ impl CredentialRequestProof {
             .map_err(CredentialRequestError::InvalidProofJwt)?;
 
         let public_key = header
-            .verifying_key()
+            .public_key()
             .map_err(CredentialRequestError::InvalidProofPublicKey)?;
 
         let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;

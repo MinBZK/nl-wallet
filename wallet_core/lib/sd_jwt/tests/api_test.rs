@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::PublicKey;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
@@ -10,7 +11,7 @@ use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use futures::FutureExt;
 use itertools::Itertools;
-use jwt::jwk::jwk_from_p256;
+use jwt::jwk::jwk_from_public_key;
 use jwt::nonce::Nonce;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -289,11 +290,15 @@ async fn test_presentation() {
 
     println!(
         "issuer_privkey pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(issuer_keypair.certificate().public_key()).unwrap()).unwrap()
+        serde_json::to_string_pretty(
+            &jwk_from_public_key(&PublicKey::from(*issuer_keypair.certificate().public_key())).unwrap()
+        )
+        .unwrap()
     );
     println!(
         "holder_key pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(holder_key.verifying_key()).unwrap()).unwrap()
+        serde_json::to_string_pretty(&jwk_from_public_key(&PublicKey::from(*holder_key.verifying_key())).unwrap())
+            .unwrap()
     );
 
     // issuer signs SD-JWT

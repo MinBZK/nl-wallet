@@ -226,13 +226,13 @@ mod test {
     use base64::prelude::*;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
-    use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
     use jwt::error::JwtVerifyError;
     use p256::ecdsa::SigningKey;
@@ -403,7 +403,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &JwtDecodingKey::from(signing_key.verifying_key()),
+                &PublicKey::from(*signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -447,7 +447,7 @@ mod test {
         };
 
         let result = jwt_str.parse::<UnverifiedKeyBindingJwt>().unwrap().into_verified(
-            &JwtDecodingKey::from(signing_key.verifying_key()),
+            &PublicKey::from(*signing_key.verifying_key()).into(),
             &kb_verification_options,
             &now_generator,
         );
@@ -478,7 +478,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &JwtDecodingKey::from(signing_key.verifying_key()),
+                &PublicKey::from(*signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -505,7 +505,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &JwtDecodingKey::from(signing_key.verifying_key()),
+                &PublicKey::from(*signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )

@@ -31,12 +31,16 @@ hex = { workspace = true, features = ["serde"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 moka = { workspace = true, features = ["future"] }
-p256 = { workspace = true, features = ["pem"] }
+nutype.workspace = true
+p256 = { workspace = true, features = ["pem", "serde"] }
+p384 = { workspace = true, features = ["serde"] }
+p521 = { workspace = true, features = ["pkcs8", "serde"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 rand.workspace = true
 reqwest.workspace = true
 ring.workspace = true
+rsa = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["macros"] }

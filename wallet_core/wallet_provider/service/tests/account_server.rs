@@ -4,6 +4,7 @@ use std::time::Duration;
 use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
 use base64::prelude::*;
+use crypto::PublicKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use db_test::DbSetup;
@@ -150,7 +151,7 @@ async fn do_registration(
         .expect("Could not process registration message at account server");
 
     let (_, cert_data) = certificate
-        .parse_and_verify_with_sub(&(&certificate_signing_key.verifying_key().await.unwrap()).into())
+        .parse_and_verify_with_sub(&PublicKey::from(certificate_signing_key.verifying_key().await.unwrap()).into())
         .expect("Could not parse and verify wallet certificate");
 
     (certificate, hw_privkey, cert_data, user_state)

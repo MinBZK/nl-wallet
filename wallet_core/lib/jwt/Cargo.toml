@@ -22,6 +22,9 @@ derive_more = { workspace = true, features = ["as_ref", "constructor", "display"
 itertools.workspace = true
 jsonwebtoken.workspace = true
 p256.workspace = true
+p384.workspace = true
+p521.workspace = true
+rsa.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

@@ -90,6 +90,7 @@ where
 mod tests {
     use std::sync::Arc;
 
+    use crypto::PublicKey;
     use http_utils::client::InternalHttpConfig;
     use http_utils::client::TlsPinningConfig;
     use jwt::DEFAULT_VALIDATIONS;
@@ -162,7 +163,7 @@ mod tests {
     #[tokio::test]
     async fn should_store_config_to_filesystem() {
         let signing_key = SigningKey::random(&mut OsRng);
-        let decoding_key = JwtDecodingKey::from(signing_key.verifying_key());
+        let decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
 
         let mut initial_wallet_config = default_wallet_config();
         initial_wallet_config.lock_timeouts.background_timeout = 500;
@@ -204,7 +205,7 @@ mod tests {
     #[tokio::test]
     async fn should_use_newer_embedded_wallet_get() {
         let signing_key = SigningKey::random(&mut OsRng);
-        let config_decoding_key = JwtDecodingKey::from(signing_key.verifying_key());
+        let config_decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
 
         let config_dir = tempfile::tempdir().unwrap();
         let path = config_dir.keep();

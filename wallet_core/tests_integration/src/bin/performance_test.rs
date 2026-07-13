@@ -1,5 +1,6 @@
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use crypto::PublicKey;
 use ctor::ctor;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -69,7 +70,7 @@ async fn main() {
     let wallet_config = default_wallet_config();
 
     let config_repository = HttpConfigurationRepository::new(
-        config_server_config.signing_public_key.as_inner().into(),
+        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         temp_path.to_path_buf(),
         wallet_config,
     )

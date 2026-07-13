@@ -9,12 +9,13 @@ use cose::CoseKey;
 use cose::TypedCose;
 use coset::CoseSign1;
 use crypto::EcdsaKey;
+use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
-use jwt::jwk::jwk_from_p256;
+use jwt::jwk::jwk_from_public_key;
 use mdoc::DigestAlgorithm;
 use mdoc::IssuerNameSpaces;
 use mdoc::IssuerNameSpacesPreConditionError;
@@ -216,6 +217,10 @@ pub enum CredentialPayloadIntoSignedMdocError {
     #[error("error signing mdoc: {0}")]
     #[category(pd)]
     SigningError(#[source] CoseError),
+
+    #[error("unsupported confirmation key: {0:?}")]
+    #[category(pd)]
+    UnsupportedConfirmationKey(Box<PublicKey>),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
@@ -249,11 +254,11 @@ impl CredentialPayload {
     pub fn from_previewable_credential_payload(
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
-        holder_pubkey: &VerifyingKey,
+        holder_pubkey: &PublicKey,
         metadata_integrity: Integrity,
         status: StatusClaim,
     ) -> Result<Self, JwkConversionError> {
-        let confirmation_key = jwk_from_p256(holder_pubkey)?;
+        let confirmation_key = jwk_from_public_key(holder_pubkey)?;
 
         Ok(CredentialPayload {
             issued_at: issued_at.into(),
@@ -357,9 +362,16 @@ impl CredentialPayload {
             .map_err(CredentialPayloadIntoSignedMdocError::MissingOrEmptyNamespace)?;
 
         let doc_type = attestation_type;
-        let cose_pubkey: CoseKey = (&confirmation_key
-            .verifying_key()
-            .map_err(CredentialPayloadIntoSignedMdocError::JwkConversion)?)
+        let pubkey = confirmation_key
+            .try_to_public_key()
+            .map_err(CredentialPayloadIntoSignedMdocError::JwkConversion)?;
+        let PublicKey::P256(verifying_key) = pubkey else {
+            return Err(CredentialPayloadIntoSignedMdocError::UnsupportedConfirmationKey(
+                Box::new(pubkey),
+            ));
+        };
+
+        let cose_pubkey: CoseKey = (&verifying_key)
             .try_into()
             .map_err(CryptoError::from)
             .map_err(CredentialPayloadIntoSignedMdocError::CoseKeyConversion)?;
@@ -479,10 +491,10 @@ impl SplitCredential {
         };
 
         let key_info = ConfirmationClaim::Jwk(
-            jwk_from_p256(
-                &VerifyingKey::try_from(mso.device_key_info)
+            jwk_from_public_key(&PublicKey::from(
+                VerifyingKey::try_from(mso.device_key_info)
                     .map_err(PreviewableCredentialPayloadFromMdocError::CoseKeyConversion)?,
-            )
+            ))
             .map_err(PreviewableCredentialPayloadFromMdocError::JwkConversion)?,
         );
         Ok(SplitCredential {
@@ -523,7 +535,8 @@ mod examples {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use jwt::jwk::jwk_from_p256;
+    use crypto::PublicKey;
+    use jwt::jwk::jwk_from_public_key;
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
     use utils::generator::Generator;
@@ -536,13 +549,13 @@ mod examples {
         pub fn from_previewable_credential_payload_unvalidated(
             previewable_payload: PreviewableCredentialPayload,
             issued_at: DateTime<Utc>,
-            holder_pubkey: &VerifyingKey,
+            holder_pubkey: &PublicKey,
             metadata_integrity: Integrity,
             status: StatusClaim,
         ) -> Result<Self, JwkConversionError> {
             Ok(Self {
                 issued_at: issued_at.into(),
-                confirmation_key: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
+                confirmation_key: ConfirmationClaim::try_from_public_key(holder_pubkey)?,
                 vct_integrity: metadata_integrity,
                 status,
                 previewable_payload,
@@ -556,7 +569,7 @@ mod examples {
         ) -> Self {
             let time = time_generator.generate();
 
-            let confirmation_key = jwk_from_p256(verifying_key).unwrap();
+            let confirmation_key = jwk_from_public_key(&PublicKey::from(*verifying_key)).unwrap();
 
             Self {
                 issued_at: time.into(),
@@ -682,6 +695,7 @@ mod test {
     use attestation_types::qualification::AttestationQualification;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
@@ -689,7 +703,7 @@ mod test {
     use futures::FutureExt;
     use indexmap::IndexMap;
     use itertools::Itertools;
-    use jwt::jwk::jwk_from_p256;
+    use jwt::jwk::jwk_from_public_key;
     use jwt::nonce::Nonce;
     use mdoc::holder::Mdoc;
     use mdoc::utils::serialization::TaggedBytes;
@@ -748,7 +762,7 @@ mod test {
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             payload_preview.clone(),
             Utc::now(),
-            SigningKey::random(&mut OsRng).verifying_key(),
+            &PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key()),
             metadata_integrity.clone(),
             StatusClaim::new_mock(),
         )
@@ -845,7 +859,8 @@ mod test {
 
     #[test]
     fn test_serialize_deserialize_and_validate() {
-        let confirmation_key = jwk_from_p256(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
+        let confirmation_key =
+            jwk_from_public_key(&PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key())).unwrap();
 
         let payload = CredentialPayload {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
@@ -905,7 +920,7 @@ mod test {
         let payload = CredentialPayload::from_previewable_credential_payload(
             preview_payload.clone(),
             Utc::now(),
-            holder_key.verifying_key(),
+            &PublicKey::from(*holder_key.verifying_key()),
             Integrity::from(""),
             StatusClaim::new_mock(),
         )

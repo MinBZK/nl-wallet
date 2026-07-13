@@ -5,6 +5,7 @@ use std::num::NonZeroUsize;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::DerSignature;
@@ -753,7 +754,13 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, generators)?;
 
-        let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
+        let pubkey = verified_sd_jwt
+            .holder_pubkey()
+            .expect("holder pubkey should be a valid JWK");
+        let PublicKey::P256(key) = pubkey else {
+            return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
+        };
+
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         let tx = user_state.repositories.begin_transaction().await?;
@@ -849,7 +856,12 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, generators)?;
 
-        let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
+        let pubkey = verified_sd_jwt
+            .holder_pubkey()
+            .expect("holder pubkey should be a valid JWK");
+        let crypto::PublicKey::P256(key) = pubkey else {
+            return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
+        };
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         // Idempotency check
@@ -1429,6 +1441,7 @@ mod tests {
 
     use base64::prelude::*;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -1650,7 +1663,10 @@ mod tests {
             .poa
             .unwrap()
             .verify(
-                &[signing_key_1_public, signing_key_2_public],
+                &[
+                    PublicKey::from(signing_key_1_public),
+                    PublicKey::from(signing_key_2_public),
+                ],
                 &poa_aud,
                 &[NL_WALLET_CLIENT_ID.to_string()],
                 poa_nonce.as_ref().unwrap(),
@@ -2217,7 +2233,7 @@ mod tests {
                 .unwrap()
                 .1
                 .cnf
-                .verifying_key()
+                .try_to_public_key()
                 .unwrap();
 
             wia_with_disclosure

@@ -3,6 +3,7 @@ mod storage;
 
 use std::sync::Arc;
 
+use crypto::PublicKey;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -68,13 +69,13 @@ where
         }
 
         let config = &self.config_repository.get().account_server;
-        let instruction_result_public_key = config.instruction_result_public_key.as_inner().into();
+        let instruction_result_public_key = PublicKey::from(*config.instruction_result_public_key.as_inner()).into();
         let certificate_public_key = config.certificate_public_key.as_inner();
 
         // Extract the public key belonging to the hardware attested key from the current certificate.
         let hw_pubkey = registration_data
             .wallet_certificate
-            .parse_and_verify_with_sub(&certificate_public_key.into())
+            .parse_and_verify_with_sub(&PublicKey::from(*certificate_public_key).into())
             .map_err(ChangePinError::CertificateValidation)?
             .1
             .hw_pubkey
@@ -135,7 +136,7 @@ where
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
         let config = &self.config_repository.get().account_server;
-        let instruction_result_public_key = config.instruction_result_public_key.as_inner().into();
+        let instruction_result_public_key = PublicKey::from(*config.instruction_result_public_key.as_inner()).into();
 
         let instruction_client = InstructionClientFactory::new(
             Arc::clone(&self.storage),

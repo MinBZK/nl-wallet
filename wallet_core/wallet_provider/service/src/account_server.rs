@@ -30,6 +30,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::PublicKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
@@ -351,6 +352,9 @@ pub enum InstructionError {
 
     #[error("system revocation error: {0}")]
     SystemRevocationError(#[from] RevocationError),
+
+    #[error("unsupported holder public key: {0:?}")]
+    UnsupportedHolderPublicKey(Box<PublicKey>),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -1719,6 +1723,7 @@ pub mod mock {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
+    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use p256::ecdsa::SigningKey;
@@ -1794,7 +1799,7 @@ pub mod mock {
             "mock_account_server".into(),
             Duration::from_millis(15000),
             AccountServerKeys {
-                wallet_certificate_signing_pubkey: certificate_signing_pubkey.into(),
+                wallet_certificate_signing_pubkey: PublicKey::from(*certificate_signing_pubkey).into(),
                 pin_keys: AccountServerPinKeys {
                     encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
                     public_disclosure_protection_key_identifier:
@@ -1965,7 +1970,8 @@ pub mod mock {
     pub fn recovery_code_sd_jwt(issuer_ca: &Ca) -> (SigningKey, UnverifiedSdJwt) {
         let issuer_key = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&issuer_key, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         let sd_jwt = sd_jwt
             .into_presentation_builder()
@@ -1999,6 +2005,7 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -2009,7 +2016,6 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::JwtDecodingKey;
     use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -2466,7 +2472,7 @@ mod tests {
             .expect("should return instruction result");
 
         let new_certificate = new_certificate_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result")
             .1
             .result;
@@ -2488,14 +2494,14 @@ mod tests {
             setup_and_do_registration(attestation_type).await;
 
         let (_, cert_data) = cert
-            .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*setup.signing_key.verifying_key()).into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.as_inner(), hw_privkey.verifying_key());
 
         let (wallet_user, _pin_pubkey) = verify_wallet_certificate(
             &cert,
-            &JwtDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3082,7 +3088,7 @@ mod tests {
         .expect("should return unit instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
     }
 
@@ -3106,7 +3112,7 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &JwtDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3123,7 +3129,7 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &JwtDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3197,7 +3203,7 @@ mod tests {
             .expect("should return instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         user_state.repositories = WalletUserTestRepo {
@@ -3379,7 +3385,7 @@ mod tests {
             .expect("should return instruction result for old pin");
 
         instruction_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         // Check that checking the PIN with the new certificate now fails
@@ -3518,7 +3524,7 @@ mod tests {
 
         verify_wallet_certificate(
             &result.certificate,
-            &JwtDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),

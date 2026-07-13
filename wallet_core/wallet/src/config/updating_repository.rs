@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crypto::PublicKey;
 use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
 use tokio::task::JoinHandle;
@@ -34,7 +35,7 @@ impl WalletConfigurationRepository {
     ) -> Result<Self, ConfigurationError> {
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
-            config.signing_public_key.as_inner().into(),
+            PublicKey::from(*config.signing_public_key.as_inner()).into(),
             initial_config,
         )
         .await?;

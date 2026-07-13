@@ -3,6 +3,7 @@ use std::error::Error;
 use android_attest::root_public_key::RootPublicKey;
 use audit_log::model::PostgresAuditLog;
 use chrono::Duration;
+use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use hsm::keys::HsmEcdsaKey;
@@ -117,7 +118,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             "account_server".into(),
             settings.instruction_challenge_timeout,
             AccountServerKeys {
-                wallet_certificate_signing_pubkey: (&certificate_signing_pubkey).into(),
+                wallet_certificate_signing_pubkey: PublicKey::from(certificate_signing_pubkey).into(),
                 pin_keys: AccountServerPinKeys {
                     encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
                     public_disclosure_protection_key_identifier: settings

@@ -8,6 +8,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
+use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
@@ -18,15 +19,18 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Display;
+use derive_more::From;
 use derive_more::Into;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
+use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::jwk::JwkSet;
 use p256::ecdsa::Signature;
-use p256::ecdsa::VerifyingKey;
+use rsa::RsaPublicKey;
+use rsa::traits::PublicKeyParts;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -49,7 +53,7 @@ use crate::headers::HeaderWithJwk;
 use crate::headers::HeaderWithKid;
 use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
-use crate::jwk::jwk_to_p256;
+use crate::jwk::jwk_to_public_key;
 
 /// A JWT/JWS in its unverified state, generic over payload `T` and header `H`.
 ///
@@ -177,9 +181,9 @@ impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithX5c<H>> {
 }
 
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithJwk<H>> {
-    fn extract_jwk(&self) -> Result<VerifyingKey, JwtParseError> {
+    fn extract_jwk(&self) -> Result<Jwk, JwtParseError> {
         let header = self.dangerous_parse_header_unverified()?;
-        header.verifying_key().map_err(JwtParseError::Jwk)
+        Ok(header.jwk)
     }
 }
 
@@ -264,7 +268,7 @@ where
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-        let pubkey = JwtDecodingKey::from(leaf_cert.public_key());
+        let pubkey = JwtDecodingKey::from(PublicKey::from(*leaf_cert.public_key()));
         self.parse_and_verify(&pubkey, validation_options)
             .map_err(JwtX5cVerifyError::JwtVerify)
     }
@@ -298,7 +302,11 @@ where
         &self,
         validation_options: &Validation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
-        let pubkey = JwtDecodingKey::from(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?);
+        let pubkey = JwtDecodingKey::from(
+            jwk_to_public_key(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?)
+                .map_err(JwtParseError::Jwk)
+                .map_err(JwtVerifyError::ParseError)?,
+        );
         self.parse_and_verify(&pubkey, validation_options)
     }
 
@@ -307,19 +315,18 @@ where
     /// This can, for example, be used to pin a specific key to an earlier session.
     pub fn parse_and_verify_with_expected_jwk(
         &self,
-        expected_verifying_key: &VerifyingKey,
+        expected_pubkey: PublicKey,
         validation_options: &Validation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
-        let pubkey = JwtDecodingKey::from(expected_verifying_key);
-        let (header, payload) = self.parse_and_verify(&pubkey, validation_options)?;
+        let (header, payload) = self.parse_and_verify(JwtDecodingKey::from(&expected_pubkey), validation_options)?;
 
         // Compare the specified key against the one in the JWT header
-        let contained_key = jwk_to_p256(&header.jwk)
+        let contained_key = jwk_to_public_key(&header.jwk)
             .map_err(JwtParseError::Jwk)
             .map_err(JwtVerifyError::ParseError)?;
-        if contained_key != *expected_verifying_key {
+        if contained_key != expected_pubkey {
             return Err(JwtVerifyError::IncorrectJwkPublicKey(
-                Box::new(*expected_verifying_key),
+                Box::new(expected_pubkey),
                 Box::new(contained_key),
             ));
         }
@@ -342,8 +349,12 @@ where
     ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
         let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
         let jwk = jwks.find(&kid).ok_or(JwtVerifyError::KeyNotFound(kid))?;
-        let key = DecodingKey::from_jwk(jwk).map_err(JwtVerifyError::JwkConversion)?;
-        self.parse_and_verify(JwtDecodingKey(key), validation_options)
+        let key = JwtDecodingKey::from(
+            jwk_to_public_key(jwk)
+                .map_err(JwtParseError::Jwk)
+                .map_err(JwtVerifyError::ParseError)?,
+        );
+        self.parse_and_verify(key, validation_options)
     }
 }
 
@@ -359,6 +370,7 @@ where
 ///
 /// # Example
 /// ```
+/// # use crypto::PublicKey;
 /// # use jwt::DEFAULT_VALIDATIONS;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -379,7 +391,10 @@ where
 /// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
 ///
 /// let unverified = signed.into_unverified();
-/// let (_, payload) = unverified.parse_and_verify(&JwtDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
+/// let (_, payload) = unverified.parse_and_verify(
+///     JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
+///     &DEFAULT_VALIDATIONS,
+/// )?;
 /// assert_eq!(payload.name, "alice");
 /// # Ok::<(), anyhow::Error>(())
 /// # });
@@ -466,9 +481,12 @@ impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithJwk> {
     /// Sign a payload into a JWT, and put the public key of the provided keypair in the `jwk` field in the header. The
     /// resulting JWT can be verified using [`UnverifiedJwt::parse_and_verify_with_jwk`].
     pub async fn sign_with_jwk(payload: &T, key: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithJwk>, JwtSignError> {
-        let header = HeaderWithJwk::try_from_verifying_key(key)
-            .await
-            .map_err(JwtSignError::Jwk)?;
+        let header = HeaderWithJwk::try_from_public_key(&PublicKey::from(
+            key.verifying_key()
+                .await
+                .map_err(|e| JwtSignError::VerifyingKey(Box::new(e)))?,
+        ))
+        .map_err(JwtSignError::Jwk)?;
         SignedJwt::sign_with_header(header, payload, key).await
     }
 }
@@ -588,6 +606,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # Examples
 /// From an `UnverifiedJwt`:
 /// ```
+/// # use crypto::PublicKey;
 /// # use jwt::DEFAULT_VALIDATIONS;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -608,7 +627,10 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
 ///
 /// let unverified = signed.into_unverified();
-/// let verified = unverified.into_verified(&JwtDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)?;
+/// let verified = unverified.into_verified(
+///     &JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
+///     &DEFAULT_VALIDATIONS,
+/// )?;
 /// assert_eq!(verified.payload().name, "alice");
 /// # Ok::<(), anyhow::Error>(())
 /// # });
@@ -707,24 +729,41 @@ impl<T, H> VerifiedJwt<T, H> {
 /// This type solves the unclarity by explicitly naming the SEC1 encoding in [`JwtDecodingKey::from_sec1()`] that it
 /// takes to construct it. From a `VerifyingKey` of the `ecdsa` crate, this encoding may be obtained by calling
 /// `public_key.to_encoded_point(false).as_bytes()`.
-#[derive(Clone, AsRef, Into)]
+#[derive(Debug, Clone, AsRef, From, Into)]
 pub struct JwtDecodingKey(DecodingKey);
 
-impl From<DecodingKey> for JwtDecodingKey {
-    fn from(value: DecodingKey) -> Self {
-        JwtDecodingKey(value)
+impl TryFrom<&Jwk> for JwtDecodingKey {
+    type Error = jsonwebtoken::errors::Error;
+
+    fn try_from(value: &Jwk) -> Result<Self, Self::Error> {
+        Ok(JwtDecodingKey(DecodingKey::from_jwk(value)?))
     }
 }
 
-impl From<&VerifyingKey> for JwtDecodingKey {
-    fn from(value: &VerifyingKey) -> Self {
-        JwtDecodingKey::from_sec1(value.to_encoded_point(false).as_bytes())
+impl From<&PublicKey> for JwtDecodingKey {
+    fn from(value: &PublicKey) -> Self {
+        match value {
+            PublicKey::P256(key) => DecodingKey::from_ec_der(key.to_encoded_point(false).as_bytes()).into(),
+            PublicKey::P384(key) => DecodingKey::from_ec_der(key.to_encoded_point(false).as_bytes()).into(),
+            PublicKey::P521(_) => todo!(),
+            PublicKey::RSA2048(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
+            PublicKey::RSA4096(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
+        }
+    }
+}
+
+// Convenience impl for converting a `PublicKey` to a `JwtDecodingKey`
+impl From<PublicKey> for JwtDecodingKey {
+    fn from(value: PublicKey) -> Self {
+        (&value).into()
     }
 }
 
 impl JwtDecodingKey {
-    pub fn from_sec1(key: &[u8]) -> Self {
-        DecodingKey::from_ec_der(key).into()
+    fn from_rsa_public_key(key: &RsaPublicKey) -> Self {
+        let n = key.n().to_bytes_be();
+        let e = key.e().to_bytes_be();
+        DecodingKey::from_rsa_raw_components(&n, &e).into()
     }
 }
 
@@ -1004,6 +1043,7 @@ mod tests {
 
     use ::axum::response::IntoResponse;
     use base64::prelude::*;
+    use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
@@ -1024,7 +1064,7 @@ mod tests {
 
     use super::*;
     use crate::headers::HeaderWithKid;
-    use crate::jwk::jwk_from_p256;
+    use crate::jwk::jwk_from_public_key;
 
     #[derive(Debug, PartialEq, Eq, Deserialize)]
     struct EmptyPayload {}
@@ -1088,7 +1128,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = jwt
-            .parse_and_verify_with_sub(&private_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*private_key.verifying_key()).into())
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -1112,7 +1152,10 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = jwt
-            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify(
+                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &DEFAULT_VALIDATIONS,
+            )
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -1147,7 +1190,10 @@ mod tests {
 
         // the JWT cannot be verified with `parse_and_verify_with_typ()`
         let parsed = jwt
-            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify(
+                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &DEFAULT_VALIDATIONS,
+            )
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
         assert_matches!(parsed, JwtVerifyError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
@@ -1162,14 +1208,20 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = unverified_jwt
-            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify(
+                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &DEFAULT_VALIDATIONS,
+            )
             .unwrap();
 
         assert_eq!(t, parsed);
 
         let verified_jwt = unverified_jwt
             .clone()
-            .into_verified(&JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .into_verified(
+                &PublicKey::from(*private_key.verifying_key()).into(),
+                &DEFAULT_VALIDATIONS,
+            )
             .unwrap();
 
         // The inner JWT value of `VerifiedJwt` is exactly the same as the `UnverifiedJwt`.
@@ -1209,7 +1261,10 @@ mod tests {
             .exactly_one()
             .unwrap()
             .as_ref()
-            .parse_and_verify(JwtDecodingKey::from(key1.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify(
+                JwtDecodingKey::from(PublicKey::from(*key1.verifying_key())),
+                &DEFAULT_VALIDATIONS,
+            )
             .unwrap();
 
         assert_eq!(parsed, message1);
@@ -1235,7 +1290,10 @@ mod tests {
         {
             let (_, parsed) = signed_jwt
                 .as_ref()
-                .parse_and_verify(JwtDecodingKey::from(key.verifying_key()), &DEFAULT_VALIDATIONS)
+                .parse_and_verify(
+                    JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
+                    &DEFAULT_VALIDATIONS,
+                )
                 .unwrap();
 
             assert_eq!(parsed, *expected_message);
@@ -1256,12 +1314,15 @@ mod tests {
         assert!(!jwt_message.contains_key("sub"));
 
         // verification fails because `sub` is required
-        jwt.parse_and_verify_with_sub(&private_key.verifying_key().into())
+        jwt.parse_and_verify_with_sub(&PublicKey::from(*private_key.verifying_key()).into())
             .unwrap_err();
 
         // we can parse and verify the JWT if we don't require the `sub` field to be present
         let (_, parsed) = jwt
-            .parse_and_verify(JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify(
+                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &DEFAULT_VALIDATIONS,
+            )
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -1354,14 +1415,20 @@ mod tests {
         let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(header.verifying_key().unwrap(), *signing_key.verifying_key());
+        assert_eq!(
+            header.public_key().unwrap(),
+            PublicKey::from(*signing_key.verifying_key())
+        );
 
         let (header, deserialized) = jwt
-            .parse_and_verify_with_expected_jwk(signing_key.verifying_key(), &DEFAULT_VALIDATIONS)
+            .parse_and_verify_with_expected_jwk(PublicKey::from(*signing_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(header.verifying_key().unwrap(), *signing_key.verifying_key());
+        assert_eq!(
+            header.public_key().unwrap(),
+            PublicKey::from(*signing_key.verifying_key())
+        );
     }
 
     #[tokio::test]
@@ -1377,11 +1444,14 @@ mod tests {
         let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(header.verifying_key().unwrap(), *signing_key.verifying_key());
+        assert_eq!(
+            header.public_key().unwrap(),
+            PublicKey::from(*signing_key.verifying_key())
+        );
 
         let wrong_key = SigningKey::random(&mut OsRng);
         let error = jwt
-            .parse_and_verify_with_expected_jwk(wrong_key.verifying_key(), &DEFAULT_VALIDATIONS)
+            .parse_and_verify_with_expected_jwk(PublicKey::from(*wrong_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .expect_err("should fail because the expected key is different from the actual key");
 
         assert_matches!(error, JwtVerifyError::Validation(_));
@@ -1392,7 +1462,7 @@ mod tests {
         let signing_key = SigningKey::random(&mut OsRng);
         let kid = "my-key-id".to_owned();
 
-        let mut jwk = jwk_from_p256(signing_key.verifying_key()).unwrap();
+        let mut jwk = jwk_from_public_key(&PublicKey::from(*signing_key.verifying_key())).unwrap();
         jwk.common.key_id = Some(kid.clone());
         let jwks = JwkSet { keys: vec![jwk] };
 
@@ -1424,7 +1494,7 @@ mod tests {
         let kid = "my-key-id".to_owned();
 
         // The JwkSet holds the correct key but under a different kid.
-        let mut jwk = jwk_from_p256(signing_key.verifying_key()).unwrap();
+        let mut jwk = jwk_from_public_key(&PublicKey::from(*signing_key.verifying_key())).unwrap();
         jwk.common.key_id = Some("other-key-id".to_owned());
         let jwks = JwkSet { keys: vec![jwk] };
 
@@ -1456,7 +1526,7 @@ mod tests {
         let kid = "my-key-id".to_owned();
 
         // The JwkSet holds a different key's JWK under the matching kid.
-        let mut jwk = jwk_from_p256(other_key.verifying_key()).unwrap();
+        let mut jwk = jwk_from_public_key(&PublicKey::from(*other_key.verifying_key())).unwrap();
         jwk.common.key_id = Some(kid.clone());
         let jwks = JwkSet { keys: vec![jwk] };
 
@@ -1628,7 +1698,10 @@ mod tests {
         let verified_jwt = text_jwt
             .parse::<UnverifiedJwt<_>>()
             .unwrap()
-            .into_verified(&JwtDecodingKey::from(private_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .into_verified(
+                &JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &DEFAULT_VALIDATIONS,
+            )
             .unwrap();
 
         assert_eq!(signed_jwt.into_verified(), verified_jwt);

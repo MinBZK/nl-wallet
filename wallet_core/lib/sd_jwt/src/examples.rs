@@ -4,14 +4,14 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::PublicKey;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use jsonwebtoken::jwk::Jwk;
 use jwt::Header;
-use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
 use jwt::confirmation::ConfirmationClaim;
-use jwt::jwk::jwk_to_p256;
+use jwt::jwk::jwk_to_public_key;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
@@ -98,7 +98,7 @@ impl VerifiedSdJwt {
         SIMPLE_STRUCTURED_SD_JWT
             .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
             .unwrap()
-            .into_verified(&examples_sd_jwt_decoding_key())
+            .into_verified(&examples_sd_jwt_public_key().into())
             .unwrap()
     }
 
@@ -106,7 +106,7 @@ impl VerifiedSdJwt {
         COMPLEX_STRUCTURED_SD_JWT
             .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
             .unwrap()
-            .into_verified(&examples_sd_jwt_decoding_key())
+            .into_verified(&examples_sd_jwt_public_key().into())
             .unwrap()
     }
 
@@ -114,7 +114,7 @@ impl VerifiedSdJwt {
         SD_JWT_VC
             .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
             .unwrap()
-            .into_verified(&examples_sd_jwt_decoding_key())
+            .into_verified(&examples_sd_jwt_public_key().into())
             .unwrap()
     }
 }
@@ -125,7 +125,7 @@ impl VerifiedSdJwtPresentation {
             .parse::<UnverifiedSdJwtPresentation<SdJwtExampleClaims, Header>>()
             .unwrap()
             .into_verified(
-                &examples_sd_jwt_decoding_key(),
+                &(&examples_sd_jwt_public_key()).into(),
                 WITH_KB_SD_JWT_AUD,
                 &Nonce::from(WITH_KB_SD_JWT_NONCE.to_string()),
                 Duration::from_secs(2 * 60),
@@ -184,7 +184,7 @@ pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, D
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-elliptic-curve-key-used-in-
-pub fn examples_sd_jwt_decoding_key() -> JwtDecodingKey {
+pub fn examples_sd_jwt_public_key() -> PublicKey {
     let jwk = json!({
         "kty": "EC",
         "crv": "P-256",
@@ -192,11 +192,6 @@ pub fn examples_sd_jwt_decoding_key() -> JwtDecodingKey {
         "y": "Xv5zWwuoaTgdS6hV43yI6gBwTnjukmFQQnJ_kCxzqk8"
     });
 
-    decoding_key_from_jwk(jwk)
-}
-
-fn decoding_key_from_jwk(jwk: serde_json::Value) -> JwtDecodingKey {
     let jwk: Jwk = serde_json::from_value(jwk).unwrap();
-    let verifying_key = jwk_to_p256(&jwk).unwrap();
-    JwtDecodingKey::from(&verifying_key)
+    jwk_to_public_key(&jwk).unwrap()
 }

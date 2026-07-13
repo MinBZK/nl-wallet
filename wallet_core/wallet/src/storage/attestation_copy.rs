@@ -427,6 +427,7 @@ mod tests {
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -456,7 +457,7 @@ mod tests {
         let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
             payload_preview,
             Utc::now(),
-            holder_privkey.verifying_key(),
+            &PublicKey::from(*holder_privkey.verifying_key()),
             Integrity::from(""),
             StatusClaim::new_mock(),
         )

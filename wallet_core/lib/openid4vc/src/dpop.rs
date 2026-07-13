@@ -43,6 +43,7 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::PublicKey;
 use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Display;
@@ -58,8 +59,8 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithJwk;
+use jwt::jwk::jwk_to_public_key;
 use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
 use serde::Serialize;
@@ -203,19 +204,19 @@ impl Dpop {
     /// Verify the DPoP JWT against the public key inside its header, returning that public key.
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
-    pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
+    pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<PublicKey> {
         let (header, payload) = self
             .0
             .parse_and_verify_with_jwk(&DPOP_VALIDATION_OPTIONS)
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, None)?;
-        Ok(header.verifying_key()?)
+        Ok(jwk_to_public_key(&header.jwk)?)
     }
 
     /// Verify the DPoP JWT against the specified public key obtained previously from [`Dpop::verify()`].
     pub fn verify_expecting_key(
         self,
-        expected_verifying_key: &VerifyingKey,
+        expected_verifying_key: PublicKey,
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
@@ -233,7 +234,10 @@ impl Dpop {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use base64::prelude::*;
+    use crypto::PublicKey;
     use jwt::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -286,8 +290,8 @@ mod tests {
 
         // We can verify the DPoP
         let pubkey = dpop.clone().verify(&url, &method, access_token.as_ref()).unwrap();
-        assert_eq!(pubkey, *signing_key.verifying_key());
-        dpop.verify_expecting_key(&pubkey, &url, &method, access_token.as_ref(), None)
+        assert_matches!(pubkey, PublicKey::P256(verifying_key) if verifying_key == *signing_key.verifying_key());
+        dpop.verify_expecting_key(pubkey, &url, &method, access_token.as_ref(), None)
             .unwrap();
     }
 

@@ -17,6 +17,7 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::EcdsaKey;
+use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
@@ -204,10 +205,10 @@ async fn assert_published_list(
         .parse::<StatusListToken>()
         .unwrap();
 
-    let verifying_key = JwtDecodingKey::from(&config.key_pair.verifying_key().await.unwrap());
+    let public_key = PublicKey::from(config.key_pair.verifying_key().await.unwrap());
     let (header, claims) = status_list_token
         .as_ref()
-        .parse_and_verify(verifying_key, &DEFAULT_VALIDATIONS)
+        .parse_and_verify(JwtDecodingKey::from(&public_key), &DEFAULT_VALIDATIONS)
         .unwrap();
     assert_eq!(header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
 

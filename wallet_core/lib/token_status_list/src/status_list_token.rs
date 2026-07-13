@@ -249,6 +249,7 @@ mod test {
     use std::ops::Add;
 
     use chrono::Days;
+    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use jwt::DEFAULT_VALIDATIONS;
@@ -272,7 +273,10 @@ mod test {
 
         let verified = signed
             .0
-            .into_verified(&keypair.private_key().verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .into_verified(
+                &PublicKey::from(*keypair.private_key().verifying_key()).into(),
+                &DEFAULT_VALIDATIONS,
+            )
             .unwrap();
         assert_eq!(*verified.header(), expected_header);
         // the `iat` claim is set when signing the token

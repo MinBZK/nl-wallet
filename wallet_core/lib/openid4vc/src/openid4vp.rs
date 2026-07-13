@@ -14,6 +14,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use cose::CoseAlgorithmIdentifier;
 use cose::KnownCoseAlgorithmIdentifier;
+use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use dcql::CredentialQueryIdentifier;
@@ -49,7 +50,6 @@ use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
-use p256::ecdsa::VerifyingKey;
 use sd_jwt::key_binding_jwt::KbVerificationOptions;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use serde::Deserialize;
@@ -896,7 +896,7 @@ impl VpAuthorizationResponse {
         // However, it may not be required, so initialize it lazily.
         let session_transcript = LazyLock::new(|| auth_request.session_transcript());
 
-        let mut holder_public_keys: Vec<VerifyingKey> = Vec::new();
+        let mut holder_public_keys: Vec<PublicKey> = Vec::new();
         let mut disclosed_attestations = HashMap::new();
 
         for (id, presentation) in self.vp_token {
@@ -963,10 +963,8 @@ impl VpAuthorizationResponse {
             accept_undetermined_revocation_status,
         )?;
 
-        // Step 3: Verify the PoA, if present. Unfortunately `VerifyingKey` does not
-        //         implement `Hash`, so we have to sort and deduplicate manually.
-        holder_public_keys.sort();
-        holder_public_keys.dedup();
+        // Step 3: Verify the PoA, if present.
+        let holder_public_keys = holder_public_keys.into_iter().unique().collect_vec();
         if holder_public_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
                 &holder_public_keys,
@@ -1027,7 +1025,7 @@ impl VpAuthorizationResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<C>,
-    ) -> Result<Vec<(VerifyingKey, DisclosedAttestation)>, AuthResponseError>
+    ) -> Result<Vec<(PublicKey, DisclosedAttestation)>, AuthResponseError>
     where
         C: StatusListClient,
     {
@@ -1042,7 +1040,7 @@ impl VpAuthorizationResponse {
             .into_iter()
             .map(|disclosed_document| {
                 Ok::<_, AuthResponseError>((
-                    disclosed_document.device_key,
+                    PublicKey::from(disclosed_document.device_key),
                     DisclosedAttestation::try_from(disclosed_document)
                         .map_err(AuthResponseError::DisclosedAttestation)?,
                 ))
@@ -1058,7 +1056,7 @@ impl VpAuthorizationResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<C>,
-    ) -> Result<(VerifyingKey, DisclosedAttestation), AuthResponseError>
+    ) -> Result<(PublicKey, DisclosedAttestation), AuthResponseError>
     where
         C: StatusListClient,
     {
@@ -1148,6 +1146,7 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use base64::prelude::*;
     use cose::KnownCoseAlgorithmIdentifier;
+    use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
@@ -2328,9 +2327,9 @@ mod tests {
         let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let holder_key1 = MockRemoteEcdsaKey::new_random("sd_jwt_key_1".to_string());
-        let holder_public_key1 = *holder_key1.verifying_key();
+        let holder_public_key1 = PublicKey::from(*holder_key1.verifying_key());
         let holder_key2 = MockRemoteEcdsaKey::new_random("sd_jwt_key_2".to_string());
-        let holder_public_key2 = *holder_key2.verifying_key();
+        let holder_public_key2 = PublicKey::from(*holder_key2.verifying_key());
         let wscd = MockRemoteWscd::new(vec![holder_key1, holder_key2]);
 
         // Create two `UnsignedSdJwtPresentation`s with the requested attributes.
@@ -2493,8 +2492,11 @@ mod tests {
 
         // Create the a SD-JWT holder key and presentation.
         let sd_jwt_holder_key = MockRemoteEcdsaKey::new_random("sd_jwt".to_string());
-        let verified_sd_jwt =
-            SignedSdJwt::pid_example(&sd_jwt_issuer_key_pair, sd_jwt_holder_key.verifying_key()).into_verified();
+        let verified_sd_jwt = SignedSdJwt::pid_example(
+            &sd_jwt_issuer_key_pair,
+            &PublicKey::from(*sd_jwt_holder_key.verifying_key()),
+        )
+        .into_verified();
         let unsigned_presentation = verified_sd_jwt
             .into_presentation_builder()
             .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
