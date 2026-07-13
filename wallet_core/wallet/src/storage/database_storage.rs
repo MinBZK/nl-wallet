@@ -190,6 +190,20 @@ fn condition_for_credential_kind(credential_kind: &CredentialKind, type_match: A
         .add(attestation::Column::AttestationFormat.eq(attestation_format_for_credential_format(*format)))
 }
 
+/// Returns the condition that matches the stored attestations of any of the requested [`CredentialKind`]s. An empty set
+/// of credential kinds results in an empty `Condition::any()`, which sea-query renders as a constant `FALSE` and which
+/// therefore matches no attestation at all.
+fn condition_for_credential_kinds(
+    credential_kinds: &HashSet<CredentialKind>,
+    type_match: AttestationTypeMatch,
+) -> Condition {
+    credential_kinds
+        .iter()
+        .fold(Condition::any(), |condition, credential_kind| {
+            condition.add(condition_for_credential_kind(credential_kind, type_match))
+        })
+}
+
 /// Converts a set of attestation types that are all requested in the same format to a set of [`CredentialKind`]s.
 fn credential_kinds_for_types_and_format(
     attestation_types: &HashSet<String>,
@@ -361,20 +375,15 @@ impl<K> DatabaseStorage<K> {
         type_match: AttestationTypeMatch,
         condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        // Guard against an empty set of credential kinds, as an empty `Condition::any()` matches every attestation.
+        // Requesting no credential kinds can never match an attestation, so skip querying the database entirely.
         if credential_kinds.is_empty() {
             return Ok(vec![]);
         }
 
-        // Collect the conditions for the individual credential kinds using OR.
-        let credential_kinds_condition = credential_kinds
-            .iter()
-            .fold(Condition::any(), |condition, credential_kind| {
-                condition.add(condition_for_credential_kind(credential_kind, type_match))
-            });
-
         // The top-level conditions are joined with AND, starting with the credential kinds.
-        let condition = condition.unwrap_or_else(Condition::all).add(credential_kinds_condition);
+        let condition = condition
+            .unwrap_or_else(Condition::all)
+            .add(condition_for_credential_kinds(credential_kinds, type_match));
 
         self.query_unique_attestations(Some(condition)).await
     }
@@ -873,22 +882,25 @@ where
         Ok(())
     }
 
-    async fn has_any_attestations_with_types<'a>(&self, attestation_types: &[&'a str]) -> StorageResult<bool> {
-        let select_statement = Query::select()
-            .column((attestation::Entity, attestation::Column::Id))
-            .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).is_in(attestation_types.iter().copied()))
-            .take();
+    async fn has_any_attestations_with_credential_kinds(
+        &self,
+        credential_kinds: &HashSet<CredentialKind>,
+    ) -> StorageResult<bool> {
+        // Requesting no credential kinds can never match an attestation, so skip querying the database entirely.
+        if credential_kinds.is_empty() {
+            return Ok(false);
+        }
 
-        let exists_query = Query::select()
-            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
-            .to_owned();
-
-        let exists_result = self.execute_query(exists_query).await?;
-        let exists = exists_result
-            .map(|result| result.try_get("", "attestation_type_exists"))
-            .transpose()?
-            .unwrap_or(false);
+        let exists = attestation::Entity::find()
+            .filter(condition_for_credential_kinds(
+                credential_kinds,
+                AttestationTypeMatch::Exact,
+            ))
+            .column(attestation::Column::Id)
+            .limit(1)
+            .one(self.database()?.connection())
+            .await?
+            .is_some();
 
         Ok(exists)
     }
@@ -1817,9 +1829,12 @@ pub(crate) mod tests {
         assert_eq!(fetched_registration.pin_salt.as_ref(), registration.pin_salt.as_ref());
     }
 
-    async fn has_any_pid_attestation_types(storage: &MockHardwareDatabaseStorage) -> bool {
+    async fn has_any_pid_attestations(storage: &MockHardwareDatabaseStorage, format: Format) -> bool {
         storage
-            .has_any_attestations_with_types(&[PID_ATTESTATION_TYPE])
+            .has_any_attestations_with_credential_kinds(&HashSet::from([CredentialKind::new(
+                format,
+                PID_ATTESTATION_TYPE.to_string(),
+            )]))
             .await
             .unwrap()
     }
@@ -1845,7 +1860,7 @@ pub(crate) mod tests {
 
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
-        assert!(!has_any_pid_attestation_types(&storage).await);
+        assert!(!has_any_pid_attestations(&storage, Format::MsoMdoc).await);
         assert!(!storage.has_any_attestations().await.unwrap());
 
         // Insert mdocs
@@ -1875,7 +1890,9 @@ pub(crate) mod tests {
             .await
             .expect("Could not insert attestations");
 
-        assert!(has_any_pid_attestation_types(&storage).await);
+        assert!(has_any_pid_attestations(&storage, Format::MsoMdoc).await);
+        // The PID is stored in the mdoc format, so it should not be found when the SD-JWT format is requested.
+        assert!(!has_any_pid_attestations(&storage, Format::SdJwt).await);
         assert!(storage.has_any_attestations().await.unwrap());
 
         let fetched_unique = storage
@@ -2096,6 +2113,161 @@ pub(crate) mod tests {
         );
     }
 
+    async fn insert_pid_in_both_formats(storage: &mut MockHardwareDatabaseStorage) -> String {
+        let mdoc = Mdoc::new_mock().await;
+
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+
+        let attestation_type = mdoc.doc_type().to_string();
+        assert_eq!(sd_jwt.claims().vct, attestation_type);
+
+        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
+
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![
+                    (
+                        CredentialWithMetadata::new(
+                            IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc]),
+                            attestation_type.clone(),
+                            None,
+                            None,
+                            normalized_metadata.extended_vcts(),
+                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                        ),
+                        AttestationPresentation::new_mock(),
+                    ),
+                    (
+                        CredentialWithMetadata::new(
+                            IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
+                                key_identifier: "sd_jwt_key_id".to_string(),
+                                sd_jwt,
+                            }]),
+                            attestation_type.clone(),
+                            None,
+                            None,
+                            normalized_metadata.extended_vcts(),
+                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                        ),
+                        AttestationPresentation::new_mock(),
+                    ),
+                ],
+            )
+            .await
+            .expect("Could not insert credentials");
+
+        attestation_type
+    }
+
+    #[tokio::test]
+    async fn test_query_by_empty_set_of_credential_kinds_matches_nothing() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        insert_pid_in_both_formats(&mut storage).await;
+
+        // Guard the test itself: the database should not be empty.
+        assert!(storage.has_any_attestations().await.unwrap());
+
+        let fetched = storage
+            .fetch_unique_attestations_by_credential_kinds(&HashSet::new())
+            .await
+            .expect("Could not fetch unique attestations by credential kinds");
+
+        assert!(fetched.is_empty());
+
+        let fetched = storage
+            .fetch_unique_attestations_by_types_and_single_format(&HashSet::new(), Format::SdJwt)
+            .await
+            .expect("Could not fetch unique attestations by types and single format");
+
+        assert!(fetched.is_empty());
+
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &HashSet::new(),
+                Format::SdJwt,
+                MockTimeGenerator::default(),
+            )
+            .await
+            .expect("Could not fetch valid unique attestations by types and format");
+
+        assert!(fetched.is_empty());
+
+        let has_any = storage
+            .has_any_attestations_with_credential_kinds(&HashSet::new())
+            .await
+            .expect("Could not determine if any attestations with credential kinds exist");
+
+        assert!(!has_any);
+    }
+
+    #[tokio::test]
+    async fn test_query_by_multiple_credential_kinds() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let attestation_type = insert_pid_in_both_formats(&mut storage).await;
+
+        let mdoc_kind = CredentialKind::new(Format::MsoMdoc, attestation_type.clone());
+        let sd_jwt_kind = CredentialKind::new(Format::SdJwt, attestation_type.clone());
+        let unknown_mdoc_kind = CredentialKind::new(Format::MsoMdoc, "urn:example:unknown:1".to_string());
+
+        // Requesting both kinds should return both attestations, one for each format.
+        let fetched = storage
+            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([mdoc_kind.clone(), sd_jwt_kind.clone()]))
+            .await
+            .expect("Could not fetch unique attestations by credential kinds");
+
+        assert_eq!(fetched.len(), 2);
+        assert_eq!(
+            fetched
+                .iter()
+                .map(|copy| match copy.attestation {
+                    StoredAttestation::MsoMdoc { .. } => Format::MsoMdoc,
+                    StoredAttestation::SdJwt { .. } => Format::SdJwt,
+                })
+                .collect::<HashSet<_>>(),
+            HashSet::from([Format::MsoMdoc, Format::SdJwt])
+        );
+
+        // Requesting a single kind should only return the attestation stored in that format.
+        let fetched = storage
+            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([sd_jwt_kind.clone()]))
+            .await
+            .expect("Could not fetch unique attestations by credential kinds");
+
+        assert_eq!(fetched.len(), 1);
+        assert_matches!(fetched.first().unwrap().attestation, StoredAttestation::SdJwt { .. });
+
+        // A kind that does not match should not widen the result.
+        let fetched = storage
+            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([
+                mdoc_kind.clone(),
+                unknown_mdoc_kind.clone(),
+            ]))
+            .await
+            .expect("Could not fetch unique attestations by credential kinds");
+
+        assert_eq!(fetched.len(), 1);
+        assert_matches!(fetched.first().unwrap().attestation, StoredAttestation::MsoMdoc { .. });
+
+        // The same holds for the existence check, which should only be true if at least one of the kinds matches.
+        let has_any = storage
+            .has_any_attestations_with_credential_kinds(&HashSet::from([unknown_mdoc_kind.clone(), sd_jwt_kind]))
+            .await
+            .expect("Could not determine if any attestations with credential kinds exist");
+
+        assert!(has_any);
+
+        let has_any = storage
+            .has_any_attestations_with_credential_kinds(&HashSet::from([unknown_mdoc_kind]))
+            .await
+            .expect("Could not determine if any attestations with credential kinds exist");
+
+        assert!(!has_any);
+    }
+
     #[tokio::test]
     async fn test_sd_jwt_storage() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
@@ -2131,7 +2303,7 @@ pub(crate) mod tests {
 
         assert!(attestations.is_empty());
 
-        assert!(!has_any_pid_attestation_types(&storage).await);
+        assert!(!has_any_pid_attestations(&storage, Format::SdJwt).await);
         assert!(!storage.has_any_attestations().await.unwrap());
 
         // Insert sd_jwts
@@ -2153,7 +2325,9 @@ pub(crate) mod tests {
             .await
             .expect("Could not insert SD-JWT");
 
-        assert!(has_any_pid_attestation_types(&storage).await);
+        assert!(has_any_pid_attestations(&storage, Format::SdJwt).await);
+        // The PID is stored in the SD-JWT format, so it should not be found when the mdoc format is requested.
+        assert!(!has_any_pid_attestations(&storage, Format::MsoMdoc).await);
         assert!(storage.has_any_attestations().await.unwrap());
 
         let fetched_unique = storage

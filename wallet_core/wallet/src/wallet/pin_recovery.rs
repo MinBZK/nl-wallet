@@ -557,7 +557,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .once()
             .return_once(|_| Ok(true));
         wallet
@@ -736,7 +736,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .once()
             .return_once(|_| Ok(false));
 

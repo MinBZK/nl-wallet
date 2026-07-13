@@ -148,7 +148,7 @@ mod test {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .return_once(|_| Ok(false));
 
         let _ = wallet
@@ -188,7 +188,7 @@ mod test {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .return_once(|_| Ok(true));
 
         let error = wallet

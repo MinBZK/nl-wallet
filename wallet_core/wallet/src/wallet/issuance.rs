@@ -282,15 +282,15 @@ where
         config: &PidAttributesConfiguration,
         format: PidAttestationFormat,
     ) -> Result<bool, StorageError> {
-        let pid_attestation_types = match format {
-            PidAttestationFormat::Either => config.pid_attestation_types().collect_vec(),
-            PidAttestationFormat::SdJwt => config.sd_jwt.keys().map(String::as_str).collect_vec(),
+        let pid_credential_kinds = match format {
+            PidAttestationFormat::Either => config.credential_kinds(),
+            PidAttestationFormat::SdJwt => config.sd_jwt_credential_kinds(),
         };
 
         self.storage
             .read()
             .await
-            .has_any_attestations_with_types(&pid_attestation_types)
+            .has_any_attestations_with_credential_kinds(&pid_credential_kinds)
             .await
     }
 }
@@ -962,7 +962,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .return_once(move |_| Ok(pid_present));
         wallet
             .mut_storage()
@@ -996,7 +996,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .return_once(move |_| Ok(pid_present));
 
         // Enrolling when we already have a PID, or renewing when we don't have a PID, should result in an error.
@@ -1991,7 +1991,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .return_once(|_| Ok(true));
 
         let err = wallet

@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::ops::Range;
 
 use attestation_data::disclosure_type::DisclosureTypeConfig;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::p256_der::DerVerifyingKey;
@@ -13,6 +15,7 @@ use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwt::JwtTyp;
+use openid4vc::issuable_document::CredentialKind;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -120,6 +123,23 @@ pub enum PidAttributesConfigurationError {
 }
 
 impl PidAttributesConfiguration {
+    /// The [`CredentialKind`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
+    pub fn credential_kinds(&self) -> HashSet<CredentialKind> {
+        self.mso_mdoc
+            .keys()
+            .map(|doc_type| CredentialKind::new(Format::MsoMdoc, doc_type.clone()))
+            .chain(self.sd_jwt_credential_kinds())
+            .collect()
+    }
+
+    /// The [`CredentialKind`]s of the configured PID attestations in the SD-JWT format.
+    pub fn sd_jwt_credential_kinds(&self) -> HashSet<CredentialKind> {
+        self.sd_jwt
+            .keys()
+            .map(|vct| CredentialKind::new(Format::SdJwt, vct.clone()))
+            .collect()
+    }
+
     pub fn pid_attestation_types(&self) -> impl Iterator<Item = &str> {
         [&self.mso_mdoc, &self.sd_jwt]
             .into_iter()
