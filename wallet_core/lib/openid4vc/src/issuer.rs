@@ -189,6 +189,9 @@ pub enum TokenRequestError {
         actual: HashSet<Scope>,
     },
 
+    #[error("use of scope values in Pre-Authorized Token Request is not supported, received: {}", .0.iter().join(" "))]
+    PreAuthorizedScopeUnsupported(HashSet<Scope>),
+
     #[error("missing redirect_uri in Authorization Code flow")]
     MissingRedirectUri,
 
@@ -1117,23 +1120,31 @@ impl Grant {
         Ok(())
     }
 
-    /// Verify the `scope` of the [`TokenRequest`] when in the Authorization Code flow, if it is present.
+    /// Verify the `scope` of the [`TokenRequest`], if it is present.
     fn verify_scope(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
-        if let Grant::AuthorizationCode(AuthRequestValues {
-            scope: request_scope, ..
-        }) = self
-        {
-            // The client has the option of further restricting the requested scope as included in the Authorization
-            // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
-            // we check that the scope in the Token Request is exactly the same as what was included in the
-            // Authorization Request.
-            if let Some(scope) = token_request.scope.as_ref()
-                && scope != request_scope
-            {
-                return Err(TokenRequestError::ScopeMismatch {
-                    expected: request_scope.clone(),
-                    actual: scope.clone(),
-                });
+        match self {
+            Grant::AuthorizationCode(AuthRequestValues {
+                scope: request_scope, ..
+            }) => {
+                // The client has the option of further restricting the requested scope as included in the Authorization
+                // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
+                // we check that the scope in the Token Request is exactly the same as what was included in the
+                // Authorization Request.
+                if let Some(scope) = token_request.scope.as_ref()
+                    && scope != request_scope
+                {
+                    return Err(TokenRequestError::ScopeMismatch {
+                        expected: request_scope.clone(),
+                        actual: scope.clone(),
+                    });
+                }
+            }
+
+            Grant::PreAuthorizedCode => {
+                // If the Token Request was Pre-Authorized, we choose not to support scope values at all.
+                if let Some(scope) = token_request.scope.as_ref() {
+                    return Err(TokenRequestError::PreAuthorizedScopeUnsupported(scope.clone()));
+                }
             }
         }
 
