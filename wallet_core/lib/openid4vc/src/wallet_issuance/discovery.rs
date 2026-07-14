@@ -92,6 +92,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                 pre_authorized_code,
                 token_endpoint,
                 authorization_server,
+                challenge_endpoint,
             } => {
                 let issuance_session = self
                     .create_issuance_session(
@@ -100,6 +101,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                         credential_issuer,
                         issuer_endpoints,
                         &token_endpoint,
+                        challenge_endpoint,
                         wia_client,
                         &authorization_server,
                         issuer_trust_anchors,
@@ -164,6 +166,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             pre_authorized_code,
             token_endpoint,
             authorization_server,
+            challenge_endpoint,
         } = flow
         else {
             return Err(WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
@@ -175,6 +178,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             credential_identifier,
             issuer_endpoints,
             &token_endpoint,
+            challenge_endpoint,
             wia_client,
             &authorization_server,
             issuer_trust_anchors,
@@ -216,6 +220,7 @@ enum CredentialOfferFlow {
         pre_authorized_code: AuthorizationCode,
         authorization_server: IssuerIdentifier,
         token_endpoint: Url,
+        challenge_endpoint: Option<Url>,
     },
 }
 
@@ -302,6 +307,7 @@ impl CredentialOfferFlow {
                 pre_authorized_code,
                 authorization_server: oauth_metadata.issuer,
                 token_endpoint: oauth_metadata.token_endpoint,
+                challenge_endpoint: oauth_metadata.challenge_endpoint,
             },
             CredentialOfferGrant::NoKnownGrant => {
                 // According to the OpenID4VCI 1.0 specification:
@@ -544,6 +550,7 @@ impl HttpIssuanceDiscovery {
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
         token_endpoint: &Url,
+        challenge_endpoint: Option<Url>,
         wia_client: &impl WiaClient,
         authorization_server: &IssuerIdentifier,
         issuer_trust_anchors: &TrustAnchors,
@@ -558,6 +565,7 @@ impl HttpIssuanceDiscovery {
             credential_issuer,
             issuer_endpoints,
             token_endpoint,
+            challenge_endpoint,
             token_request,
             wia_client,
             authorization_server,

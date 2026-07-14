@@ -17,6 +17,7 @@ use futures::try_join;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwt::nonce::Nonce;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use jwt::wia::WiaDisclosure;
@@ -49,6 +50,7 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
+use crate::client_auth::fetch_client_auth_challenge;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -94,6 +96,8 @@ pub trait VcMessageClient {
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
     ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError>;
+
+    async fn request_challenge(&self, url: Option<Url>) -> Result<Option<Nonce>, WalletIssuanceError>;
 
     async fn request_credential_preview(
         &self,
@@ -185,6 +189,10 @@ impl VcMessageClient for HttpVcMessageClient {
                 }
             })
             .await
+    }
+
+    async fn request_challenge(&self, challenge_endpoint: Option<Url>) -> Result<Option<Nonce>, WalletIssuanceError> {
+        fetch_client_auth_challenge(&self.http_client, challenge_endpoint).await
     }
 
     async fn request_credential_preview(
@@ -421,6 +429,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
         token_endpoint: &Url,
+        challenge_endpoint: Option<Url>,
         token_request: TokenRequest,
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
@@ -434,8 +443,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let dpop_signing_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
+        let challenge = message_client.request_challenge(challenge_endpoint).await?;
         let wia = wia_client
-            .issue_wia(auth_server_identifier.to_string(), None)
+            .issue_wia(auth_server_identifier.to_string(), challenge)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
@@ -1253,6 +1263,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
+            oauth_metadata.challenge_endpoint,
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.issuer,

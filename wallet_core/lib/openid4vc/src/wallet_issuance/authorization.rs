@@ -78,6 +78,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
+    challenge_endpoint: Option<Url>,
     authorization_server: IssuerIdentifier,
     http_client: HttpClient,
 
@@ -93,6 +94,7 @@ pub struct HttpAuthorizationSessionData {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
+    challenge_endpoint: Option<Url>,
     authorization_server: IssuerIdentifier,
     auth_url: Url,
     redirect_uri: Url,
@@ -149,7 +151,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
-        let challenge = fetch_client_auth_challenge(&http_client, auth_endpoints.challenge_endpoint).await?;
+        let challenge = fetch_client_auth_challenge(&http_client, auth_endpoints.challenge_endpoint.clone()).await?;
         let wia = wia_client
             .issue_wia(authorization_server.to_string(), challenge)
             .await
@@ -189,6 +191,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             credential_issuer,
             issuer_endpoints,
             token_endpoint: auth_endpoints.token_endpoint,
+            challenge_endpoint: auth_endpoints.challenge_endpoint,
             authorization_server,
             http_client,
             auth_url,
@@ -243,6 +246,7 @@ impl HttpAuthorizationSession {
             credential_issuer: data.credential_issuer,
             issuer_endpoints: data.issuer_endpoints,
             token_endpoint: data.token_endpoint,
+            challenge_endpoint: data.challenge_endpoint,
             authorization_server: data.authorization_server,
             http_client,
             auth_url: data.auth_url,
@@ -271,6 +275,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             credential_issuer: self.credential_issuer.clone(),
             issuer_endpoints: self.issuer_endpoints.clone(),
             token_endpoint: self.token_endpoint.clone(),
+            challenge_endpoint: self.challenge_endpoint.clone(),
             authorization_server: self.authorization_server.clone(),
             auth_url: self.auth_url.clone(),
             redirect_uri: self.redirect_uri.clone(),
@@ -303,6 +308,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.credential_issuer,
             self.issuer_endpoints,
             &self.token_endpoint,
+            self.challenge_endpoint,
             token_request,
             wia_client,
             &self.authorization_server,
@@ -665,6 +671,7 @@ mod tests {
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
+            challenge_endpoint: Some(ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT)),
             auth_url: ISSUER_URL.parse().unwrap(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             code_verifier: "verifier".to_string(),
@@ -677,6 +684,7 @@ mod tests {
             credential_issuer: persisted.credential_issuer,
             issuer_endpoints: persisted.issuer_endpoints,
             token_endpoint: persisted.token_endpoint,
+            challenge_endpoint: persisted.challenge_endpoint,
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
             redirect_uri: persisted.redirect_uri.clone(),

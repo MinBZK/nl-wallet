@@ -2043,6 +2043,10 @@ mod tests {
             Ok((token_response, Some(dpop_nonce)))
         }
 
+        async fn request_challenge(&self, _url: Option<Url>) -> Result<Option<Nonce>, WalletIssuanceError> {
+            Ok(Some(self.issuer.generate_proof_nonce().await.unwrap()))
+        }
+
         async fn request_credential_preview(
             &self,
             _url: &Url,
@@ -2172,6 +2176,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
+            oauth_metadata.challenge_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &oauth_metadata.issuer,
@@ -2226,6 +2231,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
+            oauth_metadata.challenge_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
             &oauth_metadata.issuer,
