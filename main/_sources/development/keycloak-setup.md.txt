@@ -35,6 +35,43 @@ scripts/start-devenv.sh keycloak --stop # stops keycloak
 Administration user: `keycloak` / `keycloak`, HTTP `:11080`, HTTPS `:11443`.
 Overridable with: `KC_USERNAME`, `KC_PASSWORD`, `KC_PORT_HTTP`, `KC_PORT_HTTPS`.
 
+## Kubernetes (ont/demo)
+
+The `keycloak` helm-chart in `deploy/helm-charts/keycloak` deploys the same
+container to a Kubernetes namespace. Differences from local dev:
+
+- TLS is terminated by the gateway; the pod serves plain HTTP on `:8080`
+  (`KC_HTTP_ENABLED=true`, no in-pod certificates). The Service exposes `:80`
+  → `:8080`.
+- The whole `nl-wallet` realm import JSON (roles, users, passwords, clients)
+  is supplied by an existing secret (`keycloak.realm.existingSecret`, default
+  `nl-wallet-keycloak-realm`, key `realm.json`) and mounted read-only at
+  `/opt/keycloak/data/import/realm.json`. The chart itself ships no realm
+  contents and holds no realm secrets; creating the secret is a deploy-time
+  concern handled out-of-band (separate repositories / pipelines for ont and
+  demo). For a throw-away local cluster, the dev realm from
+  `scripts/devenv/keycloak/import` can be used:
+
+  ```shell
+  kubectl create secret generic nl-wallet-keycloak-realm \
+    --from-file=realm.json=scripts/devenv/keycloak/import/realm.json
+  ```
+
+- The admin user credentials come from an existing secret
+  (`keycloak.admin.existingSecret`); set `KC_BOOTSTRAP_ADMIN_USERNAME` /
+  `KC_BOOTSTRAP_ADMIN_PASSWORD` keys.
+- State (`/opt/keycloak/data`) is on a PVC (if `persistence.enabled`). Defaults
+  to the embedded `dev-file` database; switch `keycloak.database` to a real DB
+  for `replicaCount > 1` (and disable persistence, since that would then be
+  handled by the real DB).
+
+> **Import runs once.** `--import-realm` only imports a realm that does not
+> exist yet. With `persistence.enabled` the realm stays on the PVC, so later
+> realm changes are not applied. Re-import requires wiping the realm or PVC.
+
+Run `helm dependency build deploy/helm-charts/keycloak` before install (the
+chart depends on `sp-common`).
+
 ## Realm Configuration
 
 Realm name: `nl-wallet`
