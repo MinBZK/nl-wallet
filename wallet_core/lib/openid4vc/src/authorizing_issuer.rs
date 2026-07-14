@@ -555,12 +555,14 @@ mod tests {
         let (authorizing_issuer, _sessions, wia_keypair) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
-        let nonce = authorizing_issuer.issuer.generate_proof_nonce().await.unwrap();
         let response = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
                 &MockWiaClient::new_with_wia_keypair(wia_keypair)
-                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), Some(nonce))
+                    .issue_wia(
+                        authorizing_issuer.issuer.issuer_identifier().to_string(),
+                        Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+                    )
                     .await
                     .unwrap(),
             )
@@ -615,7 +617,10 @@ mod tests {
         );
 
         let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-            .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+            .issue_wia(
+                authorizing_issuer.issuer.issuer_identifier().to_string(),
+                Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+            )
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -712,12 +717,14 @@ mod tests {
             vec_nonempty!["https://other.example.com/callback".parse().unwrap()],
         );
 
-        let nonce = authorizing_issuer.issuer.generate_proof_nonce().await.unwrap();
         let error = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
                 &MockWiaClient::new_with_wia_keypair(wia_keypair)
-                    .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), Some(nonce))
+                    .issue_wia(
+                        authorizing_issuer.issuer.issuer_identifier().to_string(),
+                        Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+                    )
                     .await
                     .unwrap(),
             )
@@ -737,7 +744,10 @@ mod tests {
         // MockWiaClient::new() issues a WIA signed by a freshly generated CA that is not in the
         // issuer's trust anchors, so verification must fail.
         let wia = MockWiaClient::new()
-            .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+            .issue_wia(
+                authorizing_issuer.issuer.issuer_identifier().to_string(),
+                Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+            )
             .await
             .unwrap();
 
@@ -758,7 +768,10 @@ mod tests {
         // The WIA is signed by the trusted key pair but targets a different audience, so the
         // audience check inside verify_wia must reject it.
         let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-            .issue_wia("https://wrong-issuer.example.com".to_string(), None)
+            .issue_wia(
+                "https://wrong-issuer.example.com".to_string(),
+                Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+            )
             .await
             .unwrap();
 

@@ -356,6 +356,7 @@ mod tests {
 
     const ISSUER_URL: &str = "https://example.com";
     const TOKEN_ENDPOINT: &str = "/issuance/token";
+    const CHALLENGE_ENDPOINT: &str = "/issuance/client_auth_challenge";
     const REDIRECT_URI: &str = "redirect://here";
     const CSRF_TOKEN: &str = "csrf_token";
     const CODE: &str = "code";
@@ -392,6 +393,7 @@ mod tests {
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
+            challenge_endpoint: Some(ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT)),
             authorization_server: ISSUER_URL.parse().unwrap(),
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -472,6 +474,15 @@ mod tests {
                         "request_uri": PAR_REQUEST_URI,
                         "expires_in": 60,
                     }));
+            })
+            .await;
+
+        server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/client_auth_challenge");
+                then.status(200).json_body(json!({
+                    "attestation_challenge": "foobar",
+                }));
             })
             .await;
 

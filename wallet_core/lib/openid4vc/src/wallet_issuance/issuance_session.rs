@@ -1225,6 +1225,9 @@ mod tests {
             },
         );
         mock_msg_client
+            .expect_request_challenge()
+            .return_once(move |_url| Ok(Some("challenge".to_string().into())));
+        mock_msg_client
             .expect_request_type_metadata()
             .return_once(move |_url| Ok(TypeMetadataDocuments::from_single_example(type_metadata).2));
 
@@ -1544,6 +1547,9 @@ mod tests {
             },
         );
         mock_msg_client
+            .expect_request_challenge()
+            .return_once(move |_url| Ok(Some("challenge".to_string().into())));
+        mock_msg_client
             .expect_request_type_metadata()
             .returning(|_url| Ok(TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example()).2));
         mock_msg_client
@@ -1579,6 +1585,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             &oauth_metadata.token_endpoint,
+            oauth_metadata.challenge_endpoint,
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.issuer,
