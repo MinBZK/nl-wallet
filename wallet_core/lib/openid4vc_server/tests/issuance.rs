@@ -949,7 +949,7 @@ async fn token_ok() {
 
     assert_eq!(token_response.token_type, TokenType::DPoP);
     assert!(token_response.refresh_token.is_none());
-    assert_eq!(token_response.scope, HashSet::new());
+    assert!(token_response.scope.is_none());
     assert!(token_response.expires_in.is_none());
 
     let EntryContainer { entry, .. } = token_response

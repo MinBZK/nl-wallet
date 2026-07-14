@@ -1285,6 +1285,14 @@ fn build_token_response<K, L>(
         .collect::<Result<_, _>>()?;
 
     let dpop_nonce = random_string(32);
+
+    // Note that, in the Authorization Code flow, we assume that the implementer of `AuthorizationCodeFlow` provides all
+    // of the credentials that are identified by the scopes that the wallet includes in the Authorization Request.
+    // Therefore we do not need to include a `scope` value in the Token Response, as the scope that the wallet requested
+    // is never curtailed.
+    //
+    // In the the Pre-Authorized Code flow we do not allow `scope` values from the wallet, so any scope restriction does
+    // not apply.
     let token_response = TokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
 
     Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))

@@ -190,9 +190,11 @@ pub struct TokenResponse {
     pub token_type: TokenType,
     pub refresh_token: Option<String>,
 
-    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, Scope>")]
-    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
-    pub scope: HashSet<Scope>,
+    /// Section 3.3 of RFC 6749 states that if the issued access token scope is different than the one requested by the
+    /// client, the server MUST include a scope response parameter to inform the client of the actual scope granted.
+    /// Conversely, this means that if the scope is absent, access token scope is what the client requested.
+    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
+    pub scope: Option<HashSet<Scope>>,
 
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub expires_in: Option<Duration>,
@@ -215,7 +217,7 @@ impl TokenResponse {
             token_type: TokenType::DPoP,
             expires_in: None,
             refresh_token: None,
-            scope: HashSet::new(),
+            scope: None,
             authorization_details,
         }
     }
@@ -337,7 +339,7 @@ mod tests {
         let token_response = TokenResponse {
             access_token: "access_token".to_string().into(),
             token_type: TokenType::Bearer,
-            scope: HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]),
+            scope: Some(HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()])),
             expires_in: None,
             refresh_token: None,
             authorization_details: None,
@@ -379,7 +381,7 @@ mod tests {
         assert_eq!(token_response.access_token.as_ref(), "token");
         assert_eq!(token_response.token_type, TokenType::DPoP);
         assert!(token_response.refresh_token.is_none());
-        assert!(token_response.scope.is_empty());
+        assert!(token_response.scope.is_none());
         assert!(token_response.expires_in.is_none());
 
         let serialized_json =
@@ -454,7 +456,7 @@ mod tests {
         );
         assert_eq!(token_response.token_type, TokenType::Bearer);
         assert!(token_response.refresh_token.is_none());
-        assert_eq!(token_response.scope, HashSet::new());
+        assert!(token_response.scope.is_none());
         assert_eq!(token_response.expires_in, Some(Duration::from_hours(24)));
 
         let authorization_details = token_response
