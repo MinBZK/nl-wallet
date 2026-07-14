@@ -143,23 +143,23 @@ void main() {
   );
 
   blocTest(
-    'verify user is redirected to dashboard when wallet state is WalletStateDisclosure',
+    'verify user is redirected to recoverSession when wallet state is WalletStateDisclosure',
     setUp: () => when(
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInDisclosureFlow()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
-    expect: () => [const SplashLoaded(.dashboard)],
+    expect: () => [const SplashLoaded(.recoverSession)],
   );
 
   blocTest(
-    'verify user is redirected to dashboard when wallet state is WalletStateIssuance',
+    'verify user is redirected to recoverSession when wallet state is WalletStateIssuance',
     setUp: () => when(
       mockGetWalletStateUseCase.invoke(),
     ).thenAnswer((_) async => const WalletStateInIssuanceFlow()),
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(mockGetWalletStateUseCase, mockGetRevocationCodeSavedUseCase),
-    expect: () => [const SplashLoaded(.dashboard)],
+    expect: () => [const SplashLoaded(.recoverSession)],
   );
 
   blocTest(

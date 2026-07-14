@@ -3361,6 +3361,15 @@ class MockLocalNotificationService extends _i1.Mock implements _i72.LocalNotific
 /// See the documentation for Mockito's code generation for more information.
 class MockNavigationService extends _i1.Mock implements _i73.NavigationService {
   @override
+  bool get hasQueuedRequest =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasQueuedRequest),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   _i11.FutureOr<void> onCoreError(_i56.CoreError? error) =>
       (super.noSuchMethod(
             Invocation.method(#onCoreError, [error]),

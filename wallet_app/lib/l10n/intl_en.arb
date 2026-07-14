@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-07-08T15:04:52+02:00",
+    "@@last_modified": "2026-07-13T15:29:39+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1301,6 +1301,8 @@
     "recoverPinSuccessPageToOverviewCta": "To my overview",
     "recoverPinUpdatingPinPageDescription": "New PIN is being saved",
     "recoverPinVerifyingAuthenticationDescription": "Your request is being retrieved",
+    "recoverSessionScreenDescription": "Follow the steps on the website of the relying party.\nThen return to NL Wallet.",
+    "recoverSessionScreenTitle": "Continue in your browser",
     "renewPidCheckDetailsPageAcceptCta": "Yes, continue",
     "renewPidCheckDetailsPageDeclineCta": "No",
     "renewPidCheckDetailsPageSubtitle": "If your details are correct, you can replace your Personal data card.",

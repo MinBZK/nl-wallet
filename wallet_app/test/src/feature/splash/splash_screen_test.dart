@@ -86,5 +86,19 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(WalletRoutes.dashboardRoute), findsOneWidget);
     });
+
+    testWidgets('when an issuance/disclosure session was left stuck navigate to recover session', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SplashScreen().withState<SplashBloc, SplashState>(
+          MockSplashBloc(),
+          const SplashLoaded(.recoverSession),
+        ),
+        providers: [
+          RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
+        ],
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(WalletRoutes.recoverSessionRoute), findsOneWidget);
+    });
   });
 }

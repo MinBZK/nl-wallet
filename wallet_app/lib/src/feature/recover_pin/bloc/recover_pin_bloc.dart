@@ -20,7 +20,6 @@ import '../../../wallet_constants.dart';
 import '../../../wallet_core/error/core_error.dart';
 
 part 'recover_pin_event.dart';
-
 part 'recover_pin_state.dart';
 
 class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
@@ -39,7 +38,7 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
     this._moveToReadyStateUsecase,
     this._completePinRecoveryUsecase, {
     required bool continueFromDigiD,
-  }) : super(continueFromDigiD ? const RecoverPinVerifyingDigidAuthentication() : const RecoverPinInitial()) {
+  }) : super(continueFromDigiD ? const RecoverPinAwaitingDigidAuthentication(null) : const RecoverPinInitial()) {
     on<RecoverPinLoginWithDigidClicked>(_onDigidLoginClicked);
     on<RecoverPinLoginWithDigidFailed>(_onDigidLoginFailed);
     on<RecoverPinContinuePinRecovery>(_onContinuePinRecovery);

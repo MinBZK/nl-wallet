@@ -18,4 +18,14 @@ class SplashLoaded extends SplashState {
   List<Object> get props => [destination];
 }
 
-enum PostSplashDestination { onboarding, revocationCode, pidRetrieval, transfer, pinRecovery, dashboard, blocked, none }
+enum PostSplashDestination {
+  onboarding,
+  revocationCode,
+  pidRetrieval,
+  transfer,
+  pinRecovery,
+  dashboard,
+  blocked,
+  recoverSession,
+  none,
+}

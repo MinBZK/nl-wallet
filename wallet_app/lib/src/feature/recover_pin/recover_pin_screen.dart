@@ -39,10 +39,23 @@ import '../mock_digid/mock_digid_screen.dart';
 import '../pin/pin_setup_page.dart';
 import '../pin_dialog/pin_confirmation_error_dialog.dart';
 import '../pin_dialog/pin_validation_error_dialog.dart';
+import 'argument/recover_pin_screen_argument.dart';
 import 'bloc/recover_pin_bloc.dart';
 import 'recover_pin_stop_sheet.dart';
 
 class RecoverPinScreen extends StatefulWidget {
+  /// Extracts [RecoverPinScreenArgument] from [RouteSettings].
+  static RecoverPinScreenArgument? getArgument(RouteSettings settings) {
+    final args = settings.arguments;
+    try {
+      if (settings.arguments is RecoverPinScreenArgument) return settings.arguments! as RecoverPinScreenArgument;
+      return RecoverPinScreenArgument.fromJson(args! as Map<String, dynamic>);
+    } catch (exception, stacktrace) {
+      Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
+      return null;
+    }
+  }
+
   const RecoverPinScreen({super.key});
 
   @override
@@ -175,7 +188,7 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
         StopDigidLoginDialog.closeOpenDialog(c); // Close StopDigiD dialog in case of state changes
         if (state is RecoverPinSelectPinFailed) PinValidationErrorDialog.show(c, state.reason);
         if (state is RecoverPinConfirmPinFailed) PinConfirmationErrorDialog.show(c, retryAllowed: state.canRetry);
-        if (state is RecoverPinAwaitingDigidAuthentication) _loginWithDigid(c, state.authUrl);
+        if (state is RecoverPinAwaitingDigidAuthentication && state.authUrl != null) _loginWithDigid(c, state.authUrl!);
       },
       buildWhen: (prev, current) {
         // Check for states that ONLY trigger a dialog, but do not require a UI rebuild.
