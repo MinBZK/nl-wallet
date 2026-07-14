@@ -9,6 +9,7 @@ import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/qr/edi_qr_code.dart';
 import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
 import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
+import 'package:wallet/src/feature/recover_pin/argument/recover_pin_screen_argument.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
 import 'package:wallet_core/core.dart';
 
@@ -67,7 +68,7 @@ void main() {
       expect(result, NavigationRequest.pinRecovery(testUri));
       expect(
         result.argument,
-        testUri,
+        const RecoverPinScreenArgument(uri: testUri),
         reason: 'The original uri should be passed to the correct screen as an argument',
       );
     });
