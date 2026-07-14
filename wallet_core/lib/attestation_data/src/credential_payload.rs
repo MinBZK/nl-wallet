@@ -4,6 +4,9 @@ use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use cose::CoseError;
+use cose::CoseKey;
+use cose::TypedCose;
 use coset::CoseSign1;
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -19,10 +22,6 @@ use mdoc::IssuerSigned;
 use mdoc::MobileSecurityObject;
 use mdoc::MobileSecurityObjectVersion;
 use mdoc::holder::Mdoc;
-use mdoc::utils::cose;
-use mdoc::utils::cose::CoseError;
-use mdoc::utils::cose::CoseKey;
-use mdoc::utils::cose::MdocCose;
 use mdoc::utils::crypto::CryptoError;
 use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::TaggedBytes;
@@ -41,7 +40,6 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
-use utils::vec_nonempty;
 
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
@@ -363,6 +361,7 @@ impl CredentialPayload {
             .verifying_key()
             .map_err(CredentialPayloadIntoSignedMdocError::JwkConversion)?)
             .try_into()
+            .map_err(CryptoError::from)
             .map_err(CredentialPayloadIntoSignedMdocError::CoseKeyConversion)?;
 
         let mso = MobileSecurityObject {
@@ -380,10 +379,9 @@ impl CredentialPayload {
             type_metadata_integrity: Some(vct_integrity),
         };
 
-        let header = cose::header_with_x5chain(&vec_nonempty![issuer_keypair.certificate()]);
         let mso = TaggedBytes(mso);
-        let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(&mso, header, issuer_keypair, true)
+        let issuer_auth: TypedCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
+            TypedCose::sign_with_certificate(&mso, issuer_keypair, true)
                 .await
                 .map_err(CredentialPayloadIntoSignedMdocError::SigningError)?;
         let TaggedBytes(mso) = mso;
