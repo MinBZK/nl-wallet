@@ -144,7 +144,7 @@ where
             self.unverified_header.x5chain.clone(),
             trust_anchors,
             time,
-            certificate_usage,
+            Some(certificate_usage),
         )?;
 
         Ok(VerifiedCwt { cwt: self, payload })

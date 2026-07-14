@@ -5,7 +5,6 @@ use std::borrow::Cow;
 use base64::prelude::*;
 use ciborium::tag;
 use ciborium::value::Value;
-use coset::AsCborValue;
 use error_category::ErrorCategory;
 use indexmap::IndexMap;
 use serde::Deserialize;
@@ -21,8 +20,6 @@ use serde_with::DeserializeAs;
 use serde_with::SerializeAs;
 
 use crate::iso::*;
-use crate::utils::cose::CoseKey;
-use crate::utils::cose::MdocCose;
 
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
@@ -86,51 +83,6 @@ where
         let buf = tag::Required::<ByteBuf, CBOR_TAG_ENC_CBOR>::deserialize(deserializer)?.0;
         let result = TaggedBytes(cbor_deserialize(buf.as_ref()).map_err(de::Error::custom)?);
         Ok(result)
-    }
-}
-
-fn serialize_as_cbor_value<T: Clone + AsCborValue, S: Serializer>(val: &T, serializer: S) -> Result<S::Ok, S::Error> {
-    val.clone()
-        .to_cbor_value()
-        .map_err(ser::Error::custom)?
-        .serialize(serializer)
-}
-
-fn deserialize_as_cbor_value<'de, T: AsCborValue, D: Deserializer<'de>>(deserializer: D) -> Result<T, D::Error> {
-    T::from_cbor_value(Value::deserialize(deserializer)?).map_err(de::Error::custom)
-}
-
-impl Serialize for CoseKey {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_as_cbor_value(&self.0, serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for CoseKey {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let key = deserialize_as_cbor_value::<coset::CoseKey, _>(deserializer)?.into();
-        Ok(key)
-    }
-}
-
-impl<C, T> Serialize for MdocCose<C, T>
-where
-    T: Serialize,
-    C: AsCborValue + Clone,
-{
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_as_cbor_value(&self.0, serializer)
-    }
-}
-
-impl<'de, C, T> Deserialize<'de> for MdocCose<C, T>
-where
-    T: Deserialize<'de>,
-    C: AsCborValue,
-{
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let cose = deserialize_as_cbor_value::<C, _>(deserializer)?.into();
-        Ok(cose)
     }
 }
 

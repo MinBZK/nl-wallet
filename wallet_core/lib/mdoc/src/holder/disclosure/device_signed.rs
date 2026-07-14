@@ -57,7 +57,7 @@ impl DeviceSigned {
 
         let cose = CoseMac0Builder::new()
             .payload(cbor_serialize(device_auth)?)
-            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
+            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::HMAC_256_256).build())
             .create_tag(&[], |data| ring::hmac::sign(&key, data).as_ref().into())
             .build()
             .clone_without_payload();
@@ -74,12 +74,15 @@ impl DeviceSigned {
 mod tests {
     use std::sync::Arc;
 
+    use coset::RegisteredLabelWithPrivate;
+    use coset::iana::Algorithm;
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use p256::SecretKey;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
+    use utils::vec_nonempty;
 
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceSigned;
@@ -116,6 +119,10 @@ mod tests {
             device_signed: mac_device_signed,
             errors: None,
         };
+        let supported_algorithms = SupportedAlgorithms {
+            issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+            device_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::HMAC_256_256)],
+        };
 
         document
             .verify(
@@ -126,7 +133,7 @@ mod tests {
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
-                &SupportedAlgorithms::default(),
+                &supported_algorithms,
             )
             .await
             .unwrap();

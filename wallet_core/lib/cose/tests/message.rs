@@ -138,7 +138,11 @@ async fn signs_and_verifies_with_certificate() {
 
     assert_eq!(cose.x5chain().unwrap().first(), key_pair.certificate());
     assert_eq!(
-        cose.verify_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, CertificateUsage::Mdl)
+        cose.verify_against_trust_anchors(
+            &TrustAnchors::from(&ca),
+            &TimeGenerator,
+            Some(CertificateUsage::Mdl),
+        )
             .unwrap(),
         ToyMessage::default()
     );
@@ -169,7 +173,11 @@ async fn verifies_certificate_chain_with_intermediate() {
             .unwrap();
 
     assert_eq!(
-        cose.verify_against_trust_anchors(&TrustAnchors::from(&root_ca), &TimeGenerator, CertificateUsage::Mdl)
+        cose.verify_against_trust_anchors(
+            &TrustAnchors::from(&root_ca),
+            &TimeGenerator,
+            Some(CertificateUsage::Mdl),
+        )
             .unwrap(),
         ToyMessage::default()
     );
@@ -199,7 +207,11 @@ async fn rejects_missing_intermediate_certificate() {
             .unwrap();
 
     assert!(matches!(
-        cose.verify_against_trust_anchors(&TrustAnchors::from(&root_ca), &TimeGenerator, CertificateUsage::Mdl),
+        cose.verify_against_trust_anchors(
+            &TrustAnchors::from(&root_ca),
+            &TimeGenerator,
+            Some(CertificateUsage::Mdl),
+        ),
         Err(CoseError::Certificate(_))
     ));
 }

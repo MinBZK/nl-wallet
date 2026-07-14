@@ -48,7 +48,7 @@ impl DocRequest {
 
                 // Perform verification and return the `Certificate`.
                 let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
-                cose.verify_against_trust_anchors(None, time, trust_anchors)?;
+                cose.verify_against_trust_anchors(trust_anchors, time, None)?;
                 let cert = cose.x5chain()?.into_first();
 
                 Ok(cert)
@@ -81,8 +81,7 @@ pub mod test {
 
     use super::*;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
-    use crate::utils::cose;
-    use crate::utils::cose::MdocCose;
+    use crate::utils::cose::TypedCose;
 
     /// Create a `DocRequest` including reader authentication,
     /// based on a `SessionTranscript` and `KeyPair`.
@@ -95,15 +94,14 @@ pub mod test {
         let items_request = items_request.into();
         let reader_auth_keyed = ReaderAuthenticationKeyed::new(session_transcript, &items_request);
 
-        let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
+        let cose = TypedCose::<_, ReaderAuthenticationBytes>::sign_with_certificate(
             &TaggedBytes(CborSeq(reader_auth_keyed)),
-            cose::header_with_x5chain(&vec_nonempty![key_pair.certificate()]),
             key_pair,
             false,
         )
         .await
         .unwrap();
-        let reader_auth = Some(cose.0.into());
+        let reader_auth = Some(cose.into_inner().into());
 
         // Create and encrypt the `DeviceRequest`.
         DocRequest {

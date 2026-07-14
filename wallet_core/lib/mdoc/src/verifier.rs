@@ -231,7 +231,7 @@ impl IssuerSigned {
     ) -> Result<IssuerSignedVerificationResult> {
         let TaggedBytes(mso) =
             self.issuer_auth
-                .verify_against_trust_anchors(Some(CertificateUsage::Mdl), time, trust_anchors)?;
+                .verify_against_trust_anchors(trust_anchors, time, Some(CertificateUsage::Mdl))?;
 
         mso.validity_info
             .verify_is_valid_at(time.generate(), validity)

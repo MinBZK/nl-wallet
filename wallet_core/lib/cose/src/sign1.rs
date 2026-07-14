@@ -134,7 +134,7 @@ impl<T> TypedCose<CoseSign1, T> {
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
+        certificate_usage: Option<CertificateUsage>,
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
@@ -147,14 +147,14 @@ impl<T> TypedCose<CoseSign1, T> {
         x5chain: VecNonEmpty<BorrowingCertificate>,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
+        certificate_usage: Option<CertificateUsage>,
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
     {
         let (certificate, chain) = x5chain.into_nonempty_iter().next();
         certificate.verify(
-            Some(certificate_usage),
+            certificate_usage,
             &chain.into_iter().collect::<Vec<_>>(),
             time,
             trust_anchors,
