@@ -28,8 +28,8 @@ pub enum CoseError {
     #[error("MAC verification failed")]
     #[category(critical)]
     MacVerificationFailed,
-    #[error(transparent)]
-    Cbor(#[from] CborError),
+    #[error("CBOR error: {0}")]
+    Cbor(#[source] CborError),
     #[error("signing certificate header did not contain bytes")]
     #[category(critical)]
     CertificateUnexpectedHeaderType,
@@ -37,7 +37,7 @@ pub enum CoseError {
     #[category(critical)]
     EmptyCertificateChain,
     #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
+    Certificate(#[source] CertificateError),
     #[error("signing failed: {0}")]
     #[category(pd)]
     Signing(Box<dyn std::error::Error + Send + Sync + 'static>),

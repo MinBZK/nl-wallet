@@ -57,14 +57,16 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
         .ok_or(CoseError::MissingLabel(Label::Int(COSE_X5CHAIN_HEADER_LABEL)))?;
 
     match value {
-        Value::Bytes(bytes) => Ok(vec_nonempty![BorrowingCertificate::from_der(bytes.clone())?]),
+        Value::Bytes(bytes) => Ok(vec_nonempty![
+            BorrowingCertificate::from_der(bytes.clone()).map_err(CoseError::Certificate)?
+        ]),
         Value::Array(items) => {
             let certificates = items
                 .iter()
                 .map(|item| {
                     item.as_bytes()
                         .ok_or(CoseError::CertificateUnexpectedHeaderType)
-                        .and_then(|bytes| Ok(BorrowingCertificate::from_der(bytes.clone())?))
+                        .and_then(|bytes| BorrowingCertificate::from_der(bytes.clone()).map_err(CoseError::Certificate))
                 })
                 .collect::<Result<Vec<_>, CoseError>>()?;
             certificates.try_into().map_err(|_| CoseError::EmptyCertificateChain)
@@ -83,7 +85,7 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: Serialize,
     {
-        let payload = cbor_serialize(payload)?;
+        let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
         Ok(sign_cose(&payload, unprotected_header, private_key, include_payload)
             .await?
             .into())
@@ -99,7 +101,7 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: Serialize,
     {
-        let payload = cbor_serialize(payload)?;
+        let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
         Ok(sign_cose_with_headers(
             &payload,
             protected_header,
@@ -153,12 +155,14 @@ impl<T> TypedCose<CoseSign1, T> {
         T: DeserializeOwned,
     {
         let (certificate, chain) = x5chain.into_nonempty_iter().next();
-        certificate.verify(
-            certificate_usage,
-            &chain.into_iter().collect::<Vec<_>>(),
-            time,
-            trust_anchors,
-        )?;
+        certificate
+            .verify(
+                certificate_usage,
+                &chain.into_iter().collect::<Vec<_>>(),
+                time,
+                trust_anchors,
+            )
+            .map_err(CoseError::Certificate)?;
         self.verify_and_parse(certificate.public_key())
     }
 }

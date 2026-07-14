@@ -54,8 +54,8 @@ impl CwtHeader {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum CwtError {
-    #[error(transparent)]
-    Cose(#[from] CoseError),
+    #[error("COSE error: {0}")]
+    Cose(#[source] CoseError),
     #[error("could not decode or encode the COSE_Sign1 object: {0}")]
     #[category(critical)]
     CoseSerialization(#[source] coset::CoseError),
@@ -140,12 +140,15 @@ where
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
     ) -> Result<VerifiedCwt<T>, CwtError> {
-        let payload = self.cose.verify_against_trust_anchors_with_chain(
-            self.unverified_header.x5chain.clone(),
-            trust_anchors,
-            time,
-            Some(certificate_usage),
-        )?;
+        let payload = self
+            .cose
+            .verify_against_trust_anchors_with_chain(
+                self.unverified_header.x5chain.clone(),
+                trust_anchors,
+                time,
+                Some(certificate_usage),
+            )
+            .map_err(CwtError::Cose)?;
 
         Ok(VerifiedCwt { cwt: self, payload })
     }
@@ -244,8 +247,9 @@ where
             )
             .build();
 
-        let cose =
-            TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair, true).await?;
+        let cose = TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair, true)
+            .await
+            .map_err(CwtError::Cose)?;
 
         Ok(Self(UnverifiedCwt::try_from(cose)?))
     }
@@ -273,7 +277,7 @@ impl<T> TryFrom<TypedCose<CoseSign1, T>> for UnverifiedCwt<T> {
 
 fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtError> {
     if cose.as_inner().payload.is_none() {
-        return Err(CoseError::MissingPayload.into());
+        return Err(CwtError::Cose(CoseError::MissingPayload));
     }
 
     let protected = cose.protected_header();
@@ -290,7 +294,7 @@ fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtEr
         }
     }
 
-    cose.validate_algorithm()?;
+    cose.validate_algorithm().map_err(CwtError::Cose)?;
 
     match protected.content_type.as_ref() {
         Some(ContentType::Text(content_type)) if content_type == WRPRC_CWT_CONTENT_TYPE => {}
@@ -298,7 +302,7 @@ fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtEr
         None => return Err(CwtError::MissingContentType),
     }
 
-    let x5chain = x5chain_from_header(protected)?;
+    let x5chain = x5chain_from_header(protected).map_err(CwtError::Cose)?;
     let claims = protected
         .rest
         .iter()
