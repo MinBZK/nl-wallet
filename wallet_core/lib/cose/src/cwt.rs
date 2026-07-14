@@ -1,11 +1,8 @@
-use std::collections::BTreeSet;
-
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::AsCborValue;
 use coset::CborSerializable;
-use coset::ContentType;
 use coset::CoseSign1;
 use coset::Header;
 use coset::HeaderBuilder;
@@ -30,14 +27,15 @@ use crate::CoseError;
 use crate::TypedCose;
 use crate::x5chain_from_header;
 
-/// ETSI TS 119 475 content type for a Wallet Relying Party Registration Certificate encoded as a CWT.
-pub const WRPRC_CWT_CONTENT_TYPE: &str = "rc-wrp+cwt";
+/// ETSI TS 119 475 type for a Wallet Relying Party Registration Certificate encoded as a CWT.
+pub const WRPRC_CWT_TYPE: &str = "rc-wrp+cwt";
 
 /// CWT Claims COSE header parameter, registered by RFC 9597.
 pub const CWT_CLAIMS_HEADER_LABEL: i64 = 15;
 
 const COSE_ALGORITHM_HEADER_LABEL: i64 = 1;
-const COSE_CONTENT_TYPE_HEADER_LABEL: i64 = 3;
+/// COSE `typ` header parameter, registered by RFC 9596.
+const COSE_TYPE_HEADER_LABEL: i64 = 16;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CwtHeader {
@@ -65,12 +63,12 @@ pub enum CwtError {
     #[error("unexpected CBOR tag for COSE_Sign1: {0}")]
     #[category(critical)]
     UnexpectedCborTag(u64),
-    #[error("missing protected CWT content type")]
+    #[error("missing protected CWT type")]
     #[category(critical)]
-    MissingContentType,
-    #[error("unexpected protected CWT content type: {0:?}")]
+    MissingType,
+    #[error("unexpected protected CWT type: {0:?}")]
     #[category(critical)]
-    UnexpectedContentType(ContentType),
+    UnexpectedType(Value),
     #[error("CWT header parameter {0:?} must be protected")]
     #[category(critical)]
     UnprotectedHeaderParameter(Label),
@@ -239,7 +237,7 @@ where
 
         let protected_header = HeaderBuilder::new()
             .algorithm(iana::Algorithm::ES256)
-            .content_type(WRPRC_CWT_CONTENT_TYPE.to_owned())
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()))
             .value(
                 CWT_CLAIMS_HEADER_LABEL,
@@ -285,7 +283,7 @@ fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtEr
 
     for label in [
         Label::Int(COSE_ALGORITHM_HEADER_LABEL),
-        Label::Int(COSE_CONTENT_TYPE_HEADER_LABEL),
+        Label::Int(COSE_TYPE_HEADER_LABEL),
         Label::Int(CWT_CLAIMS_HEADER_LABEL),
         Label::Int(COSE_X5CHAIN_HEADER_LABEL),
     ] {
@@ -296,10 +294,15 @@ fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtEr
 
     cose.validate_algorithm().map_err(CwtError::Cose)?;
 
-    match protected.content_type.as_ref() {
-        Some(ContentType::Text(content_type)) if content_type == WRPRC_CWT_CONTENT_TYPE => {}
-        Some(content_type) => return Err(CwtError::UnexpectedContentType(content_type.clone())),
-        None => return Err(CwtError::MissingContentType),
+    match protected
+        .rest
+        .iter()
+        .find(|(label, _)| label == &Label::Int(COSE_TYPE_HEADER_LABEL))
+        .map(|(_, value)| value)
+    {
+        Some(Value::Text(cwt_type)) if cwt_type == WRPRC_CWT_TYPE => {}
+        Some(value) => return Err(CwtError::UnexpectedType(value.clone())),
+        None => return Err(CwtError::MissingType),
     }
 
     let x5chain = x5chain_from_header(protected).map_err(CwtError::Cose)?;
@@ -324,7 +327,6 @@ fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtEr
 fn header_contains_label(header: &Header, label: &Label) -> bool {
     match label {
         Label::Int(COSE_ALGORITHM_HEADER_LABEL) => header.alg.is_some(),
-        Label::Int(COSE_CONTENT_TYPE_HEADER_LABEL) => header.content_type.is_some(),
         _ => header.rest.iter().any(|(candidate, _)| candidate == label),
     }
 }
@@ -394,33 +396,12 @@ fn parse_protected_header(value: Value) -> Result<ProtectedHeader, CwtError> {
     })
 }
 
-/// Parse a COSE header while permitting the ETSI `rc-wrp+cwt` content type. coset 0.3 rejects text content types
-/// without a slash, even though COSE permits arbitrary non-empty text strings and ETSI mandates this value.
 fn parse_header_map(value: Value, invalid_map_message: &'static str) -> Result<Header, CwtError> {
-    let Value::Map(entries) = value else {
+    if !matches!(&value, Value::Map(_)) {
         return Err(CwtError::InvalidCoseSign1(invalid_map_message));
-    };
-
-    let mut seen = BTreeSet::new();
-    let mut content_type = None;
-    let mut remaining_entries = Vec::with_capacity(entries.len());
-
-    for (key, value) in entries {
-        let label = Label::from_cbor_value(key.clone()).map_err(CwtError::CoseSerialization)?;
-        if !seen.insert(label.clone()) {
-            return Err(CwtError::CoseSerialization(coset::CoseError::DuplicateMapKey));
-        }
-
-        if label == Label::Int(COSE_CONTENT_TYPE_HEADER_LABEL) {
-            content_type = Some(ContentType::from_cbor_value(value).map_err(CwtError::CoseSerialization)?);
-        } else {
-            remaining_entries.push((key, value));
-        }
     }
 
-    let mut header = Header::from_cbor_value(Value::Map(remaining_entries)).map_err(CwtError::CoseSerialization)?;
-    header.content_type = content_type;
-    Ok(header)
+    Header::from_cbor_value(value).map_err(CwtError::CoseSerialization)
 }
 
 #[cfg(test)]
@@ -450,7 +431,7 @@ mod tests {
     fn valid_protected_header(key_pair: &KeyPair, claims: Option<Value>) -> Header {
         let mut builder = HeaderBuilder::new()
             .algorithm(iana::Algorithm::ES256)
-            .content_type(WRPRC_CWT_CONTENT_TYPE.to_owned())
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()));
 
         if let Some(claims) = claims {
@@ -523,7 +504,7 @@ mod tests {
         let key_pair = ca.generate_reader_mock().unwrap();
 
         let missing_algorithm = HeaderBuilder::new()
-            .content_type(WRPRC_CWT_CONTENT_TYPE.to_owned())
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()))
             .build();
         assert!(matches!(
@@ -533,7 +514,7 @@ mod tests {
 
         let unsupported_algorithm = HeaderBuilder::new()
             .algorithm(iana::Algorithm::ES384)
-            .content_type(WRPRC_CWT_CONTENT_TYPE.to_owned())
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()))
             .build();
         assert!(matches!(
@@ -541,28 +522,29 @@ mod tests {
             Err(CwtError::Cose(CoseError::UnsupportedAlgorithm(_)))
         ));
 
-        let missing_content_type = HeaderBuilder::new()
-            .algorithm(iana::Algorithm::ES256)
-            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()))
-            .build();
-        assert!(matches!(
-            UnverifiedCwt::try_from(sign_with_header(missing_content_type, &key_pair).await),
-            Err(CwtError::MissingContentType)
-        ));
-
-        let incorrect_content_type = HeaderBuilder::new()
+        let missing_type = HeaderBuilder::new()
             .algorithm(iana::Algorithm::ES256)
             .content_type("application/cwt".to_owned())
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()))
             .build();
         assert!(matches!(
-            UnverifiedCwt::try_from(sign_with_header(incorrect_content_type, &key_pair).await),
-            Err(CwtError::UnexpectedContentType(_))
+            UnverifiedCwt::try_from(sign_with_header(missing_type, &key_pair).await),
+            Err(CwtError::MissingType)
+        ));
+
+        let incorrect_type = HeaderBuilder::new()
+            .algorithm(iana::Algorithm::ES256)
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text("application/cwt".to_owned()))
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()))
+            .build();
+        assert!(matches!(
+            UnverifiedCwt::try_from(sign_with_header(incorrect_type, &key_pair).await),
+            Err(CwtError::UnexpectedType(_))
         ));
 
         let missing_x5chain = HeaderBuilder::new()
             .algorithm(iana::Algorithm::ES256)
-            .content_type(WRPRC_CWT_CONTENT_TYPE.to_owned())
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .build();
         assert!(matches!(
             UnverifiedCwt::try_from(sign_with_header(missing_x5chain, &key_pair).await),
@@ -573,7 +555,7 @@ mod tests {
 
         let empty_x5chain = HeaderBuilder::new()
             .algorithm(iana::Algorithm::ES256)
-            .content_type(WRPRC_CWT_CONTENT_TYPE.to_owned())
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Array(Vec::new()))
             .build();
         assert!(matches!(
@@ -583,7 +565,7 @@ mod tests {
 
         let protected = valid_protected_header(&key_pair, None);
         let unprotected = HeaderBuilder::new()
-            .content_type(WRPRC_CWT_CONTENT_TYPE.to_owned())
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .build();
         let cose =
             TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
@@ -591,9 +573,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             UnverifiedCwt::try_from(cose),
-            Err(CwtError::UnprotectedHeaderParameter(Label::Int(
-                COSE_CONTENT_TYPE_HEADER_LABEL
-            )))
+            Err(CwtError::UnprotectedHeaderParameter(Label::Int(COSE_TYPE_HEADER_LABEL)))
         ));
     }
 
@@ -648,17 +628,17 @@ mod tests {
 
     #[tokio::test]
     async fn duplicate_protected_header_and_claim_keys_are_rejected() {
-        let duplicate_content_types = Value::Map(vec![
+        let duplicate_types = Value::Map(vec![
             (
-                Value::from(COSE_CONTENT_TYPE_HEADER_LABEL),
-                Value::Text(WRPRC_CWT_CONTENT_TYPE.to_owned()),
+                Value::from(COSE_TYPE_HEADER_LABEL),
+                Value::Text(WRPRC_CWT_TYPE.to_owned()),
             ),
             (
-                Value::from(COSE_CONTENT_TYPE_HEADER_LABEL),
-                Value::Text(WRPRC_CWT_CONTENT_TYPE.to_owned()),
+                Value::from(COSE_TYPE_HEADER_LABEL),
+                Value::Text(WRPRC_CWT_TYPE.to_owned()),
             ),
         ]);
-        let protected = cbor_serialize(&duplicate_content_types).unwrap();
+        let protected = cbor_serialize(&duplicate_types).unwrap();
         let payload = cbor_serialize(&ToyMessage::default()).unwrap();
         let encoded = cbor_serialize(&Value::Array(vec![
             Value::Bytes(protected),
