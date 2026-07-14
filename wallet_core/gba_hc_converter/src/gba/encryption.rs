@@ -84,7 +84,7 @@ where
 
 fn filename(hmac_key: &Key<HmacSha256>, path: &Path, name: &str) -> PathBuf {
     let hmac = name_to_encoded_hash(name, hmac_key);
-    path.join(format!("{}.aes", &hmac))
+    path.join(format!("{}.aes", hmac))
 }
 
 fn encrypt_bytes(key: &Key<Aes256Gcm>, bytes: &[u8]) -> Result<Vec<u8>, Error> {

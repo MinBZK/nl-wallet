@@ -42,7 +42,7 @@ fn parse_response_xml(xml: &str) -> Result<GbaResponse, Error> {
                 } else if ns == Bound(Namespace(LRD_NAMESPACE)) && local.as_ref() == RESULTAAT_TAG.as_bytes() {
                     let end = e.to_end();
                     let text = reader.read_text(end.name())?.decode()?;
-                    result_xml = Some(format!("<{0}>{1}</{0}>", RESULTAAT_TAG, &text));
+                    result_xml = Some(format!("<{0}>{1}</{0}>", RESULTAAT_TAG, text));
                 }
             }
             _ => (),

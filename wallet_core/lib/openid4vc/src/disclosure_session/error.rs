@@ -17,10 +17,10 @@ use crate::verifier::SessionType;
 #[category(defer)]
 pub enum VpSessionError {
     #[error("{0}")]
-    Client(#[from] VpClientError),
+    Client(#[source] VpClientError),
 
     #[error("{0}")]
-    Verifier(#[from] VpVerifierError),
+    Verifier(#[source] VpVerifierError),
 }
 
 impl From<VpMessageClientError> for VpSessionError {

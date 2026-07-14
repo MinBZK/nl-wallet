@@ -1718,11 +1718,11 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up `DisclosureSession` start to return the following error.
-        wallet
-            .disclosure_client
-            .expect_start()
-            .times(1)
-            .return_once(|_, _, _| Err(VpClientError::RequestUri(serde::de::Error::custom("error")).into()));
+        wallet.disclosure_client.expect_start().times(1).return_once(|_, _, _| {
+            Err(VpSessionError::Client(VpClientError::RequestUri(
+                serde::de::Error::custom("error"),
+            )))
+        });
 
         // Starting disclosure which returns an error should forward that error.
         let error = wallet
@@ -1742,7 +1742,7 @@ mod tests {
         // Set up an `DisclosureClient` start to return the following error.
         let start_return_url = RETURN_URL.clone();
         wallet.disclosure_client.expect_start().times(1).return_once(|_, _, _| {
-            Err(VpClientError::Request(
+            Err(VpSessionError::Client(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
                         error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
@@ -1752,8 +1752,7 @@ mod tests {
                     redirect_uri: Some(start_return_url),
                 }
                 .into(),
-            )
-            .into())
+            )))
         });
 
         // Starting disclosure where the verifier returns responds with a HTTP error body containing
@@ -1777,7 +1776,7 @@ mod tests {
             .disclosure_client
             .expect_start()
             .times(1)
-            .return_once(|_, _, _| Err(VpVerifierError::NoReaderCertificate.into()));
+            .return_once(|_, _, _| Err(VpSessionError::Verifier(VpVerifierError::NoReaderCertificate)));
 
         // Starting disclosure which returns an error should forward that error.
         let error = wallet
@@ -2329,7 +2328,7 @@ mod tests {
 
         let terminate_return_url = RETURN_URL.clone();
         session.protocol_state.expect_terminate().times(1).return_once(|| {
-            Err(VpClientError::Request(
+            Err(VpSessionError::Client(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
                         error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
@@ -2339,8 +2338,7 @@ mod tests {
                     redirect_uri: Some(terminate_return_url),
                 }
                 .into(),
-            )
-            .into())
+            )))
         });
 
         let error = wallet

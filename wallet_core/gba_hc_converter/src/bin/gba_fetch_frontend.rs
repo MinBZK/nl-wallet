@@ -217,7 +217,7 @@ async fn fetch(
     token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
 
     if payload.bsn != payload.repeat_bsn {
-        return Err(anyhow!("BSNs do not match"))?;
+        return Err(anyhow!("BSNs do not match").into());
     }
 
     let bsn = Bsn::try_new(payload.bsn).map_err(|err| anyhow!(err))?;
@@ -264,7 +264,7 @@ async fn clear(
     token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
 
     if payload.confirmation_text != "clear all data" {
-        return Err(anyhow!("Confirmation text is not correct"))?;
+        return Err(anyhow!("Confirmation text is not correct").into());
     }
 
     let serial = cert_serial.unwrap_or_default();
