@@ -144,7 +144,9 @@ where
                     Err(error) => {
                         return Err((
                             Box::new(self),
-                            DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
+                            DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
+                                error,
+                            ))),
                         ));
                     }
                 };
@@ -206,7 +208,7 @@ where
                     Err(error) => {
                         return Err((
                             Box::new(self),
-                            DisclosureError::before_sharing(VpClientError::SdJwtSigning(error).into()),
+                            DisclosureError::before_sharing(VpSessionError::Client(VpClientError::SdJwtSigning(error))),
                         ));
                     }
                 };
@@ -248,7 +250,9 @@ where
             Err(error) => {
                 return Err((
                     Box::new(self),
-                    DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(error).into()),
+                    DisclosureError::before_sharing(VpSessionError::Client(VpClientError::AuthResponseEncryption(
+                        error,
+                    ))),
                 ));
             }
         };
