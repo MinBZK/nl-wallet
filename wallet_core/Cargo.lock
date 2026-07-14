@@ -1534,6 +1534,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
+name = "cose"
+version = "0.6.0-dev"
+dependencies = [
+ "chrono",
+ "ciborium",
+ "coset",
+ "crypto",
+ "error_category",
+ "p256",
+ "rand_core 0.6.4",
+ "ring",
+ "serde",
+ "strum 0.28.0",
+ "thiserror 2.0.17",
+ "tokio",
+ "utils",
+]
+
+[[package]]
 name = "coset"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
