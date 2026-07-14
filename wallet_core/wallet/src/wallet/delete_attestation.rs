@@ -4,7 +4,6 @@ use chrono::Utc;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
-use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -111,21 +110,15 @@ where
         }
 
         info!("Fetching key identifiers for attestation");
-        let (attestation_type, key_identifiers) = self
+        let (credential_kind, key_identifiers) = self
             .storage
             .read()
             .await
-            .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
+            .fetch_credential_kind_and_key_identifiers_by_attestation_id(attestation_id)
             .await?
             .ok_or(DeleteAttestationError::AttestationNotFound)?;
 
-        // Deliberately match the attestation type without taking its format into account. Any attestation that has a
-        // PID attestation type should be protected from deletion, regardless of the format it happens to be stored in.
-        if config
-            .pid_attributes
-            .pid_attestation_types()
-            .contains(attestation_type.as_str())
-        {
+        if config.pid_attributes.credential_kinds().contains(&credential_kind) {
             return Err(DeleteAttestationError::CannotDeletePid);
         }
 
@@ -176,6 +169,8 @@ mod tests {
     use std::sync::Arc;
     use std::sync::LazyLock;
 
+    use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use mockall::predicate::always;
     use mockall::predicate::eq;
@@ -204,9 +199,14 @@ mod tests {
     ) {
         wallet
             .mut_storage()
-            .expect_fetch_type_and_key_identifiers_by_attestation_id()
+            .expect_fetch_credential_kind_and_key_identifiers_by_attestation_id()
             .with(eq(attestation_id))
-            .return_once(|_| Ok(Some(("some_type".to_string(), vec!["test_key_id".to_string()]))));
+            .return_once(|_| {
+                Ok(Some((
+                    CredentialKind::new(Format::SdJwt, "some_type".to_string()),
+                    vec!["test_key_id".to_string()],
+                )))
+            });
 
         wallet
             .mut_storage()
@@ -302,7 +302,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_type_and_key_identifiers_by_attestation_id()
+            .expect_fetch_credential_kind_and_key_identifiers_by_attestation_id()
             .with(eq(attestation_id))
             .return_once(|_| Ok(None));
 
@@ -409,11 +409,11 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_type_and_key_identifiers_by_attestation_id()
+            .expect_fetch_credential_kind_and_key_identifiers_by_attestation_id()
             .with(eq(attestation_id))
             .return_once(|_| {
                 Ok(Some((
-                    PID_ATTESTATION_TYPE.to_string(),
+                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
                     vec!["test_key_id".to_string()],
                 )))
             });

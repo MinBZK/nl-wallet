@@ -844,10 +844,11 @@ fn match_preview_and_stored_attestations<'a>(
                             // If this is PID issuance, and the two cards are both PIDs, then they match.
                             // If not, fall back to contents comparison.
                             |pid_config| {
-                                let pid_types = pid_config.pid_attestation_types().collect_vec();
-                                let both_pid = pid_types
-                                    .contains(&preview.credential_payload.attestation_type.as_str())
-                                    && pid_types.contains(&stored_preview.attestation_type.as_str());
+                                let both_pid = pid_config.contains_credential_kind(
+                                    preview.format,
+                                    preview.credential_payload.attestation_type.as_str(),
+                                ) && pid_config
+                                    .contains_credential_kind(*format, stored_preview.attestation_type.as_str());
                                 both_pid || compare_contents(preview, stored_preview, time_generator)
                             },
                         )

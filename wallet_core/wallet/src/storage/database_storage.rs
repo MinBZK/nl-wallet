@@ -1210,16 +1210,17 @@ where
         Ok(())
     }
 
-    async fn fetch_type_and_key_identifiers_by_attestation_id(
+    async fn fetch_credential_kind_and_key_identifiers_by_attestation_id(
         &self,
         attestation_id: Uuid,
-    ) -> StorageResult<Option<(String, Vec<String>)>> {
+    ) -> StorageResult<Option<(CredentialKind, Vec<String>)>> {
         let connection = self.database()?.connection();
 
-        let Some(attestation_type) = attestation::Entity::find_by_id(attestation_id)
+        let Some((attestation_type, attestation_format)) = attestation::Entity::find_by_id(attestation_id)
             .select_only()
             .column(attestation::Column::AttestationType)
-            .into_tuple::<String>()
+            .column(attestation::Column::AttestationFormat)
+            .into_tuple::<(String, AttestationFormat)>()
             .one(connection)
             .await?
         else {
@@ -1234,7 +1235,10 @@ where
             .all(connection)
             .await?;
 
-        Ok(Some((attestation_type, key_identifiers)))
+        Ok(Some((
+            CredentialKind::new(attestation_format.into(), attestation_type),
+            key_identifiers,
+        )))
     }
 
     async fn delete_attestation(&mut self, timestamp: DateTime<Utc>, attestation_id: Uuid) -> StorageResult<()> {
@@ -3260,7 +3264,7 @@ pub(crate) mod tests {
         let unknown_id = uuid::Uuid::new_v4();
         assert!(
             storage
-                .fetch_type_and_key_identifiers_by_attestation_id(unknown_id)
+                .fetch_credential_kind_and_key_identifiers_by_attestation_id(unknown_id)
                 .await
                 .expect("Could not fetch key identifiers")
                 .is_none()
@@ -3269,7 +3273,7 @@ pub(crate) mod tests {
         let (attestation_id, _) = insert_sd_jwt_credential(&mut storage, "test_key_id", Utc::now(), 1).await;
 
         let (_, key_identifiers) = storage
-            .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
+            .fetch_credential_kind_and_key_identifiers_by_attestation_id(attestation_id)
             .await
             .expect("Could not fetch key identifiers")
             .expect("Should have found the attestation");
@@ -3321,7 +3325,7 @@ pub(crate) mod tests {
         );
         assert!(
             storage
-                .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
+                .fetch_credential_kind_and_key_identifiers_by_attestation_id(attestation_id)
                 .await
                 .expect("Could not fetch key identifiers")
                 .is_none()

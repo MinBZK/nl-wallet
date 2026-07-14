@@ -44,6 +44,15 @@ impl From<Format> for AttestationFormat {
     }
 }
 
+impl From<AttestationFormat> for Format {
+    fn from(format: AttestationFormat) -> Self {
+        match format {
+            AttestationFormat::SdJwt => Self::SdJwt,
+            AttestationFormat::Mdoc => Self::MsoMdoc,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]
 #[serde(transparent)]
 pub struct ExtendedTypesModel {

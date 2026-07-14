@@ -14,7 +14,6 @@ use derive_more::Debug;
 use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use itertools::Itertools;
 use jwt::JwtTyp;
 use serde::Deserialize;
 use serde::Serialize;
@@ -140,12 +139,11 @@ impl PidAttributesConfiguration {
             .collect()
     }
 
-    pub fn pid_attestation_types(&self) -> impl Iterator<Item = &str> {
-        [&self.mso_mdoc, &self.sd_jwt]
-            .into_iter()
-            .flat_map(HashMap::keys)
-            .unique()
-            .map(String::as_str)
+    pub fn contains_credential_kind(&self, format: Format, attestation_type: &str) -> bool {
+        match format {
+            Format::MsoMdoc => self.mso_mdoc.contains_key(attestation_type),
+            Format::SdJwt => self.sd_jwt.contains_key(attestation_type),
+        }
     }
 
     pub fn recovery_code_path(
