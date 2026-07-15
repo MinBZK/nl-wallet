@@ -1,13 +1,8 @@
 [test-groups]
-hsm = { max-threads = 1 }
+# Not needed for `hsm`
 mock-pkce = { max-threads = 1 }
 metrics-recorder = { max-threads = 1 }
 # Not needed for `MockCloseProximityDisclosureClient`
-
-[[profile.default.overrides]]
-# Include all tests_integration because not all of the tests can run independently inbetween binaries
-filter = 'package(tests_integration) | (package(wallet_provider) & binary(hsm)) | (package(hsm) & binary(hsm))'
-test-group = 'hsm'
 
 [[profile.default.overrides]]
 filter = 'package(openid4vc) & test(/(test_start_and_into_token_request|test_user_cancels)$/)'

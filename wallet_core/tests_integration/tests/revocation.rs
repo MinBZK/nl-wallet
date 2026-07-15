@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use attestation_types::credential_format::Format;
 use db_test::DbSetup;
+use hsm::test::HsmSetup;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -20,9 +21,11 @@ use wallet::errors::DisclosureError;
 #[serial(hsm)]
 async fn test_revocation_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, _, issuance_urls) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, issuance_urls) =
+        setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     wallet.stop_background_revocation_checks();
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
@@ -49,11 +52,13 @@ async fn test_revocation_pid_ok() {
 #[serial(hsm)]
 async fn test_revocation_degree_ok() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
     let (settings, _, trust_anchor, tls_config) = issuance_server_settings(db_setup.issuance_server_url());
     let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
         &db_setup,
+        &hsm_setup,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
