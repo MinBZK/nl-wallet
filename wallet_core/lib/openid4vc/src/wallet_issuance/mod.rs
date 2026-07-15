@@ -38,6 +38,7 @@ use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
 use self::issuance_session::IssuanceTypeMetadata;
+use crate::client_auth::ClientAttestationError;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
 use crate::errors::CredentialErrorCode;
@@ -157,10 +158,6 @@ pub enum WalletIssuanceError {
     #[error("WIA issuance failed: {0}")]
     #[category(pd)]
     WiaIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    #[error("failed to retrieve WIA challenge: {0}")]
-    #[category(pd)]
-    WiaChallenge(#[source] reqwest::Error),
 
     #[error("public key contained in mdoc not equal to expected value")]
     #[category(critical)]
@@ -343,6 +340,9 @@ pub enum WalletIssuanceError {
     )]
     #[category(expected)]
     ClientAttestationPopSigningAlgNotSupported(Option<IndexSet<JwsAlgorithm>>),
+
+    #[error("Attestation-Based Client Authentication error: {0}")]
+    ClientAttestation(#[from] ClientAttestationError),
 }
 
 #[derive(Debug)]

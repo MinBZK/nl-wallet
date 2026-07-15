@@ -23,6 +23,7 @@ use super::authorization::HttpAuthorizationSession;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
+use crate::client_auth::ClientAttestationChallengeMechanism;
 use crate::credential_offer::CredentialOffer;
 use crate::credential_offer::CredentialOfferContainer;
 use crate::credential_offer::Grants;
@@ -559,13 +560,21 @@ impl HttpIssuanceDiscovery {
 
         let token_request = TokenRequest::new_pre_authorized(pre_authorized_code);
 
+        // In the pre-authorized code flow, no PAR request was sent whose response might have included a
+        // challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
+        // if the issuer has one, or the issuer does not use WIA PoP challenges so we don't use one.
+        let client_auth_challenge = match challenge_endpoint {
+            None => ClientAttestationChallengeMechanism::None,
+            Some(url) => ClientAttestationChallengeMechanism::ChallengeEndpoint(url),
+        };
+
         HttpIssuanceSession::create(
             message_client,
             credential_configurations,
             credential_issuer,
             issuer_endpoints,
             token_endpoint,
-            challenge_endpoint,
+            client_auth_challenge,
             token_request,
             wia_client,
             authorization_server,

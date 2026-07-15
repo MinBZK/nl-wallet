@@ -21,6 +21,7 @@ use super::issuance_session::HttpVcMessageClient;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::client_auth::ClientAttestationChallengeMechanism;
 use crate::client_auth::fetch_client_auth_challenge;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ParErrorCode;
@@ -78,7 +79,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
-    challenge_endpoint: Option<Url>,
+    client_attestation_challenge: ClientAttestationChallengeMechanism,
     authorization_server: IssuerIdentifier,
     http_client: HttpClient,
 
@@ -94,7 +95,7 @@ pub struct HttpAuthorizationSessionData {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
-    challenge_endpoint: Option<Url>,
+    client_attestation_challenge: ClientAttestationChallengeMechanism,
     authorization_server: IssuerIdentifier,
     auth_url: Url,
     redirect_uri: Url,
@@ -151,7 +152,12 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
-        let challenge = fetch_client_auth_challenge(&http_client, auth_endpoints.challenge_endpoint.clone()).await?;
+        let challenge = if let Some(challenge_endpoint) = &auth_endpoints.challenge_endpoint {
+            Some(fetch_client_auth_challenge(&http_client, challenge_endpoint.clone()).await?)
+        } else {
+            None
+        };
+
         let wia = wia_client
             .issue_wia(authorization_server.to_string(), challenge)
             .await
@@ -166,6 +172,9 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             })
             .await
             .map_err(WalletIssuanceError::ParHttp)?;
+
+        let client_auth_challenge =
+            ClientAttestationChallengeMechanism::try_new(auth_endpoints.challenge_endpoint, &response)?;
 
         let par_response = if response.status().is_success() {
             response
@@ -191,7 +200,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             credential_issuer,
             issuer_endpoints,
             token_endpoint: auth_endpoints.token_endpoint,
-            challenge_endpoint: auth_endpoints.challenge_endpoint,
+            client_attestation_challenge: client_auth_challenge,
             authorization_server,
             http_client,
             auth_url,
@@ -246,7 +255,7 @@ impl HttpAuthorizationSession {
             credential_issuer: data.credential_issuer,
             issuer_endpoints: data.issuer_endpoints,
             token_endpoint: data.token_endpoint,
-            challenge_endpoint: data.challenge_endpoint,
+            client_attestation_challenge: data.client_attestation_challenge,
             authorization_server: data.authorization_server,
             http_client,
             auth_url: data.auth_url,
@@ -275,7 +284,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             credential_issuer: self.credential_issuer.clone(),
             issuer_endpoints: self.issuer_endpoints.clone(),
             token_endpoint: self.token_endpoint.clone(),
-            challenge_endpoint: self.challenge_endpoint.clone(),
+            client_attestation_challenge: self.client_attestation_challenge.clone(),
             authorization_server: self.authorization_server.clone(),
             auth_url: self.auth_url.clone(),
             redirect_uri: self.redirect_uri.clone(),
@@ -308,7 +317,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.credential_issuer,
             self.issuer_endpoints,
             &self.token_endpoint,
-            self.challenge_endpoint,
+            self.client_attestation_challenge,
             token_request,
             wia_client,
             &self.authorization_server,
@@ -343,6 +352,7 @@ mod tests {
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
+    use crate::client_auth::ClientAttestationChallengeMechanism;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::RemoteErrorCode;
     use crate::issuable_document::CredentialKind;
@@ -393,7 +403,9 @@ mod tests {
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
-            challenge_endpoint: Some(ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT)),
+            client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT),
+            ),
             authorization_server: ISSUER_URL.parse().unwrap(),
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -682,7 +694,9 @@ mod tests {
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
-            challenge_endpoint: Some(ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT)),
+            client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT),
+            ),
             auth_url: ISSUER_URL.parse().unwrap(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             code_verifier: "verifier".to_string(),
@@ -695,7 +709,7 @@ mod tests {
             credential_issuer: persisted.credential_issuer,
             issuer_endpoints: persisted.issuer_endpoints,
             token_endpoint: persisted.token_endpoint,
-            challenge_endpoint: persisted.challenge_endpoint,
+            client_attestation_challenge: persisted.client_attestation_challenge,
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
             redirect_uri: persisted.redirect_uri.clone(),
