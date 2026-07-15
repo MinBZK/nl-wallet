@@ -133,13 +133,6 @@ struct OpenDatabaseStorage<K> {
     _in_memory_anchor: Option<SqliteConnection>,
 }
 
-fn attestation_format_for_credential_format(format: Format) -> AttestationFormat {
-    match format {
-        Format::MsoMdoc => AttestationFormat::Mdoc,
-        Format::SdJwt => AttestationFormat::SdJwt,
-    }
-}
-
 /// Determines how the attestation type of a requested [`CredentialKind`] is matched against the stored attestations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AttestationTypeMatch {
@@ -187,7 +180,7 @@ fn condition_for_credential_kind(credential_kind: &CredentialKind, type_match: A
 
     Condition::all()
         .add(attestation_type_condition)
-        .add(attestation::Column::AttestationFormat.eq(attestation_format_for_credential_format(*format)))
+        .add(attestation::Column::AttestationFormat.eq(AttestationFormat::from(*format)))
 }
 
 /// Returns the condition that matches the stored attestations of any of the requested [`CredentialKind`]s. An empty set
