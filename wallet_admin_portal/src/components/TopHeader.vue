@@ -25,6 +25,10 @@ h1 {
   line-height: 34px;
   color: #1f2a44;
   margin-bottom: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 p {
