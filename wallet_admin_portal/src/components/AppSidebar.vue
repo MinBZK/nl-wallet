@@ -1,7 +1,7 @@
 <template>
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-icon">◼</div>
+      <img src="@/assets/logo_nl_wallet.svg" alt="NL Wallet Logo" class="brand-logo" />
       <div>
         <div class="brand-title">NL Wallet</div>
         <div class="brand-subtitle">Acceptatie</div>
@@ -37,7 +37,7 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  padding: 20px 16px 16px;
+  padding: 16px;
   background: #fff;
   border-right: 1px solid #e7e7ef;
 }
@@ -45,30 +45,25 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 28px;
+  gap: 16px;
+  padding-bottom: 16px;
 }
 
-.brand-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #5f6bf3, #3d45d1);
-  color: white;
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  box-shadow: 0 8px 24px rgba(61, 69, 209, 0.25);
+.brand-logo {
+  width: 54px;
+  height: 54px;
 }
 
 .brand-title {
+  color: #152A62;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 20px;
+  line-height: 28px
 }
 .brand-subtitle {
-  color: #687089;
-  font-size: 14px;
-  margin-top: 2px;
+  color: #445581;
+  font-size: 16px;
+  line-height: 22px
 }
 
 .section-label {
