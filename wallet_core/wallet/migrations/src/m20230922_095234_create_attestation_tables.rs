@@ -34,6 +34,17 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_index(
+                Index::create()
+                    .name("idx_attestation_type_format")
+                    .table(Attestation::Table)
+                    .col(Attestation::Type)
+                    .col(Attestation::Format)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_table(
                 Table::create()
                     .table(AttestationCopy::Table)
@@ -63,10 +74,38 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_attestation_copy_attestation_id")
+                    .table(AttestationCopy::Table)
+                    .col(AttestationCopy::AttestationId)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_attestation_copy_attestation_id")
+                    .table(AttestationCopy::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_attestation_type_format")
+                    .table(Attestation::Table)
+                    .to_owned(),
+            )
+            .await?;
+
         // Drop tables in reverse order
         manager
             .drop_table(Table::drop().table(AttestationCopy::Table).to_owned())

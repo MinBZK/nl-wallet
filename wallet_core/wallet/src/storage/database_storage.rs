@@ -874,12 +874,14 @@ where
         }
 
         let exists = attestation::Entity::find()
+            .select_only()
+            .expr(Expr::val(1))
             .filter(condition_for_credential_kinds(
                 credential_kinds,
                 AttestationTypeMatch::Exact,
             ))
-            .column(attestation::Column::Id)
             .limit(1)
+            .into_tuple::<i8>()
             .one(self.database()?.connection())
             .await?
             .is_some();
@@ -889,8 +891,11 @@ where
 
     async fn has_any_attestations(&self) -> StorageResult<bool> {
         let exists = attestation::Entity::find()
+            .select_only()
+            .expr(Expr::val(1))
             .column(attestation::Column::Id)
             .limit(1)
+            .into_tuple::<i8>()
             .one(self.database()?.connection())
             .await?
             .is_some();
