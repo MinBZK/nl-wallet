@@ -385,7 +385,7 @@ async fn ltc20_test_disclosure_without_pid() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_disclosure_aki_ok() {
     let session_type = SessionType::SameDevice;
     let return_url_template = None;
@@ -435,7 +435,7 @@ async fn test_disclosure_aki_ok() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_disclosure_wrong_aki_wallet_aborts() {
     let mut dcql_query = new_mock_mdoc_pid_example();
     dcql_query.credentials = dcql_query
