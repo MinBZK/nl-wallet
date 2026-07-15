@@ -5,11 +5,11 @@ MetricsRecorder = { max-threads = 1 }
 # Not needed for `MockCloseProximityDisclosureClient`
 
 [[profile.default.overrides]]
-filter = 'package(openid4vc) & test(/::test_auth_url::/)'
+filter = 'package(=openid4vc) & test(/::test_auth_url::/)'
 test-group = 'MockPkcePair'
 
 [[profile.default.overrides]]
-filter = 'package(measure) & binary(measure_tests)'
+filter = 'package(=measure) & binary(=measure_tests)'
 test-group = 'MetricsRecorder'
 
 [profile.ci]
