@@ -547,6 +547,9 @@ pub async fn connection_from_url(url: Url) -> DatabaseConnection {
 pub fn default_connection_options(url: Url) -> sea_orm::ConnectOptions {
     let mut connection_options = sea_orm::ConnectOptions::new(url);
     connection_options
+        // Wait gracefully for a connection to become available instead of failing fast when
+        // many parallel tests briefly oversubscribe the Postgres server.
+        .acquire_timeout(Duration::from_secs(10))
         .connect_timeout(Duration::from_secs(3))
         .max_connections(5)
         .sqlx_logging(true)
