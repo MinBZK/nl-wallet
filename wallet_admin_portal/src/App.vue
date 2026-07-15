@@ -24,8 +24,7 @@ import PaginationBar from './components/PaginationBar.vue'
   grid-template-columns: 260px 1fr;
   height: 100vh;
   overflow: hidden;
-  background: #fafafa;
-  color: #1f2a44;
+  background: #FCFCFC;
   font-family: 'RO Sans', sans-serif;
 }
 
@@ -34,7 +33,7 @@ import PaginationBar from './components/PaginationBar.vue'
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: #fff;
+  background: #FCFCFC;
   border-left: 1px solid #e7e7ef;
 }
 </style>

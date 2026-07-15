@@ -21,10 +21,12 @@ defineProps<{
 .user-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 6px 4px;
-  border-top: 1px solid #ececf3;
+  gap: 16px;
   margin-top: auto;
+  box-sizing: border-box;
+  height: var(--sidebar-footer-height);
+  border-top: 2px solid var(--color-border);
+  padding: 16px;
 }
 
 .avatar {
@@ -39,13 +41,17 @@ defineProps<{
 }
 
 .user-name {
+  color: var(--color-text-primary);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 22px;
 }
 
 .user-role {
-  color: #6c7285;
-  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 20px;
   margin-top: 2px;
 }
 

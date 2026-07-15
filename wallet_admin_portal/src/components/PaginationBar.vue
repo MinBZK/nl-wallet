@@ -27,9 +27,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
+  height: var(--sidebar-footer-height);
   padding: 14px 24px 18px;
-  border-top: 1px solid #e7e7ef;
-  background: #fff;
+  border-top: 2px solid  var(--color-border);
   margin-top: auto;
 }
 

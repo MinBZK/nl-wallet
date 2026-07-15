@@ -33,9 +33,11 @@ import SidebarUserCard from './SidebarUserCard.vue'
 .sidebar {
   display: flex;
   flex-direction: column;
+  border-right: 2px solid var(--color-border);
+}
+
+.nav-section {
   padding: 16px;
-  background: #fff;
-  border-right: 1px solid #e7e7ef;
 }
 
 .section-label {

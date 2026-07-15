@@ -13,7 +13,10 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-bottom: 16px;
+  box-sizing: border-box;
+  height: var(--header-height);
+  border-bottom: 2px solid var(--color-border);
+  padding: 16px;
 }
 
 .brand-logo {
@@ -22,13 +25,13 @@
 }
 
 .brand-title {
-  color: #152A62;
+  color: var(--color-text-primary);
   font-weight: 700;
   font-size: 20px;
   line-height: 28px
 }
 .brand-subtitle {
-  color: #445581;
+  color: var(--color-text-secondary);
   font-size: 16px;
   line-height: 22px
 }
