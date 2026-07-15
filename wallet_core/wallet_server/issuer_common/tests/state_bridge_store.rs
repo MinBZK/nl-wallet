@@ -82,7 +82,7 @@ async fn test_consume_distinguishes_states() {
 /// as `Expired`), and delete only those that expired longer ago than the leeway.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_cleanup_retains_recently_expired_within_leeway() {
-    let db_setup = DbSetup::create().await;
+    let db_setup = DbSetup::create_clean_only([DbName::PidIssuer]).await;
     let database_connection = connection_from_url(db_setup.pid_issuer_url()).await;
 
     let now = DateTime::from_timestamp_secs(1_000_000_000).unwrap();
