@@ -362,7 +362,7 @@ impl<K> DatabaseStorage<K> {
             return Ok(vec![]);
         }
 
-        // The top-level conditions are joined with AND, starting with the credential kinds.
+        // The credential kind conditions are joined with AND.
         let condition = condition
             .unwrap_or_else(Condition::all)
             .add(condition_for_credential_kinds(credential_kinds, type_match));
