@@ -341,6 +341,8 @@ mod tests {
     use httpmock::Method::POST;
     use httpmock::MockServer;
     use itertools::Itertools;
+    use jwt::nonce::Nonce;
+    use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -353,6 +355,7 @@ mod tests {
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::client_auth::ClientAttestationChallengeMechanism;
+    use crate::client_auth::ClientAttestationError;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::RemoteErrorCode;
     use crate::issuable_document::CredentialKind;
@@ -545,6 +548,128 @@ mod tests {
         assert!(!params.contains_key("redirect_uri"));
         assert!(!params.contains_key("issuer_state"));
         assert!(!params.contains_key("scope"));
+    }
+
+    /// Which client attestation challenge mechanism(s) a `test_auth_url_client_auth_challenge_mechanism` case
+    /// exercises, and what `HttpAuthorizationSession::create()` is expected to do with them.
+    enum ExpectedChallengeMechanism {
+        None,
+        Header,
+        ChallengeEndpoint,
+        Both,
+    }
+
+    #[rstest]
+    #[case::none(false, false, ExpectedChallengeMechanism::None)]
+    #[case::header(false, true, ExpectedChallengeMechanism::Header)]
+    #[case::challenge_endpoint(true, false, ExpectedChallengeMechanism::ChallengeEndpoint)]
+    #[case::double_challenge_mechanism(true, true, ExpectedChallengeMechanism::Both)]
+    #[tokio::test]
+    #[serial(MockPkcePair)]
+    async fn test_auth_url_client_auth_challenge_mechanism(
+        #[case] challenge_endpoint_configured: bool,
+        #[case] header_present: bool,
+        #[case] expected: ExpectedChallengeMechanism,
+    ) {
+        let server = MockServer::start_async().await;
+
+        server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/par");
+                let then = then
+                    .status(201)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "request_uri": PAR_REQUEST_URI,
+                        "expires_in": 60,
+                    }));
+                if header_present {
+                    then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "header-challenge");
+                }
+            })
+            .await;
+
+        if challenge_endpoint_configured {
+            server
+                .mock_async(|when, then| {
+                    when.method(POST).path("/issuance/client_auth_challenge");
+                    then.status(200).json_body(json!({
+                        "attestation_challenge": "foobar",
+                    }));
+                })
+                .await;
+        }
+
+        let auth_endpoints = {
+            let mut auth_endpoints = authorization_endpoints(&server.base_url().parse().unwrap());
+            if !challenge_endpoint_configured {
+                auth_endpoints.challenge_endpoint = None;
+            }
+            auth_endpoints
+        };
+
+        let pkce_context = MockPkcePair::generate_context();
+        pkce_context.expect().return_once(|| {
+            let mut pkce_pair = MockPkcePair::new();
+            pkce_pair.expect_code_challenge().return_const("challenge".to_string());
+            pkce_pair
+        });
+
+        let config_id: CredentialConfigurationId = "config_id".to_string().into();
+        let issuer_metadata = IssuerMetadata::new_mock(
+            server.base_url().parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
+        let result = HttpAuthorizationSession::<MockPkcePair>::create(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            issuer_metadata
+                .credential_configurations_supported
+                .into_iter()
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+            issuer_metadata.credential_issuer.clone(),
+            issuer_metadata.endpoints,
+            auth_endpoints,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            REDIRECT_URI.parse().unwrap(),
+            None,
+            &MockWiaClient::new(),
+            issuer_metadata.credential_issuer,
+        )
+        .await;
+
+        match expected {
+            ExpectedChallengeMechanism::None => {
+                assert_matches!(
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::None
+                );
+            }
+            ExpectedChallengeMechanism::Header => {
+                assert_matches!(
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::Header(challenge)
+                        if challenge == Nonce::from("header-challenge".to_string())
+                );
+            }
+            ExpectedChallengeMechanism::ChallengeEndpoint => {
+                assert_matches!(
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::ChallengeEndpoint(url)
+                        if url == server.base_url().parse::<Url>().unwrap().join("/issuance/client_auth_challenge").unwrap()
+                );
+            }
+            ExpectedChallengeMechanism::Both => {
+                assert_matches!(
+                    result.unwrap_err(),
+                    WalletIssuanceError::ClientAttestation(ClientAttestationError::DoubleChallengeMechanism)
+                );
+            }
+        }
     }
 
     #[tokio::test]

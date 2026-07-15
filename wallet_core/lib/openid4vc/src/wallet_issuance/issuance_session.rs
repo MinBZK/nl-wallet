@@ -1104,6 +1104,7 @@ impl IssuanceState {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::cell::RefCell;
     use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::time::Duration;
@@ -1205,6 +1206,100 @@ mod tests {
             map_pre_authorized_token_error(other, &pre_authorized),
             WalletIssuanceError::TokenRequest(_)
         );
+    }
+
+    /// A [`WiaClient`] that records the challenge it was given, delegating the actual WIA issuance to a
+    /// [`MockWiaClient`].
+    /// The outer `Option` records whether it was set by the test.
+    /// The inner `Option` corresponds to the `Option` in the second parameter to `RecordingWiaClient::issue_wia`.
+    #[derive(Default)]
+    struct RecordingWiaClient {
+        received_challenge: RefCell<Option<Option<Nonce>>>,
+    }
+
+    impl WiaClient for RecordingWiaClient {
+        type Error = <MockWiaClient as WiaClient>::Error;
+
+        async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+            *self.received_challenge.borrow_mut() = Some(challenge.clone());
+            MockWiaClient::new().issue_wia(aud, challenge).await
+        }
+    }
+
+    #[rstest]
+    #[case(ClientAttestationChallengeMechanism::None, None, false)]
+    #[case(
+        ClientAttestationChallengeMechanism::Header(Nonce::from("header-challenge".to_string())),
+        Some(Nonce::from("header-challenge".to_string())),
+        false
+    )]
+    #[case(
+        ClientAttestationChallengeMechanism::ChallengeEndpoint("https://example.com/challenge".parse().unwrap()),
+        Some(Nonce::from("endpoint-challenge".to_string())),
+        true
+    )]
+    fn test_create_client_auth_challenge_mechanism(
+        #[case] mechanism: ClientAttestationChallengeMechanism,
+        #[case] expected_challenge: Option<Nonce>,
+        #[case] expect_challenge_request: bool,
+    ) {
+        let issuer_identifier: IssuerIdentifier = "https://example.com".parse().unwrap();
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let issuer_metadata = IssuerMetadata::new_mock(
+            issuer_identifier,
+            vec![(
+                config_id,
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
+        );
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
+        let credential_configs = issuer_metadata
+            .credential_configurations_supported
+            .into_iter()
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        let mut mock_msg_client = MockVcMessageClient::new();
+        // Fail the token request (the step right after the challenge is resolved and the WIA is issued) with an
+        // unambiguous, recognizable error, so `create()` short-circuits there. This keeps the fixture minimal: only
+        // `request_token` (and `request_challenge`) need to be mocked, without also having to mock the type
+        // metadata/preview fetching, trust anchors, etc. that follow.
+        mock_msg_client
+            .expect_request_token()
+            .once()
+            .return_once(move |_url, _token_request, _dpop_header, _wia_disclosure| Err(invalid_grant_error()));
+        if expect_challenge_request {
+            mock_msg_client
+                .expect_request_challenge()
+                .once()
+                .return_once(move |_url| Ok("endpoint-challenge".to_string().into()));
+        }
+
+        let wia_client = RecordingWiaClient::default();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = TrustAnchors::from(&ca);
+
+        let error = HttpIssuanceSession::create(
+            mock_msg_client,
+            credential_configs,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            &oauth_metadata.token_endpoint,
+            mechanism,
+            TokenRequest::new_mock(),
+            &wia_client,
+            &oauth_metadata.issuer,
+            &trust_anchors,
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("should fail at the (mocked) token request, after the challenge has been resolved");
+
+        // The failure should occur at the (mocked) token request, confirming that the challenge resolution itself
+        // succeeded and did not short-circuit `create()` earlier.
+        assert_matches!(error, WalletIssuanceError::PreAuthorizedCodeExpired);
+        assert_eq!(*wia_client.received_challenge.borrow(), Some(expected_challenge));
     }
 
     fn test_start_issuance(
