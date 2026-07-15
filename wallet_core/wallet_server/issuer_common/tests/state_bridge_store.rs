@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
+use db_test::DbName;
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
@@ -16,7 +17,7 @@ use utils::generator::mock::MockTimeGenerator;
 /// (the `FOR UPDATE SKIP LOCKED` loop), leaving still-valid rows untouched.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_issuer_state_bridge_store_cleanup_drains_in_batches() {
-    let db_setup = DbSetup::create_clean().await;
+    let db_setup = DbSetup::create_clean_only([DbName::PidIssuer]).await;
     let database_connection = connection_from_url(db_setup.pid_issuer_url()).await;
 
     let now = DateTime::from_timestamp_secs(1_000_000_000).unwrap();
@@ -53,7 +54,7 @@ async fn test_issuer_state_bridge_store_cleanup_drains_in_batches() {
 /// still returned so the caller can recover the `redirect_uri`) and a truly absent entry.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_consume_distinguishes_states() {
-    let db_setup = DbSetup::create_clean().await;
+    let db_setup = DbSetup::create_clean_only([DbName::PidIssuer]).await;
     let database_connection = connection_from_url(db_setup.pid_issuer_url()).await;
 
     let now = DateTime::from_timestamp_secs(1_000_000_000).unwrap();
