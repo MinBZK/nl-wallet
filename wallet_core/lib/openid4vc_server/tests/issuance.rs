@@ -707,12 +707,12 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -801,12 +801,12 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -939,12 +939,12 @@ async fn token_ok() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1016,12 +1016,12 @@ async fn token_rejects_missing_code_verifier() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1070,12 +1070,12 @@ async fn token_rejects_unknown_code_verifier() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1129,12 +1129,12 @@ async fn token_rejects_grant_type_mismatch() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1191,12 +1191,12 @@ async fn token_rejects_authorization_details() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1246,12 +1246,12 @@ async fn token_rejects_scope_mismatch() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1286,12 +1286,12 @@ async fn token_rejects_scope_mismatch() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1390,12 +1390,12 @@ async fn token_rejects_differing_redirect_uri() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1428,12 +1428,12 @@ async fn token_rejects_differing_redirect_uri() {
 
     let challenge = fetch_client_auth_challenge(
         &HttpClient::new(http_client.clone()),
-        Some(format!("{base}issuance/client_auth_challenge").parse().unwrap()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
     )
     .await
     .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), challenge)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 

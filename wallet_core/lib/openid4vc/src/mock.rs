@@ -33,6 +33,7 @@ impl AuthorizationServerMetadata {
         let issuer_url = issuer_identifier.as_base_url();
         let auth_url = issuer_url.join("/authorize");
         let token_url = issuer_url.join("/issuance/token");
+        let challenge_url = issuer_url.join("/issuance/client_auth_challenge");
         let jwks_url = issuer_url.join("/jwks.json");
         let par_url = issuer_url.join("/par");
 
@@ -47,6 +48,7 @@ impl AuthorizationServerMetadata {
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
             pushed_authorization_request_endpoint: Some(par_url),
+            challenge_endpoint: Some(challenge_url),
 
             ..AuthorizationServerMetadata::new(issuer_identifier, token_url)
         }

@@ -81,14 +81,12 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
         &S256PkcePair::generate(),
     );
 
-    let challenge = fetch_client_auth_challenge(
-        &client,
-        Some(acf.public.as_base_url().join("issuance/client_auth_challenge")),
-    )
-    .await
-    .unwrap();
+    let challenge =
+        fetch_client_auth_challenge(&client, acf.public.as_base_url().join("issuance/client_auth_challenge"))
+            .await
+            .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(acf.public.to_string(), challenge)
+        .issue_wia(acf.public.to_string(), Some(challenge))
         .await
         .unwrap();
 
