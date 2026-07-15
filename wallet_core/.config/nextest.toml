@@ -5,7 +5,7 @@ metrics-recorder = { max-threads = 1 }
 # Not needed for `MockCloseProximityDisclosureClient`
 
 [[profile.default.overrides]]
-filter = 'package(openid4vc) & test(/(test_start_and_into_token_request|test_user_cancels)$/)'
+filter = 'package(openid4vc) & test(/::test_auth_url::/)'
 test-group = 'mock-pkce'
 
 [[profile.default.overrides]]
