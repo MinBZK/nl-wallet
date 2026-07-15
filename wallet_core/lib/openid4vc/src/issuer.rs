@@ -405,7 +405,7 @@ pub struct Session<S: IssuanceState> {
 pub struct Issuer<K, L, S, N> {
     issuer_data: IssuerData<K, L>,
     sessions: Arc<S>,
-    proof_nonce_store: Arc<N>,
+    nonce_store: Arc<N>,
     status_list_refresh_tasks: Vec<AbortHandle>,
 }
 
@@ -656,7 +656,7 @@ where
             metadata_keypair: keypair,
         };
 
-        let proof_nonce_store = Arc::new(proof_nonce_store);
+        let nonce_store = Arc::new(proof_nonce_store);
 
         let status_list_refresh_tasks = issuer_data
             .credential_configs
@@ -667,7 +667,7 @@ where
         let issuer = Self {
             issuer_data,
             sessions,
-            proof_nonce_store,
+            nonce_store,
             status_list_refresh_tasks,
         };
 
@@ -688,7 +688,7 @@ where
     async fn cleanup(&self) {
         let _ = join!(
             log_cleanup_error("session", self.sessions.cleanup()),
-            log_cleanup_error("proof nonce", self.proof_nonce_store.remove_expired_nonces()),
+            log_cleanup_error("proof nonce", self.nonce_store.remove_expired_nonces()),
         );
     }
 }
@@ -798,7 +798,7 @@ where
     pub async fn generate_proof_nonce(&self) -> Result<Nonce, NonceStoreError<N::Error>> {
         let nonce = Nonce::new_random();
 
-        self.proof_nonce_store.store_nonce(nonce.clone()).await?;
+        self.nonce_store.store_nonce(nonce.clone()).await?;
 
         Ok(nonce)
     }
@@ -914,7 +914,7 @@ where
                 &wia_disclosure,
                 &self.issuer_data.server_url,
                 &self.issuer_data,
-                self.proof_nonce_store.as_ref(),
+                self.nonce_store.as_ref(),
             )
             .await;
 
@@ -957,7 +957,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                self.proof_nonce_store.as_ref(),
+                self.nonce_store.as_ref(),
             )
             .await;
 
@@ -984,7 +984,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                self.proof_nonce_store.as_ref(),
+                self.nonce_store.as_ref(),
             )
             .await;
 
@@ -1047,14 +1047,9 @@ where
         wia_disclosure: &WiaDisclosure,
         client_id: Option<&String>,
     ) -> Result<(), WiaVerificationError> {
-        verify_wia_and_consume_nonce(
-            &self.issuer_data,
-            self.proof_nonce_store.as_ref(),
-            wia_disclosure,
-            client_id,
-        )
-        .await
-        .map(|_| ())
+        verify_wia_and_consume_nonce(&self.issuer_data, self.nonce_store.as_ref(), wia_disclosure, client_id)
+            .await
+            .map(|_| ())
     }
 }
 
