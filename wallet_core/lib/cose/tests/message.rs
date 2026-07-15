@@ -138,11 +138,7 @@ async fn signs_and_verifies_with_certificate() {
 
     assert_eq!(cose.x5chain().unwrap().first(), key_pair.certificate());
     assert_eq!(
-        cose.verify_against_trust_anchors(
-            &TrustAnchors::from(&ca),
-            &TimeGenerator,
-            Some(CertificateUsage::Mdl),
-        )
+        cose.verify_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, Some(CertificateUsage::Mdl),)
             .unwrap(),
         ToyMessage::default()
     );
@@ -178,7 +174,7 @@ async fn verifies_certificate_chain_with_intermediate() {
             &TimeGenerator,
             Some(CertificateUsage::Mdl),
         )
-            .unwrap(),
+        .unwrap(),
         ToyMessage::default()
     );
 }

@@ -21,10 +21,10 @@ pub enum CoseError {
     UnsupportedAlgorithm(coset::Algorithm),
     #[error("ECDSA signature parsing failed: {0}")]
     #[category(pd)]
-    EcdsaSignatureParsingFailed(p256::ecdsa::Error),
+    EcdsaSignatureParsingFailed(#[source] p256::ecdsa::Error),
     #[error("ECDSA signature verification failed: {0}")]
     #[category(pd)]
-    EcdsaSignatureVerificationFailed(p256::ecdsa::Error),
+    EcdsaSignatureVerificationFailed(#[source] p256::ecdsa::Error),
     #[error("MAC verification failed")]
     #[category(critical)]
     MacVerificationFailed,
@@ -36,11 +36,14 @@ pub enum CoseError {
     #[error("x5chain certificate chain is empty")]
     #[category(critical)]
     EmptyCertificateChain,
+    #[error("x5chain certificate array must contain at least two certificates, found {0}")]
+    #[category(critical)]
+    CertificateChainTooShort(usize),
     #[error("certificate error: {0}")]
     Certificate(#[source] CertificateError),
     #[error("signing failed: {0}")]
     #[category(pd)]
-    Signing(Box<dyn std::error::Error + Send + Sync + 'static>),
+    Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("no signature received")]
     #[category(critical)]
     SignatureMissing,

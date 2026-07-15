@@ -8,6 +8,7 @@ use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
 use coset::ProtectedHeader;
+use coset::RegisteredLabel;
 use coset::cwt::ClaimsSet;
 use coset::cwt::Timestamp;
 use coset::iana;
@@ -34,6 +35,7 @@ pub const WRPRC_CWT_TYPE: &str = "rc-wrp+cwt";
 pub const CWT_CLAIMS_HEADER_LABEL: i64 = 15;
 
 const COSE_ALGORITHM_HEADER_LABEL: i64 = 1;
+const COSE_CRITICAL_HEADER_LABEL: i64 = 2;
 /// COSE `typ` header parameter, registered by RFC 9596.
 const COSE_TYPE_HEADER_LABEL: i64 = 16;
 
@@ -72,6 +74,9 @@ pub enum CwtError {
     #[error("CWT header parameter {0:?} must be protected")]
     #[category(critical)]
     UnprotectedHeaderParameter(Label),
+    #[error("unsupported critical COSE header parameter: {0:?}")]
+    #[category(critical)]
+    UnsupportedCriticalHeader(RegisteredLabel<iana::HeaderParameter>),
     #[error("CWT iat claim is not a finite NumericDate")]
     #[category(critical)]
     InvalidIssuedAt,
@@ -97,7 +102,7 @@ impl<T> Clone for UnverifiedCwt<T> {
 }
 
 impl<T> UnverifiedCwt<T> {
-    /// Parse an untagged COSE_Sign1 object, or one carrying the optional COSE_Sign1 CBOR tag.
+    /// Parse a COSE_Sign1 object that is untagged, tagged as COSE_Sign1, or tagged as CWT around a tagged COSE_Sign1.
     pub fn from_slice(bytes: &[u8]) -> Result<Self, CwtError> {
         Self::try_from(parse_cose_sign1(bytes)?)
     }
@@ -132,11 +137,14 @@ where
     T: DeserializeOwned,
 {
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
+    ///
+    /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
+    /// extended key usage.
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
+        certificate_usage: Option<CertificateUsage>,
     ) -> Result<VerifiedCwt<T>, CwtError> {
         let payload = self
             .cose
@@ -144,7 +152,7 @@ where
                 self.unverified_header.x5chain.clone(),
                 trust_anchors,
                 time,
-                Some(certificate_usage),
+                certificate_usage,
             )
             .map_err(CwtError::Cose)?;
 
@@ -224,7 +232,8 @@ impl<T> SignedCwt<T>
 where
     T: Serialize,
 {
-    /// Sign a WRPRC CWT using ES256, including the signing certificate and an `iat` CWT claim in the protected header.
+    /// Sign a WRPRC CWT using ES256, including the signing certificate and an `iat` claimed signing time in the
+    /// protected CWT Claims header parameter.
     pub async fn sign_with_certificate<K: EcdsaKey>(
         payload: &T,
         key_pair: &KeyPair<K>,
@@ -283,12 +292,19 @@ fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtEr
 
     for label in [
         Label::Int(COSE_ALGORITHM_HEADER_LABEL),
+        Label::Int(COSE_CRITICAL_HEADER_LABEL),
         Label::Int(COSE_TYPE_HEADER_LABEL),
         Label::Int(CWT_CLAIMS_HEADER_LABEL),
         Label::Int(COSE_X5CHAIN_HEADER_LABEL),
     ] {
         if header_contains_label(unprotected, &label) {
             return Err(CwtError::UnprotectedHeaderParameter(label));
+        }
+    }
+
+    for critical_header in &protected.crit {
+        if critical_header != &RegisteredLabel::Assigned(iana::HeaderParameter::Alg) {
+            return Err(CwtError::UnsupportedCriticalHeader(critical_header.clone()));
         }
     }
 
@@ -327,6 +343,7 @@ fn validate_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<CwtHeader, CwtEr
 fn header_contains_label(header: &Header, label: &Label) -> bool {
     match label {
         Label::Int(COSE_ALGORITHM_HEADER_LABEL) => header.alg.is_some(),
+        Label::Int(COSE_CRITICAL_HEADER_LABEL) => !header.crit.is_empty(),
         _ => header.rest.iter().any(|(candidate, _)| candidate == label),
     }
 }
@@ -334,6 +351,15 @@ fn header_contains_label(header: &Header, label: &Label) -> bool {
 fn parse_cose_sign1(bytes: &[u8]) -> Result<CoseSign1, CwtError> {
     let value = Value::from_slice(bytes).map_err(CwtError::CoseSerialization)?;
     let value = match value {
+        Value::Tag(tag, value) if tag == iana::CborTag::Cwt as u64 => match *value {
+            Value::Tag(tag, value) if tag == iana::CborTag::CoseSign1 as u64 => *value,
+            Value::Tag(tag, _) => return Err(CwtError::UnexpectedCborTag(tag)),
+            _ => {
+                return Err(CwtError::InvalidCoseSign1(
+                    "CWT tag must be followed by a COSE_Sign1 tag",
+                ));
+            }
+        },
         Value::Tag(tag, value) if tag == iana::CborTag::CoseSign1 as u64 => *value,
         Value::Tag(tag, _) => return Err(CwtError::UnexpectedCborTag(tag)),
         value => value,
@@ -449,8 +475,8 @@ mod tests {
 
     #[tokio::test]
     async fn sign_parse_and_verify_wrprc_cwt() {
-        let ca = Ca::generate_mock();
-        let key_pair = ca.generate_reader_mock().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
         let issued_at = Utc.timestamp_opt(1_700_000_000, 0).unwrap();
         let signed =
             SignedCwt::sign_with_certificate(&ToyMessage::default(), &key_pair, &MockTimeGenerator::new(issued_at))
@@ -466,8 +492,12 @@ mod tests {
         .to_vec()
         .unwrap();
         UnverifiedCwt::<ToyMessage>::from_slice(&tagged).unwrap();
+        let cwt_tagged = Value::Tag(iana::CborTag::Cwt as u64, Box::new(Value::from_slice(&tagged).unwrap()))
+            .to_vec()
+            .unwrap();
+        UnverifiedCwt::<ToyMessage>::from_slice(&cwt_tagged).unwrap();
         let verified = parsed
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, CertificateUsage::ReaderAuth)
+            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, None)
             .unwrap();
 
         assert_eq!(verified.payload(), &ToyMessage::default());
@@ -480,13 +510,13 @@ mod tests {
 
     #[tokio::test]
     async fn cwt_claims_and_iat_are_optional_when_parsing() {
-        let ca = Ca::generate_mock();
-        let key_pair = ca.generate_reader_mock().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
         let cose = sign_with_header(valid_protected_header(&key_pair, None), &key_pair).await;
         let cwt = UnverifiedCwt::<ToyMessage>::try_from(cose).unwrap();
 
         let verified = cwt
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, CertificateUsage::ReaderAuth)
+            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, None)
             .unwrap();
 
         assert_eq!(verified.header().claims, None);
@@ -500,8 +530,8 @@ mod tests {
 
     #[tokio::test]
     async fn required_headers_are_rejected_when_missing_or_incorrect() {
-        let ca = Ca::generate_mock();
-        let key_pair = ca.generate_reader_mock().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let missing_algorithm = HeaderBuilder::new()
             .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
@@ -563,6 +593,19 @@ mod tests {
             Err(CwtError::Cose(CoseError::EmptyCertificateChain))
         ));
 
+        let single_certificate_array = HeaderBuilder::new()
+            .algorithm(iana::Algorithm::ES256)
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
+            .value(
+                COSE_X5CHAIN_HEADER_LABEL,
+                Value::Array(vec![Value::Bytes(key_pair.certificate().to_vec())]),
+            )
+            .build();
+        assert!(matches!(
+            UnverifiedCwt::try_from(sign_with_header(single_certificate_array, &key_pair).await),
+            Err(CwtError::Cose(CoseError::CertificateChainTooShort(1)))
+        ));
+
         let protected = valid_protected_header(&key_pair, None);
         let unprotected = HeaderBuilder::new()
             .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
@@ -574,6 +617,43 @@ mod tests {
         assert!(matches!(
             UnverifiedCwt::try_from(cose),
             Err(CwtError::UnprotectedHeaderParameter(Label::Int(COSE_TYPE_HEADER_LABEL)))
+        ));
+    }
+
+    #[tokio::test]
+    async fn critical_headers_are_protected_and_understood() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+
+        let mut supported = valid_protected_header(&key_pair, None);
+        supported
+            .crit
+            .push(RegisteredLabel::Assigned(iana::HeaderParameter::Alg));
+        UnverifiedCwt::try_from(sign_with_header(supported, &key_pair).await).unwrap();
+
+        let mut unsupported = valid_protected_header(&key_pair, None);
+        unsupported.key_id = vec![1];
+        unsupported
+            .crit
+            .push(RegisteredLabel::Assigned(iana::HeaderParameter::Kid));
+        assert!(matches!(
+            UnverifiedCwt::try_from(sign_with_header(unsupported, &key_pair).await),
+            Err(CwtError::UnsupportedCriticalHeader(RegisteredLabel::Assigned(
+                iana::HeaderParameter::Kid
+            )))
+        ));
+
+        let protected = valid_protected_header(&key_pair, None);
+        let unprotected = HeaderBuilder::new().add_critical(iana::HeaderParameter::Alg).build();
+        let cose =
+            TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
+                .await
+                .unwrap();
+        assert!(matches!(
+            UnverifiedCwt::try_from(cose),
+            Err(CwtError::UnprotectedHeaderParameter(Label::Int(
+                COSE_CRITICAL_HEADER_LABEL
+            )))
         ));
     }
 
@@ -596,12 +676,28 @@ mod tests {
             UnverifiedCwt::<ToyMessage>::from_slice(&protected_header_not_bytes),
             Err(CwtError::InvalidCoseSign1(_))
         ));
+
+        let cwt_tag_without_cose_tag = Value::Tag(
+            iana::CborTag::Cwt as u64,
+            Box::new(Value::Array(vec![
+                Value::Bytes(Vec::new()),
+                Value::Map(Vec::new()),
+                Value::Bytes(Vec::new()),
+                Value::Bytes(vec![0; 64]),
+            ])),
+        )
+        .to_vec()
+        .unwrap();
+        assert!(matches!(
+            UnverifiedCwt::<ToyMessage>::from_slice(&cwt_tag_without_cose_tag),
+            Err(CwtError::InvalidCoseSign1(_))
+        ));
     }
 
     #[tokio::test]
     async fn invalid_cwt_claims_are_rejected() {
-        let ca = Ca::generate_mock();
-        let key_pair = ca.generate_reader_mock().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let claims_not_a_map = valid_protected_header(&key_pair, Some(Value::Array(Vec::new())));
         assert!(matches!(
@@ -652,8 +748,8 @@ mod tests {
             Err(CwtError::CoseSerialization(coset::CoseError::DuplicateMapKey))
         ));
 
-        let ca = Ca::generate_mock();
-        let key_pair = ca.generate_reader_mock().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
         let duplicate_iat = Value::Map(vec![
             (Value::from(6), Value::from(1_700_000_000)),
             (Value::from(6), Value::from(1_700_000_001)),
@@ -668,8 +764,8 @@ mod tests {
 
     #[tokio::test]
     async fn tampered_payload_is_not_returned() {
-        let ca = Ca::generate_mock();
-        let key_pair = ca.generate_reader_mock().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
         let mut cose =
             SignedCwt::sign_with_certificate(&ToyMessage::default(), &key_pair, &MockTimeGenerator::default())
                 .await
@@ -681,11 +777,7 @@ mod tests {
         let cwt = UnverifiedCwt::<ToyMessage>::try_from(cose).unwrap();
 
         assert!(matches!(
-            cwt.into_verified_against_trust_anchors(
-                &TrustAnchors::from(&ca),
-                &TimeGenerator,
-                CertificateUsage::ReaderAuth,
-            ),
+            cwt.into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, None,),
             Err(CwtError::Cose(CoseError::EcdsaSignatureVerificationFailed(_)))
         ));
     }

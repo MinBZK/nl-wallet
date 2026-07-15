@@ -61,6 +61,13 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
             BorrowingCertificate::from_der(bytes.clone()).map_err(CoseError::Certificate)?
         ]),
         Value::Array(items) => {
+            if items.is_empty() {
+                return Err(CoseError::EmptyCertificateChain);
+            }
+            if items.len() == 1 {
+                return Err(CoseError::CertificateChainTooShort(items.len()));
+            }
+
             let certificates = items
                 .iter()
                 .map(|item| {
@@ -132,6 +139,9 @@ impl<T> TypedCose<CoseSign1, T> {
     }
 
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
+    ///
+    /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
+    /// extended key usage.
     pub fn verify_against_trust_anchors(
         &self,
         trust_anchors: &TrustAnchors,
