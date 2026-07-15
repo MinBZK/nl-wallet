@@ -68,7 +68,7 @@ const DB_TESTCONTAINER_CMD_ARGS: &[&str] = &[
     "postgres",
     // Allow for more connections with larger shared buffers
     "-N",
-    "200",
+    "500",
     "-c",
     "shared_buffers=128MB",
     // Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
