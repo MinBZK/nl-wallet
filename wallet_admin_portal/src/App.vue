@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import AppSidebar from './components/AppSidebar.vue'
+import AppSidebar from './components/sidebar/AppSidebar.vue'
 import TopHeader from './components/TopHeader.vue'
 import TasksFilters from './components/TasksFilters.vue'
 import TasksTable from './components/TasksTable.vue'
