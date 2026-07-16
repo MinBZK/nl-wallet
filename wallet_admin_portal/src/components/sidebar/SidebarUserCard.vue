@@ -6,7 +6,7 @@
       <div class="user-role">{{ role }}</div>
     </div>
     <div class="chevron">
-      <img src="@/assets/icons/chevron_forward.svg" alt="Open Profile"/>
+      <img src="@/assets/icons/chevron_forward.svg" alt="Open Profile" />
     </div>
   </div>
 </template>

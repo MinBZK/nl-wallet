@@ -21,7 +21,7 @@ defineProps<{
   box-sizing: border-box;
   height: var(--header-height);
   padding: 15px 24px;
-  border-bottom: 2px solid  var(--color-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 h1 {

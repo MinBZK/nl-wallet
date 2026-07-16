@@ -1,8 +1,5 @@
 <template>
-  <TopHeader
-    title="Home"
-    description="Deze pagina is nog in ontwikkeling."
-  />
+  <TopHeader title="Home" description="Deze pagina is nog in ontwikkeling." />
 </template>
 
 <script setup lang="ts">

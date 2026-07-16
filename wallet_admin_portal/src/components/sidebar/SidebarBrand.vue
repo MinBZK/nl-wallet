@@ -1,7 +1,7 @@
 <template>
   <div class="brand">
-  <RouterLink to="/">
-    <img src="@/assets/logo_nl_wallet.svg" alt="NL Wallet Logo" class="brand-logo" />
+    <RouterLink to="/">
+      <img src="@/assets/logo_nl_wallet.svg" alt="NL Wallet Logo" class="brand-logo" />
     </RouterLink>
     <div>
       <div class="brand-title">NL Wallet</div>
@@ -30,11 +30,11 @@
   color: var(--color-text-primary);
   font-weight: 700;
   font-size: 20px;
-  line-height: 28px
+  line-height: 28px;
 }
 .brand-subtitle {
   color: var(--color-text-secondary);
   font-size: 16px;
-  line-height: 22px
+  line-height: 22px;
 }
 </style>
