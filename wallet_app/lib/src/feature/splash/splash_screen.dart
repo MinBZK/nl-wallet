@@ -9,6 +9,7 @@ import '../../wallet_assets.dart';
 import '../common/widget/government_logo.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_logo.dart';
+import '../recover_pin/argument/recover_pin_screen_argument.dart';
 import 'bloc/splash_bloc.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -25,30 +26,38 @@ class SplashScreen extends StatelessWidget {
       child: BlocListener<SplashBloc, SplashState>(
         listenWhen: (prev, current) => current is SplashLoaded,
         listener: (context, state) {
-          if (state is SplashLoaded) {
-            switch (state.destination) {
-              case PostSplashDestination.onboarding:
-                Navigator.pushReplacementNamed(context, WalletRoutes.demoRoute);
-              case PostSplashDestination.revocationCode:
-                Navigator.pushReplacementNamed(context, WalletRoutes.revocationCodeRoute);
-              case PostSplashDestination.pidRetrieval:
-                Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
-              case PostSplashDestination.pinRecovery:
-                Navigator.pushReplacementNamed(context, WalletRoutes.pinRecoveryRoute);
-              case PostSplashDestination.transfer:
-                Navigator.pushReplacementNamed(context, WalletRoutes.walletTransferTargetRoute);
-              case PostSplashDestination.dashboard:
-                Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
-              case PostSplashDestination.blocked:
-                Navigator.pushReplacementNamed(context, WalletRoutes.appBlockedRoute);
-              case PostSplashDestination.none:
-                Fimber.d('No navigation required, should be handled by UpdateChecker / RootChecker');
-            }
-          }
+          if (state is SplashLoaded) _navigateToDestination(context, state.destination);
         },
         child: _buildContent(context),
       ),
     );
+  }
+
+  void _navigateToDestination(BuildContext context, PostSplashDestination destination) {
+    switch (destination) {
+      case PostSplashDestination.onboarding:
+        Navigator.pushReplacementNamed(context, WalletRoutes.demoRoute);
+      case PostSplashDestination.revocationCode:
+        Navigator.pushReplacementNamed(context, WalletRoutes.revocationCodeRoute);
+      case PostSplashDestination.pidRetrieval:
+        Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
+      case PostSplashDestination.pinRecovery:
+        Navigator.pushReplacementNamed(
+          context,
+          WalletRoutes.pinRecoveryRoute,
+          arguments: const RecoverPinScreenArgument(uri: null, isRecoveryFlow: true),
+        );
+      case PostSplashDestination.transfer:
+        Navigator.pushReplacementNamed(context, WalletRoutes.walletTransferTargetRoute);
+      case PostSplashDestination.dashboard:
+        Navigator.pushReplacementNamed(context, WalletRoutes.dashboardRoute);
+      case PostSplashDestination.blocked:
+        Navigator.pushReplacementNamed(context, WalletRoutes.appBlockedRoute);
+      case PostSplashDestination.recoverSession:
+        Navigator.pushReplacementNamed(context, WalletRoutes.recoverSessionRoute);
+      case PostSplashDestination.none:
+        Fimber.d('No navigation required, should be handled by UpdateChecker / RootChecker');
+    }
   }
 
   /// Build the visual part of the SplashScreen

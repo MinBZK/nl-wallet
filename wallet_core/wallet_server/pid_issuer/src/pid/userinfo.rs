@@ -1,6 +1,7 @@
 use futures::TryFutureExt;
 use futures::try_join;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::APPLICATION_JWT;
+use http_utils::reqwest::HttpClient;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
@@ -27,8 +28,6 @@ use strum::EnumString;
 
 use super::jwks::HttpJwksClient;
 use super::jwks::JwksError;
-
-const APPLICATION_JWT: &str = "application/jwt";
 
 #[derive(Debug, thiserror::Error)]
 pub enum UserInfoError {
@@ -83,7 +82,7 @@ impl JwtTyp for UserInfo {
 }
 
 async fn request_userinfo_jwt(
-    http_client: &HttpJsonClient,
+    http_client: &HttpClient,
     config: &OidcProviderMetadata,
     token_request: TokenRequest,
 ) -> Result<String, UserInfoError> {
@@ -133,7 +132,7 @@ async fn request_userinfo_jwt(
 }
 
 pub async fn request_userinfo<C>(
-    http_client: &HttpJsonClient,
+    http_client: &HttpClient,
     config: &OidcProviderMetadata,
     token_request: TokenRequest,
     client_id: &str,
@@ -188,7 +187,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
@@ -257,7 +256,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_eq!(result.unwrap(), "the.userinfo.jwt");
@@ -282,7 +281,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_matches!(result, Err(UserInfoError::RequestingAccessToken(_)));
@@ -317,7 +316,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_matches!(result, Err(UserInfoError::RequestingUserInfo(_)));
@@ -330,7 +329,7 @@ mod tests {
         let token_endpoint = issuer_identifier.as_base_url().as_ref().join("/token").unwrap();
         let metadata = OidcProviderMetadata::new(AuthorizationServerMetadata::new(issuer_identifier, token_endpoint));
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;
 
         assert_matches!(result, Err(UserInfoError::NoUserinfoUrl));
@@ -536,7 +535,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo::<UserInfo>(
             &http_client,
             &metadata,

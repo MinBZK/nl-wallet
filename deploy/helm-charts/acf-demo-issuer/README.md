@@ -120,11 +120,11 @@
 | -------------------- | -------------------- | ----- |
 | `walletRedirectUris` | wallet redirect uris | `[]`  |
 
-### Metadata parameters
+### Type Metadata parameters
 
-| Name       | Description                                                            | Value                                     |
-| ---------- | ---------------------------------------------------------------------- | ----------------------------------------- |
-| `metadata` | List of SD-JWT Type Metadata filenames to mount and pass to the server | `["com_example_insurance_metadata.json"]` |
+| Name           | Description                                                            | Value                                                                                |
+| -------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `typeMetadata` | List of SD-JWT Type Metadata filenames to mount and pass to the server | `["com_example_insurance_metadata.json","com_example_jum_bonuskaart_metadata.json"]` |
 
 ### Migration parameters
 

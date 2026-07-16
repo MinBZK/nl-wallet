@@ -156,7 +156,7 @@ pub mod verification {
             let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
                 issuer_trust_anchors,
                 time,
-                CertificateUsage::OAuthStatusSigning,
+                Some(CertificateUsage::OAuthStatusSigning),
                 &DEFAULT_VALIDATIONS,
             )?;
 

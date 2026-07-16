@@ -56,14 +56,17 @@ pub enum ParError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
 
+    #[error("error verifying WIA: {0}")]
+    Wia(#[source] WiaError),
+
+    #[error("a PAR containing authorization_details is not supported")]
+    AuthorizationDetailsUnsupported,
+
     #[error("redirect_uri not allowed: {0}")]
     InvalidRedirectUri(Url),
 
     #[error("storing PAR request failed: {0}")]
     Store(#[source] Box<dyn Error + Send + Sync + 'static>),
-
-    #[error("error verifying WIA: {0}")]
-    Wia(#[source] WiaError),
 }
 
 /// Errors that can occur during calls to the `authorize` endpoint, before the PAR has been retrieved from storage.
@@ -195,6 +198,10 @@ where
         self.issuer
             .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
             .map_err(ParError::Wia)?;
+
+        if request.authorization_details.is_some() {
+            return Err(ParError::AuthorizationDetailsUnsupported);
+        }
 
         // Exact-match the wallet's redirect_uri against the configured allowlist.
         if !self.wallet_redirect_uris.iter().contains(request.redirect_uri.as_ref()) {
@@ -393,6 +400,7 @@ mod tests {
 
     use attestation_types::credential_format::Format;
     use crypto::server_keys::KeyPair;
+    use futures::FutureExt;
     use jwt::wia::WiaDisclosure;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
@@ -412,6 +420,7 @@ mod tests {
     use crate::authorization_code_flow::AuthorizeOutcome;
     use crate::authorization_code_flow::InvalidAuthorizationRequest;
     use crate::authorization_code_flow::WalletAuthorizationContext;
+    use crate::authorization_details::EntryContainer;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::ErrorWithCode;
     use crate::errors::RedirectError;
@@ -539,24 +548,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn process_par_rejects_unknown_client_id() {
-        let (authorizing_issuer, _sessions, _) =
-            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
-
-        let error = authorizing_issuer
-            .process_pushed_authorization_request(
-                vci_request(OTHER_CLIENT_ID),
-                &WiaDisclosure::new("a.b.c".parse().unwrap(), "a.b.c".parse().unwrap()),
-            )
-            .await
-            .unwrap_err();
-
-        assert_matches!(error, ParError::UnknownClient(client_id) if client_id == OTHER_CLIENT_ID);
-        // The rejected request must not have been stored.
-        assert!(authorizing_issuer.par_store.is_empty());
-    }
-
-    #[tokio::test]
     async fn process_par_stores_request_and_returns_response() {
         let (authorizing_issuer, _sessions, wia_keypair) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
@@ -585,6 +576,54 @@ mod tests {
             .live()
             .expect("request should be stored under the returned request_uri");
         assert_eq!(stored.oauth_request.client_id, MOCK_WALLET_CLIENT_ID);
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_unknown_client_id() {
+        let (authorizing_issuer, _sessions, _) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(
+                vci_request(OTHER_CLIENT_ID),
+                &WiaDisclosure::new("a.b.c".parse().unwrap(), "a.b.c".parse().unwrap()),
+            )
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::UnknownClient(client_id) if client_id == OTHER_CLIENT_ID);
+        // The rejected request must not have been stored.
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
+    async fn process_par_rejects_authorization_details() {
+        let (authorizing_issuer, _sessions, wia_keypair) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
+
+        let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
+        request.authorization_details = Some(
+            vec_nonempty![EntryContainer::new_credential_config(
+                "credential_config_id".to_string().into()
+            )]
+            .try_into()
+            .unwrap(),
+        );
+
+        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+            .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(request, &wia)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::AuthorizationDetailsUnsupported);
+        // The rejected request must not have been stored.
+        assert!(authorizing_issuer.par_store.is_empty());
     }
 
     #[tokio::test]

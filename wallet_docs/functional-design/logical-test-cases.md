@@ -996,7 +996,51 @@ Cases:
 
 **Given** user has completed PID setup and opened the app<br>
 **When** user starts disclosure process by showing its QR code to a third party verifier<br>
-**Then** system requests user consent<br>git add
+**Then** system requests user consent<br>
 **When** reader disconnect BLE connection<br>
 **When** user approves with PIN<br>
 **Then** System displays an error message with instructions<br>
+
+---
+
+### LTC82
+
+#### Pre-authorized code flow issuance
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user opens a credential offer containing a pre-authorized code from a (Q)EAA issuer<br>
+**Then** system displays the offered cards without requesting disclosure<br>
+**When** user approves with PIN<br>
+**Then** system issues card and displays it to user<br>
+**And** provides a link to the dashboard<br>
+
+---
+
+### LTC83
+
+#### Authorization code flow issuance
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user opens a credential offer requiring authorization from a (Q)EAA issuer<br>
+**Then** system opens the browser for authentication at the issuer<br>
+**When** the issuer authenticates the user and the browser returns control to the app<br>
+**Then** system displays the offered cards<br>
+**When** user approves with PIN<br>
+**Then** system issues card and displays it to user<br>
+**And** provides a link to the dashboard<br>
+
+---
+
+### LTC84
+
+#### Authorization code flow issuance with consent
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user opens a credential offer requiring authorization from a (Q)EAA issuer<br>
+**Then** system opens the browser for authentication at the issuer<br>
+**When** user gives consent at the issuer in the browser<br>
+**Then** browser returns control to the app<br>
+**And** system displays the offered cards<br>
+**When** user approves with PIN<br>
+**Then** system issues card and displays it to user<br>
+**And** provides a link to the dashboard<br>

@@ -1,0 +1,61 @@
+@font-face {
+  font-family: 'RO Sans';
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/RO-SansWebText-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'RO Sans';
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+  src: url('./fonts/RO-SansWebText-Italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'RO Sans';
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/RO-SansWebText-Bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'RO Serif';
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/RO-SerifWeb-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'RO Serif';
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+  src: url('./fonts/RO-SerifWeb-Italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'RO Serif';
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/RO-SerifWeb-Bold.woff2') format('woff2');
+}
+
+:root {
+  font-family: 'RO Sans', sans-serif;
+  /* Only the faces above are bundled, so let the browser pick a real face
+     instead of synthesising the missing ones (e.g. bold italic). */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+}

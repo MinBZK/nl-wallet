@@ -389,13 +389,13 @@ pub enum ParErrorCode {
 impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
-                StatusCode::UNAUTHORIZED
-            }
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
 
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+
+            Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
         }
     }
 }
@@ -411,7 +411,7 @@ impl ErrorWithCode for ParError {
 
             Self::Wia(_) => ParErrorCode::InvalidClientAttestation,
 
-            Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
+            Self::AuthorizationDetailsUnsupported | Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
 
             Self::Store(_) => ParErrorCode::ServerError,
         }
@@ -449,13 +449,13 @@ impl ErrorStatusCode for TokenErrorCode {
         match self {
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
-                StatusCode::UNAUTHORIZED
-            }
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
 
             Self::InvalidGrant | Self::UnauthorizedClient | Self::UnsupportedGrantType | Self::InvalidScope => {
                 StatusCode::BAD_REQUEST
             }
+
+            Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
 
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -483,21 +483,23 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
 
+            Self::Wia(WiaError::Expired) => TokenErrorCode::UseFreshAttestation,
+
+            Self::Wia(_) => TokenErrorCode::InvalidClientAttestation,
+
             Self::MissingCodeVerifier | Self::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
 
             Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
 
             Self::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
 
+            Self::AuthorizationDetailsUnsupported => TokenErrorCode::InvalidRequest,
+
             Self::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
 
             Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => TokenErrorCode::InvalidRequest,
 
             Self::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
-
-            Self::Wia(WiaError::Expired) => TokenErrorCode::UseFreshAttestation,
-
-            Self::Wia(_) => TokenErrorCode::InvalidClientAttestation,
         }
     }
 }

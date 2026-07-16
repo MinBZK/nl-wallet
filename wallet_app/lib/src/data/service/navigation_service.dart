@@ -33,6 +33,8 @@ class NavigationService extends AppEventListener {
   /// here to be handled when [processQueue] is called.
   NavigationRequest? _queuedRequest;
 
+  bool get hasQueuedRequest => _queuedRequest != null;
+
   final CheckNavigationPrerequisitesUseCase _checkNavigationPrerequisitesUseCase;
   final PerformPreNavigationActionsUseCase _performPreNavigationActionsUseCase;
   final GetWalletStateUseCase _getWalletStateUseCase;

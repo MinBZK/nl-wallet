@@ -2,7 +2,7 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
 use jwt::wia::WIA_HEADER_NAME;
@@ -78,7 +78,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     issuer_endpoints: IssuerEndpoints,
     token_endpoint: Url,
     authorization_server: IssuerIdentifier,
-    http_client: HttpJsonClient,
+    http_client: HttpClient,
 
     auth_url: Url,
     redirect_uri: Url,
@@ -105,7 +105,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     /// the PAR request is rejected, or the URL cannot be constructed.
     #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(super) async fn create(
-        http_client: HttpJsonClient,
+        http_client: HttpClient,
         credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
@@ -116,9 +116,9 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         wia_client: &impl WiaClient,
         authorization_server: IssuerIdentifier,
     ) -> Result<Self, WalletIssuanceError> {
-        // Include the scope values for each Credential Configuration with a supported credential format that was
-        // present in the Credential Offer and return an error if any of them do not include a scope. According
-        // to HAIP:
+        // Include the `scope` values for each Credential Configuration with a supported credential format that was
+        // present in the Credential Offer and return an error if any of them do not include a `scope`. Note that we
+        // include the `scope` values in favour of using the `authorization_details` field. According to HAIP:
         //
         // "For Grant Type authorization_code, the Issuer MUST include a scope value in order to allow the Wallet to
         // identify the desired Credential Type. The Wallet MUST use that value in the scope Authorization parameter."
@@ -235,7 +235,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 }
 
 impl HttpAuthorizationSession {
-    pub fn restore(http_client: HttpJsonClient, data: HttpAuthorizationSessionData) -> Self {
+    pub fn restore(http_client: HttpClient, data: HttpAuthorizationSessionData) -> Self {
         Self {
             credential_configurations: data.credential_configurations,
             credential_issuer: data.credential_issuer,
@@ -280,12 +280,15 @@ impl AuthorizationSession for HttpAuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        wia_client: &impl WiaClient,
         trust_anchors: &TrustAnchors,
+        wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);
 
+        // Create the Token Request to be sent to the issuer with the minimal amount of information required. This does
+        // not include either a `scope` or `authorization_details` field, as we have no need to further restrict the
+        // credentials requested at this point.
         let token_request = TokenRequest::new_authorization_code(
             authorization_code,
             self.redirect_uri,
@@ -315,7 +318,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use http_utils::reqwest::default_reqwest_client_builder;
     use http_utils::urls::BaseUrl;
     use httpmock::Method::POST;
@@ -382,7 +385,7 @@ mod tests {
             issuer_endpoints: issuer_metadata.endpoints,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             authorization_server: ISSUER_URL.parse().unwrap(),
-            http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair,
@@ -480,7 +483,7 @@ mod tests {
             )],
         );
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
-            HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             issuer_metadata
                 .credential_configurations_supported
                 .into_iter()
@@ -539,7 +542,7 @@ mod tests {
             .unwrap();
 
         let error = HttpAuthorizationSession::<MockPkcePair>::create(
-            HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             credential_configurations,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
@@ -670,7 +673,7 @@ mod tests {
             credential_issuer: persisted.credential_issuer,
             issuer_endpoints: persisted.issuer_endpoints,
             token_endpoint: persisted.token_endpoint,
-            http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
             redirect_uri: persisted.redirect_uri.clone(),
             pkce_pair: S256PkcePair::from_code_verifier(persisted.code_verifier.clone()),
@@ -679,7 +682,7 @@ mod tests {
         };
 
         let restored = HttpAuthorizationSession::restore(
-            HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             session.persist(),
         );
         let restored_persisted = restored.persist();

@@ -27,6 +27,7 @@ use derive_more::Debug;
 use futures::future::try_join_all;
 use futures::join;
 use http_utils::urls::BaseUrl;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use jwt::Algorithm;
 use jwt::SignedJwt;
@@ -36,6 +37,7 @@ use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
+use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
@@ -54,6 +56,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
+use crate::authorization_details::AuthorizationDetails;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
 use crate::credential::Credential;
@@ -72,6 +75,7 @@ use crate::dpop::DpopError;
 use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::jose::JwsAlgorithm;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -150,6 +154,9 @@ pub enum TokenRequestError {
     #[error("session not found for the supplied code")]
     SessionNotFound,
 
+    #[error("error verifying WIA: {0}")]
+    Wia(#[source] WiaError),
+
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType { expected: String, actual: String },
 
@@ -167,6 +174,9 @@ pub enum TokenRequestError {
          {expected}, got {actual}"
     )]
     ClientIdMismatch { expected: String, actual: String },
+
+    #[error("a Token Request containing authorization_details is not supported")]
+    AuthorizationDetailsUnsupported,
 
     #[error(
         "scope received in Token Request does not match scope requested in Authorization Request: \
@@ -190,9 +200,6 @@ pub enum TokenRequestError {
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
-
-    #[error("error verifying WIA: {0}")]
-    Wia(#[source] WiaError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -562,7 +569,7 @@ where
             metadata: Cow::Borrowed(&self.issuer_data.metadata),
 
             iss: None,
-            sub: Cow::Borrowed(self.issuer_identifier().as_ref()),
+            sub: Cow::Borrowed(self.issuer_identifier()),
             iat: iat.into(),
             exp: Some(exp.into()),
         };
@@ -787,6 +794,9 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
             authorization_endpoint: Some(issuer_url.join("/issuance/authorize")),
             pushed_authorization_request_endpoint: Some(issuer_url.join("/issuance/par")),
             require_pushed_authorization_requests: true,
+            token_endpoint_auth_methods_supported: Some(IndexSet::from([WIA_CLIENT_AUTH_METHOD.to_string()])),
+            client_attestation_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
+            client_attestation_pop_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
             ..AuthorizationServerMetadata::new(
                 self.issuer_data.metadata.credential_issuer.clone(),
                 issuer_url.join("issuance/token"),
@@ -1189,6 +1199,11 @@ impl Session<AuthCodeIssued> {
         session_data
             .grant
             .verify_client_id(client_id, &issuer_data.accepted_wallet_client_ids)?;
+
+        if token_request.authorization_details.is_some() {
+            return Err(TokenRequestError::AuthorizationDetailsUnsupported);
+        }
+
         session_data.grant.verify_scope(token_request)?;
         session_data.grant.verify_redirect_uri(token_request)?;
 
@@ -1240,6 +1255,16 @@ fn build_token_response<K, L>(
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
+    // The issuer has a choice here to either include `scope` values that refer to the Credential Configurations of the
+    // credentials offered or include an `authorization_details` field that includes both the Credential Configuration
+    // Identifiers and the individual Credential Identifiers. As the former prohibits issuance of multiple credentials
+    // within the same Credential Configuration, we choose the latter.
+    let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(
+        credential_ids_and_documents
+            .nonempty_iter()
+            .map(|(config_id, document)| (config_id, document.id.to_string())),
+    );
+
     let prepared_credentials = credential_ids_and_documents
         .into_nonempty_iter()
         .map(|(config_id, document)| {
@@ -1249,7 +1274,7 @@ fn build_token_response<K, L>(
         .collect::<Result<_, _>>()?;
 
     let dpop_nonce = random_string(32);
-    let token_response = TokenResponse::new(AccessToken::new(token_request_auth_code));
+    let token_response = TokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
 
     Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))
 }
@@ -1779,7 +1804,7 @@ mod tests {
 
         let (_, payload) = signed_metadata.into_unverified().dangerous_parse_unverified().unwrap();
         assert_eq!(payload.iss, None);
-        assert_eq!(payload.sub, payload.metadata.credential_issuer.as_ref());
+        assert_eq!(payload.sub.as_ref(), &payload.metadata.credential_issuer);
         assert_eq!(payload.iat, now.into());
         assert_eq!(payload.exp, Some((now + ttl).into()));
     }

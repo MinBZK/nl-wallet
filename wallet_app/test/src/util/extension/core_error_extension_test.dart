@@ -72,6 +72,15 @@ void main() {
       expect(applicationError.sourceError, coreError);
     });
 
+    test('CoreAttestationError maps to AttestationFailedError', () async {
+      const coreError = CoreAttestationError('description');
+
+      final applicationError = await coreError.asApplicationError();
+
+      expect(applicationError, isA<AttestationFailedError>());
+      expect(applicationError.sourceError, coreError);
+    });
+
     group('CoreDisclosureSourceMismatchError', () {
       test('maps to ExternalScannerError when isCrossDevice is true', () async {
         const coreError = CoreDisclosureSourceMismatchError('description', isCrossDevice: true);

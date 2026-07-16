@@ -332,7 +332,6 @@ mod tests {
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
-    use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use rstest::rstest;
@@ -348,6 +347,7 @@ mod tests {
     use crate::pin::change::State;
     use crate::storage::ChangePinData;
     use crate::storage::PinRecoveryData;
+    use crate::storage::StoredAttestation;
     use crate::storage::TransferData;
     use crate::storage::TransferKeyData;
     use crate::wallet::Session;
@@ -731,7 +731,7 @@ mod tests {
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session([(
-            IssuedCredential::SdJwt {
+            StoredAttestation::SdJwt {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
             },

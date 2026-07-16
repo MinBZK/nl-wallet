@@ -26,7 +26,7 @@ use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -349,6 +349,7 @@ where
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -417,7 +418,6 @@ where
         }
 
         let config = self.config_repository.get();
-        let trust_anchors = config.issuer_trust_anchors();
         let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
         let (attested_key, registration_data) = self
             .registration
@@ -430,8 +430,9 @@ where
                 &offer_uri,
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
-                trust_anchors,
+                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -501,7 +502,6 @@ where
         };
 
         let config = self.config_repository.get();
-        let trust_anchors = config.issuer_trust_anchors();
         let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
@@ -510,8 +510,8 @@ where
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
+                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
-                trust_anchors,
             )
             .await
             .map_err(|e| match e {
@@ -773,10 +773,10 @@ where
             .find_map(|cred| {
                 let pid_paths = pid_attributes.sd_jwt.get(&cred.attestation_type)?;
 
-                let sd_jwt = cred.copies.as_ref().iter().find_map(|copy| match copy {
-                    IssuedCredential::MsoMdoc { .. } => None,
-                    IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
-                })?;
+                let (_, sd_jwt) = match &cred.copies {
+                    IssuedCredentialCopies::Mdoc(_) => None,
+                    IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.first()),
+                }?;
 
                 Some((sd_jwt, pid_paths))
             })
@@ -892,7 +892,6 @@ mod tests {
     use itertools::multiunzip;
     use mockall::predicate::*;
     use openid4vc::wallet_issuance::IssuanceFlow;
-    use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1778,23 +1777,25 @@ mod tests {
 
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
-    fn sd_jwt_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+    fn sd_jwt_pid() -> (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
         let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
-        (credential, metadata_docs, normalized_metadata)
+        (
+            StoredAttestation::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt,
+            },
+            metadata_docs,
+            normalized_metadata,
+        )
     }
 
-    fn mdoc_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+    fn mdoc_pid() -> (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
         let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
-        let credential = IssuedCredential::MsoMdoc { mdoc };
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
-        (credential, metadata_docs, normalized_metadata)
+        (StoredAttestation::MsoMdoc { mdoc }, metadata_docs, normalized_metadata)
     }
 
     #[rstest]
@@ -1806,7 +1807,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance(
         #[case] pid_credentials: impl IntoIterator<
-            Item = (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata),
+            Item = (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata),
         >,
     ) {
         // Prepare a registered and unlocked wallet.
@@ -1827,30 +1828,24 @@ mod tests {
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
         wallet.mut_storage().checkpoint();
 
-        let (issuer_credentials, stored_copies) = pid_credentials
+        let (stored_attestations, stored_copies) = pid_credentials
             .into_iter()
-            .map(|(credential, metadata_docs, normalized_metadata)| {
-                let stored_attestation = match credential.clone() {
-                    IssuedCredential::MsoMdoc { mdoc } => StoredAttestation::MsoMdoc { mdoc },
-                    IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
-                        StoredAttestation::SdJwt { key_identifier, sd_jwt }
-                    }
-                };
+            .map(|(stored_attestation, metadata_docs, normalized_metadata)| {
                 let stored_copy = StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    stored_attestation,
+                    stored_attestation.clone(),
                     normalized_metadata,
                     None,
                 );
 
-                ((credential, metadata_docs), stored_copy)
+                ((stored_attestation, metadata_docs), stored_copy)
             })
             .unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let credential_count = issuer_credentials.len();
-        let (pid_issuer, attestations) = mock_issuance_session(issuer_credentials);
+        let credential_count = stored_attestations.len();
+        let (pid_issuer, attestations) = mock_issuance_session(stored_attestations);
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {

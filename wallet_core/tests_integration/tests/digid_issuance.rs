@@ -3,7 +3,7 @@ use attestation_data::attributes::AttributeValue;
 use crypto::server_keys::generate::Ca;
 use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -120,7 +120,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let wallet_config = default_wallet_config();
 
-    let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
+    let http_client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);
@@ -132,6 +132,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             redirect_uri,
             wallet_config.issuer_trust_anchors(),
             &wia_client,
+            wallet_config.wrpac_trust_anchors(),
         )
         .await
         .unwrap();
@@ -157,7 +158,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Exchange the authorization code for the attestation previews. This is where the DigiD
     // connector is queried for the BSN and the BRP proxy is queried for the attributes.
     let issuance_session = authorization_session
-        .start_issuance(&redirect_url, &wia_client, wallet_config.issuer_trust_anchors())
+        .start_issuance(&redirect_url, wallet_config.issuer_trust_anchors(), &wia_client)
         .await
         .unwrap();
 

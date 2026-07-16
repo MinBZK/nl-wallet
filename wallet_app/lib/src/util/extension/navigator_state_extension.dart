@@ -13,7 +13,7 @@ extension NavigatorStateExtension<T> on NavigatorState {
   Future<T?> resetToSplash() {
     return pushNamedAndRemoveUntil(
       WalletRoutes.splashRoute,
-      ModalRoute.withName(WalletRoutes.splashRoute),
+      (route) => false,
     );
   }
 }

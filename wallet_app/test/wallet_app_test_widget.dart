@@ -16,11 +16,13 @@ import 'src/test_util/test_asset_bundle.dart';
 /// Widget that is to be used to wrap pumped test widgets.
 /// Makes sure the theme, translations and MediaQuery is provided.
 class WalletAppTestWidget extends StatelessWidget {
+  final GlobalKey<NavigatorState>? navigatorKey;
   final Widget child;
   final Brightness brightness;
   final Locale locale;
 
   const WalletAppTestWidget({
+    this.navigatorKey,
     required this.child,
     this.brightness = Brightness.light,
     this.locale = const Locale('en'),
@@ -32,6 +34,7 @@ class WalletAppTestWidget extends StatelessWidget {
     return MediaQuery(
       data: context.mediaQuery.copyWith(platformBrightness: brightness),
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         theme: brightness == Brightness.light ? WalletTheme.light : WalletTheme.dark,
         debugShowCheckedModeBanner: false,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -53,6 +56,7 @@ class WalletAppTestWidget extends StatelessWidget {
 typedef WidgetWrapper = Widget Function(Widget);
 
 WidgetWrapper walletAppWrapper({
+  GlobalKey<NavigatorState>? navigatorKey,
   Brightness brightness = Brightness.light,
   Locale locale = const Locale('en'),
   List<SingleChildWidget> providers = const [],
@@ -65,6 +69,7 @@ WidgetWrapper walletAppWrapper({
         ...providers,
       ],
       child: WalletAppTestWidget(
+        navigatorKey: navigatorKey,
         brightness: brightness,
         locale: locale,
         child: child,
@@ -122,6 +127,7 @@ extension WidgetTesterExtensions on WidgetTester {
   /// This method also provides a default [ActiveLocaleProvider].
   Future<void> pumpWidgetWithAppWrapper(
     Widget widget, {
+    GlobalKey<NavigatorState>? navigatorKey,
     Size surfaceSize = iphoneXSize,
     double textScaleSize = 1.0,
     Brightness brightness = Brightness.light,
@@ -136,6 +142,7 @@ extension WidgetTesterExtensions on WidgetTester {
 
     // Pump the test widget (with basic WalletApp dependencies)
     final wrapperMethod = walletAppWrapper(
+      navigatorKey: navigatorKey,
       brightness: brightness,
       locale: locale,
       providers: providers ?? [],

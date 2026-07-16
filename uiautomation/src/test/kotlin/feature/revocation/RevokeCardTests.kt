@@ -81,7 +81,7 @@ class RevokeCardTests : TestBase() {
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
         assertTrue(

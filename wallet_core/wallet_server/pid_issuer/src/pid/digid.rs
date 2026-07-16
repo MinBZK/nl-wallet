@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
-use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::tls_pinned_client_builder;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
@@ -56,14 +56,14 @@ pub enum Error {
 /// Holds the TLS-pinned HTTP client and upstream issuer identifier for fetching the upstream's OIDC discovery
 /// metadata.
 pub struct DigidMetadataClient {
-    http_client: HttpJsonClient,
+    http_client: HttpClient,
     oidc_identifier: IssuerIdentifier,
 }
 
 impl DigidMetadataClient {
     pub fn try_new(settings: DigidClientSettings) -> Result<Self, reqwest::Error> {
         let certs = settings.trust_anchors.into_iter().map(|ta| ta.into_certificate());
-        let http_client = HttpJsonClient::try_new(tls_pinned_client_builder(certs))?;
+        let http_client = HttpClient::try_new(tls_pinned_client_builder(certs))?;
         Ok(Self {
             http_client,
             oidc_identifier: settings.oidc_identifier,
@@ -79,7 +79,7 @@ impl DigidMetadataClient {
         .await
     }
 
-    pub fn http_client(&self) -> &HttpJsonClient {
+    pub fn http_client(&self) -> &HttpClient {
         &self.http_client
     }
 }
@@ -216,7 +216,7 @@ mod tests {
     use std::collections::HashMap;
 
     use http_utils::httpmock::httpmock_reqwest_client_builder;
-    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::HttpClient;
     use httpmock::Method::GET;
     use httpmock::MockServer;
     use jwk_simple::Key;
@@ -254,7 +254,7 @@ mod tests {
             })
             .await;
 
-        let http_client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let metadata_client = DigidMetadataClient {
             http_client,
             oidc_identifier: issuer_identifier.clone(),

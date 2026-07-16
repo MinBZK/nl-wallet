@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,7 +11,6 @@ import '../../../util/extension/wallet_state_extension.dart';
 import '../../../wallet_constants.dart';
 
 part 'splash_event.dart';
-
 part 'splash_state.dart';
 
 class SplashBloc extends Bloc<SplashEvent, SplashState> {
@@ -47,10 +48,11 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       case WalletStateInPinRecoveryFlow():
         emit(const SplashLoaded(.pinRecovery));
       case WalletStateReady():
-      case WalletStateInDisclosureFlow():
-      case WalletStateInIssuanceFlow():
       case WalletStateInPinChangeFlow():
         emit(const SplashLoaded(.dashboard));
+      case WalletStateInDisclosureFlow():
+      case WalletStateInIssuanceFlow():
+        emit(const SplashLoaded(.recoverSession));
     }
   }
 
