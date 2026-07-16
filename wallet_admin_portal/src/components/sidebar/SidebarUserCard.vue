@@ -5,7 +5,9 @@
       <div class="user-name">{{ name }}</div>
       <div class="user-role">{{ role }}</div>
     </div>
-    <div class="chevron">›</div>
+    <div class="chevron">
+      <img src="@/assets/icons/chevron_forward.svg" alt="Open Profile"/>
+    </div>
   </div>
 </template>
 
@@ -56,8 +58,8 @@ defineProps<{
 }
 
 .chevron {
-  color: #4b55d6;
-  font-size: 26px;
-  line-height: 1;
+  display: flex;
+  width: 24px;
+  height: 24px;
 }
 </style>
