@@ -4,21 +4,31 @@ use std::time::Instant;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
+use chrono::DateTime;
+use chrono::Utc;
 use itertools::Itertools;
 use moka::Expiry;
 use moka::future::Cache;
 use reqwest::Client;
 use url::Url;
+use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
+use webpki::ExpirationPolicy;
 use webpki::OwnedCertRevocationList;
+use webpki::RevocationCheckDepth;
+use webpki::RevocationOptionsBuilder;
+use webpki::UnknownStatusPolicy;
 use x509_parser::extensions::DistributionPointName;
 use x509_parser::extensions::GeneralName;
 use x509_parser::extensions::ParsedExtension;
 use x509_parser::parse_x509_crl;
 use x509_parser::revocation_list::CertificateRevocationList;
 
+use crate::trust_anchor::TrustAnchors;
 use crate::x509::BorrowingCertificate;
+use crate::x509::CertificateError;
+use crate::x509::CertificateUsage;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CrlProviderError {
@@ -28,6 +38,12 @@ pub enum CrlProviderError {
     Parsing(#[source] webpki::Error),
     #[error("Invalid URL: {0}")]
     InvalidUrl(#[source] url::ParseError),
+    #[error("certificate chain is empty")]
+    EmptyChain,
+    #[error("no usable CRL distribution point available for certificate")]
+    NoCrlDistributionPoint,
+    #[error("certificate verification failed: {0}")]
+    Verification(#[source] Box<CertificateError>),
 }
 
 struct CrlExpiry;
@@ -66,6 +82,41 @@ impl CrlProvider {
         }
     }
 
+    /// Verify a certificate chain, checking the revocation status of the leaf (first) certificate
+    /// against the CRL(s) referenced by its CDP extension.
+    ///
+    /// Only the leaf certificate's revocation status is checked (`RevocationCheckDepth::EndEntity`):
+    /// this method exists to verify access certificates specifically, not full-chain revocation.
+    pub async fn verify_chain(
+        &self,
+        chain: &[BorrowingCertificate],
+        trust_anchors: &TrustAnchors,
+        usage: Option<CertificateUsage>,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<(), CrlProviderError> {
+        let (leaf, intermediate_certs) = chain.split_first().ok_or(CrlProviderError::EmptyChain)?;
+
+        let crls = self.crls_for_cert(leaf).await?;
+        if crls.is_empty() {
+            return Err(CrlProviderError::NoCrlDistributionPoint);
+        }
+        let crl_refs = crls.iter().collect_vec();
+
+        // `rustls-webpki` verifies the CRL signature (using the issuer's public key from the
+        // certificate chain) and checks the certificate's serial number against the CRL as part of
+        // `verify_for_usage` below, so no separate CRL signature verification is done here.
+        let revocation = RevocationOptionsBuilder::new(&crl_refs)
+            .expect("crl_refs is non-empty, checked above")
+            .with_depth(RevocationCheckDepth::EndEntity)
+            .with_expiration_policy(ExpirationPolicy::Enforce)
+            .with_status_policy(UnknownStatusPolicy::Deny)
+            .build();
+
+        // Verify the leaf certificate against intermediates and trust_anchors, based on time and revocation options.
+        leaf.verify(usage, intermediate_certs, time, trust_anchors, Some(revocation))
+            .map_err(|error| CrlProviderError::Verification(Box::new(error)))
+    }
+
     async fn fetch_bytes(&self, url: Url) -> Result<Arc<Vec<u8>>, CrlProviderError> {
         if let Some(cached) = self.cache.get(&url).await {
             return Ok(cached);
@@ -83,7 +134,8 @@ impl CrlProvider {
                 .map_err(CrlProviderError::Http)?
                 .to_vec(),
         );
-        // TODO verify CRL bytes before storing in the cache (signature, validity, ...?)
+        // The CRL's signature and validity are verified against the issuer's public key when it is
+        // used in `verify_chain`, not before caching (a raw byte fetch has no issuer context yet).
         self.cache.insert(url, bytes.clone()).await;
         Ok(bytes)
     }
@@ -192,12 +244,15 @@ mod tests {
     use rustls_pki_types::UnixTime;
     use time::OffsetDateTime;
     use url::Url;
+    use utils::generator::TimeGenerator;
     use webpki::RevocationReason as WebpkiRevocationReason;
     use x509_parser::parse_x509_crl;
 
     use super::*;
     use crate::server_keys::generate::Ca;
+    use crate::trust_anchor::TrustAnchors;
     use crate::x509::CertificateConfiguration;
+    use crate::x509::CertificateError;
     use crate::x509::DistinguishedName;
     use crate::x509::NO_SAN;
 
@@ -502,5 +557,128 @@ mod tests {
 
         assert!(matches!(error, CrlProviderError::Parsing(_)));
         mock.assert_calls_async(1).await;
+    }
+
+    /// Generate a CA and a leaf certificate signed by it, with the given CRL distribution points.
+    fn ca_and_leaf_with_cdps(urls: Vec<Url>) -> (Ca, BorrowingCertificate) {
+        let ca = Ca::generate_mock();
+        let config = CertificateConfiguration {
+            crl_distribution_points: urls,
+            ..Default::default()
+        };
+        let leaf = ca
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), config, NO_SAN)
+            .unwrap();
+        let certificate = leaf.certificate().clone();
+        (ca, certificate)
+    }
+
+    #[tokio::test]
+    async fn verify_chain_succeeds_for_non_revoked_certificate() {
+        let server = MockServer::start_async().await;
+        let url: Url = server.url("/crl.der").parse().unwrap();
+        let (ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/crl.der");
+                then.status(200).body(ca.generate_crl(vec![]).unwrap().der());
+            })
+            .await;
+
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+
+        provider
+            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .await
+            .expect("certificate should verify");
+    }
+
+    #[tokio::test]
+    async fn verify_chain_fails_for_revoked_certificate() {
+        let server = MockServer::start_async().await;
+        let url: Url = server.url("/crl.der").parse().unwrap();
+        let (ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
+
+        let serial = leaf.x509_certificate().tbs_certificate.raw_serial().to_vec();
+        let revoked = RevokedCertParams {
+            serial_number: SerialNumber::from_slice(&serial),
+            revocation_time: OffsetDateTime::now_utc(),
+            reason_code: Some(RevocationReason::KeyCompromise),
+            invalidity_date: None,
+        };
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/crl.der");
+                then.status(200).body(ca.generate_crl(vec![revoked]).unwrap().der());
+            })
+            .await;
+
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+
+        let error = provider
+            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .await
+            .expect_err("revoked certificate should fail verification");
+        assert!(matches!(
+            error,
+            CrlProviderError::Verification(error)
+                if matches!(&*error, CertificateError::Verification(error) if matches!(**error, webpki::Error::CertRevoked))
+        ));
+    }
+
+    #[tokio::test]
+    async fn verify_chain_fails_when_no_crl_distribution_point_is_present() {
+        let (ca, leaf) = ca_and_leaf_with_cdps(vec![]);
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+
+        let error = provider
+            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .await
+            .expect_err("certificate without a CDP extension should fail verification");
+        assert!(matches!(error, CrlProviderError::NoCrlDistributionPoint));
+    }
+
+    #[tokio::test]
+    async fn verify_chain_fails_for_expired_crl() {
+        let server = MockServer::start_async().await;
+        let url: Url = server.url("/crl.der").parse().unwrap();
+        let (ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
+
+        let this_update = OffsetDateTime::now_utc() - Duration::from_secs(7200);
+        let next_update = this_update + Duration::from_secs(3600);
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/crl.der");
+                then.status(200).body(
+                    ca.generate_crl_with_validity(vec![], this_update, next_update)
+                        .unwrap()
+                        .der(),
+                );
+            })
+            .await;
+
+        let provider = CrlProvider::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
+
+        let error = provider
+            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .await
+            .expect_err("expired CRL should fail verification");
+        assert!(matches!(
+            error,
+            CrlProviderError::Verification(error)
+                if matches!(&*error, CertificateError::Verification(error) if matches!(**error, webpki::Error::CrlExpired { .. }))
+        ));
+    }
+
+    #[tokio::test]
+    async fn verify_chain_fails_for_empty_chain() {
+        let ca = Ca::generate_mock();
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+
+        let error = provider
+            .verify_chain(&[], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .await
+            .expect_err("empty chain should fail verification");
+        assert!(matches!(error, CrlProviderError::EmptyChain));
     }
 }
