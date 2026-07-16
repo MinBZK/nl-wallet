@@ -71,6 +71,8 @@ create-deployment-ont:
       artifacts: false
     - job: build-revocation-portal-image
       artifacts: false
+    - job: build-admin-portal-image
+      artifacts: false
   variables:
     PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
