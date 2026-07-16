@@ -68,6 +68,7 @@ time = { workspace = true, optional = true }
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
 der = { workspace = true, features = ["derive", "oid"] }
+ecdsa.workspace = true
 httpmock.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 rstest.workspace = true

@@ -40,32 +40,15 @@ pub enum PublicKey {
     RSA4096(Rsa4096PublicKey),
 }
 
-// TODO: confirm that the Hash-Eq contract is satisfied https://doc.rust-lang.org/std/hash/trait.Hash.html#hash-and-eq
 impl Hash for PublicKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
         match self {
-            PublicKey::P256(verifying_key) => {
-                state.write_u8(1);
-                state.write(&verifying_key.to_sec1_bytes());
-            }
-            PublicKey::P384(verifying_key) => {
-                state.write_u8(2);
-                state.write(&verifying_key.to_sec1_bytes());
-            }
-            PublicKey::P521(verifying_key) => {
-                state.write_u8(3);
-                state.write(&verifying_key.to_sec1_bytes());
-            }
-            PublicKey::RSA2048(rsa_public_key) => {
-                state.write_u8(4);
-                // these implement hash already
-                rsa_public_key.as_ref().hash(state);
-            }
-            PublicKey::RSA4096(rsa_public_key) => {
-                state.write_u8(5);
-                // these implement hash already
-                rsa_public_key.as_ref().hash(state);
-            }
+            PublicKey::P256(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
+            PublicKey::P384(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
+            PublicKey::P521(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
+            PublicKey::RSA2048(rsa_public_key) => rsa_public_key.as_ref().hash(state),
+            PublicKey::RSA4096(rsa_public_key) => rsa_public_key.as_ref().hash(state),
         }
     }
 }
@@ -262,4 +245,64 @@ mod mock_secure_keys {
     impl SecureEcdsaKey for SigningKey {}
 
     impl SecureEncryptionKey for Aes256Gcm {}
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hash;
+    use std::hash::Hasher;
+
+    use ecdsa::elliptic_curve::Generate;
+    use rand::rngs::OsRng;
+    use rsa::RsaPrivateKey;
+    use rstest::rstest;
+
+    use super::PublicKey;
+
+    fn hash(key: &PublicKey) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        key.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    // The Hash-Eq contract: k1 == k2 implies hash(k1) == hash(k2).
+    #[rstest]
+    #[case::p256(PublicKey::P256(*p256::ecdsa::SigningKey::generate().verifying_key()))]
+    #[case::p384(PublicKey::P384(*p384::ecdsa::SigningKey::generate().verifying_key()))]
+    #[case::p521(PublicKey::P521(*p521::ecdsa::SigningKey::generate().verifying_key()))]
+    #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key()).unwrap())]
+    #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::new(&mut OsRng, 4096).unwrap().to_public_key()).unwrap())]
+    fn hash_eq_contract(#[case] key: PublicKey) {
+        assert_eq!(key, key.clone());
+        assert_eq!(hash(&key), hash(&key.clone()));
+    }
+
+    #[test]
+    fn different_ecdsa_variants_are_not_equal() {
+        let p256_key = PublicKey::P256(*p256::ecdsa::SigningKey::generate().verifying_key());
+        let p384_key = PublicKey::P384(*p384::ecdsa::SigningKey::generate().verifying_key());
+        assert_ne!(p256_key, p384_key);
+        assert_ne!(hash(&p256_key), hash(&p384_key));
+    }
+
+    #[test]
+    fn different_rsa_variants_are_not_equal() {
+        let rsa2048_key = PublicKey::RSA2048(
+            RsaPrivateKey::new(&mut OsRng, 2048)
+                .unwrap()
+                .to_public_key()
+                .try_into()
+                .unwrap(),
+        );
+        let rsa4096_key = PublicKey::RSA4096(
+            RsaPrivateKey::new(&mut OsRng, 4096)
+                .unwrap()
+                .to_public_key()
+                .try_into()
+                .unwrap(),
+        );
+        assert_ne!(rsa2048_key, rsa4096_key);
+        assert_ne!(hash(&rsa2048_key), hash(&rsa4096_key));
+    }
 }

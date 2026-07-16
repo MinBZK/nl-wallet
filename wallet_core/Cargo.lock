@@ -1698,6 +1698,7 @@ dependencies = [
  "chrono",
  "der 0.7.10",
  "derive_more",
+ "ecdsa 0.17.0",
  "error_category",
  "futures",
  "hex",
