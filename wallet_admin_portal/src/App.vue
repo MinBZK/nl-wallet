@@ -2,20 +2,14 @@
   <div class="app-shell">
     <AppSidebar />
     <main class="main-content">
-      <TopHeader />
-      <TasksFilters />
-      <TasksTable />
-      <PaginationBar />
+      <RouterView />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { RouterView } from 'vue-router'
 import AppSidebar from './components/sidebar/AppSidebar.vue'
-import TopHeader from './components/TopHeader.vue'
-import TasksFilters from './components/TasksFilters.vue'
-import TasksTable from './components/TasksTable.vue'
-import PaginationBar from './components/PaginationBar.vue'
 </script>
 
 <style scoped>

@@ -1,6 +1,8 @@
 <template>
   <div class="brand">
+  <RouterLink to="/">
     <img src="@/assets/logo_nl_wallet.svg" alt="NL Wallet Logo" class="brand-logo" />
+    </RouterLink>
     <div>
       <div class="brand-title">NL Wallet</div>
       <div class="brand-subtitle">Acceptatie</div>

@@ -1,14 +1,18 @@
 <template>
   <header class="header">
     <div>
-      <h1>Openstaande taken</h1>
-      <p>
-        Je ziet alleen taken die passen bij jouw rol en rechten. Dit zijn de taken waarvoor jij nu
-        iets moet doen.
-      </p>
+      <h1>{{ title }}</h1>
+      <p>{{ description }}</p>
     </div>
   </header>
 </template>
+
+<script setup lang="ts">
+defineProps<{
+  title: string
+  description: string
+}>()
+</script>
 
 <style scoped>
 .header {

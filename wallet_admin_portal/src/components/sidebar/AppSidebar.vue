@@ -5,15 +5,15 @@
     <div class="nav-section">
       <div class="section-label">ALGEMEEN</div>
 
-      <button class="nav-item active">
+      <RouterLink to="/tasks" class="nav-item" exact-active-class="active">
         <span class="icon">▦</span>
         <span>Openstaande taken</span>
-      </button>
+      </RouterLink>
 
-      <button class="nav-item">
+      <RouterLink to="/history" class="nav-item" exact-active-class="active">
         <span class="icon">⏱</span>
         <span>Taakgeschiedenis</span>
-      </button>
+      </RouterLink>
     </div>
 
     <SidebarUserCard
@@ -48,17 +48,17 @@ import SidebarUserCard from './SidebarUserCard.vue'
 }
 
 .nav-item {
-  width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
   border: 1px solid transparent;
   background: transparent;
-  padding: 14px 12px;
+  padding: 14px 8px;
   border-radius: 8px;
   color: #23314d;
   font-weight: 600;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
 
