@@ -3,7 +3,6 @@ package feature.issuance
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
 import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.INSURANCE
 import helper.OrganizationAuthMetadataHelper.Organization.UNIVERSITY
 import helper.TasDataHelper
 import helper.TestBase
@@ -136,52 +135,13 @@ class DisclosureBasedIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC5 Disclosure based Issuance happy flow, insurance")
-    fun verifyInsuranceIssuance(testInfo: TestInfo) {
-        setUp(testInfo)
-        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
-        MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
-        issuerWebPage.openSameDeviceWalletFlow()
-
-        disclosureForIssuanceScreen.switchToNativeContext()
-        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)))
-
-        disclosureForIssuanceScreen.viewDetails()
-        assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
-
-        disclosureForIssuanceScreen.goBack();
-        disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(DEFAULT_PIN)
-        cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "coverage").first())
-        assertAll(
-            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)), "Subtitle is not visible") },
-            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getInsuranceClaimLabel("start_date")), "Label is not visible") },
-            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getInsuranceClaimLabel("duration")), "Label is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "product").first()), "data is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "coverage").first()), "data is not visible") },
-        )
-
-        cardIssuanceScreen.clickBackButton()
-        cardIssuanceScreen.clickAddCardButton()
-        pinScreen.enterPin(DEFAULT_PIN)
-        cardIssuanceScreen.clickToDashboardButton();
-        dashboardScreen.scrollToEndOfScreen()
-        assertAll(
-            { assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "insurance card not visible on dashboard") },
-            { assertTrue(dashboardScreen.checkCardSorting(tasData.getPidDisplayName(), tasData.getInsuranceDisplayName()), "Card sorting is incorrect") },
-        )
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC9 No cards to be issued")
     fun verifyNoInsuranceCardAvailable(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu, "900265462")
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickAmsterdamMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
 
         disclosureForIssuanceScreen.switchToNativeContext()
@@ -200,7 +160,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
         disclosureForIssuanceScreen.stop()

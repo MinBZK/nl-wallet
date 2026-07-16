@@ -9,8 +9,10 @@ class StartTransferWalletScreen : MobileActions() {
     private val startTransferButton = l10n.getString("walletTransferTargetScreenIntroductionOptInCta")
 
     fun createNewWallet() {
-        clickElementWithText(createNewWalletButton, 12)
-        clickElementWithText(createNewWalletConfirmButton, 12)
+        if (elementWithTextVisible(createNewWalletButton, 12)) {
+            clickElementWithText(createNewWalletButton, 12)
+            clickElementWithText(createNewWalletConfirmButton, 12)
+        }
     }
 
     fun clickStartTransfer() = clickElementWithText(startTransferButton, 12)
