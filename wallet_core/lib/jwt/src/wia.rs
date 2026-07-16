@@ -25,7 +25,7 @@ use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
 use crate::error::JwtVerifyError;
 use crate::error::JwtX5cVerifyError;
-use crate::headers::HeaderWithX5c;
+use crate::jades_b_b::JadesbbHeader;
 use crate::nonce::Nonce;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -118,7 +118,7 @@ pub struct WiaPopClaims {
     pub challenge: Option<Nonce>,
 }
 
-pub type Wia = UnverifiedJwt<WiaClaims, HeaderWithX5c>;
+pub type Wia = UnverifiedJwt<WiaClaims, JadesbbHeader>;
 pub type WiaPop = UnverifiedJwt<WiaPopClaims>;
 
 impl JwtTyp for WiaPopClaims {
@@ -129,7 +129,7 @@ impl JwtTyp for WiaPopClaims {
 pub struct WiaDisclosure(Wia, WiaPop);
 
 impl WiaDisclosure {
-    pub fn wia(&self) -> &UnverifiedJwt<WiaClaims, HeaderWithX5c> {
+    pub fn wia(&self) -> &UnverifiedJwt<WiaClaims, JadesbbHeader> {
         &self.0
     }
 
@@ -255,13 +255,14 @@ mod tests {
     use rstest::fixture;
     use rstest::rstest;
     use utils::generator::Generator;
+    use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::SignedJwt;
     use crate::UnverifiedJwt;
     use crate::error::JwtVerifyError;
     use crate::error::JwtX5cVerifyError;
-    use crate::headers::HeaderWithX5c;
+    use crate::jades_b_b::JadesbbHeader;
     use crate::nonce::Nonce;
     use crate::wia::ClientStatus;
     use crate::wia::WiaClaims;
@@ -288,7 +289,7 @@ mod tests {
         wia_keypair: &KeyPair,
         holder_pubkey: &VerifyingKey,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> UnverifiedJwt<WiaClaims, HeaderWithX5c> {
+    ) -> UnverifiedJwt<WiaClaims, JadesbbHeader> {
         let wia_claims = WiaClaims::new(
             holder_pubkey,
             ISS.to_string(),
@@ -303,7 +304,7 @@ mod tests {
         )
         .unwrap();
 
-        SignedJwt::sign_with_certificate(&wia_claims, wia_keypair)
+        SignedJwt::sign_with_iat(&wia_claims, wia_keypair, &TimeGenerator)
             .now_or_never()
             .unwrap()
             .unwrap()

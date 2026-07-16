@@ -77,7 +77,7 @@ where
         // we use an ordinary in-memory private key here.
         let wia_privkey = SigningKey::random(&mut OsRng);
 
-        let wia = SignedJwt::sign_with_certificate(
+        let wia = SignedJwt::sign_with_iat(
             &WiaClaims::new(
                 wia_privkey.verifying_key(),
                 iss,
@@ -92,6 +92,7 @@ where
             )
             .map_err(WiaIssuerError::KeyConversion)?,
             &self.keypair,
+            time,
         )
         .await
         .map_err(WiaIssuerError::SignError)?

@@ -27,6 +27,7 @@ use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
+use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -230,7 +231,7 @@ impl WiaClient for MockWiaClient {
 
         let exp = Utc::now() + Duration::from_secs(600);
 
-        let wia = SignedJwt::sign_with_certificate(
+        let wia = SignedJwt::sign_with_iat(
             &WiaClaims::new(
                 wia_key.verifying_key(),
                 wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
@@ -245,6 +246,7 @@ impl WiaClient for MockWiaClient {
             )
             .unwrap(),
             &wia_keypair,
+            &TimeGenerator,
         )
         .now_or_never()
         .unwrap()
