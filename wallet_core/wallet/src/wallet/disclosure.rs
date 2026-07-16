@@ -143,6 +143,10 @@ pub enum DisclosureError {
     #[error("could not fetch candidate attestations from database: {0}")]
     AttestationRetrieval(#[source] StorageError),
 
+    #[error("close proximity disclosure received an unexpected attestation format")]
+    #[category(critical)]
+    UnexpectedAttestationFormat,
+
     #[error("not all requested attributes are available, requested: {:?}", .0.requested_attributes)]
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable(AttributesNotAvailable),
@@ -213,7 +217,9 @@ impl DisclosureError {
     pub fn session_type(&self) -> Option<SessionType> {
         match self {
             Self::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => Some(*session_type),
-            Self::CloseProximityDisclosureSessionError(_) => Some(SessionType::CrossDevice),
+            Self::CloseProximityDisclosureSessionError(_) | Self::UnexpectedAttestationFormat => {
+                Some(SessionType::CrossDevice)
+            }
             _ => None,
         }
     }
@@ -277,16 +283,16 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations<T> {
+pub(super) enum WalletDisclosureAttestations<T, P> {
     Missing,
-    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation>>),
+    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation<P>>>),
 }
 
-impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
+impl<T: Hash + Eq, P> WalletDisclosureAttestations<T, P> {
     /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
-    /// [`WalletDisclosureAttestations`] is not a propsal or any of the indices is out of bounds, as this is considered
+    /// [`WalletDisclosureAttestations`] is not a proposal or any of the indices is out of bounds, as this is considered
     /// programmer error.
-    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation> {
+    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation<P>> {
         match self {
             Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
@@ -320,11 +326,14 @@ impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
     }
 }
 
+pub(super) type VpDisclosableAttestation = DisclosableAttestation<PartialAttestation>;
+type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, PartialAttestation>;
+
 #[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: WalletDisclosureAttestations<CredentialQueryIdentifier>,
+    pub attestations: VpDisclosureAttestations,
     pub protocol_state: DCS,
 }
 
@@ -332,7 +341,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>,
+        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<VpDisclosableAttestation>>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -396,7 +405,7 @@ pub(super) fn is_request_for_recovery_code(
 impl DisclosureProposalPresentation {
     /// Converts a collection of candidate attestations into a [`DisclosureProposalPresentation`].
     pub(super) fn from_candidates(
-        candidate_attestations: VecNonEmpty<VecNonEmpty<DisclosableAttestation>>,
+        candidate_attestations: VecNonEmpty<VecNonEmpty<VpDisclosableAttestation>>,
         reader_registration: ReaderRegistration,
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
@@ -456,9 +465,9 @@ where
 {
     /// Increments the usage count for every attestation copy referenced in the proposal, and collects
     /// [`AttestationPresentation`]s from those same attestations for use in disclosure event logging.
-    pub(super) async fn increment_usage_count_and_collect_presentations(
+    pub(super) async fn increment_usage_count_and_collect_presentations<P>(
         &self,
-        attestation_values: VecNonEmpty<&DisclosableAttestation>,
+        attestation_values: VecNonEmpty<&DisclosableAttestation<P>>,
     ) -> (VecNonEmpty<AttestationPresentation>, Result<(), StorageError>)
     where
         S: Storage,
@@ -491,7 +500,7 @@ where
         storage: &S,
         request: &impl AttestationRequest,
         presentation_config: &impl AttestationPresentationConfig,
-    ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
+    ) -> Result<Option<VecNonEmpty<VpDisclosableAttestation>>, StorageError> {
         let credential_types = request.credential_types().collect();
 
         let stored_attestations = storage
@@ -531,7 +540,7 @@ where
         attestation_requests: &[&impl AttestationRequest],
         pid_attributes: &PidAttributesConfiguration,
         verifier_certificate: &VerifierCertificate,
-    ) -> Result<(Vec<Option<VecNonEmpty<DisclosableAttestation>>>, bool), DisclosureError> {
+    ) -> Result<(Vec<Option<VecNonEmpty<VpDisclosableAttestation>>>, bool), DisclosureError> {
         // Check for recovery code request
         if attestation_requests
             .iter()
@@ -679,7 +688,7 @@ where
     fn verify_non_selectively_disclosable_claims<'a>(
         candidate_attestations: impl IntoIterator<
             Item = (
-                Option<VecNonEmpty<DisclosableAttestation>>,
+                Option<VecNonEmpty<VpDisclosableAttestation>>,
                 &'a NormalizedCredentialRequest,
             ),
         >,
