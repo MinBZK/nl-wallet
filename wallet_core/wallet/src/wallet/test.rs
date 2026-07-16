@@ -39,13 +39,13 @@ use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use openid4vc::wallet_issuance::mock::MockIssuanceSession;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::Generate;
 use parking_lot::Mutex;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use platform_support::attested_key::mock::MockGoogleAttestedKey;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
-use rand_core::OsRng;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
@@ -145,8 +145,8 @@ pub type TestWalletInMemoryStorage<CR = UpdatingConfigurationRepository<LocalCon
 
 /// The account server key material, generated once for testing.
 pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| AccountServerKeys {
-    certificate_signing_key: SigningKey::random(&mut OsRng),
-    instruction_result_signing_key: SigningKey::random(&mut OsRng),
+    certificate_signing_key: SigningKey::generate(),
+    instruction_result_signing_key: SigningKey::generate(),
 });
 
 /// The issuer key material, generated once for testing.
@@ -178,7 +178,7 @@ pub fn create_example_credential_payload(
             (["age_over_18"], AttributeValue::Bool(true)),
             ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
         ]),
-        SigningKey::random(&mut OsRng).verifying_key(),
+        SigningKey::generate().verifying_key(),
         time_generator,
     );
 

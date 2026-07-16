@@ -1,11 +1,6 @@
 use std::iter;
 use std::sync::Arc;
 
-use der::Any;
-use der::Decode;
-use der::Encode;
-use der::asn1::BitString;
-use der::asn1::ObjectIdentifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::signature::Signer;
@@ -24,8 +19,13 @@ use rcgen::PKCS_RSA_SHA256;
 use rcgen::RsaKeySize;
 use rsa::RsaPublicKey;
 use rsa::pkcs1::DecodeRsaPublicKey;
-use spki::AlgorithmIdentifierOwned;
 use x509_cert::certificate::Certificate;
+use x509_cert::der::Any;
+use x509_cert::der::Decode;
+use x509_cert::der::Encode;
+use x509_cert::der::asn1::BitString;
+use x509_cert::der::asn1::ObjectIdentifier;
+use x509_cert::spki::AlgorithmIdentifierOwned;
 
 use crate::attestation_extension::KEY_ATTESTATION_EXTENSION_OID;
 use crate::attestation_extension::key_description::KeyDescription;

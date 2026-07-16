@@ -97,8 +97,8 @@ mod tests {
     use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use parking_lot::RwLock;
-    use rand_core::OsRng;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
     use super::RawJwtProvider;
@@ -162,7 +162,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_store_config_to_filesystem() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
 
         let mut initial_wallet_config = default_wallet_config();
@@ -204,7 +204,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_use_newer_embedded_wallet_get() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let config_decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
 
         let config_dir = tempfile::tempdir().unwrap();

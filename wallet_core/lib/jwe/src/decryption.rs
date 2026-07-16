@@ -6,8 +6,8 @@ use derive_more::FromStr;
 use itertools::Itertools;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use p256::SecretKey;
+use p256::elliptic_curve::Generate;
 use p256::pkcs8::EncodePrivateKey;
-use rand_core::OsRng;
 #[cfg(feature = "rsa")]
 pub use rsa::JweRsaPrivateKey;
 use serde::Deserialize;
@@ -57,7 +57,7 @@ impl JweEcdhSecretKey {
     }
 
     pub fn new_random(id: Option<String>, algorithm: EcdhAlgorithm) -> Self {
-        let key = SecretKey::random(&mut OsRng);
+        let key = SecretKey::generate();
 
         Self::new(id, key, algorithm)
     }

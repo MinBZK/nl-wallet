@@ -20,7 +20,7 @@ impl Eq for WrappedKey {}
 
 impl Hash for WrappedKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.public_key.to_encoded_point(false).hash(state);
+        self.public_key.to_sec1_point(false).hash(state);
     }
 }
 

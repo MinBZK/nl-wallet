@@ -144,6 +144,7 @@ data-url = "0.3.2"
 der = { version = "0.7.10", features = ["std"] }
 derive_more = "2.1.0"
 dotenvy = "0.15.7"
+ecdsa = "0.17.0"
 etag = "4.0.0"
 flate2 = "1.1.5"
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
@@ -180,9 +181,9 @@ num-bigint = "0.4.6"
 num-traits = "0.2.19"
 nutype = "0.6.2"
 oslog = { version = "0.2.0", default-features = false }
-p256 = { version = "0.13.2", default-features = false, features = ["ecdsa", "std"] }
-p384 = { version = "0.13.1", default-features = false, features = ["ecdsa", "std"] }
-p521 = { version = "0.14.0-pre.11", default-features = false, features = ["ecdsa", "std"] }
+p256 = { version = "0.14.0", default-features = false, features = ["ecdsa", "std"] }
+p384 = { version = "0.14.0", default-features = false, features = ["ecdsa", "std"] }
+p521 = { version = "0.14.0", default-features = false, features = ["ecdsa", "std"] }
 passkey-types = "0.4.0"
 parking_lot = "0.12.5"
 pem = "3.0.6"
@@ -192,10 +193,11 @@ proc-macro2 = "1.0.103"
 quick-xml = "0.41.0"
 quote = "1.0.42"
 r2d2-cryptoki = "0.4.0-rc.0"
+getrandom = "0.4"
 # rand 0.9.x or higher is held back by rsa
 rand = "0.8.5"
-# rand_core 0.7.x or higher is held back by p256
-rand_core = "0.6.4"
+# rand_core 0.10.x or higher is held back by rand (and therefore by rsa)
+rand_core = "0.9.5"
 # rasn 0.27.x or higher is held back, as OctetString in those versions does not implement Serialize.
 rasn = { version = "0.26.6", features = ["std"] }
 rcgen = { version = "0.14.5", default-features = false }
@@ -216,7 +218,7 @@ sanitize-filename = "0.6.0"
 scraper = "0.25.0"
 sea-orm = { version = "1.1.19", default-features = false }
 sea-orm-migration = { version = "1.1.19", default-features = false }
-sec1 = "0.7.3"
+sec1 = "0.8.1"
 semver = "1.0.27"
 sentry = { version = "0.46.0", default-features = false }
 serde = "1.0.228"

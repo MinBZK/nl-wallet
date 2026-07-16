@@ -11,7 +11,7 @@ use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use rstest::fixture;
 use rstest::rstest;
 use serde::Deserialize;
@@ -50,7 +50,7 @@ struct AssertionParameters {
     challenge: Vec<u8>,
 }
 
-static DEFAULT_PRIVATE_KEY: LazyLock<SigningKey> = LazyLock::new(|| SigningKey::random(&mut OsRng));
+static DEFAULT_PRIVATE_KEY: LazyLock<SigningKey> = LazyLock::new(SigningKey::generate);
 
 /// Set some default parameters, with a static randomly generated private key.
 impl Default for AssertionParameters {
@@ -98,7 +98,7 @@ fn assertion_data() -> Vec<u8> {
 
 fn different_private_key_parameters() -> AssertionParameters {
     AssertionParameters {
-        private_key: SigningKey::random(&mut OsRng),
+        private_key: SigningKey::generate(),
         ..Default::default()
     }
 }

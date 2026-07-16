@@ -251,7 +251,7 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::fixture;
     use rstest::rstest;
     use utils::generator::Generator;
@@ -282,7 +282,7 @@ mod tests {
 
     #[fixture]
     fn holder_key() -> SigningKey {
-        SigningKey::random(&mut OsRng)
+        SigningKey::generate()
     }
 
     fn make_wia(
@@ -353,7 +353,7 @@ mod tests {
     #[rstest]
     fn verify_pop_signed_with_wrong_key(ca: Ca, holder_key: SigningKey) {
         let wia_keypair = ca.generate_wia_mock().unwrap();
-        let wrong_key = SigningKey::random(&mut OsRng);
+        let wrong_key = SigningKey::generate();
         let disclosure = WiaDisclosure::new(
             make_wia(
                 &wia_keypair,

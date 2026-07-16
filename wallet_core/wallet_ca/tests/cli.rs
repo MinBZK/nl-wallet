@@ -14,6 +14,7 @@ use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::SubjectAltNameUri;
 use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
 use p256::pkcs8::spki::DynAssociatedAlgorithmIdentifier;
@@ -24,7 +25,6 @@ use pem::Pem;
 use predicates::prelude::*;
 use predicates::str::RegexPredicate;
 use predicates::str::StartsWithPredicate;
-use rand_core::OsRng;
 use time::Duration;
 use time::OffsetDateTime;
 use x509_parser::extensions::GeneralName;
@@ -346,7 +346,7 @@ fn public_key_path(temp: &TempDir, prefix: &str) -> ChildPath {
 }
 
 fn generate_public_key(path: &ChildPath) {
-    let signing_key = SigningKey::random(&mut OsRng);
+    let signing_key = SigningKey::generate();
     let public_key = signing_key.verifying_key();
     let der = public_key.to_public_key_der().unwrap();
     let pem = Pem::new("PUBLIC KEY", der.to_vec());

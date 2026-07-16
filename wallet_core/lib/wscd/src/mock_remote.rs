@@ -27,7 +27,7 @@ use jwt::wia::WiaPopClaims;
 use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -152,7 +152,7 @@ impl IssuanceWscd for MockRemoteWscd {
         let mut keys = self.disclosure.signing_keys.lock();
         let attestation_keys: VecNonEmpty<_> = repeat_n((), count)
             .map(|_| {
-                let key = SigningKey::random(&mut OsRng);
+                let key = SigningKey::generate();
                 let identifier = verifying_key_sha256(key.verifying_key());
                 keys.insert(identifier.clone(), key.clone());
                 MockRemoteEcdsaKey::new(identifier, key)
@@ -216,7 +216,7 @@ impl WiaClient for MockWiaClient {
     type Error = MockRemoteWscdError;
 
     async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
-        let wia_key = SigningKey::random(&mut OsRng);
+        let wia_key = SigningKey::generate();
         let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
 
         let wia_keypair = self

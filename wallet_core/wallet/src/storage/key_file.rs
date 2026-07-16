@@ -94,7 +94,7 @@ mod tests {
 
     use aes_gcm::Aes256Gcm;
     use aes_gcm::KeyInit;
-    use rand_core::OsRng;
+    use aes_gcm::aead::OsRng;
     use tempfile::NamedTempFile;
     use tempfile::TempPath;
 

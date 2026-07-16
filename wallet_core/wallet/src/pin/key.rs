@@ -30,6 +30,7 @@ use p256::U256;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve;
 use p256::elliptic_curve::Curve;
 use p256::elliptic_curve::bigint::ArrayEncoding;
 use p256::elliptic_curve::bigint::Limb;
@@ -51,8 +52,8 @@ pub fn new_pin_salt() -> KeyBytes {
 
 #[derive(Debug, thiserror::Error)]
 pub enum PinKeyError {
-    #[error("HKDF key derivation error")]
-    Hkdf(#[from] UnspecifiedRingError),
+    #[error("pin private key error")]
+    PinPrivateKey(#[from] PinPrivateKeyError),
 }
 
 impl From<PinKeyError> for p256::ecdsa::Error {
@@ -99,8 +100,20 @@ impl EcdsaKey for PinKey<'_> {
 
 impl EphemeralEcdsaKey for PinKey<'_> {}
 
+#[derive(Debug, thiserror::Error)]
+pub enum PinPrivateKeyError {
+    #[error("unspecified ring error: {0}")]
+    UnspecifiedRing(#[source] UnspecifiedRingError),
+
+    #[error("try from slice error: {0}")]
+    TryFromSlice(#[source] core::array::TryFromSliceError),
+
+    #[error("elliptic curve error: {0}")]
+    EllipticCurve(#[source] elliptic_curve::Error),
+}
+
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
-fn pin_private_key(salt: &KeyBytes, pin: &Pin) -> Result<SigningKey, UnspecifiedRingError> {
+fn pin_private_key(salt: &KeyBytes, pin: &Pin) -> Result<SigningKey, PinPrivateKeyError> {
     // The `salt` parameter is really the IKM (input key material) of the HKDF, see the comment in `new_pin_salt()`.
     // The reason for length 256 / 8 + 8 is as follows. The private key must be a random number between 1 and q - 1,
     // where q is the (prime) order of the ECDSA elliptic curve (its amount of elements). But hkdf() takes bytes not
@@ -115,7 +128,7 @@ fn pin_private_key(salt: &KeyBytes, pin: &Pin) -> Result<SigningKey, Unspecified
     // vulnerabilities. Instead, we use the following constant-time algorithm: we just reduce the severity of the modulo
     // bias effect to negligibility by making the output of hkdf() sufficienfly larger.
     // Making it larger by 8 bytes, i.e. 32 bits, is conventional.
-    let hkdf = hkdf(salt.as_ref(), b"", pin.as_ref(), 256 / 8 + 8)?;
+    let hkdf = hkdf(salt.as_ref(), b"", pin.as_ref(), 256 / 8 + 8).map_err(PinPrivateKeyError::UnspecifiedRing)?;
     let key_bytes = bytes_to_ecdsa_privkey_bytes(hkdf);
 
     // We need to use `SecretKey::from_bytes`, which places a copy of the private key bytes on the stack
@@ -129,11 +142,9 @@ fn pin_private_key(salt: &KeyBytes, pin: &Pin) -> Result<SigningKey, Unspecified
 }
 
 #[inline(never)]
-fn secret_key_from_key_bytes(bytes: &KeyBytes) -> Result<SecretKey, UnspecifiedRingError> {
-    // This error is not actually a `ring` error, but there is no need to map it to something more specific,
-    // because it does not actually occur: it happens only if the scalar is larger than the P256 modulus,
-    // which it isn't by how it is constructed in bytes_to_ecdsa_privkey_bytes().
-    SecretKey::from_bytes(FieldBytes::from_slice(bytes.as_ref())).map_err(|_| UnspecifiedRingError)
+fn secret_key_from_key_bytes(bytes: &KeyBytes) -> Result<SecretKey, PinPrivateKeyError> {
+    SecretKey::from_bytes(&FieldBytes::try_from(bytes.as_ref()).map_err(PinPrivateKeyError::TryFromSlice)?)
+        .map_err(PinPrivateKeyError::EllipticCurve)
 }
 
 /// Convert the specified bytes to a number suitable for use as an ECDSA private key: an (almost) uniformly distributed
@@ -159,10 +170,11 @@ fn bytes_to_ecdsa_privkey_bytes(bts: KeyBytes) -> KeyBytes {
     drop(bts);
 
     // We'll need this below.
-    let q = u256_to_u384(&NistP256::ORDER);
+    let q: NonZero<U384> =
+        NonZero::new(u256_to_u384(NistP256::ORDER.get())).expect("NistP256::ORDER is odd, so not negative");
 
     // reduced := i mod (q-1)
-    let mut reduced = i.rem(&NonZero::from_uint(q.sub_mod(&U384::ONE, &q)));
+    let mut reduced = i.rem(&NonZero::new(q.sub_mod(&U384::ONE, &q)).expect("this is never zero"));
     i.zeroize();
 
     // plus_one := reduced + 1 = i mod (q-1) + 1
@@ -183,20 +195,21 @@ fn bytes_to_ecdsa_privkey_bytes(bts: KeyBytes) -> KeyBytes {
 
 // The U... bigint types (U256 and U384) offer no API to convert them from one size
 // to the other, necessitating this conversion method.
-fn u256_to_u384(x: &U256) -> U384 {
+fn u256_to_u384(x: U256) -> U384 {
     let mut limbs = x.as_limbs().to_vec();
-    limbs.append(&mut vec![Limb(0); (384 - 256) / Limb::BITS]);
+    limbs.append(&mut vec![Limb(0); (384 - 256) / Limb::BITS as usize]);
     U384::new(limbs.try_into().unwrap())
 }
 
 #[cfg(test)]
 mod tests {
     use futures::FutureExt;
+    use getrandom::SysRng;
+    use getrandom::rand_core::UnwrapErr;
     use p256::ecdsa::signature::Verifier;
     use p256::elliptic_curve::bigint::ArrayEncoding;
     use p256::elliptic_curve::bigint::RandomMod;
     use p256::elliptic_curve::bigint::Wrapping;
-    use rand_core::OsRng;
 
     use super::*;
 
@@ -204,24 +217,24 @@ mod tests {
     fn test_bytes_to_ecdsa_privkey_bytes() {
         // If x < NistP256::ORDER - 1, then bytes_to_ecdsa_privkey_bytes() applied to the bytes of x
         // should return x + 1.
-        let x = U256::random_mod(
-            &mut OsRng,
-            &NonZero::new((Wrapping(NistP256::ORDER) - Wrapping(U256::from(2u8))).0).unwrap(),
+        let x: U256 = U256::random_mod_vartime(
+            &mut UnwrapErr(SysRng),
+            &NonZero::new((Wrapping(NistP256::ORDER.get()) - Wrapping(U256::from(2u8))).0).unwrap(),
         );
-        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(&x).to_be_byte_array().to_vec().into());
+        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(x).to_be_byte_array().to_vec().into());
         let scalar = U256::from_be_slice(scalar_bytes.as_ref());
         assert_eq!(Wrapping(x) + Wrapping(U256::ONE), Wrapping(scalar));
 
         // x = ORDER - 1: (ORDER-1) mod (ORDER-1) = 0, so result = 0 + 1 = 1.
-        let x = (Wrapping(NistP256::ORDER) - Wrapping(U256::ONE)).0;
-        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(&x).to_be_byte_array().to_vec().into());
+        let x = (Wrapping(NistP256::ORDER.get()) - Wrapping(U256::ONE)).0;
+        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(x).to_be_byte_array().to_vec().into());
         let scalar = U256::from_be_slice(scalar_bytes.as_ref());
         assert_eq!(scalar, U256::ONE);
 
         // Larger values of x just cause the result to increment due to the modular nature of the computation in
         // bytes_to_ecdsa_privkey_bytes().
-        let x = NistP256::ORDER;
-        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(&x).to_be_byte_array().to_vec().into());
+        let x = NistP256::ORDER.get();
+        let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(x).to_be_byte_array().to_vec().into());
         let scalar = U256::from_be_slice(scalar_bytes.as_ref());
         assert_eq!(scalar, U256::from(2u8));
     }

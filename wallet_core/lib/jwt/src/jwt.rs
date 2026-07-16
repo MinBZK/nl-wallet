@@ -21,6 +21,10 @@ use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
+use ecdsa::elliptic_curve::AffinePoint;
+use ecdsa::elliptic_curve::CurveArithmetic;
+use ecdsa::elliptic_curve::FieldBytesSize;
+use ecdsa::elliptic_curve::sec1;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
@@ -376,7 +380,7 @@ where
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
 /// # use p256::ecdsa::SigningKey;
-/// # use rand_core::OsRng;
+/// # use p256::elliptic_curve::Generate;
 /// # use serde::Deserialize;
 /// # use serde::Serialize;
 ///
@@ -387,7 +391,7 @@ where
 /// impl JwtTyp for Claims {}
 ///
 /// # tokio_test::block_on(async {
-/// let key = SigningKey::random(&mut OsRng);
+/// let key = SigningKey::generate();
 /// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
 ///
 /// let unverified = signed.into_unverified();
@@ -612,7 +616,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
 /// # use p256::ecdsa::SigningKey;
-/// # use rand_core::OsRng;
+/// # use p256::elliptic_curve::Generate;
 /// # use serde::Deserialize;
 /// # use serde::Serialize;
 ///
@@ -623,7 +627,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// impl JwtTyp for Claims {}
 ///
 /// # tokio_test::block_on(async {
-/// let key = SigningKey::random(&mut OsRng);
+/// let key = SigningKey::generate();
 /// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
 ///
 /// let unverified = signed.into_unverified();
@@ -643,7 +647,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
 /// # use p256::ecdsa::SigningKey;
-/// # use rand_core::OsRng;
+/// # use p256::elliptic_curve::Generate;
 /// # use serde::Deserialize;
 /// # use serde::Serialize;
 ///
@@ -654,7 +658,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// impl JwtTyp for Claims {}
 ///
 /// # tokio_test::block_on(async {
-/// let key = SigningKey::random(&mut OsRng);
+/// let key = SigningKey::generate();
 /// let signed = SignedJwt::sign(&Claims { name: "alice".into() }, &key).await?;
 ///
 /// let verified = signed.into_verified();
@@ -728,7 +732,7 @@ impl<T, H> VerifiedJwt<T, H> {
 ///
 /// This type solves the unclarity by explicitly naming the SEC1 encoding in [`JwtDecodingKey::from_sec1()`] that it
 /// takes to construct it. From a `VerifyingKey` of the `ecdsa` crate, this encoding may be obtained by calling
-/// `public_key.to_encoded_point(false).as_bytes()`.
+/// `public_key.to_sec1_bytes()`.
 #[derive(Debug, Clone, AsRef, From, Into)]
 pub struct JwtDecodingKey(DecodingKey);
 
@@ -743,9 +747,9 @@ impl TryFrom<&Jwk> for JwtDecodingKey {
 impl From<&PublicKey> for JwtDecodingKey {
     fn from(value: &PublicKey) -> Self {
         match value {
-            PublicKey::P256(key) => DecodingKey::from_ec_der(key.to_encoded_point(false).as_bytes()).into(),
-            PublicKey::P384(key) => DecodingKey::from_ec_der(key.to_encoded_point(false).as_bytes()).into(),
-            PublicKey::P521(_) => todo!(),
+            PublicKey::P256(key) => JwtDecodingKey::from_ec_public_key(key),
+            PublicKey::P384(key) => JwtDecodingKey::from_ec_public_key(key),
+            PublicKey::P521(key) => JwtDecodingKey::from_ec_public_key(key),
             PublicKey::RSA2048(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
             PublicKey::RSA4096(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
         }
@@ -764,6 +768,15 @@ impl JwtDecodingKey {
         let n = key.n().to_bytes_be();
         let e = key.e().to_bytes_be();
         DecodingKey::from_rsa_raw_components(&n, &e).into()
+    }
+
+    fn from_ec_public_key<C: ecdsa::EcdsaCurve + CurveArithmetic>(key: &ecdsa::VerifyingKey<C>) -> Self
+    where
+        AffinePoint<C>: sec1::FromSec1Point<C> + sec1::ToSec1Point<C>,
+        FieldBytesSize<C>: sec1::ModulusSize,
+    {
+        let point = key.to_sec1_point(false);
+        DecodingKey::from_ec_der(point.as_bytes()).into()
     }
 }
 
@@ -1055,7 +1068,7 @@ mod tests {
     use jsonwebtoken::Header;
     use jsonwebtoken::jwk::JwkSet;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use serde_json::json;
     use utils::generator::TimeGenerator;
@@ -1111,7 +1124,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sign_and_verify_with_sub() {
-        let private_key = SigningKey::random(&mut OsRng);
+        let private_key = SigningKey::generate();
         let t = ToyMessage::default();
 
         let jwt = SignedJwt::sign_with_sub(t.clone(), &private_key)
@@ -1138,7 +1151,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sign_and_verify_with_typ() {
-        let private_key = SigningKey::random(&mut OsRng);
+        let private_key = SigningKey::generate();
         let t = ToyMessage::default();
 
         let jwt = SignedJwt::sign(&t, &private_key).await.unwrap().into_unverified();
@@ -1163,7 +1176,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sign_and_verify_with_wrong_typ() {
-        let private_key = SigningKey::random(&mut OsRng);
+        let private_key = SigningKey::generate();
         let t = ToyMessage::default();
 
         #[derive(Debug, Serialize, Deserialize)]
@@ -1201,7 +1214,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sign_and_verify() {
-        let private_key = SigningKey::random(&mut OsRng);
+        let private_key = SigningKey::generate();
         let t = ToyMessage::default();
 
         let unverified_jwt = SignedJwt::sign(&t, &private_key).await.unwrap().into_unverified();
@@ -1305,7 +1318,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sub_required() {
-        let private_key = SigningKey::random(&mut OsRng);
+        let private_key = SigningKey::generate();
         let t = ToyMessage::default();
 
         // create a new JWT without a `sub`
@@ -1338,7 +1351,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_json_jwt_serialization() {
-        let private_key = SigningKey::random(&mut OsRng);
+        let private_key = SigningKey::generate();
 
         let jwt = SignedJwt::sign(&ToyMessage::default(), &private_key)
             .await
@@ -1404,7 +1417,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_jwk() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_jwk(&payload, &signing_key)
@@ -1433,7 +1446,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_wrong_jwk() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_jwk(&payload, &signing_key)
@@ -1449,7 +1462,7 @@ mod tests {
             PublicKey::from(*signing_key.verifying_key())
         );
 
-        let wrong_key = SigningKey::random(&mut OsRng);
+        let wrong_key = SigningKey::generate();
         let error = jwt
             .parse_and_verify_with_expected_jwk(PublicKey::from(*wrong_key.verifying_key()), &DEFAULT_VALIDATIONS)
             .expect_err("should fail because the expected key is different from the actual key");
@@ -1459,7 +1472,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_with_jwkset() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let kid = "my-key-id".to_owned();
 
         let mut jwk = jwk_from_public_key(&PublicKey::from(*signing_key.verifying_key())).unwrap();
@@ -1490,7 +1503,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_with_jwkset_kid_not_found() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let kid = "my-key-id".to_owned();
 
         // The JwkSet holds the correct key but under a different kid.
@@ -1521,8 +1534,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_with_jwkset_wrong_key() {
-        let signing_key = SigningKey::random(&mut OsRng);
-        let other_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
+        let other_key = SigningKey::generate();
         let kid = "my-key-id".to_owned();
 
         // The JwkSet holds a different key's JWK under the matching kid.
@@ -1689,7 +1702,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_with_trailing_spaces() {
-        let private_key = SigningKey::random(&mut OsRng);
+        let private_key = SigningKey::generate();
         let t = ToyMessage::default();
         let signed_jwt = SignedJwt::sign(&t, &private_key).await.unwrap();
 

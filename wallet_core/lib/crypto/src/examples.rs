@@ -2,7 +2,7 @@ use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
 use hex_literal::hex;
-use p256::EncodedPoint;
+use p256::Sec1Point;
 use p256::SecretKey;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -85,9 +85,9 @@ fn ecdsa_privkey(d: &str) -> Result<SigningKey> {
 }
 
 fn ecdsa_pubkey(x: &str, y: &str) -> Result<VerifyingKey> {
-    VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
-        hex::decode(x)?.as_slice().into(),
-        hex::decode(y)?.as_slice().into(),
+    VerifyingKey::from_sec1_point(&Sec1Point::from_affine_coordinates(
+        hex::decode(x)?.as_slice().try_into()?,
+        hex::decode(y)?.as_slice().try_into()?,
         false,
     ))
     .context("failed to instantiate public key")

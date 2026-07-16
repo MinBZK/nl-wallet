@@ -18,7 +18,7 @@ use jwt::wia::WiaPopClaims;
 use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 
@@ -76,7 +76,7 @@ where
         // The WIA private key is not persisted in the WP database: it is generated here, used here, and forgotten
         // immediately afterwards. There is therefore no need to protect it by generating it in the HSM, so
         // we use an ordinary in-memory private key here.
-        let wia_privkey = SigningKey::random(&mut OsRng);
+        let wia_privkey = SigningKey::generate();
 
         let wia = SignedJwt::sign_with_iat(
             &WiaClaims::new(

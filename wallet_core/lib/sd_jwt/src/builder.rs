@@ -99,13 +99,13 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// # use crypto::server_keys::generate::Ca;
 /// # use jwt::confirmation::ConfirmationClaim;
 /// # use p256::ecdsa::SigningKey;
-/// # use rand_core::OsRng;
+/// # use p256::elliptic_curve::Generate;
 /// # use sd_jwt::builder::SdJwtBuilder;
 /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
 /// # use utils::date_time_seconds::DateTimeSeconds;
 ///
 ///  # tokio_test::block_on(async {
-/// let holder_key = SigningKey::random(&mut OsRng);
+/// let holder_key = SigningKey::generate();
 /// let claims = SdJwtVcClaims {
 ///     _sd_alg: None,
 ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*holder_key.verifying_key()))?,
@@ -167,16 +167,16 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// # use crypto::PublicKey;
     /// # use jwt::confirmation::ConfirmationClaim;
     /// # use p256::ecdsa::SigningKey;
+    /// # use p256::elliptic_curve::Generate;
     /// # use serde_json::json;
     /// # use sd_jwt::builder::SdJwtBuilder;
     /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
     /// # use utils::date_time_seconds::DateTimeSeconds;
     /// # use utils::vec_nonempty;
-    /// # use rand_core::OsRng;
     ///
     /// let builder = SdJwtBuilder::new(SdJwtVcClaims {
     ///     _sd_alg: None,
-    ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key()))?,
+    ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*SigningKey::generate().verifying_key()))?,
     ///     vct: "com:example:vct".into(),
     ///     vct_integrity: None,
     ///     iss: "https://issuer.example.com".parse()?  ,
@@ -276,7 +276,7 @@ mod test {
     use std::assert_matches;
 
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use serde_json::json;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -284,7 +284,7 @@ mod test {
 
     fn builder_from_json(object: serde_json::Value) -> SdJwtBuilder<Sha256Hasher> {
         SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
-            SigningKey::random(&mut OsRng).verifying_key(),
+            SigningKey::generate().verifying_key(),
             object,
             &MockTimeGenerator::default(),
         ))

@@ -147,7 +147,10 @@ pub enum JwkConversionError {
     InvalidRsaKey(rsa::errors::Error),
 
     #[error("invalid EC key: {0}")]
-    InvalidEcKey(signature::Error),
+    InvalidEcKey(ecdsa::Error),
+
+    #[error("invalid EC coordinate: {0}")]
+    InvalidCoordinate(#[source] std::array::TryFromSliceError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

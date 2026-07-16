@@ -23,6 +23,9 @@ pub enum JwkError {
 
     #[error("JWK key type \"{0}\" is not consistent with algorithm \"{1}\"")]
     InconsistentKeyType(KeyType, Algorithm),
+
+    #[error("invalid EC coordinate: {0}")]
+    InvalidCoordinate(#[source] std::array::TryFromSliceError),
 }
 
 #[derive(Debug, thiserror::Error)]

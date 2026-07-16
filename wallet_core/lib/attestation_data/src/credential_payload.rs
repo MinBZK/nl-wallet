@@ -642,7 +642,7 @@ mod mock {
     use chrono::DateTime;
     use chrono::Utc;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use utils::generator::Generator;
 
     use super::CredentialPayload;
@@ -652,7 +652,7 @@ mod mock {
     impl CredentialPayload {
         pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> (Self, SigningKey) {
             let previewable_payload = PreviewableCredentialPayload::nl_pid_example(time_generator);
-            let holder_key = SigningKey::random(&mut OsRng);
+            let holder_key = SigningKey::generate();
             (
                 Self::example_with_preview(previewable_payload, holder_key.verifying_key(), time_generator),
                 holder_key,
@@ -664,7 +664,7 @@ mod mock {
 
             Self::example_with_preview(
                 previewable_payload,
-                SigningKey::random(&mut OsRng).verifying_key(),
+                SigningKey::generate().verifying_key(),
                 time_generator,
             )
         }
@@ -709,7 +709,7 @@ mod test {
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::verifier::ValidityRequirement;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt::KbVerificationOptions;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
@@ -762,7 +762,7 @@ mod test {
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             payload_preview.clone(),
             Utc::now(),
-            &PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key()),
+            &PublicKey::from(*SigningKey::generate().verifying_key()),
             metadata_integrity.clone(),
             StatusClaim::new_mock(),
         )
@@ -859,8 +859,7 @@ mod test {
 
     #[test]
     fn test_serialize_deserialize_and_validate() {
-        let confirmation_key =
-            jwk_from_public_key(&PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key())).unwrap();
+        let confirmation_key = jwk_from_public_key(&PublicKey::from(*SigningKey::generate().verifying_key())).unwrap();
 
         let payload = CredentialPayload {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
@@ -913,7 +912,7 @@ mod test {
 
     #[test]
     fn test_from_previewable_credential_payload() {
-        let holder_key = SigningKey::random(&mut OsRng);
+        let holder_key = SigningKey::generate();
 
         let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
@@ -934,7 +933,7 @@ mod test {
 
     #[test]
     fn test_from_sd_jwt() {
-        let holder_key = SigningKey::random(&mut OsRng);
+        let holder_key = SigningKey::generate();
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();

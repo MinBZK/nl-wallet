@@ -283,9 +283,9 @@ mod tests {
     use jwt::SignedJwt;
     use mockall::predicate::*;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use parking_lot::Mutex;
     use platform_support::attested_key::AttestedKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::AccountRevokedData;
@@ -654,7 +654,7 @@ mod tests {
             iss: "wallet_unit_test".to_string(),
             iat: Utc::now(),
         };
-        let other_key = SigningKey::random(&mut OsRng);
+        let other_key = SigningKey::generate();
         let result = SignedJwt::sign_with_sub(result_claims, &other_key)
             .await
             .unwrap()

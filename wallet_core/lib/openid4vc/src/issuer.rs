@@ -1830,7 +1830,7 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
     use tracing_test::traced_test;
@@ -2344,7 +2344,7 @@ mod tests {
 
         let token_request = TokenRequest::new_mock_with_pre_authorized_code(code);
         let dpop = Dpop::new(
-            &SigningKey::random(&mut OsRng),
+            &SigningKey::generate(),
             issuer.issuer_data.server_url.join("token"),
             &Method::POST,
             None,

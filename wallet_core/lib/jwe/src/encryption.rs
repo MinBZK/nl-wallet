@@ -10,10 +10,10 @@ use jwk_simple::EcParams;
 use jwk_simple::Key;
 use jwk_simple::KeyParams;
 use jwk_simple::KeyUse;
-use p256::EncodedPoint;
 use p256::PublicKey;
-use p256::elliptic_curve::sec1::FromEncodedPoint;
-use p256::elliptic_curve::sec1::ToEncodedPoint;
+use p256::Sec1Point;
+use p256::elliptic_curve::sec1::FromSec1Point;
+use p256::elliptic_curve::sec1::ToSec1Point;
 use p256::pkcs8::EncodePublicKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -89,9 +89,12 @@ impl JwePublicKey {
 
         let id = jwk.kid().map(str::to_string);
 
-        let encoded_point =
-            EncodedPoint::from_affine_coordinates(ec_params.x.as_bytes().into(), ec_params.y.as_bytes().into(), false);
-        let public_key = PublicKey::from_encoded_point(&encoded_point)
+        let encoded_point = Sec1Point::from_affine_coordinates(
+            ec_params.x.as_bytes().try_into().map_err(JwkError::InvalidCoordinate)?,
+            ec_params.y.as_bytes().try_into().map_err(JwkError::InvalidCoordinate)?,
+            false,
+        );
+        let public_key = PublicKey::from_sec1_point(&encoded_point)
             .expect("Key::validate() succeeding guarantees valid x and y coordinates");
 
         Ok(Self::new(id, public_key, jwe_algorithm))
@@ -110,7 +113,7 @@ impl JwePublicKey {
     }
 
     fn ec_params(&self) -> EcParams {
-        let encoded_point = PublicKey::from(self.key).to_encoded_point(false);
+        let encoded_point = PublicKey::from(self.key).to_sec1_point(false);
         let x = encoded_point
             .x()
             .expect("public key should never use the identity point");

@@ -15,9 +15,6 @@ use cryptoki::object::KeyType;
 use cryptoki::object::ObjectClass;
 use cryptoki::object::ObjectHandle;
 use cryptoki::types::AuthPin;
-use der::Decode;
-use der::Encode;
-use der::asn1::OctetStringRef;
 use derive_more::AsRef;
 use futures::future;
 use measure::measure;
@@ -30,6 +27,9 @@ use r2d2_cryptoki::SessionAuth;
 use r2d2_cryptoki::SessionManager;
 use r2d2_cryptoki::r2d2::LoggingErrorHandler;
 use sec1::EcParameters;
+use sec1::der::Decode;
+use sec1::der::Encode;
+use sec1::der::asn1::OctetStringRef;
 use utils::spawn;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -464,7 +464,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             match attr {
                 Attribute::EcPoint(ec_point) => {
                     let octet_string =
-                        OctetStringRef::from_der(&ec_point).map_err(|error| HsmError::Sec1(Box::new(error)))?;
+                        <&OctetStringRef>::from_der(&ec_point).map_err(|error| HsmError::Sec1(Box::new(error)))?;
                     let public_key = VerifyingKey::from_sec1_bytes(octet_string.as_bytes())?;
                     Ok(public_key)
                 }

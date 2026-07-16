@@ -271,7 +271,7 @@ pub mod mock {
     use hsm::service::HsmError;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
 
     pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
@@ -302,10 +302,10 @@ pub mod mock {
 
     impl WalletCertificateSetup {
         pub async fn new() -> Self {
-            let pin_privkey = SigningKey::random(&mut OsRng);
+            let pin_privkey = SigningKey::generate();
             let pin_pubkey = *pin_privkey.verifying_key();
 
-            let signing_key = SigningKey::random(&mut OsRng);
+            let signing_key = SigningKey::generate();
             let signing_pubkey = *signing_key.verifying_key();
 
             let encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
@@ -338,7 +338,7 @@ mod tests {
     use hsm::service::HsmError;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
@@ -403,7 +403,7 @@ mod tests {
     async fn verify_new_wallet_certificate() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
-        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let hw_pubkey = *SigningKey::generate().verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -439,7 +439,7 @@ mod tests {
     async fn wrong_hw_key_should_not_validate() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
-        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let hw_pubkey = *SigningKey::generate().verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -464,7 +464,7 @@ mod tests {
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &init_user_state(
-                *SigningKey::random(&mut OsRng).verifying_key(),
+                *SigningKey::generate().verifying_key(),
                 setup.encrypted_pin_pubkey,
                 setup_hsm().await,
             ),
@@ -477,7 +477,7 @@ mod tests {
     async fn wrong_pin_key_should_not_validate() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
-        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let hw_pubkey = *SigningKey::generate().verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -494,13 +494,13 @@ mod tests {
         let other_encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
             &MockPkcs11Client::<HsmError>::default(),
             mock::ENCRYPTION_KEY_IDENTIFIER,
-            *SigningKey::random(&mut OsRng).verifying_key(),
+            *SigningKey::generate().verifying_key(),
         )
         .await
         .unwrap();
 
         let user_state = init_user_state(
-            *SigningKey::random(&mut OsRng).verifying_key(),
+            *SigningKey::generate().verifying_key(),
             other_encrypted_pin_pubkey,
             setup_hsm().await,
         );
@@ -525,7 +525,7 @@ mod tests {
     async fn verify_new_wallet_certificate_for_hw_key_only() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
-        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let hw_pubkey = *SigningKey::generate().verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -555,7 +555,7 @@ mod tests {
     async fn wrong_hw_key_should_not_validate_for_hw_key_only() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
-        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let hw_pubkey = *SigningKey::generate().verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -570,7 +570,7 @@ mod tests {
         .unwrap();
 
         let user_state = init_user_state(
-            *SigningKey::random(&mut OsRng).verifying_key(),
+            *SigningKey::generate().verifying_key(),
             setup.encrypted_pin_pubkey,
             setup_hsm().await,
         );

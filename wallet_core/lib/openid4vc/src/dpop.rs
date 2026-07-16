@@ -240,7 +240,7 @@ mod tests {
     use crypto::PublicKey;
     use jwt::Header;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use reqwest::Method;
     use rstest::rstest;
     use serde::de::DeserializeOwned;
@@ -257,7 +257,7 @@ mod tests {
     #[case(Some("123".to_string().into()), Some("456".to_string().into()))]
     #[tokio::test]
     async fn dpop(#[case] access_token: Option<AccessToken>, #[case] wrong_access_token: Option<AccessToken>) {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let url: Url = "https://example.com/path".parse().unwrap();
         let method = Method::POST;
 

@@ -27,7 +27,7 @@ use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
 use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
@@ -481,7 +481,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .as_ref()
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
-        let dpop_signing_key = SigningKey::random(&mut OsRng);
+        let dpop_signing_key = SigningKey::generate();
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
         let challenge = match client_auth_challenge {
@@ -1881,7 +1881,7 @@ mod tests {
             credential_request_types,
             type_metadata: [(config_id, issuance_type_metadata)].into(),
             issuer_registration: IssuerRegistration::new_mock(),
-            dpop_signing_key: SigningKey::random(&mut OsRng),
+            dpop_signing_key: SigningKey::generate(),
             dpop_nonce: Some("dpop_nonce".to_string()),
         }
     }
@@ -2236,7 +2236,7 @@ mod tests {
     ) {
         let (signer, preview_data, _, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata_state();
         let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
-        let holder_pubkey = PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key());
+        let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
         let credential_response = signer
             .into_response_from_holder_pubkey(&holder_pubkey)
             .into_immediate_credential()
@@ -2273,7 +2273,7 @@ mod tests {
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
-        let other_public_key = PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key());
+        let other_public_key = PublicKey::from(*SigningKey::generate().verifying_key());
         let error = credential
             .into_issued_mdoc(
                 "key_id".to_string(),

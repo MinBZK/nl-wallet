@@ -502,6 +502,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
@@ -988,7 +989,7 @@ mod tests {
 
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
+        let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
         let (pid_issuer, _) = mock_issuance_session([
             (

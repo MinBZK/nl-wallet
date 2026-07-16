@@ -82,7 +82,7 @@ mod tests {
 
     use attestation_data::validity::ValidityWindow;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use uuid::Uuid;
 
     use super::super::test;
@@ -129,7 +129,7 @@ mod tests {
 
         let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
         let attestation_type = sd_jwt.claims().vct.clone();
-        let (mdoc, mdoc_metadata) = create_example_pid_mdoc(&SigningKey::random(&mut OsRng));
+        let (mdoc, mdoc_metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
         let storage = wallet.mut_storage();
         storage.expect_fetch_unique_attestations().return_once(move || {

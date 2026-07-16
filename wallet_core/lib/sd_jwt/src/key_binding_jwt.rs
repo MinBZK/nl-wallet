@@ -236,7 +236,7 @@ mod test {
     use jwt::SignedJwt;
     use jwt::error::JwtVerifyError;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use serde_json::json;
     use utils::generator::mock::MockTimeGenerator;
@@ -292,7 +292,7 @@ mod test {
     fn test_key_binding_jwt_builder() {
         let sd_jwt = VerifiedSdJwt::spec_sd_jwt_vc();
 
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let hasher = Sha256Hasher;
 
         let time = MockTimeGenerator::new(Utc::now());
@@ -389,7 +389,7 @@ mod test {
 
     #[tokio::test]
     async fn test_parse_should_validate() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
@@ -424,7 +424,7 @@ mod test {
         #[case] iat_acceptance_window: Duration,
         #[case] expected_valid: bool,
     ) {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let iat_generator = MockTimeGenerator::new(Utc.timestamp_opt(iat_epoch, 0).unwrap());
         let iat = iat_generator.generate();
@@ -463,7 +463,7 @@ mod test {
 
     #[tokio::test]
     async fn test_parse_should_error_for_wrong_nonce() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let jwt_str = example_kb_jwt(&signing_key).await.to_string();
 
@@ -491,7 +491,7 @@ mod test {
 
     #[tokio::test]
     async fn test_parse_should_error_for_invalid_audience() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "other_aud",

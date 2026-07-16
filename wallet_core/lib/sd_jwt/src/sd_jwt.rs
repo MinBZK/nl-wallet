@@ -900,7 +900,7 @@ mod test {
     use jwt::error::JwtVerifyError;
     use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
@@ -974,7 +974,7 @@ mod test {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
-        let holder_key = SigningKey::random(&mut OsRng);
+        let holder_key = SigningKey::generate();
         let sd_jwt = SdJwtBuilder::new(SdJwtVcClaims::pid_example(
             &PublicKey::from(*holder_key.verifying_key()),
             &MockTimeGenerator::epoch(),
@@ -1037,7 +1037,7 @@ mod test {
     ) -> SignedSdJwtPresentation {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
+        let holder_key = SigningKey::generate();
 
         let signed_sd_jwt = conceal_paths
             .iter()
@@ -1926,7 +1926,7 @@ mod test {
     ) -> Result<IndexMap<String, Disclosure>, DecoderError> {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
+        let holder_key = SigningKey::generate();
 
         let sd_jwt = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
             holder_key.verifying_key(),

@@ -13,8 +13,8 @@ use hsm::service::HsmError;
 use itertools::Itertools;
 use jwt::nonce::Nonce;
 use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
-use rand::rngs::OsRng;
 use rstest::rstest;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
@@ -185,11 +185,11 @@ async fn test_instruction_challenge(
     let db = db_from_setup(&db_setup).await;
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 
-    let certificate_signing_key = SigningKey::random(&mut OsRng);
+    let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
     let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
-    let pin_privkey = SigningKey::random(&mut OsRng);
+    let pin_privkey = SigningKey::generate();
 
     let attestation_ca = match attestation_type {
         AttestationType::Apple => AttestationCa::Apple(&MOCK_APPLE_CA),
@@ -241,11 +241,11 @@ async fn test_wia_status() {
     let db = db_from_setup(&db_setup).await;
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 
-    let certificate_signing_key = SigningKey::random(&mut OsRng);
+    let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
     let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
-    let pin_privkey = SigningKey::random(&mut OsRng);
+    let pin_privkey = SigningKey::generate();
 
     let (certificate, hw_privkey, cert_data, user_state) = do_registration(
         &account_server,

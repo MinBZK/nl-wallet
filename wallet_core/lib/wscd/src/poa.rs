@@ -204,7 +204,7 @@ mod tests {
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
@@ -304,7 +304,7 @@ mod tests {
     async fn too_many_keys() {
         let (poa, key1, key2, iss, aud, nonce) = poa_setup().await;
 
-        let key3 = PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key());
+        let key3 = PublicKey::from(*SigningKey::generate().verifying_key());
 
         assert_matches!(
             &poa.verify(&[key1, key2, key3], &aud, &[iss], &nonce).unwrap_err(),
@@ -331,7 +331,7 @@ mod tests {
     async fn missing_key() {
         let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
 
-        let other_key = PublicKey::from(*SigningKey::random(&mut OsRng).verifying_key());
+        let other_key = PublicKey::from(*SigningKey::generate().verifying_key());
 
         assert_matches!(
             &poa.verify(&[key1, other_key], &aud, &[iss], &nonce).unwrap_err(),

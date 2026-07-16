@@ -74,7 +74,7 @@ impl TryFrom<&VerifyingKey> for CoseKey {
     type Error = CoseKeyConversionError;
 
     fn try_from(key: &VerifyingKey) -> Result<Self, Self::Error> {
-        let encoded_point = key.to_encoded_point(false);
+        let encoded_point = key.to_sec1_point(false);
         let x = encoded_point
             .x()
             .ok_or(CoseKeyConversionError::MissingCoordinate)?
@@ -143,7 +143,7 @@ fn coordinate(key: &coset::CoseKey, parameter_name: iana::Ec2KeyParameter) -> Re
 mod tests {
     use coset::CoseKeyBuilder;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
 
     use super::*;
     use crate::serialization::cbor_deserialize;
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn p256_key_and_cbor_round_trip() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let cose_key = CoseKey::try_from(signing_key.verifying_key()).unwrap();
 
         let encoded = cbor_serialize(&cose_key).unwrap();
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn p256_conversion_does_not_depend_on_parameter_order() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let mut cose_key = CoseKey::try_from(signing_key.verifying_key()).unwrap();
         cose_key.0.params.reverse();
 
@@ -173,8 +173,8 @@ mod tests {
 
     #[test]
     fn p256_conversion_rejects_coordinates_with_invalid_lengths() {
-        let signing_key = SigningKey::random(&mut OsRng);
-        let encoded_point = signing_key.verifying_key().to_encoded_point(false);
+        let signing_key = SigningKey::generate();
+        let encoded_point = signing_key.verifying_key().to_sec1_point(false);
         let x = encoded_point.x().unwrap().as_slice();
         let y = encoded_point.y().unwrap().as_slice();
 

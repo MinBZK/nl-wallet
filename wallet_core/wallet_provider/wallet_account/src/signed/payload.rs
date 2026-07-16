@@ -490,8 +490,8 @@ mod tests {
     use apple_app_attest::AssertionCounter;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use rand_core::OsRng;
     use serde::Deserialize;
     use serde::Serialize;
 
@@ -587,7 +587,7 @@ mod tests {
         let wallet_id = crypto::utils::random_string(32);
         let sequence_number = 42;
         let instruction_name = "jump";
-        let hw_privkey = SigningKey::random(&mut OsRng);
+        let hw_privkey = SigningKey::generate();
 
         let signed = ChallengeRequest::sign_google(
             wallet_id.clone(),
@@ -639,7 +639,7 @@ mod tests {
         let sequence_number = 1337;
         let challenge = b"challenge";
         let attested_key = create_mock_apple_attested_key();
-        let pin_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::generate();
 
         let signed = ChallengeResponse::sign_apple(
             ToyMessage::default(),
@@ -702,8 +702,8 @@ mod tests {
     fn test_google_challenge_response() {
         let sequence_number = 1337;
         let challenge = b"challenge";
-        let hw_privkey = SigningKey::random(&mut OsRng);
-        let pin_privkey = SigningKey::random(&mut OsRng);
+        let hw_privkey = SigningKey::generate();
+        let pin_privkey = SigningKey::generate();
 
         let signed = ChallengeResponse::sign_google(
             ToyMessage::default(),
@@ -816,7 +816,7 @@ mod tests {
     fn test_google_hw_signed_challenge_response() {
         let sequence_number = 1337;
         let challenge = b"challenge";
-        let hw_privkey = SigningKey::random(&mut OsRng);
+        let hw_privkey = SigningKey::generate();
 
         let signed = HwSignedChallengeResponse::sign_google(
             ToyMessage::default(),

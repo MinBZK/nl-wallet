@@ -105,6 +105,7 @@ libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-ope
 
 [dev-dependencies]
 aes-gcm.workspace = true
+getrandom.workspace = true
 httpmock.workspace = true
 mockall.workspace = true
 rand_core.workspace = true

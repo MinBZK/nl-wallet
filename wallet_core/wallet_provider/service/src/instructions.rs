@@ -1462,7 +1462,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::signature::Verifier;
-    use rand::rngs::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use semver::Version;
     use strum::IntoEnumIterator;
@@ -1607,8 +1607,8 @@ mod tests {
             poa_nonce: poa_nonce.clone(),
             poa_aud: poa_aud.clone(),
         };
-        let signing_key_1 = SigningKey::random(&mut OsRng);
-        let signing_key_2 = SigningKey::random(&mut OsRng);
+        let signing_key_1 = SigningKey::generate();
+        let signing_key_2 = SigningKey::generate();
         let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
         let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
         let signing_key_1_public = *signing_key_1.verifying_key();
@@ -2273,7 +2273,7 @@ mod tests {
     }
 
     fn mock_change_pin_start_instruction() -> ChangePinStart {
-        let privkey = SigningKey::random(&mut OsRng);
+        let privkey = SigningKey::generate();
         let signature: Signature = privkey.sign("bla".as_bytes());
         ChangePinStart {
             pin_pubkey: (*privkey.verifying_key()).into(),
@@ -2300,7 +2300,7 @@ mod tests {
     fn mock_start_pin_recovery_instruction() -> StartPinRecovery {
         StartPinRecovery {
             issuance_instruction: mock_issuance_instruction(),
-            pin_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+            pin_pubkey: (*SigningKey::generate().verifying_key()).into(),
         }
     }
 

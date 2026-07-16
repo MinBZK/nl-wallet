@@ -372,10 +372,10 @@ mod tests {
     use http::StatusCode;
     use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use parking_lot::Mutex;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
-    use rand_core::OsRng;
     use rstest::rstest;
     use wallet_account::RevocationCode;
     use wallet_account::messages::errors::AccountError;
@@ -812,8 +812,8 @@ mod tests {
             .unwrap()
             .expect_register()
             .return_once(|_, _| {
-                let other_account_server_key = SigningKey::random(&mut OsRng);
-                let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+                let other_account_server_key = SigningKey::generate();
+                let random_pubkey = *SigningKey::generate().verifying_key();
 
                 let certificate =
                     SignedJwt::sign_with_sub(valid_certificate_claims(None, random_pubkey), &other_account_server_key)
@@ -853,7 +853,7 @@ mod tests {
             .unwrap()
             .expect_register()
             .return_once(|_, _| {
-                let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+                let random_pubkey = *SigningKey::generate().verifying_key();
                 let certificate = valid_certificate(None, random_pubkey);
 
                 let revocation_code = RevocationCode::new_random();

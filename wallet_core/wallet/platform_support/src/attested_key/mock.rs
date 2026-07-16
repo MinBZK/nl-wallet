@@ -9,7 +9,6 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Signer;
 use parking_lot::RwLock;
-use rand_core::OsRng;
 use uuid::Uuid;
 
 use super::AppleAssertion;
@@ -422,6 +421,7 @@ mod apple {
     use apple_app_attest::Attestation;
     use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::MockAttestationCa;
+    use p256::elliptic_curve::Generate;
 
     use super::*;
 
@@ -463,7 +463,7 @@ mod apple {
         }
 
         pub fn new_random(app_identifier: AppIdentifier) -> Self {
-            Self::new(app_identifier, SigningKey::random(&mut OsRng))
+            Self::new(app_identifier, SigningKey::generate())
         }
 
         pub fn new_with_attestation(
@@ -507,6 +507,7 @@ mod google {
     use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::mock_chain::MockCaChain;
     use base64::prelude::*;
+    use p256::elliptic_curve::Generate;
 
     use super::*;
 
@@ -562,7 +563,7 @@ mod google {
         }
 
         pub(super) fn new_random(key_states: KeyStates, key_identifier: String) -> Self {
-            Self::new(key_states, key_identifier, SigningKey::random(&mut OsRng))
+            Self::new(key_states, key_identifier, SigningKey::generate())
         }
 
         pub fn verifying_key(&self) -> &VerifyingKey {
