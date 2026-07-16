@@ -47,6 +47,7 @@
 }
 
 :root {
+  --color-background: #FCFCFC;
   --color-border: #e8eaef;
   --color-text-primary: #152a62;
   --color-text-secondary: #445581;
