@@ -11,13 +11,17 @@
     </div>
 
     <div class="pages">
-      <button class="nav">‹</button>
+      <button class="nav">
+        <img src="@/assets/icons/chevron_backward.svg" alt="Previous page"/>
+      </button>
       <button class="page active">1</button>
       <button class="page">2</button>
       <button class="page">3</button>
       <span class="ellipsis">…</span>
       <button class="page">12</button>
-      <button class="nav">›</button>
+      <button class="nav">
+        <img src="@/assets/icons/chevron_forward.svg" alt="Next page"/>
+      </button>
     </div>
   </footer>
 </template>
@@ -37,18 +41,22 @@
 .summary {
   display: flex;
   align-items: center;
-  gap: 18px;
-  color: #47506a;
+  gap: 16px;
+  color: var(--color-text-primary);
   font-size: 14px;
+  line-height: 20px;
 }
 
 select {
   height: 38px;
-  border: 1px solid #e4e6ef;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0 12px;
   background: #fff;
-  color: #39445f;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: #1A0006;
 }
 
 .pages {
@@ -57,16 +65,27 @@ select {
   gap: 8px;
 }
 
-.page,
-.nav {
-  min-width: 42px;
-  height: 42px;
+.page {
+  min-width: 44px;
+  height: 44px;
   border: none;
   border-radius: 12px;
   background: #f3f4fb;
   color: #4b55d6;
   font-weight: 700;
   cursor: pointer;
+}
+
+.nav {
+  min-width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: --var(--color-background);
+  font-weight: 700;
+  cursor: pointer;
+  align-items: center;
+  display: flex;
 }
 
 .page.active {
