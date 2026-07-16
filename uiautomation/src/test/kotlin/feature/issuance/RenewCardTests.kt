@@ -81,12 +81,12 @@ class RenewCardTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC11 Renew card")
-    fun verifyInsuranceIssuance(testInfo: TestInfo) {
+    fun verifyMdocDiplomaIssuance(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
         disclosureForIssuanceScreen.share()
@@ -98,7 +98,7 @@ class RenewCardTests : TestBase() {
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.switchToNativeContext()
         disclosureForIssuanceScreen.share()
@@ -109,9 +109,9 @@ class RenewCardTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
-        assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "Insurance card not visible on dashboard")
+        assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
 
-        dashboardScreen.clickCard(tasData.getInsuranceDisplayName())
+        dashboardScreen.clickCard(tasData.getDiplomaDisplayName())
         cardDetailScreen.clickCardHistoryButton()
         assertAll(
             { assertTrue(historyOverviewScreen.issuanceSubtitleVisible(), "data is not visible") },
