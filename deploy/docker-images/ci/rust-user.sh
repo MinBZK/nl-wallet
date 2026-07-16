@@ -5,7 +5,7 @@ wget --no-hsts -q -O ./rustup-init https://static.rust-lang.org/rustup/archive/1
 echo "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10  rustup-init" | sha256sum -c
 
 chmod +x ./rustup-init
-./rustup-init -y --default-toolchain 1.97.0 --profile minimal --component clippy,rustfmt
+./rustup-init -y --default-toolchain 1.97.1 --profile minimal --component clippy,rustfmt
 rm ./rustup-init
 
 rustup toolchain install nightly --profile minimal --component rustfmt

@@ -78,8 +78,8 @@ build {
     inline = [
       "source ~/.zprofile",
       "set -eux",
-      "rustup toolchain install 1.97.0 --profile minimal --component clippy",
-      "rustup default 1.97.0",
+      "rustup toolchain install 1.97.1 --profile minimal --component clippy",
+      "rustup default 1.97.1",
       "cargo install cargo-expand --locked --version 1.0.123",
       "cargo install lcov2xml --locked --version 1.0.9",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
