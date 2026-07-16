@@ -186,6 +186,16 @@ revocation-portal-${DEPLOY_ENV}:
     RELEASE_NAME: revocation-portal
     CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,${DEPLOY_ENV}/revocation-portal.yaml"
 
+admin-portal-${DEPLOY_ENV}:
+  extends: .deploy-helm-with-tag
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: admin-portal
+    RELEASE_NAME: admin-portal
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/admin-portal.yaml"
+
 update-policy-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
   needs:
