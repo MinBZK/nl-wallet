@@ -3267,11 +3267,14 @@ pub(crate) mod tests {
 
         let (attestation_id, _) = insert_sd_jwt_credential(&mut storage, "test_key_id", Utc::now(), 1).await;
 
-        let (_, key_identifiers) = storage
+        let (credential_kind, key_identifiers) = storage
             .fetch_credential_kind_and_key_identifiers_by_attestation_id(attestation_id)
             .await
             .expect("Could not fetch key identifiers")
             .expect("Should have found the attestation");
+
+        assert_eq!(Format::SdJwt, credential_kind.format);
+        assert_eq!("urn:example:pid:nl:1", &credential_kind.attestation_type);
 
         assert_eq!(key_identifiers, vec!["test_key_id".to_string()]);
     }
