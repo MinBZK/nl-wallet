@@ -230,7 +230,7 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
         }
     }
 
-    pub fn session_state_mut(&mut self) -> &mut SessionState<AS, IS> {
+    fn session_state_mut(&mut self) -> &mut SessionState<AS, IS> {
         match self {
             WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
                 session_state
@@ -238,7 +238,7 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
         }
     }
 
-    pub fn into_session_state(self) -> SessionState<AS, IS> {
+    fn into_session_state(self) -> SessionState<AS, IS> {
         match self {
             WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
                 session_state
