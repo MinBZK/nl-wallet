@@ -423,7 +423,7 @@ run-digid-bridge-test-ont:
           "postgres",
           # Allow for more connections with larger shared buffers
           "-N",
-          "200",
+          "768",
           "-c",
           "shared_buffers=128MB",
           # Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html

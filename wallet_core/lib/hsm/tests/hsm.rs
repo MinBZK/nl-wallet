@@ -1,5 +1,6 @@
 use async_dropper::AsyncDropper;
 use hsm::service::Pkcs11Hsm;
+use hsm::test::HsmSetup;
 use hsm::test::TestCase;
 use rstest::Context;
 use rstest::rstest;
@@ -17,7 +18,8 @@ async fn hsm_tests<F>(#[context] ctx: Context, #[case] test: F)
 where
     F: AsyncFnOnce(TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm>,
 {
-    let test_case = TestCase::new("hsm.toml", ctx.description.unwrap());
+    let hsm_setup = HsmSetup::new();
+    let test_case = TestCase::new(&hsm_setup, "hsm.toml", ctx.description.unwrap());
     let test_case = test(test_case).await;
     // Explicitly drop, to capture possible errors.
     drop(AsyncDropper::new(test_case));

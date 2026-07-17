@@ -10,6 +10,7 @@ use dcql::Query;
 use dcql::TrustedAuthoritiesQuery;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
+use hsm::test::HsmSetup;
 use http_utils::error::HttpJsonErrorBody;
 use itertools::Itertools;
 use openid4vc::return_url::ReturnUrlTemplate;
@@ -55,6 +56,7 @@ async fn assert_disclosure_ok(
     test_credentials: TestCredentials,
 ) {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
     let start_request = StartDisclosureRequest {
@@ -66,7 +68,7 @@ async fn assert_disclosure_ok(
         return_url_template,
     };
 
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
 
@@ -281,9 +283,10 @@ async fn failed_disclosure_session(
     start_request: StartDisclosureRequest,
 ) -> (WalletWithStorage, DisclosureError, Url, Url) {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     let client = reqwest::Client::new();
@@ -382,7 +385,7 @@ async fn ltc20_test_disclosure_without_pid() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_disclosure_aki_ok() {
     let session_type = SessionType::SameDevice;
     let return_url_template = None;
@@ -432,7 +435,7 @@ async fn test_disclosure_aki_ok() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_disclosure_wrong_aki_wallet_aborts() {
     let mut dcql_query = new_mock_mdoc_pid_example();
     dcql_query.credentials = dcql_query
