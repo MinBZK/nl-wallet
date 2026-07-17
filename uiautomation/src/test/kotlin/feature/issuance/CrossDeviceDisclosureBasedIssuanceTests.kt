@@ -1,8 +1,8 @@
 package feature.issuance
 
 import helper.IssuanceDataHelper
-import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.UNIVERSITY
+import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.UNIVERSITY
 import helper.TasDataHelper
 import helper.TwoDeviceTestBase
 import navigator.MenuNavigator
@@ -46,14 +46,14 @@ class CrossDeviceDisclosureBasedIssuanceTests : TwoDeviceTestBase() {
 
     private lateinit var issuanceData: IssuanceDataHelper
     private lateinit var tasData: TasDataHelper
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
 
     fun setUp(testInfo: TestInfo) {
         startDrivers(testInfo)
 
         issuanceData = IssuanceDataHelper()
         tasData = TasDataHelper()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
 
         useSourceDevice {
             sourceDashboard = DashboardScreen()
@@ -90,7 +90,7 @@ class CrossDeviceDisclosureBasedIssuanceTests : TwoDeviceTestBase() {
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
             assertTrue(sourceQrScanner.visible())
 
-            assertTrue(sourceDisclosureScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)))
+            assertTrue(sourceDisclosureScreen.organizationNameVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)))
 
             sourceDisclosureScreen.viewDetails()
             assertTrue(sourceDisclosureScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))

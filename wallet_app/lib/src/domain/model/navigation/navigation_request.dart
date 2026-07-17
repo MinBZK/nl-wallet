@@ -5,6 +5,7 @@ import '../../../feature/card/detail/argument/card_detail_screen_argument.dart';
 import '../../../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../../../feature/error/invariant/argument/invariant_error_screen_argument.dart';
 import '../../../feature/issuance/argument/issuance_screen_argument.dart';
+import '../../../feature/recover_pin/argument/recover_pin_screen_argument.dart';
 import '../../../feature/sign/argument/sign_screen_argument.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../wallet_core/error/core_error.dart';
@@ -55,6 +56,7 @@ abstract class NavigationRequest with _$NavigationRequest {
     navigatePrerequisites: const [
       NavigationPrerequisite.walletUnlocked,
       NavigationPrerequisite.walletInitialized,
+      NavigationPrerequisite.walletInIssuanceState,
     ],
     preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
   );
@@ -66,6 +68,7 @@ abstract class NavigationRequest with _$NavigationRequest {
     navigatePrerequisites: const [
       NavigationPrerequisite.walletUnlocked,
       NavigationPrerequisite.walletInitialized,
+      NavigationPrerequisite.walletInIssuanceState,
     ],
     preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
   );
@@ -73,7 +76,7 @@ abstract class NavigationRequest with _$NavigationRequest {
   factory NavigationRequest.pinRecovery(String uri) => NavigationRequest.generic(
     WalletRoutes.pinRecoveryRoute,
     removeUntil: WalletRoutes.forgotPinRoute,
-    argument: uri,
+    argument: RecoverPinScreenArgument(uri: uri),
     navigatePrerequisites: const [NavigationPrerequisite.walletInitialized],
     preNavigationActions: const [PreNavigationAction.disableUpcomingPageTransition],
   );

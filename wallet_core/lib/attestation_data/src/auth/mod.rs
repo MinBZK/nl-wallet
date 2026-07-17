@@ -1,7 +1,8 @@
 pub mod issuer_auth;
-pub mod reader_auth;
 
 use attestation_types::image::Image;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::DistinguishedNameError;
 use derive_more::Debug;
 use indexmap::IndexMap;
 use serde::Deserialize;
@@ -9,6 +10,9 @@ use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
+
+use crate::x509::RelyingParty;
+use crate::x509::RelyingPartyError;
 
 type Language = String;
 
@@ -18,7 +22,7 @@ pub struct LocalizedStrings(pub IndexMap<Language, String>);
 
 #[serde_as]
 #[skip_serializing_none]
-// TODO: Check if serde is still necessary when Issuer and Reader registrations are removed (PVW-5895,PVW-5870)
+// TODO: Check if serde is still necessary when Issuer and Reader registrations are removed (PVW-5870)
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Organization {
@@ -29,13 +33,35 @@ pub struct Organization {
     #[debug(skip)]
     pub logo: Option<Image>,
     pub web_url: Option<Url>,
-    // TODO: Remove rename when Issuer and Reader registrations are removed (PVW-5895,PVW-5870)
+    // TODO: Remove rename when Issuer registration is removed (PVW-5870)
     #[serde(rename = "kvk")]
-    pub identifier: Option<String>,
+    pub identifier: String,
     pub city: Option<LocalizedStrings>,
     pub department: Option<LocalizedStrings>,
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum OrganizationError {
+    #[error("distinguished name error: {0}")]
+    DistinguishedName(#[source] DistinguishedNameError),
+
+    #[error("relying party error: {0}")]
+    RelyingParty(#[source] RelyingPartyError),
+}
+
+impl TryFrom<&BorrowingCertificate> for Organization {
+    type Error = OrganizationError;
+
+    fn try_from(certificate: &BorrowingCertificate) -> Result<Self, Self::Error> {
+        let dn = certificate
+            .to_distinguished_name()
+            .map_err(OrganizationError::DistinguishedName)?;
+        RelyingParty::try_from(dn)
+            .map_err(OrganizationError::RelyingParty)
+            .map(Self::from)
+    }
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -54,7 +80,7 @@ pub mod mock {
     }
 
     impl Organization {
-        pub fn new_mock() -> Box<Self> {
+        pub fn new_mock() -> Self {
             Organization {
                 display_name: "Mijn Organisatienaam".to_owned(),
                 legal_name: "Organisatie".to_owned(),
@@ -64,7 +90,7 @@ pub mod mock {
                 ]
                 .into(),
                 category: [("nl", "Categorie"), ("en", "Category")].into(),
-                identifier: Some("some-identifier".to_owned()),
+                identifier: "some-identifier".to_owned(),
                 city: Some([("nl", "Den Haag"), ("en", "The Hague")].into()),
                 department: Some([("nl", "Afdeling"), ("en", "Department")].into()),
                 country_code: "NL".to_owned(),
@@ -72,7 +98,6 @@ pub mod mock {
                 privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
                 logo: None,
             }
-            .into()
         }
     }
 }

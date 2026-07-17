@@ -71,7 +71,7 @@ class DeleteCardTests : TestBase() {
 
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
 
         disclosureForIssuanceScreen.switchToNativeContext()
@@ -82,7 +82,7 @@ class DeleteCardTests : TestBase() {
         cardIssuanceScreen.clickToDashboardButton();
         dashboardScreen.scrollToEndOfScreen()
 
-        dashboardScreen.clickCard(cardMetadata.getInsuranceDisplayName())
+        dashboardScreen.clickCard(cardMetadata.getDiplomaDisplayName())
         cardDetailScreen.clickDeleteCardButton()
         cardDetailScreen.clickConfirmDeleteCard()
         pinScreen.enterPin(DEFAULT_PIN)

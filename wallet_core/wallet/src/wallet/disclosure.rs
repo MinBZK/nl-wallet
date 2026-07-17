@@ -5,13 +5,13 @@ use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use attestation_data::auth::Organization;
-use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::auth::OrganizationError;
 use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
-use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use chrono::Utc;
+use crypto::x509::BorrowingCertificate;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
@@ -86,7 +86,7 @@ use crate::wallet::state::CheckPreconditionsError;
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
     pub attestation_options: VecNonEmpty<DisclosureAttestationOptions>,
-    pub reader_registration: ReaderRegistration,
+    pub organization: Organization,
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
     pub disclosure_type: DisclosureType,
@@ -101,7 +101,7 @@ pub enum DisclosureAttestationOptions {
 
 #[derive(Debug, Clone)]
 pub struct AttributesNotAvailable {
-    pub reader_registration: Box<ReaderRegistration>,
+    pub organization: Box<Organization>,
     pub requested_attributes: HashSet<String>,
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
@@ -126,6 +126,10 @@ pub enum DisclosureError {
     #[category(pd)]
     DisclosureUriQuery(Url),
 
+    #[error("could not get organization from certificate: {0}")]
+    #[category(critical)]
+    Organization(OrganizationError),
+
     #[error("error in OpenID4VP disclosure session: {0}")]
     VpClient(#[source] VpClientError),
 
@@ -142,6 +146,10 @@ pub enum DisclosureError {
 
     #[error("could not fetch candidate attestations from database: {0}")]
     AttestationRetrieval(#[source] StorageError),
+
+    #[error("close proximity disclosure received an unexpected attestation format")]
+    #[category(critical)]
+    UnexpectedAttestationFormat,
 
     #[error("not all requested attributes are available, requested: {:?}", .0.requested_attributes)]
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
@@ -213,7 +221,9 @@ impl DisclosureError {
     pub fn session_type(&self) -> Option<SessionType> {
         match self {
             Self::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => Some(*session_type),
-            Self::CloseProximityDisclosureSessionError(_) => Some(SessionType::CrossDevice),
+            Self::CloseProximityDisclosureSessionError(_) | Self::UnexpectedAttestationFormat => {
+                Some(SessionType::CrossDevice)
+            }
             _ => None,
         }
     }
@@ -277,16 +287,16 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations<T> {
+pub(super) enum WalletDisclosureAttestations<T, P> {
     Missing,
-    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation>>),
+    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation<P>>>),
 }
 
-impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
+impl<T: Hash + Eq, P> WalletDisclosureAttestations<T, P> {
     /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
-    /// [`WalletDisclosureAttestations`] is not a propsal or any of the indices is out of bounds, as this is considered
+    /// [`WalletDisclosureAttestations`] is not a proposal or any of the indices is out of bounds, as this is considered
     /// programmer error.
-    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation> {
+    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation<P>> {
         match self {
             Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
@@ -320,11 +330,14 @@ impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
     }
 }
 
+pub(super) type VpDisclosableAttestation = DisclosableAttestation<PartialAttestation>;
+type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, PartialAttestation>;
+
 #[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: WalletDisclosureAttestations<CredentialQueryIdentifier>,
+    pub attestations: VpDisclosureAttestations,
     pub protocol_state: DCS,
 }
 
@@ -332,7 +345,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>,
+        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<VpDisclosableAttestation>>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -396,15 +409,14 @@ pub(super) fn is_request_for_recovery_code(
 impl DisclosureProposalPresentation {
     /// Converts a collection of candidate attestations into a [`DisclosureProposalPresentation`].
     pub(super) fn from_candidates(
-        candidate_attestations: VecNonEmpty<VecNonEmpty<DisclosableAttestation>>,
-        reader_registration: ReaderRegistration,
+        candidate_attestations: VecNonEmpty<VecNonEmpty<VpDisclosableAttestation>>,
+        organization: Organization,
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
         disclosure_type: DisclosureType,
         purpose: RedirectUriPurpose,
     ) -> Self {
         // Place the proposed attestations in a `DisclosureProposalPresentation`,
-        // along with a copy of the `ReaderRegistration`.
         let attestation_options = candidate_attestations
             .into_nonempty_iter()
             .map(|candidates| {
@@ -422,7 +434,7 @@ impl DisclosureProposalPresentation {
 
         DisclosureProposalPresentation {
             attestation_options,
-            reader_registration,
+            organization,
             shared_data_with_relying_party_before,
             session_type,
             disclosure_type,
@@ -456,9 +468,9 @@ where
 {
     /// Increments the usage count for every attestation copy referenced in the proposal, and collects
     /// [`AttestationPresentation`]s from those same attestations for use in disclosure event logging.
-    pub(super) async fn increment_usage_count_and_collect_presentations(
+    pub(super) async fn increment_usage_count_and_collect_presentations<P>(
         &self,
-        attestation_values: VecNonEmpty<&DisclosableAttestation>,
+        attestation_values: VecNonEmpty<&DisclosableAttestation<P>>,
     ) -> (VecNonEmpty<AttestationPresentation>, Result<(), StorageError>)
     where
         S: Storage,
@@ -491,11 +503,9 @@ where
         storage: &S,
         request: &impl AttestationRequest,
         presentation_config: &impl AttestationPresentationConfig,
-    ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
-        let credential_types = request.credential_types().collect();
-
+    ) -> Result<Option<VecNonEmpty<VpDisclosableAttestation>>, StorageError> {
         let stored_attestations = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&credential_types, request.format(), TimeGenerator)
+            .fetch_valid_unique_attestations_by_credential_kinds(&request.credential_kinds(), TimeGenerator)
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -530,16 +540,16 @@ where
         &self,
         attestation_requests: &[&impl AttestationRequest],
         pid_attributes: &PidAttributesConfiguration,
-        verifier_certificate: &VerifierCertificate,
-    ) -> Result<(Vec<Option<VecNonEmpty<DisclosableAttestation>>>, bool), DisclosureError> {
+        certificate: &BorrowingCertificate,
+    ) -> Result<(Vec<Option<VecNonEmpty<VpDisclosableAttestation>>>, bool), DisclosureError> {
+        let organization = Organization::try_from(certificate).map_err(DisclosureError::Organization)?;
+
         // Check for recovery code request
         if attestation_requests
             .iter()
             .any(|request| is_request_for_recovery_code(request, pid_attributes))
         {
-            return Err(DisclosureError::RecoveryCodeRequested(
-                verifier_certificate.registration().organization.clone(),
-            ));
+            return Err(DisclosureError::RecoveryCodeRequested(organization.into()));
         }
 
         // For each disclosure request, fetch the candidates from the database and convert
@@ -554,7 +564,7 @@ where
         .map_err(DisclosureError::AttestationRetrieval)?;
 
         let shared_data_with_relying_party_before = storage
-            .did_share_data_with_relying_party(verifier_certificate.certificate())
+            .did_share_data_with_relying_party(&organization)
             .await
             .map_err(DisclosureError::HistoryRetrieval)?;
 
@@ -587,18 +597,14 @@ where
         // Start the disclosure session based on the parsed disclosure URI.
         let session = self
             .disclosure_client
-            .start(
-                disclosure_uri_query,
-                source,
-                wallet_config.disclosure.rp_trust_anchors(),
-            )
+            .start(disclosure_uri_query, source, wallet_config.wrpac_trust_anchors())
             .await?;
 
         let (candidate_attestations, shared_data_with_relying_party_before) = self
             .prepare_disclosure(
                 &session.credential_requests().as_ref().iter().collect_vec(),
                 &wallet_config.pid_attributes,
-                session.verifier_certificate(),
+                session.certificate(),
             )
             .await?;
 
@@ -607,11 +613,8 @@ where
             .zip(session.credential_requests().as_ref());
 
         // Verify whether all non selectively disclosable claims are requested
-        let reader_registration = session.verifier_certificate().registration().clone();
-        Self::verify_non_selectively_disclosable_claims(
-            candidate_attestations.clone(),
-            &reader_registration.organization,
-        )?;
+        let organization = Organization::try_from(session.certificate()).map_err(DisclosureError::Organization)?;
+        Self::verify_non_selectively_disclosable_claims(candidate_attestations.clone(), &organization)?;
 
         let candidate_attestations = candidate_attestations
             .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id().clone(), attestations)))
@@ -634,7 +637,7 @@ where
 
             let proposal = DisclosureProposalPresentation::from_candidates(
                 disclosable_attestations,
-                reader_registration,
+                organization,
                 shared_data_with_relying_party_before,
                 session.session_type(),
                 disclosure_type,
@@ -669,7 +672,7 @@ where
             )));
 
         Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
-            reader_registration: Box::new(reader_registration),
+            organization: organization.into(),
             requested_attributes,
             shared_data_with_relying_party_before,
             session_type,
@@ -679,7 +682,7 @@ where
     fn verify_non_selectively_disclosable_claims<'a>(
         candidate_attestations: impl IntoIterator<
             Item = (
-                Option<VecNonEmpty<DisclosableAttestation>>,
+                Option<VecNonEmpty<VpDisclosableAttestation>>,
                 &'a NormalizedCredentialRequest,
             ),
         >,
@@ -723,11 +726,8 @@ where
         &mut self,
         session: WalletDisclosureSession<DCC::Session>,
     ) -> Result<Option<Url>, DisclosureError> {
-        let (reader_certificate, _) = session
-            .protocol_state
-            .verifier_certificate()
-            .clone()
-            .into_certificate_and_registration();
+        let organization =
+            Organization::try_from(session.protocol_state.certificate()).map_err(DisclosureError::Organization)?;
 
         let return_url = session.protocol_state.terminate().await?;
 
@@ -735,7 +735,7 @@ where
             Utc::now(),
             // TODO (PVW-5078): Store credential requests in disclosure event.
             None,
-            reader_certificate,
+            &organization,
             session.disclosure_type,
             EventStatus::Cancelled,
             DataDisclosed::NotDisclosed,
@@ -849,11 +849,8 @@ where
             .increment_usage_count_and_collect_presentations(attestation_values)
             .await;
 
-        let (reader_certificate, reader_registration) = session
-            .protocol_state
-            .verifier_certificate()
-            .clone()
-            .into_certificate_and_registration();
+        let organization =
+            Organization::try_from(session.protocol_state.certificate()).map_err(DisclosureError::Organization)?;
 
         if let Err(error) = result {
             // If storing the event results in an error, log it but do nothing else.
@@ -861,7 +858,7 @@ where
                 .store_disclosure_event(
                     Utc::now(),
                     Some(attestation_presentations),
-                    reader_certificate,
+                    &organization,
                     session.disclosure_type,
                     EventStatus::Error,
                     DataDisclosed::NotDisclosed,
@@ -911,8 +908,7 @@ where
         let return_url = match result {
             Ok(return_url) => return_url,
             Err((protocol_state, error)) => {
-                let disclosure_error =
-                    DisclosureError::with_organization(error.error, reader_registration.organization);
+                let disclosure_error = DisclosureError::with_organization(error.error, organization.clone().into());
 
                 // IncorrectPin is a functional error and does not need to be recorded.
                 //
@@ -924,7 +920,7 @@ where
                     .store_disclosure_event(
                         Utc::now(),
                         Some(attestation_presentations),
-                        reader_certificate,
+                        &organization,
                         session.disclosure_type,
                         EventStatus::Error,
                         error.data_shared,
@@ -972,7 +968,7 @@ where
         self.store_disclosure_event(
             Utc::now(),
             Some(attestation_presentations),
-            reader_certificate,
+            &organization,
             session.disclosure_type,
             EventStatus::Success,
             DataDisclosed::Disclosed,
@@ -1002,10 +998,10 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1015,6 +1011,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::BorrowingCertificate;
     use crypto::x509::KeyIdentifier;
     use dcql::normalized::MdocAttributeRequest;
     use dcql::normalized::NormalizedCredentialRequest;
@@ -1088,10 +1085,10 @@ mod tests {
     use crate::wallet::state::CancelSessionError;
     use crate::wallet::state::CheckPreconditionsError;
     use crate::wallet::test::ISSUER_KEY;
+    use crate::wallet::test::WRPAC_CA;
     use crate::wallet::test::example_pid_stored_attestation_copy;
     use crate::wallet::test::example_pid_stored_attestation_copy_with_issuer_keypair;
     use crate::wallet::test::example_stored_attestation_copy;
-    use crate::wallet::test::mock_verifier_certificate;
 
     static DISCLOSURE_URI: LazyLock<Url> =
         LazyLock::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));
@@ -1116,7 +1113,7 @@ mod tests {
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
-        verifier_certificate: VerifierCertificate,
+        verifier_certificate: BorrowingCertificate,
         credential_requests: NormalizedCredentialRequests,
     ) -> MockDisclosureSession {
         let mut disclosure_session = MockDisclosureSession::new();
@@ -1124,7 +1121,7 @@ mod tests {
             .expect_session_type()
             .return_const(SessionType::CrossDevice);
         disclosure_session
-            .expect_verifier_certificate()
+            .expect_certificate()
             .return_const(verifier_certificate);
         disclosure_session
             .expect_credential_requests()
@@ -1136,8 +1133,8 @@ mod tests {
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session(
         credential_requests: NormalizedCredentialRequests,
-    ) -> (MockDisclosureSession, VerifierCertificate) {
-        let verifier_certificate = mock_verifier_certificate();
+    ) -> (MockDisclosureSession, BorrowingCertificate) {
+        let verifier_certificate = WRPAC_CA.generate_wrpac_verifier_mock().unwrap().certificate().clone();
 
         let disclosure_session =
             setup_disclosure_session_verifier_certificate(verifier_certificate.clone(), credential_requests);
@@ -1149,7 +1146,7 @@ mod tests {
     fn setup_disclosure_client_start(
         disclosure_client: &mut MockDisclosureClient,
         credential_requests: NormalizedCredentialRequests,
-    ) -> VerifierCertificate {
+    ) -> BorrowingCertificate {
         let (disclosure_session, verifier_certificate) = setup_disclosure_session(credential_requests);
 
         disclosure_client
@@ -1165,7 +1162,7 @@ mod tests {
         requested_format: Format,
     ) -> (
         Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
-        VerifierCertificate,
+        BorrowingCertificate,
     ) {
         let (disclosure_session, verifier_certificate) =
             setup_disclosure_session(default_pid_credential_requests(requested_format));
@@ -1183,7 +1180,7 @@ mod tests {
         requested_format: Format,
     ) -> (
         Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
-        VerifierCertificate,
+        BorrowingCertificate,
     ) {
         let credential_requests = default_pid_credential_requests(requested_format);
 
@@ -1330,12 +1327,13 @@ mod tests {
         ] {
             wallet
                 .mut_storage()
-                .expect_fetch_valid_unique_attestations_by_types_and_format()
-                .withf(move |attestation_types, format, _| {
-                    *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == requested_format
+                .expect_fetch_valid_unique_attestations_by_credential_kinds()
+                .withf(move |credential_kinds, _| {
+                    *credential_kinds
+                        == HashSet::from([CredentialKind::new(requested_format, attestation_type.to_owned())])
                 })
                 .times(1)
-                .return_once(move |_, _, _| Ok(attestations));
+                .return_once(move |_, _| Ok(attestations));
         }
 
         // The wallet will check in the database if data was shared with the RP before.
@@ -1363,16 +1361,17 @@ mod tests {
         wallet.mut_storage().checkpoint();
 
         // Test that the returned `DisclosureProposalPresentation` contains the processed data we set up earlier.
+        let certificate_organization = Organization::try_from(&verifier_certificate).unwrap();
         assert_matches!(
             proposal,
             DisclosureProposalPresentation {
-                reader_registration,
+                organization,
                 shared_data_with_relying_party_before,
                 session_type: SessionType::CrossDevice,
                 disclosure_type: DisclosureType::Regular,
                 purpose: RedirectUriPurpose::Browser,
                 ..
-            } if reader_registration == *verifier_certificate.registration() && !shared_data_with_relying_party_before
+            } if organization == certificate_organization && !shared_data_with_relying_party_before
         );
         assert_eq!(proposal.attestation_options.len().get(), 2);
 
@@ -1558,7 +1557,6 @@ mod tests {
 
         // The wallet will log a single disclosure event, containing
         // `AttestationPresentation` values for those attributes disclosed.
-        let reader_certificate = verifier_certificate.certificate().clone();
         let mut expected_pid_presentation = pid2.into_attestation_presentation(&EmptyPresentationConfig);
         expected_pid_presentation
             .attributes
@@ -1574,7 +1572,7 @@ mod tests {
             .with(
                 always(),
                 eq(vec![expected_pid_presentation, expected_address_presentation]),
-                eq(reader_certificate),
+                eq(certificate_organization),
                 eq(EventStatus::Success),
                 eq(DisclosureType::Regular),
             )
@@ -1718,11 +1716,11 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up `DisclosureSession` start to return the following error.
-        wallet
-            .disclosure_client
-            .expect_start()
-            .times(1)
-            .return_once(|_, _, _| Err(VpClientError::RequestUri(serde::de::Error::custom("error")).into()));
+        wallet.disclosure_client.expect_start().times(1).return_once(|_, _, _| {
+            Err(VpSessionError::Client(VpClientError::RequestUri(
+                serde::de::Error::custom("error"),
+            )))
+        });
 
         // Starting disclosure which returns an error should forward that error.
         let error = wallet
@@ -1742,7 +1740,7 @@ mod tests {
         // Set up an `DisclosureClient` start to return the following error.
         let start_return_url = RETURN_URL.clone();
         wallet.disclosure_client.expect_start().times(1).return_once(|_, _, _| {
-            Err(VpClientError::Request(
+            Err(VpSessionError::Client(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
                         error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
@@ -1752,8 +1750,7 @@ mod tests {
                     redirect_uri: Some(start_return_url),
                 }
                 .into(),
-            )
-            .into())
+            )))
         });
 
         // Starting disclosure where the verifier returns responds with a HTTP error body containing
@@ -1769,34 +1766,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_start_disclosure_error_vp_verifier_server() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // Set up `DisclosureSession` start to return the following error.
-        wallet
-            .disclosure_client
-            .expect_start()
-            .times(1)
-            .return_once(|_, _, _| Err(VpVerifierError::NoReaderCertificate.into()));
-
-        // Starting disclosure which returns an error should forward that error.
-        let error = wallet
-            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
-            .await
-            .expect_err("starting disclosure should not succeed");
-
-        assert_matches!(
-            error,
-            DisclosureError::VpVerifierServer {
-                error: VpVerifierError::NoReaderCertificate,
-                organization: None,
-            }
-        );
-        assert!(error.return_url().is_none());
-        assert!(wallet.session.is_none());
-    }
-
-    #[tokio::test]
     async fn test_wallet_start_disclosure_error_attestation_retrieval() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -1807,9 +1776,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Err(StorageError::AlreadyOpened));
+            .returning(move |_, _| Err(StorageError::AlreadyOpened));
 
         // Starting disclosure on a wallet that has a faulty database should result in an error.
         let error = wallet
@@ -1836,12 +1805,13 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()]) && *format == Format::MsoMdoc
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .withf(move |credential_kinds, _| {
+                *credential_kinds
+                    == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_owned())])
             })
             .times(1)
-            .return_once(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 
         wallet
             .mut_storage()
@@ -1873,9 +1843,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Ok(vec![]));
+            .returning(move |_, _| Ok(vec![]));
 
         wallet
             .mut_storage()
@@ -1899,14 +1869,15 @@ mod tests {
             })
             .collect::<HashSet<_>>();
 
+        let certificate_organization = Organization::try_from(&verifier_certificate).unwrap();
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
-                reader_registration,
+                organization,
                 requested_attributes,
                 shared_data_with_relying_party_before,
                 session_type: SessionType::CrossDevice,
-            }) if reader_registration.as_ref() == verifier_certificate.registration() &&
+            }) if *organization == certificate_organization &&
                 requested_attributes == expected_attributes &&
                 !shared_data_with_relying_party_before
         );
@@ -1945,9 +1916,9 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 
         wallet
             .mut_storage()
@@ -1962,14 +1933,15 @@ mod tests {
             .expect_err("starting disclosure should not succeed");
 
         let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, path.join("/"))]);
+        let certificate_organization = Organization::try_from(&verifier_certificate).unwrap();
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
-                reader_registration,
+                organization,
                 requested_attributes,
                 shared_data_with_relying_party_before,
                 session_type: SessionType::CrossDevice,
-            }) if reader_registration.as_ref() == verifier_certificate.registration() &&
+            }) if *organization == certificate_organization &&
                 requested_attributes == expected_attributes &&
                 !shared_data_with_relying_party_before
         );
@@ -1982,9 +1954,9 @@ mod tests {
     ) {
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Ok(vec![stored_attestation.clone()]));
+            .returning(move |_, _| Ok(vec![stored_attestation.clone()]));
         wallet
             .mut_storage()
             .expect_did_share_data_with_relying_party()
@@ -2189,14 +2161,14 @@ mod tests {
             .return_once(|| Ok(Some(terminate_return_url)));
 
         // Verify that a disclosure cancel event will be recorded.
-        let reader_certificate = verifier_certificate.certificate().clone();
+        let organization = Organization::try_from(&verifier_certificate).unwrap();
         wallet
             .mut_storage()
             .expect_log_disclosure_event()
             .with(
                 always(),
                 eq(vec![]),
-                eq(reader_certificate),
+                eq(organization),
                 eq(EventStatus::Cancelled),
                 eq(DisclosureType::Regular),
             )
@@ -2329,7 +2301,7 @@ mod tests {
 
         let terminate_return_url = RETURN_URL.clone();
         session.protocol_state.expect_terminate().times(1).return_once(|| {
-            Err(VpClientError::Request(
+            Err(VpSessionError::Client(VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
                         error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
@@ -2339,8 +2311,7 @@ mod tests {
                     redirect_uri: Some(terminate_return_url),
                 }
                 .into(),
-            )
-            .into())
+            )))
         });
 
         let error = wallet
@@ -2438,14 +2409,14 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(()));
 
-        let (reader_certificate, _) = verifier_certificate.into_certificate_and_registration();
+        let organization = Organization::try_from(&verifier_certificate).unwrap();
         wallet
             .mut_storage()
             .expect_log_disclosure_event()
             .with(
                 always(),
                 always(),
-                eq(reader_certificate),
+                eq(organization),
                 eq(EventStatus::Success),
                 eq(DisclosureType::Regular),
             )
@@ -2663,13 +2634,13 @@ mod tests {
 
         storage.expect_fetch_data::<ChangePinData>().returning(|| Ok(None));
 
-        let reader_certificate = verifier_certificate.certificate().clone();
+        let organization = Organization::try_from(&verifier_certificate).unwrap();
         storage
             .expect_log_disclosure_event()
             .with(
                 always(),
                 eq(vec![]),
-                eq(reader_certificate),
+                eq(organization),
                 eq(EventStatus::Error),
                 eq(DisclosureType::Regular),
             )
@@ -2783,7 +2754,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         // Verify that a disclosure error event will be recorded, with attestations if the data was shared.
-        let reader_certificate = verifier_certificate.certificate().clone();
+        let organization = Organization::try_from(&verifier_certificate).unwrap();
         let (first_event_attestations_tx, first_event_attestations_rx) = std::sync::mpsc::channel();
         wallet
             .mut_storage()
@@ -2795,7 +2766,7 @@ mod tests {
 
                     attestations.len() == if data_shared == DataDisclosed::Disclosed { 1 } else { 0 }
                 }),
-                eq(reader_certificate),
+                eq(organization.clone()),
                 eq(EventStatus::Error),
                 eq(DisclosureType::Regular),
             )
@@ -2835,7 +2806,7 @@ mod tests {
         wallet.mut_storage().checkpoint();
 
         // Check the error type and its return URL and check if the wallet still has an active disclosure session.
-        expected_error_type.check_error(&error, &verifier_certificate.registration().organization);
+        expected_error_type.check_error(&error, &organization);
         if expect_return_url {
             assert_eq!(error.return_url(), Some(&*RETURN_URL));
         } else {
@@ -2879,7 +2850,6 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let reader_certificate = verifier_certificate.certificate().clone();
         let first_event_attestations = first_event_attestations_rx.try_recv().unwrap();
         wallet
             .mut_storage()
@@ -2887,7 +2857,7 @@ mod tests {
             .with(
                 always(),
                 eq(first_event_attestations),
-                eq(reader_certificate),
+                eq(organization.clone()),
                 eq(EventStatus::Error),
                 eq(DisclosureType::Regular),
             )
@@ -2904,7 +2874,7 @@ mod tests {
             .await
             .expect_err("accepting disclosure should not succeed");
 
-        expected_error_type.check_error(&error, &verifier_certificate.registration().organization);
+        expected_error_type.check_error(&error, &organization);
         if expect_return_url {
             assert_eq!(error.return_url(), Some(&*RETURN_URL));
         } else {
@@ -2964,7 +2934,7 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let reader_certificate = verifier_certificate.certificate().clone();
+        let organization = Organization::try_from(&verifier_certificate).unwrap();
         match instruction_expectation {
             InstructionExpectation::Retry => {}
             InstructionExpectation::RetryWithEvent => {
@@ -2975,7 +2945,7 @@ mod tests {
                     .with(
                         always(),
                         eq(vec![]),
-                        eq(reader_certificate),
+                        eq(organization.clone()),
                         eq(EventStatus::Error),
                         eq(DisclosureType::Regular),
                     )
@@ -2984,15 +2954,13 @@ mod tests {
             }
             InstructionExpectation::Termination => {
                 // Verify that both a disclosure cancellation and error event are recorded.
-                let error_reader_certificate = reader_certificate.clone();
-
                 wallet
                     .mut_storage()
                     .expect_log_disclosure_event()
                     .with(
                         always(),
                         eq(vec![]),
-                        eq(error_reader_certificate),
+                        eq(organization.clone()),
                         eq(EventStatus::Error),
                         eq(DisclosureType::Regular),
                     )
@@ -3124,12 +3092,12 @@ mod tests {
         let (attestation_type, attestations) = (my_attestation_type, vec![attestation]);
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == Format::SdJwt
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .withf(move |credential_kinds, _| {
+                *credential_kinds == HashSet::from([CredentialKind::new(Format::SdJwt, attestation_type.to_owned())])
             })
             .times(1)
-            .return_once(move |_, _, _| Ok(attestations));
+            .return_once(move |_, _| Ok(attestations));
 
         // The wallet will not check in the database if data was shared with the RP before.
         wallet

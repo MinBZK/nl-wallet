@@ -1,7 +1,7 @@
 package feature.disclosure
 
-import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.INSURANCE
+import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.UNIVERSITY
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
@@ -41,7 +41,7 @@ class UniversalLinkTests : TestBase() {
     private lateinit var demoScreen: DemoScreen
     private lateinit var invalidIssuanceULErrorScreen: InvalidIssuanceULErrorScreen
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var pinScreen: PinScreen
     private lateinit var finishWalletDialog: FinishWalletDialog
 
@@ -63,7 +63,7 @@ class UniversalLinkTests : TestBase() {
         demoScreen = DemoScreen()
         invalidIssuanceULErrorScreen = InvalidIssuanceULErrorScreen()
         scanWithWalletDialog = ScanWithWalletDialog()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         pinScreen = PinScreen()
         finishWalletDialog = FinishWalletDialog()
@@ -81,7 +81,7 @@ class UniversalLinkTests : TestBase() {
 
         assertTrue(
             disclosureForIssuanceScreen.organizationNameVisible(
-                organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)
+                organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)
             )
         )
     }
@@ -141,7 +141,7 @@ class UniversalLinkTests : TestBase() {
 
     private fun buildIssuanceUniversalLink(): String {
         val authorizationRequestDetails = fetchAuthorizationRequestDetails(
-            INSURANCE_ISSUANCE_REQUEST_URI,
+            UNIVERSITY_ISSUANCE_REQUEST_URI,
             POST_REQUEST_URI_METHOD,
         )
 
@@ -149,7 +149,7 @@ class UniversalLinkTests : TestBase() {
             DISCLOSURE_BASED_ISSUANCE_UNIVERSAL_LINK_BASE,
             mapOf(
                 "client_id" to authorizationRequestDetails.universalLinkClientId(),
-                "request_uri" to INSURANCE_ISSUANCE_REQUEST_URI,
+                "request_uri" to UNIVERSITY_ISSUANCE_REQUEST_URI,
                 "request_uri_method" to POST_REQUEST_URI_METHOD,
             )
         )
@@ -157,14 +157,14 @@ class UniversalLinkTests : TestBase() {
 
     private fun buildInvalidIssuanceUniversalLink(): String {
         val authorizationRequestDetails = fetchAuthorizationRequestDetails(
-            INSURANCE_ISSUANCE_REQUEST_URI,
+            UNIVERSITY_ISSUANCE_REQUEST_URI,
             POST_REQUEST_URI_METHOD,
         )
 
         return buildUniversalLink(
             DISCLOSURE_BASED_ISSUANCE_UNIVERSAL_LINK_BASE,
             mapOf(
-                "request_uri" to INSURANCE_ISSUANCE_REQUEST_URI,
+                "request_uri" to UNIVERSITY_ISSUANCE_REQUEST_URI,
                 "request_uri_method" to POST_REQUEST_URI_METHOD,
                 "client_id" to invalidateX509HashClientId(authorizationRequestDetails.x509HashClientId),
             )
@@ -298,8 +298,8 @@ class UniversalLinkTests : TestBase() {
             "https://app.example.com/deeplink/disclosure_based_issuance"
         private const val EXPIRED_DISCLOSURE_REQUEST_URI =
             "https://example.com/disclosure/sessions/CYqJdDLRIkFArxoWLXLUYaAkUiK4A6YF/request_uri?session_type=cross_device&ephemeral_id=02a1bf4d24a54228be1ba88576bfd4d7df8759d23df90822fda8f49da6826213&time=2025-04-10T10%3A44%3A15.629765875Z"
-        private const val INSURANCE_ISSUANCE_REQUEST_URI =
-            "https://example.com/cd96997cf3772b54a9a0c9f2d261a401/disclosure/insurance/request_uri?session_type=same_device"
+        private const val UNIVERSITY_ISSUANCE_REQUEST_URI =
+            "https://example.com/cd96997cf3772b54a9a0c9f2d261a401/disclosure/university_mdoc/request_uri?session_type=same_device"
         private const val MIJN_AMSTERDAM_START_URL =
             "https://example.com/sessions?lang=en"
         private const val CROSS_DEVICE_SESSION_TYPE = "cross_device"

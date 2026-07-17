@@ -312,15 +312,6 @@ render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/h
 # Configure CAs for EDI
 ########################################################################
 
-# Generate root CA for reader
-if [[ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]]; then
-    generate_root_ca reader
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"
-fi
-READER_CA_CRT=$(< "${TARGET_DIR}/ca.reader.crt.der" ${BASE64})
-export READER_CA_CRT
-
 # Generate root CA for WRPAC
 if [[ ! -f "${TARGET_DIR}/ca.wrpac.key.pem" ]]; then
     generate_root_ca wrpac
@@ -414,8 +405,9 @@ export PID_ISSUER_WRPAC_CRT
 
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
-generate_relying_party_hsm_key_pair mijn_amsterdam
-export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
+generate_demo_relying_party_key_pair mijn_amsterdam
+DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
 
@@ -455,14 +447,7 @@ render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PAR
 
 
 # Generate issuer key and cert.
-# The demo issuer's reader certificates are used as verifier certificates in localhost flows.
 generate_demo_issuer_key_pairs university
-DEMO_ISSUER_KEY_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.reader.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_UNIVERSITY_READER
-DEMO_ISSUER_CRT_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.reader.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_UNIVERSITY_READER
-DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/university.reader.crt.der" | base64_url_encode)"
-export DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER
 DEMO_ISSUER_KEY_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_UNIVERSITY_ISSUER
 DEMO_ISSUER_CRT_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.crt.der" ${BASE64})
@@ -475,9 +460,10 @@ DEMO_ISSUER_KEY_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac
 export DEMO_ISSUER_KEY_UNIVERSITY_WRPAC
 DEMO_ISSUER_CRT_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_WRPAC
+DEMO_ISSUER_CLIENT_ID_UNIVERSITY="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" | base64_url_encode)"
+export DEMO_ISSUER_CLIENT_ID_UNIVERSITY
 
-# The insurance usecase is issued through the authorization-code flow (acf_demo_issuer), which performs
-# no disclosure, so it only needs issuer and TSL key pairs (no reader cert).
+# The insurance usecase is issued through the authorization-code flow (acf_demo_issuer)
 generate_demo_issuer_issuance_key_pairs insurance
 DEMO_ISSUER_KEY_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_INSURANCE_ISSUER
@@ -493,12 +479,6 @@ DEMO_ISSUER_CRT_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.c
 export DEMO_ISSUER_CRT_INSURANCE_WRPAC
 
 generate_demo_issuer_key_pairs housing
-DEMO_ISSUER_KEY_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_HOUSING_READER
-DEMO_ISSUER_CRT_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_HOUSING_READER
-DEMO_ISSUER_CLIENT_ID_HOUSING_READER="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/housing.reader.crt.der" | base64_url_encode)"
-export DEMO_ISSUER_CLIENT_ID_HOUSING_READER
 DEMO_ISSUER_KEY_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_HOUSING_ISSUER
 DEMO_ISSUER_CRT_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.crt.der" ${BASE64})
@@ -511,6 +491,8 @@ DEMO_ISSUER_KEY_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.key.d
 export DEMO_ISSUER_KEY_HOUSING_WRPAC
 DEMO_ISSUER_CRT_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_HOUSING_WRPAC
+DEMO_ISSUER_CLIENT_ID_HOUSING="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" | base64_url_encode)"
+export DEMO_ISSUER_CLIENT_ID_HOUSING
 
 generate_demo_issuer_issuance_key_pairs loyalty
 DEMO_ISSUER_KEY_LOYALTY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/loyalty.issuer.key.der" ${BASE64})

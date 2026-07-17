@@ -9,7 +9,7 @@ import data.TestConfigRepository.Companion.testConfig
 import domain.Platform
 import helper.BrowserStackHelper
 import helper.LocalizationHelper
-import helper.OrganizationAuthMetadataHelper
+import helper.OrganizationMetadataHelper
 import helper.TasDataHelper
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
@@ -19,6 +19,7 @@ import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
+import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.interactions.PointerInput.Origin
@@ -37,7 +38,7 @@ open class MobileActions {
 
     protected val l10n = LocalizationHelper()
     protected val cardMetadata = TasDataHelper()
-    protected val organizationAuthMetadata = OrganizationAuthMetadataHelper()
+    protected val organizationAuthMetadata = OrganizationMetadataHelper()
 
     private fun quoteForAndroid(s: String): String =
         "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -57,8 +58,8 @@ open class MobileActions {
         element.click()
     }
 
-    protected fun findWebElement(locator: By): WebElement {
-        val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+    protected fun findWebElement(locator: By, timeoutMillis: Long = WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS): WebElement {
+        val wait = WebDriverWait(driver, Duration.ofMillis(timeoutMillis))
         wait.until(ExpectedConditions.visibilityOfElementLocated(locator))
         return driver.findElement(locator)
     }
@@ -260,6 +261,25 @@ open class MobileActions {
             driver.context(NATIVE_APP_CONTEXT)
         }
         Thread.sleep(SCREEN_TRANSITION_MILLIS)
+    }
+
+    fun acceptOpenWalletDialog(timeoutMillis: Long = 5000L) {
+        switchToNativeContext()
+        when (platform()) {
+            Platform.ANDROID -> {
+                WebDriverWait(driver, Duration.ofMillis(timeoutMillis))
+                    .until(ExpectedConditions.elementToBeClickable(AppiumBy.id("com.android.chrome:id/positive_button")))
+                    .click()
+            }
+            Platform.IOS -> {
+                try {
+                    WebDriverWait(driver, Duration.ofMillis(timeoutMillis)).until(ExpectedConditions.alertIsPresent())
+                    driver.switchTo().alert().accept()
+                } catch (_: TimeoutException) {
+
+                }
+            }
+        }
     }
 
     protected fun getWebModalAnchor(): WebElement {
@@ -636,16 +656,16 @@ open class MobileActions {
     fun startMockBleReaderApp(
         mdocQrString: String,
         timeoutSeconds: Int = 60,
-        readerCaCrtFile: String? = null,
-        readerCaKeyFile: String? = null,
+        wrpacCaCrtFile: String? = null,
+        wrpacCaKeyFile: String? = null,
         readerAuthFile: String? = null,
         waitForDeviceResponse: Boolean = false,
     ): Process {
         val qrPayload = mdocQrString.removePrefix("mdoc:")
         val scriptPath = File("../scripts/close_proximity/disclosure_mac_reader.swift").canonicalPath
         val cmd = mutableListOf("swift", scriptPath, "--qr-code", qrPayload, "--timeout", timeoutSeconds.toString())
-        if (readerCaCrtFile != null && readerCaKeyFile != null && readerAuthFile != null) {
-            cmd += listOf("--reader-ca-crt-file", readerCaCrtFile, "--reader-ca-key-file", readerCaKeyFile, "--reader-auth-file", readerAuthFile)
+        if (wrpacCaCrtFile != null && wrpacCaKeyFile != null && readerAuthFile != null) {
+            cmd += listOf("--wrpac-ca-crt-file", wrpacCaCrtFile, "--wrpac-ca-key-file", wrpacCaKeyFile)
         }
         if (waitForDeviceResponse) {
             cmd += "--print-device-response-hex"
@@ -768,7 +788,7 @@ open class MobileActions {
 
     companion object {
         const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
-        const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
+        const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 4000L
         const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         const val BROWSER_STARTUP_TIMEOUT = 2000L
         const val DEFAULT_RESET_SLEEP = 10_000L

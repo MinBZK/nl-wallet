@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
 use crypto::x509::KeyIdentifier;
@@ -251,6 +252,15 @@ pub trait AttestationRequest {
     fn credential_types(&self) -> impl NonEmptyIterator<Item = String>;
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>>;
     fn aki(&self) -> &[KeyIdentifier];
+
+    /// The requested attestation types, each combined with the single format the request is made in.
+    fn credential_kinds(&self) -> HashSet<CredentialKind> {
+        let format = self.format();
+
+        self.credential_types()
+            .map(|attestation_type| CredentialKind::new(format, attestation_type))
+            .collect()
+    }
 }
 
 impl AttestationRequest for NormalizedCredentialRequest {

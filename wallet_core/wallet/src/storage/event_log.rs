@@ -1,8 +1,7 @@
-use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::BorrowingCertificate;
 use entity::disclosure_event::EventStatus;
 use uuid::Uuid;
 
@@ -22,9 +21,7 @@ pub enum WalletEvent {
         id: Uuid,
         attestations: Vec<AttestationPresentation>,
         timestamp: DateTime<Utc>,
-        // TODO (PVW-4135): Only store reader registration in event.
-        reader_certificate: Box<BorrowingCertificate>,
-        reader_registration: Box<ReaderRegistration>,
+        organization: Box<Organization>,
         status: DisclosureStatus,
         r#type: DisclosureType,
     },

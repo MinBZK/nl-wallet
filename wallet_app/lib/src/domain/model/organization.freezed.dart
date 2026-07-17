@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Organization {
 
- String get id;@LocalizedTextConverter() String get legalName;@LocalizedTextConverter() String get displayName;@LocalizedTextConverter() LocalizedText? get category;@LocalizedTextConverter() LocalizedText? get description;@AppImageDataConverter() AppImageData get logo; String? get webUrl; String? get privacyPolicyUrl; String get countryCode;@LocalizedTextConverter() LocalizedText? get city;@LocalizedTextConverter() LocalizedText? get department; String? get organizationId;
+ String get id; String get legalName; String get displayName;@LocalizedTextConverter() LocalizedText? get category;@LocalizedTextConverter() LocalizedText? get description;@AppImageDataConverter() AppImageData get logo; String? get webUrl; String? get privacyPolicyUrl; String get countryCode;@LocalizedTextConverter() LocalizedText? get city;@LocalizedTextConverter() LocalizedText? get department; String? get organizationId;
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $OrganizationCopyWith<$Res>  {
   factory $OrganizationCopyWith(Organization value, $Res Function(Organization) _then) = _$OrganizationCopyWithImpl;
 @useResult
 $Res call({
- String id,@LocalizedTextConverter() String legalName,@LocalizedTextConverter() String displayName,@LocalizedTextConverter() LocalizedText? category,@LocalizedTextConverter() LocalizedText? description,@AppImageDataConverter() AppImageData logo, String? webUrl, String? privacyPolicyUrl, String countryCode,@LocalizedTextConverter() LocalizedText? city,@LocalizedTextConverter() LocalizedText? department, String? organizationId
+ String id, String legalName, String displayName,@LocalizedTextConverter() LocalizedText? category,@LocalizedTextConverter() LocalizedText? description,@AppImageDataConverter() AppImageData logo, String? webUrl, String? privacyPolicyUrl, String countryCode,@LocalizedTextConverter() LocalizedText? city,@LocalizedTextConverter() LocalizedText? department, String? organizationId
 });
 
 
@@ -164,7 +164,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @LocalizedTextConverter()  String legalName, @LocalizedTextConverter()  String displayName, @LocalizedTextConverter()  LocalizedText? category, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData logo,  String? webUrl,  String? privacyPolicyUrl,  String countryCode, @LocalizedTextConverter()  LocalizedText? city, @LocalizedTextConverter()  LocalizedText? department,  String? organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName, @LocalizedTextConverter()  LocalizedText? category, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData logo,  String? webUrl,  String? privacyPolicyUrl,  String countryCode, @LocalizedTextConverter()  LocalizedText? city, @LocalizedTextConverter()  LocalizedText? department,  String? organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
 return $default(_that.id,_that.legalName,_that.displayName,_that.category,_that.description,_that.logo,_that.webUrl,_that.privacyPolicyUrl,_that.countryCode,_that.city,_that.department,_that.organizationId);case _:
@@ -185,7 +185,7 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.category,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @LocalizedTextConverter()  String legalName, @LocalizedTextConverter()  String displayName, @LocalizedTextConverter()  LocalizedText? category, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData logo,  String? webUrl,  String? privacyPolicyUrl,  String countryCode, @LocalizedTextConverter()  LocalizedText? city, @LocalizedTextConverter()  LocalizedText? department,  String? organizationId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName, @LocalizedTextConverter()  LocalizedText? category, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData logo,  String? webUrl,  String? privacyPolicyUrl,  String countryCode, @LocalizedTextConverter()  LocalizedText? city, @LocalizedTextConverter()  LocalizedText? department,  String? organizationId)  $default,) {final _that = this;
 switch (_that) {
 case _Organization():
 return $default(_that.id,_that.legalName,_that.displayName,_that.category,_that.description,_that.logo,_that.webUrl,_that.privacyPolicyUrl,_that.countryCode,_that.city,_that.department,_that.organizationId);case _:
@@ -205,7 +205,7 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.category,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @LocalizedTextConverter()  String legalName, @LocalizedTextConverter()  String displayName, @LocalizedTextConverter()  LocalizedText? category, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData logo,  String? webUrl,  String? privacyPolicyUrl,  String countryCode, @LocalizedTextConverter()  LocalizedText? city, @LocalizedTextConverter()  LocalizedText? department,  String? organizationId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String legalName,  String displayName, @LocalizedTextConverter()  LocalizedText? category, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData logo,  String? webUrl,  String? privacyPolicyUrl,  String countryCode, @LocalizedTextConverter()  LocalizedText? city, @LocalizedTextConverter()  LocalizedText? department,  String? organizationId)?  $default,) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
 return $default(_that.id,_that.legalName,_that.displayName,_that.category,_that.description,_that.logo,_that.webUrl,_that.privacyPolicyUrl,_that.countryCode,_that.city,_that.department,_that.organizationId);case _:
@@ -220,12 +220,12 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.category,_that.
 @JsonSerializable()
 
 class _Organization implements Organization {
-  const _Organization({required this.id, @LocalizedTextConverter() required this.legalName, @LocalizedTextConverter() required this.displayName, @LocalizedTextConverter() required final  LocalizedText? category, @LocalizedTextConverter() required final  LocalizedText? description, @AppImageDataConverter() required this.logo, this.webUrl, this.privacyPolicyUrl, required this.countryCode, @LocalizedTextConverter() final  LocalizedText? city, @LocalizedTextConverter() final  LocalizedText? department, this.organizationId}): _category = category,_description = description,_city = city,_department = department;
+  const _Organization({required this.id, required this.legalName, required this.displayName, @LocalizedTextConverter() required final  LocalizedText? category, @LocalizedTextConverter() required final  LocalizedText? description, @AppImageDataConverter() required this.logo, this.webUrl, this.privacyPolicyUrl, required this.countryCode, @LocalizedTextConverter() final  LocalizedText? city, @LocalizedTextConverter() final  LocalizedText? department, this.organizationId}): _category = category,_description = description,_city = city,_department = department;
   factory _Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);
 
 @override final  String id;
-@override@LocalizedTextConverter() final  String legalName;
-@override@LocalizedTextConverter() final  String displayName;
+@override final  String legalName;
+@override final  String displayName;
  final  LocalizedText? _category;
 @override@LocalizedTextConverter() LocalizedText? get category {
   final value = _category;
@@ -301,7 +301,7 @@ abstract mixin class _$OrganizationCopyWith<$Res> implements $OrganizationCopyWi
   factory _$OrganizationCopyWith(_Organization value, $Res Function(_Organization) _then) = __$OrganizationCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@LocalizedTextConverter() String legalName,@LocalizedTextConverter() String displayName,@LocalizedTextConverter() LocalizedText? category,@LocalizedTextConverter() LocalizedText? description,@AppImageDataConverter() AppImageData logo, String? webUrl, String? privacyPolicyUrl, String countryCode,@LocalizedTextConverter() LocalizedText? city,@LocalizedTextConverter() LocalizedText? department, String? organizationId
+ String id, String legalName, String displayName,@LocalizedTextConverter() LocalizedText? category,@LocalizedTextConverter() LocalizedText? description,@AppImageDataConverter() AppImageData logo, String? webUrl, String? privacyPolicyUrl, String countryCode,@LocalizedTextConverter() LocalizedText? city,@LocalizedTextConverter() LocalizedText? department, String? organizationId
 });
 
 

@@ -1,9 +1,6 @@
 use std::assert_matches;
 use std::collections::HashMap;
 
-use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::x509::CertificateTypeError;
-use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -30,80 +27,56 @@ fn test_settings_success() {
     let mut settings =
         VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
 
-    let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
-    let reader_cert_valid = generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock())
-        .expect("generate valid reader cert");
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate WRPAC CA");
+    let wrpac_cert_valid = wrpac_ca
+        .generate_wrpac_verifier_mock()
+        .expect("generate valid wrpac cert");
 
     let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
-    usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
+    usecases.insert("valid".to_string(), to_use_case(wrpac_cert_valid));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = TrustAnchors::from(&reader_ca);
+    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
 
     settings.validate().expect("should succeed");
 }
 
 #[test]
-fn test_settings_no_reader_trust_anchors() {
+fn test_settings_no_wrpac_trust_anchors() {
     let mut settings =
         VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
 
-    let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
-    let reader_cert_valid = generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock())
-        .expect("generate valid reader cert");
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate WRPAC CA");
+    let wrpac_cert_valid = wrpac_ca
+        .generate_wrpac_verifier_mock()
+        .expect("generate valid wrpac cert");
 
     let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
-    usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
+    usecases.insert("valid".to_string(), to_use_case(wrpac_cert_valid));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = TrustAnchors::empty();
+    settings.server_settings.wrpac_trust_anchors = TrustAnchors::empty();
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
 }
 
 #[test]
-fn test_settings_no_reader_registration() {
+fn test_settings_wrong_wrpac_ca() {
     let mut settings =
         VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
 
-    let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
-    let reader_cert_valid = generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock())
-        .expect("generate valid reader cert");
-    let reader_cert_no_registration = reader_ca
-        .generate_reader_mock()
-        .expect("generate reader cert without reader registration");
+    let wrpac_ca_trusted = Ca::generate_wrpac_mock_ca().expect("generate trusted WRPAC CA");
+    let wrpac_ca_wrong = Ca::generate_wrpac_mock_ca().expect("generate wrong WRPAC CA");
+    let wrpac_cert_wrong = wrpac_ca_wrong
+        .generate_wrpac_verifier_mock()
+        .expect("generate wrong WRPAC cert");
 
     let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
-    usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
-    usecases.insert("no_registration".to_string(), to_use_case(reader_cert_no_registration));
+    usecases.insert("wrong_ca".to_string(), to_use_case(wrpac_cert_wrong));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = TrustAnchors::from(&reader_ca);
-
-    let error = settings.validate().expect_err("should fail");
-    assert_matches!(error, CertificateVerificationError::NoCertificateType(CertificateTypeError::ReaderRegistrationNotFound, key) if key == "no_registration");
-}
-
-#[test]
-fn test_settings_wrong_reader_ca() {
-    let mut settings =
-        VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
-
-    let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
-    let reader_registration = ReaderRegistration::new_mock();
-    let reader_cert_valid =
-        generate_reader_mock_with_registration(&reader_ca, &reader_registration).expect("generate valid reader cert");
-    let reader_wrong_ca = Ca::generate_reader_mock_ca().expect("generate wrong reader CA");
-    let reader_cert_wrong_ca = generate_reader_mock_with_registration(&reader_wrong_ca, &reader_registration)
-        .expect("generate reader cert on wrong CA");
-
-    let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
-    usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
-    usecases.insert("wrong_ca".to_string(), to_use_case(reader_cert_wrong_ca));
-
-    settings.usecases = usecases.into();
-    settings.reader_trust_anchors = TrustAnchors::from(&reader_ca);
+    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca_trusted);
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(

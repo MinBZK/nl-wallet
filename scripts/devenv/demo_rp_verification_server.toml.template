@@ -1,6 +1,5 @@
 public_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_PORT}/'
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
-reader_trust_anchors = ["${READER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 
@@ -30,12 +29,12 @@ max_session_lifetime_in_sec = 900
 [usecases.mijn_amsterdam_mdoc]
 certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
-private_key_type = "hsm"
+private_key_type = "software"
 
 [usecases.mijn_amsterdam_sd_jwt]
 certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
-private_key_type = "hsm"
+private_key_type = "software"
 
 [usecases.online_marketplace]
 certificate = "${DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"

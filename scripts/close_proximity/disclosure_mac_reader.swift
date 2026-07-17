@@ -284,9 +284,8 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     var qrCode: String?
     var deviceRequestHex: String?
     var expectedDeviceResponseHex: String?
-    var readerCaCrtFile: String?
-    var readerCaKeyFile: String?
-    var readerAuthFile: String?
+    var wrpacCaCrtFile: String?
+    var wrpacCaKeyFile: String?
     var printDeviceResponseHex = false
     var index = 0
 
@@ -321,24 +320,18 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                 throw ArgumentError.missingValue("--expect-device-response-hex")
             }
             expectedDeviceResponseHex = arguments[index]
-        case "--reader-ca-crt-file":
+        case "--wrpac-ca-crt-file":
             index += 1
             guard index < arguments.count else {
-                throw ArgumentError.missingValue("--reader-ca-crt-file")
+                throw ArgumentError.missingValue("--wrpac-ca-crt-file")
             }
-            readerCaCrtFile = arguments[index]
-        case "--reader-ca-key-file":
+            wrpacCaCrtFile = arguments[index]
+        case "--wrpac-ca-key-file":
             index += 1
             guard index < arguments.count else {
-                throw ArgumentError.missingValue("--reader-ca-key-file")
+                throw ArgumentError.missingValue("--wrpac-ca-key-file")
             }
-            readerCaKeyFile = arguments[index]
-        case "--reader-auth-file":
-            index += 1
-            guard index < arguments.count else {
-                throw ArgumentError.missingValue("--reader-auth-file")
-            }
-            readerAuthFile = arguments[index]
+            wrpacCaKeyFile = arguments[index]
         case "--print-device-response-hex":
             printDeviceResponseHex = true
         case "--help":
@@ -353,12 +346,8 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                   --device-request-hex <hex>
                                          Override the plaintext DeviceRequest that will be
                                          encrypted into the first reader message.
-                  --reader-ca-crt-file <path>
-                  --reader-ca-key-file <path>
-                  --reader-auth-file <path>
-                                         Generate a real signed DeviceRequest via
-                                         `wallet_ca reader-device-request` using the provided
-                                         reader CA material and reader_auth.json. This needs to be in pem format.
+                  --wrpac-ca-crt-file  <path>
+                  --wrpac-ca-key-file  <path>
                   --expect-device-response-hex <hex>
                                          After SessionEstablished, wait for the holder to send
                                          an encrypted DeviceResponse with status 20, validate the
@@ -387,22 +376,22 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     }
 
     let usesReaderMaterial =
-        readerCaCrtFile != nil || readerCaKeyFile != nil || readerAuthFile != nil
+        wrpacCaCrtFile != nil || wrpacCaKeyFile != nil
     if usesReaderMaterial && qrCode == nil {
         throw ArgumentError.invalidConfiguration(
-            "--reader-ca-crt-file, --reader-ca-key-file, and --reader-auth-file require --qr-code"
+            "--wrpac-ca-crt-file and --wrpac-ca-key-file require --qr-code"
         )
     }
     if usesReaderMaterial
-        && (readerCaCrtFile == nil || readerCaKeyFile == nil || readerAuthFile == nil)
+        && (wrpacCaCrtFile == nil || wrpacCaKeyFile == nil)
     {
         throw ArgumentError.invalidConfiguration(
-            "--reader-ca-crt-file, --reader-ca-key-file, and --reader-auth-file must be provided together"
+            "--wrpac-ca-crt-file and --wrpac-ca-key-file must be provided together"
         )
     }
     if usesReaderMaterial && deviceRequestHex != nil {
         throw ArgumentError.invalidConfiguration(
-            "--device-request-hex cannot be combined with --reader-ca-crt-file/--reader-ca-key-file/--reader-auth-file"
+            "--device-request-hex cannot be combined with --wrpac-ca-crt-file/--wrpac-ca-key-file"
         )
     }
 
@@ -412,12 +401,11 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
         let deviceRequest: Data
         if let deviceRequestHex {
             deviceRequest = try hexDecodedData(deviceRequestHex)
-        } else if let readerCaCrtFile, let readerCaKeyFile, let readerAuthFile {
+        } else if let wrpacCaCrtFile, let wrpacCaKeyFile {
             deviceRequest = try generateReaderDeviceRequest(
                 encodedSessionTranscript: encodedSessionTranscript,
-                readerCaCrtFile: readerCaCrtFile,
-                readerCaKeyFile: readerCaKeyFile,
-                readerAuthFile: readerAuthFile
+                wrpacCaCrtFile: wrpacCaCrtFile,
+                wrpacCaKeyFile: wrpacCaKeyFile,
             )
         } else {
             deviceRequest = Configuration.sessionEstablishedDeviceRequest
@@ -696,9 +684,8 @@ private func hexEncodedData(_ data: Data) -> String {
 
 private func generateReaderDeviceRequest(
     encodedSessionTranscript: Data,
-    readerCaCrtFile: String,
-    readerCaKeyFile: String,
-    readerAuthFile: String
+    wrpacCaCrtFile: String,
+    wrpacCaKeyFile: String,
 ) throws -> Data {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -713,11 +700,9 @@ private func generateReaderDeviceRequest(
         "--",
         "reader-device-request",
         "--ca-crt-file",
-        readerCaCrtFile,
+        wrpacCaCrtFile,
         "--ca-key-file",
-        readerCaKeyFile,
-        "--reader-auth-file",
-        readerAuthFile,
+        wrpacCaKeyFile,
         "--session-transcript-hex",
         hexEncodedData(encodedSessionTranscript),
     ]

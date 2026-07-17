@@ -5,6 +5,7 @@ use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
+use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequests;
 use url::Url;
 use utils::generator::Generator;
@@ -13,7 +14,6 @@ use wscd::Poa;
 use super::DisclosureClient;
 use super::DisclosureSession;
 use super::NonEmptyDisclosableAttestations;
-use super::VerifierCertificate;
 use super::error::DisclosureError;
 use super::error::VpSessionError;
 use super::uri_source::DisclosureUriSource;
@@ -40,7 +40,7 @@ mockall::mock! {
     pub DisclosureSession {
         pub fn session_type(&self) -> SessionType;
         pub fn credential_requests(&self) -> &NormalizedCredentialRequests;
-        pub fn verifier_certificate(&self) -> &VerifierCertificate;
+        pub fn certificate(&self) -> &BorrowingCertificate;
 
         pub async fn terminate(self) -> Result<Option<Url>, VpSessionError>;
         pub async fn disclose(
@@ -59,8 +59,8 @@ impl DisclosureSession for MockDisclosureSession {
         self.credential_requests()
     }
 
-    fn verifier_certificate(&self) -> &VerifierCertificate {
-        self.verifier_certificate()
+    fn certificate(&self) -> &BorrowingCertificate {
+        self.certificate()
     }
 
     async fn terminate(self) -> Result<Option<Url>, VpSessionError> {

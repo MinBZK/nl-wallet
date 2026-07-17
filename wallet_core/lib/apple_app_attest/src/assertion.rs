@@ -18,19 +18,23 @@ use crate::auth_data::TruncatedAuthenticatorDataWithSource;
 #[derive(Debug, thiserror::Error)]
 pub enum AssertionError {
     #[error("assertion could not be decoded: {0}")]
-    Decoding(#[from] AssertionDecodingError),
+    Decoding(#[source] AssertionDecodingError),
+
     #[error("assertion did not validate: {0}")]
-    Validation(#[from] AssertionValidationError),
+    Validation(#[source] AssertionValidationError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AssertionDecodingError {
     #[error("deserializing assertion CBOR failed: {0}")]
     Cbor(#[source] ciborium::de::Error<std::io::Error>),
+
     #[error("could not get client data hash: {0}")]
     ClientDataHash(Box<dyn Error + Send + Sync>),
+
     #[error("could not get client data challenge: {0}")]
     ClientDataChallenge(Box<dyn Error + Send + Sync>),
+
     #[error("counter is not present in authenticator data")]
     CounterMissing,
 }
@@ -39,10 +43,13 @@ pub enum AssertionDecodingError {
 pub enum AssertionValidationError {
     #[error("signature does not validate: {0}")]
     Signature(#[source] p256::ecdsa::Error),
+
     #[error("relying party identifier does not match calculated value")]
     RpIdMismatch,
+
     #[error("counter does not exceed previous value {previous}, received: {received}")]
     CounterTooLow { previous: u32, received: u32 },
+
     #[error("challenge in client data does not match expected challenge")]
     ChallengeMismatch,
 }
@@ -98,7 +105,8 @@ pub struct Assertion {
 
 impl Assertion {
     pub fn parse(bytes: &[u8]) -> Result<Self, AssertionError> {
-        let assertion = ciborium::from_reader(bytes).map_err(AssertionDecodingError::Cbor)?;
+        let assertion = ciborium::from_reader(bytes)
+            .map_err(|error| AssertionError::Decoding(AssertionDecodingError::Cbor(error)))?;
 
         Ok(assertion)
     }
@@ -123,7 +131,7 @@ impl VerifiedAssertion {
         let client_data_hash = Sha256::digest(
             client_data
                 .hash_data()
-                .map_err(|error| AssertionDecodingError::ClientDataHash(Box::new(error)))?,
+                .map_err(|error| AssertionError::Decoding(AssertionDecodingError::ClientDataHash(Box::new(error))))?,
         );
 
         // 2. Concatenate authenticatorData and clientDataHash, and apply a SHA256 hash over the result to form nonce.
@@ -138,13 +146,13 @@ impl VerifiedAssertion {
 
         public_key
             .verify(&nonce, assertion.signature.as_ref())
-            .map_err(AssertionValidationError::Signature)?;
+            .map_err(|error| AssertionError::Validation(AssertionValidationError::Signature(error)))?;
 
         // 4. Compute the SHA256 hash of the client’s App ID, and verify that it matches the RP ID in the authenticator
         //    data.
 
         if assertion.authenticator_data.as_ref().rp_id_hash() != app_identifier.sha256_hash() {
-            return Err(AssertionValidationError::RpIdMismatch)?;
+            return Err(AssertionError::Validation(AssertionValidationError::RpIdMismatch));
         }
 
         // 5. Verify that the authenticator data’s counter value is greater than the value from the previous assertion,
@@ -154,23 +162,23 @@ impl VerifiedAssertion {
             .authenticator_data
             .as_ref()
             .counter
-            .ok_or(AssertionDecodingError::CounterMissing)?;
+            .ok_or(AssertionError::Decoding(AssertionDecodingError::CounterMissing))?;
         if counter <= *previous_counter {
-            return Err(AssertionValidationError::CounterTooLow {
+            return Err(AssertionError::Validation(AssertionValidationError::CounterTooLow {
                 previous: *previous_counter,
                 received: counter,
-            })?;
+            }));
         }
 
         // 6. Verify that the embedded challenge in the client data matches the earlier challenge to the client.
 
         if client_data
             .challenge()
-            .map_err(|error| AssertionDecodingError::ClientDataChallenge(Box::new(error)))?
+            .map_err(|error| AssertionError::Decoding(AssertionDecodingError::ClientDataChallenge(Box::new(error))))?
             .as_ref()
             != expected_challenge
         {
-            return Err(AssertionValidationError::ChallengeMismatch)?;
+            return Err(AssertionError::Validation(AssertionValidationError::ChallengeMismatch));
         }
 
         Ok((VerifiedAssertion(assertion), AssertionCounter(counter)))

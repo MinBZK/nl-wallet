@@ -17,17 +17,7 @@ pub struct Model {
     pub status_list_index: Option<u32>,
     pub issuer_certificate_dn: CanonicalDistinguishedName,
     pub revocation_status: Option<String>,
-    pub attestation_format: AttestationFormat,
     pub attestation: CompressedBlob,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
-pub enum AttestationFormat {
-    #[sea_orm(string_value = "dc+sd-jwt")]
-    SdJwt,
-    #[sea_orm(string_value = "mso_mdoc")]
-    Mdoc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

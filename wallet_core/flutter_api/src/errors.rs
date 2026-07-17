@@ -429,11 +429,13 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
             | DisclosureError::DisclosureUriQuery(_)
+            | DisclosureError::Organization(_)
             | DisclosureError::RecoveryCodeRequested { .. }
             | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::Verifier,
             DisclosureError::DisclosureUri(_)
             | DisclosureError::HistoryRetrieval(_)
             | DisclosureError::AttestationRetrieval(_)
+            | DisclosureError::UnexpectedAttestationFormat
             | DisclosureError::AttributesNotAvailable(_)
             | DisclosureError::IncrementUsageCount(_)
             | DisclosureError::EventStorage(_)
@@ -455,6 +457,7 @@ impl FlutterApiErrorFields for DisclosureError {
             },
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => Some(false),
+            DisclosureError::UnexpectedAttestationFormat => Some(false),
             DisclosureError::CloseProximityDisclosureSessionError(inner) => match inner {
                 // Platform errors are transient and worth retrying.
                 CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => {
@@ -473,11 +476,6 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NonSelectivelyDisclosableClaim(organization, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _)
             | DisclosureError::RecoveryCodeRequested(organization) => Some(organization.display_name.clone()),
-            DisclosureError::CloseProximityDisclosureSessionError(
-                CloseProximityDisclosureError::ReaderAuthValidation { organization, .. }
-                | CloseProximityDisclosureError::InvalidCertificate { organization, .. }
-                | CloseProximityDisclosureError::MissingCommonName { organization },
-            ) => Some(organization.display_name.clone()),
             _ => None,
         };
 
@@ -511,15 +509,6 @@ impl FlutterApiErrorFields for CloseProximityDisclosureError {
     }
 
     fn data(&self) -> serde_json::Value {
-        let organization_name = match self {
-            CloseProximityDisclosureError::ReaderAuthValidation { organization, .. }
-            | CloseProximityDisclosureError::InvalidCertificate { organization, .. }
-            | CloseProximityDisclosureError::MissingCommonName { organization } => {
-                Some(organization.display_name.clone())
-            }
-            _ => None,
-        };
-
         let can_retry = match self {
             // Platform errors are transient and worth retrying.
             CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => Some(true),
@@ -535,7 +524,7 @@ impl FlutterApiErrorFields for CloseProximityDisclosureError {
             session_type: Some(SessionType::CrossDevice),
             can_retry,
             return_url: None,
-            organization_name,
+            organization_name: None,
             revocation_data: None,
         })
         .unwrap() // This conversion should never fail.
@@ -667,14 +656,9 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             CloseProximityDisclosureError::MissingReaderAuth
             | CloseProximityDisclosureError::InconsistentReaderAuths
             | CloseProximityDisclosureError::InvalidDocRequest(_)
-            | CloseProximityDisclosureError::MissingReaderRegistration
-            | CloseProximityDisclosureError::InvalidCertificateType(_)
-            | CloseProximityDisclosureError::ReaderAuthValidation { .. }
             | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
-            | CloseProximityDisclosureError::InvalidDeviceRequest(_)
-            | CloseProximityDisclosureError::InvalidCertificate { .. }
-            | CloseProximityDisclosureError::MissingCommonName { .. } => FlutterApiErrorType::Verifier,
+            | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::DeviceResponseEncoding(_)
             | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,
             CloseProximityDisclosureError::Disconnected => FlutterApiErrorType::CloseProximityDisconnected,
@@ -978,6 +962,14 @@ mod tests {
                 "revocation_reason": "user_request",
                 "can_register_new_account": true
             }
+        })
+    )]
+    #[case::disclosure_unexpected_attestation_format(
+        DisclosureError::UnexpectedAttestationFormat,
+        FlutterApiErrorType::Generic,
+        json!({
+            "session_type": "cross_device",
+            "can_retry": false
         })
     )]
     #[case::disclosure_returnurl(

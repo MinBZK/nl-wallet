@@ -432,8 +432,8 @@ pub mod generate {
                 self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default(), NO_SAN)
             }
 
-            pub fn generate_reader_mock_ca() -> Result<Self, CertificateError> {
-                Self::generate(RP_CA_DN.clone(), Default::default())
+            pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(RP_CERT_DN.clone(), Default::default(), NO_SAN)
             }
 
             pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
@@ -457,14 +457,6 @@ pub mod generate {
                     WIA_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Wia),
                     NO_SAN,
-                )
-            }
-
-            pub fn generate_reader_mock(&self) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(
-                    RP_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth),
-                    [RP_CERT_SAN_URI.clone()],
                 )
             }
 

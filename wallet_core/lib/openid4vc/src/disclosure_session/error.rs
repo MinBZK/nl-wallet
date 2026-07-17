@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::x509::CertificateTypeError;
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
@@ -17,10 +16,10 @@ use crate::verifier::SessionType;
 #[category(defer)]
 pub enum VpSessionError {
     #[error("{0}")]
-    Client(#[from] VpClientError),
+    Client(#[source] VpClientError),
 
     #[error("{0}")]
-    Verifier(#[from] VpVerifierError),
+    Verifier(#[source] VpVerifierError),
 }
 
 impl From<VpMessageClientError> for VpSessionError {
@@ -89,13 +88,6 @@ pub enum VpVerifierError {
 
     #[error("error parsing RP certificate: {0}")]
     RpCertificate(#[source] CertificateTypeError),
-
-    #[error("RP certificate is not a reader certificate")]
-    #[category(critical)]
-    NoReaderCertificate,
-
-    #[error("error validating requested attributes: {0}")]
-    RequestedAttributesValidation(#[source] ValidationError),
 
     #[error("verifier vp_formats_supported does not include required algorithm for format {0}")]
     #[category(critical)]

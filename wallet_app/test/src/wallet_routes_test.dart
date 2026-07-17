@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/navigation/secured_page_route.dart';
 import 'package:wallet/src/navigation/sentry_navigation_observer.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
-import 'package:wallet/src/util/sentry_breadcrumbs.dart';
+import 'package:wallet/src/util/sentry/sentry_breadcrumbs.dart';
 
 void main() {
   group('WalletRoutes', () {

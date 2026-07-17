@@ -78,6 +78,7 @@ import '../feature/qr/scan/bloc/qr_scan_bloc.dart';
 import '../feature/qr/scan/qr_scan_screen.dart';
 import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
 import '../feature/recover_pin/recover_pin_screen.dart';
+import '../feature/recover_session/recover_session_screen.dart';
 import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
 import '../feature/renew_pid/renew_pid_screen.dart';
 import '../feature/review_revocation_code_screen/bloc/review_revocation_code_bloc.dart';
@@ -171,6 +172,7 @@ class WalletRoutes {
   static const privacyPolicyRoute = '/privacy_policy';
   static const qrPresentRoute = '/qr/present';
   static const qrScanRoute = '/qr/scan';
+  static const recoverSessionRoute = '/recover_session';
   static const renewPidRoute = '/pid/renew';
   static const revocationCodeRoute = '/revocation_code';
   static const reviewRevocationCodeRoute = '/review_revocation_code';
@@ -231,6 +233,7 @@ class WalletRoutes {
     WalletRoutes.updateInfoRoute: (_) => _createUpdateInfoScreenBuilder,
     WalletRoutes.tourOverviewRoute: (_) => _createTourOverviewScreenBuilder,
     WalletRoutes.tourVideoRoute: _createTourVideoScreenBuilder,
+    WalletRoutes.recoverSessionRoute: (_) => _createRecoverSessionScreenBuilder,
     WalletRoutes.renewPidRoute: _createRenewPidScreenBuilder,
     WalletRoutes.revocationCodeRoute: (_) => _createRevocationCodeScreenBuilder,
     WalletRoutes.reviewRevocationCodeRoute: (_) => _createReviewRevocationCodeScreenBuilder,
@@ -293,6 +296,8 @@ WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) => (context)
 };
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
+
+Widget _createRecoverSessionScreenBuilder(BuildContext context) => const RecoverSessionScreen();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
   create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
@@ -643,7 +648,8 @@ WidgetBuilder _createRenewPidScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
   return (context) {
-    final argument = Consumable(tryCast<String>(settings.arguments));
+    final argument = Consumable(RecoverPinScreen.getArgument(settings));
+    final continueFromDigiD = argument.peek()?.uri != null || (argument.peek()?.isRecoveryFlow ?? false);
     return BlocProvider<RecoverPinBloc>(
       create: (BuildContext context) {
         final bloc = RecoverPinBloc(
@@ -653,9 +659,9 @@ WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
           context.read(),
           context.read(),
           context.read(),
-          continueFromDigiD: argument.peek() != null,
+          continueFromDigiD: continueFromDigiD,
         );
-        if (argument.peek() != null) bloc.add(RecoverPinContinuePinRecovery(argument.value!));
+        if (argument.peek()?.uri != null) bloc.add(RecoverPinContinuePinRecovery(argument.value!.uri!));
         return bloc;
       },
       child: const RecoverPinScreen(),

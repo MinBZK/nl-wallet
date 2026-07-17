@@ -5,7 +5,7 @@ import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
-import helper.OrganizationAuthMetadataHelper
+import helper.OrganizationMetadataHelper
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
@@ -46,7 +46,7 @@ class RenewCardTests : TestBase() {
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
     private lateinit var cardIssuanceScreen: CardIssuanceScreen
     private lateinit var pinScreen: PinScreen
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var cardDetailScreen: CardDetailScreen
     private lateinit var historyOverviewScreen: HistoryOverviewScreen
@@ -65,7 +65,7 @@ class RenewCardTests : TestBase() {
         indexWebPage = DemoIndexWebPage()
         issuerWebPage = IssuerWebPage()
         pinScreen = PinScreen()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         cardIssuanceScreen = CardIssuanceScreen()
         dashboardScreen = DashboardScreen()
@@ -81,12 +81,12 @@ class RenewCardTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC11 Renew card")
-    fun verifyInsuranceIssuance(testInfo: TestInfo) {
+    fun verifyMdocDiplomaIssuance(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
         disclosureForIssuanceScreen.share()
@@ -98,7 +98,7 @@ class RenewCardTests : TestBase() {
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.switchToNativeContext()
         disclosureForIssuanceScreen.share()
@@ -109,9 +109,9 @@ class RenewCardTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
-        assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "Insurance card not visible on dashboard")
+        assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
 
-        dashboardScreen.clickCard(tasData.getInsuranceDisplayName())
+        dashboardScreen.clickCard(tasData.getDiplomaDisplayName())
         cardDetailScreen.clickCardHistoryButton()
         assertAll(
             { assertTrue(historyOverviewScreen.issuanceSubtitleVisible(), "data is not visible") },

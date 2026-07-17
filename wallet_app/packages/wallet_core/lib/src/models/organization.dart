@@ -15,7 +15,7 @@ class Organization {
   final Image? image;
   final String? webUrl;
   final String? privacyPolicyUrl;
-  final String? identifier;
+  final String identifier;
   final List<LocalizedString>? city;
   final List<LocalizedString> category;
   final List<LocalizedString>? department;
@@ -28,7 +28,7 @@ class Organization {
     this.image,
     this.webUrl,
     this.privacyPolicyUrl,
-    this.identifier,
+    required this.identifier,
     this.city,
     required this.category,
     this.department,

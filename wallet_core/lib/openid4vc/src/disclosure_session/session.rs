@@ -6,6 +6,7 @@ use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
+use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequests;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
@@ -22,7 +23,6 @@ use wscd::poa::JwtPoaInput;
 use super::DisclosableAttestations;
 use super::DisclosureSession;
 use super::NonEmptyDisclosableAttestations;
-use super::VerifierCertificate;
 use super::error::DisclosureError;
 use super::error::VpClientError;
 use super::error::VpSessionError;
@@ -36,7 +36,7 @@ use crate::verifier::SessionType;
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    verifier_certificate: VerifierCertificate,
+    certificate: BorrowingCertificate,
     auth_request: NormalizedVpAuthorizationRequest,
     selected_encryption_algorithm: EncryptionAlgorithm,
 }
@@ -45,14 +45,14 @@ impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        verifier_certificate: VerifierCertificate,
+        certificate: BorrowingCertificate,
         auth_request: NormalizedVpAuthorizationRequest,
         selected_encryption_algorithm: EncryptionAlgorithm,
     ) -> Self {
         Self {
             client,
             session_type,
-            verifier_certificate,
+            certificate,
             auth_request,
             selected_encryption_algorithm,
         }
@@ -71,8 +71,8 @@ where
         &self.auth_request.credential_requests
     }
 
-    fn verifier_certificate(&self) -> &VerifierCertificate {
-        &self.verifier_certificate
+    fn certificate(&self) -> &BorrowingCertificate {
+        &self.certificate
     }
 
     async fn terminate(self) -> Result<Option<Url>, VpSessionError> {
@@ -144,7 +144,9 @@ where
                     Err(error) => {
                         return Err((
                             Box::new(self),
-                            DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
+                            DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
+                                error,
+                            ))),
                         ));
                     }
                 };
@@ -206,7 +208,7 @@ where
                     Err(error) => {
                         return Err((
                             Box::new(self),
-                            DisclosureError::before_sharing(VpClientError::SdJwtSigning(error).into()),
+                            DisclosureError::before_sharing(VpSessionError::Client(VpClientError::SdJwtSigning(error))),
                         ));
                     }
                 };
@@ -248,7 +250,9 @@ where
             Err(error) => {
                 return Err((
                     Box::new(self),
-                    DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(error).into()),
+                    DisclosureError::before_sharing(VpSessionError::Client(VpClientError::AuthResponseEncryption(
+                        error,
+                    ))),
                 ));
             }
         };
@@ -280,8 +284,6 @@ mod tests {
     use std::sync::Arc;
     use std::sync::LazyLock;
 
-    use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -335,7 +337,6 @@ mod tests {
             session_type,
             VpRequestUriMethod::GET,
             redirect_uri,
-            Some(ReaderRegistration::new_mock()),
             credential_requests,
         );
 
@@ -347,9 +348,7 @@ mod tests {
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
-            verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
-                .unwrap()
-                .unwrap(),
+            certificate: verifier_session.key_pair.certificate().clone(),
             auth_request,
             selected_encryption_algorithm,
         };
@@ -373,7 +372,7 @@ mod tests {
         VpDisclosureSession {
             client: error_client,
             session_type: disclosure_session.session_type,
-            verifier_certificate: disclosure_session.verifier_certificate,
+            certificate: disclosure_session.certificate,
             auth_request: disclosure_session.auth_request,
             selected_encryption_algorithm: disclosure_session.selected_encryption_algorithm,
         }

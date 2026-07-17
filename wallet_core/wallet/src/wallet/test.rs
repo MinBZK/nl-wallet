@@ -7,13 +7,10 @@ use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
-use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
@@ -36,6 +33,7 @@ use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use openid4vc::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -163,8 +161,8 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     }
 });
 
-/// The reader CA material, generated once for testing.
-pub static READER_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_reader_mock_ca().unwrap());
+/// The WRPAC CA material, generated once for testing.
+pub static WRPAC_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_wrpac_mock_ca().unwrap());
 
 /// Generates a valid `CredentialPayload` along with its metadata `IssuanceMetadata`.
 pub fn create_example_credential_payload(
@@ -332,7 +330,7 @@ fn create_wallet_configuration() -> WalletConfiguration {
     config.account_server.instruction_result_public_key = (*keys.instruction_result_signing_key.verifying_key()).into();
 
     config.issuer_trust_anchors = TrustAnchors::try_from(vec![ISSUER_KEY.trust_anchor.clone()]).unwrap();
-    config.disclosure.rp_trust_anchors = TrustAnchors::from(&*READER_CA);
+    config.wrpac_trust_anchors = TrustAnchors::from(&*WRPAC_CA);
 
     config
 }
@@ -645,7 +643,7 @@ pub fn mock_issuance_session(
                             .unwrap();
 
                             (
-                                IssuedCredentialCopies::SdJwt(vec_nonempty![(key_identifier, sd_jwt)]),
+                                IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
                                 attestation_type,
                                 exp,
                                 nbf,
@@ -676,14 +674,6 @@ pub fn mock_issuance_session(
     client.expect_accept().return_once(|| Ok(credentials_with_metadata));
 
     (client, attestation_presentations.try_into().unwrap())
-}
-
-pub fn mock_verifier_certificate() -> VerifierCertificate {
-    let ca = Ca::generate_reader_mock_ca().unwrap();
-    let reader_registration = ReaderRegistration::new_mock();
-    let key_pair = generate_reader_mock_with_registration(&ca, &reader_registration).unwrap();
-
-    VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap()
 }
 
 pub fn example_stored_attestation_copy(

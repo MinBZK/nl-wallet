@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -151,7 +149,6 @@ pub fn request_uri(
 #[derive(Debug)]
 pub struct MockVerifierSession {
     pub redirect_uri: Option<Url>,
-    pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: TrustAnchors,
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: Nonce,
@@ -172,16 +169,12 @@ impl MockVerifierSession {
         session_type: SessionType,
         request_uri_method: VpRequestUriMethod,
         redirect_uri: Option<Url>,
-        reader_registration: Option<ReaderRegistration>,
         credential_requests: NormalizedCredentialRequests,
     ) -> Self {
-        // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
-        let ca = Ca::generate_reader_mock_ca().unwrap();
+        // Generate trust anchors, signing key and certificate.
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
-        let key_pair = match &reader_registration {
-            Some(reader_registration) => generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
-            None => ca.generate_reader_mock().unwrap(),
-        };
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
 
         // Generate some OpenID4VP specific session material.
         let nonce = Nonce::new_random();
@@ -194,7 +187,6 @@ impl MockVerifierSession {
         MockVerifierSession {
             redirect_uri,
             trust_anchors,
-            reader_registration,
             key_pair,
             credential_requests,
             nonce,

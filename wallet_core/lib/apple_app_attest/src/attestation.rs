@@ -18,23 +18,29 @@ use crate::certificates::DerX509CertificateChain;
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationError {
     #[error("attestation could not be decoded: {0}")]
-    Decoding(#[from] AttestationDecodingError),
+    Decoding(#[source] AttestationDecodingError),
+
     #[error("attestation did not validate: {0}")]
-    Validation(#[from] AttestationValidationError),
+    Validation(#[source] AttestationValidationError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationDecodingError {
     #[error("deserializing attestation CBOR failed: {0}")]
     Cbor(#[source] ciborium::de::Error<std::io::Error>),
+
     #[error("decoding credential certificate failed: {0}")]
     CredentialCertificate(#[source] CertificateError),
+
     #[error("decoding public key failed: {0}")]
     PublicKey(#[source] CertificateError),
+
     #[error("decoding certificate extension data failed: {0}")]
     CertificateExtension(#[source] CertificateError),
+
     #[error("initial counter is not present in authenticator data")]
     CounterMissing,
+
     #[error("attested credential data is not present in authenticator data")]
     AttestedCredentialDataMissing,
 }
@@ -43,14 +49,19 @@ pub enum AttestationDecodingError {
 pub enum AttestationValidationError {
     #[error("certificate chain parsing or validation failed: {0}")]
     CertificateChain(#[source] CertificateError),
+
     #[error("nonce does not match calculated nonce")]
     NonceMismatch,
+
     #[error("relying party identifier does not match calculated value")]
     RpIdMismatch,
+
     #[error("counter is not 0, received: {0}")]
     CounterNotZero(u32),
+
     #[error("attestation environment is not match, expected: {:?}, received: {:?}", expected.0, received.0)]
     EnvironmentMismatch { expected: Aaguid, received: Aaguid },
+
     #[error("key identifier does not match calculated value")]
     KeyIdentifierMismatch,
 }
@@ -109,7 +120,8 @@ pub struct AttestationStatement {
 
 impl Attestation {
     pub fn parse(bytes: &[u8]) -> Result<Self, AttestationError> {
-        let attestation = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
+        let attestation = ciborium::from_reader(bytes)
+            .map_err(|error| AttestationError::Decoding(AttestationDecodingError::Cbor(error)))?;
 
         Ok(attestation)
     }
@@ -146,17 +158,17 @@ impl VerifiedAttestation {
             .attestation_statement
             .x509_certificates
             .verify(trust_anchors, time)
-            .map_err(AttestationValidationError::CertificateChain)?;
+            .map_err(|error| AttestationError::Validation(AttestationValidationError::CertificateChain(error)))?;
 
         // Extract the public key from the leaf certificate.
         let credential_certificate = attestation
             .attestation_statement
             .x509_certificates
             .credential_certificate()
-            .map_err(AttestationDecodingError::CredentialCertificate)?;
+            .map_err(|error| AttestationError::Decoding(AttestationDecodingError::CredentialCertificate(error)))?;
         let public_key = credential_certificate
             .public_key()
-            .map_err(AttestationDecodingError::PublicKey)?;
+            .map_err(|error| AttestationError::Decoding(AttestationDecodingError::PublicKey(error)))?;
 
         // 2. Create clientDataHash as the SHA256 hash of the one-time challenge your server sends to your app before
         //    performing the attestation, and append that hash to the end of the authenticator data (authData from the
@@ -174,10 +186,10 @@ impl VerifiedAttestation {
 
         let extension = credential_certificate
             .attestation_extension()
-            .map_err(AttestationDecodingError::CertificateExtension)?;
+            .map_err(|error| AttestationError::Decoding(AttestationDecodingError::CertificateExtension(error)))?;
 
         if *nonce != *extension.nonce {
-            return Err(AttestationValidationError::NonceMismatch)?;
+            return Err(AttestationError::Validation(AttestationValidationError::NonceMismatch));
         }
 
         // 5. Create the SHA256 hash of the public key in credCert with X9.62 uncompressed point format, and verify that
@@ -194,7 +206,7 @@ impl VerifiedAttestation {
         //    ID hash.
 
         if attestation.auth_data.as_ref().rp_id_hash() != app_identifier.sha256_hash() {
-            return Err(AttestationValidationError::RpIdMismatch)?;
+            return Err(AttestationError::Validation(AttestationValidationError::RpIdMismatch));
         }
 
         // 7. Verify that the authenticator data’s counter field equals 0.
@@ -203,35 +215,44 @@ impl VerifiedAttestation {
             .auth_data
             .as_ref()
             .counter
-            .ok_or(AttestationDecodingError::CounterMissing)?;
+            .ok_or(AttestationError::Decoding(AttestationDecodingError::CounterMissing))?;
 
         if counter != 0 {
-            return Err(AttestationValidationError::CounterNotZero(counter))?;
+            return Err(AttestationError::Validation(
+                AttestationValidationError::CounterNotZero(counter),
+            ));
         }
 
         // 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the
         //    development environment, or appattest followed by seven 0x00 bytes if operating in the production
         //    environment.
 
-        let attested_credential_data = attestation
-            .auth_data
-            .as_ref()
-            .attested_credential_data
-            .as_ref()
-            .ok_or(AttestationDecodingError::AttestedCredentialDataMissing)?;
+        let attested_credential_data =
+            attestation
+                .auth_data
+                .as_ref()
+                .attested_credential_data
+                .as_ref()
+                .ok_or(AttestationError::Decoding(
+                    AttestationDecodingError::AttestedCredentialDataMissing,
+                ))?;
 
         let environment_aaguid = environment.to_aaguid();
         if attested_credential_data.aaguid != environment_aaguid {
-            return Err(AttestationValidationError::EnvironmentMismatch {
-                expected: environment_aaguid,
-                received: attested_credential_data.aaguid,
-            })?;
+            return Err(AttestationError::Validation(
+                AttestationValidationError::EnvironmentMismatch {
+                    expected: environment_aaguid,
+                    received: attested_credential_data.aaguid,
+                },
+            ));
         }
 
         // 9. Verify that the authenticator data’s credentialId field is the same as the key identifier.
 
         if *attested_credential_data.credential_id() != *key_identifier {
-            return Err(AttestationValidationError::KeyIdentifierMismatch)?;
+            return Err(AttestationError::Validation(
+                AttestationValidationError::KeyIdentifierMismatch,
+            ));
         }
 
         Ok((VerifiedAttestation(attestation), public_key))
@@ -330,17 +351,20 @@ pub mod mock {
         enum MockAttestationCaDerError {
             #[error("could not decode private key DER: {0}")]
             KeyDer(&'static str),
+
             #[error("could not parse certificate and private key DER: {0}")]
-            RcGen(#[from] rcgen::Error),
+            RcGen(#[source] rcgen::Error),
         }
 
         impl MockAttestationCa {
             fn from_der(certificate_der: &[u8], key_der: &[u8]) -> Result<Self, MockAttestationCaDerError> {
                 let key_der = PrivateKeyDer::try_from(key_der).map_err(MockAttestationCaDerError::KeyDer)?;
-                let key_pair = KeyPair::from_der_and_sign_algo(&key_der, &PKCS_ECDSA_P384_SHA384)?;
+                let key_pair = KeyPair::from_der_and_sign_algo(&key_der, &PKCS_ECDSA_P384_SHA384)
+                    .map_err(MockAttestationCaDerError::RcGen)?;
 
                 let certificate = CertificateDer::from(certificate_der).into_owned();
-                let issuer = Issuer::from_ca_cert_der(&certificate, key_pair)?;
+                let issuer =
+                    Issuer::from_ca_cert_der(&certificate, key_pair).map_err(MockAttestationCaDerError::RcGen)?;
 
                 let ca = Self {
                     issuer: Arc::new(issuer),
