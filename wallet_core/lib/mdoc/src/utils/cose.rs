@@ -261,7 +261,7 @@ impl<T> MdocCose<CoseSign1, T> {
     /// as intermediate certificates.
     pub fn verify_against_trust_anchors(
         &self,
-        usage: CertificateUsage,
+        usage: Option<CertificateUsage>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<T, CoseError>
@@ -273,7 +273,7 @@ impl<T> MdocCose<CoseSign1, T> {
         let chain = chain.into_iter().collect_vec();
 
         // Verify the certificate against the trusted IACAs
-        cert.verify(Some(usage), &chain, time, trust_anchors)
+        cert.verify(usage, &chain, time, trust_anchors)
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
@@ -586,7 +586,7 @@ mod tests {
         let header_cert = cose.x5chain().unwrap().into_first();
         assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
-        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &TrustAnchors::from(&ca))
+        cose.verify_against_trust_anchors(Some(CertificateUsage::Mdl), &TimeGenerator, &TrustAnchors::from(&ca))
             .unwrap();
     }
 
@@ -649,8 +649,11 @@ mod tests {
         assert_eq!(intermediate_certificate.as_ref(), chain[1].as_ref());
 
         // Verify signed COSE
-        let result =
-            cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &TrustAnchors::from(&root_ca));
+        let result = cose.verify_against_trust_anchors(
+            Some(CertificateUsage::Mdl),
+            &TimeGenerator,
+            &TrustAnchors::from(&root_ca),
+        );
         assert_eq!(result.unwrap(), ToyMessage::default());
     }
 
@@ -684,7 +687,11 @@ mod tests {
 
         // Verification should fail because the intermediate cert is absent from the chain
         assert!(matches!(
-            cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &TrustAnchors::from(&root_ca),),
+            cose.verify_against_trust_anchors(
+                Some(CertificateUsage::Mdl),
+                &TimeGenerator,
+                &TrustAnchors::from(&root_ca),
+            ),
             Err(CoseError::Certificate(_))
         ));
     }

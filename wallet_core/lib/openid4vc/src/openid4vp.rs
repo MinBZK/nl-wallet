@@ -14,7 +14,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::disclosure::CredentialValidationError;
@@ -433,12 +432,8 @@ impl VpAuthorizationRequest {
         let mut validation_options = AUD_VALIDATIONS.to_owned();
         validation_options.set_audience(&[VpAuthorizationRequestAudience::SelfIssued.to_string()]);
 
-        let (header, auth_request) = jws.parse_and_verify_against_trust_anchors(
-            trust_anchors,
-            &TimeGenerator,
-            Some(CertificateUsage::ReaderAuth),
-            &validation_options,
-        )?;
+        let (header, auth_request) =
+            jws.parse_and_verify_against_trust_anchors(trust_anchors, &TimeGenerator, None, &validation_options)?;
 
         Ok((auth_request, header.x5c.into_first()))
     }
@@ -1272,7 +1267,7 @@ mod tests {
     #[test]
     fn test_client_id_x509_hash_from_certificate() {
         let ca = Ca::generate_mock();
-        let key_pair = ca.generate_reader_mock().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
         let expected_hash = ClientId::x509_hash_value(key_pair.certificate());
 
         let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
@@ -1301,7 +1296,7 @@ mod tests {
     ) {
         let ca = Ca::generate_mock();
         let trust_anchor = TrustAnchors::from(&ca);
-        let rp_keypair = ca.generate_reader_mock().unwrap();
+        let rp_keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();

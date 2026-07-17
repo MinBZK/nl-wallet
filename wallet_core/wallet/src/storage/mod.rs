@@ -11,11 +11,11 @@ use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
 
+use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::BorrowingCertificate;
 #[cfg(any(test, feature = "test"))]
 pub use database_storage::test_storage::MockHardwareDatabaseStorage;
 use derive_more::Constructor;
@@ -218,7 +218,7 @@ pub trait Storage: Send {
         &mut self,
         timestamp: DateTime<Utc>,
         proposed_attestation_presentations: Vec<AttestationPresentation>,
-        reader_certificate: BorrowingCertificate,
+        organization: &Organization,
         status: DisclosureStatus,
         r#type: DisclosureType,
     ) -> StorageResult<()>;
@@ -226,7 +226,7 @@ pub trait Storage: Send {
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>>;
-    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
+    async fn did_share_data_with_relying_party(&self, organization: &Organization) -> StorageResult<bool>;
 
     async fn fetch_all_revocation_info<T>(&self, time_generator: &T) -> StorageResult<Vec<RevocationInfo>>
     where

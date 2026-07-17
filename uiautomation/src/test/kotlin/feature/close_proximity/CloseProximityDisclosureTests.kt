@@ -1,7 +1,7 @@
 package feature.close_proximity
 
 import helper.DeviceResponseHelper
-import helper.OrganizationAuthMetadataHelper
+import helper.OrganizationMetadataHelper
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
@@ -23,9 +23,9 @@ import java.io.File
 class CloseProximityDisclosureTests : TestBase() {
 
     companion object {
-        private val READER_CA_CRT_FILE = System.getenv("READER_CA_CRT_FILE")
+        private val WRPAC_CA_CRT_FILE = System.getenv("WRPAC_CA_CRT_FILE")
             ?: File("../scripts/devenv/target/ca.reader.crt.pem").canonicalPath
-        private val READER_CA_KEY_FILE = System.getenv("READER_CA_KEY_FILE")
+        private val WRPAC_CA_KEY_FILE = System.getenv("WRPAC_CA_KEY_FILE")
             ?: File("../scripts/devenv/target/ca.reader.key.pem").canonicalPath
     }
 
@@ -33,7 +33,7 @@ class CloseProximityDisclosureTests : TestBase() {
     private lateinit var closeProximityQrScreen: CloseProximityQrScreen
     private lateinit var disclosureScreen: DisclosureApproveOrganizationScreen
     private lateinit var pinScreen: PinScreen
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var attributesMissingErrorScreen: AttributesMissingErrorScreen
     private lateinit var bleDisconnectedScreen: BleDisconnectedScreen
 
@@ -43,7 +43,7 @@ class CloseProximityDisclosureTests : TestBase() {
         closeProximityQrScreen = CloseProximityQrScreen()
         disclosureScreen = DisclosureApproveOrganizationScreen()
         pinScreen = PinScreen()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         attributesMissingErrorScreen = AttributesMissingErrorScreen()
         bleDisconnectedScreen = BleDisconnectedScreen()
     }
@@ -59,16 +59,13 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            readerCaCrtFile = READER_CA_CRT_FILE,
-            readerCaKeyFile = READER_CA_KEY_FILE,
-            readerAuthFile = File("../scripts/devenv/mijn_amsterdam_reader_auth.json").canonicalPath,
+            wrpacCaCrtFile = WRPAC_CA_CRT_FILE,
+            wrpacCaKeyFile = WRPAC_CA_KEY_FILE,
             waitForDeviceResponse = true,
         )
         val outputBuffer = mockBleReaderApp.captureOutput()
 
-        disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName",
-            OrganizationAuthMetadataHelper.Organization.AMSTERDAM
-        ))
+        disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM))
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToDashBoard()
@@ -100,8 +97,8 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            readerCaCrtFile = READER_CA_CRT_FILE,
-            readerCaKeyFile = READER_CA_KEY_FILE,
+            wrpacCaCrtFile = WRPAC_CA_CRT_FILE,
+            wrpacCaKeyFile = WRPAC_CA_KEY_FILE,
             readerAuthFile = File("../scripts/devenv/monkey_bike_reader_auth.json").canonicalPath,
         )
         assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
@@ -118,15 +115,13 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            readerCaCrtFile = READER_CA_CRT_FILE,
-            readerCaKeyFile = READER_CA_KEY_FILE,
+            wrpacCaCrtFile = WRPAC_CA_CRT_FILE,
+            wrpacCaKeyFile = WRPAC_CA_KEY_FILE,
             readerAuthFile = File("../scripts/devenv/mijn_amsterdam_reader_auth.json").canonicalPath,
             waitForDeviceResponse = true,
         )
 
-        disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName",
-            OrganizationAuthMetadataHelper.Organization.AMSTERDAM
-        ))
+        disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM))
         disclosureScreen.share()
 
         mockBleReaderApp.destroyForcibly()

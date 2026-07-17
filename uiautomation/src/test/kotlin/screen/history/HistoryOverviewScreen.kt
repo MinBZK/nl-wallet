@@ -23,7 +23,7 @@ class HistoryOverviewScreen : MobileActions() {
 
     fun clickLoginEntryTitle() = clickElementContainingText(disclosureLoginSubtitle)
 
-    fun disclosureOrganizationVisible(organizatioName: String) = elementContainingTextVisible(organizatioName)
+    fun disclosureOrganizationVisible(organizationName: String) = elementContainingTextVisible(organizationName)
 
     fun issuanceSubtitleVisible() = elementContainingTextVisible(cardHistoryIssuanceSuccess)
 

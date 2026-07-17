@@ -1565,12 +1565,10 @@ mod tests {
     use std::assert_matches;
     use std::sync::Arc;
 
-    use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::validity::IssuanceValidity;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use chrono::DateTime;
     use chrono::Duration;
@@ -1665,18 +1663,14 @@ mod tests {
         G: Generator<DateTime<Utc>> + Send + Sync + 'static,
     {
         // Initialize server state
-        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
-        let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([
             (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::new(
-                    UseCaseData::new(
-                        generate_reader_mock_with_registration(&ca, &reader_registration).unwrap(),
-                        session_type_return_url,
-                    ),
+                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url),
                     None,
                     None,
                     None,
@@ -1686,10 +1680,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::new(
-                    UseCaseData::new(
-                        generate_reader_mock_with_registration(&ca, &reader_registration).unwrap(),
-                        session_type_return_url,
-                    ),
+                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url),
                     None,
                     None,
                     None,
@@ -2135,15 +2126,14 @@ mod tests {
     #[tokio::test]
     async fn test_session_creation_by_usecase() {
         // Initialize server state
-        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
-        let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE.to_string(),
             WalletInitiatedUseCase {
                 data: UseCaseData {
-                    key_pair: generate_reader_mock_with_registration(&ca, &reader_registration).unwrap(),
+                    key_pair: ca.generate_wrpac_verifier_mock().unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".into(),
                 },

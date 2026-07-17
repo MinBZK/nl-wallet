@@ -146,17 +146,13 @@ class Runner:
         if isinstance(device_request_hex, str) and device_request_hex:
             helper_command.extend(["--device-request-hex", device_request_hex])
 
-        reader_ca_crt_file = payload.get("reader_ca_crt_file")
-        if isinstance(reader_ca_crt_file, str) and reader_ca_crt_file:
-            helper_command.extend(["--reader-ca-crt-file", reader_ca_crt_file])
+        wrpac_ca_crt_file = payload.get("wrpac_ca_crt_file")
+        if isinstance(wrpac_ca_crt_file, str) and wrpac_ca_crt_file:
+            helper_command.extend(["--wrpac-ca-crt-file", wrpac_ca_crt_file])
 
-        reader_ca_key_file = payload.get("reader_ca_key_file")
-        if isinstance(reader_ca_key_file, str) and reader_ca_key_file:
-            helper_command.extend(["--reader-ca-key-file", reader_ca_key_file])
-
-        reader_auth_file = payload.get("reader_auth_file")
-        if isinstance(reader_auth_file, str) and reader_auth_file:
-            helper_command.extend(["--reader-auth-file", reader_auth_file])
+        wrpac_ca_key_file = payload.get("wrpac_ca_key_file")
+        if isinstance(wrpac_ca_key_file, str) and wrpac_ca_key_file:
+            helper_command.extend(["--wrpac-ca-key-file", wrpac_ca_key_file])
 
         expected_device_response_hex = payload.get("expected_device_response_hex")
         if (

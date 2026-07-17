@@ -51,9 +51,11 @@ pub mod mock {
             let mut organization = Organization::new_mock();
             organization.display_name = "Cert issuer".to_string();
             organization.legal_name = "Cert issuer B.V.".to_string();
-            organization.identifier = Some("NTRNL-50198052".to_string());
+            organization.identifier = "NTRNL-50198052".to_string();
 
-            IssuerRegistration { organization }
+            IssuerRegistration {
+                organization: organization.into(),
+            }
         }
     }
 }

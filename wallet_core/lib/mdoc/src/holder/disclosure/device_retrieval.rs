@@ -3,7 +3,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -49,7 +48,7 @@ impl DocRequest {
 
                 // Perform verification and return the `Certificate`.
                 let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
-                cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
+                cose.verify_against_trust_anchors(None, time, trust_anchors)?;
                 let cert = cose.x5chain()?.into_first();
 
                 Ok(cert)
@@ -90,7 +89,7 @@ pub mod test {
     pub async fn create_doc_request(
         items_request: ItemsRequest,
         session_transcript: &SessionTranscript,
-        private_key: &KeyPair,
+        key_pair: &KeyPair,
     ) -> DocRequest {
         // Generate the reader authentication signature, without payload.
         let items_request = items_request.into();
@@ -98,8 +97,8 @@ pub mod test {
 
         let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
             &TaggedBytes(CborSeq(reader_auth_keyed)),
-            cose::header_with_x5chain(&vec_nonempty![private_key.certificate()]),
-            private_key,
+            cose::header_with_x5chain(&vec_nonempty![key_pair.certificate()]),
+            key_pair,
             false,
         )
         .await
@@ -129,23 +128,23 @@ mod tests {
     #[tokio::test]
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
-        let ca = Ca::generate_reader_mock_ca().unwrap();
-        let private_key = ca.generate_reader_mock().unwrap();
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
         let items_request = ItemsRequest::new_example();
-        let doc_request = create_doc_request(items_request.clone(), &session_transcript, &private_key).await;
+        let doc_request = create_doc_request(items_request.clone(), &session_transcript, &key_pair).await;
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.
         let certificate = doc_request
             .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
-        assert_matches!(certificate, Some(cert) if cert == private_key.into());
+        assert_matches!(certificate, Some(cert) if cert == key_pair.into());
 
-        let other_ca = Ca::generate_reader_mock_ca().unwrap();
+        let other_ca = Ca::generate_wrpac_mock_ca().unwrap();
         let error = doc_request
             .verify(&session_transcript, &TimeGenerator, &TrustAnchors::from(&other_ca))
             .expect_err("Verifying DeviceRequest should have resulted in an error");

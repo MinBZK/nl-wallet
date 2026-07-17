@@ -1,9 +1,7 @@
 use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils as crypto_utils;
-use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequest;
-use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
 use http_utils::reqwest::HttpClient;
 use http_utils::urls::BaseUrl;
@@ -14,7 +12,6 @@ use utils::single_unique::NonEmptySingleUnique;
 use utils::vec_at_least::NonEmptyIterator;
 
 use super::DisclosureClient;
-use super::VerifierCertificate;
 use super::error::UnsupportedRequestUriVariant;
 use super::error::VpClientError;
 use super::error::VpSessionError;
@@ -62,9 +59,7 @@ impl<H> VpDisclosureClient<H> {
             // Invalid request.
             VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
-            | VpVerifierError::RpCertificate(_)
-            | VpVerifierError::NoReaderCertificate
-            | VpVerifierError::RequestedAttributesValidation(_) => Some(VpAuthorizationErrorCode::InvalidRequest),
+            | VpVerifierError::RpCertificate(_) => Some(VpAuthorizationErrorCode::InvalidRequest),
 
             // None.
             VpVerifierError::Request(_) => None,
@@ -92,25 +87,6 @@ impl<H> VpDisclosureClient<H> {
         }
 
         error
-    }
-
-    /// Internal helper function for processing and checking the Authorization Request.
-    fn process_auth_request(
-        credential_requests: &NormalizedCredentialRequests,
-        certificate: BorrowingCertificate,
-    ) -> Result<VerifierCertificate, VpVerifierError> {
-        // Extract `ReaderRegistration` from the certificate.
-        let verifier_certificate = VerifierCertificate::try_new(certificate)
-            .map_err(VpVerifierError::RpCertificate)?
-            .ok_or(VpVerifierError::NoReaderCertificate)?;
-
-        // Verify that the requested attributes are included in the reader authentication.
-        verifier_certificate
-            .registration()
-            .verify_requested_attributes(credential_requests.as_ref())
-            .map_err(VpVerifierError::RequestedAttributesValidation)?;
-
-        Ok(verifier_certificate)
     }
 }
 
@@ -225,16 +201,7 @@ where
             (result, _) => result.map_err(VpSessionError::Verifier)?,
         };
 
-        let process_request_result = Self::process_auth_request(&auth_request.credential_requests, certificate);
-        let verifier_certificate = match process_request_result {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(VpSessionError::Verifier(
-                    self.report_error_back(auth_request.response_uri, auth_request.state, error)
-                        .await,
-                ))?;
-            }
-        };
+        // TODO PVW-5866 check if auth request matches `credentials` of registration certificate
 
         // TODO (PVW-4955): Signing of disclosures using a mix of formats is currently unsupported, because of how we
         //                  use the `DisclosureWscd` trait. If the credential request contains this, simply terminate
@@ -277,7 +244,7 @@ where
         let session = VpDisclosureSession::new(
             self.client.clone(),
             source_session_type,
-            verifier_certificate,
+            certificate,
             auth_request,
             selected_encryption_algorithm,
         );
@@ -295,10 +262,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::AttributeValue;
-    use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::auth::reader_auth::ValidationError;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::x509::CertificateTypeError;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -361,14 +325,12 @@ mod tests {
         (Box<VpSessionError>, Arc<MockVerifierSession>),
     >;
 
-    #[expect(clippy::too_many_arguments)]
     fn start_disclosure_session<SF>(
         session_type: SessionType,
         uri_source: DisclosureUriSource,
         request_uri_method: VpRequestUriMethod,
         redirect_uri: Option<Url>,
         credential_requests: NormalizedCredentialRequests,
-        reader_registration: Option<ReaderRegistration>,
         transform_verifier_session: SF,
     ) -> StartDisclosureResult
     where
@@ -380,7 +342,6 @@ mod tests {
             session_type,
             request_uri_method,
             redirect_uri,
-            reader_registration,
             credential_requests,
         );
         let verifier_session = Arc::new(transform_verifier_session(verifier_session));
@@ -420,27 +381,12 @@ mod tests {
             Format::SdJwt => NormalizedCredentialRequest::new_mock_sd_jwt_pid_example(),
         };
 
-        let authorized_attributes = credential_request
-            .credential_types()
-            .map(|credential_type| {
-                (
-                    credential_type.to_string(),
-                    credential_request.claim_paths().cloned().collect(),
-                )
-            })
-            .collect();
-        let reader_registration = ReaderRegistration {
-            authorized_attributes,
-            ..ReaderRegistration::new_mock()
-        };
-
         start_disclosure_session(
             session_type,
             uri_source,
             request_uri_method,
             redirect_uri,
             vec![credential_request].try_into().unwrap(),
-            Some(reader_registration),
             transform_verifier_session,
         )
     }
@@ -499,12 +445,8 @@ mod tests {
         );
 
         assert_eq!(
-            disclosure_session.verifier_certificate().certificate(),
+            disclosure_session.certificate(),
             verifier_session.key_pair.certificate()
-        );
-        assert_eq!(
-            disclosure_session.verifier_certificate().registration(),
-            verifier_session.reader_registration.as_ref().unwrap()
         );
 
         // Create an attestation and disclose it.
@@ -945,103 +887,11 @@ mod tests {
     }
 
     #[test]
-    fn test_vp_disclosure_client_start_error_missing_reader_registration() {
-        // Calling `VpDisclosureClient::start()` with an Authorization Request JWT that contains
-        // a valid reader certificate but no `ReaderRegistration` should result in an error.
-        // Note that the test for `VpVerifierError::NoReaderCertificate` is missing,
-        // which is too convoluted of an error condition to simulate.
-        let (error, verifier_session) = start_disclosure_session(
-            SessionType::SameDevice,
-            DisclosureUriSource::Link,
-            VpRequestUriMethod::POST,
-            None,
-            NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
-            None,
-            std::convert::identity,
-        )
-        .expect_err(
-            "starting a new disclosure session with a valid reader certificate but no reader registration should not \
-             succeed",
-        );
-
-        assert_matches!(
-            *error,
-            VpSessionError::Verifier(VpVerifierError::RpCertificate(
-                CertificateTypeError::ReaderRegistrationNotFound
-            ))
-        );
-
-        let wallet_messages = verifier_session.wallet_messages.lock();
-        assert_eq!(wallet_messages.len(), 2);
-        assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
-        // This error should be reported back to the verifier.
-        let expected_error_code = VpAuthorizationErrorCode::InvalidRequest;
-        assert_matches!(
-            &wallet_messages[1],
-            WalletMessage::Error(response) if response.error() == &expected_error_code
-        );
-    }
-
-    #[test]
-    fn test_vp_disclosure_client_start_error_requested_attributes_validation() {
-        // Calling `VpDisclosureClient::start()` where the Authorization Request contains
-        // an attribute that is not in the `ReaderRegistration` should result in an error.
-        let reader_registration = ReaderRegistration {
-            authorized_attributes: ReaderRegistration::create_attributes(
-                PID_ATTESTATION_TYPE,
-                [["given_name"], ["family_name"]],
-            ),
-            ..ReaderRegistration::new_mock()
-        };
-        let (error, verifier_session) = start_disclosure_session(
-            SessionType::SameDevice,
-            DisclosureUriSource::Link,
-            VpRequestUriMethod::POST,
-            None,
-            NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
-            Some(reader_registration),
-            std::convert::identity,
-        )
-        .expect_err(
-            "starting a new disclosure session with an authorization request that contains an attribute not in the \
-             reader registration should not succeed",
-        );
-
-        let unregistered_attributes = HashMap::from([(
-            PID_ATTESTATION_TYPE.to_string(),
-            HashSet::from([vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())]]),
-        )]);
-        assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
-            ValidationError::UnregisteredAttributes(unregistered)
-        )) if unregistered == unregistered_attributes);
-
-        let wallet_messages = verifier_session.wallet_messages.lock();
-        assert_eq!(wallet_messages.len(), 2);
-        assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
-        // This error should be reported back to the verifier.
-        let expected_error_code = VpAuthorizationErrorCode::InvalidRequest;
-        assert_matches!(
-            &wallet_messages[1],
-            WalletMessage::Error(response) if response.error() == &expected_error_code
-        );
-    }
-
-    #[test]
     fn test_vp_disclosure_client_start_error_mixed_format_credential_request() {
         // Calling `VpDisclosureClient::start()` where the Authorization Request contains
         // a credential request with a mix of requested formats should result in an error.
         let mdoc_credential_request = NormalizedCredentialRequest::new_mock_mdoc_pid_example();
         let sd_jwt_credential_request = NormalizedCredentialRequest::new_mock_sd_jwt_pid_example();
-
-        let authorized_attributes = mdoc_credential_request
-            .claim_paths()
-            .chain(sd_jwt_credential_request.claim_paths())
-            .cloned()
-            .collect();
-        let reader_registration = ReaderRegistration {
-            authorized_attributes: HashMap::from([(PID_ATTESTATION_TYPE.to_string(), authorized_attributes)]),
-            ..ReaderRegistration::new_mock()
-        };
 
         let (error, verifier_session) = start_disclosure_session(
             SessionType::SameDevice,
@@ -1051,7 +901,6 @@ mod tests {
             vec![mdoc_credential_request, sd_jwt_credential_request]
                 .try_into()
                 .unwrap(),
-            Some(reader_registration),
             |mut verifier_session| {
                 verifier_session.state = Some("authorization_state".to_string());
 

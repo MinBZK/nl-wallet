@@ -5,7 +5,7 @@ import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
-import helper.OrganizationAuthMetadataHelper
+import helper.OrganizationMetadataHelper
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
@@ -46,7 +46,7 @@ class RenewCardTests : TestBase() {
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
     private lateinit var cardIssuanceScreen: CardIssuanceScreen
     private lateinit var pinScreen: PinScreen
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var cardDetailScreen: CardDetailScreen
     private lateinit var historyOverviewScreen: HistoryOverviewScreen
@@ -65,7 +65,7 @@ class RenewCardTests : TestBase() {
         indexWebPage = DemoIndexWebPage()
         issuerWebPage = IssuerWebPage()
         pinScreen = PinScreen()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         cardIssuanceScreen = CardIssuanceScreen()
         dashboardScreen = DashboardScreen()

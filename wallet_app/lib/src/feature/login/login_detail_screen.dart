@@ -2,7 +2,6 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/disclosure/disclose_card_request.dart';
 import '../../domain/model/organization.dart';
 import '../../domain/model/policy/organization_policy.dart';
@@ -124,11 +123,6 @@ class LoginDetailScreen extends StatelessWidget {
                         organization.displayName.toTextSpan(context),
                         textAlign: TextAlign.start,
                         style: context.textTheme.labelLarge,
-                      ),
-                      Text.rich(
-                        organization.category?.l10nSpan(context) ?? ''.toTextSpan(context),
-                        textAlign: TextAlign.start,
-                        style: context.textTheme.bodySmall,
                       ),
                     ],
                   ),

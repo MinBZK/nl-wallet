@@ -1,7 +1,7 @@
 package feature.disclosure
 
-import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.UNIVERSITY
+import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.UNIVERSITY
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
@@ -41,7 +41,7 @@ class UniversalLinkTests : TestBase() {
     private lateinit var demoScreen: DemoScreen
     private lateinit var invalidIssuanceULErrorScreen: InvalidIssuanceULErrorScreen
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var pinScreen: PinScreen
     private lateinit var finishWalletDialog: FinishWalletDialog
 
@@ -63,7 +63,7 @@ class UniversalLinkTests : TestBase() {
         demoScreen = DemoScreen()
         invalidIssuanceULErrorScreen = InvalidIssuanceULErrorScreen()
         scanWithWalletDialog = ScanWithWalletDialog()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         pinScreen = PinScreen()
         finishWalletDialog = FinishWalletDialog()
@@ -81,7 +81,7 @@ class UniversalLinkTests : TestBase() {
 
         assertTrue(
             disclosureForIssuanceScreen.organizationNameVisible(
-                organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)
+                organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)
             )
         )
     }

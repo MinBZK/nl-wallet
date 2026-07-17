@@ -9,7 +9,7 @@ import data.TestConfigRepository.Companion.testConfig
 import domain.Platform
 import helper.BrowserStackHelper
 import helper.LocalizationHelper
-import helper.OrganizationAuthMetadataHelper
+import helper.OrganizationMetadataHelper
 import helper.TasDataHelper
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
@@ -38,7 +38,7 @@ open class MobileActions {
 
     protected val l10n = LocalizationHelper()
     protected val cardMetadata = TasDataHelper()
-    protected val organizationAuthMetadata = OrganizationAuthMetadataHelper()
+    protected val organizationAuthMetadata = OrganizationMetadataHelper()
 
     private fun quoteForAndroid(s: String): String =
         "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -656,16 +656,16 @@ open class MobileActions {
     fun startMockBleReaderApp(
         mdocQrString: String,
         timeoutSeconds: Int = 60,
-        readerCaCrtFile: String? = null,
-        readerCaKeyFile: String? = null,
+        wrpacCaCrtFile: String? = null,
+        wrpacCaKeyFile: String? = null,
         readerAuthFile: String? = null,
         waitForDeviceResponse: Boolean = false,
     ): Process {
         val qrPayload = mdocQrString.removePrefix("mdoc:")
         val scriptPath = File("../scripts/close_proximity/disclosure_mac_reader.swift").canonicalPath
         val cmd = mutableListOf("swift", scriptPath, "--qr-code", qrPayload, "--timeout", timeoutSeconds.toString())
-        if (readerCaCrtFile != null && readerCaKeyFile != null && readerAuthFile != null) {
-            cmd += listOf("--reader-ca-crt-file", readerCaCrtFile, "--reader-ca-key-file", readerCaKeyFile, "--reader-auth-file", readerAuthFile)
+        if (wrpacCaCrtFile != null && wrpacCaKeyFile != null && readerAuthFile != null) {
+            cmd += listOf("--wrpac-ca-crt-file", wrpacCaCrtFile, "--wrpac-ca-key-file", wrpacCaKeyFile)
         }
         if (waitForDeviceResponse) {
             cmd += "--print-device-response-hex"

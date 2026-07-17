@@ -2,7 +2,6 @@ public_url = 'http://${SERVICES_HOST}:${ISSUANCE_SERVER_PORT}/'
 batch_size = 4
 
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
-reader_trust_anchors = ["${READER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 wia_trust_anchors = ["${WIA_CA_CRT}"]
@@ -39,8 +38,8 @@ max_session_lifetime_in_sec = 900
 
 [disclosure_settings.university_mdoc]
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
-certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_READER}"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_WRPAC}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_WRPAC}"
 
 [[disclosure_settings.university_mdoc.dcql_query.credentials]]
 id = "bsn_mdoc"
@@ -56,8 +55,8 @@ trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [disclosure_settings.university_sd_jwt]
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
-certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_READER}"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_WRPAC}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_WRPAC}"
 
 [[disclosure_settings.university_sd_jwt.dcql_query.credentials]]
 id = "bsn_sd_jwt"
@@ -89,8 +88,8 @@ certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_TSL}"
 
 [disclosure_settings.housing]
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_HOUSING_READER}"
-certificate = "${DEMO_ISSUER_CRT_HOUSING_READER}"
+private_key = "${DEMO_ISSUER_KEY_HOUSING_WRPAC}"
+certificate = "${DEMO_ISSUER_CRT_HOUSING_WRPAC}"
 
 [[disclosure_settings.housing.dcql_query.credentials]]
 id = "my_credential"

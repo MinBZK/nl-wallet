@@ -88,12 +88,7 @@ where
             return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
         };
 
-        let organization = session
-            .protocol_state
-            .verifier_certificate()
-            .registration()
-            .organization
-            .clone();
+        let organization = Box::new(Organization::try_from(session.protocol_state.certificate()).unwrap());
 
         let redirect_uri = match self
             .perform_disclosure(
@@ -174,11 +169,8 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::validity::ValidityWindow;
-    use attestation_data::verifier_certificate::VerifierCertificate;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::credential_format::Format;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -226,15 +218,12 @@ mod tests {
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     fn setup_wallet_disclosure_session(requested_format: Format) -> WalletDisclosureSession<MockDisclosureSession> {
-        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key_pair =
-            generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock()).unwrap();
-        let verifier_certificate = VerifierCertificate::try_new(reader_key_pair.into()).unwrap().unwrap();
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
+        let certificate = key_pair.certificate().clone();
 
         let mut disclosure_session = MockDisclosureSession::new();
-        disclosure_session
-            .expect_verifier_certificate()
-            .return_const(verifier_certificate);
+        disclosure_session.expect_certificate().return_const(certificate);
 
         let disclosable_attestation = match requested_format {
             Format::MsoMdoc => {
@@ -383,7 +372,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
+        // Setup a disclosure based issuance session returning an error that means there are no attestations to offer.
         let mut disclosure_session = setup_wallet_disclosure_session(Format::SdJwt);
         disclosure_session.protocol_state.expect_disclose().return_once(|_| {
             Err((

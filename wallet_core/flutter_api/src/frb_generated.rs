@@ -2744,7 +2744,7 @@ impl SseDecode for crate::models::organization::Organization {
         let mut var_image = <Option<crate::models::image::Image>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
-        let mut var_identifier = <Option<String>>::sse_decode(deserializer);
+        let mut var_identifier = <String>::sse_decode(deserializer);
         let mut var_city = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
         let mut var_category = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_department = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
@@ -5116,7 +5116,7 @@ impl SseEncode for crate::models::organization::Organization {
         <Option<crate::models::image::Image>>::sse_encode(self.image, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
-        <Option<String>>::sse_encode(self.identifier, serializer);
+        <String>::sse_encode(self.identifier, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.city, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.category, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.department, serializer);

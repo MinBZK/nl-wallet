@@ -58,11 +58,6 @@ pub mod attestation_data {
     pub use attestation_data::attributes::AttributeValue;
     pub use attestation_data::auth::LocalizedStrings;
     pub use attestation_data::auth::Organization;
-    pub use attestation_data::auth::reader_auth::DeletionPolicy;
-    pub use attestation_data::auth::reader_auth::ReaderRegistration;
-    pub use attestation_data::auth::reader_auth::RetentionPolicy;
-    pub use attestation_data::auth::reader_auth::SharingPolicy;
-    pub use attestation_data::auth::reader_auth::ValidationError;
     pub use attestation_data::disclosure_type::DisclosureType;
     pub use attestation_data::validity::ValidityWindow;
 }
@@ -74,7 +69,6 @@ pub mod attestation_types {
 
 pub mod configuration {
     pub use wallet_configuration::wallet_config::AccountServerConfiguration;
-    pub use wallet_configuration::wallet_config::DisclosureConfiguration;
     pub use wallet_configuration::wallet_config::LockTimeoutConfiguration;
     pub use wallet_configuration::wallet_config::PidAttributePaths;
     pub use wallet_configuration::wallet_config::PidAttributesConfiguration;
