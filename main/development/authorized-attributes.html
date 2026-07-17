@@ -196,68 +196,14 @@
 <p>On this page you’ll find a collection of so-called claim paths, which are
 defined within a number of verifiable credential types (or doctypes in mdoc) we
 support. These claim paths are used to indicate what values you’re interested
-in. They are used within the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object in <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>
-documents.</p>
+in. They are used within the <code class="docutils literal notranslate"><span class="pre">credentials</span></code> field of a Wallet Relying Party
+Registration Certificate.</p>
 <section id="how-authorized-attributes-are-specified">
 <h2>How authorized attributes are specified<a class="headerlink" href="#how-authorized-attributes-are-specified" title="Link to this heading"></a></h2>
-<p>As mentioned, in the <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> document, you have an object which
-indicates what attributes you want to verify, called <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code>.</p>
-<p>In the <code class="docutils literal notranslate"><span class="pre">scripts/devenv</span></code> subdirectory of our git repository, you’ll find various
-<code class="docutils literal notranslate"><span class="pre">*_reader_auth.json</span></code> example documents which all include an
-<code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code> object.</p>
-<p>Let’s take the (quite extensive) one from our “XYZ Bank” as an example:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;given_name&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;family_name&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;birthdate&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;house_number&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;postal_code&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;given_name&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;family_name&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;birthdate&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;house_number&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;postal_code&quot;</span><span class="p">]</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;given_name&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;family_name&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;birthdate&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;house_number&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;postal_code&quot;</span><span class="p">]</span>
-<span class="w">    </span><span class="p">]</span>
-<span class="w">  </span><span class="p">}</span>
-</pre></div>
-</div>
-<p>The object contains named array values; the name represents an attestation type
-(a <em>doctype</em> in mdoc parlance, or a <em>Verifiable Credential Type</em>/VCT in SD-JWT
-speak), with a version number appended (i.e., the <code class="docutils literal notranslate"><span class="pre">1</span></code>’s after the name).</p>
-<p>In the above example: <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:nl:1</span></code> and <code class="docutils literal notranslate"><span class="pre">urn:eudi:pid:1&quot;</span></code> are attestation
-type names with an appended version <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
-<p>These attestation types are (in our implementation) defined in JSON definition
-documents (for example, see <code class="docutils literal notranslate"><span class="pre">scripts/devenv/eudi:*.json</span></code> in our git repository).</p>
-<p>The tables below, which show you what each attestation type can contain, are
-generated from those documents.</p>
+<p>TODO PVW-5866 Update for Registration Certificates</p>
 <section id="support-for-both-sd-jwt-and-mdoc-style-authorized-attributes">
 <h3>Support for both SD-JWT- and mdoc-style authorized attributes<a class="headerlink" href="#support-for-both-sd-jwt-and-mdoc-style-authorized-attributes" title="Link to this heading"></a></h3>
-<p>The array contains one or more arrays with so-called “claim paths”. In the
-example above, you’ll find that some values seem a bit redundant, like:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
-<span class="w">  </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1.address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;street_address&quot;</span><span class="p">]</span>
-<span class="p">]</span>
-</pre></div>
-</div>
-<p>In this case, the first (somewhat wordy) specification is an mdoc style path
-specification, and the second shorter one is an SD-JWT claim path (which in the
-tables below is shown as <code class="docutils literal notranslate"><span class="pre">address.street_address</span></code>). Specifying this in both
-forms allows the verifier (or issuer doing disclosure-based-issuance) to request
-ttributes from attestations in both mdoc and SD-JWT format.</p>
+<p>TODO PVW-5866 Update for Registration Certificates</p>
 </section>
 <section id="a-note-about-extended-vcts">
 <h3>A note about extended VCTs<a class="headerlink" href="#a-note-about-extended-vcts" title="Link to this heading"></a></h3>

@@ -226,58 +226,51 @@ issuer/verstrekkende-voorziening.</p>
 <li><p><a class="reference internal" href="#creating-the-issuer-auth-json-document" id="id9">Creating the issuer_auth JSON document</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#creating-a-reader-authentication-document" id="id10">Creating a reader authentication document</a></p>
+<li><p><a class="reference internal" href="#creating-issuer-tsl-and-wrpac-certificates" id="id10">Creating issuer, TSL and WRPAC certificates</a></p></li>
+<li><p><a class="reference internal" href="#issuance-server-setup" id="id11">Issuance server setup</a></p>
 <ul>
-<li><p><a class="reference internal" href="#decide-on-required-metadata-for-your-reader-auth" id="id11">Decide on required metadata for your reader_auth</a></p></li>
-<li><p><a class="reference internal" href="#decide-on-attributes-you-want-to-verify" id="id12">Decide on attributes you want to verify</a></p></li>
-<li><p><a class="reference internal" href="#creating-the-reader-auth-json-document" id="id13">Creating the reader_auth JSON document</a></p></li>
+<li><p><a class="reference internal" href="#obtaining-the-software" id="id12">Obtaining the software</a></p></li>
+<li><p><a class="reference internal" href="#using-a-database-backend" id="id13">Using a database backend</a></p>
+<ul>
+<li><p><a class="reference internal" href="#setting-up-postgresql" id="id14">Setting up PostgreSQL</a></p></li>
+<li><p><a class="reference internal" href="#create-user-and-database" id="id15">Create user and database</a></p></li>
+<li><p><a class="reference internal" href="#apply-database-schema" id="id16">Apply database schema</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#creating-issuer-reader-and-tsl-certificates" id="id14">Creating issuer, reader and tsl certificates</a></p></li>
-<li><p><a class="reference internal" href="#issuance-server-setup" id="id15">Issuance server setup</a></p>
+<li><p><a class="reference internal" href="#creating-a-configuration" id="id17">Creating a configuration</a></p>
 <ul>
-<li><p><a class="reference internal" href="#obtaining-the-software" id="id16">Obtaining the software</a></p></li>
-<li><p><a class="reference internal" href="#using-a-database-backend" id="id17">Using a database backend</a></p>
+<li><p><a class="reference internal" href="#logging-settings-optional" id="id18">Logging settings (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-trust-anchors" id="id19">Configuring trust anchors</a></p></li>
+<li><p><a class="reference internal" href="#determine-public-url" id="id20">Determine public URL</a></p></li>
+<li><p><a class="reference internal" href="#universal-link-base-url" id="id21">Universal link base URL</a></p></li>
+<li><p><a class="reference internal" href="#configuring-allowed-client-ids" id="id22">Configuring allowed client IDs</a></p></li>
+<li><p><a class="reference internal" href="#configuring-metadata-document-references" id="id23">Configuring metadata document references</a></p></li>
+<li><p><a class="reference internal" href="#configuring-listener-address-and-port" id="id24">Configuring listener address and port</a></p></li>
+<li><p><a class="reference internal" href="#the-storage-settings-optional" id="id25">The storage settings (optional)</a></p>
 <ul>
-<li><p><a class="reference internal" href="#setting-up-postgresql" id="id18">Setting up PostgreSQL</a></p></li>
-<li><p><a class="reference internal" href="#create-user-and-database" id="id19">Create user and database</a></p></li>
-<li><p><a class="reference internal" href="#apply-database-schema" id="id20">Apply database schema</a></p></li>
+<li><p><a class="reference internal" href="#using-in-memory-session-state" id="id26">Using in-memory session state</a></p></li>
+<li><p><a class="reference internal" href="#using-database-persisted-session-state" id="id27">Using database persisted session state</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#creating-a-configuration" id="id21">Creating a configuration</a></p>
+<li><p><a class="reference internal" href="#configuring-a-hardware-security-module-optional" id="id28">Configuring a hardware security module (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-the-status-list-settings-optional" id="id29">Configuring the status list settings (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-disclosure-based-issuance-elements" id="id30">Configuring disclosure-based issuance elements</a></p>
 <ul>
-<li><p><a class="reference internal" href="#logging-settings-optional" id="id22">Logging settings (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-trust-anchors" id="id23">Configuring trust anchors</a></p></li>
-<li><p><a class="reference internal" href="#determine-public-url" id="id24">Determine public URL</a></p></li>
-<li><p><a class="reference internal" href="#universal-link-base-url" id="id25">Universal link base URL</a></p></li>
-<li><p><a class="reference internal" href="#configuring-allowed-client-ids" id="id26">Configuring allowed client IDs</a></p></li>
-<li><p><a class="reference internal" href="#configuring-metadata-document-references" id="id27">Configuring metadata document references</a></p></li>
-<li><p><a class="reference internal" href="#configuring-listener-address-and-port" id="id28">Configuring listener address and port</a></p></li>
-<li><p><a class="reference internal" href="#the-storage-settings-optional" id="id29">The storage settings (optional)</a></p>
-<ul>
-<li><p><a class="reference internal" href="#using-in-memory-session-state" id="id30">Using in-memory session state</a></p></li>
-<li><p><a class="reference internal" href="#using-database-persisted-session-state" id="id31">Using database persisted session state</a></p></li>
+<li><p><a class="reference internal" href="#the-disclosure-settings" id="id31">The disclosure settings</a></p></li>
+<li><p><a class="reference internal" href="#the-dcql-query-credentials" id="id32">The DCQL query credentials</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-url-configuration" id="id33">The attestation URL configuration</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-settings" id="id34">The attestation settings</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-settings-associated-status-list-settings" id="id35">The attestation settings associated status list settings</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#configuring-a-hardware-security-module-optional" id="id32">Configuring a hardware security module (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-the-status-list-settings-optional" id="id33">Configuring the status list settings (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-disclosure-based-issuance-elements" id="id34">Configuring disclosure-based issuance elements</a></p>
-<ul>
-<li><p><a class="reference internal" href="#the-disclosure-settings" id="id35">The disclosure settings</a></p></li>
-<li><p><a class="reference internal" href="#the-dcql-query-credentials" id="id36">The DCQL query credentials</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-url-configuration" id="id37">The attestation URL configuration</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-settings" id="id38">The attestation settings</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-settings-associated-status-list-settings" id="id39">The attestation settings associated status list settings</a></p></li>
+<li><p><a class="reference internal" href="#writing-the-configuration-file" id="id36">Writing the configuration file</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#writing-the-configuration-file" id="id40">Writing the configuration file</a></p></li>
+<li><p><a class="reference internal" href="#running-the-server-for-the-first-time" id="id37">Running the server for the first time</a></p></li>
+<li><p><a class="reference internal" href="#validating-your-setup" id="id38">Validating your setup</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#running-the-server-for-the-first-time" id="id41">Running the server for the first time</a></p></li>
-<li><p><a class="reference internal" href="#validating-your-setup" id="id42">Validating your setup</a></p></li>
-</ul>
-</li>
-<li><p><a class="reference internal" href="#integrating-your-app-with-your-issuance-server" id="id43">Integrating your app with your issuance server</a></p></li>
+<li><p><a class="reference internal" href="#integrating-your-app-with-your-issuance-server" id="id39">Integrating your app with your issuance server</a></p></li>
 </ul>
 </nav>
 <section id="what-we-re-going-to-cover">
@@ -285,9 +278,8 @@ issuer/verstrekkende-voorziening.</p>
 <p>We’ll start with a paragraph about the related architecture, with links to the
 relevant architecture documents.</p>
 <p>We’ll then cover the creation of the technical attestation schema, the creation
-of issuer and reader authentication documents and the corresponding reader and
-issuer certificates, which are essential for identifying your service within
-the NL Wallet ecosystem.</p>
+of issuer authentication documents and the corresponding issuer certificates,
+which are essential for identifying your service within the NL Wallet ecosystem.</p>
 <p>Next, we’ll guide you through setting up the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>. This includes
 obtaining the software, configuring it (with an optional database backend), and
 running it for the first time.</p>
@@ -346,8 +338,7 @@ intended for a production environment, more stringent rules might apply.</p>
 <p>If you plan to eventually bring your issuer into production readiness, you might
 want to consider our <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process. When you are a member of the NL
 Wallet community, you have access to community resources that can help with
-validation of your TAS, <code class="docutils literal notranslate"><span class="pre">issuer_auth</span></code>, <code class="docutils literal notranslate"><span class="pre">reader_auth</span></code> and <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>
-configuration files.</p>
+validation of your TAS, <code class="docutils literal notranslate"><span class="pre">issuer_auth</span></code> and <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> configuration files.</p>
 </div>
 <section id="decide-on-required-metadata-for-your-tas">
 <h3>Decide on required metadata for your TAS<a class="headerlink" href="#decide-on-required-metadata-for-your-tas" title="Link to this heading"></a></h3>
@@ -677,206 +668,14 @@ git directory):</p>
 </div>
 </section>
 </section>
-<section id="creating-a-reader-authentication-document">
-<h2>Creating a reader authentication document<a class="headerlink" href="#creating-a-reader-authentication-document" title="Link to this heading"></a></h2>
-<p>We’re going to create a so-called <code class="docutils literal notranslate"><span class="pre">reader_auth</span></code> document.</p>
-<p>The subsections below describe the decisions you need to make as a verifier with
-regards to attributes you want to verify, what data we require from you, how to
-create a reader certificate for your usecase (which is configured for usage
-within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> configuration).</p>
-<p>In this guide, we assume you have <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarded succesfully</span></a> - i.e., you are
-running your own CA and the public key of that CA has been shared with the
-operations team who will need to add your CA public key to the trust anchors of
-the app.</p>
-<div class="admonition note">
-<p class="admonition-title">Onboarding optional</p>
-<p>Do note that onboarding is not strictly necessary - you <em>can</em> follow all steps
-in this guide and observe things working in a local development environment -
-but when you want to test your verifier with the NL Wallet platform (i.e., our
-backend and mobile apps in our acceptance and pre-production environments), you
-do need to be onboarded to get access to those environments.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">This chapter is also a part of creating a verifier</p>
-<p>Note that when you’ve also <a class="reference internal" href="create-a-verifier.html"><span class="doc std std-doc">created a verifier</span></a>, this section will look
-familiar to you; that is because an issuer, like a verifier, needs a reader
-authentication document. This is because of how disclosure-based-issuance works:
-with disclosure-based-issuance, an issuer is essentially also a verifier (i.e.,
-you disclose some attributes in order to obtain some new ones).</p>
-</div>
-<section id="decide-on-required-metadata-for-your-reader-auth">
-<h3>Decide on required metadata for your reader_auth<a class="headerlink" href="#decide-on-required-metadata-for-your-reader-auth" title="Link to this heading"></a></h3>
-<p>A reader certificate contains a bunch of metadata, which we store as a part
-of the certificate in a so-called X.509v3 extension. We use this data to know
-which attested attribute you want to verify, and to present a view of you, the
-verifier in the NL Wallet app GUI.</p>
-<p><strong>ROOT</strong></p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Key</p></th>
-<th class="head"><p>Languages</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">purposeStatement</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>For what purpose are you attesting? Login? Age verification? etc.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">retentionPolicy</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Do you have an intent to retain data? For how long?</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sharingPolicy</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Do you have an intent to share data? With whom?</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">deletionPolicy</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Do you allow users to request deletion of their data, yes/no?</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.displayName</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Name of the verifier as shown in the app app.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.legalName</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Legal name of the verifier.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.description</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Short one-sentence description or mission statement of the verifier.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.webUrl</span></code></p></td>
-<td><p>-</p></td>
-<td><p>The home URL of the verifier.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.city</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>The home city of the verifier.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.category</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Bank, Municipality, Trading, Delivery Service, etc.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.logo.mimeType</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Logo mimetype, can be image/svg+xml, image/png or image/jpeg</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.logo.imageData</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Logo image data. When SVG, an escaped XML string, else base64</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.countryCode</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Two-letter country code of verifier residence.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.kvk</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Chamber of commerce number of verifier.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.privacyPolicyUrl</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Link to verifier’s privacy policy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code></p></td>
-<td><p>-</p></td>
-<td><p>List of attributes you want to verify.</p></td>
-</tr>
-</tbody>
-</table>
-<p>Note: In the <code class="docutils literal notranslate"><span class="pre">Languages</span></code> column where it says <code class="docutils literal notranslate"><span class="pre">nl+en</span></code> for example, please
-provide both Dutch and English values.</p>
-</section>
-<section id="decide-on-attributes-you-want-to-verify">
-<h3>Decide on attributes you want to verify<a class="headerlink" href="#decide-on-attributes-you-want-to-verify" title="Link to this heading"></a></h3>
-<p>You can verify any attribute (also known as a claim path) provided by any issuer
-on the plaform, but since we don’t have an issuer registry yet, you would need
-to know or otherwise get your hands on the JSON documents that define the claim
-paths that belong to a given <code class="docutils literal notranslate"><span class="pre">vct</span></code> (a Verifiable Credential Type).</p>
-<p>For our own issuer(s), you can have a look at our
-<a class="reference internal" href="../development/authorized-attributes.html"><span class="doc std std-doc">supported authorized attributes</span></a> document for an overview of claim paths
-you can use, and some background information on how the <code class="docutils literal notranslate"><span class="pre">authorizedAttributes</span></code>
-object works.</p>
-</section>
-<section id="creating-the-reader-auth-json-document">
-<h3>Creating the reader_auth JSON document<a class="headerlink" href="#creating-the-reader-auth-json-document" title="Link to this heading"></a></h3>
-<p>When you’ve collected all the required metadata, you are ready to create the
-<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file. Here is an example for our insurance company:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;purposeStatement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Uitgifte&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Issuance&quot;</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;retentionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;intentToRetain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;maxDurationInMinutes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">525600</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;sharingPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;intentToShare&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;deletionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;deleteable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;organization&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAar&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;InsurAnce&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;legalName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAargh N.V.&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAargh N.V.&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAargh is een voorbeeld-verzekeraar.&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;InsurAnce is an exemplar insurance company.&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;webUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://insurance.example.com&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;city&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Den Haag&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The Hague&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verzekeringen&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Insurance&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;logo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;mimeType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;image/svg+xml&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;imageData&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;svg xmlns=\&quot;http://www.w3.org/2000/svg\&quot; width=\&quot;64\&quot; height=\&quot;64\&quot; fill=\&quot;none\&quot;&gt;&lt;rect width=\&quot;64\&quot; height=\&quot;64\&quot; y=\&quot;-.002\&quot; fill=\&quot;#3A839A\&quot; rx=\&quot;12\&quot;/&gt;&lt;path fill=\&quot;#FCFCFC\&quot; d=\&quot;M29.563 33.6H25.5v-4.8h4.063v-4h4.875v4H38.5v4.8h-4.062v4h-4.876zM32 16l-13 4.8v9.744C19 38.624 24.541 46.16 32 48c7.459-1.84 13-9.376 13-17.456V20.8zm9.75 14.544c0 6.4-4.144 12.32-9.75 14.128-5.606-1.808-9.75-7.712-9.75-14.128v-7.52l9.75-3.6 9.75 3.6z\&quot;/&gt;&lt;/svg&gt;&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;countryCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;kvk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;99876543&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;privacyPolicyUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://insurance.example.com/privacy&quot;</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;requestOriginBaseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://insurance.example.com&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="p">[</span><span class="s2">&quot;bsn&quot;</span><span class="p">]</span>
-<span class="w">    </span><span class="p">]</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Take the above example, make sure you’ve read the previous sections which
-explain what the different key/values mean, and (optionally) construct your
-own <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file (or copy it verbatim if you’re just testing). When
-we are going to be creating the reader certificate in the next sections, we are
-going to need it at a specific location, so save it (inside the <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code>
-git directory):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">target</span><span class="o">/</span><span class="ow">is</span><span class="o">-</span><span class="n">config</span><span class="o">/</span><span class="n">reader_auth</span><span class="o">.</span><span class="n">json</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="creating-issuer-reader-and-tsl-certificates">
-<h2>Creating issuer, reader and tsl certificates<a class="headerlink" href="#creating-issuer-reader-and-tsl-certificates" title="Link to this heading"></a></h2>
-<p>Let’s create the issuer, reader and tsl certificates. We’re going to clone the
+<section id="creating-issuer-tsl-and-wrpac-certificates">
+<h2>Creating issuer, TSL and WRPAC certificates<a class="headerlink" href="#creating-issuer-tsl-and-wrpac-certificates" title="Link to this heading"></a></h2>
+<p>Let’s create the issuer, TSL and WRPAC certificates. We’re going to clone the
 NL Wallet repository, enter its directory, set a target directory and specify an
 identifier (this identifies your organization, and should be in lowercase
 characters a-z, can end with numbers but may not begin with them).</p>
 <p>We then make sure the target directory exists, and invoke <code class="docutils literal notranslate"><span class="pre">cargo</span></code> (rust’s build
-tool) to in turn invoke <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> which will create the issuer, reader and tsl
+tool) to in turn invoke <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> which will create the issuer, TSL and WRPAC
 certificates and keys.</p>
 <p>Finally, we invoke <code class="docutils literal notranslate"><span class="pre">openssl</span></code> to convert our PEM certificates and key into DER
 format.</p>
@@ -887,11 +686,10 @@ format.</p>
 installed and working.</p>
 </div>
 <div class="admonition caution">
-<p class="admonition-title">Did you create an issuer_auth.json and reader_auth.json?</p>
-<p>You need valid <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code> and <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>, documents, which you
-should have, if you followed along with the previous sections where we created
-<a class="reference internal" href="#creating-the-issuer-auth-json-document">issuer</a> and
-<a class="reference internal" href="#creating-the-reader-auth-json-document">reader</a> authorization documents.</p>
+<p class="admonition-title">Did you create an issuer_auth.json?</p>
+<p>You need valid <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code> document, which you should have, if you
+followed along with the previous sections where we created
+<a class="reference internal" href="#creating-the-issuer-auth-json-document">issuer</a></p>
 </div>
 <div class="admonition caution">
 <p class="admonition-title">Did you create your own CA?</p>
@@ -931,18 +729,7 @@ cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span cla
 <span class="w">    </span>--issuer-auth-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer_auth.json&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 
-<span class="c1"># Create the reader certificate using wallet_ca.</span>
-cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>cert<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--type<span class="w"> </span>reader<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--organization-name<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--organization-id<span class="w"> </span><span class="s2">&quot;NTRNL-00000002&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--reader-auth-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader_auth.json&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
-
-<span class="c1"># Create the tsl certificate using wallet_ca.</span>
+<span class="c1"># Create the TSL certificate using wallet_ca.</span>
 cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>cert<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--type<span class="w"> </span>tsl<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.issuer.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -952,27 +739,38 @@ cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span cla
 <span class="w">    </span>--organization-id<span class="w"> </span><span class="s2">&quot;NTRNL-00000002&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/tsl.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 
+<span class="c1"># Create the WRPAC certificate using wallet_ca.</span>
+cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>cert<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--type<span class="w"> </span>wrpac<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--organization-name<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--organization-id<span class="w"> </span><span class="s2">&quot;NTRNL-00000002&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
 <span class="c1"># Convert certificates PEM to DER.</span>
 openssl<span class="w"> </span>x509<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
 openssl<span class="w"> </span>x509<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
-openssl<span class="w"> </span>x509<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/tsl.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/tsl.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
+openssl<span class="w"> </span>x509<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
 
 <span class="c1"># Convert keys PEM to DER.</span>
 openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-nocrypt<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
 openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-nocrypt<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
-openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-nocrypt<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/tsl.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/tsl.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
+openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-nocrypt<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
 </pre></div>
 </div>
 <p>The used CA public certificate (referenced in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> command)
@@ -1175,7 +973,7 @@ with the <code class="docutils literal notranslate"><span class="pre">RUST_LOG</
 </section>
 <section id="configuring-trust-anchors">
 <h4>Configuring trust anchors<a class="headerlink" href="#configuring-trust-anchors" title="Link to this heading"></a></h4>
-<p><a class="reference internal" href="#creating-issuer-reader-and-tsl-certificates">When you created the issuer, reader and tsl certificates</a>,
+<p><a class="reference internal" href="#creating-issuer-tsl-and-wrpac-certificates">When you created the issuer, TSL and WRPAC certificates</a>,
 you signed those certificates using a CA, either generated by the development
 setup script or specifically <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">created by you</span></a> as part of the (optional)
 <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">community onboarding process</span></a>.</p>
@@ -1184,8 +982,8 @@ setup script or specifically <a class="reference internal" href="../community/cr
 <li><p><code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code> - a string array of CA certificates which are
 considered trusted to sign issuer certificates, in DER format, base64
 encoded;</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">reader_trust_anchors</span></code> - a string array of CA certificates which are
-considered trusted to sign reader certificates, in DER format, base64
+<li><p><code class="docutils literal notranslate"><span class="pre">wrpac_trust_anchors</span></code> - a string array of CA certificates which are
+considered trusted for identifying WRPAC, in DER format, base64
 encoded;</p></li>
 </ul>
 <p>The trust anchor arrays tell the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> which certificates it can
@@ -1193,12 +991,12 @@ trust. If an <code class="docutils literal notranslate"><span class="pre">issuan
 that is not in its trust anchor arrays, operations will fail (by design).</p>
 <p>We need to trust our own CA, whether it is created by the development setup
 scripts or explicitly by you. The development scripts create a separate CA for
-issuers and readers (usually at <code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.issuer.crt.der</span></code> and
-<code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.reader.crt.der</span></code>). When you create and use your own
+issuers and WRPACs (usually at <code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.issuer.crt.der</span></code> and
+<code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.wrpac.crt.der</span></code>). When you create and use your own
 CA for community development purposes as <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">documented here</span></a>, you can use that
-CA generally for signing both issuance and reader certificates, and hence, add
-it to both the issuer and reader trust anchors.</p>
-<p>The below code block will initialize the issuer and reader trust anchor
+CA generally for signing both issuance and WRPAC certificates, and hence, add
+it to both the issuer and WRPAC trust anchors.</p>
+<p>The below code block will initialize the issuer and WRPAC trust anchor
 environment variables with the CA certificates it can find, both generated by
 development scripts and any you created yourself, provided you <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">followed the CA
 creation instructions to the letter</span></a> and used the naming convention
@@ -1207,18 +1005,18 @@ your CA certificates in DER format there. The code block assumes you have the
 <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> git repository checked out.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
 <span class="nb">export</span><span class="w"> </span><span class="nv">IS_ISSUER_TRUST_ANCHORS</span><span class="o">=()</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">IS_READER_TRUST_ANCHORS</span><span class="o">=()</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IS_WRPAC_TRUST_ANCHORS</span><span class="o">=()</span>
 <span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span>scripts/devenv/target/ca.issuer.crt.der<span class="w"> </span>target/ca-cert/ca.*.crt.der<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="o">[[</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">$i</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">IS_ISSUER_TRUST_ANCHORS</span><span class="o">+=(</span><span class="k">$(</span>openssl<span class="w"> </span>base64<span class="w"> </span>-e<span class="w"> </span>-A<span class="w"> </span>-in<span class="w"> </span><span class="nv">$i</span><span class="k">)</span><span class="o">)</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
-<span class="k">for</span><span class="w"> </span>r<span class="w"> </span><span class="k">in</span><span class="w"> </span>scripts/devenv/target/ca.reader.crt.der<span class="w"> </span>target/ca-cert/ca.*.crt.der<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="o">[[</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">$r</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">IS_READER_TRUST_ANCHORS</span><span class="o">+=(</span><span class="k">$(</span>openssl<span class="w"> </span>base64<span class="w"> </span>-e<span class="w"> </span>-A<span class="w"> </span>-in<span class="w"> </span><span class="nv">$r</span><span class="k">)</span><span class="o">)</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+<span class="k">for</span><span class="w"> </span>r<span class="w"> </span><span class="k">in</span><span class="w"> </span>scripts/devenv/target/ca.wrpac.crt.der<span class="w"> </span>target/ca-cert/ca.*.crt.der<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">[[</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">$r</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">IS_WRPAC_TRUST_ANCHORS</span><span class="o">+=(</span><span class="k">$(</span>openssl<span class="w"> </span>base64<span class="w"> </span>-e<span class="w"> </span>-A<span class="w"> </span>-in<span class="w"> </span><span class="nv">$r</span><span class="k">)</span><span class="o">)</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
 
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/03-trust-anchors.toml&quot;</span>
 <span class="s">issuer_trust_anchors = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${IS_ISSUER_TRUST_ANCHORS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
-<span class="s">reader_trust_anchors = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${IS_READER_TRUST_ANCHORS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
+<span class="s">wrpac_trust_anchors = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${IS_WRPAC_TRUST_ANCHORS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
 <span class="s">EOF</span>
-<span class="nb">unset</span><span class="w"> </span>IS_ISSUER_TRUST_ANCHORS<span class="w"> </span>IS_READER_TRUST_ANCHORS
+<span class="nb">unset</span><span class="w"> </span>IS_ISSUER_TRUST_ANCHORS<span class="w"> </span>IS_WRPAC_TRUST_ANCHORS
 </pre></div>
 </div>
 </section>
@@ -1459,10 +1257,8 @@ as follows:</p>
 <p>In the next sub-sections we’ll cover each one of these.</p>
 <section id="the-disclosure-settings">
 <h5>The disclosure settings<a class="headerlink" href="#the-disclosure-settings" title="Link to this heading"></a></h5>
-<p>We’re going to base64 encode the reader key and certificate within the
-<code class="docutils literal notranslate"><span class="pre">private_key</span></code> and <code class="docutils literal notranslate"><span class="pre">certificate</span></code> fields of the <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code>. This is
-the certificate that embedded the previously created <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>. Let’s
-create the section:</p>
+<p>We’re going to base64 encode the WRPAC key and certificate within the
+<code class="docutils literal notranslate"><span class="pre">private_key</span></code> and <code class="docutils literal notranslate"><span class="pre">certificate</span></code> fields of the <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code>.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
 <span class="nb">export</span><span class="w"> </span><span class="nv">BASE64</span><span class="o">=</span><span class="s2">&quot;openssl base64 -e -A&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span><span class="s2">&quot;foocorp&quot;</span>
@@ -1471,8 +1267,8 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 
 <span class="s">[disclosure_settings.insurance]</span>
 <span class="s">private_key_type = &quot;software&quot;</span>
-<span class="s">private_key = &quot;$(&lt; &quot;${TARGET_DIR}/reader.${IDENTIFIER}.key.der&quot; $BASE64)&quot;</span>
-<span class="s">certificate = &quot;$(&lt; &quot;${TARGET_DIR}/reader.${IDENTIFIER}.crt.der&quot; $BASE64)&quot;</span>
+<span class="s">private_key = &quot;$(&lt; &quot;${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der&quot; $BASE64)&quot;</span>
+<span class="s">certificate = &quot;$(&lt; &quot;${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.der&quot; $BASE64)&quot;</span>
 <span class="s">EOF</span>
 <span class="nb">unset</span><span class="w"> </span>BASE64<span class="w"> </span>IDENTIFIER
 </pre></div>
@@ -1619,9 +1415,7 @@ performed:</p>
 <li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates
 are valid;</p></li>
 <li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates
-are signed by any of the <code class="docutils literal notranslate"><span class="pre">reader_trust_anchors</span></code> and <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code>;</p></li>
-<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> certificates are valid reader-certificates,
-and contain the necessary Extended Key Usages and the <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>;</p></li>
+are signed by any of the <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code> and <code class="docutils literal notranslate"><span class="pre">wrpac_trust_anchors</span></code>;</p></li>
 <li><p>Verify all <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates are valid
 issuer-certificates, and contain the necessary Extended Key Usages and the
 <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code>;</p></li>
