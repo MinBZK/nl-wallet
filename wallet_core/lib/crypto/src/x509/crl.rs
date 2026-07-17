@@ -82,11 +82,9 @@ impl CrlProvider {
         }
     }
 
-    /// Verify a certificate chain, checking the revocation status of the leaf (first) certificate
-    /// against the CRL(s) referenced by its CDP extension.
-    ///
-    /// Only the leaf certificate's revocation status is checked (`RevocationCheckDepth::EndEntity`):
-    /// this method exists to verify access certificates specifically, not full-chain revocation.
+    /// Verify a certificate chain, checking the revocation status of every certificate in the
+    /// chain (leaf and intermediates) against the CRL(s) referenced by each certificate's CDP
+    /// extension (`RevocationCheckDepth::Chain`).
     pub async fn verify_chain(
         &self,
         chain: &[BorrowingCertificate],
@@ -96,18 +94,20 @@ impl CrlProvider {
     ) -> Result<(), CrlProviderError> {
         let (leaf, intermediate_certs) = chain.split_first().ok_or(CrlProviderError::EmptyChain)?;
 
-        let crls = self.crls_for_cert(leaf).await?;
+        let mut crls = Vec::new();
+        for cert in chain {
+            crls.extend(self.crls_for_cert(cert).await?);
+        }
         if crls.is_empty() {
             return Err(CrlProviderError::NoCrlDistributionPoint);
         }
         let crl_refs = crls.iter().collect_vec();
-
         // `rustls-webpki` verifies the CRL signature (using the issuer's public key from the
         // certificate chain) and checks the certificate's serial number against the CRL as part of
         // `verify_for_usage` below, so no separate CRL signature verification is done here.
         let revocation = RevocationOptionsBuilder::new(&crl_refs)
             .expect("crl_refs is non-empty, checked above")
-            .with_depth(RevocationCheckDepth::EndEntity)
+            .with_depth(RevocationCheckDepth::Chain)
             .with_expiration_policy(ExpirationPolicy::Enforce)
             .with_status_policy(UnknownStatusPolicy::Deny)
             .build();
@@ -619,6 +619,87 @@ mod tests {
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
             .await
             .expect_err("revoked certificate should fail verification");
+        assert!(matches!(
+            error,
+            CrlProviderError::Verification(error)
+                if matches!(&*error, CertificateError::Verification(error) if matches!(**error, webpki::Error::CertRevoked))
+        ));
+    }
+
+    #[tokio::test]
+    async fn verify_chain_fails_for_revoked_intermediate_certificate() {
+        let server = MockServer::start_async().await;
+        let root_crl_url: Url = server.url("/root.crl").parse().unwrap();
+        let intermediate_crl_url: Url = server.url("/intermediate.crl").parse().unwrap();
+
+        // Create root, intermediate and leaf key pairs
+        let root = Ca::generate_with_intermediate_count(
+            DistinguishedName::create_mock("root"),
+            CertificateConfiguration::default(),
+            1,
+        )
+        .unwrap();
+        let intermediate = root
+            .generate_intermediate(
+                DistinguishedName::create_mock("intermediate"),
+                CertificateConfiguration {
+                    crl_distribution_points: vec![root_crl_url.clone()],
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let leaf = intermediate
+            .generate_key_pair(
+                DistinguishedName::create_mock("leaf"),
+                CertificateConfiguration {
+                    crl_distribution_points: vec![intermediate_crl_url.clone()],
+                    ..Default::default()
+                },
+                NO_SAN,
+            )
+            .unwrap();
+
+        // Setup CRL with revoked intermediate
+        let intermediate_cert = intermediate.as_borrowing_certificate().unwrap();
+        let intermediate_serial = intermediate_cert
+            .x509_certificate()
+            .tbs_certificate
+            .raw_serial()
+            .to_vec();
+        let revoked = RevokedCertParams {
+            serial_number: SerialNumber::from_slice(&intermediate_serial),
+            revocation_time: OffsetDateTime::now_utc(),
+            reason_code: Some(RevocationReason::KeyCompromise),
+            invalidity_date: None,
+        };
+
+        // Setup MockServer
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/root.crl");
+                then.status(200).body(root.generate_crl(vec![revoked]).unwrap().der());
+            })
+            .await;
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/intermediate.crl");
+                then.status(200).body(intermediate.generate_crl(vec![]).unwrap().der());
+            })
+            .await;
+
+        // Test Subject
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+
+        // Verification should fail because of revoked intermediate
+        let error = provider
+            .verify_chain(
+                &[leaf.certificate().clone(), intermediate_cert],
+                &TrustAnchors::from(&root),
+                None,
+                &TimeGenerator,
+            )
+            .await
+            .expect_err("chain with a revoked intermediate certificate should fail verification");
         assert!(matches!(
             error,
             CrlProviderError::Verification(error)
