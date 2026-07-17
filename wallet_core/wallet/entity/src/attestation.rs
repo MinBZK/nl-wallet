@@ -1,17 +1,10 @@
+use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
-use sea_orm::ActiveModelBehavior;
-use sea_orm::DeriveEntityModel;
-use sea_orm::DerivePrimaryKey;
-use sea_orm::EntityTrait;
-use sea_orm::EnumIter;
 use sea_orm::FromJsonQueryResult;
-use sea_orm::PrimaryKeyTrait;
-use sea_orm::Related;
-use sea_orm::RelationDef;
-use sea_orm::RelationTrait;
+use sea_orm::entity::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
@@ -28,8 +21,36 @@ pub struct Model {
     pub expiration: Option<DateTime<Utc>>,
     #[sea_orm(column_name = "not_before_date_time")]
     pub not_before: Option<DateTime<Utc>>,
+    pub attestation_format: AttestationFormat,
     pub extended_types: ExtendedTypesModel,
     pub type_metadata: TypeMetadataModel,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+pub enum AttestationFormat {
+    #[sea_orm(string_value = "dc+sd-jwt")]
+    SdJwt,
+    #[sea_orm(string_value = "mso_mdoc")]
+    Mdoc,
+}
+
+impl From<Format> for AttestationFormat {
+    fn from(format: Format) -> Self {
+        match format {
+            Format::SdJwt => Self::SdJwt,
+            Format::MsoMdoc => Self::Mdoc,
+        }
+    }
+}
+
+impl From<AttestationFormat> for Format {
+    fn from(format: AttestationFormat) -> Self {
+        match format {
+            AttestationFormat::SdJwt => Self::SdJwt,
+            AttestationFormat::Mdoc => Self::MsoMdoc,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]

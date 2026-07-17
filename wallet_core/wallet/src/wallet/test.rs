@@ -36,6 +36,7 @@ use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use openid4vc::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -645,7 +646,7 @@ pub fn mock_issuance_session(
                             .unwrap();
 
                             (
-                                IssuedCredentialCopies::SdJwt(vec_nonempty![(key_identifier, sd_jwt)]),
+                                IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
                                 attestation_type,
                                 exp,
                                 nbf,

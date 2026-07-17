@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use entity::attestation_copy::AttestationFormat;
+use entity::attestation::AttestationFormat;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::timestamp_with_time_zone_null;
 use sea_orm_migration::sea_orm::Iterable;
@@ -19,8 +19,27 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Attestation::Type).text().not_null())
                     .col(timestamp_with_time_zone_null(Attestation::ExpirationDateTime))
                     .col(timestamp_with_time_zone_null(Attestation::NotBeforeDateTime))
+                    .col(
+                        ColumnDef::new(Attestation::Format)
+                            // SQLite doesn't have proper enum support, so we simulate that here with a custom type
+                            // (SQLite is dynamically typed) and a check expression.
+                            .custom(Attestation::EnumText)
+                            .check(Expr::col(Attestation::Format).is_in(AttestationFormat::iter()))
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Attestation::ExtendedTypes).json().not_null())
                     .col(ColumnDef::new(Attestation::TypeMetadata).json().not_null())
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_attestation_type_format")
+                    .table(Attestation::Table)
+                    .col(Attestation::Type)
+                    .col(Attestation::Format)
                     .to_owned(),
             )
             .await?;
@@ -43,14 +62,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AttestationCopy::StatusListIndex).integer().null())
                     .col(ColumnDef::new(AttestationCopy::IssuerCertificateDn).text().not_null())
                     .col(ColumnDef::new(AttestationCopy::RevocationStatus).string().null())
-                    .col(
-                        ColumnDef::new(AttestationCopy::Format)
-                            // SQLite doesn't have proper enum support, so we simulate that here with a custom type
-                            // (SQLite is dynamically typed) and a check expression.
-                            .custom(AttestationCopy::EnumText)
-                            .check(Expr::col(AttestationCopy::Format).is_in(AttestationFormat::iter()))
-                            .not_null(),
-                    )
                     .col(ColumnDef::new(AttestationCopy::Attestation).binary().not_null())
                     // In sqlite/sqlcipher foreign keys can only be created as part of the create table statement.
                     .foreign_key(
@@ -63,10 +74,38 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_attestation_copy_attestation_id")
+                    .table(AttestationCopy::Table)
+                    .col(AttestationCopy::AttestationId)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_attestation_copy_attestation_id")
+                    .table(AttestationCopy::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_attestation_type_format")
+                    .table(Attestation::Table)
+                    .to_owned(),
+            )
+            .await?;
+
         // Drop tables in reverse order
         manager
             .drop_table(Table::drop().table(AttestationCopy::Table).to_owned())
@@ -88,6 +127,9 @@ pub enum Attestation {
     Type,
     ExpirationDateTime,
     NotBeforeDateTime,
+    #[sea_orm(iden = "attestation_format")]
+    Format,
+    EnumText,
     ExtendedTypes,
     TypeMetadata,
 }
@@ -99,10 +141,7 @@ enum AttestationCopy {
     DisclosureCount,
     AttestationId,
     KeyIdentifier,
-    #[sea_orm(iden = "attestation_format")]
-    Format,
     Attestation,
-    EnumText,
     StatusListUrl,
     StatusListIndex,
     IssuerCertificateDn,

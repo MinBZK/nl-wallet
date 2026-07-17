@@ -2,13 +2,13 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use attestation_data::attributes::Attributes;
+use attestation_types::credential_kind::CredentialKind;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
 use issuer_common::settings::AuthorizingIssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
-use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::server_state::SessionStoreTimeouts;
 use serde::Deserialize;

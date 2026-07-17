@@ -6,6 +6,7 @@ use std::ops::Not;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use attestation_types::data_uri::DataUri;
 use derive_more::AsRef;
 use derive_more::Display;
@@ -33,7 +34,6 @@ use utils::vec_nonempty;
 
 use crate::cose::CoseAlgorithmIdentifier;
 use crate::cose::KnownCoseAlgorithmIdentifier;
-use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-import '../util/sentry_breadcrumbs.dart';
+import '../util/sentry/sentry_breadcrumbs.dart';
 import 'wallet_routes.dart';
 
 class SentryNavigationObserver extends NavigatorObserver {

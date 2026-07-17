@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use std::io;
 
 use attestation_data::disclosure_type::DisclosureType;
-use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
@@ -183,40 +183,32 @@ pub trait Storage: Send {
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
     async fn has_any_attestations(&self) -> StorageResult<bool>;
-    async fn has_any_attestations_with_types<'a>(&self, attestation_types: &[&'a str]) -> StorageResult<bool>;
+    async fn has_any_attestations_with_credential_kinds(
+        &self,
+        credential_kinds: &HashSet<CredentialKind>,
+    ) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to one of
-    /// types requested. The format of the copy returned is undetermined.
-    async fn fetch_unique_attestations_by_types(
+    /// Returns a single attestation copy for each stored attestation whose attestation type and format match one of the
+    /// requested [`CredentialKind`] instances. Attestations that merely extend one of the requested attestation types
+    /// are not returned.
+    async fn fetch_unique_attestations_by_credential_kinds(
         &self,
-        attestation_types: &HashSet<String>,
+        credential_kinds: &HashSet<CredentialKind>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to
-    /// one of types requested and for which at least one copy of the requested format exists. The returned copy
-    /// will be of the requested format.
+    /// Returns a single valid attestation copy for each stored attestation whose attestation type and format match one
+    /// of the requested [`CredentialKind`] instances. Valid in this context describes the revocation status and the
+    /// validity window of the attestation.
     ///
-    /// Additionally, if `Format::SdJwt` is requested, the returned attestation copies will also include those
-    /// that extend at least one of the requested attestation types.
-    async fn fetch_unique_attestations_by_types_and_format(
-        &self,
-        attestation_types: &HashSet<String>,
-        format: Format,
-    ) -> StorageResult<Vec<StoredAttestationCopy>>;
-
-    /// Returns a single valid attestation copy of each stored attestation for which the attestation type is equal to
-    /// one of types requested and for which at least one copy of the requested format exists. The returned copy
-    /// will be of the requested format. Valid in this context means describes the revocation status.
-    ///
-    /// Additionally, if `Format::SdJwt` is requested, the returned attestation copies will also include those
-    /// that extend at least one of the requested attestation types.
+    /// In addition to the attestations of the requested attestation types themselves, the returned attestation copies
+    /// include those of which the type metadata extends one of the requested attestation types. Note that this can only
+    /// apply to attestations in the SD-JWT format, as mdoc doc types have no extension mechanism.
     #[cfg_attr(test, mockall::concretize)]
-    async fn fetch_valid_unique_attestations_by_types_and_format<T>(
+    async fn fetch_valid_unique_attestations_by_credential_kinds<T>(
         &self,
-        attestation_types: &HashSet<String>,
-        format: Format,
+        credential_kinds: &HashSet<CredentialKind>,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
     where
@@ -241,12 +233,12 @@ pub trait Storage: Send {
         T: Generator<DateTime<Utc>> + Send + Send + Sync + 'static;
     async fn update_revocation_statuses(&self, updates: Vec<(Uuid, RevocationStatus)>) -> StorageResult<()>;
 
-    /// Returns the attestation type and the key identifiers of all copies of the attestation with the given id.
+    /// Returns the attestation kind and the key identifiers of all copies of the attestation with the given id.
     /// Returns `None` if no attestation with that id exists.
-    async fn fetch_type_and_key_identifiers_by_attestation_id(
+    async fn fetch_credential_kind_and_key_identifiers_by_attestation_id(
         &self,
         attestation_id: Uuid,
-    ) -> StorageResult<Option<(String, Vec<String>)>>;
+    ) -> StorageResult<Option<(CredentialKind, Vec<String>)>>;
 
     /// Deletes all copies of the attestation with the given id, severs the links from history events
     /// to the attestation, and deletes the attestation itself. Does nothing if no attestation with

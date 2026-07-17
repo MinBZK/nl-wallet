@@ -716,6 +716,7 @@ version = "0.6.0-dev"
 dependencies = [
  "base64 0.22.1",
  "data-url 0.3.2",
+ "derive_more",
  "itertools 0.14.0",
  "rstest",
  "serde",
@@ -2459,6 +2460,7 @@ name = "entity"
 version = "0.6.0-dev"
 dependencies = [
  "attestation_data",
+ "attestation_types",
  "chrono",
  "crypto",
  "derive_more",

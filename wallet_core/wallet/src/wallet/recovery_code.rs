@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use attestation_data::attributes::AttributeValue;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
@@ -75,8 +73,7 @@ where
             .ok_or(RecoveryCodeError::MissingRecoveryCode)?
             .clone();
 
-        let pid_attestation_types = pid_config.sd_jwt.keys().cloned().collect();
-        let Some(stored_recovery_code) = self.stored_recovery_code(&pid_attestation_types, pid_config).await? else {
+        let Some(stored_recovery_code) = self.stored_recovery_code(pid_config).await? else {
             return Ok(());
         };
 
@@ -92,13 +89,13 @@ where
 
     async fn stored_recovery_code(
         &self,
-        pid_attestation_types: &HashSet<String>,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<Option<AttributeValue>, RecoveryCodeError> {
+        // The recovery code is only present in the PID in the SD-JWT format.
         self.storage
             .read()
             .await
-            .fetch_unique_attestations_by_types_and_format(pid_attestation_types, Format::SdJwt)
+            .fetch_unique_attestations_by_credential_kinds(&pid_config.sd_jwt_credential_kinds())
             .await
             .map_err(RecoveryCodeError::AttestationQuery)?
             .pop()

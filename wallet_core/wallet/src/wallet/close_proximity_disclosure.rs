@@ -19,6 +19,7 @@ use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use jwt::nonce::Nonce;
 use mdoc::DeviceRequest;
@@ -27,6 +28,7 @@ use mdoc::DeviceResponse;
 use mdoc::DeviceResponseStatus;
 use mdoc::DeviceResponseWithPoa;
 use mdoc::SessionTranscript;
+use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::cbor_serialize;
@@ -73,6 +75,7 @@ use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
 use crate::wallet::disclosure::RedirectUriPurpose;
+use crate::wallet::disclosure::VpDisclosableAttestation;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
 use crate::wallet::disclosure::instruction_error_from_signing_error;
 use crate::wallet::disclosure::requested_attribute_paths;
@@ -97,6 +100,44 @@ pub type CloseProximityDisclosureCallback =
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "mdoc")), derive(Debug, Clone, TryFrom, FromStr, AsRef, Into, Display))]
 pub struct MdocUri(String);
 
+type CloseProximityDisclosableAttestation = DisclosableAttestation<PartialMdoc>;
+type CloseProximityDisclosureAttestations = WalletDisclosureAttestations<usize, PartialMdoc>;
+
+impl TryFrom<VpDisclosableAttestation> for CloseProximityDisclosableAttestation {
+    type Error = DisclosureError;
+
+    fn try_from(attestation: VpDisclosableAttestation) -> Result<Self, Self::Error> {
+        attestation.try_map_partial_attestation(|partial_attestation| {
+            let PartialAttestation::MsoMdoc { partial_mdoc } = partial_attestation else {
+                // `ItemsRequest` only requests mdocs, and storage is expected to filter candidates by that format.
+                // Receiving an SD-JWT here means that soft contract was violated. Handle this defensively so the
+                // programming error remains observable as a distinct Sentry error.
+                return Err(DisclosureError::UnexpectedAttestationFormat);
+            };
+
+            Ok(*partial_mdoc)
+        })
+    }
+}
+
+fn close_proximity_disclosure_proposal(
+    attestations: IndexMap<usize, VecNonEmpty<VpDisclosableAttestation>>,
+) -> Result<CloseProximityDisclosureAttestations, DisclosureError> {
+    let attestations = attestations
+        .into_iter()
+        .map(|(id, candidates)| {
+            let candidates = candidates
+                .into_nonempty_iter()
+                .map(CloseProximityDisclosableAttestation::try_from)
+                .collect::<Result<VecNonEmpty<_>, _>>()?;
+
+            Ok((id, candidates))
+        })
+        .collect::<Result<IndexMap<_, _>, DisclosureError>>()?;
+
+    Ok(WalletDisclosureAttestations::Proposal(attestations))
+}
+
 #[derive(Debug, Clone, IsVariant)]
 enum CloseProximityDisclosureSessionState {
     Advertising,
@@ -107,7 +148,7 @@ enum CloseProximityDisclosureSessionState {
     DisclosureProposed {
         session_transcript: Box<SessionTranscript>,
         verifier_certificate: Box<VerifierCertificate>,
-        attestations: WalletDisclosureAttestations<usize>,
+        attestations: CloseProximityDisclosureAttestations,
     },
     Errored {
         #[expect(
@@ -448,9 +489,9 @@ where
             *session_state.lock() = CloseProximityDisclosureSessionState::DisclosureProposed {
                 session_transcript: Box::new(session_transcript),
                 verifier_certificate: Box::new(verifier_certificate),
-                attestations: WalletDisclosureAttestations::Proposal(
+                attestations: close_proximity_disclosure_proposal(
                     candidate_attestations.into_iter().enumerate().collect(),
-                ),
+                )?,
             };
 
             return Ok(proposal);
@@ -466,7 +507,7 @@ where
         *session_state.lock() = CloseProximityDisclosureSessionState::DisclosureProposed {
             session_transcript: Box::new(session_transcript),
             verifier_certificate: Box::new(verifier_certificate),
-            attestations: WalletDisclosureAttestations::Missing,
+            attestations: CloseProximityDisclosureAttestations::Missing,
         };
 
         Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
@@ -703,7 +744,7 @@ where
     }
 
     async fn create_close_proximity_device_response<'a, K, W>(
-        attestations: impl IntoNonEmptyIterator<Item = &'a DisclosableAttestation>,
+        attestations: impl IntoNonEmptyIterator<Item = &'a CloseProximityDisclosableAttestation>,
         session_transcript: &SessionTranscript,
         verifier_certificate: VerifierCertificate,
         wscd: &W,
@@ -716,13 +757,7 @@ where
         // attestations needs to be retryable.
         let partial_mdocs = attestations
             .into_nonempty_iter()
-            .map(|attestation| {
-                let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
-                    panic!("SD-JWT attestations are not supported in close proximity disclosure")
-                };
-
-                *partial_mdoc.clone()
-            })
+            .map(|attestation| attestation.partial_attestation().clone())
             .collect();
 
         // if this fails, there's a bug in the code
@@ -856,6 +891,7 @@ mod tests {
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
@@ -907,12 +943,15 @@ mod tests {
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
 
+    use super::CloseProximityDisclosableAttestation;
+    use super::CloseProximityDisclosureAttestations;
     use super::CloseProximityDisclosureError;
     use super::CloseProximityDisclosureSession;
     use super::CloseProximityDisclosureSessionState;
     use super::CloseProximityDisclosureUpdate;
     use super::DeviceResponseStatus;
     use super::PlatformError;
+    use super::close_proximity_disclosure_proposal;
     use super::verify_device_request;
     use crate::DisclosureAttestationOptions;
     use crate::DisclosureProposalPresentation;
@@ -928,7 +967,7 @@ mod tests {
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::DisclosureError;
     use crate::wallet::Session;
-    use crate::wallet::disclosure::WalletDisclosureAttestations;
+    use crate::wallet::disclosure::VpDisclosableAttestation;
     use crate::wallet::test::READER_CA;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
@@ -1136,7 +1175,7 @@ mod tests {
                     handover: Handover::QrHandover,
                 })),
                 verifier_certificate: Box::new(verifier_certificate),
-                attestations: WalletDisclosureAttestations::Missing,
+                attestations: CloseProximityDisclosureAttestations::Missing,
             })),
         };
 
@@ -1295,12 +1334,13 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()]) && *format == Format::MsoMdoc
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .withf(move |credential_kinds, _| {
+                *credential_kinds
+                    == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_owned())])
             })
             .once()
-            .return_once(move |_, _, _| Ok(vec![pid1, pid2.clone(), pid3]));
+            .return_once(move |_, _| Ok(vec![pid1, pid2.clone(), pid3]));
 
         // The wallet will check in the database if data was shared with the RP before.
         wallet
@@ -1874,10 +1914,11 @@ mod tests {
             session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::DisclosureProposed {
                 session_transcript: Box::new(session_transcript.clone()),
                 verifier_certificate: Box::new(verifier_certificate.clone()),
-                attestations: WalletDisclosureAttestations::Proposal(IndexMap::from([(
+                attestations: close_proximity_disclosure_proposal(IndexMap::from([(
                     0,
                     vec_nonempty![disclosable_attestation],
-                )])),
+                )]))
+                .unwrap(),
             })),
         }));
 
@@ -1921,7 +1962,7 @@ mod tests {
             });
     }
 
-    fn pid_given_name_disclosable_attestation() -> (DisclosableAttestation, SigningKey) {
+    fn pid_given_name_disclosable_attestation() -> (VpDisclosableAttestation, SigningKey) {
         let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(
             &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])],
             None,
@@ -1938,7 +1979,7 @@ mod tests {
     fn disclosable_attestation_from_credential_requests(
         stored_attestation_copy: StoredAttestationCopy,
         credential_requests: &NormalizedCredentialRequests,
-    ) -> DisclosableAttestation {
+    ) -> VpDisclosableAttestation {
         DisclosableAttestation::try_new(
             stored_attestation_copy,
             credential_requests.as_ref().first().unwrap().claim_paths(),
@@ -1997,14 +2038,15 @@ mod tests {
         let key_id2 = pid2.private_key_id().to_owned();
 
         let disclosable_attestations = vec_nonempty![
-            pid1,
-            disclosable_attestation_from_credential_requests(
+            CloseProximityDisclosableAttestation::try_from(pid1).unwrap(),
+            CloseProximityDisclosableAttestation::try_from(disclosable_attestation_from_credential_requests(
                 pid2,
                 &NormalizedCredentialRequests::new_mock_mdoc_from_slices(
                     &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]])],
                     None,
                 ),
-            ),
+            ))
+            .unwrap(),
         ];
 
         let expected_keys = [key1.verifying_key().to_owned(), key2.verifying_key().to_owned()];
@@ -2209,6 +2251,23 @@ mod tests {
                 .expect("accepting close proximity disclosure should succeed")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn test_close_proximity_disclosure_proposal_error_unexpected_attestation_format() {
+        let credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+            &[PID_ATTESTATION_TYPE],
+            &[&[PID_GIVEN_NAME]],
+        )]);
+        let (sd_jwt_attestation, _) = example_pid_stored_attestation_copy(Format::SdJwt);
+        let sd_jwt_disclosable_attestation =
+            disclosable_attestation_from_credential_requests(sd_jwt_attestation, &credential_requests);
+
+        let error =
+            close_proximity_disclosure_proposal(IndexMap::from([(0, vec_nonempty![sd_jwt_disclosable_attestation])]))
+                .expect_err("a close proximity disclosure proposal should not contain SD-JWT attestations");
+
+        assert_matches!(error, DisclosureError::UnexpectedAttestationFormat);
     }
 
     #[tokio::test]

@@ -143,6 +143,10 @@ pub enum DisclosureError {
     #[error("could not fetch candidate attestations from database: {0}")]
     AttestationRetrieval(#[source] StorageError),
 
+    #[error("close proximity disclosure received an unexpected attestation format")]
+    #[category(critical)]
+    UnexpectedAttestationFormat,
+
     #[error("not all requested attributes are available, requested: {:?}", .0.requested_attributes)]
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable(AttributesNotAvailable),
@@ -213,7 +217,9 @@ impl DisclosureError {
     pub fn session_type(&self) -> Option<SessionType> {
         match self {
             Self::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => Some(*session_type),
-            Self::CloseProximityDisclosureSessionError(_) => Some(SessionType::CrossDevice),
+            Self::CloseProximityDisclosureSessionError(_) | Self::UnexpectedAttestationFormat => {
+                Some(SessionType::CrossDevice)
+            }
             _ => None,
         }
     }
@@ -277,16 +283,16 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations<T> {
+pub(super) enum WalletDisclosureAttestations<T, P> {
     Missing,
-    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation>>),
+    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation<P>>>),
 }
 
-impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
+impl<T: Hash + Eq, P> WalletDisclosureAttestations<T, P> {
     /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
-    /// [`WalletDisclosureAttestations`] is not a propsal or any of the indices is out of bounds, as this is considered
+    /// [`WalletDisclosureAttestations`] is not a proposal or any of the indices is out of bounds, as this is considered
     /// programmer error.
-    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation> {
+    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation<P>> {
         match self {
             Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
@@ -320,11 +326,14 @@ impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
     }
 }
 
+pub(super) type VpDisclosableAttestation = DisclosableAttestation<PartialAttestation>;
+type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, PartialAttestation>;
+
 #[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: WalletDisclosureAttestations<CredentialQueryIdentifier>,
+    pub attestations: VpDisclosureAttestations,
     pub protocol_state: DCS,
 }
 
@@ -332,7 +341,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>,
+        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<VpDisclosableAttestation>>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -396,7 +405,7 @@ pub(super) fn is_request_for_recovery_code(
 impl DisclosureProposalPresentation {
     /// Converts a collection of candidate attestations into a [`DisclosureProposalPresentation`].
     pub(super) fn from_candidates(
-        candidate_attestations: VecNonEmpty<VecNonEmpty<DisclosableAttestation>>,
+        candidate_attestations: VecNonEmpty<VecNonEmpty<VpDisclosableAttestation>>,
         reader_registration: ReaderRegistration,
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
@@ -456,9 +465,9 @@ where
 {
     /// Increments the usage count for every attestation copy referenced in the proposal, and collects
     /// [`AttestationPresentation`]s from those same attestations for use in disclosure event logging.
-    pub(super) async fn increment_usage_count_and_collect_presentations(
+    pub(super) async fn increment_usage_count_and_collect_presentations<P>(
         &self,
-        attestation_values: VecNonEmpty<&DisclosableAttestation>,
+        attestation_values: VecNonEmpty<&DisclosableAttestation<P>>,
     ) -> (VecNonEmpty<AttestationPresentation>, Result<(), StorageError>)
     where
         S: Storage,
@@ -491,11 +500,9 @@ where
         storage: &S,
         request: &impl AttestationRequest,
         presentation_config: &impl AttestationPresentationConfig,
-    ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
-        let credential_types = request.credential_types().collect();
-
+    ) -> Result<Option<VecNonEmpty<VpDisclosableAttestation>>, StorageError> {
         let stored_attestations = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&credential_types, request.format(), TimeGenerator)
+            .fetch_valid_unique_attestations_by_credential_kinds(&request.credential_kinds(), TimeGenerator)
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -531,7 +538,7 @@ where
         attestation_requests: &[&impl AttestationRequest],
         pid_attributes: &PidAttributesConfiguration,
         verifier_certificate: &VerifierCertificate,
-    ) -> Result<(Vec<Option<VecNonEmpty<DisclosableAttestation>>>, bool), DisclosureError> {
+    ) -> Result<(Vec<Option<VecNonEmpty<VpDisclosableAttestation>>>, bool), DisclosureError> {
         // Check for recovery code request
         if attestation_requests
             .iter()
@@ -679,7 +686,7 @@ where
     fn verify_non_selectively_disclosable_claims<'a>(
         candidate_attestations: impl IntoIterator<
             Item = (
-                Option<VecNonEmpty<DisclosableAttestation>>,
+                Option<VecNonEmpty<VpDisclosableAttestation>>,
                 &'a NormalizedCredentialRequest,
             ),
         >,
@@ -1006,6 +1013,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1330,12 +1338,13 @@ mod tests {
         ] {
             wallet
                 .mut_storage()
-                .expect_fetch_valid_unique_attestations_by_types_and_format()
-                .withf(move |attestation_types, format, _| {
-                    *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == requested_format
+                .expect_fetch_valid_unique_attestations_by_credential_kinds()
+                .withf(move |credential_kinds, _| {
+                    *credential_kinds
+                        == HashSet::from([CredentialKind::new(requested_format, attestation_type.to_owned())])
                 })
                 .times(1)
-                .return_once(move |_, _, _| Ok(attestations));
+                .return_once(move |_, _| Ok(attestations));
         }
 
         // The wallet will check in the database if data was shared with the RP before.
@@ -1806,9 +1815,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Err(StorageError::AlreadyOpened));
+            .returning(move |_, _| Err(StorageError::AlreadyOpened));
 
         // Starting disclosure on a wallet that has a faulty database should result in an error.
         let error = wallet
@@ -1835,12 +1844,13 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()]) && *format == Format::MsoMdoc
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .withf(move |credential_kinds, _| {
+                *credential_kinds
+                    == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_owned())])
             })
             .times(1)
-            .return_once(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 
         wallet
             .mut_storage()
@@ -1872,9 +1882,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Ok(vec![]));
+            .returning(move |_, _| Ok(vec![]));
 
         wallet
             .mut_storage()
@@ -1944,9 +1954,9 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 
         wallet
             .mut_storage()
@@ -1981,9 +1991,9 @@ mod tests {
     ) {
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .times(1)
-            .returning(move |_, _, _| Ok(vec![stored_attestation.clone()]));
+            .returning(move |_, _| Ok(vec![stored_attestation.clone()]));
         wallet
             .mut_storage()
             .expect_did_share_data_with_relying_party()
@@ -3122,12 +3132,12 @@ mod tests {
         let (attestation_type, attestations) = (my_attestation_type, vec![attestation]);
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == Format::SdJwt
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .withf(move |credential_kinds, _| {
+                *credential_kinds == HashSet::from([CredentialKind::new(Format::SdJwt, attestation_type.to_owned())])
             })
             .times(1)
-            .return_once(move |_, _, _| Ok(attestations));
+            .return_once(move |_, _| Ok(attestations));
 
         // The wallet will not check in the database if data was shared with the RP before.
         wallet
