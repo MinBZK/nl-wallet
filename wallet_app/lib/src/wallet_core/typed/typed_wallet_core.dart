@@ -7,7 +7,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 
 import '../../util/mapper/mapper.dart';
-import '../../util/sentry_breadcrumbs.dart';
+import '../../util/sentry/sentry_breadcrumbs.dart';
 import '../error/core_error.dart';
 
 /// A callback function used to handle errors emitted by the [TypedWalletCore].
