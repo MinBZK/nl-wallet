@@ -8,6 +8,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
@@ -49,6 +50,7 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
+use super::credential::SdJwtCopy;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -64,7 +66,6 @@ use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::RemoteErrorCode;
 use crate::errors::RemoteErrorResponse;
 use crate::errors::TokenErrorCode;
-use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
@@ -791,8 +792,9 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                         .try_collect()?,
                     IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
                         .iter()
-                        .map(|(_, sd_jwt)| {
-                            sd_jwt
+                        .map(|sd_jwt_copy| {
+                            sd_jwt_copy
+                                .sd_jwt
                                 .claims()
                                 .vct_integrity
                                 .as_ref()
@@ -965,7 +967,7 @@ impl Credential {
         preview: &CredentialPreview,
         normalized_type_metadata: &NormalizedTypeMetadata,
         trust_anchors: &TrustAnchors,
-    ) -> Result<(String, VerifiedSdJwt), WalletIssuanceError> {
+    ) -> Result<SdJwtCopy, WalletIssuanceError> {
         match self {
             Self::MsoMdoc { .. } => Err(WalletIssuanceError::UnexpectedCredentialResponseType {
                 expected: preview.format.to_string(),
@@ -995,7 +997,7 @@ impl Credential {
                 // This validation is SD-JWT specific, and therefore cannot be part of `validate_credential`.
                 Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized_type_metadata.clone())?;
 
-                Ok((key_identifier, sd_jwt))
+                Ok(SdJwtCopy { key_identifier, sd_jwt })
             }
         }
     }
@@ -1096,6 +1098,7 @@ mod tests {
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
@@ -1131,7 +1134,6 @@ mod tests {
     use crate::authorization_details::AuthorizationDetails;
     use crate::errors::ErrorResponse;
     use crate::errors::RemoteErrorCode;
-    use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;

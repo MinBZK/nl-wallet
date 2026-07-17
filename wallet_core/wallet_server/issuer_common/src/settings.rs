@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::trust_anchor::TrustAnchors;
@@ -25,7 +26,6 @@ use itertools::Itertools;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::credential_configurations::CredentialConfigurationParameters;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
-use openid4vc::issuable_document::CredentialKind;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -657,6 +657,7 @@ mod tests {
     use attestation_data::x509::CertificateTypeError;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
@@ -667,7 +668,6 @@ mod tests {
     use crypto::x509::DistinguishedName;
     use crypto::x509::SubjectAltNameUri;
     use http_utils::urls::HttpsUri;
-    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;

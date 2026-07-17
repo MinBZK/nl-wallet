@@ -891,6 +891,7 @@ mod tests {
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
@@ -1333,12 +1334,13 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_valid_unique_attestations_by_types_and_format()
-            .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()]) && *format == Format::MsoMdoc
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .withf(move |credential_kinds, _| {
+                *credential_kinds
+                    == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_owned())])
             })
             .once()
-            .return_once(move |_, _, _| Ok(vec![pid1, pid2.clone(), pid3]));
+            .return_once(move |_, _| Ok(vec![pid1, pid2.clone(), pid3]));
 
         // The wallet will check in the database if data was shared with the RP before.
         wallet

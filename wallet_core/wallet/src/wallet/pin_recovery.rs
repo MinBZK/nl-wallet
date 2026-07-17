@@ -410,7 +410,7 @@ where
             .filter(|attestation| attestation.attestation_type == pid_attestation_type)
             .find_map(|attestation| match attestation.copies {
                 IssuedCredentialCopies::Mdoc(_) => None,
-                IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().1),
+                IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().sd_jwt),
             })
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
@@ -516,6 +516,7 @@ mod tests {
     use super::PinRecoverySession;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
+    use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
@@ -555,10 +556,15 @@ mod tests {
     pub async fn create_pin_recovery_redirect_uri() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
+        // PIN recovery requires a PID in the SD-JWT format, so only the SD-JWT PID credential kinds
+        // should be requested from storage.
+        let expected_credential_kinds = wallet.config_repository.get().pid_attributes.sd_jwt_credential_kinds();
+
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .once()
+            .withf(move |credential_kinds| *credential_kinds == expected_credential_kinds)
             .return_once(|_| Ok(true));
         wallet
             .mut_storage()
@@ -602,9 +608,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_unique_attestations_by_credential_kinds()
             .once()
-            .returning(|_, _| {
+            .returning(|_| {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
@@ -736,7 +742,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_types()
+            .expect_has_any_attestations_with_credential_kinds()
             .once()
             .return_once(|_| Ok(false));
 
@@ -901,9 +907,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_types_and_format()
+            .expect_fetch_unique_attestations_by_credential_kinds()
             .once()
-            .returning(|_, _| {
+            .returning(|_| {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
