@@ -41,7 +41,7 @@ void main() {
       expect(bloc.state, const RecoverPinInitial());
     });
 
-    test('initial state is RecoverPinVerifyingDigidAuthentication when continueFromDigiD is true', () {
+    test('initial state is RecoverPinAwaitingDigidAuthentication when continueFromDigiD is true', () {
       final bloc = RecoverPinBloc(
         createPinRecoveryRedirectUriUseCase,
         checkIsValidPinUseCase,
@@ -52,7 +52,7 @@ void main() {
         continueFromDigiD: true,
       );
 
-      expect(bloc.state, const RecoverPinVerifyingDigidAuthentication());
+      expect(bloc.state, const RecoverPinAwaitingDigidAuthentication(null));
     });
 
     blocTest<RecoverPinBloc, RecoverPinState>(

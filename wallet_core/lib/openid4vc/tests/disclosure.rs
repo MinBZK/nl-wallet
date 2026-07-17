@@ -326,7 +326,7 @@ impl DirectMockVpMessageClient {
             }),
         })
         .unwrap();
-        let request_uri = format!("https://cert.rp.example.com/request_uri?{}", &query)
+        let request_uri = format!("https://cert.rp.example.com/request_uri?{}", query)
             .parse()
             .unwrap();
 

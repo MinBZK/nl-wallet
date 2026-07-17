@@ -10,8 +10,8 @@ import '../../data/service/navigation_service.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/model/result/application_error.dart';
-import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/navigator_state_extension.dart';
 import '../../util/launch_util.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
@@ -200,7 +200,7 @@ class RenewPidScreen extends StatelessWidget {
   Widget _buildSuccessPage(BuildContext context, RenewPidSuccess state) {
     return RenewPidSuccessPage(
       cards: state.addedCards,
-      onPrimaryPressed: () => Navigator.popUntil(context, ModalRoute.withName(WalletRoutes.dashboardRoute)),
+      onPrimaryPressed: () => Navigator.of(context).resetToDashboard(),
     );
   }
 

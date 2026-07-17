@@ -30,7 +30,8 @@ class RecoverPinLoadingDigidUrl extends RecoverPinState {
 }
 
 class RecoverPinAwaitingDigidAuthentication extends RecoverPinState {
-  final String authUrl;
+  // The authUrl to trigger the digid login. Can be null in case of session recovery (i.e. awaiting the callback).
+  final String? authUrl;
 
   @override
   List<Object?> get props => [...super.props, authUrl];

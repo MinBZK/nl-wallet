@@ -128,7 +128,9 @@ where
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
-        let request = serde_qs::from_str::<VpRequestUri>(uri_query).map_err(VpClientError::RequestUri)?;
+        let request = serde_qs::from_str::<VpRequestUri>(uri_query)
+            .map_err(VpClientError::RequestUri)
+            .map_err(VpSessionError::Client)?;
         let (request_uri, request_uri_method) = match request.object {
             VpRequestUriObject::AsReference {
                 request_uri,
@@ -140,7 +142,8 @@ where
             VpRequestUriObject::AsQueryParameters { .. } => Err(VpClientError::UnsupportedRequestUriVariant(
                 UnsupportedRequestUriVariant::RequestObjectAsQueryParameters,
             )),
-        }?;
+        }
+        .map_err(VpSessionError::Client)?;
 
         #[derive(Deserialize)]
         struct UrlSessionType {
@@ -172,7 +175,10 @@ where
         if let Some(session_type) = url_session_type
             && source_session_type != session_type
         {
-            return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source).into());
+            return Err(VpSessionError::Client(VpClientError::DisclosureUriSourceMismatch(
+                session_type,
+                uri_source,
+            )));
         }
 
         // If the server supports it, require it to include a nonce in the Authorization Request JWT
@@ -200,9 +206,11 @@ where
             };
 
             if let Some(response_uri) = response_uri {
-                return Err(self.report_error_back(response_uri, state, error).await)?;
+                return Err(VpSessionError::Verifier(
+                    self.report_error_back(response_uri, state, error).await,
+                ));
             }
-            return Err(error.into());
+            return Err(VpSessionError::Verifier(error));
         }
 
         let auth_request_result = vp_auth_request
@@ -210,18 +218,21 @@ where
             .map_err(VpVerifierError::AuthRequestValidation);
         let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
-                return Err(self.report_error_back(response_uri, state, error).await)?;
+                return Err(VpSessionError::Verifier(
+                    self.report_error_back(response_uri, state, error).await,
+                ))?;
             }
-            (result, _) => result?,
+            (result, _) => result.map_err(VpSessionError::Verifier)?,
         };
 
         let process_request_result = Self::process_auth_request(&auth_request.credential_requests, certificate);
         let verifier_certificate = match process_request_result {
             Ok(value) => value,
             Err(error) => {
-                return Err(self
-                    .report_error_back(auth_request.response_uri, auth_request.state, error)
-                    .await)?;
+                return Err(VpSessionError::Verifier(
+                    self.report_error_back(auth_request.response_uri, auth_request.state, error)
+                        .await,
+                ))?;
             }
         };
 
@@ -242,7 +253,7 @@ where
                 // If termination results in an error, log it and do not return it.
                 .inspect_err(|error| warn!("failed to send session termination to verifier: {error}"));
 
-            return Err(VpClientError::MixedFormatCredentialRequest.into());
+            return Err(VpSessionError::Client(VpClientError::MixedFormatCredentialRequest));
         };
 
         // Validate that the verifier's vp_formats_supported covers the required format and includes ES256.
@@ -257,9 +268,10 @@ where
 
         if !format_supported {
             let error = VpVerifierError::VpFormatsNotSupported(format);
-            return Err(self
-                .report_error_back(auth_request.response_uri, auth_request.state, error)
-                .await)?;
+            return Err(VpSessionError::Verifier(
+                self.report_error_back(auth_request.response_uri, auth_request.state, error)
+                    .await,
+            ));
         }
 
         let session = VpDisclosureSession::new(

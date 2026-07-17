@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Duration;
+use db_test::DbName;
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use issuer_common::par_store::IssuerParStore;
@@ -13,7 +14,7 @@ use utils::generator::mock::MockTimeGenerator;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_issuer_par_store() {
-    let db_setup = DbSetup::create().await;
+    let db_setup = DbSetup::create_clean_only([DbName::PidIssuer]).await;
     let database_connection = connection_from_url(db_setup.pid_issuer_url()).await;
 
     let store = IssuerParStore::new(StoreConnection::Postgres(database_connection.clone()));
@@ -25,7 +26,7 @@ async fn test_issuer_par_store() {
 /// (the `FOR UPDATE SKIP LOCKED` loop), leaving still-valid rows untouched.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_issuer_par_store_cleanup_drains_in_batches() {
-    let db_setup = DbSetup::create().await;
+    let db_setup = DbSetup::create_clean_only([DbName::PidIssuer]).await;
     let database_connection = connection_from_url(db_setup.pid_issuer_url()).await;
 
     let now = DateTime::from_timestamp_secs(1_000_000_000).unwrap();

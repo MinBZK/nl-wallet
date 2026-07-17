@@ -35,7 +35,7 @@ impl SdObjectDecoder {
 
         // All disclosures should have been resolved
         if !disclosures.is_empty() {
-            return Err(DecoderError::UnreferencedDisclosures(disclosures.into_keys().collect()))?;
+            return Err(DecoderError::UnreferencedDisclosures(disclosures.into_keys().collect()));
         }
 
         // Construct a new SdJwtClaims with the decoded claims and without "_sd_alg" claim
