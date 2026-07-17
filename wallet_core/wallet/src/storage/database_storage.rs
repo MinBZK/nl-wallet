@@ -2157,17 +2157,14 @@ pub(crate) mod tests {
         assert!(fetched.is_empty());
 
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&credential_kinds(&HashSet::new(), Format::SdJwt))
+            .fetch_unique_attestations_by_credential_kinds(&HashSet::new())
             .await
             .expect("Could not fetch unique attestations by types and single format");
 
         assert!(fetched.is_empty());
 
         let fetched = storage
-            .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&HashSet::new(), Format::SdJwt),
-                MockTimeGenerator::default(),
-            )
+            .fetch_valid_unique_attestations_by_credential_kinds(&HashSet::new(), MockTimeGenerator::default())
             .await
             .expect("Could not fetch valid unique attestations by types and format");
 

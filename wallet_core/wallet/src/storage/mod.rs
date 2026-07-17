@@ -233,7 +233,7 @@ pub trait Storage: Send {
         T: Generator<DateTime<Utc>> + Send + Send + Sync + 'static;
     async fn update_revocation_statuses(&self, updates: Vec<(Uuid, RevocationStatus)>) -> StorageResult<()>;
 
-    /// Returns the attestation type and the key identifiers of all copies of the attestation with the given id.
+    /// Returns the attestation kind and the key identifiers of all copies of the attestation with the given id.
     /// Returns `None` if no attestation with that id exists.
     async fn fetch_credential_kind_and_key_identifiers_by_attestation_id(
         &self,

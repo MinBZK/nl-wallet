@@ -1274,8 +1274,7 @@ mod tests {
                 None,
             )
         };
-        // The stored PID is fetched both when matching the previews against it and when
-        // comparing its recovery code, which now both query by credential kind.
+        // The stored PID is fetched both when matching the previews against it and when comparing its recovery code.
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
