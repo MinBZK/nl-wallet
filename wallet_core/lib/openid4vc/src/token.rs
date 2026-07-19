@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::num::NonZeroU8;
 use std::time::Duration;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -229,9 +228,6 @@ pub struct CredentialPreview {
     pub config_id: CredentialConfigurationId,
 
     pub format: Format,
-
-    // TODO (PVW-5634): Use the `batch_credential_issuance` field in the issuer metadata instead.
-    pub batch_size: NonZeroU8,
 
     pub credential_payload: PreviewableCredentialPayload,
 

@@ -322,7 +322,6 @@ pub struct AccessTokenIssued {
 pub struct PreparedCredential {
     pub credential_configuration_id: CredentialConfigurationId,
     pub format: Format,
-    pub batch_size: NonZeroU8,
     pub credential_payload: PreviewableCredentialPayload,
     pub batch_id: Uuid,
 }
@@ -406,9 +405,6 @@ pub struct IssuerData<K, L> {
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
-
-    /// The maximum amount of copies of a credential that the holder can request.
-    batch_size: NonZeroU8,
 
     metadata: IssuerMetadata,
     metadata_keypair: KeyPair<K>,
@@ -507,7 +503,6 @@ impl PreparedCredential {
         let credential = Self {
             credential_configuration_id: config_id,
             format,
-            batch_size: issuer_data.batch_size,
             credential_payload,
             batch_id,
         };
@@ -636,7 +631,6 @@ where
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
             server_url: server_url.into_inner(),
-            batch_size,
             metadata,
             metadata_keypair: keypair,
         };
@@ -856,7 +850,6 @@ where
         let preview = CredentialPreview {
             config_id: credential.credential_configuration_id.clone(),
             format: credential.format,
-            batch_size: credential.batch_size,
             credential_payload: credential.credential_payload.clone(),
             issuer_certificate: credential_config.key_pair.certificate().clone(),
         };
@@ -1517,7 +1510,8 @@ impl Session<AccessTokenIssued> {
             .iter()
             .map(|credential| {
                 // For every credential collect for every copy the verified key
-                let format_pubkeys: VecNonEmpty<_> = (0..credential.batch_size.get())
+                let copy_count = issuer_data.metadata.batch_size().get();
+                let format_pubkeys: VecNonEmpty<_> = (0..copy_count)
                     .map(|_| {
                         let cred_req = credential_requests
                             .credential_requests
@@ -2108,11 +2102,13 @@ mod tests {
             .pre_authorized_code
             .unwrap()
             .pre_authorized_code;
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         let mut session = HttpIssuanceSession::create(
             message_client,
             credential_configs,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            batch_size,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
@@ -2162,11 +2158,13 @@ mod tests {
             })
             .collect();
 
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         HttpIssuanceSession::create(
             message_client,
             credential_configs,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            batch_size,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,

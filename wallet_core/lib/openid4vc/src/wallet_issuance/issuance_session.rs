@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::convert::identity;
+use std::num::NonZeroU8;
 
 use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -339,6 +340,7 @@ struct IssuanceState {
     access_token: AccessToken,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
+    batch_size: NonZeroU8,
     credential_previews: VecNonEmpty<CredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
     type_metadata: HashMap<CredentialConfigurationId, IssuanceTypeMetadata>,
@@ -388,6 +390,7 @@ impl OfferedCredentialConfig {
 
 fn credential_request_types_from_preview(
     credential_previews: &VecNonEmpty<CredentialPreview>,
+    batch_size: NonZeroU8,
 ) -> Result<VecNonEmpty<CredentialRequestType>, WalletIssuanceError> {
     // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
     // has no support (yet) for issuance of multiple copies of multiple attestations.
@@ -409,7 +412,7 @@ fn credential_request_types_from_preview(
                 CredentialRequestType::from_format(preview.format, preview.credential_payload.attestation_type.clone());
 
             // Construct a `Vec<CredentialRequestType>`, with one entry per copy for this credential.
-            Ok(std::iter::repeat_n(request_type, usize::from(preview.batch_size.get())))
+            Ok(std::iter::repeat_n(request_type, usize::from(batch_size.get())))
         })
         .process_results::<_, _, WalletIssuanceError, _>(|iter| iter.flatten().collect_vec())?
         .try_into()
@@ -454,6 +457,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
+        batch_size: NonZeroU8,
         token_endpoint: &Url,
         token_request: TokenRequest,
         wia_client: &impl WiaClient,
@@ -519,12 +523,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 .map_err(WalletIssuanceError::CredentialPreviewVerification)?;
         }
 
-        let credential_request_types = credential_request_types_from_preview(&credential_previews)?;
+        let credential_request_types = credential_request_types_from_preview(&credential_previews, batch_size)?;
 
         let session_state = IssuanceState {
             access_token: token_response.access_token,
             credential_issuer,
             issuer_endpoints,
+            batch_size,
             credential_previews,
             credential_request_types,
             type_metadata,
@@ -810,7 +815,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .iter()
             // TODO (PVW-5554): reduce code duplication in the format arms
             .map(|preview| {
-                let copy_count = usize::from(preview.batch_size.get());
+                let copy_count = usize::from(self.session_state.batch_size.get());
 
                 // Get type metadata of attestation type
                 let Some(type_metadata) = self.session_state.type_metadata.get(&preview.config_id) else {
@@ -1163,7 +1168,6 @@ impl IssuanceState {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
-    use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::time::Duration;
     use std::vec;
@@ -1223,6 +1227,12 @@ mod tests {
     use crate::token::TokenType;
     use crate::wallet_issuance::TypeMetadataChainError;
     use crate::wallet_issuance::WalletIssuanceError;
+
+    impl<H> HttpIssuanceSession<H> {
+        pub fn batch_size(&self) -> NonZeroU8 {
+            self.session_state.batch_size
+        }
+    }
 
     fn invalid_grant_error() -> WalletIssuanceError {
         WalletIssuanceError::TokenRequest(Box::new(ErrorResponse {
@@ -1341,7 +1351,6 @@ mod tests {
                     .map(|(config_id, format, preview_payload)| CredentialPreview {
                         config_id,
                         format,
-                        batch_size: NonZeroU8::MIN,
                         credential_payload: preview_payload,
                         issuer_certificate: issuance_key.certificate().clone(),
                     })
@@ -1356,11 +1365,13 @@ mod tests {
 
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
 
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         HttpIssuanceSession::create(
             mock_msg_client,
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            batch_size,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
@@ -1680,14 +1691,12 @@ mod tests {
                     CredentialPreview {
                         config_id: config_id_mdoc.clone(),
                         format: Format::MsoMdoc,
-                        batch_size: NonZeroU8::MIN,
                         credential_payload: preview_payload.clone(),
                         issuer_certificate: issuance_key.certificate().clone(),
                     },
                     CredentialPreview {
                         config_id: config_id_sd_jwt.clone(),
                         format: Format::SdJwt,
-                        batch_size: NonZeroU8::MIN,
                         credential_payload: preview_payload,
                         issuer_certificate: different_issuance_key.certificate().clone(),
                     },
@@ -1698,11 +1707,13 @@ mod tests {
                 })
             });
 
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         let error = HttpIssuanceSession::create(
             mock_msg_client,
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            batch_size,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
@@ -1723,7 +1734,8 @@ mod tests {
         issuance_type_metadata: IssuanceTypeMetadata,
         has_nonce_endpoint: bool,
     ) -> IssuanceState {
-        let credential_request_types = credential_request_types_from_preview(&credential_previews).unwrap();
+        let credential_request_types =
+            credential_request_types_from_preview(&credential_previews, NonZeroU8::MIN).unwrap();
         let issuer_identifier = "https://issuer.example.com".parse().unwrap();
 
         let config_id = credential_previews.first().config_id.clone();
@@ -1734,6 +1746,7 @@ mod tests {
                 CredentialKind::new(Format::SdJwt, attestation_type.to_string()),
             )],
         );
+        issuer_metadata.batch_credential_issuance = None;
         if !has_nonce_endpoint {
             issuer_metadata.endpoints.nonce_endpoint = None;
         }
@@ -1742,6 +1755,7 @@ mod tests {
             access_token: "access_token".to_string().into(),
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
+            batch_size: NonZeroU8::MIN,
             credential_previews,
             credential_request_types,
             type_metadata: [(config_id, issuance_type_metadata)].into(),
@@ -1813,7 +1827,6 @@ mod tests {
             let preview = CredentialPreview {
                 config_id: "config_id".to_string().into(),
                 format: Format::MsoMdoc,
-                batch_size: NonZeroU8::MIN,
                 credential_payload: preview_payload,
                 issuer_certificate,
             };

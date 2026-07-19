@@ -1,4 +1,3 @@
-use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -213,7 +212,6 @@ pub fn create_preview_from_payload(
     CredentialPreview {
         config_id,
         format,
-        batch_size: NonZeroU8::MIN,
         credential_payload: credential_payload.previewable_payload,
         issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
     }
