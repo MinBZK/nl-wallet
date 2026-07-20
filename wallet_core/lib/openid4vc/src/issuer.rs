@@ -464,7 +464,7 @@ impl<K, L> IssuerData<K, L> {
     fn verify_wia(
         &self,
         wia_disclosure: &WiaDisclosure,
-        client_id: Option<&String>,
+        client_id: Option<&str>,
     ) -> Result<(WiaClaims, Option<Nonce>), WiaError> {
         // The RFC says we should use the Issuer Identifier of the Authorization for this (see
         // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
@@ -1045,7 +1045,7 @@ where
     pub(super) async fn verify_wia(
         &self,
         wia_disclosure: &WiaDisclosure,
-        client_id: Option<&String>,
+        client_id: Option<&str>,
     ) -> Result<(), WiaVerificationError> {
         verify_wia_and_consume_nonce(&self.issuer_data, self.nonce_store.as_ref(), wia_disclosure, client_id)
             .await
@@ -1059,7 +1059,7 @@ async fn verify_wia_and_consume_nonce<K, L>(
     issuer_data: &IssuerData<K, L>,
     nonce_store: &impl NonceStore,
     wia_disclosure: &WiaDisclosure,
-    client_id: Option<&String>,
+    client_id: Option<&str>,
 ) -> Result<WiaClaims, WiaVerificationError> {
     let (wia_claims, nonce) = issuer_data
         .verify_wia(wia_disclosure, client_id)
@@ -1257,7 +1257,7 @@ impl Session<AuthCodeIssued> {
             issuer_data,
             nonce_store,
             wia_disclosure,
-            token_request.client_id.as_ref(),
+            token_request.client_id.as_deref(),
         )
         .await
         .map_err(TokenRequestError::Wia)?;

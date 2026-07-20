@@ -156,7 +156,7 @@ impl WiaDisclosure {
         trust_anchors: &TrustAnchors,
         expected_aud: &str,
         accepted_wallet_client_ids: &[impl ToString],
-        client_id: Option<&String>,
+        client_id: Option<&str>,
     ) -> Result<(WiaClaims, Option<Nonce>), WiaError> {
         let (_, verified_wia_claims) = self
             .0
@@ -180,7 +180,7 @@ impl WiaDisclosure {
         if let Some(client_id) = client_id
             && verified_wia_claims.sub != *client_id
         {
-            return Err(WiaError::IncorrectSub(verified_wia_claims.sub, client_id.clone()));
+            return Err(WiaError::IncorrectSub(verified_wia_claims.sub, client_id.to_string()));
         }
 
         let wia_pubkey = verified_wia_claims
@@ -411,7 +411,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 AUD,
                 &[WALLET_CLIENT_ID],
-                Some(&WALLET_CLIENT_ID.to_string()),
+                Some(WALLET_CLIENT_ID),
             )
             .unwrap();
     }
@@ -424,7 +424,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 AUD,
                 &[WALLET_CLIENT_ID],
-                Some(&"wrong-client-id".to_string()),
+                Some("wrong-client-id"),
             )
             .unwrap_err();
         assert_matches!(error, WiaError::IncorrectSub(found, expected)
