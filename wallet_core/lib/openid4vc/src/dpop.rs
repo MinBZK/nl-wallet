@@ -294,7 +294,7 @@ mod tests {
 
         // We can verify the DPoP
         let pubkey = dpop.clone().verify(&url, &method, access_token.as_ref()).unwrap();
-        assert_matches!(pubkey, PublicKey::P256(verifying_key) if verifying_key == *signing_key.verifying_key());
+        assert_matches!(pubkey, PublicKey::ESP256(verifying_key) if verifying_key == *signing_key.verifying_key());
         dpop.verify_expecting_key(pubkey, &url, &method, access_token.as_ref(), None)
             .unwrap();
     }

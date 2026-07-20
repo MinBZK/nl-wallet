@@ -757,7 +757,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         let pubkey = verified_sd_jwt
             .holder_pubkey()
             .expect("holder pubkey should be a valid JWK");
-        let PublicKey::P256(key) = pubkey else {
+        let PublicKey::ESP256(key) = pubkey else {
             return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
         };
 
@@ -859,7 +859,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         let pubkey = verified_sd_jwt
             .holder_pubkey()
             .expect("holder pubkey should be a valid JWK");
-        let crypto::PublicKey::P256(key) = pubkey else {
+        let crypto::PublicKey::ESP256(key) = pubkey else {
             return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
         };
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;

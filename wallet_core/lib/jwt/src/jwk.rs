@@ -25,10 +25,11 @@ pub fn jwk_from_public_key(value: &PublicKey) -> Result<Jwk, JwkConversionError>
 
 pub fn jwk_alg_from_public_key(value: &PublicKey) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
     match value {
-        PublicKey::P256(key) => jwk_alg_from_ecdsa(key),
-        PublicKey::P384(key) => jwk_alg_from_ecdsa(key),
-        PublicKey::P521(key) => jwk_alg_from_ecdsa(key),
+        PublicKey::ESP256(key) => jwk_alg_from_ecdsa(key),
+        PublicKey::ESP384(key) => jwk_alg_from_ecdsa(key),
+        PublicKey::ESP512(key) => jwk_alg_from_ecdsa(key),
         PublicKey::RSA2048(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
+        PublicKey::RSA3072(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
         PublicKey::RSA4096(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
     }
 }
@@ -95,9 +96,9 @@ fn ec_jwk_to_public_key(params: &jwk::EllipticCurveKeyParameters) -> Result<Publ
     let y = base64url_decode(&params.y)?;
 
     match &params.curve {
-        EllipticCurve::P256 => coordinates_to_verifying_key(&x, &y).map(PublicKey::P256),
-        EllipticCurve::P384 => coordinates_to_verifying_key(&x, &y).map(PublicKey::P384),
-        EllipticCurve::P521 => coordinates_to_verifying_key(&x, &y).map(PublicKey::P521),
+        EllipticCurve::P256 => coordinates_to_verifying_key(&x, &y).map(PublicKey::ESP256),
+        EllipticCurve::P384 => coordinates_to_verifying_key(&x, &y).map(PublicKey::ESP384),
+        EllipticCurve::P521 => coordinates_to_verifying_key(&x, &y).map(PublicKey::ESP512),
         curve => Err(JwkConversionError::UnsupportedJwkEcCurve(curve.to_owned())),
     }
 }
@@ -147,6 +148,6 @@ mod tests {
         let jwk = jwk_from_public_key(&PublicKey::from(verifying_key)).unwrap();
         let public_key = jwk_to_public_key(&jwk).unwrap();
 
-        assert_eq!(public_key, PublicKey::P256(verifying_key));
+        assert_eq!(public_key, PublicKey::ESP256(verifying_key));
     }
 }

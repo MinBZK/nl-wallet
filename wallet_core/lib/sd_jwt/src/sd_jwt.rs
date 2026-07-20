@@ -448,7 +448,7 @@ impl UnsignedSdJwtPresentation {
             .into_nonempty_iter()
             .map(|(UnsignedSdJwtPresentation(sd_jwt), key_identifier)| {
                 let pubkey = sd_jwt.holder_pubkey().map_err(SigningError::Jwk)?;
-                let PublicKey::P256(verifying_key) = pubkey else {
+                let PublicKey::ESP256(verifying_key) = pubkey else {
                     return Err(SigningError::UnsupportedHolderPublicKey(Box::new(pubkey)));
                 };
 

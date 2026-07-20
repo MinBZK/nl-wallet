@@ -28,15 +28,22 @@ pub enum PublicKeyError {
 #[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() == 256))]
 struct Rsa2048PublicKey(rsa::RsaPublicKey);
 
+#[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() == 384))]
+struct Rsa3072PublicKey(rsa::RsaPublicKey);
+
 #[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() == 512))]
 struct Rsa4096PublicKey(rsa::RsaPublicKey);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PublicKey {
-    P256(p256::ecdsa::VerifyingKey),
-    P384(p384::ecdsa::VerifyingKey),
-    P521(p521::ecdsa::VerifyingKey),
+    // ECDSA keys, named in line with [RFC9864](https://datatracker.ietf.org/doc/rfc9864/)
+    ESP256(p256::ecdsa::VerifyingKey),
+    ESP384(p384::ecdsa::VerifyingKey),
+    ESP512(p521::ecdsa::VerifyingKey),
+
+    // RSA keys, with specific key sizes
     RSA2048(Rsa2048PublicKey),
+    RSA3072(Rsa3072PublicKey),
     RSA4096(Rsa4096PublicKey),
 }
 
@@ -44,10 +51,11 @@ impl Hash for PublicKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
         match self {
-            PublicKey::P256(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
-            PublicKey::P384(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
-            PublicKey::P521(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
+            PublicKey::ESP256(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
+            PublicKey::ESP384(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
+            PublicKey::ESP512(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
             PublicKey::RSA2048(rsa_public_key) => rsa_public_key.as_ref().hash(state),
+            PublicKey::RSA3072(rsa_public_key) => rsa_public_key.as_ref().hash(state),
             PublicKey::RSA4096(rsa_public_key) => rsa_public_key.as_ref().hash(state),
         }
     }
@@ -55,19 +63,19 @@ impl Hash for PublicKey {
 
 impl From<p256::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p256::ecdsa::VerifyingKey) -> Self {
-        Self::P256(key)
+        Self::ESP256(key)
     }
 }
 
 impl From<p384::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p384::ecdsa::VerifyingKey) -> Self {
-        Self::P384(key)
+        Self::ESP384(key)
     }
 }
 
 impl From<p521::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p521::ecdsa::VerifyingKey) -> Self {
-        Self::P521(key)
+        Self::ESP512(key)
     }
 }
 
@@ -79,6 +87,9 @@ impl TryFrom<rsa::RsaPublicKey> for PublicKey {
         match key.size() {
             256 => Ok(Self::RSA2048(
                 Rsa2048PublicKey::try_from(key).expect("should be 2048 bits"),
+            )),
+            384 => Ok(Self::RSA3072(
+                Rsa3072PublicKey::try_from(key).expect("should be 3072 bits"),
             )),
             512 => Ok(Self::RSA4096(
                 Rsa4096PublicKey::try_from(key).expect("should be 4096 bits"),
@@ -268,10 +279,11 @@ mod tests {
 
     // The Hash-Eq contract: k1 == k2 implies hash(k1) == hash(k2).
     #[rstest]
-    #[case::p256(PublicKey::P256(*p256::ecdsa::SigningKey::generate().verifying_key()))]
-    #[case::p384(PublicKey::P384(*p384::ecdsa::SigningKey::generate().verifying_key()))]
-    #[case::p521(PublicKey::P521(*p521::ecdsa::SigningKey::generate().verifying_key()))]
+    #[case::p256(PublicKey::ESP256(*p256::ecdsa::SigningKey::generate().verifying_key()))]
+    #[case::p384(PublicKey::ESP384(*p384::ecdsa::SigningKey::generate().verifying_key()))]
+    #[case::p521(PublicKey::ESP512(*p521::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 2048).unwrap().to_public_key()).unwrap())]
+    #[case::rsa3072(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 3072).unwrap().to_public_key()).unwrap())]
     #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 4096).unwrap().to_public_key()).unwrap())]
     fn hash_eq_contract(#[case] key: PublicKey) {
         assert_eq!(key, key.clone());
@@ -280,8 +292,8 @@ mod tests {
 
     #[test]
     fn different_ecdsa_variants_are_not_equal() {
-        let p256_key = PublicKey::P256(*p256::ecdsa::SigningKey::generate().verifying_key());
-        let p384_key = PublicKey::P384(*p384::ecdsa::SigningKey::generate().verifying_key());
+        let p256_key = PublicKey::ESP256(*p256::ecdsa::SigningKey::generate().verifying_key());
+        let p384_key = PublicKey::ESP384(*p384::ecdsa::SigningKey::generate().verifying_key());
         assert_ne!(p256_key, p384_key);
         assert_ne!(hash(&p256_key), hash(&p384_key));
     }

@@ -365,7 +365,7 @@ impl CredentialPayload {
         let pubkey = confirmation_key
             .try_to_public_key()
             .map_err(CredentialPayloadIntoSignedMdocError::JwkConversion)?;
-        let PublicKey::P256(verifying_key) = pubkey else {
+        let PublicKey::ESP256(verifying_key) = pubkey else {
             return Err(CredentialPayloadIntoSignedMdocError::UnsupportedConfirmationKey(
                 Box::new(pubkey),
             ));
