@@ -172,6 +172,9 @@ pub enum TokenRequestError {
     )]
     ClientIdMismatch { expected: String, actual: String },
 
+    #[error("error verifying WIA and WIA PoP: {0}")]
+    Wia(#[source] WiaVerificationError),
+
     #[error("a Token Request containing authorization_details is not supported")]
     AuthorizationDetailsUnsupported,
 
@@ -197,9 +200,6 @@ pub enum TokenRequestError {
 
     #[error("credential configuration not offered: {0}")]
     CredentialConfigNotOffered(CredentialConfigurationId),
-
-    #[error("error verifying WIA and WIA PoP: {0}")]
-    Wia(#[source] WiaVerificationError),
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -56,6 +56,9 @@ pub enum ParError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
 
+    #[error("error verifying WIA and WIA PoP: {0}")]
+    Wia(#[source] WiaVerificationError),
+
     #[error("a PAR containing authorization_details is not supported")]
     AuthorizationDetailsUnsupported,
 
@@ -64,9 +67,6 @@ pub enum ParError {
 
     #[error("storing PAR request failed: {0}")]
     Store(#[source] Box<dyn Error + Send + Sync + 'static>),
-
-    #[error("error verifying WIA and WIA PoP: {0}")]
-    Wia(#[source] WiaVerificationError),
 }
 
 /// Errors that can occur during calls to the `authorize` endpoint, before the PAR has been retrieved from storage.
