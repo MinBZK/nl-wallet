@@ -69,13 +69,13 @@ pub enum CwtError {
     #[category(critical)]
     MissingType,
     #[error("unexpected protected CWT type: {0:?}")]
-    #[category(critical)]
+    #[category(pd)]
     UnexpectedType(Value),
     #[error("CWT header parameter {0:?} must be protected")]
-    #[category(critical)]
+    #[category(pd)]
     UnprotectedHeaderParameter(Label),
     #[error("unsupported critical COSE header parameter: {0:?}")]
-    #[category(critical)]
+    #[category(pd)]
     UnsupportedCriticalHeader(RegisteredLabel<iana::HeaderParameter>),
     #[error("CWT iat claim is not a finite NumericDate")]
     #[category(critical)]
@@ -418,6 +418,8 @@ fn parse_header_map(value: Value, invalid_map_message: &'static str) -> Result<H
 mod tests {
     use chrono::TimeZone;
     use crypto::server_keys::generate::Ca;
+    use error_category::Category;
+    use error_category::ErrorCategory as _;
     use serde::Deserialize;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
@@ -764,5 +766,32 @@ mod tests {
             cwt.into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, None,),
             Err(CwtError::Cose(CoseError::EcdsaSignatureVerificationFailed(_)))
         ));
+    }
+
+    #[test]
+    fn errors_with_untrusted_header_values_are_personal_data() {
+        for error in [
+            CwtError::UnexpectedType(Value::Text("personal data".to_owned())),
+            CwtError::UnprotectedHeaderParameter(Label::Text("personal data".to_owned())),
+            CwtError::UnsupportedCriticalHeader(RegisteredLabel::Text("personal data".to_owned())),
+            CwtError::Cose(CoseError::UnsupportedAlgorithm(coset::Algorithm::Text(
+                "personal data".to_owned(),
+            ))),
+        ] {
+            assert_eq!(error.category(), Category::PersonalData);
+        }
+    }
+
+    #[test]
+    fn structural_errors_without_input_values_are_critical() {
+        assert_eq!(
+            CwtError::CoseSerialization(coset::CoseError::DuplicateMapKey).category(),
+            Category::Critical
+        );
+        assert_eq!(
+            CwtError::InvalidCoseSign1("invalid structure").category(),
+            Category::Critical
+        );
+        assert_eq!(CwtError::UnexpectedCborTag(42).category(), Category::Critical);
     }
 }

@@ -11,13 +11,13 @@ pub enum CoseError {
     #[category(critical)]
     MissingPayload,
     #[error("missing label {0:?}")]
-    #[category(critical)]
+    #[category(pd)]
     MissingLabel(Label),
     #[error("missing protected COSE algorithm")]
     #[category(critical)]
     MissingAlgorithm,
     #[error("unsupported protected COSE algorithm: {0:?}")]
-    #[category(critical)]
+    #[category(pd)]
     UnsupportedAlgorithm(coset::Algorithm),
     #[error("ECDSA signature parsing failed: {0}")]
     #[category(pd)]
@@ -47,4 +47,28 @@ pub enum CoseError {
     #[error("no signature received")]
     #[category(critical)]
     SignatureMissing,
+}
+
+#[cfg(test)]
+mod tests {
+    use error_category::Category;
+    use error_category::ErrorCategory as _;
+
+    use super::*;
+
+    #[test]
+    fn errors_with_header_values_are_personal_data() {
+        for error in [
+            CoseError::MissingLabel(Label::Text("personal data".to_owned())),
+            CoseError::UnsupportedAlgorithm(coset::Algorithm::Text("personal data".to_owned())),
+        ] {
+            assert_eq!(error.category(), Category::PersonalData);
+        }
+    }
+
+    #[test]
+    fn structural_errors_without_input_values_are_critical() {
+        assert_eq!(CoseError::MissingPayload.category(), Category::Critical);
+        assert_eq!(CoseError::MissingAlgorithm.category(), Category::Critical);
+    }
 }
