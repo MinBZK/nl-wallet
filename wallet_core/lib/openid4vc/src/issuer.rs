@@ -610,7 +610,7 @@ where
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
         wia_trust_anchors: TrustAnchors,
         sessions: Arc<S>,
-        proof_nonce_store: N,
+        nonce_store: N,
     ) -> Result<Self, CredentialConfigurationsError> {
         let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
 
@@ -656,7 +656,7 @@ where
             metadata_keypair: keypair,
         };
 
-        let nonce_store = Arc::new(proof_nonce_store);
+        let nonce_store = Arc::new(nonce_store);
 
         let status_list_refresh_tasks = issuer_data
             .credential_configs
@@ -1383,7 +1383,7 @@ impl Session<AccessTokenIssued> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
-        proof_nonce_store: &N,
+        nonce_store: &N,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>)
     where
         K: EcdsaKey,
@@ -1391,7 +1391,7 @@ impl Session<AccessTokenIssued> {
         L: StatusListService,
     {
         let result = self
-            .process_credential_inner(credential_request, access_token, dpop, issuer_data, proof_nonce_store)
+            .process_credential_inner(credential_request, access_token, dpop, issuer_data, nonce_store)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -1440,7 +1440,7 @@ impl Session<AccessTokenIssued> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
-        proof_nonce_store: &N,
+        nonce_store: &N,
     ) -> Result<CredentialResponse, CredentialRequestError>
     where
         K: EcdsaKey,
@@ -1476,7 +1476,7 @@ impl Session<AccessTokenIssued> {
             &issuer_data.metadata.credential_issuer,
         )?;
 
-        let nonce_status = proof_nonce_store
+        let nonce_status = nonce_store
             .check_nonce_status_and_remove([request_nonce].iter())
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
@@ -1521,7 +1521,7 @@ impl Session<AccessTokenIssued> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
-        proof_nonce_store: &N,
+        nonce_store: &N,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>)
     where
         K: EcdsaKey,
@@ -1529,7 +1529,7 @@ impl Session<AccessTokenIssued> {
         N: NonceStore,
     {
         let result = self
-            .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data, proof_nonce_store)
+            .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data, nonce_store)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -1551,7 +1551,7 @@ impl Session<AccessTokenIssued> {
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
-        proof_nonce_store: &N,
+        nonce_store: &N,
     ) -> Result<CredentialResponses, CredentialRequestError>
     where
         K: EcdsaKey,
@@ -1616,7 +1616,7 @@ impl Session<AccessTokenIssued> {
         }
 
         // Check the validity of all of the nonces used, which may be equal to each other.
-        let nonce_status = proof_nonce_store
+        let nonce_status = nonce_store
             .check_nonce_status_and_remove(request_nonces.iter())
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
