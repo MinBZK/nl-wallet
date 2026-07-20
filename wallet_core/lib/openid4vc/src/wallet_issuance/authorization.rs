@@ -153,7 +153,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         );
 
         let challenge = if let Some(challenge_endpoint) = &auth_endpoints.challenge_endpoint {
-            Some(fetch_client_auth_challenge(&http_client, challenge_endpoint.clone()).await?)
+            let challenge = fetch_client_auth_challenge(&http_client, challenge_endpoint.clone())
+                .await
+                .map_err(WalletIssuanceError::ClientAttestation)?;
+            Some(challenge)
         } else {
             None
         };
@@ -174,7 +177,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .map_err(WalletIssuanceError::ParHttp)?;
 
         let client_auth_challenge =
-            ClientAttestationChallengeMechanism::try_new(auth_endpoints.challenge_endpoint, &response)?;
+            ClientAttestationChallengeMechanism::try_new(auth_endpoints.challenge_endpoint, &response)
+                .map_err(WalletIssuanceError::ClientAttestation)?;
 
         let par_response = if response.status().is_success() {
             response

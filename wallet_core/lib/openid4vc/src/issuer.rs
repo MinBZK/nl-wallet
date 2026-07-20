@@ -199,7 +199,7 @@ pub enum TokenRequestError {
     CredentialConfigNotOffered(CredentialConfigurationId),
 
     #[error("error verifying WIA and WIA PoP: {0}")]
-    Wia(#[from] WiaVerificationError),
+    Wia(#[source] WiaVerificationError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1259,7 +1259,8 @@ impl Session<AuthCodeIssued> {
             wia_disclosure,
             token_request.client_id.as_ref(),
         )
-        .await?;
+        .await
+        .map_err(TokenRequestError::Wia)?;
 
         let client_id = wia_claims.sub;
         let session_data = self.session_data();

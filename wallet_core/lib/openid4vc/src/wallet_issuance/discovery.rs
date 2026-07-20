@@ -459,7 +459,7 @@ impl HttpIssuanceDiscovery {
 
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer, wrpac_trust_anchors).await?;
 
-        check_client_attestation_metadata(&oauth_metadata)?;
+        check_client_attestation_metadata(&oauth_metadata).map_err(WalletIssuanceError::ClientAttestation)?;
 
         let IssuerMetadata {
             credential_issuer,

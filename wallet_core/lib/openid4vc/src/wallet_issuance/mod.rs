@@ -322,7 +322,7 @@ pub enum WalletIssuanceError {
     CredentialOfferNoPreAuthorizedCode,
 
     #[error("Attestation-Based Client Authentication error: {0}")]
-    ClientAttestation(#[from] ClientAttestationError),
+    ClientAttestation(#[source] ClientAttestationError),
 }
 
 #[derive(Debug)]

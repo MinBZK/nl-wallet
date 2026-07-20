@@ -66,7 +66,7 @@ pub enum ParError {
     Store(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("error verifying WIA and WIA PoP: {0}")]
-    Wia(#[from] WiaVerificationError),
+    Wia(#[source] WiaVerificationError),
 }
 
 /// Errors that can occur during calls to the `authorize` endpoint, before the PAR has been retrieved from storage.
@@ -198,7 +198,8 @@ where
         // <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.1-2.7.1>
         self.issuer
             .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
-            .await?;
+            .await
+            .map_err(ParError::Wia)?;
 
         if request.authorization_details.is_some() {
             return Err(ParError::AuthorizationDetailsUnsupported);
