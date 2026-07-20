@@ -160,13 +160,12 @@ impl NormalizedTypeMetadata {
             .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
     }
 
-    /// Returns all claim paths that are mandatory
-    pub fn mandatory_claims(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
+    /// Returns all claim paths that are mandatory.
+    pub fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
         self.claims
             .iter()
             .filter(|claim| claim.mandatory)
-            .map(|claim| claim.path.iter().filter_map(|path| path.try_key_path()).collect_vec())
-            .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
+            .map(|claim| &claim.path)
     }
 }
 
