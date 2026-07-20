@@ -688,7 +688,7 @@ where
     async fn cleanup(&self) {
         let _ = join!(
             log_cleanup_error("session", self.sessions.cleanup()),
-            log_cleanup_error("proof nonce", self.nonce_store.remove_expired_nonces()),
+            log_cleanup_error("nonce", self.nonce_store.remove_expired_nonces()),
         );
     }
 }
