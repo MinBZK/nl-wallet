@@ -1363,6 +1363,10 @@ pub mod test {
                     "path": ["adult"],
                     "display": [{"locale": "en", "label": "adult"}],
                 },
+                {
+                    "path": ["country", 0, "area_code"],
+                    "display": [{"locale": "en", "label": "first country area code"}],
+                },
             ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
