@@ -549,79 +549,98 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// Filter the Credential Configurations that were present in the Credential Offer based on the fields received in
     /// the Token Response. Returns errors if any of the values in these fields is unrecognized.
     fn filter_offered_credential_configs(
-        mut credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         scope: Option<&HashSet<Scope>>,
         authorization_details: Option<IssuerAuthorizationDetails>,
     ) -> Result<Vec<OfferedCredentialConfig>, WalletIssuanceError> {
-        let credential_configs_and_ids = match (scope, authorization_details) {
-            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Return
+        match (scope, authorization_details) {
+            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
             // an error if any Credential Configuration ID was not present in the Credential Offer.
             (_, Some(authorization_details)) => {
-                let (credential_configs_and_ids, unknown_config_ids): (_, Vec<_>) = authorization_details
-                    .into_credential_ids_and_identifiers()
-                    .into_iter()
-                    .partition_map(
-                        |(config_id, identifiers)| match credential_configurations.remove(&config_id) {
-                            Some(config) => Either::Left(OfferedCredentialConfig::new_with_identifiers(
-                                config_id,
-                                config,
-                                identifiers,
-                            )),
-                            None => Either::Right(config_id),
-                        },
-                    );
-
-                if !unknown_config_ids.is_empty() {
-                    return Err(WalletIssuanceError::TokenResponseUnknownCredentialConfigIds(
-                        unknown_config_ids,
-                    ));
-                }
-
-                credential_configs_and_ids
+                Self::filter_credential_configs_authorization_details(credential_configurations, authorization_details)
             }
             // If the Token Response contained `scope` values, select only those Credential Configurations that have
-            // this scope. Return an error if any of the scope values do not refer to Credential Configurations
-            // present in the Credential Offer.
-            (Some(scope), None) => {
-                if scope.is_empty() {
-                    return Err(WalletIssuanceError::TokenResponseEmptyScope);
-                }
-
-                let config_scopes = credential_configurations
-                    .values()
-                    .flat_map(|config| config.scope.as_ref())
-                    .collect::<HashSet<_>>();
-
-                let unknown_scope = scope
-                    .iter()
-                    .filter(|scope| !config_scopes.contains(scope))
-                    .cloned()
-                    .collect_vec();
-
-                if !unknown_scope.is_empty() {
-                    return Err(WalletIssuanceError::TokenResponseUnknownScope(unknown_scope));
-                }
-
-                credential_configurations
-                    .into_iter()
-                    .filter_map(|(config_id, config)| {
-                        config
-                            .scope
-                            .as_ref()
-                            .is_some_and(|config_scope| scope.contains(config_scope))
-                            .then_some(OfferedCredentialConfig::new_without_identifiers(config_id, config))
-                    })
-                    .collect()
-            }
+            // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
+            // to Credential Configurations present in the Credential Offer.
+            (Some(scope), None) => Self::filter_credential_configs_scope(credential_configurations, scope),
             // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
             // that the issuer offers all of the Credential Configurations from the Credential Offer.
-            (None, None) => credential_configurations
-                .into_iter()
-                .map(|(config_id, config)| OfferedCredentialConfig::new_without_identifiers(config_id, config))
-                .collect(),
-        };
+            (None, None) => {
+                let offered_configs = credential_configurations
+                    .into_iter()
+                    .map(|(config_id, config)| OfferedCredentialConfig::new_without_identifiers(config_id, config))
+                    .collect();
 
-        Ok(credential_configs_and_ids)
+                Ok(offered_configs)
+            }
+        }
+    }
+
+    /// Filter the Credential Configurations that were present in the Credential Offer based on the
+    /// `authorization_details` field.
+    fn filter_credential_configs_authorization_details(
+        mut credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+        authorization_details: IssuerAuthorizationDetails,
+    ) -> Result<Vec<OfferedCredentialConfig>, WalletIssuanceError> {
+        let (offered_configs, unknown_config_ids): (_, Vec<_>) = authorization_details
+            .into_credential_ids_and_identifiers()
+            .into_iter()
+            .partition_map(
+                |(config_id, identifiers)| match credential_configurations.remove(&config_id) {
+                    Some(config) => Either::Left(OfferedCredentialConfig::new_with_identifiers(
+                        config_id,
+                        config,
+                        identifiers,
+                    )),
+                    None => Either::Right(config_id),
+                },
+            );
+
+        if !unknown_config_ids.is_empty() {
+            return Err(WalletIssuanceError::TokenResponseUnknownCredentialConfigIds(
+                unknown_config_ids,
+            ));
+        }
+
+        Ok(offered_configs)
+    }
+
+    /// Filter the Credential Configurations that were present in the Credential Offer based on the `scope` field.
+    fn filter_credential_configs_scope(
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+        scope: &HashSet<Scope>,
+    ) -> Result<Vec<OfferedCredentialConfig>, WalletIssuanceError> {
+        if scope.is_empty() {
+            return Err(WalletIssuanceError::TokenResponseEmptyScope);
+        }
+
+        let config_scopes = credential_configurations
+            .values()
+            .flat_map(|config| config.scope.as_ref())
+            .collect::<HashSet<_>>();
+
+        let unknown_scope = scope
+            .iter()
+            .filter(|scope| !config_scopes.contains(scope))
+            .cloned()
+            .collect_vec();
+
+        if !unknown_scope.is_empty() {
+            return Err(WalletIssuanceError::TokenResponseUnknownScope(unknown_scope));
+        }
+
+        let offered_configs = credential_configurations
+            .into_iter()
+            .filter_map(|(config_id, config)| {
+                config
+                    .scope
+                    .as_ref()
+                    .is_some_and(|config_scope| scope.contains(config_scope))
+                    .then_some(OfferedCredentialConfig::new_without_identifiers(config_id, config))
+            })
+            .collect();
+
+        Ok(offered_configs)
     }
 
     async fn request_previews(
