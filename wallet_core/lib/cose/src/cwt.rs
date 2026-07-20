@@ -114,22 +114,6 @@ impl<T> UnverifiedCwt<T> {
             .to_vec()
             .map_err(CwtError::CoseSerialization)
     }
-
-    /// Return the structurally valid, but unauthenticated, CWT header.
-    ///
-    /// Its values originate from untrusted input and must not be used for authorization or identity decisions before
-    /// this CWT has been converted into a [`VerifiedCwt`].
-    pub fn dangerous_header_unverified(&self) -> &CwtHeader {
-        &self.unverified_header
-    }
-
-    pub fn as_cose(&self) -> &TypedCose<CoseSign1, T> {
-        &self.cose
-    }
-
-    pub fn into_cose(self) -> TypedCose<CoseSign1, T> {
-        self.cose
-    }
 }
 
 impl<T> UnverifiedCwt<T>
@@ -525,7 +509,7 @@ mod tests {
         let claims_without_iat = ClaimsSet::default().to_cbor_value().unwrap();
         let cose = sign_with_header(valid_protected_header(&key_pair, Some(claims_without_iat)), &key_pair).await;
         let cwt = UnverifiedCwt::try_from(cose).unwrap();
-        assert_eq!(cwt.dangerous_header_unverified().issued_at(), None);
+        assert_eq!(cwt.unverified_header.issued_at(), None);
     }
 
     #[tokio::test]
@@ -771,7 +755,7 @@ mod tests {
                 .await
                 .unwrap()
                 .into_unverified()
-                .into_cose()
+                .cose
                 .into_inner();
         cose.payload.as_mut().unwrap()[0] ^= 1;
         let cwt = UnverifiedCwt::<ToyMessage>::try_from(cose).unwrap();
