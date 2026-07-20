@@ -412,7 +412,9 @@ impl ErrorWithCode for ParError {
 
             Self::Wia(WiaVerificationError::ChallengeStore(_)) => ParErrorCode::ServerError,
 
-            Self::Wia(_) => ParErrorCode::InvalidClientAttestation,
+            Self::Wia(WiaVerificationError::InvalidChallenge)
+            | Self::Wia(WiaVerificationError::MissingChallenge)
+            | Self::Wia(WiaVerificationError::WiaVerification(_)) => ParErrorCode::InvalidClientAttestation,
 
             Self::AuthorizationDetailsUnsupported | Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
 
@@ -490,7 +492,9 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::Wia(WiaVerificationError::ChallengeStore(_)) => TokenErrorCode::ServerError,
 
-            Self::Wia(_) => TokenErrorCode::InvalidClientAttestation,
+            Self::Wia(WiaVerificationError::InvalidChallenge)
+            | Self::Wia(WiaVerificationError::MissingChallenge)
+            | Self::Wia(WiaVerificationError::WiaVerification(_)) => TokenErrorCode::InvalidClientAttestation,
 
             Self::MissingCodeVerifier | Self::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
 
