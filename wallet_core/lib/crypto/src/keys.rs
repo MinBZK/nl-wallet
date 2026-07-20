@@ -265,8 +265,8 @@ mod tests {
     use std::hash::Hasher;
 
     use ecdsa::elliptic_curve::Generate;
-    use rand::thread_rng;
     use rsa::RsaPrivateKey;
+    use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
 
     use super::PublicKey;
@@ -282,9 +282,9 @@ mod tests {
     #[case::p256(PublicKey::ESP256(*p256::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::p384(PublicKey::ESP384(*p384::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::p521(PublicKey::ESP512(*p521::ecdsa::SigningKey::generate().verifying_key()))]
-    #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 2048).unwrap().to_public_key()).unwrap())]
-    #[case::rsa3072(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 3072).unwrap().to_public_key()).unwrap())]
-    #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 4096).unwrap().to_public_key()).unwrap())]
+    #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap().to_public_key()).unwrap())]
+    #[case::rsa3072(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap().to_public_key()).unwrap())]
+    #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap().to_public_key()).unwrap())]
     fn hash_eq_contract(#[case] key: PublicKey) {
         assert_eq!(key, key.clone());
         assert_eq!(hash(&key), hash(&key.clone()));
@@ -301,14 +301,14 @@ mod tests {
     #[test]
     fn different_rsa_variants_are_not_equal() {
         let rsa2048_key = PublicKey::RSA2048(
-            RsaPrivateKey::new(&mut thread_rng(), 2048)
+            RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem"))
                 .unwrap()
                 .to_public_key()
                 .try_into()
                 .unwrap(),
         );
         let rsa4096_key = PublicKey::RSA4096(
-            RsaPrivateKey::new(&mut thread_rng(), 4096)
+            RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem"))
                 .unwrap()
                 .to_public_key()
                 .try_into()
