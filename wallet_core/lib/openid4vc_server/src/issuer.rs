@@ -227,7 +227,7 @@ async fn nonce<K, L, S, N>(
 where
     N: NonceStore,
 {
-    let c_nonce = state.issuer.generate_proof_nonce().await.map_err(|error| {
+    let c_nonce = state.issuer.generate_nonce().await.map_err(|error| {
         warn!("generating fresh c_nonce failed: {}", error);
 
         // Any error that occurs while generating the nonce is de facto a problem with the server.
@@ -248,7 +248,7 @@ async fn client_auth_challenge<K, L, S, N>(
 where
     N: NonceStore,
 {
-    let attestation_challenge = state.issuer.generate_proof_nonce().await.map_err(|error| {
+    let attestation_challenge = state.issuer.generate_nonce().await.map_err(|error| {
         warn!("generating fresh attestation_challenge failed: {}", error);
 
         // Any error that occurs while generating the nonce is de facto a problem with the server.

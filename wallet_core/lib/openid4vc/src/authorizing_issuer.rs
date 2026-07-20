@@ -561,7 +561,7 @@ mod tests {
                 &MockWiaClient::new_with_wia_keypair(wia_keypair)
                     .issue_wia(
                         authorizing_issuer.issuer.issuer_identifier().to_string(),
-                        Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+                        Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
                     )
                     .await
                     .unwrap(),
@@ -619,7 +619,7 @@ mod tests {
         let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
             .issue_wia(
                 authorizing_issuer.issuer.issuer_identifier().to_string(),
-                Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+                Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
             )
             .now_or_never()
             .unwrap()
@@ -684,7 +684,7 @@ mod tests {
         let (authorizing_issuer, _sessions, wia_keypair) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
-        let nonce = authorizing_issuer.issuer.generate_proof_nonce().await.unwrap();
+        let nonce = authorizing_issuer.issuer.generate_nonce().await.unwrap();
         let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
             .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), Some(nonce))
             .await
@@ -723,7 +723,7 @@ mod tests {
                 &MockWiaClient::new_with_wia_keypair(wia_keypair)
                     .issue_wia(
                         authorizing_issuer.issuer.issuer_identifier().to_string(),
-                        Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+                        Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
                     )
                     .await
                     .unwrap(),
@@ -746,7 +746,7 @@ mod tests {
         let wia = MockWiaClient::new()
             .issue_wia(
                 authorizing_issuer.issuer.issuer_identifier().to_string(),
-                Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+                Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
             )
             .await
             .unwrap();
@@ -770,7 +770,7 @@ mod tests {
         let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
             .issue_wia(
                 "https://wrong-issuer.example.com".to_string(),
-                Some(authorizing_issuer.issuer().generate_proof_nonce().await.unwrap()),
+                Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
             )
             .await
             .unwrap();

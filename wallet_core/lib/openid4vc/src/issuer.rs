@@ -795,7 +795,7 @@ impl<K, L, S, N> Issuer<K, L, S, N>
 where
     N: NonceStore,
 {
-    pub async fn generate_proof_nonce(&self) -> Result<Nonce, NonceStoreError<N::Error>> {
+    pub async fn generate_nonce(&self) -> Result<Nonce, NonceStoreError<N::Error>> {
         let nonce = Nonce::new_random();
 
         self.nonce_store.store_nonce(nonce.clone()).await?;
@@ -2040,7 +2040,7 @@ mod tests {
         }
 
         async fn request_challenge(&self, _url: Url) -> Result<Nonce, WalletIssuanceError> {
-            Ok(self.issuer.generate_proof_nonce().await.unwrap())
+            Ok(self.issuer.generate_nonce().await.unwrap())
         }
 
         async fn request_credential_preview(
@@ -2064,7 +2064,7 @@ mod tests {
         }
 
         async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
-            let c_nonce = self.issuer.generate_proof_nonce().await.unwrap();
+            let c_nonce = self.issuer.generate_nonce().await.unwrap();
             Ok((NonceResponse { c_nonce }, None))
         }
 
@@ -2317,7 +2317,7 @@ mod tests {
         let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
         let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
 
-        let nonce = issuer.generate_proof_nonce().await.unwrap();
+        let nonce = issuer.generate_nonce().await.unwrap();
         let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
             .issue_wia(issuer_identifier.to_string(), Some(nonce))
             .await
@@ -2365,7 +2365,7 @@ mod tests {
     async fn token_request_rejects_replayed_wia_nonce() {
         let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
 
-        let nonce = issuer.generate_proof_nonce().await.unwrap();
+        let nonce = issuer.generate_nonce().await.unwrap();
         let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
             .issue_wia(issuer_identifier.to_string(), Some(nonce))
             .await
