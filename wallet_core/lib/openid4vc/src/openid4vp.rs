@@ -438,7 +438,7 @@ impl VpAuthorizationRequest {
         validation_options.set_audience(&[VpAuthorizationRequestAudience::SelfIssued.to_string()]);
 
         let (header, auth_request) =
-            jws.parse_and_verify_against_trust_anchors(trust_anchors, &TimeGenerator, None, &validation_options)?;
+            jws.parse_and_verify_against_trust_anchors(trust_anchors, &TimeGenerator, None, validation_options)?;
 
         Ok((auth_request, header.x5c.into_first()))
     }

@@ -137,7 +137,7 @@ pub async fn request_userinfo<C>(
     token_request: TokenRequest,
     client_id: &str,
     decrypter: &JweDecrypter,
-    (expected_jws_alg, expected_enc_alg): (Algorithm, EncryptionAlgorithm),
+    expected_enc_alg: EncryptionAlgorithm,
 ) -> Result<C, UserInfoError>
 where
     C: DeserializeOwned + JwtTyp,
@@ -156,15 +156,15 @@ where
         .decrypt_string(&jwe, ExpectedEncryptionAlgorithm::Algorithms(&[expected_enc_alg]))
         .map_err(UserInfoError::JweDecryption)?;
 
-    let validation = userinfo_validation(client_id, expected_jws_alg);
-    verify_against_keys(&jws, &jwks, &validation)
+    let validation = userinfo_validation(client_id);
+    verify_against_keys(&jws, &jwks, validation)
 }
 
 // We can't use our own `Jwt` types here because they only support ECDSA/P256.
 fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     token: &str,
     jwks: &JwkSet,
-    validation: &Validation,
+    validation: Validation,
 ) -> Result<C, UserInfoError> {
     // using `Header` make the `typ` optional, but it will still be validated against `C::TYP`, if present
     let jwt: UnverifiedJwt<C, HeaderWithKid<Header>> = token.parse()?;
@@ -174,8 +174,8 @@ fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     Ok(claims)
 }
 
-fn userinfo_validation(client_id: &str, expected_jws_alg: Algorithm) -> Validation {
-    let mut validation = Validation::new(expected_jws_alg);
+fn userinfo_validation(client_id: &str) -> Validation {
+    let mut validation = Validation::new(Algorithm::RS256);
     validation.required_spec_claims.clear(); // don't require exp
     validation.set_audience(&[client_id]);
     validation
@@ -411,9 +411,9 @@ mod tests {
             }]
         })).unwrap();
 
-        let mut validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
+        let mut validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         validation.validate_exp = false; // we have no way to set the clock, so skip exp validation
-        let payload: UserInfo = verify_against_keys(jwt, &jwks, &validation).unwrap();
+        let payload: UserInfo = verify_against_keys(jwt, &jwks, validation).unwrap();
 
         assert_eq!(payload.bsn, "999991772".to_owned());
     }
@@ -422,9 +422,9 @@ mod tests {
     fn test_verify_against_keys_success() {
         let (jws, jwks) = create_jws(true);
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let payload =
-            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect("verifying JWS should succeed");
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect("verifying JWS should succeed");
 
         assert_eq!(
             payload
@@ -439,9 +439,9 @@ mod tests {
     fn test_verify_against_keys_error_missing_key_id() {
         let (jws, jwks) = create_jws(false);
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let error =
-            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect_err("verifying JWS should fail");
 
         assert_matches!(
             error,
@@ -456,9 +456,9 @@ mod tests {
 
         jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::RS256);
+        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let error =
-            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect_err("verifying JWS should fail");
 
         assert_matches!(error, UserInfoError::JwtVerify(JwtVerifyError::KeyNotFound(_)));
     }
@@ -467,20 +467,9 @@ mod tests {
     fn test_verify_against_keys_error_wrong_aud() {
         let (jws, jwks) = create_jws(true);
 
-        let validation = userinfo_validation("wrong_aud", Algorithm::RS256);
+        let validation = userinfo_validation("wrong_aud");
         let error =
-            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
-
-        assert_matches!(error, UserInfoError::JwtVerify(_));
-    }
-
-    #[test]
-    fn test_verify_against_keys_error_wrong_alg() {
-        let (jws, jwks) = create_jws(true);
-
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9", Algorithm::HS512);
-        let error =
-            verify_against_keys::<serde_json::Value>(&jws, &jwks, &validation).expect_err("verifying JWS should fail");
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect_err("verifying JWS should fail");
 
         assert_matches!(error, UserInfoError::JwtVerify(_));
     }
@@ -544,7 +533,7 @@ mod tests {
             create_token_request(),
             "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
             &create_test_decrypter(),
-            (Algorithm::RS256, EncryptionAlgorithm::A128CbcHs256),
+            EncryptionAlgorithm::A128CbcHs256,
         )
         .await;
 

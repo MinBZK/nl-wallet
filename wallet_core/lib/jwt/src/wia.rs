@@ -164,7 +164,7 @@ impl WiaDisclosure {
                 trust_anchors,
                 &TimeGenerator,
                 Some(CertificateUsage::Wia),
-                &WIA_JWT_VALIDATIONS,
+                WIA_JWT_VALIDATIONS.to_owned(),
             )
             .map_err(|err| match err {
                 JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(e))

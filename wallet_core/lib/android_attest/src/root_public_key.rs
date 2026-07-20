@@ -94,7 +94,7 @@ mod test {
     use p384::pkcs8::EncodePublicKey as _;
     use rsa::RsaPrivateKey;
     use rsa::RsaPublicKey;
-    use rsa::pkcs8::EncodePublicKey;
+    use rsa::pkcs8::EncodePublicKey as _;
     use x509_parser::prelude::FromDer;
     use x509_parser::x509::SubjectPublicKeyInfo;
 

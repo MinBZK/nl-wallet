@@ -45,6 +45,7 @@ utils.path = "../utils"
 anyhow.workspace = true
 axum.workspace = true
 futures.workspace = true
+rand.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

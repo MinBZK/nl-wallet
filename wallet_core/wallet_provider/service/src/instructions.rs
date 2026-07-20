@@ -2223,7 +2223,7 @@ mod tests {
         validations.set_audience(&[POP_AUD]);
 
         pops.iter().for_each(|pop| {
-            pop.parse_and_verify_with_jwk(&validations).unwrap();
+            pop.parse_and_verify_with_jwk(validations.clone()).unwrap();
         });
 
         if let Some(wia_with_disclosure) = wia_with_disclosure {

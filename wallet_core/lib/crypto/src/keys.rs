@@ -254,7 +254,7 @@ mod tests {
     use std::hash::Hasher;
 
     use ecdsa::elliptic_curve::Generate;
-    use rand::rngs::OsRng;
+    use rand::thread_rng;
     use rsa::RsaPrivateKey;
     use rstest::rstest;
 
@@ -271,8 +271,8 @@ mod tests {
     #[case::p256(PublicKey::P256(*p256::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::p384(PublicKey::P384(*p384::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::p521(PublicKey::P521(*p521::ecdsa::SigningKey::generate().verifying_key()))]
-    #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::new(&mut OsRng, 2048).unwrap().to_public_key()).unwrap())]
-    #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::new(&mut OsRng, 4096).unwrap().to_public_key()).unwrap())]
+    #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 2048).unwrap().to_public_key()).unwrap())]
+    #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::new(&mut thread_rng(), 4096).unwrap().to_public_key()).unwrap())]
     fn hash_eq_contract(#[case] key: PublicKey) {
         assert_eq!(key, key.clone());
         assert_eq!(hash(&key), hash(&key.clone()));
@@ -289,14 +289,14 @@ mod tests {
     #[test]
     fn different_rsa_variants_are_not_equal() {
         let rsa2048_key = PublicKey::RSA2048(
-            RsaPrivateKey::new(&mut OsRng, 2048)
+            RsaPrivateKey::new(&mut thread_rng(), 2048)
                 .unwrap()
                 .to_public_key()
                 .try_into()
                 .unwrap(),
         );
         let rsa4096_key = PublicKey::RSA4096(
-            RsaPrivateKey::new(&mut OsRng, 4096)
+            RsaPrivateKey::new(&mut thread_rng(), 4096)
                 .unwrap()
                 .to_public_key()
                 .try_into()

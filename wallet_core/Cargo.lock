@@ -4442,6 +4442,7 @@ dependencies = [
  "p256 0.14.0",
  "p384 0.14.0",
  "p521",
+ "rand 0.8.6",
  "rand_core 0.9.5",
  "rsa",
  "rstest",

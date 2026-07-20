@@ -9,7 +9,6 @@ use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
-use jwt::Algorithm;
 use jwt::nonce::Nonce;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
@@ -31,7 +30,6 @@ use crate::settings::DigidClientSettings;
 
 const EXPECTED_JWE_RSA_ALGORITHM: RsaAlgorithm = RsaAlgorithm::RsaOaep;
 const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A128CbcHs256;
-const EXPECTED_JWS_ALGORITHM: Algorithm = Algorithm::RS256;
 
 static OPENID_SCOPE: LazyLock<Scope> = LazyLock::new(|| "openid".parse().expect("\"openid\" is a valid scope"));
 
@@ -184,7 +182,7 @@ impl DigidClient for HttpDigidClient {
             token_request,
             &self.client_id,
             &self.decrypter,
-            (EXPECTED_JWS_ALGORITHM, EXPECTED_JWE_ENC_ALGORITHM),
+            EXPECTED_JWE_ENC_ALGORITHM,
         )
         .await
         .map_err(Error::UserInfo)?;

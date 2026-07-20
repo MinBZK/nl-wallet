@@ -26,7 +26,7 @@ use ecdsa::elliptic_curve::CurveArithmetic;
 use ecdsa::elliptic_curve::FieldBytesSize;
 use ecdsa::elliptic_curve::sec1;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
+use jsonwebtoken::AlgorithmFamily;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
@@ -256,7 +256,7 @@ where
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
-        validation_options: &Validation,
+        mut validation_options: Validation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
         let certificates = self
             .extract_x5c_certificates()
@@ -272,8 +272,12 @@ where
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-        let pubkey = JwtDecodingKey::from(PublicKey::from(*leaf_cert.public_key()));
-        self.parse_and_verify(&pubkey, validation_options)
+        let pubkey = PublicKey::from(*leaf_cert.public_key());
+
+        // jsonwebtoken::Validation can only be used with a single algorithm family
+        validation_options.algorithms = pubkey.algorithm_family().algorithms().to_vec();
+
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), &validation_options)
             .map_err(JwtX5cVerifyError::JwtVerify)
     }
 
@@ -282,7 +286,7 @@ where
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
-        validation_options: &Validation,
+        validation_options: Validation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
@@ -304,14 +308,16 @@ where
     /// Verify the JWT against the contained JWK in the header.
     pub fn parse_and_verify_with_jwk(
         &self,
-        validation_options: &Validation,
+        mut validation_options: Validation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
-        let pubkey = JwtDecodingKey::from(
-            jwk_to_public_key(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?)
-                .map_err(JwtParseError::Jwk)
-                .map_err(JwtVerifyError::ParseError)?,
-        );
-        self.parse_and_verify(&pubkey, validation_options)
+        let pubkey = jwk_to_public_key(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?)
+            .map_err(JwtParseError::Jwk)
+            .map_err(JwtVerifyError::ParseError)?;
+
+        // jsonwebtoken::Validation can only be used with a single algorithm family
+        validation_options.algorithms = pubkey.algorithm_family().algorithms().to_vec();
+
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), &validation_options)
     }
 
     /// Verify the JWT against an expected JWK in the header.
@@ -349,16 +355,18 @@ where
     pub fn parse_and_verify_with_jwkset(
         &self,
         jwks: &JwkSet,
-        validation_options: &Validation,
+        mut validation_options: Validation,
     ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
         let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
         let jwk = jwks.find(&kid).ok_or(JwtVerifyError::KeyNotFound(kid))?;
-        let key = JwtDecodingKey::from(
-            jwk_to_public_key(jwk)
-                .map_err(JwtParseError::Jwk)
-                .map_err(JwtVerifyError::ParseError)?,
-        );
-        self.parse_and_verify(key, validation_options)
+        let pubkey = jwk_to_public_key(jwk)
+            .map_err(JwtParseError::Jwk)
+            .map_err(JwtVerifyError::ParseError)?;
+
+        // jsonwebtoken::Validation can only be used with a single algorithm family
+        validation_options.algorithms = pubkey.algorithm_family().algorithms().to_vec();
+
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), &validation_options)
     }
 }
 
@@ -780,14 +788,29 @@ impl JwtDecodingKey {
     }
 }
 
-pub static DEFAULT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validation_options = Validation::new(Algorithm::ES256);
+pub trait AlgorithmFamilyExt {
+    fn algorithm_family(&self) -> AlgorithmFamily;
+}
+
+impl AlgorithmFamilyExt for PublicKey {
+    fn algorithm_family(&self) -> AlgorithmFamily {
+        match self {
+            PublicKey::P256(_) | PublicKey::P384(_) | PublicKey::P521(_) => AlgorithmFamily::Ec,
+            PublicKey::RSA2048(_) | PublicKey::RSA4096(_) => AlgorithmFamily::Rsa,
+        }
+    }
+}
+
+pub static DEFAULT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| default_validations(AlgorithmFamily::Ec));
+
+pub fn default_validations(family: AlgorithmFamily) -> Validation {
+    let mut validation_options = Validation::new_for_family(family);
 
     validation_options.required_spec_claims.clear(); // remove "exp" from required claims
     validation_options.leeway = 60;
 
     validation_options
-});
+}
 
 /// Trait defining the expected `sub` field value for a JWT payload. To use `sign_with_sub`, types used as payloads of
 /// JWTs must implement this trait, which enforces that only JWTs with a matching `sub` field are accepted when using
@@ -1064,11 +1087,17 @@ mod tests {
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::DistinguishedName;
+    use ecdsa::elliptic_curve::Generate;
     use futures::FutureExt;
+    use jsonwebtoken::Algorithm;
+    use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;
     use jsonwebtoken::jwk::JwkSet;
     use p256::ecdsa::SigningKey;
-    use p256::elliptic_curve::Generate;
+    use p384::pkcs8::EncodePrivateKey;
+    use rand::thread_rng;
+    use rsa::RsaPrivateKey;
+    use rsa::pkcs1::EncodeRsaPrivateKey;
     use rstest::rstest;
     use serde_json::json;
     use utils::generator::TimeGenerator;
@@ -1407,7 +1436,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 None,
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATIONS.to_owned(),
             )
             .unwrap();
 
@@ -1425,7 +1454,7 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
+        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATIONS.to_owned()).unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(
@@ -1454,7 +1483,7 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
+        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATIONS.to_owned()).unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(
@@ -1495,7 +1524,9 @@ mod tests {
             .parse()
             .unwrap();
 
-        let (verified_header, deserialized) = jwt.parse_and_verify_with_jwkset(&jwks, &DEFAULT_VALIDATIONS).unwrap();
+        let (verified_header, deserialized) = jwt
+            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATIONS.to_owned())
+            .unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(verified_header.kid, kid);
@@ -1526,7 +1557,7 @@ mod tests {
             .unwrap();
 
         let err = jwt
-            .parse_and_verify_with_jwkset(&jwks, &DEFAULT_VALIDATIONS)
+            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATIONS.to_owned())
             .unwrap_err();
 
         assert_matches!(err, JwtVerifyError::KeyNotFound(_));
@@ -1558,7 +1589,7 @@ mod tests {
             .unwrap();
 
         let err = jwt
-            .parse_and_verify_with_jwkset(&jwks, &DEFAULT_VALIDATIONS)
+            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATIONS.to_owned())
             .unwrap_err();
 
         assert_matches!(err, JwtVerifyError::Validation(_));
@@ -1606,7 +1637,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 None,
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATIONS.to_owned(),
             )
             .unwrap();
 
@@ -1632,7 +1663,7 @@ mod tests {
                 &TrustAnchors::from(&other_ca),
                 &TimeGenerator,
                 None,
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATIONS.to_owned(),
             )
             .unwrap_err();
         assert_matches!(
@@ -1659,7 +1690,7 @@ mod tests {
             .into_unverified();
 
         let err = jwt
-            .parse_and_verify_against_trust_anchors(&trust_anchors, &TimeGenerator, None, &DEFAULT_VALIDATIONS)
+            .parse_and_verify_against_trust_anchors(&trust_anchors, &TimeGenerator, None, DEFAULT_VALIDATIONS.to_owned())
             .unwrap_err();
 
         assert_matches!(
@@ -1733,5 +1764,59 @@ mod tests {
 
         let body = ::axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
         assert_eq!(body, "abc.def.ghi".as_bytes());
+    }
+
+    enum PrivateKey {
+        P256(p256::ecdsa::SigningKey),
+        P384(p384::ecdsa::SigningKey),
+        #[expect(dead_code, reason = "p521 should be supported in the future")]
+        P521(p521::ecdsa::SigningKey),
+        Rsa2048(RsaPrivateKey),
+        Rsa4096(RsaPrivateKey),
+    }
+
+    impl PrivateKey {
+        fn encoding_key(&self) -> EncodingKey {
+            match self {
+                PrivateKey::P256(key) => EncodingKey::from_ec_der(key.to_pkcs8_der().unwrap().as_bytes()),
+                PrivateKey::P384(key) => EncodingKey::from_ec_der(key.to_pkcs8_der().unwrap().as_bytes()),
+                PrivateKey::P521(key) => EncodingKey::from_ec_der(key.to_pkcs8_der().unwrap().as_bytes()),
+                PrivateKey::Rsa2048(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
+                PrivateKey::Rsa4096(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
+            }
+        }
+
+        fn public_key(&self) -> PublicKey {
+            match self {
+                PrivateKey::P256(key) => PublicKey::P256(*key.verifying_key()),
+                PrivateKey::P384(key) => PublicKey::P384(*key.verifying_key()),
+                PrivateKey::P521(key) => PublicKey::P521(*key.verifying_key()),
+                PrivateKey::Rsa2048(key) => PublicKey::RSA2048(key.to_public_key().try_into().unwrap()),
+                PrivateKey::Rsa4096(key) => PublicKey::RSA4096(key.to_public_key().try_into().unwrap()),
+            }
+        }
+    }
+
+    #[rstest]
+    #[case::ecdsa_p256(PrivateKey::P256(p256::ecdsa::SigningKey::generate()), Algorithm::ES256)]
+    #[case::ecdsa_p384(PrivateKey::P384(p384::ecdsa::SigningKey::generate()), Algorithm::ES384)]
+    // #[case::ecdsa_p521(PrivateKey::P521(p521::ecdsa::SigningKey::generate()), Algorithm::ES512)]
+    #[case::rsa2048(PrivateKey::Rsa2048(RsaPrivateKey::new(&mut thread_rng(), 2048).unwrap()), Algorithm::RS256)]
+    #[case::rsa4096(PrivateKey::Rsa4096(RsaPrivateKey::new(&mut thread_rng(), 4096).unwrap()), Algorithm::RS256)]
+    fn test_sign_and_verify_with_algorithms(#[case] private_key: PrivateKey, #[case] algorithm: Algorithm) {
+        let payload = ToyMessage::default();
+
+        let header = Header::new(algorithm);
+        let token_str = jsonwebtoken::encode(&header, &payload, &private_key.encoding_key()).unwrap();
+
+        let unverified: UnverifiedJwt<ToyMessage> = token_str.parse().unwrap();
+
+        let public_key = private_key.public_key();
+        let validation_options = default_validations(public_key.algorithm_family());
+
+        let decoding_key = JwtDecodingKey::from(public_key);
+        let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation_options).unwrap();
+
+        assert_eq!(parsed, payload);
     }
 }

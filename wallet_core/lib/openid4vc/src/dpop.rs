@@ -51,6 +51,7 @@ use derive_more::FromStr;
 use error_category::ErrorCategory;
 use futures::FutureExt;
 use jwt::Algorithm;
+use jwt::AlgorithmFamilyExt;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
@@ -207,7 +208,7 @@ impl Dpop {
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<PublicKey> {
         let (header, payload) = self
             .0
-            .parse_and_verify_with_jwk(&DPOP_VALIDATION_OPTIONS)
+            .parse_and_verify_with_jwk(DPOP_VALIDATION_OPTIONS.to_owned())
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, None)?;
         Ok(jwk_to_public_key(&header.jwk)?)
@@ -216,15 +217,18 @@ impl Dpop {
     /// Verify the DPoP JWT against the specified public key obtained previously from [`Dpop::verify()`].
     pub fn verify_expecting_key(
         self,
-        expected_verifying_key: PublicKey,
+        expected_public_key: PublicKey,
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
         nonce: Option<&str>,
     ) -> Result<()> {
+        let mut validation = DPOP_VALIDATION_OPTIONS.to_owned();
+        validation.algorithms = expected_public_key.algorithm_family().algorithms().to_vec();
+
         let (_, payload) = self
             .0
-            .parse_and_verify_with_expected_jwk(expected_verifying_key, &DPOP_VALIDATION_OPTIONS)
+            .parse_and_verify_with_expected_jwk(expected_public_key, &validation)
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, nonce)?;
 

@@ -7,6 +7,7 @@ use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::From;
 use futures::future::try_join_all;
+use jwt::AlgorithmFamilyExt;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::JsonJwt;
 use jwt::JwtDecodingKey;
@@ -162,6 +163,9 @@ impl Poa {
         validations.set_issuer(accepted_issuers);
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
             let pubkey = jwk_to_public_key(jwk)?;
+            // jsonwebtoken::Validation can only be used with a single algorithm family
+            validations.algorithms = pubkey.algorithm_family().algorithms().to_vec();
+
             jwt.parse_and_verify(JwtDecodingKey::from(&pubkey), &validations)
                 .map_err(PoaVerificationError::InvalidJwt)?;
         }

@@ -177,7 +177,7 @@ impl UnverifiedSdJwt {
             trust_anchors,
             time,
             Some(CertificateUsage::Mdl),
-            &SD_JWT_VALIDATIONS,
+            SD_JWT_VALIDATIONS.to_owned(),
         )?;
 
         let disclosures = Self::parse_and_verify_disclosures(&self.disclosures, issuer_signed.payload())?;
@@ -533,7 +533,7 @@ impl UnverifiedSdJwtPresentation {
             trust_anchors,
             time,
             Some(CertificateUsage::Mdl),
-            &SD_JWT_VALIDATIONS,
+            SD_JWT_VALIDATIONS.to_owned(),
         )?;
 
         let key_binding_jwt = self.key_binding_jwt.into_verified(

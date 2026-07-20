@@ -157,7 +157,7 @@ pub mod verification {
                 issuer_trust_anchors,
                 time,
                 Some(CertificateUsage::OAuthStatusSigning),
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATIONS.to_owned(),
             )?;
 
             let slt_dn = header

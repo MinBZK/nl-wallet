@@ -265,7 +265,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
                 None,
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATIONS.to_owned(),
             )
             .unwrap();
 
@@ -305,7 +305,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
                 None,
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATIONS.to_owned(),
             )
             .unwrap(); // should parse even without an `iat` field
 

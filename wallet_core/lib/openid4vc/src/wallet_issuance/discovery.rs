@@ -398,7 +398,12 @@ impl HttpIssuanceDiscovery {
             .parse()?;
 
         let issuer_metadata_payload = issuer_metadata_jwt
-            .into_verified_against_trust_anchors(wrpac_trust_anchors, &TimeGenerator, None, &DEFAULT_VALIDATIONS)
+            .into_verified_against_trust_anchors(
+                wrpac_trust_anchors,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATIONS.to_owned(),
+            )
             .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?
             .into_payload();
         if *issuer_metadata_payload.sub != credential_offer.credential_issuer {

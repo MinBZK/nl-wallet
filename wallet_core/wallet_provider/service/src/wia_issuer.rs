@@ -186,7 +186,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 Some(CertificateUsage::Wia),
-                &WIA_JWT_VALIDATIONS,
+                WIA_JWT_VALIDATIONS.to_owned(),
             )
             .unwrap();
 

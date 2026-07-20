@@ -1806,7 +1806,7 @@ impl CredentialRequestProof {
         validation_options.set_audience(&[credential_issuer_identifier]);
 
         let (header, payload) = jwt
-            .parse_and_verify_with_jwk(&validation_options)
+            .parse_and_verify_with_jwk(validation_options)
             .map_err(CredentialRequestError::InvalidProofJwt)?;
 
         let public_key = header
