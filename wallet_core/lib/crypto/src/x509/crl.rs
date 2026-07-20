@@ -1,8 +1,6 @@
 use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -106,7 +104,7 @@ impl CrlProvider {
 
         let mut crls = Vec::new();
         for cert in chain {
-            crls.extend(self.crls_for_cert(cert).await?);
+            crls.extend(self.crls_for_cert(cert, time).await?);
         }
         if crls.is_empty() {
             return Err(CrlProviderError::NoCrlDistributionPoint);
@@ -128,12 +126,16 @@ impl CrlProvider {
     }
 
     /// Fetch all CRLs referenced in the certificate's CDP extension, either from cache or the network.
-    pub async fn crls_for_cert(&self, cert: &BorrowingCertificate) -> Result<Vec<Arc<CachedCrl>>, CrlProviderError> {
+    pub async fn crls_for_cert(
+        &self,
+        cert: &BorrowingCertificate,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<Vec<Arc<CachedCrl>>, CrlProviderError> {
         let urls = extract_crl_distribution_points(cert);
         let mut crls = Vec::new();
         for url in urls.iter().flatten() {
             let cached = self
-                .fetch_crl(url.parse().map_err(CrlProviderError::InvalidUrl)?)
+                .fetch_crl(url.parse().map_err(CrlProviderError::InvalidUrl)?, time)
                 .await?;
             crls.push(cached);
         }
@@ -141,7 +143,11 @@ impl CrlProvider {
     }
 
     /// Fetch and parse the CRL at `url`, or return the already-parsed, cached CRL if a usable one is present.
-    async fn fetch_crl(&self, url: Url) -> Result<Arc<CachedCrl>, CrlProviderError> {
+    async fn fetch_crl(
+        &self,
+        url: Url,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<Arc<CachedCrl>, CrlProviderError> {
         if let Some(cached) = self.cache.get(&url).await {
             return Ok(cached);
         }
@@ -158,10 +164,11 @@ impl CrlProvider {
             .map_err(CrlProviderError::Http)?;
 
         // Extract TTL using `x509_parser`, falling back to a short retry TTL rather than caching
-        // this entry indefinitely if `nextUpdate` couldn't be determined.
+        // this entry indefinitely if `nextUpdate` couldn't be determined. Uses the same injected
+        // `time` as verification, so cache eviction and expiry enforcement agree on "now".
         let ttl = parse_x509_crl(&bytes)
             .ok()
-            .and_then(|(_, crl)| ttl_from_next_update(&crl))
+            .and_then(|(_, crl)| ttl_from_next_update(&crl, time))
             .unwrap_or(FALLBACK_TTL);
 
         // Insert new CachedCrl in cache
@@ -230,12 +237,12 @@ pub fn parse_crl_der(crl_der: &[u8]) -> Result<CertRevocationList<'static>, webp
     Ok(CertRevocationList::from(owned))
 }
 
-/// Return remaining time until the CRL's `nextUpdate` field expires.
-/// Returns `None` if the CRL has no `nextUpdate` or is already past expiry.
+/// Return remaining time until the CRL's `nextUpdate` field expires, relative to `time`.
+/// Returns `None` if the CRL has no `nextUpdate`.
 /// Used by callers to derive cache TTL.
-pub fn ttl_from_next_update(crl: &CertificateRevocationList) -> Option<Duration> {
+pub fn ttl_from_next_update(crl: &CertificateRevocationList, time: &impl Generator<DateTime<Utc>>) -> Option<Duration> {
     let next_update_secs = crl.next_update()?.to_datetime().unix_timestamp();
-    let now_secs = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs() as i64;
+    let now_secs = time.generate().timestamp();
     let remaining = (next_update_secs - now_secs).max(0) as u64;
     Some(Duration::from_secs(remaining))
 }
@@ -260,6 +267,7 @@ mod tests {
     use time::OffsetDateTime;
     use url::Url;
     use utils::generator::TimeGenerator;
+    use utils::generator::mock::MockTimeGenerator;
     use webpki::RevocationReason as WebpkiRevocationReason;
     use x509_parser::parse_x509_crl;
 
@@ -417,27 +425,31 @@ mod tests {
     #[test]
     fn ttl_from_next_update_returns_remaining_duration() {
         let ca = Ca::generate_mock();
-        let now = OffsetDateTime::now_utc();
+        let now_secs = 1_700_000_000i64;
+        let now = OffsetDateTime::from_unix_timestamp(now_secs).unwrap();
         let next_update = now + Duration::from_secs(3600);
         let crl = ca.generate_crl_with_validity(vec![], now, next_update).unwrap();
 
         let (_, parsed) = parse_x509_crl(crl.der()).unwrap();
-        let ttl = ttl_from_next_update(&parsed).unwrap();
+        let time = MockTimeGenerator::new(DateTime::from_timestamp(now_secs, 0).unwrap());
+        let ttl = ttl_from_next_update(&parsed, &time).unwrap();
 
-        // Allow some slack for the time elapsed during test execution.
-        assert!(ttl <= Duration::from_secs(3600));
-        assert!(ttl > Duration::from_secs(3600 - 60));
+        assert_eq!(ttl, Duration::from_secs(3600));
     }
 
     #[test]
     fn ttl_from_next_update_returns_zero_when_expired() {
         let ca = Ca::generate_mock();
+        let this_update_secs = 0i64;
         let this_update = OffsetDateTime::UNIX_EPOCH;
         let next_update = this_update + Duration::from_secs(3600);
         let crl = ca.generate_crl_with_validity(vec![], this_update, next_update).unwrap();
 
         let (_, parsed) = parse_x509_crl(crl.der()).unwrap();
-        let ttl = ttl_from_next_update(&parsed).unwrap();
+        // "Now" is well past `next_update`.
+        let mock_now_secs = this_update_secs + 7200;
+        let time = MockTimeGenerator::new(DateTime::from_timestamp(mock_now_secs, 0).unwrap());
+        let ttl = ttl_from_next_update(&parsed, &time).unwrap();
 
         assert_eq!(ttl, Duration::ZERO);
     }
@@ -447,7 +459,7 @@ mod tests {
         let der = crl_der_without_next_update();
         let (_, parsed) = parse_x509_crl(&der).unwrap();
 
-        assert!(ttl_from_next_update(&parsed).is_none());
+        assert!(ttl_from_next_update(&parsed, &TimeGenerator).is_none());
     }
 
     fn empty_revocation_list() -> Vec<u8> {
@@ -469,8 +481,8 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        let first = provider.crls_for_cert(&cert).await.unwrap();
-        let second = provider.crls_for_cert(&cert).await.unwrap();
+        let first = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
+        let second = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
 
         assert_eq!(first.len(), 1);
         assert_eq!(second.len(), 1);
@@ -493,8 +505,8 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CrlProvider::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
 
-        provider.crls_for_cert(&cert).await.unwrap();
-        provider.crls_for_cert(&cert).await.unwrap();
+        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
+        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
 
         // Server should have been invoked twice
         mock.assert_calls_async(2).await;
@@ -521,14 +533,14 @@ mod tests {
         let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         // Invoke once to initialize the cache
-        provider.crls_for_cert(&cert).await.unwrap();
+        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
         mock.assert_calls_async(1).await;
 
         // Wait 200 milliseconds until CRL is expired
         tokio::time::sleep(Duration::from_millis(200)).await;
 
         // Invoke again after expiry
-        provider.crls_for_cert(&cert).await.unwrap();
+        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
 
         // Server should have been invoked twice
         mock.assert_calls_async(2).await;
@@ -548,7 +560,7 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        let error = provider.crls_for_cert(&cert).await.unwrap_err();
+        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
         assert!(matches!(error, CrlProviderError::Http(_)));
         mock.assert_calls_async(1).await;
@@ -568,7 +580,7 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        let error = provider.crls_for_cert(&cert).await.unwrap_err();
+        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
         assert!(matches!(error, CrlProviderError::Parsing(_)));
         mock.assert_calls_async(1).await;
@@ -588,8 +600,8 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        provider.crls_for_cert(&cert).await.unwrap_err();
-        provider.crls_for_cert(&cert).await.unwrap_err();
+        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
         // A response that fails to parse must not be cached, so it should be retried on every call.
         mock.assert_calls_async(2).await;

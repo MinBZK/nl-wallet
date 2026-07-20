@@ -71,3 +71,4 @@ time.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
 
 http_utils = { path = "../http_utils", features = ["httpmock"] }
+utils = { path = "../utils", features = ["mock_time"] }
