@@ -128,6 +128,10 @@ pub struct AuthorizationServerMetadata {
     #[serde(default)]
     pub client_attestation_pop_signing_alg_values_supported: Option<IndexSet<JwsAlgorithm>>,
 
+    /// Endpoint for retrieving challenges for use in Attestation-Based Client Authentication, as defined by
+    /// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10).
+    /// Empty if the Authorization Server does not have a challenge endpoint. If it is present, then the wallet
+    /// MUST invoke the endpoint to obtain a challenge which then MUST be used in its next PoP.
     #[serde(default)]
     pub challenge_endpoint: Option<Url>,
 }
