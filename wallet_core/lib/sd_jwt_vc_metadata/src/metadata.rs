@@ -1,14 +1,13 @@
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::ops::Deref;
-use std::sync::LazyLock;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::data_uri::DataUri;
 use attestation_types::image::Image;
 use itertools::Itertools;
 use nutype::nutype;
-use regex::Regex;
+use regex::regex;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::TryFromInto;
@@ -17,11 +16,6 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
-
-// The requirements for the svg_id according to the specification are:
-// "It MUST consist of only alphanumeric characters and underscores and MUST NOT start with a digit."
-static SVG_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z_][0-9A-Za-z_]*$").unwrap());
-static TEMPLATE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{\{([A-Za-z_][0-9A-Za-z_]*)}}").unwrap());
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
@@ -97,7 +91,7 @@ pub(crate) fn find_missing_svg_ids(display: &[DisplayMetadata], claims: &[ClaimM
         .iter()
         .filter_map(|display| display.summary.as_deref())
         .flat_map(|summary| {
-            TEMPLATE_REGEX
+            regex!(r"\{\{([A-Za-z_][0-9A-Za-z_]*)}}")
                 .captures_iter(summary)
                 .flat_map(|captures| captures.extract::<1>().1)
         })
@@ -372,9 +366,11 @@ pub struct ClaimDisplayMetadata {
     pub description: Option<String>,
 }
 
+// The requirements for the svg_id according to the specification are:
+// "It MUST consist of only alphanumeric characters and underscores and MUST NOT start with a digit."
 #[nutype(
     derive(Debug, Clone, AsRef, PartialEq, Eq, Into, Serialize, Deserialize),
-    validate(regex = SVG_ID_REGEX),
+    validate(regex = r"^[A-Za-z_][0-9A-Za-z_]*$")
 )]
 pub struct SvgId(String);
 
