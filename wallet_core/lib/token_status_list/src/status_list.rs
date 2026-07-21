@@ -338,19 +338,17 @@ impl StatusType {
 pub mod test {
     use std::sync::LazyLock;
 
-    use regex::Regex;
+    use regex::regex;
     use rstest::rstest;
     use serde_json::json;
 
     use super::*;
 
-    static STATUS_LIST_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"status\[(\d+)]\s*=\s*(\d+)").unwrap());
-
     // Parse the status list examples as they are listed in the spec
     fn parse_status_list(input: &str) -> StatusList {
-        let sparse = STATUS_LIST_REGEX
-            .captures_iter(input)
-            .fold(SparseStatusVec::default(), |mut acc, cap| {
+        let sparse = regex!(r"status\[(\d+)]\s*=\s*(\d+)").captures_iter(input).fold(
+            SparseStatusVec::default(),
+            |mut acc, cap| {
                 let index = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
                 let value = cap.get(2).unwrap().as_str().parse::<u8>().unwrap();
 
@@ -358,7 +356,8 @@ pub mod test {
                     acc.insert(index, StatusType::from(value));
                 }
                 acc
-            });
+            },
+        );
 
         let len = sparse.keys().max().unwrap().to_owned() + 1;
         StatusList { len, sparse }

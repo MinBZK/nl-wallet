@@ -16,7 +16,7 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use rand_core::OsRng;
-use regex::Regex;
+use regex::regex;
 use serde::Deserialize;
 use serde_with::serde_as;
 use tempfile::TempDir;
@@ -68,8 +68,7 @@ impl HsmSetup {
         let token_dir = temp_dir.path().join("tokens");
 
         // Get current token dir
-        let caps = Regex::new(r#"(?m)^(directories\.tokendir) *= *(.+)$"#)
-            .expect("could not compile regex")
+        let caps = regex!(r#"(?m)^(directories\.tokendir) *= *(.+)$"#)
             .captures(config.as_str())
             .expect("could not find token dir pattern");
 
