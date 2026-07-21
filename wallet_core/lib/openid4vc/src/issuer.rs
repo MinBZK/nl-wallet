@@ -1539,7 +1539,7 @@ impl Session<AccessTokenIssued> {
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .try_into()
-                    .unwrap(); // ok because `batch_size` has a `NonZeroU8` value in `CredentialPreviewContent`.
+                    .expect("guaranteerd to be non-empty because copy_count's source is non-zero");
 
                 let credential_config = issuer_data
                     .get_credential_config_for_prepared_credential(credential)
