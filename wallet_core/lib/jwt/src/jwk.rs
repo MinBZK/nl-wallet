@@ -27,7 +27,6 @@ pub fn jwk_alg_from_public_key(value: &PublicKey) -> Result<jwk::AlgorithmParame
     match value {
         PublicKey::ESP256(key) => jwk_alg_from_ecdsa(key),
         PublicKey::ESP384(key) => jwk_alg_from_ecdsa(key),
-        PublicKey::ESP512(key) => jwk_alg_from_ecdsa(key),
         PublicKey::RSA2048(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
         PublicKey::RSA3072(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
         PublicKey::RSA4096(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
@@ -47,12 +46,6 @@ impl EcdsaCurveInfo for p256::NistP256 {
 impl EcdsaCurveInfo for p384::NistP384 {
     fn curve() -> jwk::EllipticCurve {
         jwk::EllipticCurve::P384
-    }
-}
-
-impl EcdsaCurveInfo for p521::NistP521 {
-    fn curve() -> jwk::EllipticCurve {
-        jwk::EllipticCurve::P521
     }
 }
 
@@ -98,7 +91,6 @@ fn ec_jwk_to_public_key(params: &jwk::EllipticCurveKeyParameters) -> Result<Publ
     match &params.curve {
         EllipticCurve::P256 => coordinates_to_verifying_key(&x, &y).map(PublicKey::ESP256),
         EllipticCurve::P384 => coordinates_to_verifying_key(&x, &y).map(PublicKey::ESP384),
-        EllipticCurve::P521 => coordinates_to_verifying_key(&x, &y).map(PublicKey::ESP512),
         curve => Err(JwkConversionError::UnsupportedJwkEcCurve(curve.to_owned())),
     }
 }

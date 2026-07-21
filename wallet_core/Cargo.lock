@@ -1711,7 +1711,6 @@ dependencies = [
  "nutype",
  "p256 0.14.0",
  "p384 0.14.0",
- "p521",
  "parking_lot",
  "rand 0.8.6",
  "rand_core 0.9.5",
@@ -4441,7 +4440,6 @@ dependencies = [
  "jsonwebtoken",
  "p256 0.14.0",
  "p384 0.14.0",
- "p521",
  "rand 0.8.6",
  "rand_core 0.9.5",
  "rsa",
@@ -5593,21 +5591,6 @@ dependencies = [
  "ecdsa 0.17.0",
  "elliptic-curve 0.14.1",
  "fiat-crypto 0.3.0",
- "primefield",
- "primeorder 0.14.0",
- "serdect",
- "sha2 0.11.0",
-]
-
-[[package]]
-name = "p521"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ad64cc32c2dc466317c12ee5853e61f159f9eab1fe7efade0395dc2e7b43449"
-dependencies = [
- "base16ct 1.0.0",
- "ecdsa 0.17.0",
- "elliptic-curve 0.14.1",
  "primefield",
  "primeorder 0.14.0",
  "serdect",

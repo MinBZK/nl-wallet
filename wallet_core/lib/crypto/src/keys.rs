@@ -39,7 +39,6 @@ pub enum PublicKey {
     // ECDSA keys, named in line with [RFC9864](https://datatracker.ietf.org/doc/rfc9864/)
     ESP256(p256::ecdsa::VerifyingKey),
     ESP384(p384::ecdsa::VerifyingKey),
-    ESP512(p521::ecdsa::VerifyingKey),
 
     // RSA keys, with specific key sizes
     RSA2048(Rsa2048PublicKey),
@@ -53,7 +52,6 @@ impl Hash for PublicKey {
         match self {
             PublicKey::ESP256(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
             PublicKey::ESP384(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
-            PublicKey::ESP512(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
             PublicKey::RSA2048(rsa_public_key) => rsa_public_key.as_ref().hash(state),
             PublicKey::RSA3072(rsa_public_key) => rsa_public_key.as_ref().hash(state),
             PublicKey::RSA4096(rsa_public_key) => rsa_public_key.as_ref().hash(state),
@@ -70,12 +68,6 @@ impl From<p256::ecdsa::VerifyingKey> for PublicKey {
 impl From<p384::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p384::ecdsa::VerifyingKey) -> Self {
         Self::ESP384(key)
-    }
-}
-
-impl From<p521::ecdsa::VerifyingKey> for PublicKey {
-    fn from(key: p521::ecdsa::VerifyingKey) -> Self {
-        Self::ESP512(key)
     }
 }
 
@@ -281,7 +273,6 @@ mod tests {
     #[rstest]
     #[case::p256(PublicKey::ESP256(*p256::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::p384(PublicKey::ESP384(*p384::ecdsa::SigningKey::generate().verifying_key()))]
-    #[case::p521(PublicKey::ESP512(*p521::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap().to_public_key()).unwrap())]
     #[case::rsa3072(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap().to_public_key()).unwrap())]
     #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap().to_public_key()).unwrap())]
