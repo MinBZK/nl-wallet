@@ -160,7 +160,6 @@ where
     verify_against_keys(&jws, &jwks, validation)
 }
 
-// We can't use our own `Jwt` types here because they only support ECDSA/P256.
 fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     token: &str,
     jwks: &JwkSet,
