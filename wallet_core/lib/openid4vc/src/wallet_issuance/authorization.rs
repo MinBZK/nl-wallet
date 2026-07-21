@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::num::NonZeroU8;
+
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use crypto::trust_anchor::TrustAnchors;
@@ -10,7 +13,6 @@ use jwt::wia::WIA_POP_HEADER_NAME;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
@@ -73,9 +75,10 @@ pub enum OAuthError {
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationSession<P = S256PkcePair> {
-    credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+    credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
+    batch_size: NonZeroU8,
     token_endpoint: Url,
     authorization_server: IssuerIdentifier,
     http_client: HttpClient,
@@ -88,9 +91,10 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct HttpAuthorizationSessionData {
-    credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+    credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
+    batch_size: NonZeroU8,
     token_endpoint: Url,
     authorization_server: IssuerIdentifier,
     auth_url: Url,
@@ -106,9 +110,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(super) async fn create(
         http_client: HttpClient,
-        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
+        batch_size: NonZeroU8,
         auth_endpoints: AuthorizationEndpoints,
         client_id: String,
         redirect_uri: Url,
@@ -186,6 +191,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             credential_configurations,
             credential_issuer,
             issuer_endpoints,
+            batch_size,
             token_endpoint: auth_endpoints.token_endpoint,
             authorization_server,
             http_client,
@@ -240,6 +246,7 @@ impl HttpAuthorizationSession {
             credential_configurations: data.credential_configurations,
             credential_issuer: data.credential_issuer,
             issuer_endpoints: data.issuer_endpoints,
+            batch_size: data.batch_size,
             token_endpoint: data.token_endpoint,
             authorization_server: data.authorization_server,
             http_client,
@@ -268,6 +275,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             credential_configurations: self.credential_configurations.clone(),
             credential_issuer: self.credential_issuer.clone(),
             issuer_endpoints: self.issuer_endpoints.clone(),
+            batch_size: self.batch_size,
             token_endpoint: self.token_endpoint.clone(),
             authorization_server: self.authorization_server.clone(),
             auth_url: self.auth_url.clone(),
@@ -300,6 +308,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.credential_configurations,
             self.credential_issuer,
             self.issuer_endpoints,
+            self.batch_size,
             &self.token_endpoint,
             token_request,
             wia_client,
@@ -324,7 +333,6 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use httpmock::Method::POST;
     use httpmock::MockServer;
-    use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -374,15 +382,12 @@ mod tests {
         );
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         HttpAuthorizationSession {
-            credential_configurations: issuer_metadata
-                .credential_configurations_supported
-                .into_iter()
-                .collect_vec()
-                .try_into()
-                .unwrap(),
+            credential_configurations: issuer_metadata.credential_configurations_supported,
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
+            batch_size,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             authorization_server: ISSUER_URL.parse().unwrap(),
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
@@ -482,16 +487,13 @@ mod tests {
                 CredentialKind::new(Format::SdJwt, "test".to_string()),
             )],
         );
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            issuer_metadata
-                .credential_configurations_supported
-                .into_iter()
-                .collect_vec()
-                .try_into()
-                .unwrap(),
+            issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
+            batch_size,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -533,19 +535,13 @@ mod tests {
             config.scope = None;
         }
 
-        let credential_configurations = issuer_metadata
-            .credential_configurations_supported
-            .clone()
-            .into_iter()
-            .collect_vec()
-            .try_into()
-            .unwrap();
-
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         let error = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            credential_configurations,
+            issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
+            batch_size,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -651,15 +647,12 @@ mod tests {
                 CredentialKind::new(Format::SdJwt, "test".to_string()),
             )],
         );
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         let persisted = HttpAuthorizationSessionData {
-            credential_configurations: issuer_metadata
-                .credential_configurations_supported
-                .into_iter()
-                .collect_vec()
-                .try_into()
-                .unwrap(),
+            credential_configurations: issuer_metadata.credential_configurations_supported,
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
+            batch_size,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             auth_url: ISSUER_URL.parse().unwrap(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
@@ -673,6 +666,7 @@ mod tests {
             credential_issuer: persisted.credential_issuer,
             issuer_endpoints: persisted.issuer_endpoints,
             token_endpoint: persisted.token_endpoint,
+            batch_size: persisted.batch_size,
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
             redirect_uri: persisted.redirect_uri.clone(),
