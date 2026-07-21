@@ -9,7 +9,6 @@ use itertools::Itertools;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
-use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -24,11 +23,12 @@ use super::authorization::HttpAuthorizationSession;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
+use crate::client_auth::ClientAttestationChallengeMechanism;
+use crate::client_auth::check_client_attestation_metadata;
 use crate::credential_offer::CredentialOffer;
 use crate::credential_offer::CredentialOfferContainer;
 use crate::credential_offer::Grants;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::jose::JwsAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
@@ -96,6 +96,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                 pre_authorized_code,
                 token_endpoint,
                 authorization_server,
+                challenge_endpoint,
             } => {
                 let issuance_session = self
                     .create_issuance_session(
@@ -105,6 +106,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                         issuer_endpoints,
                         batch_size,
                         &token_endpoint,
+                        challenge_endpoint,
                         wia_client,
                         &authorization_server,
                         issuer_trust_anchors,
@@ -170,6 +172,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             pre_authorized_code,
             token_endpoint,
             authorization_server,
+            challenge_endpoint,
         } = flow
         else {
             return Err(WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
@@ -182,6 +185,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             issuer_endpoints,
             batch_size,
             &token_endpoint,
+            challenge_endpoint,
             wia_client,
             &authorization_server,
             issuer_trust_anchors,
@@ -223,6 +227,7 @@ enum CredentialOfferFlow {
         pre_authorized_code: AuthorizationCode,
         authorization_server: IssuerIdentifier,
         token_endpoint: Url,
+        challenge_endpoint: Option<Url>,
     },
 }
 
@@ -309,6 +314,7 @@ impl CredentialOfferFlow {
                 pre_authorized_code,
                 authorization_server: oauth_metadata.issuer,
                 token_endpoint: oauth_metadata.token_endpoint,
+                challenge_endpoint: oauth_metadata.challenge_endpoint,
             },
             CredentialOfferGrant::NoKnownGrant => {
                 // According to the OpenID4VCI 1.0 specification:
@@ -461,7 +467,7 @@ impl HttpIssuanceDiscovery {
 
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer, wrpac_trust_anchors).await?;
 
-        Self::check_client_attestation_metadata(&oauth_metadata)?;
+        check_client_attestation_metadata(&oauth_metadata).map_err(WalletIssuanceError::ClientAttestation)?;
 
         // Limit credential copy count to a sane maximum, even if the issuer indicates it can provide more copies.
         let batch_size = std::cmp::min(issuer_metadata.batch_size(), BATCH_SIZE_MAX.into())
@@ -517,42 +523,6 @@ impl HttpIssuanceDiscovery {
         ))
     }
 
-    fn check_client_attestation_metadata(
-        oauth_metadata: &AuthorizationServerMetadata,
-    ) -> Result<(), WalletIssuanceError> {
-        if !oauth_metadata
-            .token_endpoint_auth_methods_supported
-            .as_ref()
-            .is_some_and(|auth_methods| auth_methods.contains(WIA_CLIENT_AUTH_METHOD))
-        {
-            return Err(WalletIssuanceError::NoAttestationBasedClientAuthSupport);
-        }
-
-        if !oauth_metadata
-            .client_attestation_signing_alg_values_supported
-            .as_ref()
-            .is_some_and(|algs| algs.contains(&JwsAlgorithm::ES256))
-        {
-            return Err(WalletIssuanceError::ClientAttestationSigningAlgNotSupported(
-                oauth_metadata.client_attestation_signing_alg_values_supported.clone(),
-            ));
-        }
-
-        if !oauth_metadata
-            .client_attestation_pop_signing_alg_values_supported
-            .as_ref()
-            .is_some_and(|algs| algs.contains(&JwsAlgorithm::ES256))
-        {
-            return Err(WalletIssuanceError::ClientAttestationPopSigningAlgNotSupported(
-                oauth_metadata
-                    .client_attestation_pop_signing_alg_values_supported
-                    .clone(),
-            ));
-        }
-
-        Ok(())
-    }
-
     #[expect(clippy::too_many_arguments, reason = "internal helper method")]
     async fn create_issuance_session(
         &self,
@@ -562,6 +532,7 @@ impl HttpIssuanceDiscovery {
         issuer_endpoints: IssuerEndpoints,
         batch_size: NonZeroU8,
         token_endpoint: &Url,
+        challenge_endpoint: Option<Url>,
         wia_client: &impl WiaClient,
         authorization_server: &IssuerIdentifier,
         issuer_trust_anchors: &TrustAnchors,
@@ -570,6 +541,14 @@ impl HttpIssuanceDiscovery {
 
         let token_request = TokenRequest::new_pre_authorized(pre_authorized_code);
 
+        // In the pre-authorized code flow, no PAR request was sent whose response might have included a
+        // challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
+        // if the issuer has one, or the issuer does not use WIA PoP challenges so we don't use one.
+        let client_auth_challenge = match challenge_endpoint {
+            None => ClientAttestationChallengeMechanism::None,
+            Some(url) => ClientAttestationChallengeMechanism::ChallengeEndpoint(url),
+        };
+
         HttpIssuanceSession::create(
             message_client,
             credential_configurations,
@@ -577,6 +556,7 @@ impl HttpIssuanceDiscovery {
             issuer_endpoints,
             batch_size,
             token_endpoint,
+            client_auth_challenge,
             token_request,
             wia_client,
             authorization_server,
@@ -628,17 +608,16 @@ mod test {
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
     use crate::authorization_details::AuthorizationDetails;
+    use crate::client_auth::ClientAttestationError;
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
     use crate::credential_offer::GrantPreAuthorizedCode;
     use crate::credential_offer::Grants;
     use crate::credential_offer::PreAuthTransactionCode;
     use crate::issuer_identifier::IssuerIdentifier;
-    use crate::jose::JwsAlgorithm;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
-    use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
@@ -1565,97 +1544,9 @@ mod test {
             .await
             .expect_err("starting issuance should fail");
 
-        assert_matches!(error, WalletIssuanceError::NoAttestationBasedClientAuthSupport);
-    }
-
-    /// Returns [`AuthorizationServerMetadata`] that fully supports Attestation-Based Client Authentication.
-    fn oauth_metadata_with_client_attestation_support() -> AuthorizationServerMetadata {
-        let mut metadata = AuthorizationServerMetadata::new(
-            "https://issuer.example.com".parse().unwrap(),
-            "https://issuer.example.com/token".parse().unwrap(),
-        );
-        metadata.token_endpoint_auth_methods_supported = Some([WIA_CLIENT_AUTH_METHOD.to_string()].into());
-        metadata.client_attestation_signing_alg_values_supported = Some([JwsAlgorithm::ES256].into());
-        metadata.client_attestation_pop_signing_alg_values_supported = Some([JwsAlgorithm::ES256].into());
-
-        metadata
-    }
-
-    #[test]
-    fn check_client_attestation_metadata_ok() {
-        let metadata = oauth_metadata_with_client_attestation_support();
-
-        HttpIssuanceDiscovery::check_client_attestation_metadata(&metadata)
-            .expect("client attestation metadata should be accepted");
-    }
-
-    #[test]
-    fn check_client_attestation_metadata_no_token_endpoint_auth_methods() {
-        let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.token_endpoint_auth_methods_supported = None;
-
         assert_matches!(
-            HttpIssuanceDiscovery::check_client_attestation_metadata(&metadata),
-            Err(WalletIssuanceError::NoAttestationBasedClientAuthSupport)
-        );
-    }
-
-    #[test]
-    fn check_client_attestation_metadata_wia_auth_method_not_supported() {
-        let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.token_endpoint_auth_methods_supported = Some(["client_secret_basic".to_string()].into());
-
-        assert_matches!(
-            HttpIssuanceDiscovery::check_client_attestation_metadata(&metadata),
-            Err(WalletIssuanceError::NoAttestationBasedClientAuthSupport)
-        );
-    }
-
-    #[test]
-    fn check_client_attestation_metadata_no_signing_alg_values() {
-        let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_signing_alg_values_supported = None;
-
-        assert_matches!(
-            HttpIssuanceDiscovery::check_client_attestation_metadata(&metadata),
-            Err(WalletIssuanceError::ClientAttestationSigningAlgNotSupported(None))
-        );
-    }
-
-    #[test]
-    fn check_client_attestation_metadata_es256_signing_alg_not_supported() {
-        let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_signing_alg_values_supported =
-            Some([JwsAlgorithm::Other("RS256".to_string())].into());
-
-        assert_matches!(
-            HttpIssuanceDiscovery::check_client_attestation_metadata(&metadata),
-            Err(WalletIssuanceError::ClientAttestationSigningAlgNotSupported(Some(algs)))
-                if algs.iter().eq([&JwsAlgorithm::Other("RS256".to_string())])
-        );
-    }
-
-    #[test]
-    fn check_client_attestation_metadata_no_pop_signing_alg_values() {
-        let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_pop_signing_alg_values_supported = None;
-
-        assert_matches!(
-            HttpIssuanceDiscovery::check_client_attestation_metadata(&metadata),
-            Err(WalletIssuanceError::ClientAttestationPopSigningAlgNotSupported(None))
-        );
-    }
-
-    #[test]
-    fn check_client_attestation_metadata_es256_pop_signing_alg_not_supported() {
-        let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_pop_signing_alg_values_supported =
-            Some([JwsAlgorithm::Other("RS256".to_string())].into());
-
-        assert_matches!(
-            HttpIssuanceDiscovery::check_client_attestation_metadata(&metadata),
-            Err(WalletIssuanceError::ClientAttestationPopSigningAlgNotSupported(Some(algs)))
-                if algs.iter().eq([&JwsAlgorithm::Other("RS256".to_string())])
+            error,
+            WalletIssuanceError::ClientAttestation(ClientAttestationError::NoAttestationBasedClientAuthSupport)
         );
     }
 }
