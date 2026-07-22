@@ -12,6 +12,8 @@ use attestation_data::disclosure::DisclosedAttestations;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use cose::CoseAlgorithmIdentifier;
+use cose::KnownCoseAlgorithmIdentifier;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use dcql::CredentialQueryIdentifier;
@@ -78,8 +80,6 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
-use crate::cose::CoseAlgorithmIdentifier;
-use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::jose::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
@@ -1139,6 +1139,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use base64::prelude::*;
+    use cose::KnownCoseAlgorithmIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
@@ -1187,7 +1188,6 @@ mod tests {
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
-    use crate::cose::KnownCoseAlgorithmIdentifier;
     use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
