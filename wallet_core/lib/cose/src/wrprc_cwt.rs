@@ -541,10 +541,8 @@ mod tests {
                 Value::Array(vec![Value::Bytes(key_pair.certificate().to_vec())]),
             )
             .build();
-        assert!(matches!(
-            UnverifiedWrprcCwt::try_from(sign_with_header(single_certificate_array, &key_pair).await),
-            Err(WrprcCwtError::Cose(CoseError::CertificateChainTooShort(1)))
-        ));
+        let cwt = UnverifiedWrprcCwt::try_from(sign_with_header(single_certificate_array, &key_pair).await).unwrap();
+        assert_eq!(cwt.unverified_header.x5chain.first(), key_pair.certificate());
 
         let protected = valid_wrprc_protected_header(&key_pair, None);
         let unprotected = HeaderBuilder::new()

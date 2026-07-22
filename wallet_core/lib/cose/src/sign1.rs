@@ -64,9 +64,6 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
             if items.is_empty() {
                 return Err(CoseError::EmptyCertificateChain);
             }
-            if items.len() == 1 {
-                return Err(CoseError::CertificateChainTooShort(items.len()));
-            }
 
             let certificates = items
                 .iter()

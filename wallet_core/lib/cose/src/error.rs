@@ -36,9 +36,6 @@ pub enum CoseError {
     #[error("x5chain certificate chain is empty")]
     #[category(critical)]
     EmptyCertificateChain,
-    #[error("x5chain certificate array must contain at least two certificates, found {0}")]
-    #[category(critical)]
-    CertificateChainTooShort(usize),
     #[error("certificate error: {0}")]
     Certificate(#[source] CertificateError),
     #[error("signing failed: {0}")]
