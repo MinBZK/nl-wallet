@@ -44,8 +44,8 @@ fn typed_cose_clone_and_serde_do_not_require_payload_traits() {
     ciborium::ser::into_writer(&cloned, &mut encoded).unwrap();
     let decoded: TypedCose<CoseSign1, NonSerdePayload> = ciborium::de::from_reader(encoded.as_slice()).unwrap();
 
-    assert_eq!(decoded.as_inner().payload, cose.as_inner().payload);
-    assert_eq!(decoded.as_inner().signature, cose.as_inner().signature);
+    assert_eq!(decoded.as_ref().payload, cose.as_ref().payload);
+    assert_eq!(decoded.as_ref().signature, cose.as_ref().signature);
 }
 
 #[tokio::test]
@@ -66,13 +66,13 @@ async fn invalid_signature_is_rejected() {
         .await
         .unwrap();
 
-    cose.as_inner_mut().signature[0] ^= u8::MAX;
+    cose.as_mut().signature[0] ^= u8::MAX;
     assert!(matches!(
         cose.verify(key.verifying_key()),
         Err(CoseError::EcdsaSignatureVerificationFailed(_))
     ));
 
-    cose.as_inner_mut().signature.pop();
+    cose.as_mut().signature.pop();
     assert!(matches!(
         cose.verify(key.verifying_key()),
         Err(CoseError::EcdsaSignatureParsingFailed(_))
@@ -86,7 +86,7 @@ async fn missing_or_unsupported_algorithm_is_rejected() {
     let mut missing = TypedCose::sign(&ToyMessage::default(), Header::default(), &key, true)
         .await
         .unwrap();
-    missing.as_inner_mut().protected.header.alg = None;
+    missing.as_mut().protected.header.alg = None;
     assert!(matches!(
         missing.verify(key.verifying_key()),
         Err(CoseError::MissingAlgorithm)
@@ -95,7 +95,7 @@ async fn missing_or_unsupported_algorithm_is_rejected() {
     let mut unsupported = TypedCose::sign(&ToyMessage::default(), Header::default(), &key, true)
         .await
         .unwrap();
-    unsupported.as_inner_mut().protected.header.alg = Some(coset::Algorithm::Assigned(coset::iana::Algorithm::ES384));
+    unsupported.as_mut().protected.header.alg = Some(coset::Algorithm::Assigned(coset::iana::Algorithm::ES384));
     assert!(matches!(
         unsupported.verify(key.verifying_key()),
         Err(CoseError::UnsupportedAlgorithm(_))

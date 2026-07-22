@@ -7,6 +7,8 @@ use coset::Header;
 use coset::Label;
 use coset::ProtectedHeader;
 use coset::iana;
+use derive_more::AsMut;
+use derive_more::AsRef;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
@@ -86,18 +88,15 @@ impl Cose for CoseMac0 {
 }
 
 /// A COSE message coupled to the Rust type of its CBOR payload.
-#[derive(Debug, PartialEq, Eq)]
-pub struct TypedCose<C, T>(C, PhantomData<T>);
+#[derive(Debug, PartialEq, Eq, AsMut, AsRef)]
+pub struct TypedCose<C, T>(
+    #[as_mut]
+    #[as_ref]
+    C,
+    PhantomData<T>,
+);
 
 impl<C, T> TypedCose<C, T> {
-    pub fn as_inner(&self) -> &C {
-        &self.0
-    }
-
-    pub fn as_inner_mut(&mut self) -> &mut C {
-        &mut self.0
-    }
-
     pub fn into_inner(self) -> C {
         self.0
     }
@@ -116,11 +115,11 @@ where
     /// Verify the COSE message using the specified key.
     pub fn verify(&self, key: &C::Key) -> Result<(), CoseError> {
         self.validate_algorithm()?;
-        self.as_inner().verify(key)
+        self.as_ref().verify(key)
     }
 
     pub fn unprotected_header_item(&self, label: &Label) -> Result<&Value, CoseError> {
-        self.as_inner()
+        self.as_ref()
             .unprotected()
             .rest
             .iter()
@@ -130,7 +129,7 @@ where
     }
 
     pub fn protected_header(&self) -> &Header {
-        &self.as_inner().protected().header
+        &self.as_ref().protected().header
     }
 
     pub(crate) fn validate_algorithm(&self) -> Result<(), CoseError> {
@@ -151,7 +150,7 @@ where
     ///
     /// The authenticity of the returned payload is not established. Prefer [`TypedCose::verify_and_parse`].
     pub fn dangerous_parse_unverified(&self) -> Result<T, CoseError> {
-        cbor_deserialize(self.as_inner().payload().ok_or(CoseError::MissingPayload)?).map_err(CoseError::Cbor)
+        cbor_deserialize(self.as_ref().payload().ok_or(CoseError::MissingPayload)?).map_err(CoseError::Cbor)
     }
 
     /// Verify the COSE message and deserialize its authenticated CBOR payload.

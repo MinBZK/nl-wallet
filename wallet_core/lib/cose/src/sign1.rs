@@ -135,7 +135,7 @@ impl<T> TypedCose<CoseSign1, T> {
 
     /// Get the certificate chain from the unprotected `x5chain` header parameter.
     pub fn x5chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
-        x5chain_from_header(&self.as_inner().unprotected)
+        x5chain_from_header(&self.as_ref().unprotected)
     }
 
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.

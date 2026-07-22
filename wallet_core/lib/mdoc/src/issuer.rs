@@ -21,7 +21,7 @@ impl IssuerSigned {
         mso.attestation_qualification = Some(AttestationQualification::default());
 
         self.issuer_auth =
-            TypedCose::sign(&mso.into(), self.issuer_auth.as_inner().unprotected.clone(), key, true).await?;
+            TypedCose::sign(&mso.into(), self.issuer_auth.as_ref().unprotected.clone(), key, true).await?;
 
         Ok(())
     }

@@ -102,11 +102,11 @@ where
     C: ClonePayload + Cose,
 {
     fn clone_with_payload(&self, bytes: Vec<u8>) -> Self {
-        self.as_inner().clone_with_payload(bytes).into()
+        self.as_ref().clone_with_payload(bytes).into()
     }
 
     fn clone_without_payload(&self) -> Self {
-        self.as_inner().clone_without_payload().into()
+        self.as_ref().clone_without_payload().into()
     }
 }
 
@@ -174,10 +174,10 @@ mod tests {
         };
 
         let cose = TypedCose::sign(&payload, Header::default(), &key, true).await.unwrap();
-        let payload_bytes = cose.as_inner().payload.clone().unwrap();
+        let payload_bytes = cose.as_ref().payload.clone().unwrap();
 
         let without_payload = cose.clone_without_payload();
-        assert!(without_payload.as_inner().payload.is_none());
+        assert!(without_payload.as_ref().payload.is_none());
 
         let with_payload = without_payload.clone_with_payload(payload_bytes);
         assert_eq!(with_payload.verify_and_parse(key.verifying_key()).unwrap(), payload);

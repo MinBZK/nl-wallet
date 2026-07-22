@@ -115,7 +115,7 @@ impl<T> UnverifiedWrprcCwt<T> {
 
     pub fn to_vec(&self) -> Result<Vec<u8>, WrprcCwtError> {
         self.cose
-            .as_inner()
+            .as_ref()
             .clone()
             .to_vec()
             .map_err(WrprcCwtError::CoseSerialization)
@@ -276,12 +276,12 @@ impl<T> TryFrom<TypedCose<CoseSign1, T>> for UnverifiedWrprcCwt<T> {
 }
 
 fn validate_wrprc_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<WrprcCwtHeader, WrprcCwtError> {
-    if cose.as_inner().payload.is_none() {
+    if cose.as_ref().payload.is_none() {
         return Err(WrprcCwtError::Cose(CoseError::MissingPayload));
     }
 
     let protected = cose.protected_header();
-    let unprotected = &cose.as_inner().unprotected;
+    let unprotected = &cose.as_ref().unprotected;
 
     for label in [
         Label::Int(COSE_ALGORITHM_HEADER_LABEL),

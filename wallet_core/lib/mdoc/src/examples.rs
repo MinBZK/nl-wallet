@@ -84,7 +84,7 @@ mod test {
                 let new_key = ca.generate_issuer_mock().unwrap();
                 let new_cert = new_key.certificate();
 
-                doc.issuer_signed.issuer_auth.as_inner_mut().unprotected =
+                doc.issuer_signed.issuer_auth.as_mut().unprotected =
                     cose::header_with_x5chain(&vec_nonempty![new_cert]);
 
                 doc.issuer_signed.resign(&new_key).await.unwrap();

@@ -52,7 +52,7 @@ where
     C: AsCborValue + Clone,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_as_cbor_value(self.as_inner(), serializer)
+        serialize_as_cbor_value(self.as_ref(), serializer)
     }
 }
 
