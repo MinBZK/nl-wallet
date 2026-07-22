@@ -41,8 +41,9 @@ use wallet_ca::write_key_pair;
 
 /// Generate private keys and certificates
 ///
-/// NOTE: Do NOT use in production environments, as the certificates lifetime is incredibly large, and no revocation is
-/// implemented.
+/// NOTE: Do NOT use in production environments. Certificate lifetimes are large by default, and while `crl` can
+/// generate Certificate Revocation Lists, nothing here operates revocation as a live service (periodically
+/// regenerating and republishing CRLs as certificates get revoked).
 #[derive(Parser)]
 #[command(author, version=version_string(), about, long_about)]
 struct Cli {
@@ -52,9 +53,13 @@ struct Cli {
 
 #[derive(Clone, Copy, ValueEnum)]
 enum CertType {
+    /// Mdoc/mdl issuer certificate; requires --issuer-auth-file
     Issuer,
+    /// Token Status List signing certificate
     Tsl,
+    /// Wallet Issuer Authentication certificate
     Wia,
+    /// Wallet Relying Party Access Certificate (WRPAC)
     Wrpac,
 }
 
@@ -86,7 +91,9 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
-        /// URLs where CRLs for this issuer (ca) are hosted
+        /// CRL Distribution Point URL(s) to embed in this certificate. Each URL must serve a CRL, signed by the
+        /// given CA, covering this certificate's serial number; see the `crl` subcommand. If omitted, the
+        /// certificate carries no CDP extension and revocation checking against it fails closed wherever enforced.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
@@ -140,7 +147,9 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
-        /// URLs where CRLs for this issuer (ca) are hosted
+        /// CRL Distribution Point URL(s) to embed in this certificate. Each URL must serve a CRL, signed by the
+        /// given CA, covering this certificate's serial number; see the `crl` subcommand. If omitted, the
+        /// certificate carries no CDP extension and revocation checking against it fails closed wherever enforced.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
@@ -217,6 +226,10 @@ enum Command {
         session_transcript_hex: String,
     },
     /// Generate a CRL, signed by the CA
+    ///
+    /// `crlNumber` is derived from the generation time, so it increases automatically on every regeneration. To
+    /// actually revoke a certificate, regenerate the CRL for its issuing CA with that certificate's serial number
+    /// added to --serial-number, and re-publish the resulting file at the CDP URL(s) baked into the certificate.
     Crl {
         /// Path to the CA key file in PEM format
         #[arg(short = 'k', long, value_parser)]
@@ -224,9 +237,11 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
+        /// Prefix to use for the generated file: <FILE_PREFIX>.crl.pem
         #[arg(short, long)]
         file_prefix: String,
-        /// Duration for which the CRL will be valid (used to calculate `nextUpdate`)
+        /// Duration for which the CRL will be valid (used to calculate `nextUpdate`); choose based on how often you
+        /// intend to regenerate and republish it
         #[arg(short, long)]
         days: u32,
         /// Revoked Serial Numbers, hex-encoded (colons optional, as in `openssl x509 -noout -serial`/-text output)
