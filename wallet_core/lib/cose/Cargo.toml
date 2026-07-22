@@ -11,6 +11,7 @@ workspace = true
 chrono.workspace = true
 ciborium.workspace = true
 coset.workspace = true
+derive_more = { workspace = true, features = ["as_ref", "from", "into"] }
 p256.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }

@@ -3,6 +3,9 @@ use coset::AsCborValue;
 use coset::CoseKeyBuilder;
 use coset::Label;
 use coset::iana;
+use derive_more::AsRef;
+use derive_more::From;
+use derive_more::Into;
 use error_category::ErrorCategory;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -14,40 +17,8 @@ use crate::serialization::deserialize_as_cbor_value;
 use crate::serialization::serialize_as_cbor_value;
 
 /// A serde-compatible wrapper around [`coset::CoseKey`].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, AsRef, From, Into)]
 pub struct CoseKey(coset::CoseKey);
-
-impl CoseKey {
-    pub fn as_inner(&self) -> &coset::CoseKey {
-        &self.0
-    }
-
-    pub fn as_inner_mut(&mut self) -> &mut coset::CoseKey {
-        &mut self.0
-    }
-
-    pub fn into_inner(self) -> coset::CoseKey {
-        self.0
-    }
-}
-
-impl From<coset::CoseKey> for CoseKey {
-    fn from(key: coset::CoseKey) -> Self {
-        Self(key)
-    }
-}
-
-impl From<CoseKey> for coset::CoseKey {
-    fn from(key: CoseKey) -> Self {
-        key.into_inner()
-    }
-}
-
-impl AsRef<coset::CoseKey> for CoseKey {
-    fn as_ref(&self) -> &coset::CoseKey {
-        self.as_inner()
-    }
-}
 
 impl AsCborValue for CoseKey {
     fn from_cbor_value(value: Value) -> coset::Result<Self> {
@@ -55,13 +26,14 @@ impl AsCborValue for CoseKey {
     }
 
     fn to_cbor_value(self) -> coset::Result<Value> {
-        self.into_inner().to_cbor_value()
+        let key: coset::CoseKey = self.into();
+        key.to_cbor_value()
     }
 }
 
 impl Serialize for CoseKey {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_as_cbor_value(self.as_inner(), serializer)
+        serialize_as_cbor_value(self.as_ref(), serializer)
     }
 }
 
@@ -117,7 +89,7 @@ impl TryFrom<&CoseKey> for VerifyingKey {
     type Error = CoseKeyConversionError;
 
     fn try_from(key: &CoseKey) -> Result<Self, Self::Error> {
-        let key = key.as_inner();
+        let key = key.as_ref();
         if key.kty != coset::RegisteredLabel::Assigned(iana::KeyType::EC2) {
             return Err(CoseKeyConversionError::UnsupportedKeyType);
         }
@@ -180,7 +152,7 @@ mod tests {
     fn p256_conversion_does_not_depend_on_parameter_order() {
         let signing_key = SigningKey::random(&mut OsRng);
         let mut cose_key = CoseKey::try_from(signing_key.verifying_key()).unwrap();
-        cose_key.as_inner_mut().params.reverse();
+        cose_key.0.params.reverse();
 
         assert_eq!(VerifyingKey::try_from(&cose_key).unwrap(), *signing_key.verifying_key());
     }
