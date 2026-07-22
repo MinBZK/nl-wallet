@@ -7,6 +7,7 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use strum::EnumString;
 use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
@@ -83,6 +84,22 @@ impl AuthorizationDetails<CredentialEntry> {
         AuthorizationDetails::try_new(entries).expect(
             "all entries are created as openid_credential and into_group_map() guarantees removal of duplicates",
         )
+    }
+
+    pub fn into_credential_ids_and_identifiers(
+        self,
+    ) -> VecNonEmpty<(CredentialConfigurationId, VecNonEmptyUnique<String>)> {
+        let Self(entry_containers) = self;
+
+        entry_containers
+            .into_nonempty_iter()
+            .map(|EntryContainer { entry, .. }| {
+                (
+                    entry.config_entry.credential_configuration_id,
+                    entry.credential_identifiers,
+                )
+            })
+            .collect()
     }
 }
 

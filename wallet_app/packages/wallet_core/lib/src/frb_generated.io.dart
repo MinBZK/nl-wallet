@@ -1477,7 +1477,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.image = cst_encode_opt_box_autoadd_image(apiObj.image);
     wireObj.web_url = cst_encode_opt_String(apiObj.webUrl);
     wireObj.privacy_policy_url = cst_encode_opt_String(apiObj.privacyPolicyUrl);
-    wireObj.identifier = cst_encode_opt_String(apiObj.identifier);
+    wireObj.identifier = cst_encode_String(apiObj.identifier);
     wireObj.city = cst_encode_opt_list_localized_string(apiObj.city);
     wireObj.category = cst_encode_list_localized_string(apiObj.category);
     wireObj.department = cst_encode_opt_list_localized_string(apiObj.department);

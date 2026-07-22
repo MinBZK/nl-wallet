@@ -11,15 +11,15 @@ pub struct Organization {
     pub image: Option<Image>,
     pub web_url: Option<String>,
     pub privacy_policy_url: Option<String>,
-    pub identifier: Option<String>,
+    pub identifier: String,
     pub city: Option<Vec<LocalizedString>>,
     pub category: Vec<LocalizedString>,
     pub department: Option<Vec<LocalizedString>>,
     pub country_code: String,
 }
 
-impl From<Box<wallet::attestation_data::Organization>> for Organization {
-    fn from(value: Box<wallet::attestation_data::Organization>) -> Self {
+impl From<wallet::attestation_data::Organization> for Organization {
+    fn from(value: wallet::attestation_data::Organization) -> Self {
         Organization {
             legal_name: value.legal_name,
             display_name: value.display_name,

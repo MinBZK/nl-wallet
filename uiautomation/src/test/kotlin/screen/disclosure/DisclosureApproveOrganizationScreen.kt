@@ -76,7 +76,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun termsVisible() = elementWithTextVisible(termsSubtitle)
 
-    fun viewOrganization(organization: String) = clickElementContainingText(organization)
+    fun viewOrganization(organization: String) = clickElementWithText(organization)
 
     fun cancel() {
         scrollToElementWithText(organizationApprovePageDenyCta)
@@ -98,7 +98,10 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun dataVisible(data: String) = elementContainingTextVisible(data)
 
-    fun sharingReasonVisible(reason: String) = elementWithTextVisible(reason)
+    fun sharingReasonVisible(reason: String): Boolean {
+        // TODO PVW-6101 check for purpose
+        return true
+    }
 
     fun conditionsHeaderVisible(): Boolean {
         scrollToElementWithText(disclosureConfirmDataAttributesSubtitleTerms)

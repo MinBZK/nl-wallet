@@ -12,6 +12,7 @@
 
 use std::collections::HashSet;
 
+use attestation_types::credential_kind::CredentialKind;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -23,7 +24,6 @@ use crate::authorization::VciAuthorizationRequest;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorWithCode;
-use crate::issuable_document::CredentialKind;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthRequestValues;
 use crate::scope::Scope;
@@ -146,12 +146,12 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
 
     use super::InvalidAuthorizationRequest;
     use super::WalletAuthorizationContext;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::VciAuthorizationRequest;
-    use crate::issuable_document::CredentialKind;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::pkce::PkcePair;
     use crate::pkce::S256PkcePair;

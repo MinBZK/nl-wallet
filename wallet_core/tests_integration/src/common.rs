@@ -26,6 +26,7 @@ use ctor::ctor;
 use db_test::DbSetup;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
+use hsm::test::HsmSetup;
 use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
 use http_utils::reqwest::ReqwestTrustAnchor;
@@ -172,10 +173,12 @@ pub type WalletWithStorage = Wallet<
 
 pub async fn setup_wallet_and_default_env(
     db_setup: &DbSetup,
+    hsm_setup: &HsmSetup,
     vendor: WalletDeviceVendor,
 ) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
     setup_wallet_and_env(
         db_setup,
+        hsm_setup,
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
@@ -283,6 +286,7 @@ impl MockDeviceConfig {
 
 pub async fn setup_env_default(
     db_setup: &DbSetup,
+    hsm_setup: &HsmSetup,
 ) -> (
     ConfigServerConfiguration,
     MockDeviceConfig,
@@ -291,6 +295,7 @@ pub async fn setup_env_default(
     DisclosureUrls,
 ) {
     setup_env(
+        hsm_setup,
         static_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
@@ -301,7 +306,9 @@ pub async fn setup_env_default(
     .await
 }
 
+#[expect(clippy::too_many_arguments, reason = "test setup function")]
 pub async fn setup_env(
+    hsm_setup: &HsmSetup,
     (static_settings, static_root_ca): (StaticSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
@@ -336,7 +343,9 @@ pub async fn setup_env(
             .hsm
     );
 
-    let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
+    let hsm = hsm_setup
+        .pkcs11_hsm(wp_settings.hsm.clone())
+        .expect("Could not initialize HSM");
     let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
 
     let attestation_server_url =
@@ -521,8 +530,10 @@ where
 }
 
 /// Create an instance of [`Wallet`].
+#[expect(clippy::too_many_arguments, reason = "test setup function")]
 pub async fn setup_wallet_and_env(
     db_setup: &DbSetup,
+    hsm_setup: &HsmSetup,
     vendor: WalletDeviceVendor,
     ups_config: (UpsSettings, ReqwestTrustAnchor),
     wp_config: (WpSettings, ReqwestTrustAnchor),
@@ -535,6 +546,7 @@ pub async fn setup_wallet_and_env(
     ),
 ) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
     let (config_server_config, mock_device_config, wallet_config, issuer_data, verifier_server_urls) = setup_env(
+        hsm_setup,
         static_server_settings(),
         ups_config,
         wp_config,
@@ -557,7 +569,11 @@ pub async fn setup_wallet_and_env(
 /// Start the minimal wallet-facing stack — update-policy server, wallet provider and the static config
 /// server — and return a registered-capable in-memory [`Wallet`]. Independent of any issuer; compose
 /// with a `setup_*_env` (e.g. [`setup_pre_auth_env`]) for the issuer side of a flow.
-pub async fn setup_wallet_env(db_setup: &DbSetup, vendor: WalletDeviceVendor) -> WalletWithStorage {
+pub async fn setup_wallet_env(
+    db_setup: &DbSetup,
+    hsm_setup: &HsmSetup,
+    vendor: WalletDeviceVendor,
+) -> WalletWithStorage {
     let mock_device_config = MockDeviceConfig::generate();
 
     let (mut wp_settings, wp_root_ca) =
@@ -570,7 +586,9 @@ pub async fn setup_wallet_env(db_setup: &DbSetup, vendor: WalletDeviceVendor) ->
 
     let ups_port = start_update_policy_server(ups_settings, ups_root_ca.clone()).await;
 
-    let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
+    let hsm = hsm_setup
+        .pkcs11_hsm(wp_settings.hsm.clone())
+        .expect("Could not initialize HSM");
     let wp_port = start_wallet_provider(wp_settings, hsm, wp_root_ca).await;
 
     let (config_server_config, wallet_config) =

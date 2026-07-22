@@ -10,7 +10,6 @@ use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::SubjectAltNameUri;
@@ -79,14 +78,6 @@ fn predicate_not_a_natural_or_legal_person() -> Result<RegexPredicate> {
     let result =
         predicate::str::is_match("Error: Illegal subject name, specify either for a legal or natural person\n")?;
     Ok(result)
-}
-
-fn predicate_missing_reader_json_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        "error: Invalid value for --reader-auth-file <READER_AUTH_FILE>: Could not open \"{}\": No such file or \
-         directory",
-        path.display()
-    ))
 }
 
 fn predicate_missing_issuer_json_file(path: &Path) -> StartsWithPredicate {
@@ -191,13 +182,7 @@ trait CommandExtension {
         issuer_auth_json: &Path,
         file_prefix: &Path,
     ) -> &mut Self;
-    fn generate_reader_kp(
-        &mut self,
-        ca_crt: &Path,
-        ca_key: &Path,
-        rp_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self;
+    fn generate_wrpac_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_tsl_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_issuer_cert(
         &mut self,
@@ -207,14 +192,7 @@ trait CommandExtension {
         issuer_auth_json: &Path,
         file_prefix: &Path,
     ) -> &mut Self;
-    fn generate_reader_cert(
-        &mut self,
-        pk: &Path,
-        ca_crt: &Path,
-        ca_key: &Path,
-        rp_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self;
+    fn generate_wrpac_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_tsl_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
 
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self;
@@ -253,26 +231,18 @@ impl CommandExtension for Command {
             .arg(issuer_auth_json)
     }
 
-    fn generate_reader_kp(
-        &mut self,
-        ca_crt: &Path,
-        ca_key: &Path,
-        rp_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self {
+    fn generate_wrpac_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
         self.arg("cert")
             .arg("--type")
-            .arg("reader")
+            .arg("wrpac")
             .arg("--ca-key-file")
             .arg(ca_key)
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("Test Reader")
+            .arg("Test WRPAC")
             .arg("--file-prefix")
             .arg(file_prefix)
-            .arg("--reader-auth-file")
-            .arg(rp_auth_json)
     }
 
     fn generate_tsl_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
@@ -314,17 +284,10 @@ impl CommandExtension for Command {
             .arg(issuer_auth_json)
     }
 
-    fn generate_reader_cert(
-        &mut self,
-        pk: &Path,
-        ca_crt: &Path,
-        ca_key: &Path,
-        rp_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self {
+    fn generate_wrpac_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
         self.arg("cert-pub")
             .arg("--type")
-            .arg("reader")
+            .arg("wrpac")
             .arg("--public-key-file")
             .arg(pk)
             .arg("--ca-key-file")
@@ -332,11 +295,9 @@ impl CommandExtension for Command {
             .arg("--ca-crt-file")
             .arg(ca_crt)
             .arg("--common-name")
-            .arg("Test Reader")
+            .arg("Test WRPAC")
             .arg("--file-prefix")
             .arg(file_prefix)
-            .arg("--reader-auth-file")
-            .arg(rp_auth_json)
     }
 
     fn generate_tsl_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
@@ -494,29 +455,25 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         )?;
     }
 
-    // Generate reader key pair
+    // Generate WRPAC key pair
     {
-        let (rp_auth_prefix, rp_auth_crt, rp_auth_key) = keypair_paths(&temp, "test-reader-auth-kp");
-        let rp_auth_json = temp.child("test-reader-auth.json");
-
-        // Generate reader registration JSON input file
-        rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
+        let (rp_auth_prefix, rp_auth_crt, rp_auth_key) = keypair_paths(&temp, "test-wrpac-auth-kp");
 
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+            .generate_wrpac_kp(&ca_crt, &ca_key, &rp_auth_prefix)
             .generate_for_natural_person("123", "Doe", "John")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_key_pair(&rp_auth_crt, &rp_auth_key)?);
 
-        // Assert generated reader files
+        // Assert generated WRPAC files
         assert_generated_key(&rp_auth_key)?;
         assert_generated_certificate(
             &rp_auth_crt,
             &ca_dn,
             &DistinguishedName::new_natural_person(
-                "Test Reader".to_string(),
+                "Test WRPAC".to_string(),
                 "NL".to_string(),
                 "123".to_string(),
                 "Doe".to_string(),
@@ -525,35 +482,31 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
-            Some(CertificateUsage::ReaderAuth),
+            None,
         )?;
     }
 
-    // Generate reader certificate
+    // Generate WRPAC certificate
     {
-        let (rp_auth_prefix, rp_auth_crt, _) = keypair_paths(&temp, "test-reader-auth-crt");
-        let rp_auth_json = temp.child("test-reader-auth.json");
+        let (rp_auth_prefix, rp_auth_crt, _) = keypair_paths(&temp, "test-wrpac-auth-crt");
 
-        // Generate reader registration JSON input file
-        rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
-
-        let public_key_path = public_key_path(&temp, "test-reader-auth-crt");
+        let public_key_path = public_key_path(&temp, "test-wrpac-auth-crt");
         generate_public_key(&public_key_path);
 
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_reader_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+            .generate_wrpac_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_prefix)
             .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .assert()
             .success()
             .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
 
-        // Assert generated reader certificate
+        // Assert generated WRPAC certificate
         assert_generated_certificate(
             &rp_auth_crt,
             &ca_dn,
             &DistinguishedName::new_legal_person(
-                "Test Reader".to_string(),
+                "Test WRPAC".to_string(),
                 "NL".to_string(),
                 "Test B.V.".to_string(),
                 "NTRNL-00000002".to_string(),
@@ -561,7 +514,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
-            Some(CertificateUsage::ReaderAuth),
+            None,
         )?;
     }
 
@@ -947,7 +900,7 @@ fn regenerating_cert() -> Result<()> {
     let (mdl_prefix, mdl_crt, mdl_key) = keypair_paths(&temp, "test-mdl-kp");
     let issuer_auth_json = temp.child("test-issuer-auth.json");
 
-    // Generate reader JSON input file
+    // Generate issuer JSON input file
     issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
     // Generate issuer key pair and assert success
@@ -989,6 +942,7 @@ fn regenerating_cert() -> Result<()> {
     Ok(())
 }
 
+// TODO: PVW-5870 Remove when issuer is just like another cert
 fn setup_issuer_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath)> {
     let (ca_prefix, ca_crt, ca_key) = keypair_paths(temp, "test-ca");
     let (mdl_prefix, _mdl_crt, _mdl_key) = keypair_paths(temp, "test-mdl-kp");
@@ -1007,6 +961,7 @@ fn setup_issuer_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath
     Ok((ca_crt, ca_key, mdl_prefix, issuer_auth_json))
 }
 
+// TODO: PVW-5870 Remove when issuer is just like another cert
 fn setup_issuer_pubkey_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath, ChildPath)> {
     let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(temp)?;
 
@@ -1017,6 +972,7 @@ fn setup_issuer_pubkey_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, Ch
 }
 
 #[test]
+// TODO: PVW-5870 Remove when issuer is just like another cert
 fn missing_input_files_issuer() -> Result<()> {
     let temp = TempDir::new()?;
 
@@ -1063,6 +1019,7 @@ fn missing_input_files_issuer() -> Result<()> {
 }
 
 #[test]
+// TODO: PVW-5870 Remove when issuer is just like another cert
 fn missing_input_files_issuer_pubkey() -> Result<()> {
     let temp = TempDir::new()?;
 
@@ -1109,135 +1066,6 @@ fn missing_input_files_issuer_pubkey() -> Result<()> {
     // Generate issuer should fail when missing JSON file
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_public_key_file(&public_key_file));
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-fn setup_reader_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath)> {
-    let (ca_prefix, ca_crt, ca_key) = keypair_paths(temp, "test-ca");
-    let (rp_auth_prefix, _rp_auth_crt, _rp_auth_key) = keypair_paths(temp, "test-reader-auth-kp");
-    let rp_auth_json = temp.child("test-reader-auth.json");
-
-    // Generate ca
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_ca(&ca_prefix)
-        .arg("--force")
-        .assert()
-        .success();
-
-    // Generate reader registration JSON input file
-    rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
-
-    Ok((ca_crt, ca_key, rp_auth_prefix, rp_auth_json))
-}
-
-fn setup_reader_pubkey_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath, ChildPath)> {
-    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(temp)?;
-
-    let public_key_path = public_key_path(temp, "test-reader-auth-crt");
-    generate_public_key(&public_key_path);
-
-    Ok((public_key_path, ca_crt, ca_key, rp_auth_prefix, rp_auth_json))
-}
-
-#[test]
-fn missing_input_files_reader() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(&temp)?;
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate reader should fail on missing CA key
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(&temp)?;
-    std::fs::remove_file(&ca_crt)?;
-
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Setup files without reader registration JSON file
-    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(&temp)?;
-    std::fs::remove_file(&rp_auth_json)?;
-
-    // Generate reader_auth should fail when missing JSON file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_kp(&ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_reader_json_file(&rp_auth_json));
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-#[test]
-fn missing_input_files_reader_pubkey() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (public_key_file, ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_pubkey_files(&temp)?;
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate reader should fail on missing CA key
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (public_key_file, ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_pubkey_files(&temp)?;
-    std::fs::remove_file(&ca_crt)?;
-
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Setup files without reader registration JSON file
-    let (public_key_file, ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_pubkey_files(&temp)?;
-    std::fs::remove_file(&rp_auth_json)?;
-
-    // Generate reader_auth should fail when missing JSON file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_reader_json_file(&rp_auth_json));
-
-    // Setup files without public key file
-    let (public_key_file, ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_pubkey_files(&temp)?;
-    std::fs::remove_file(&public_key_file)?;
-
-    // Generate reader_auth should fail when missing JSON file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
         .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()

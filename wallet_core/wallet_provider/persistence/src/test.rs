@@ -46,6 +46,7 @@ async fn db_from_url(url: Url) -> Db {
     Db::new(
         url,
         ConnectionOptions {
+            acquire_timeout: Duration::from_secs(5),
             connect_timeout: Duration::from_secs(1),
             max_connections: 5,
         },

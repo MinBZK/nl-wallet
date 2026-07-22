@@ -28,9 +28,8 @@ We'll start with a paragraph about the related architecture, with links to the
 relevant architecture documents.
 
 We'll then cover the creation of the technical attestation schema, the creation
-of issuer and reader authentication documents and the corresponding reader and
-issuer certificates, which are essential for identifying your service within
-the NL Wallet ecosystem.
+of issuer authentication documents and the corresponding issuer certificates,
+which are essential for identifying your service within the NL Wallet ecosystem.
 
 Next, we'll guide you through setting up the `issuance_server`. This includes
 obtaining the software, configuring it (with an optional database backend), and
@@ -95,8 +94,7 @@ intended for a production environment, more stringent rules might apply.
 If you plan to eventually bring your issuer into production readiness, you might
 want to consider our [onboarding][10] process. When you are a member of the NL
 Wallet community, you have access to community resources that can help with
-validation of your TAS, `issuer_auth`, `reader_auth` and `issuance_server`
-configuration files.
+validation of your TAS, `issuer_auth` and `issuance_server` configuration files.
 </div>
 
 ### Decide on required metadata for your TAS
@@ -358,160 +356,15 @@ git directory):
 target/is-config/issuer_auth.json
 ```
 
-## Creating a reader authentication document
+## Creating issuer, TSL and WRPAC certificates
 
-We're going to create a so-called `reader_auth` document.
-
-The subsections below describe the decisions you need to make as a verifier with
-regards to attributes you want to verify, what data we require from you, how to
-create a reader certificate for your usecase (which is configured for usage
-within the `verification_server` configuration).
-
-In this guide, we assume you have [onboarded succesfully][10] - i.e., you are
-running your own CA and the public key of that CA has been shared with the
-operations team who will need to add your CA public key to the trust anchors of
-the app.
-
-<div class="admonition note"><p class="title">Onboarding optional</p>
-Do note that onboarding is not strictly necessary - you *can* follow all steps
-in this guide and observe things working in a local development environment -
-but when you want to test your verifier with the NL Wallet platform (i.e., our
-backend and mobile apps in our acceptance and pre-production environments), you
-do need to be onboarded to get access to those environments.
-</div>
-
-<div class="admonition note">
-<p class="title">This chapter is also a part of creating a verifier</p>
-Note that when you've also [created a verifier][23], this section will look
-familiar to you; that is because an issuer, like a verifier, needs a reader
-authentication document. This is because of how disclosure-based-issuance works:
-with disclosure-based-issuance, an issuer is essentially also a verifier (i.e.,
-you disclose some attributes in order to obtain some new ones).
-</div>
-
-### Decide on required metadata for your reader_auth
-
-A reader certificate contains a bunch of metadata, which we store as a part
-of the certificate in a so-called X.509v3 extension. We use this data to know
-which attested attribute you want to verify, and to present a view of you, the
-verifier in the NL Wallet app GUI.
-
-**ROOT**
-| Key                             | Languages | Description                                                          |
-| ------------------------------- | --------- | -------------------------------------------------------------------- |
-| `purposeStatement`              | `nl+en`   | For what purpose are you attesting? Login? Age verification? etc.    |
-| `retentionPolicy`               | -         | Do you have an intent to retain data? For how long?                  |
-| `sharingPolicy`                 | -         | Do you have an intent to share data? With whom?                      |
-| `deletionPolicy`                | -         | Do you allow users to request deletion of their data, yes/no?        |
-| `organization.displayName`      | `nl+en`   | Name of the verifier as shown in the app app.                        |
-| `organization.legalName`        | `nl+en`   | Legal name of the verifier.                                          |
-| `organization.description`      | `nl+en`   | Short one-sentence description or mission statement of the verifier. |
-| `organization.webUrl`           | -         | The home URL of the verifier.                                        |
-| `organization.city`             | `nl+en`   | The home city of the verifier.                                       |
-| `organization.category`         | `nl+en`   | Bank, Municipality, Trading, Delivery Service, etc.                  |
-| `organization.logo.mimeType`    | -         | Logo mimetype, can be image/svg+xml, image/png or image/jpeg         |
-| `organization.logo.imageData`   | -         | Logo image data. When SVG, an escaped XML string, else base64        |
-| `organization.countryCode`      | -         | Two-letter country code of verifier residence.                       |
-| `organization.kvk`              | -         | Chamber of commerce number of verifier.                              |
-| `organization.privacyPolicyUrl` | -         | Link to verifier's privacy policy.                                   |
-| `authorizedAttributes`          | -         | List of attributes you want to verify.                               |
-
-Note: In the `Languages` column where it says `nl+en` for example, please
-provide both Dutch and English values.
-
-### Decide on attributes you want to verify
-
-You can verify any attribute (also known as a claim path) provided by any issuer
-on the plaform, but since we don't have an issuer registry yet, you would need
-to know or otherwise get your hands on the JSON documents that define the claim
-paths that belong to a given `vct` (a Verifiable Credential Type).
-
-For our own issuer(s), you can have a look at our
-[supported authorized attributes][24] document for an overview of claim paths
-you can use, and some background information on how the `authorizedAttributes`
-object works.
-
-### Creating the reader_auth JSON document
-
-When you've collected all the required metadata, you are ready to create the
-`reader_auth.json` file. Here is an example for our insurance company:
-
-```json
-{
-  "purposeStatement": {
-    "nl": "Uitgifte",
-    "en": "Issuance"
-  },
-  "retentionPolicy": {
-    "intentToRetain": true,
-    "maxDurationInMinutes": 525600
-  },
-  "sharingPolicy": {
-    "intentToShare": false
-  },
-  "deletionPolicy": {
-    "deleteable": false
-  },
-  "organization": {
-    "displayName": {
-      "nl": "VerzekerAar",
-      "en": "InsurAnce"
-    },
-    "legalName": {
-      "nl": "VerzekerAargh N.V.",
-      "en": "VerzekerAargh N.V."
-    },
-    "description": {
-      "nl": "VerzekerAargh is een voorbeeld-verzekeraar.",
-      "en": "InsurAnce is an exemplar insurance company."
-    },
-    "webUrl": "https://insurance.example.com",
-    "city": {
-      "nl": "Den Haag",
-      "en": "The Hague"
-    },
-    "category": {
-      "nl": "Verzekeringen",
-      "en": "Insurance"
-    },
-    "logo": {
-      "mimeType": "image/svg+xml",
-      "imageData": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" fill=\"none\"><rect width=\"64\" height=\"64\" y=\"-.002\" fill=\"#3A839A\" rx=\"12\"/><path fill=\"#FCFCFC\" d=\"M29.563 33.6H25.5v-4.8h4.063v-4h4.875v4H38.5v4.8h-4.062v4h-4.876zM32 16l-13 4.8v9.744C19 38.624 24.541 46.16 32 48c7.459-1.84 13-9.376 13-17.456V20.8zm9.75 14.544c0 6.4-4.144 12.32-9.75 14.128-5.606-1.808-9.75-7.712-9.75-14.128v-7.52l9.75-3.6 9.75 3.6z\"/></svg>"
-    },
-    "countryCode": "nl",
-    "kvk": "99876543",
-    "privacyPolicyUrl": "https://insurance.example.com/privacy"
-  },
-  "requestOriginBaseUrl": "https://insurance.example.com",
-  "authorizedAttributes": {
-    "urn:eudi:pid:nl:1": [
-      ["urn:eudi:pid:nl:1", "bsn"],
-      ["bsn"]
-    ]
-  }
-}
-```
-
-Take the above example, make sure you've read the previous sections which
-explain what the different key/values mean, and (optionally) construct your
-own `reader_auth.json` file (or copy it verbatim if you're just testing). When
-we are going to be creating the reader certificate in the next sections, we are
-going to need it at a specific location, so save it (inside the `nl-wallet`
-git directory):
-
-```
-target/is-config/reader_auth.json
-```
-
-## Creating issuer, reader and tsl certificates
-
-Let's create the issuer, reader and tsl certificates. We're going to clone the
+Let's create the issuer, TSL and WRPAC certificates. We're going to clone the
 NL Wallet repository, enter its directory, set a target directory and specify an
 identifier (this identifies your organization, and should be in lowercase
 characters a-z, can end with numbers but may not begin with them).
 
 We then make sure the target directory exists, and invoke `cargo` (rust's build
-tool) to in turn invoke `wallet_ca` which will create the issuer, reader and tsl
+tool) to in turn invoke `wallet_ca` which will create the issuer, TSL and WRPAC
 certificates and keys.
 
 Finally, we invoke `openssl` to convert our PEM certificates and key into DER
@@ -525,12 +378,10 @@ installed and working.
 </div>
 
 <div class="admonition caution">
-<p class="title">Did you create an issuer_auth.json and reader_auth.json?</p>
-You need valid `issuer_auth.json` and `reader_auth.json`, documents, which you
-should have, if you followed along with the previous sections where we created
-[issuer](#creating-the-issuer_auth-json-document) and
-[reader](#creating-the-reader_auth-json-document) authorization documents.
-</div>
+<p class="title">Did you create an issuer_auth.json?</p>
+You need valid `issuer_auth.json` document, which you should have, if you
+followed along with the previous sections where we created
+[issuer](#creating-the-issuer_auth-json-document)</div>
 
 <div class="admonition caution">
 <p class="title">Did you create your own CA?</p>
@@ -573,18 +424,7 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
     --issuer-auth-file "${TARGET_DIR}/issuer_auth.json" \
     --file-prefix "${TARGET_DIR}/issuer.${IDENTIFIER}"
 
-# Create the reader certificate using wallet_ca.
-cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
-    --type reader \
-    --ca-key-file "${CA_DIR}/ca.${IDENTIFIER}.key.pem" \
-    --ca-crt-file "${CA_DIR}/ca.${IDENTIFIER}.crt.pem" \
-    --common-name "reader.${IDENTIFIER}" \
-    --organization-name "${IDENTIFIER}" \
-    --organization-id "NTRNL-00000002" \
-    --reader-auth-file "${TARGET_DIR}/reader_auth.json" \
-    --file-prefix "${TARGET_DIR}/reader.${IDENTIFIER}"
-
-# Create the tsl certificate using wallet_ca.
+# Create the TSL certificate using wallet_ca.
 cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
     --type tsl \
     --ca-key-file "${CA_DIR}/ca.issuer.key.pem" \
@@ -594,27 +434,38 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
     --organization-id "NTRNL-00000002" \
     --file-prefix "${TARGET_DIR}/tsl.${IDENTIFIER}"
 
+# Create the WRPAC certificate using wallet_ca.
+cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
+    --type wrpac \
+    --ca-key-file "${CA_DIR}/ca.${IDENTIFIER}.key.pem" \
+    --ca-crt-file "${CA_DIR}/ca.${IDENTIFIER}.crt.pem" \
+    --common-name "wrpac.${IDENTIFIER}" \
+    --organization-name "${IDENTIFIER}" \
+    --organization-id "NTRNL-00000002" \
+    --file-prefix "${TARGET_DIR}/wrpac.${IDENTIFIER}"
+
+
 # Convert certificates PEM to DER.
 openssl x509 \
     -in "${TARGET_DIR}/issuer.${IDENTIFIER}.crt.pem" -inform PEM \
     -out "${TARGET_DIR}/issuer.${IDENTIFIER}.crt.der" -outform DER
 openssl x509 \
-    -in "${TARGET_DIR}/reader.${IDENTIFIER}.crt.pem" -inform PEM \
-    -out "${TARGET_DIR}/reader.${IDENTIFIER}.crt.der" -outform DER
-openssl x509 \
     -in "${TARGET_DIR}/tsl.${IDENTIFIER}.crt.pem" -inform PEM \
     -out "${TARGET_DIR}/tsl.${IDENTIFIER}.crt.der" -outform DER
+openssl x509 \
+    -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.pem" -inform PEM \
+    -out "${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.der" -outform DER
 
 # Convert keys PEM to DER.
 openssl pkcs8 -topk8 -nocrypt \
     -in "${TARGET_DIR}/issuer.${IDENTIFIER}.key.pem" -inform PEM \
     -out "${TARGET_DIR}/issuer.${IDENTIFIER}.key.der" -outform DER
 openssl pkcs8 -topk8 -nocrypt \
-    -in "${TARGET_DIR}/reader.${IDENTIFIER}.key.pem" -inform PEM \
-    -out "${TARGET_DIR}/reader.${IDENTIFIER}.key.der" -outform DER
-openssl pkcs8 -topk8 -nocrypt \
     -in "${TARGET_DIR}/tsl.${IDENTIFIER}.key.pem" -inform PEM \
     -out "${TARGET_DIR}/tsl.${IDENTIFIER}.key.der" -outform DER
+openssl pkcs8 -topk8 -nocrypt \
+    -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.pem" -inform PEM \
+    -out "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der" -outform DER
 ```
 
 The used CA public certificate (referenced in the previous `wallet_ca` command)
@@ -843,7 +694,7 @@ with the `RUST_LOG` environment variable: `RUST_LOG=debug ./issuance_server`
 
 #### Configuring trust anchors
 
-[When you created the issuer, reader and tsl certificates](#creating-issuer-reader-and-tsl-certificates),
+[When you created the issuer, TSL and WRPAC certificates](#creating-issuer-tsl-and-wrpac-certificates),
 you signed those certificates using a CA, either generated by the development
 setup script or specifically [created by you][19] as part of the (optional)
 [community onboarding process][10].
@@ -853,8 +704,8 @@ The `issuance_server` distinguishes two kinds of trust anchors:
   * `issuer_trust_anchors` - a string array of CA certificates which are
     considered trusted to sign issuer certificates, in DER format, base64
     encoded;
-  * `reader_trust_anchors` - a string array of CA certificates which are
-    considered trusted to sign reader certificates, in DER format, base64
+  * `wrpac_trust_anchors` - a string array of CA certificates which are
+    considered trusted for identifying WRPAC, in DER format, base64
     encoded;
 
 The trust anchor arrays tell the `issuance_server` which certificates it can
@@ -863,13 +714,13 @@ that is not in its trust anchor arrays, operations will fail (by design).
 
 We need to trust our own CA, whether it is created by the development setup
 scripts or explicitly by you. The development scripts create a separate CA for
-issuers and readers (usually at `scripts/devenv/target/ca.issuer.crt.der` and
-`scripts/devenv/target/ca.reader.crt.der`). When you create and use your own
+issuers and WRPACs (usually at `scripts/devenv/target/ca.issuer.crt.der` and
+`scripts/devenv/target/ca.wrpac.crt.der`). When you create and use your own
 CA for community development purposes as [documented here][19], you can use that
-CA generally for signing both issuance and reader certificates, and hence, add
-it to both the issuer and reader trust anchors.
+CA generally for signing both issuance and WRPAC certificates, and hence, add
+it to both the issuer and WRPAC trust anchors.
 
-The below code block will initialize the issuer and reader trust anchor
+The below code block will initialize the issuer and WRPAC trust anchor
 environment variables with the CA certificates it can find, both generated by
 development scripts and any you created yourself, provided you [followed the CA
 creation instructions to the letter][19] and used the naming convention
@@ -880,18 +731,18 @@ your CA certificates in DER format there. The code block assumes you have the
 ```shell
 cd nl-wallet
 export IS_ISSUER_TRUST_ANCHORS=()
-export IS_READER_TRUST_ANCHORS=()
+export IS_WRPAC_TRUST_ANCHORS=()
 for i in scripts/devenv/target/ca.issuer.crt.der target/ca-cert/ca.*.crt.der; do \
     [[ -f $i ]] && IS_ISSUER_TRUST_ANCHORS+=($(openssl base64 -e -A -in $i)); done
-for r in scripts/devenv/target/ca.reader.crt.der target/ca-cert/ca.*.crt.der; do \
-    [[ -f $r ]] && IS_READER_TRUST_ANCHORS+=($(openssl base64 -e -A -in $r)); done
+for r in scripts/devenv/target/ca.wrpac.crt.der target/ca-cert/ca.*.crt.der; do \
+    [[ -f $r ]] && IS_WRPAC_TRUST_ANCHORS+=($(openssl base64 -e -A -in $r)); done
 
 export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/03-trust-anchors.toml"
 issuer_trust_anchors = [$(printf '"%s",' "${IS_ISSUER_TRUST_ANCHORS[@]}" | sed 's/,$//')]
-reader_trust_anchors = [$(printf '"%s",' "${IS_READER_TRUST_ANCHORS[@]}" | sed 's/,$//')]
+wrpac_trust_anchors = [$(printf '"%s",' "${IS_WRPAC_TRUST_ANCHORS[@]}" | sed 's/,$//')]
 EOF
-unset IS_ISSUER_TRUST_ANCHORS IS_READER_TRUST_ANCHORS
+unset IS_ISSUER_TRUST_ANCHORS IS_WRPAC_TRUST_ANCHORS
 ```
 
 #### Determine public URL
@@ -1151,10 +1002,8 @@ In the next sub-sections we'll cover each one of these.
 
 ##### The disclosure settings
 
-We're going to base64 encode the reader key and certificate within the
-`private_key` and `certificate` fields of the `disclosure_settings`. This is
-the certificate that embedded the previously created `reader_auth.json`. Let's
-create the section:
+We're going to base64 encode the WRPAC key and certificate within the
+`private_key` and `certificate` fields of the `disclosure_settings`.
 
 ```shell
 cd nl-wallet
@@ -1165,8 +1014,8 @@ cat <<EOF > "$TARGET_DIR/parts/13-disclosure-settings.toml"
 
 [disclosure_settings.insurance]
 private_key_type = "software"
-private_key = "$(< "${TARGET_DIR}/reader.${IDENTIFIER}.key.der" $BASE64)"
-certificate = "$(< "${TARGET_DIR}/reader.${IDENTIFIER}.crt.der" $BASE64)"
+private_key = "$(< "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der" $BASE64)"
+certificate = "$(< "${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.der" $BASE64)"
 EOF
 unset BASE64 IDENTIFIER
 ```
@@ -1322,9 +1171,7 @@ performed:
 - Verify all `disclosure_settings` and `credential_configurations` certificates
   are valid;
 - Verify all `disclosure_settings` and `credential_configurations` certificates
-  are signed by any of the `reader_trust_anchors` and `issuer_trust_anchors`;
-- Verify all `disclosure_settings` certificates are valid reader-certificates,
-  and contain the necessary Extended Key Usages and the `reader_auth.json`;
+  are signed by any of the `issuer_trust_anchors` and `wrpac_trust_anchors`;
 - Verify all `credential_configurations` certificates are valid
   issuer-certificates, and contain the necessary Extended Key Usages and the
   `issuer_auth.json`;

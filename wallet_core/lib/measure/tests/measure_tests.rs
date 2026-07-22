@@ -198,7 +198,7 @@ mod test_functions {
 }
 
 #[tokio::test]
-#[serial(recorder)]
+#[serial(MetricsRecorder)]
 async fn test_simple_function_metrics() {
     let recorder = setup_recorder();
     recorder.clear();
@@ -247,7 +247,7 @@ async fn test_simple_function_metrics() {
 }
 
 #[tokio::test]
-#[serial(recorder)]
+#[serial(MetricsRecorder)]
 async fn test_function_without_additional_labels() {
     let recorder = setup_recorder();
     recorder.clear();
@@ -292,7 +292,7 @@ async fn test_function_without_additional_labels() {
 }
 
 #[tokio::test]
-#[serial(recorder)]
+#[serial(MetricsRecorder)]
 async fn test_function_preserves_errors() {
     let recorder = setup_recorder();
     recorder.clear();
@@ -358,7 +358,7 @@ async fn test_function_preserves_errors() {
 }
 
 #[tokio::test]
-#[serial(recorder)]
+#[serial(MetricsRecorder)]
 async fn test_method_function() {
     let recorder = setup_recorder();
     recorder.clear();
@@ -410,7 +410,7 @@ async fn test_method_function() {
 }
 
 #[tokio::test]
-#[serial(recorder)]
+#[serial(MetricsRecorder)]
 async fn test_function_returning_unit() {
     let recorder = setup_recorder();
     recorder.clear();
@@ -456,7 +456,7 @@ async fn test_function_returning_unit() {
 }
 
 #[tokio::test]
-#[serial(recorder)]
+#[serial(MetricsRecorder)]
 async fn test_function_returning_string() {
     let recorder = setup_recorder();
     recorder.clear();
@@ -505,7 +505,7 @@ async fn test_function_returning_string() {
 }
 
 #[tokio::test]
-#[serial(recorder)]
+#[serial(MetricsRecorder)]
 async fn test_function_returning_option() {
     let recorder = setup_recorder();
     recorder.clear();

@@ -1,11 +1,11 @@
 use std::iter;
 
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use dcql::disclosure::ExtendingVctRetriever;
 use indexmap::IndexSet;
 pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
-use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 // Re-exported for convenience

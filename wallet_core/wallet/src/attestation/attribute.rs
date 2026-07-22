@@ -218,7 +218,7 @@ pub mod test {
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
             example_metadata(),
-            Organization::new_mock(),
+            Organization::new_mock().into(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
@@ -259,7 +259,7 @@ pub mod test {
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
             example_metadata(),
-            Organization::new_mock(),
+            Organization::new_mock().into(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
@@ -297,7 +297,7 @@ pub mod test {
         let error = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
             metadata,
-            Organization::new_mock(),
+            Organization::new_mock().into(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
@@ -381,7 +381,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             Format::SdJwt,
             type_metadata,
-            organization.clone(),
+            organization.clone().into(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
@@ -391,7 +391,7 @@ pub mod test {
         )
         .expect("creating AttestationPresentation should succeed");
 
-        assert_eq!(attestation_presentation.issuer, organization);
+        assert_eq!(attestation_presentation.issuer, organization.into());
         assert_eq!(
             attestation_presentation.attributes,
             vec![
@@ -462,7 +462,7 @@ pub mod test {
             AttestationIdentity::Ephemeral,
             Format::SdJwt,
             type_metadata,
-            Organization::new_mock(),
+            Organization::new_mock().into(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
@@ -498,7 +498,7 @@ pub mod test {
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
             NormalizedTypeMetadata::nl_pid_example(),
-            Organization::new_mock(),
+            Organization::new_mock().into(),
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),

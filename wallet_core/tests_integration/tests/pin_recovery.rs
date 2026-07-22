@@ -1,6 +1,7 @@
 use std::assert_matches;
 
 use db_test::DbSetup;
+use hsm::test::HsmSetup;
 use serial_test::serial;
 use tests_integration::common::*;
 use wallet::Pin;
@@ -11,9 +12,10 @@ use wallet::errors::WalletUnlockError;
 #[serial(hsm)]
 async fn ltc41_test_pin_recovery() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
@@ -28,9 +30,10 @@ async fn ltc41_test_pin_recovery() {
 #[serial(hsm)]
 async fn ltc46_test_pin_recovery_timeout() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
 

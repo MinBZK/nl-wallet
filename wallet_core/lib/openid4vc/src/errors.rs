@@ -495,7 +495,7 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::AuthorizationDetailsUnsupported => TokenErrorCode::InvalidRequest,
 
-            Self::ScopeMismatch { .. } => TokenErrorCode::InvalidScope,
+            Self::ScopeMismatch { .. } | Self::PreAuthorizedScopeUnsupported(_) => TokenErrorCode::InvalidScope,
 
             Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => TokenErrorCode::InvalidRequest,
 

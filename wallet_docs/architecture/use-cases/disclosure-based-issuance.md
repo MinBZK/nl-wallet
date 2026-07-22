@@ -181,4 +181,4 @@ sequenceDiagram
 
 [1]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow
 [2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-offer
-[3]: https://eudi.dev/latest/architecture-and-reference-framework-main/#43-reference-architecture
+[3]: https://eudi.dev/latest/main/04-high-level-architecture/#43-reference-architecture

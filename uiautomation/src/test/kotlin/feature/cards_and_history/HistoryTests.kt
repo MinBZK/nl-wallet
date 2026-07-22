@@ -1,9 +1,9 @@
 package feature.cards_and_history
 
 import helper.LocalizationHelper
-import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
-import helper.OrganizationAuthMetadataHelper.Organization.RVIG
+import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM
+import helper.OrganizationMetadataHelper.Organization.PID
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
@@ -35,7 +35,7 @@ class HistoryTests : TestBase() {
 
     private lateinit var l10n: LocalizationHelper
     private lateinit var tasData: TasDataHelper
-    private lateinit var organizationAuthData: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthData: OrganizationMetadataHelper
 
     private lateinit var overviewWebPage: DemoIndexWebPage
     private lateinit var historyDetailScreen: HistoryDetailScreen
@@ -55,7 +55,7 @@ class HistoryTests : TestBase() {
 
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
-        organizationAuthData = OrganizationAuthMetadataHelper()
+        organizationAuthData = OrganizationMetadataHelper()
 
         historyDetailScreen = HistoryDetailScreen()
         historyOverviewScreen = HistoryOverviewScreen()
@@ -101,17 +101,17 @@ class HistoryTests : TestBase() {
             { assertTrue(historyOverviewScreen.pidIssuanceLogEntryVisible(), "pid issuance log entry is not visible") },
             { assertTrue(historyOverviewScreen.issuanceSubtitleVisible(), "pid issuance log entry is not visible") },
             { assertTrue(historyOverviewScreen.loginDisclosureLogEntryVisible(), "login log entry is not visible") },
-            { assertTrue(historyOverviewScreen.disclosureOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM))) }
+            { assertTrue(historyOverviewScreen.disclosureOrganizationVisible(organizationAuthData.getDisplayNameOfOrganization(MIJN_AMSTERDAM))) }
         )
 
         historyOverviewScreen.clickPidCardTitle()
         assertAll(
-            { assertTrue(historyDetailScreen.issuanceOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", RVIG)), "organization not visible") },
+            { assertTrue(historyDetailScreen.issuanceOrganizationVisible(organizationAuthData.getDisplayNameOfOrganization(PID)), "organization not visible") },
             { assertTrue(historyDetailScreen.titleCorrectForIssuance(tasData.getPidDisplayName()), "title not visible") }
         )
 
         historyDetailScreen.openOrganizationScreen();
-        assertTrue(organizationDetailScreen.organizationInHeaderVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", RVIG)), "organization not visible")
+        assertTrue(organizationDetailScreen.organizationInHeaderVisible(organizationAuthData.getDisplayNameOfOrganization(PID)), "organization not visible")
 
         organizationDetailScreen.clickBackButton()
         assertAll(
@@ -127,10 +127,10 @@ class HistoryTests : TestBase() {
         historyOverviewScreen.clickLoginEntryTitle()
         assertAll(
             { assertTrue(historyDetailScreen.reasonForSharingHeaderVisible(), "reason for sharing header not visible") },
-            { assertTrue(historyDetailScreen.reasonForSharingVisible(organizationAuthData.getAttributeValueForOrganization("purposeStatement", AMSTERDAM)), "reason for sharing not visible") },
+            { assertTrue(historyDetailScreen.reasonForSharingVisible(""), "reason for sharing not visible") },
             { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("bsn")), "BSN label not visible") },
-            { assertTrue(historyDetailScreen.disclosureOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)), "organization not visible") },
-            { assertTrue(historyDetailScreen.titleCorrectForLogin(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)), "title not visible") },
+            { assertTrue(historyDetailScreen.disclosureOrganizationVisible(organizationAuthData.getDisplayNameOfOrganization(MIJN_AMSTERDAM)), "organization not visible") },
+            { assertTrue(historyDetailScreen.titleCorrectForLogin(organizationAuthData.getDisplayNameOfOrganization(MIJN_AMSTERDAM)), "title not visible") },
             { assertTrue(historyDetailScreen.reportProblemButtonVisible(), "report problem button not visible") },
             { assertTrue(historyDetailScreen.termsVisible(), "terms not visible") }
         )

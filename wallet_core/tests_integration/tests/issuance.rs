@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use attestation_types::credential_format::Format;
 use db_test::DbSetup;
+use hsm::test::HsmSetup;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_RECOVERY_CODE;
@@ -15,9 +16,10 @@ use wallet::attestation_data::AttributeValue;
 #[serial(hsm)]
 async fn ltc1_test_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
 

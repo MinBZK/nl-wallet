@@ -188,12 +188,12 @@ Smoke test run example:
 Full test suite run example:
 
 ```bash
-./gradlew test --tests suite.FullTestSuite
-    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
-    -Dtest.config.device.name="emulator-5554"
-    -Dtest.config.platform.name="Android"
-    -Dtest.config.platform.version="14.0"
-    -Dtest.config.remote=false
+./gradlew test --tests suite.FullTestSuite \
+    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+    -Dtest.config.device.name="emulator-5554" \
+    -Dtest.config.platform.name="Android" \
+    -Dtest.config.platform.version="14.0" \
+    -Dtest.config.remote=false \
     -Dtest.config.automation.name="UIAutomator2"
 ```
 
@@ -218,7 +218,7 @@ differently, this and other features of the browserstack SDK are documented
 Remote test run example:
 
 ```bash
-./gradlew test --tests suite.FullTestSuite
+./gradlew test --tests suite.FullTestSuite \
     -Dtest.config.remote=true
 ```
 
@@ -244,15 +244,15 @@ source device and a destination device simultaneously. They are tagged with
 ### Run example
 
 ```bash
-./gradlew twoDeviceTest
-    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
-    -Dtest.config.source.name="Pixel 7"
-    -Dtest.config.source.platform.name="android"
-    -Dtest.config.source.platform.version="14.0"
-    -Dtest.config.source.udid="emulator-5554"
-    -Dtest.config.destination.name="Pixel 6"
-    -Dtest.config.destination.platform.name="android"
-    -Dtest.config.destination.platform.version="14.0"
+./gradlew twoDeviceTest \
+    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+    -Dtest.config.source.name="Pixel 7" \
+    -Dtest.config.source.platform.name="android" \
+    -Dtest.config.source.platform.version="14.0" \
+    -Dtest.config.source.udid="emulator-5554" \
+    -Dtest.config.destination.name="Pixel 6" \
+    -Dtest.config.destination.platform.name="android" \
+    -Dtest.config.destination.platform.version="14.0" \
     -Dtest.config.destination.udid="emulator-5556"
 ```
 

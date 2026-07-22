@@ -21,8 +21,9 @@ import 'src/feature/maintenance/maintenance_checker.dart';
 import 'src/feature/root/root_checker.dart';
 import 'src/feature/update/update_checker.dart';
 import 'src/util/helper/onboarding_helper.dart';
-import 'src/util/sentry_breadcrumbs.dart';
-import 'src/util/sentry_log_tree.dart';
+import 'src/util/sentry/sentry_before_send.dart';
+import 'src/util/sentry/sentry_breadcrumbs.dart';
+import 'src/util/sentry/sentry_log_tree.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
 import 'src/wallet_error_handler.dart';
@@ -79,19 +80,6 @@ void configureSentry(SentryFlutterOptions options) {
     ..beforeBreadcrumb = SentryBreadcrumbs.beforeBreadcrumb
     ..beforeSend = beforeSend
     ..beforeSendLog = beforeSendLog;
-}
-
-FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
-  event.user
-    ?..geo = null
-    ..ipAddress = null;
-
-  // Keep only curated wallet breadcrumbs and strip exception values.
-  event.breadcrumbs = SentryBreadcrumbs.filterEventBreadcrumbs(event.breadcrumbs);
-  event.exceptions?.forEach((ex) {
-    ex.value = null;
-  });
-  return event;
 }
 
 FutureOr<SentryLog?> beforeSendLog(SentryLog log) async {

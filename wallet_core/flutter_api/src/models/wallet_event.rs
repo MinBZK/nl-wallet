@@ -4,7 +4,6 @@ use super::attestation::AttestationPresentation;
 use super::disclosure::DisclosureType;
 use super::disclosure::RequestPolicy;
 use super::localize::LocalizedString;
-use super::localize::LocalizedStrings;
 use super::organization::Organization;
 
 pub enum WalletEvent {
@@ -59,13 +58,11 @@ impl From<wallet::WalletEvent> for WalletEvent {
                 id,
                 attestations,
                 timestamp,
-                reader_registration,
+                organization,
                 status,
                 r#type,
                 ..
             } => {
-                let reader_registration = *reader_registration;
-                let request_policy = RequestPolicy::from(&reader_registration);
                 let attestations = attestations
                     .into_iter()
                     .map(AttestationPresentation::from)
@@ -74,9 +71,25 @@ impl From<wallet::WalletEvent> for WalletEvent {
                 WalletEvent::Disclosure {
                     id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
-                    relying_party: Organization::from(reader_registration.organization),
-                    purpose: LocalizedStrings(reader_registration.purpose_statement).into(),
-                    request_policy,
+                    relying_party: (*organization).into(),
+                    // TODO PVW-5866 Replace with fields from registration certificate
+                    purpose: vec![
+                        LocalizedString {
+                            language: "en".into(),
+                            value: "Disclosure".into(),
+                        },
+                        LocalizedString {
+                            language: "nl".into(),
+                            value: "Onthullen".into(),
+                        },
+                    ],
+                    // TODO PVW-5866 Replace with fields from registration certificate
+                    request_policy: RequestPolicy {
+                        data_storage_duration_in_minutes: Some(525600),
+                        data_shared_with_third_parties: false,
+                        data_deletion_possible: false,
+                        policy_url: "https://example.com".to_string(),
+                    },
                     shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),
                     typ: r#type.into(),

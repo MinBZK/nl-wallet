@@ -2661,7 +2661,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       image: dco_decode_opt_box_autoadd_image(arr[3]),
       webUrl: dco_decode_opt_String(arr[4]),
       privacyPolicyUrl: dco_decode_opt_String(arr[5]),
-      identifier: dco_decode_opt_String(arr[6]),
+      identifier: dco_decode_String(arr[6]),
       city: dco_decode_opt_list_localized_string(arr[7]),
       category: dco_decode_list_localized_string(arr[8]),
       department: dco_decode_opt_list_localized_string(arr[9]),
@@ -3810,7 +3810,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_image = sse_decode_opt_box_autoadd_image(deserializer);
     var var_webUrl = sse_decode_opt_String(deserializer);
     var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
-    var var_identifier = sse_decode_opt_String(deserializer);
+    var var_identifier = sse_decode_String(deserializer);
     var var_city = sse_decode_opt_list_localized_string(deserializer);
     var var_category = sse_decode_list_localized_string(deserializer);
     var var_department = sse_decode_opt_list_localized_string(deserializer);
@@ -5120,7 +5120,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_opt_box_autoadd_image(self.image, serializer);
     sse_encode_opt_String(self.webUrl, serializer);
     sse_encode_opt_String(self.privacyPolicyUrl, serializer);
-    sse_encode_opt_String(self.identifier, serializer);
+    sse_encode_String(self.identifier, serializer);
     sse_encode_opt_list_localized_string(self.city, serializer);
     sse_encode_list_localized_string(self.category, serializer);
     sse_encode_opt_list_localized_string(self.department, serializer);

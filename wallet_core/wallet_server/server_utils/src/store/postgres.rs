@@ -32,6 +32,7 @@ use utils::generator::TimeGenerator;
 
 use crate::entity::session_state;
 
+const DB_ACQUIRE_TIMEOUT: Duration = Duration::from_secs(10);
 const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
@@ -56,6 +57,7 @@ impl From<Progress> for SessionStatus {
 pub async fn new_connection(url: Url) -> Result<DatabaseConnection, DbErr> {
     let mut connection_options = ConnectOptions::new(url);
     connection_options
+        .acquire_timeout(DB_ACQUIRE_TIMEOUT)
         .connect_timeout(DB_CONNECT_TIMEOUT)
         .sqlx_logging(true)
         .sqlx_logging_level(LevelFilter::Trace);

@@ -194,7 +194,7 @@ db_test = [
 ]
 
 # Include and run test that depend on a configured HSM
-hsm_test = ["wallet_provider?/hsm_test"]
+hsm_test = ["hsm/test", "wallet_provider?/hsm_test"]
 
 # Feature used for enabling all integration tests
 integration_test = [

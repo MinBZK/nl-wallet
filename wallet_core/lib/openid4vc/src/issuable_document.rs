@@ -1,25 +1,16 @@
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
-use derive_more::Constructor;
-use derive_more::Display;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Constructor, Serialize, Deserialize)]
-#[display("({format}): {attestation_type}")]
-pub struct CredentialKind {
-    pub format: Format,
-    pub attestation_type: String,
-}
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet, i.e. mdoc and sd-jwt.
@@ -103,6 +94,7 @@ impl IssuableDocument {
 pub mod mock {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
+    use attestation_types::credential_format::Format;
     use indexmap::IndexMap;
 
     use super::*;

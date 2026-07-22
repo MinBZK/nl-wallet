@@ -2,7 +2,7 @@ use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use crypto::server_keys::generate::Ca;
 use db_test::DbSetup;
-use hsm::service::Pkcs11Hsm;
+use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
@@ -53,6 +53,7 @@ use wscd::mock_remote::MockWiaClient;
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
 
     // `MockWiaClient` creates its own WIA below rather than obtaining one from a real wallet_provider, so the
     // pid_issuer must be told to trust the CA it is created with.
@@ -69,7 +70,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .server_settings
         .hsm
         .clone()
-        .map(Pkcs11Hsm::from_settings)
+        .map(|s| hsm_setup.pkcs11_hsm(s))
         .transpose()
         .unwrap();
 

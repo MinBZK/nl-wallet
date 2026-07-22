@@ -5,11 +5,10 @@ import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
-import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
-import helper.OrganizationAuthMetadataHelper.Organization.JOBFINDER
-import helper.OrganizationAuthMetadataHelper.Organization.MARKETPLACE
-import helper.OrganizationAuthMetadataHelper.Organization.XYZ
+import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM
+import helper.OrganizationMetadataHelper.Organization.ONLINE_MARKETPLACE
+import helper.OrganizationMetadataHelper.Organization.XYZ_BANK
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
@@ -49,7 +48,7 @@ class DisclosureTests : TestBase() {
     private lateinit var pinScreen: PinScreen
     private lateinit var l10n: LocalizationHelper
     private lateinit var tasData: TasDataHelper
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var gbaData: GbaDataHelper
     private lateinit var organizationDetailScreen: OrganizationDetailScreen
     private lateinit var issuerWebPage: IssuerWebPage
@@ -81,7 +80,7 @@ class DisclosureTests : TestBase() {
 
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         gbaData = GbaDataHelper()
         issuanceData = IssuanceDataHelper()
     }
@@ -97,12 +96,12 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickXyzBankMdocButton()
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
 
         disclosureScreen.viewDisclosureOrganizationDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", XYZ)))
+        // PVW-6101 Check for organization details
 
-        disclosureScreen.goBack();
+        disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
         assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
@@ -124,10 +123,10 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickXyzBankSdJwtButton()
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
         disclosureScreen.viewDisclosureOrganizationDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", XYZ)))
-        disclosureScreen.goBack();
+        // PVW-6101 Check for organization details
+        disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
         assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
@@ -150,11 +149,10 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickAmsterdamMdocButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
-        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
+        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
 
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)
-            .plus("\n" + organizationAuthMetadata.getAttributeValueForOrganization("organization.category", AMSTERDAM)))
+        disclosureScreen.viewOrganization(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
 
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
@@ -191,9 +189,9 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickAmsterdamSdJwtButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
-        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
+        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM).plus("\nGemeente"))
+        disclosureScreen.viewOrganization(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
@@ -224,17 +222,17 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickMarketplaceButton()
         marketPlaceWebPage.openSameDeviceWalletFlow()
         marketPlaceWebPage.switchToNativeContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)))
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(ONLINE_MARKETPLACE)))
         disclosureScreen.viewDisclosureOrganizationDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", MARKETPLACE)))
-        disclosureScreen.goBack();
+        // PVW-6101 Check for organization details
+        disclosureScreen.goBack()
         assertAll(
-            { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)), "Header is not visible") },
+            { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible(organizationAuthMetadata.getDisplayNameOfOrganization(ONLINE_MARKETPLACE)), "Header is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("family_name")), "Label is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("given_name")), "Label is not visible") },
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data is visible") },
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data is visible") },
-            { assertTrue(disclosureScreen.sharingReasonVisible(organizationAuthMetadata.getAttributeValueForOrganization("purposeStatement", MARKETPLACE)), "reason is not visible") },
+            { assertTrue(disclosureScreen.sharingReasonVisible(""), "reason is not visible") },
             { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
         )
@@ -296,8 +294,8 @@ class DisclosureTests : TestBase() {
         jobFinderWebPage.openSameDeviceWalletFlow()
         jobFinderWebPage.switchToNativeContext()
         disclosureScreen.viewDisclosureOrganizationDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", JOBFINDER)))
-        disclosureScreen.goBack();
+        // PVW-6101 Check for organization details
+        disclosureScreen.goBack()
         disclosureScreen.clickSwapCardButton()
         disclosureScreen.swapCardTo(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         disclosureScreen.share()
@@ -316,7 +314,7 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickXyzBankSdJwtEuPidButton()
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()

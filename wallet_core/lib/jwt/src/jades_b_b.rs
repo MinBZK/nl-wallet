@@ -127,7 +127,7 @@ mod tests {
         };
 
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
         HeaderWithX5c::new(inner, vec_nonempty![keypair.certificate().to_owned()])
     }
 
@@ -157,7 +157,7 @@ mod tests {
         };
 
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
         let header = HeaderWithX5c::new(inner, vec_nonempty![keypair.certificate().to_owned()]);
 
         let json = serde_json::to_value(&header).unwrap();
@@ -244,7 +244,7 @@ mod tests {
     #[tokio::test]
     async fn test_sign_and_verify_jades_b_b_token_roundtrip() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};
 
@@ -278,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_verify_jades_b_b_without_iat() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let toy_payload = ToyJadesbbPayload {};
 

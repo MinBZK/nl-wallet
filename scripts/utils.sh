@@ -409,23 +409,22 @@ function generate_wia_tsl_key_pair {
 # $1 - Short name of the Issuer
 function generate_demo_issuer_key_pairs {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert --type reader \
-        --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
+        --bin wallet_ca cert --type wrpac \
+        --ca-key-file "${TARGET_DIR}/ca.wrpac.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wrpac.crt.pem" \
         --common-name "${access_certificates[($1,name)]}" \
         --organization-name "${access_certificates[($1,legal_name)]}" \
         --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
-        --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
-        --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
+        --file-prefix "${TARGET_DIR}/demo_issuer/$1.wrpac" \
         --force
 
-    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.reader.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.reader.crt.der"
+    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.wrpac.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.wrpac.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/demo_issuer/$1.reader.key.pem" \
-        -out "${TARGET_DIR}/demo_issuer/$1.reader.key.der" -nocrypt
+        -in "${TARGET_DIR}/demo_issuer/$1.wrpac.key.pem" \
+        -out "${TARGET_DIR}/demo_issuer/$1.wrpac.key.der" -nocrypt
 
     generate_demo_issuer_issuance_key_pairs "$@"
 }
@@ -488,12 +487,11 @@ function generate_demo_relying_party_key_pair {
     fi
 
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert --type reader \
-        --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
+        --bin wallet_ca cert --type wrpac \
+        --ca-key-file "${TARGET_DIR}/ca.wrpac.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wrpac.crt.pem" \
         "${ca_args[@]}" \
         --san-uri "https://$1.example.com" \
-        --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \
         --force
 
@@ -503,34 +501,6 @@ function generate_demo_relying_party_key_pair {
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/demo_relying_party/$1.key.pem" \
         -out "${TARGET_DIR}/demo_relying_party/$1.key.der" -nocrypt
-}
-
-# Generate an EC key pair for the demo_relying_party in the HSM.
-# The label of the key is "${READER_NAME}_key"
-#
-# $1 - Short name of the Relying Party
-function generate_relying_party_hsm_key_pair {
-
-    # Generate EC key pair in the HSM
-    generate_hsm_key_pair "$1_key" "demo_relying_party/$1.pub.pem"
-
-    # Generate a certificate for the public key including reader authentication
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert-pub --type reader \
-        --public-key-file "${TARGET_DIR}/demo_relying_party/$1.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
-        --common-name "${access_certificates[($1,name)]}" \
-        --organization-name "${access_certificates[($1,legal_name)]}" \
-        --organization-id "${access_certificates[($1,oid)]}" \
-        --san-uri "https://$1.example.com" \
-        --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
-        --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \
-        --force
-
-    # Convert the PEM certificate to DER format
-    openssl x509 -in "${TARGET_DIR}/demo_relying_party/$1.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/demo_relying_party/$1.crt.der"
 }
 
 function encrypt_gba_v_responses {

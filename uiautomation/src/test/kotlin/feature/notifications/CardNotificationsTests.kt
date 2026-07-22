@@ -71,7 +71,7 @@ class CardNotificationsTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
         disclosureForIssuanceScreen.share()
@@ -90,9 +90,9 @@ class CardNotificationsTests : TestBase() {
             tasData.getPidDisplayName(), EXPIRES_SOON)
         val pidExpiredNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(
             tasData.getPidDisplayName(), EXPIRED)
-        val insuranceExpiresSoonNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(
-            tasData.getInsuranceDisplayName(), EXPIRES_SOON)
-        val insuranceExpiredNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getInsuranceDisplayName(),
+        val diplomaExpiresSoonNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(
+            tasData.getDiplomaDisplayName(), EXPIRES_SOON)
+        val diplomaExpiredNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getDiplomaDisplayName(),
             EXPIRED)
 
         assertAll(
@@ -112,21 +112,21 @@ class CardNotificationsTests : TestBase() {
                 EXPIRED).toIntOrNull() != null, "Incorrect notification id for PID expired notification") },
             { assertTrue( verifyDateIsOneYearFromNow(pidExpiredNotificationTimer), "Incorrect timer for PID expired notification") },
 
-            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getInsuranceDisplayName(),
-                EXPIRES_SOON), "Notification text is not visible for insurance expires soon notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getInsuranceDisplayName(),
-                EXPIRES_SOON).contains("cardUpdates"), "Incorrect notification channel for insurance expires soon notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getInsuranceDisplayName(),
-                EXPIRES_SOON).toIntOrNull() != null, "Incorrect notification id for insurance expires soon notification") },
-            { assertTrue( verifyDateIsOneYearMinusDaysfromNow(insuranceExpiresSoonNotificationTimer, 7), "Incorrect timer for insurance expires soon notification") },
+            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getDiplomaDisplayName(),
+                EXPIRES_SOON), "Notification text is not visible for diploma expires soon notification") },
+            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getDiplomaDisplayName(),
+                EXPIRES_SOON).contains("cardUpdates"), "Incorrect notification channel for diploma expires soon notification") },
+            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getDiplomaDisplayName(),
+                EXPIRES_SOON).toIntOrNull() != null, "Incorrect notification id for diploma expires soon notification") },
+            { assertTrue( verifyDateIsOneYearMinusDaysfromNow(diplomaExpiresSoonNotificationTimer, 7), "Incorrect timer for diploma expires soon notification") },
 
-            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getInsuranceDisplayName(),
-                EXPIRED), "Notification text is not visible for insurance expired notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getInsuranceDisplayName(),
-                EXPIRED).contains("cardUpdates"), "Incorrect notification channel for insurance expired notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getInsuranceDisplayName(),
-                EXPIRED).toIntOrNull() != null, "Incorrect notification id for insurance expired notification") },
-            { assertTrue( verifyDateIsOneYearFromNow(insuranceExpiredNotificationTimer), "Incorrect timer for insurance expired notification") },
+            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getDiplomaDisplayName(),
+                EXPIRED), "Notification text is not visible for diploma expired notification") },
+            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getDiplomaDisplayName(),
+                EXPIRED).contains("cardUpdates"), "Incorrect notification channel for diploma expired notification") },
+            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getDiplomaDisplayName(),
+                EXPIRED).toIntOrNull() != null, "Incorrect notification id for diploma expired notification") },
+            { assertTrue( verifyDateIsOneYearFromNow(diplomaExpiredNotificationTimer), "Incorrect timer for diploma expired notification") },
         )
     }
 

@@ -9,7 +9,7 @@ pub struct CertificateConfiguration {
     pub not_after: Option<DateTime<Utc>>,
     pub exclude_aki: bool,
     pub usage: Option<CertificateUsage>,
-    /// TODO: PVW-5885 PVW-5895 Remove when ReaderRegistration and IssuerRegistration are removed
+    /// TODO: PVW-5895 Remove when IssuerRegistration are removed
     pub extension: Option<rcgen::CustomExtension>,
 }
 

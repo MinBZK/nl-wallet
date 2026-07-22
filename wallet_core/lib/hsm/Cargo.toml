@@ -14,7 +14,7 @@ doctest = false
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
 # Include TestCase type
-test = ["mock", "async-dropper/simple", "dep:async-trait", "config/toml", "dep:rand_core"]
+test = ["mock", "async-dropper/simple", "dep:async-trait", "config/toml", "dep:rand_core","dep:regex", "dep:tempfile"]
 # Integration test feature
 hsm_test = ["test"]
 
@@ -51,7 +51,9 @@ dashmap = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
 measure.path = "../measure"

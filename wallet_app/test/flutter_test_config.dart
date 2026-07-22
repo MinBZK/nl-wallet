@@ -101,7 +101,14 @@ void _setupMockitoDummies() {
   provideDummy<core.AcceptDisclosureResult>(const core.AcceptDisclosureResult_Ok());
   provideDummy<core.StartDisclosureResult>(
     const core.StartDisclosureResult.requestAttributesMissing(
-      relyingParty: core.Organization(legalName: '', displayName: '', description: [], category: [], countryCode: ''),
+      relyingParty: core.Organization(
+        legalName: '',
+        displayName: '',
+        description: [],
+        identifier: '',
+        category: [],
+        countryCode: '',
+      ),
       missingAttributes: [],
       requestOriginBaseUrl: '',
       sharedDataWithRelyingPartyBefore: false,

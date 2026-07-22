@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
+use db_test::DbName;
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use issuer_common::nonce_store::ProofNonceStore;
@@ -12,7 +13,7 @@ use utils::generator::mock::MockTimeGenerator;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_proof_nonce_store() {
-    let db_setup = DbSetup::create().await;
+    let db_setup = DbSetup::create_clean_only([DbName::IssuanceServer]).await;
     let database_connection = connection_from_url(db_setup.issuer_common_url()).await;
 
     let time_generator = MockTimeGenerator::new(DateTime::from_timestamp_secs(1_000_000_000).unwrap());

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::server_keys::KeyPair;
@@ -16,7 +17,6 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::vec_at_least::VecNonEmptyUnique;
 
-use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -284,6 +284,7 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
     use crypto::server_keys::generate::Ca;
@@ -294,7 +295,6 @@ mod tests {
     use super::CredentialConfigurationParameters;
     use super::CredentialConfigurations;
     use super::CredentialConfigurationsError;
-    use crate::issuable_document::CredentialKind;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::ProofType;

@@ -31,6 +31,16 @@ class TasDataHelper {
         JSONObject(jsonContent)
     }
 
+    private val loyaltyTAS: JSONObject by lazy {
+        val jsonContent = File(getLoyaltyCardMetadataPath()).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
+
+    private val museumMaandkaartTAS: JSONObject by lazy {
+        val jsonContent = File(getMuseumMaandkaartCardMetadataPath()).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
+
     private fun getExtendedPidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_nl_1.json")
 
     private fun getBasePidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_1.json")
@@ -38,6 +48,10 @@ class TasDataHelper {
     private fun getDiplomaCardMetadataPath() = getProjectFile("scripts/devenv/com.example.degree.json")
 
     private fun getInsuranceCardMetadataPath() = getProjectFile("scripts/devenv/com.example.insurance.json")
+
+    private fun getLoyaltyCardMetadataPath() = getProjectFile("scripts/devenv/com.example.jum.bonuskaart.json")
+
+    private fun getMuseumMaandkaartCardMetadataPath() = getProjectFile("scripts/devenv/com.example.museum_maandkaart.json")
 
     fun getPidVCT(): String {
         val vct = extendedPidTAS.optString("vct")
@@ -72,6 +86,10 @@ class TasDataHelper {
     fun getDiplomaDisplayName() = findDisplayName(diplomaTAS)
 
     fun getInsuranceDisplayName() = findDisplayName(insuranceTAS)
+
+    fun getLoyaltyDisplayName() = findDisplayName(loyaltyTAS)
+
+    fun getMuseumMaandkaartDisplayName() = findDisplayName(museumMaandkaartTAS)
 
     fun getDiplomaClaimLabel(pathValue: String): String {
         return findClaimLabel(diplomaTAS, pathValue = pathValue)

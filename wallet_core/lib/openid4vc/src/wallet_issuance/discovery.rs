@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
+use std::num::NonZeroU8;
 
 use crypto::trust_anchor::TrustAnchors;
 use http_utils::reqwest::HttpClient;
@@ -11,7 +13,6 @@ use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
-use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 use wscd::wscd::WiaClient;
 
@@ -39,6 +40,8 @@ use crate::metadata::well_known::WellKnownPath;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
+const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
+
 pub struct HttpIssuanceDiscovery {
     http_client: HttpClient,
 }
@@ -62,7 +65,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         wia_client: &impl WiaClient,
         wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        let (credential_configurations, credential_issuer, issuer_endpoints, flow) = self
+        let (credential_configurations, credential_issuer, issuer_endpoints, batch_size, flow) = self
             .resolve_credential_offer_flow(offer_uri, wrpac_trust_anchors)
             .await?;
 
@@ -77,6 +80,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                     credential_configurations,
                     credential_issuer,
                     issuer_endpoints,
+                    batch_size,
                     auth_endpoints,
                     client_id,
                     redirect_uri,
@@ -99,6 +103,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                         credential_configurations,
                         credential_issuer,
                         issuer_endpoints,
+                        batch_size,
                         &token_endpoint,
                         wia_client,
                         &authorization_server,
@@ -121,7 +126,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         wia_client: &impl WiaClient,
         wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Authorization, WalletIssuanceError> {
-        let (credential_configurations, credential_identifier, issuer_endpoints, flow) = self
+        let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
             .resolve_credential_offer_flow(offer_uri, wrpac_trust_anchors)
             .await?;
 
@@ -139,6 +144,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             credential_configurations,
             credential_identifier,
             issuer_endpoints,
+            batch_size,
             auth_endpoints,
             client_id,
             redirect_uri,
@@ -156,7 +162,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         wia_client: &impl WiaClient,
         wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
-        let (credential_configurations, credential_identifier, issuer_endpoints, flow) = self
+        let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
             .resolve_credential_offer_flow(offer_uri, wrpac_trust_anchors)
             .await?;
 
@@ -174,6 +180,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             credential_configurations,
             credential_identifier,
             issuer_endpoints,
+            batch_size,
             &token_endpoint,
             wia_client,
             &authorization_server,
@@ -442,9 +449,10 @@ impl HttpIssuanceDiscovery {
         wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<
         (
-            VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+            HashMap<CredentialConfigurationId, CredentialConfiguration>,
             IssuerIdentifier,
             IssuerEndpoints,
+            NonZeroU8,
             CredentialOfferFlow,
         ),
         WalletIssuanceError,
@@ -454,6 +462,11 @@ impl HttpIssuanceDiscovery {
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer, wrpac_trust_anchors).await?;
 
         Self::check_client_attestation_metadata(&oauth_metadata)?;
+
+        // Limit credential copy count to a sane maximum, even if the issuer indicates it can provide more copies.
+        let batch_size = std::cmp::min(issuer_metadata.batch_size(), BATCH_SIZE_MAX.into())
+            .try_into()
+            .expect("IssuerMetadata batch size is capped to BATCH_SIZE_MAX, which is u8");
 
         let IssuerMetadata {
             credential_issuer,
@@ -465,7 +478,7 @@ impl HttpIssuanceDiscovery {
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
         // error.
-        let (credential_configs, missing_ids): (Vec<_>, HashSet<_>) = credential_offer
+        let (credential_configs, missing_ids): (HashMap<_, _>, HashSet<_>) = credential_offer
             .credential_configuration_ids
             .into_iter()
             .enumerate()
@@ -479,8 +492,6 @@ impl HttpIssuanceDiscovery {
         if !missing_ids.is_empty() {
             return Err(WalletIssuanceError::MissingCredentialConfigId(missing_ids));
         }
-        let credential_configs =
-            VecNonEmpty::try_from(credential_configs).expect("credential_configuration_ids is VecNonEmpty");
 
         // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
         // offer a nonce endpoint. As the wallet, we interpret this a bit more loosely and reject issuance whenever any
@@ -489,15 +500,21 @@ impl HttpIssuanceDiscovery {
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
         if issuer_endpoints.nonce_endpoint.is_none()
             && credential_configs
-                .iter()
-                .any(|(_, config)| config.cryptographic_binding.is_some())
+                .values()
+                .any(|config| config.cryptographic_binding.is_some())
         {
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
         let flow = CredentialOfferFlow::try_from_offer_grant(credential_offer.grant, oauth_metadata)?;
 
-        Ok((credential_configs, credential_issuer, issuer_endpoints, flow))
+        Ok((
+            credential_configs,
+            credential_issuer,
+            issuer_endpoints,
+            batch_size,
+            flow,
+        ))
     }
 
     fn check_client_attestation_metadata(
@@ -540,9 +557,10 @@ impl HttpIssuanceDiscovery {
     async fn create_issuance_session(
         &self,
         pre_authorized_code: AuthorizationCode,
-        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
+        batch_size: NonZeroU8,
         token_endpoint: &Url,
         wia_client: &impl WiaClient,
         authorization_server: &IssuerIdentifier,
@@ -557,6 +575,7 @@ impl HttpIssuanceDiscovery {
             credential_configurations,
             credential_issuer,
             issuer_endpoints,
+            batch_size,
             token_endpoint,
             token_request,
             wia_client,
@@ -572,7 +591,6 @@ mod test {
     use std::assert_matches;
     use std::borrow::Cow;
     use std::collections::HashMap;
-    use std::num::NonZeroU8;
     use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -630,6 +648,7 @@ mod test {
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::authorization::HttpAuthorizationSession;
+    use crate::wallet_issuance::discovery::BATCH_SIZE_MAX;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
 
     static CONFIG_ID: LazyLock<CredentialConfigurationId> = LazyLock::new(|| "pid".to_string().into());
@@ -688,6 +707,9 @@ mod test {
             "credential_endpoint": server.url("/issuance/credential"),
             "batch_credential_endpoint": server.url("/issuance/batch_credential"),
             "credential_preview_endpoint": server.url("/issuance/credential_preview"),
+            "batch_credential_issuance": {
+                "batch_size": 1000,
+            },
             "credential_configurations_supported": {
                 CONFIG_ID.as_ref(): {
                     "format": "mso_mdoc",
@@ -800,7 +822,6 @@ mod test {
         let preview = CredentialPreview {
             config_id: CONFIG_ID.clone(),
             format: Format::MsoMdoc,
-            batch_size: NonZeroU8::new(4).unwrap(),
             credential_payload,
             issuer_certificate: issuance_keypair.certificate().clone(),
         };
@@ -1085,6 +1106,9 @@ mod test {
                     .attestation_type,
                 PID_ATTESTATION_TYPE
             );
+
+            // Check that the batch size from the Issuer Metadata was capped.
+            assert_eq!(issuance_session.batch_size(), BATCH_SIZE_MAX);
         }
     }
 

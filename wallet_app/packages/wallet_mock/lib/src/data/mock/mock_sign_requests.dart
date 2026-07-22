@@ -17,6 +17,7 @@ final kRentalRequest = SignRequest(
     category: 'Contracten'.untranslated,
     description: ''.untranslated,
     image: const Image.asset(path: MockAssets.logo_sign_provider),
+    identifier: 'NTRNL-98765411',
     countryCode: 'NL',
   ),
   document: const Document(

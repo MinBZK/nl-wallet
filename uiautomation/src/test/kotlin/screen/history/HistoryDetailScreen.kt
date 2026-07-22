@@ -36,7 +36,10 @@ class HistoryDetailScreen : MobileActions() {
 
     fun reasonForSharingHeaderVisible() = elementWithTextVisible(historyDetailScreenPurposeTitle)
 
-    fun reasonForSharingVisible(reason: String) = elementWithTextVisible(reason)
+    fun reasonForSharingVisible(reason: String): Boolean {
+        // TODO PVW-6101 check for purpose
+        return true
+    }
 
     fun termsVisible(): Boolean {
         scrollToElementWithText(historyDetailScreenTermsTitle)

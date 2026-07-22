@@ -44,12 +44,12 @@ use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::RemoteErrorResponse;
 use crate::errors::TokenErrorCode;
-use crate::issuable_document::CredentialKind;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
+use crate::scope::Scope;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 
@@ -178,6 +178,18 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     HeaderToStr(#[from] ToStrError),
 
+    #[error("unknown Credential Configuration ID(s) received in Token Response: {}", .0.iter().join(", "))]
+    #[category(critical)]
+    TokenResponseUnknownCredentialConfigIds(Vec<CredentialConfigurationId>),
+
+    #[error("empty scope set received in Token Response")]
+    #[category(critical)]
+    TokenResponseEmptyScope,
+
+    #[error("unknown scope values received in Token Response: {}", .0.iter().join(" "))]
+    #[category(critical)]
+    TokenResponseUnknownScope(Vec<Scope>),
+
     #[error("uri `{0}` has different host than issuer identifier `{1}`")]
     #[category(critical)]
     HostMismatchWithIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
@@ -185,17 +197,6 @@ pub enum WalletIssuanceError {
     #[error("type metadata for `{0}` not found")]
     #[category(critical)]
     TypeMetadataNotFound(CredentialConfigurationId),
-
-    #[error("received unknown credential config id(s) in preview: {}", .0.iter().join(", "))]
-    #[category(critical)]
-    UnknownPreviewCredentialConfig(Vec<CredentialConfigurationId>),
-
-    #[error(
-        "format / attestation type received in preview does not match credential config for id(s): {}",
-        .0.iter().map(|(id, expected, received)| format!("{id} - expected: {expected} received: {received}")).join(", ")
-    )]
-    #[category(critical)]
-    PreviewCredentialConfigMismatch(Vec<(CredentialConfigurationId, CredentialKind, CredentialKind)>),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),

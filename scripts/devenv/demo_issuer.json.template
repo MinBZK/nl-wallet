@@ -38,7 +38,7 @@
       ]
     },
     "university_mdoc": {
-      "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER}",
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY}",
       "data": {
         "900253022": [
           {
@@ -97,7 +97,7 @@
       }
     },
     "university_sd_jwt": {
-      "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER}",
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY}",
       "data": {
         "900253022": [
           {
@@ -156,7 +156,7 @@
       }
     },
     "housing": {
-      "client_id": "${DEMO_ISSUER_CLIENT_ID_HOUSING_READER}",
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_HOUSING}",
       "data": {
         "999991772": [
           {

@@ -4,7 +4,6 @@ use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_types::claim_path::ClaimPath;
 use chrono::Duration;
 use chrono::Utc;
@@ -17,6 +16,7 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
+use crypto::x509::NO_SAN;
 use crypto::x509::SubjectAltNameUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -48,7 +48,6 @@ struct Cli {
 #[derive(Clone, Copy, ValueEnum)]
 enum CertType {
     Issuer,
-    Reader,
     Tsl,
     Wia,
     Wrpac,
@@ -112,9 +111,6 @@ enum Command {
         /// Path to Issuer Authentication file in JSON format
         #[arg(short, long, value_parser)]
         issuer_auth_file: Option<CachedInput>,
-        /// Path to Reader Authentication file in JSON format
-        #[arg(short, long, value_parser)]
-        reader_auth_file: Option<CachedInput>,
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -166,9 +162,6 @@ enum Command {
         /// Path to Issuer Authentication file in JSON format
         #[arg(short, long, value_parser)]
         issuer_auth_file: Option<CachedInput>,
-        /// Path to Reader Authentication file in JSON format
-        #[arg(short, long, value_parser)]
-        reader_auth_file: Option<CachedInput>,
         /// Prefix to use for the generated files: <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -208,12 +201,6 @@ enum Command {
         /// Subject Given Name identifier to use in the new certificate
         #[arg(long)]
         given_name: Option<String>,
-        /// Subject Alternative Name URIs
-        #[arg(long = "san-uri", num_args(0..))]
-        san_uris: Vec<String>,
-        /// Path to Reader Authentication file in JSON format
-        #[arg(short, long, value_parser)]
-        reader_auth_file: CachedInput,
         /// Hex-encoded CBOR SessionTranscript
         #[arg(long)]
         session_transcript_hex: String,
@@ -282,23 +269,18 @@ impl Command {
     fn get_certificate_configuration(
         cert_type: CertType,
         issuer_auth_file: Option<CachedInput>,
-        reader_auth_file: Option<CachedInput>,
         days: u32,
     ) -> Result<CertificateConfiguration> {
         let usage = match cert_type {
             CertType::Issuer => Some(CertificateUsage::Mdl),
-            CertType::Reader => Some(CertificateUsage::ReaderAuth),
             CertType::Tsl => Some(CertificateUsage::OAuthStatusSigning),
             CertType::Wia => Some(CertificateUsage::Wia),
             CertType::Wrpac => None,
         };
 
-        let extension = match (issuer_auth_file, reader_auth_file) {
-            (Some(_), Some(_)) => anyhow::bail!("cannot specify both reader and issuer auth file"),
-            (Some(auth_file), _) => Some(serde_json::from_reader::<_, IssuerRegistration>(auth_file)?.to_custom_ext()?),
-            (_, Some(auth_file)) => Some(serde_json::from_reader::<_, ReaderRegistration>(auth_file)?.to_custom_ext()?),
-            (None, None) => None,
-        };
+        let extension = issuer_auth_file
+            .map(|auth_file| serde_json::from_reader::<_, IssuerRegistration>(auth_file)?.to_custom_ext())
+            .transpose()?;
 
         Ok(CertificateConfiguration {
             usage,
@@ -338,7 +320,6 @@ impl Command {
                 san_uris,
                 cert_type,
                 issuer_auth_file,
-                reader_auth_file,
                 file_prefix,
                 days,
                 force,
@@ -354,7 +335,7 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, reader_auth_file, days)?;
+                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, days)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let key_pair = ca.generate_key_pair(distinguished_name, config, san_uris)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
@@ -374,7 +355,6 @@ impl Command {
                 san_uris,
                 cert_type,
                 issuer_auth_file,
-                reader_auth_file,
                 file_prefix,
                 days,
                 force,
@@ -391,7 +371,7 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, reader_auth_file, days)?;
+                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, days)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let certificate =
                     ca.generate_certificate(public_key.contents(), distinguished_name, config, san_uris)?;
@@ -408,8 +388,6 @@ impl Command {
                 serial_number,
                 surname,
                 given_name,
-                san_uris,
-                reader_auth_file,
                 session_transcript_hex,
             } => {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
@@ -422,8 +400,6 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let san_uris = Self::get_san_uris(san_uris)?;
-                let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
 
                 let session_transcript_bytes =
                     hex::decode(&session_transcript_hex).with_context(|| "invalid session transcript hex")?;
@@ -432,8 +408,6 @@ impl Command {
                 let device_request = runtime.block_on(create_reader_device_request(
                     &ca,
                     distinguished_name,
-                    san_uris,
-                    reader_registration,
                     &session_transcript,
                 ))?;
 
@@ -450,11 +424,13 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn items_requests_from_reader_registration(reader_registration: &ReaderRegistration) -> Result<Vec<ItemsRequest>> {
-    let intent_to_retain = reader_registration.retention_policy.intent_to_retain;
-    let mut items_requests = Vec::with_capacity(reader_registration.authorized_attributes.len());
+fn items_requests_from_registration_cert(
+    intent_to_retain: bool,
+    authorized_attributes: &Vec<(String, Vec<VecNonEmpty<ClaimPath>>)>,
+) -> Result<Vec<ItemsRequest>> {
+    let mut items_requests = Vec::with_capacity(authorized_attributes.len());
 
-    for (doc_type, authorized_paths) in &reader_registration.authorized_attributes {
+    for (doc_type, authorized_paths) in authorized_attributes {
         let mut name_spaces = IndexMap::<String, IndexMap<String, bool>>::new();
 
         for authorized_path in authorized_paths {
@@ -467,8 +443,8 @@ fn items_requests_from_reader_registration(reader_registration: &ReaderRegistrat
                 [_, _] => continue,
                 _ => {
                     return Err(anyhow!(
-                        "reader_auth.json contains unsupported authorized attribute path for credential type \
-                         '{doc_type}': expected 1 or 2 key segments, got {}",
+                        "unsupported authorized attribute path for credential type '{doc_type}': expected 1 or 2 key \
+                         segments, got {}",
                         key_segments.len()
                     ));
                 }
@@ -501,21 +477,17 @@ fn items_requests_from_reader_registration(reader_registration: &ReaderRegistrat
             request_info: None,
         };
 
-        // Reader auth files can contain disclosure definitions for other credential formats
+        // Registration certificates can contain disclosure definitions for other credential formats
         // alongside mdoc requests. Only keep doc types that round-trip through the same
         // requested-attribute validation the holder uses for close-proximity disclosure.
-        if reader_registration
-            .verify_requested_attributes([items_request.clone()])
-            .is_ok()
-            || authorized_paths_round_trip_as_mdoc(doc_type, authorized_paths, &items_request)?
-        {
+        if authorized_paths_round_trip_as_mdoc(doc_type, authorized_paths, &items_request)? {
             items_requests.push(items_request);
         }
     }
 
     if items_requests.is_empty() {
         return Err(anyhow!(
-            "reader_auth.json does not contain any authorized attributes that can be translated into an mdoc request"
+            "no authorized attributes found that can be translated into an mdoc request"
         ));
     }
 
@@ -529,7 +501,7 @@ fn claim_path_segments(doc_type: &str, authorized_path: &VecNonEmpty<ClaimPath>)
         .map(|segment| match segment {
             ClaimPath::SelectByKey(value) => Ok(value.clone()),
             ClaimPath::SelectAll | ClaimPath::SelectByIndex(_) => Err(anyhow!(
-                "reader_auth.json contains unsupported non-key claim path segment for credential type '{doc_type}'"
+                "unsupported non-key claim path segment for credential type '{doc_type}'"
             )),
         })
         .collect()
@@ -549,19 +521,17 @@ fn authorized_paths_round_trip_as_mdoc(
                 ClaimPath::SelectByKey(doc_type.to_string()),
                 ClaimPath::SelectByKey(attribute.clone()),
             ]
-            .try_into()
-            .unwrap(),
+            .try_into()?,
             [namespace, attribute] if is_mdoc_namespace_for_doc_type(doc_type, namespace) => vec![
                 ClaimPath::SelectByKey(namespace.clone()),
                 ClaimPath::SelectByKey(attribute.clone()),
             ]
-            .try_into()
-            .unwrap(),
+            .try_into()?,
             [_, _] => return Ok(false),
             _ => {
                 return Err(anyhow!(
-                    "reader_auth.json contains unsupported authorized attribute path for credential type \
-                     '{doc_type}': expected 1 or 2 key segments, got {}",
+                    "unsupported authorized attribute path for credential type '{doc_type}': expected 1 or 2 key \
+                     segments, got {}",
                     key_segments.len()
                 ));
             }
@@ -583,66 +553,18 @@ fn is_mdoc_namespace_for_doc_type(doc_type: &str, namespace: &str) -> bool {
 async fn create_reader_device_request(
     ca: &generate::Ca,
     distinguished_name: DistinguishedName,
-    subject_alt_name_uris: Vec<SubjectAltNameUri>,
-    reader_registration: ReaderRegistration,
     session_transcript: &SessionTranscript,
 ) -> Result<DeviceRequest> {
-    let items_requests = items_requests_from_reader_registration(&reader_registration)?;
-    let key_pair = ca.generate_key_pair(
-        distinguished_name,
-        CertificateConfiguration::with_usage_and_extension(
-            CertificateUsage::ReaderAuth,
-            reader_registration.to_custom_ext()?,
-        ),
-        subject_alt_name_uris,
-    )?;
+    // TODO PVW-6052 Derive item requests from `credentials` field of WRPRC
+    let items_requests = items_requests_from_registration_cert(true, &vec![])?;
+    let key_pair = ca.generate_key_pair(distinguished_name, CertificateConfiguration::default(), NO_SAN)?;
 
     let mut doc_requests = Vec::with_capacity(items_requests.len());
     for items_request in items_requests {
         doc_requests.push(create_doc_request(items_request, session_transcript, &key_pair).await);
     }
 
-    let doc_requests = VecNonEmpty::try_from(doc_requests)
-        .map_err(|_| anyhow!("reader_auth.json did not produce any doc requests"))?;
+    let doc_requests = VecNonEmpty::try_from(doc_requests).map_err(|_| anyhow!("empty doc requests"))?;
 
     Ok(DeviceRequest::from_doc_requests(doc_requests))
-}
-
-#[cfg(test)]
-mod tests {
-    use attestation_data::auth::reader_auth::ReaderRegistration;
-    use mdoc::ItemsRequest;
-
-    use super::items_requests_from_reader_registration;
-
-    #[test]
-    fn test_items_requests_from_reader_registration_match_original_xyz_bank_registration() {
-        let reader_registration: ReaderRegistration =
-            serde_json::from_str(include_str!("../../../scripts/devenv/xyz_bank_reader_auth.json")).unwrap();
-        let expected_items_request: ItemsRequest = serde_json::from_str(
-            r#"
-            {
-                "docType": "urn:eudi:pid:nl:1",
-                "nameSpaces": {
-                    "urn:eudi:pid:nl:1": {
-                        "given_name": true,
-                        "family_name": true,
-                        "birthdate": true,
-                        "bsn": true
-                    },
-                    "urn:eudi:pid:nl:1.address": {
-                        "street_address": true,
-                        "house_number": true,
-                        "postal_code": true
-                    }
-                }
-            }
-            "#,
-        )
-        .unwrap();
-
-        let items_requests = items_requests_from_reader_registration(&reader_registration).unwrap();
-
-        assert_eq!(items_requests, vec![expected_items_request]);
-    }
 }

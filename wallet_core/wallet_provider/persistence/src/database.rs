@@ -18,6 +18,10 @@ pub struct Db(DatabaseConnection);
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct ConnectionOptions {
+    #[serde(rename = "acquire_timeout_in_sec")]
+    #[serde_as(as = "DurationSeconds")]
+    pub acquire_timeout: Duration,
+
     #[serde(rename = "connect_timeout_in_sec")]
     #[serde_as(as = "DurationSeconds")]
     pub connect_timeout: Duration,
@@ -32,6 +36,7 @@ impl Db {
     ) -> Result<DatabaseConnection, PersistenceError> {
         let mut connect_options = sea_orm::ConnectOptions::new(database_url);
         connect_options
+            .acquire_timeout(connection_options.acquire_timeout)
             .connect_timeout(connection_options.connect_timeout)
             .max_connections(connection_options.max_connections)
             .sqlx_logging(true)

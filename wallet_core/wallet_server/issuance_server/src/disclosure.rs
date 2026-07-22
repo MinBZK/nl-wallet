@@ -167,6 +167,7 @@ mod tests {
     use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
     use chrono::Utc;
@@ -178,7 +179,6 @@ mod tests {
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::errors::ErrorWithCode;
     use openid4vc::errors::PostAuthResponseErrorCode;
-    use openid4vc::issuable_document::CredentialKind;
     use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;

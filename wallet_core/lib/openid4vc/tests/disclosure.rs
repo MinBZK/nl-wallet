@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use attestation_data::attributes::AttributeValue;
-use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::test_credential::TestCredentials;
@@ -16,7 +15,6 @@ use attestation_data::test_credential::nl_pid_credentials_family_name;
 use attestation_data::test_credential::nl_pid_credentials_full_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_id;
-use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
@@ -153,7 +151,7 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
 #[test]
 fn disclosure_direct() {
     let ca = Ca::generate_mock();
-    let auth_keypair = ca.generate_reader_mock().unwrap();
+    let auth_keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = Nonce::from("nonce".to_string());
@@ -251,11 +249,7 @@ async fn disclosure_using_message_client(
     let formats = std::iter::repeat_n(format, test_credentials.as_ref().len()).collect_vec();
 
     let ca = Ca::generate_mock();
-    let rp_keypair = generate_reader_mock_with_registration(
-        &ca,
-        &ReaderRegistration::mock_from_dcql_query(&test_credentials.to_dcql_query(formats.iter().copied())),
-    )
-    .unwrap();
+    let rp_keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
@@ -1047,16 +1041,15 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
 
     let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
 
     // Initialize the verifier
     let test_credentials = nl_pid_credentials_full_name();
     let dcql_query = test_credentials.to_dcql_query([Format::SdJwt]);
-    let reader_registration = ReaderRegistration::mock_from_dcql_query(&dcql_query);
     let use_case = WalletInitiatedUseCase::new(
-        generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap(),
+        wrpac_ca.generate_wrpac_verifier_mock().unwrap(),
         SessionTypeReturnUrl::SameDevice,
         dcql_query.try_into().unwrap(),
         "https://example.com/redirect_uri".parse().unwrap(),
@@ -1079,30 +1072,30 @@ where
     (
         verifier,
         test_credentials,
-        TrustAnchors::from(&rp_ca),
+        TrustAnchors::from(&wrpac_ca),
         issuer_keypair,
         client_id,
     )
 }
 
 fn setup_verifier(
-    dcql_query: &Query,
+    // TODO PVW-5866 Unused dcql_query should be used to create proper registration certificate
+    _dcql_query: &Query,
     session_result_query_param: Option<String>,
 ) -> (Arc<MockRpInitiatedUseCaseVerifier>, TrustAnchors, KeyPair) {
     // Initialize key material
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
 
     let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
 
     // Initialize the verifier
-    let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
                 UseCaseData::new(
-                    generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap(),
+                    wrpac_ca.generate_wrpac_verifier_mock().unwrap(),
                     SessionTypeReturnUrl::SameDevice,
                 ),
                 None,
@@ -1115,7 +1108,7 @@ fn setup_verifier(
             ALL_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
                 UseCaseData::new(
-                    generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap(),
+                    wrpac_ca.generate_wrpac_verifier_mock().unwrap(),
                     SessionTypeReturnUrl::Both,
                 ),
                 None,
@@ -1149,7 +1142,7 @@ fn setup_verifier(
         ))),
     ));
 
-    (verifier, TrustAnchors::from(&rp_ca), issuer_keypair)
+    (verifier, TrustAnchors::from(&wrpac_ca), issuer_keypair)
 }
 
 async fn start_disclosure_session<US, UC>(

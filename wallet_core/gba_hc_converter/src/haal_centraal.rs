@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 
 use nutype::nutype;
-use regex::Regex;
+use regex::regex;
 use serde::Deserialize;
 use serde::Serialize;
 use utils::path::prefix_local_path;
@@ -384,7 +384,7 @@ impl TryFrom<&Categorievoorkomen> for GbaInvestigation {
 }
 
 fn municipalities_code_description(code: String) -> GbaCodeDescription {
-    let (code, description) = if Regex::new(r"^\d{4}$").unwrap().is_match(&code) {
+    let (code, description) = if regex!(r"^\d{4}$").is_match(&code) {
         let description = MUNICIPALITIES_TABLE.get(&code).cloned();
         (Some(code), description)
     } else {

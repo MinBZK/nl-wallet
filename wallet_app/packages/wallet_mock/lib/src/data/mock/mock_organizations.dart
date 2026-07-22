@@ -81,6 +81,7 @@ final _kRdwOrganization = Organization(
       'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.'
           .untranslated,
   image: const Image.asset(path: MockAssets.logo_rdw),
+  identifier: 'NTRNL-27374436',
   countryCode: 'NL',
 );
 
@@ -93,6 +94,7 @@ final _kDuoOrganization = Organization(
       'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.'
           .untranslated,
   image: const Image.asset(path: MockAssets.logo_rijksoverheid),
+  identifier: 'NTRNL-50973029',
   countryCode: 'NL',
 );
 
@@ -105,6 +107,7 @@ final _kEmployerOrganization = Organization(
       'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.'
           .untranslated,
   image: const Image.asset(path: MockAssets.logo_rijksoverheid),
+  identifier: 'NTRNL-98765431',
   countryCode: 'NL',
 );
 
@@ -117,6 +120,7 @@ final _kJustisOrganization = Organization(
       'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.'
           .untranslated,
   image: const Image.asset(path: MockAssets.logo_rijksoverheid),
+  identifier: 'NTRNL-27378698',
   countryCode: 'NL',
 );
 
@@ -150,6 +154,7 @@ final _kBarOrganization = Organization(
   category: 'Horeca'.untranslated,
   description: 'Familiecafe sinds 1984.'.untranslated,
   image: const Image.asset(path: MockAssets.logo_bar),
+  identifier: 'NTRNL-98765420',
   countryCode: 'NL',
 );
 
@@ -162,6 +167,7 @@ final _kHealthInsurerOrganization = Organization(
       'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.'
           .untranslated,
   image: const Image.asset(path: MockAssets.logo_zorgverzekeraar_z),
+  identifier: 'NTRNL-98765421',
   countryCode: 'NL',
 );
 
@@ -173,6 +179,7 @@ final _kHousingCorporationOrganization = Organization(
   description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.'.untranslated,
   image: const Image.asset(path: MockAssets.logo_housing_corp),
   webUrl: 'https://beterwonen.nl',
+  identifier: 'NTRNL-98765422',
   countryCode: 'NL',
   city: kSampleCityTheHague.untranslated,
   department: 'Secretariaat'.untranslated,
@@ -185,6 +192,7 @@ final _kCarRentalOrganization = Organization(
   category: 'Autoverhuur'.untranslated,
   description: 'Betrouwbaar huren.'.untranslated,
   image: const Image.asset(path: MockAssets.logo_car_rental),
+  identifier: 'NTRNL-98765423',
   countryCode: 'NL',
 );
 
@@ -197,6 +205,7 @@ final _kFirstAidOrganization = Organization(
       'Deze Healthcare Facility is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.'
           .untranslated,
   image: const Image.asset(path: MockAssets.logo_first_aid),
+  identifier: 'NTRNL-98765424',
   countryCode: 'NL',
 );
 
@@ -229,6 +238,7 @@ final _kMunicipalityTheHagueOrganization = Organization(
       'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.'
           .untranslated,
   image: const Image.asset(path: MockAssets.logo_municipality_den_haag),
+  identifier: 'NTRNL-27370927',
   department: 'Parkeren'.untranslated,
   city: kSampleCityTheHague.untranslated,
   countryCode: 'NL',
@@ -248,6 +258,7 @@ const _kBankOrganization = Organization(
     LocalizedString(language: 'nl', value: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.'),
   ],
   image: Image.asset(path: MockAssets.logo_bank),
+  identifier: 'NTRNL-12345678',
   department: [
     LocalizedString(language: 'en', value: 'Customer service'),
     LocalizedString(language: 'nl', value: 'Klantenservice'),

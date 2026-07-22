@@ -2,9 +2,9 @@ package feature.issuance
 
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
-import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.INSURANCE
-import helper.OrganizationAuthMetadataHelper.Organization.UNIVERSITY
+import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.INSURANCE
+import helper.OrganizationMetadataHelper.Organization.UNIVERSITY
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
@@ -40,7 +40,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
     private lateinit var l10n: LocalizationHelper
     private lateinit var tasData: TasDataHelper
     private lateinit var issuanceData : IssuanceDataHelper
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var noCardsErrorScreen: NoCardsErrorScreen
     private lateinit var sharingStoppedScreen: SharingStoppedScreen
@@ -52,7 +52,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen = PinScreen()
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         cardIssuanceScreen = CardIssuanceScreen()
         dashboardScreen = DashboardScreen()
@@ -73,7 +73,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         issuerWebPage.openSameDeviceWalletFlow()
 
         disclosureForIssuanceScreen.switchToNativeContext()
-        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)))
+        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)))
 
         disclosureForIssuanceScreen.viewDetails()
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
@@ -83,7 +83,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         assertAll(
-            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)), "Subtitle is not visible") },
+            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").last()), "data is not visible") },
@@ -110,7 +110,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         issuerWebPage.openSameDeviceWalletFlow()
 
         disclosureForIssuanceScreen.switchToNativeContext()
-        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)))
+        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)))
 
         disclosureForIssuanceScreen.viewDetails()
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
@@ -120,7 +120,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         assertAll(
-            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)), "Subtitle is not visible") },
+            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "grade").last()), "data is not visible") },
@@ -146,7 +146,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         issuerWebPage.openSameDeviceWalletFlow()
 
         disclosureForIssuanceScreen.switchToNativeContext()
-        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)))
+        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getDisplayNameOfOrganization(INSURANCE)))
 
         disclosureForIssuanceScreen.viewDetails()
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
@@ -156,7 +156,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "coverage").first())
         assertAll(
-            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)), "Subtitle is not visible") },
+            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getDisplayNameOfOrganization(INSURANCE)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getInsuranceClaimLabel("start_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getInsuranceClaimLabel("duration")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "product").first()), "data is not visible") },
@@ -181,7 +181,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu, "900265462")
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickAmsterdamMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
 
         disclosureForIssuanceScreen.switchToNativeContext()
@@ -200,7 +200,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickInsuranceButton()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
         disclosureForIssuanceScreen.stop()

@@ -4,6 +4,7 @@ use std::iter;
 use audit_log::entity;
 use axum::http::StatusCode;
 use db_test::DbSetup;
+use hsm::test::HsmSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use sea_orm::EntityTrait;
@@ -33,10 +34,11 @@ use wallet_provider_persistence::test::clear_flags_dropper;
 #[serial(hsm)]
 async fn test_revoke_wallet_by_revocation_code() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
     let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _, audit_log_connection) =
-        setup_revocation_env(&db_setup, false).await;
+        setup_revocation_env(&db_setup, &hsm_setup, false).await;
 
     let dir = TempDir::new().unwrap();
     let wallet = setup_file_wallet(
@@ -88,6 +90,7 @@ async fn test_revoke_wallet_by_revocation_code() {
 #[serial(hsm)]
 async fn test_revoke_wallets_by_id() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
     let (
@@ -98,7 +101,7 @@ async fn test_revoke_wallets_by_id() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, false).await;
+    ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
 
     let wallet = setup_in_memory_wallet(
         config_server_config,
@@ -140,6 +143,7 @@ async fn test_revoke_wallets_by_id() {
 #[serial(hsm)]
 async fn test_revoke_wallets_by_recovery_code() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
     let (
@@ -150,7 +154,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         wp_root_ca,
         connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, false).await;
+    ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
 
     let wallet = setup_in_memory_wallet(
         config_server_config.clone(),
@@ -231,6 +235,7 @@ async fn test_revoke_wallets_by_recovery_code() {
 #[serial(hsm)]
 async fn test_revoke_wallet_solution() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let _clear_flags = clear_flags_dropper(&db_setup);
     let pin: Pin = "112233".into();
 
@@ -243,7 +248,7 @@ async fn test_revoke_wallet_solution() {
         wp_root_ca,
         _connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, true).await;
+    ) = setup_revocation_env(&db_setup, &hsm_setup, true).await;
 
     let wallet = setup_in_memory_wallet(
         config_server_config.clone(),
@@ -286,6 +291,7 @@ async fn test_revoke_wallet_solution() {
 #[serial(hsm)]
 async fn test_revoke_wallet_solution_not_enabled() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let _clear_flags = clear_flags_dropper(&db_setup);
     let pin: Pin = "112233".into();
 
@@ -298,7 +304,7 @@ async fn test_revoke_wallet_solution_not_enabled() {
         wp_root_ca,
         _connection,
         audit_log_connection,
-    ) = setup_revocation_env(&db_setup, false).await;
+    ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
 
     let wallet = setup_in_memory_wallet(
         config_server_config.clone(),
@@ -326,6 +332,7 @@ async fn test_revoke_wallet_solution_not_enabled() {
 
 async fn setup_revocation_env(
     db_setup: &DbSetup,
+    hsm_setup: &HsmSetup,
     revoke_solution_enabled: bool,
 ) -> (
     ConfigServerConfiguration,
@@ -343,6 +350,7 @@ async fn setup_revocation_env(
     let audit_log_url = wp_settings.audit_log.url.clone();
 
     let (config_server_config, mock_device_config, wallet_config, _, _) = setup_env(
+        hsm_setup,
         static_server_settings(),
         update_policy_server_settings(),
         (wp_settings, wp_root_ca.clone()),

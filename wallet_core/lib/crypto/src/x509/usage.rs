@@ -11,13 +11,11 @@ use x509_parser::extensions::ExtendedKeyUsage;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateUsage {
     Mdl,
-    ReaderAuth,
     OAuthStatusSigning,
     Wia,
 }
 
 const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
-const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
 // The .127 is made up, the real child node is TDB
 const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
 // The .128 is made up, the real child node is TBD
@@ -53,8 +51,6 @@ impl CertificateUsage {
                 // Unfortunately we cannot use a match statement here.
                 if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
                     Some(Self::Mdl)
-                } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
-                    Some(Self::ReaderAuth)
                 } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
                     Some(Self::OAuthStatusSigning)
                 } else if key_usage_oid == EXTENDED_KEY_USAGE_WIA {
@@ -77,7 +73,6 @@ impl CertificateUsage {
     fn as_oid(self) -> &'static Oid<'static> {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
-            CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
             CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
             CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
         }
@@ -122,12 +117,7 @@ mod tests {
 
     #[rstest]
     fn certificate_usage_to_oid_from_extension(
-        #[values(
-            CertificateUsage::Mdl,
-            CertificateUsage::ReaderAuth,
-            CertificateUsage::OAuthStatusSigning,
-            CertificateUsage::Wia
-        )]
+        #[values(CertificateUsage::Mdl, CertificateUsage::OAuthStatusSigning, CertificateUsage::Wia)]
         cert_usage: CertificateUsage,
     ) {
         let oid_bytes = cert_usage.as_oid_bytes();

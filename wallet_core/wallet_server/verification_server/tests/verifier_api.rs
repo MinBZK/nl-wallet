@@ -8,13 +8,11 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
-use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -29,7 +27,6 @@ use dcql::CredentialQuery;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
 use futures::FutureExt;
-use hsm::service::Pkcs11Hsm;
 use http::StatusCode;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::HttpClient;
@@ -118,7 +115,8 @@ async fn internal_server_settings_and_listener() -> (ServerAuth, Option<TcpListe
 
 async fn wallet_server_settings_and_listener(
     internal_server: ServerAuth,
-    request: &StartDisclosureRequest,
+    // TODO PVW-5866 Unused request should be used to create proper registration certificate
+    _request: &StartDisclosureRequest,
 ) -> (VerifierSettings, TcpListener, Ca, TrustAnchors) {
     // Set up the listener.
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -132,15 +130,12 @@ async fn wallet_server_settings_and_listener(
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
 
-    // Create the RP CA, derive the trust anchor from it and generate
-    // a reader registration, based on the example items request.
-    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
-    let reader_trust_anchors = TrustAnchors::from(&rp_ca);
-    let rp_trust_anchor = TrustAnchors::from(&rp_ca);
-    let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
+    // Create the WRPAC CA, derive the trust anchor from it
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+    let wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, &reader_registration).unwrap();
+    let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -177,7 +172,6 @@ async fn wallet_server_settings_and_listener(
         ephemeral_id_secret: crypto::utils::random_bytes(64).try_into().unwrap(),
 
         allow_origins: None,
-        reader_trust_anchors,
 
         public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
 
@@ -192,14 +186,13 @@ async fn wallet_server_settings_and_listener(
         status_list_token_cache_settings: StatusListTokenCacheSettings::default(),
     };
 
-    (settings, listener, issuer_ca, rp_trust_anchor)
+    (settings, listener, issuer_ca, wrpac_trust_anchors)
 }
 
 async fn start_wallet_server<S, C>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     settings: VerifierSettings,
-    hsm: Option<Pkcs11Hsm>,
     disclosure_sessions: Arc<S>,
     status_list_client: C,
 ) where
@@ -213,7 +206,7 @@ async fn start_wallet_server<S, C>(
             wallet_listener,
             internal_listener,
             settings,
-            hsm,
+            None,
             disclosure_sessions,
             status_list_client,
         )
@@ -290,22 +283,15 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
 
     let (settings, wallet_listener, issuer_ca, _) =
         wallet_server_settings_and_listener(auth, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
     let auth = &settings.server_settings.internal_server;
 
     let internal_url = internal_url(&settings);
 
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
-        hsm,
         Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(issuer_ca.generate_issuer_status_list_mock().unwrap()),
     )
@@ -449,20 +435,14 @@ async fn test_new_session_parameters_error() {
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
         wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
 
     let internal_url = internal_url(&settings);
+
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings,
-        hsm,
         Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
@@ -503,20 +483,14 @@ async fn test_disclosure_not_found() {
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
         wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
 
     let internal_url = internal_url(&settings);
+
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
-        hsm,
         Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
@@ -590,21 +564,13 @@ where
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, issuer_ca, rp_trust_anchor) =
         wallet_server_settings_and_listener(internal_server, request).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
 
     let internal_url = internal_url(&settings);
-
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
-        hsm,
         disclosure_sessions,
         StatusListClientStub::new(issuer_ca.generate_pid_issuer_status_list_mock().unwrap()),
     )

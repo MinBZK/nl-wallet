@@ -13,8 +13,11 @@ ephemeral_id_secret = ""
 # Array of CAs with trusted issuers
 issuer_trust_anchors = ["MII..."]
 
-# Array of CAs which sign use case certificates
-reader_trust_anchors = ["MII..."]
+# Array of CAs for WRPAC certificates
+wrpac_trust_anchors = ["MII..."]
+
+# Array of CAs for WRPRC certificates
+wrprc_trust_anchors = ["MII..."]
 
 # The wallet must be able to reach the server at this URL
 public_url = "http://localhost:8001/"

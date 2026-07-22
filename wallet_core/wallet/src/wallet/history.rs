@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
+use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DataDisclosed;
@@ -69,7 +69,7 @@ where
         &mut self,
         timestamp: DateTime<Utc>,
         attestations: Option<VecNonEmpty<AttestationPresentation>>,
-        reader_certificate: BorrowingCertificate,
+        organization: &Organization,
         r#type: DisclosureType,
         status: DisclosureStatus,
         data_status: DataDisclosed,
@@ -85,7 +85,7 @@ where
         self.storage
             .write()
             .await
-            .log_disclosure_event(timestamp, attestations, reader_certificate, status, r#type)
+            .log_disclosure_event(timestamp, attestations, organization, status, r#type)
             .await?;
 
         info!("Emitting recent history");
@@ -194,13 +194,11 @@ mod tests {
     use std::assert_matches;
     use std::sync::Arc;
 
-    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
-    use crypto::server_keys::generate::Ca;
     use itertools::Itertools;
     use openid4vc::disclosure_session::DataDisclosed;
     use uuid::Uuid;
@@ -258,8 +256,7 @@ mod tests {
     async fn test_history() {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key = generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock()).unwrap();
+        let organization = Organization::new_mock();
 
         // history should be empty
         let history = wallet.get_history(None).await.unwrap();
@@ -272,7 +269,7 @@ mod tests {
             .store_disclosure_event(
                 timestamp_older,
                 None,
-                reader_key.certificate().clone(),
+                &organization,
                 DisclosureType::Regular,
                 DisclosureStatus::Success,
                 DataDisclosed::Disclosed,
@@ -284,7 +281,7 @@ mod tests {
             .store_disclosure_event(
                 timestamp_older + Duration::days(1),
                 None,
-                reader_key.certificate().clone(),
+                &organization,
                 DisclosureType::Regular,
                 DisclosureStatus::Cancelled,
                 DataDisclosed::NotDisclosed,
@@ -296,7 +293,7 @@ mod tests {
             .store_disclosure_event(
                 timestamp_older + Duration::days(2),
                 None,
-                reader_key.certificate().clone(),
+                &organization,
                 DisclosureType::Regular,
                 DisclosureStatus::Error,
                 DataDisclosed::NotDisclosed,
@@ -308,7 +305,7 @@ mod tests {
             .store_disclosure_event(
                 timestamp_newer,
                 None,
-                reader_key.certificate().clone(),
+                &organization,
                 DisclosureType::Regular,
                 DisclosureStatus::Success,
                 DataDisclosed::Disclosed,
@@ -334,9 +331,6 @@ mod tests {
     async fn test_history_pagination() {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key = generate_reader_mock_with_registration(&reader_ca, &ReaderRegistration::new_mock()).unwrap();
-
         let base = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
         for i in 0..4u64 {
@@ -344,7 +338,7 @@ mod tests {
                 .store_disclosure_event(
                     base + Duration::days(i as i64),
                     None,
-                    reader_key.certificate().clone(),
+                    &Organization::new_mock(),
                     DisclosureType::Regular,
                     DisclosureStatus::Success,
                     DataDisclosed::Disclosed,

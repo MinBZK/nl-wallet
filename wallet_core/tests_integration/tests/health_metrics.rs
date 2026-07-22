@@ -1,5 +1,5 @@
 use db_test::DbSetup;
-use hsm::service::Pkcs11Hsm;
+use hsm::test::HsmSetup;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use reqwest::Client;
@@ -9,9 +9,11 @@ use serial_test::serial;
 use tests_integration::common::start_wallet_provider;
 use tests_integration::common::wallet_provider_settings;
 
-async fn setup_wallet_provider(db_setup: &DbSetup) -> (Client, BaseUrl) {
+async fn setup_wallet_provider(db_setup: &DbSetup, hsm_setup: &HsmSetup) -> (Client, BaseUrl) {
     let (settings, root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
-    let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).expect("Could not initialize HSM");
+    let hsm = hsm_setup
+        .pkcs11_hsm(settings.hsm.clone())
+        .expect("Could not initialize HSM");
     let port = start_wallet_provider(settings, hsm, root_ca.clone()).await;
 
     let client = tls_reqwest_client_builder([root_ca.into_certificate()])
@@ -25,7 +27,8 @@ async fn setup_wallet_provider(db_setup: &DbSetup) -> (Client, BaseUrl) {
 #[serial(hsm)]
 async fn test_wallet_provider_health() {
     let db_setup = DbSetup::create().await;
-    let (client, url) = setup_wallet_provider(&db_setup).await;
+    let hsm_setup = HsmSetup::new();
+    let (client, url) = setup_wallet_provider(&db_setup, &hsm_setup).await;
 
     let response = client.get(url.join("health/live")).send().await.unwrap();
     assert!(response.status().is_success());
@@ -52,7 +55,8 @@ async fn test_wallet_provider_health() {
 #[serial(hsm)]
 async fn test_wallet_provider_metrics() {
     let db_setup = DbSetup::create().await;
-    let (client, url) = setup_wallet_provider(&db_setup).await;
+    let hsm_setup = HsmSetup::new();
+    let (client, url) = setup_wallet_provider(&db_setup, &hsm_setup).await;
 
     let response = client.get(url.join("metrics")).send().await.unwrap();
     assert!(response.status().is_success());

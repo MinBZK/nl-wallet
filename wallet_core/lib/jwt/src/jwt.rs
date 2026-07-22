@@ -1016,7 +1016,6 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
-    use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
     use futures::FutureExt;
     use jsonwebtoken::Header;
@@ -1342,7 +1341,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
@@ -1354,7 +1353,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
-                Some(CertificateUsage::ReaderAuth),
+                None,
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -1512,7 +1511,7 @@ mod tests {
             3,
         )
         .unwrap();
-        let cert_config = CertificateConfiguration::with_usage(CertificateUsage::ReaderAuth);
+        let cert_config = CertificateConfiguration::default();
         let intermediate1 = ca
             .generate_intermediate(DistinguishedName::create_mock("myintermediate1"), cert_config.clone())
             .unwrap();
@@ -1522,7 +1521,7 @@ mod tests {
         let intermediate3 = intermediate2
             .generate_intermediate(DistinguishedName::create_mock("myintermediate3"), cert_config)
             .unwrap();
-        let keypair = intermediate3.generate_reader_mock().unwrap();
+        let keypair = intermediate3.generate_wrpac_verifier_mock().unwrap();
 
         // Construct a JWT with the `x5c` field containing the X.509 certificates
         // of the leaf certificate and the intermediates, in reverse order.
@@ -1544,7 +1543,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
-                Some(CertificateUsage::ReaderAuth),
+                None,
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap();
@@ -1556,7 +1555,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_wrong_cert() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
@@ -1570,7 +1569,7 @@ mod tests {
             .parse_and_verify_against_trust_anchors(
                 &TrustAnchors::from(&other_ca),
                 &TimeGenerator,
-                Some(CertificateUsage::ReaderAuth),
+                None,
                 &DEFAULT_VALIDATIONS,
             )
             .unwrap_err();
@@ -1583,7 +1582,7 @@ mod tests {
     #[tokio::test]
     async fn test_rejects_jwt_with_trust_anchor_in_x5c() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_reader_mock().unwrap();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
         let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
 
@@ -1598,12 +1597,7 @@ mod tests {
             .into_unverified();
 
         let err = jwt
-            .parse_and_verify_against_trust_anchors(
-                &trust_anchors,
-                &TimeGenerator,
-                Some(CertificateUsage::ReaderAuth),
-                &DEFAULT_VALIDATIONS,
-            )
+            .parse_and_verify_against_trust_anchors(&trust_anchors, &TimeGenerator, None, &DEFAULT_VALIDATIONS)
             .unwrap_err();
 
         assert_matches!(

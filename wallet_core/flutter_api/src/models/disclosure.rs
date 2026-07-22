@@ -4,14 +4,12 @@ use wallet::AttributesNotAvailable;
 use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureProposalPresentation;
-use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
 use wallet::openid4vc::SessionType;
 
 use super::attestation::AttestationPresentation;
 use super::instruction::WalletInstructionError;
 use super::localize::LocalizedString;
-use super::localize::LocalizedStrings;
 use super::organization::Organization;
 use crate::errors::FlutterApiError;
 
@@ -95,27 +93,6 @@ pub enum AcceptDisclosureResult {
     InstructionError { error: WalletInstructionError },
 }
 
-impl From<&ReaderRegistration> for RequestPolicy {
-    fn from(value: &ReaderRegistration) -> Self {
-        let data_storage_duration_in_minutes = value
-            .retention_policy
-            .intent_to_retain
-            .then_some(value.retention_policy.max_duration_in_minutes)
-            .flatten();
-        RequestPolicy {
-            data_storage_duration_in_minutes,
-            data_shared_with_third_parties: value.sharing_policy.intent_to_share,
-            data_deletion_possible: value.deletion_policy.deleteable,
-            policy_url: value
-                .organization
-                .privacy_policy_url
-                .as_ref()
-                .map(|url| url.to_string())
-                .unwrap_or_default(),
-        }
-    }
-}
-
 // TODO (PVW-3813): Actually translate the missing attributes using the TAS cache.
 impl From<String> for MissingAttribute {
     fn from(value: String) -> Self {
@@ -145,13 +122,15 @@ impl From<wallet::attestation_data::DisclosureType> for DisclosureType {
 
 impl From<DisclosureProposalPresentation> for StartDisclosureResult {
     fn from(proposal: DisclosureProposalPresentation) -> Self {
-        let policy: RequestPolicy = (&proposal.reader_registration).into();
-        let request_purpose: Vec<LocalizedString> =
-            LocalizedStrings(proposal.reader_registration.purpose_statement).into();
-
         StartDisclosureResult::Request {
-            relying_party: proposal.reader_registration.organization.into(),
-            policy,
+            relying_party: proposal.organization.into(),
+            // TODO PVW-5866 Replace with fields from registration certificate
+            policy: RequestPolicy {
+                data_storage_duration_in_minutes: Some(525600),
+                data_shared_with_third_parties: false,
+                data_deletion_possible: false,
+                policy_url: "https://example.com".to_string(),
+            },
             disclosure_options: proposal
                 .attestation_options
                 .into_iter()
@@ -159,8 +138,19 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
                 .collect(),
             shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
             session_type: proposal.session_type.into(),
-            request_purpose,
-            request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
+            // TODO PVW-5866 Replace with fields from registration certificate
+            request_purpose: vec![
+                LocalizedString {
+                    language: "en".into(),
+                    value: "Disclosure".into(),
+                },
+                LocalizedString {
+                    language: "nl".into(),
+                    value: "Onthullen".into(),
+                },
+            ],
+            // TODO PVW-5866 Replace with fields from registration certificate
+            request_origin_base_url: "https://example.com".into(),
             request_type: proposal.disclosure_type.into(),
         }
     }
@@ -168,8 +158,6 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
 
 impl From<AttributesNotAvailable> for StartDisclosureResult {
     fn from(value: AttributesNotAvailable) -> Self {
-        let request_purpose: Vec<LocalizedString> =
-            LocalizedStrings(value.reader_registration.purpose_statement).into();
         // TODO (PVW-4525): Have the UI actually display these as requested attributes,
         //                  not as missing attributes.
         let missing_attributes = value
@@ -182,12 +170,22 @@ impl From<AttributesNotAvailable> for StartDisclosureResult {
             .collect();
 
         StartDisclosureResult::RequestAttributesMissing {
-            relying_party: value.reader_registration.organization.into(),
+            relying_party: (*value.organization).into(),
             missing_attributes,
             shared_data_with_relying_party_before: value.shared_data_with_relying_party_before,
             session_type: value.session_type.into(),
-            request_purpose,
-            request_origin_base_url: value.reader_registration.request_origin_base_url.into(),
+            // TODO PVW-5866 Replace with fields from registration certificate
+            request_purpose: vec![
+                LocalizedString {
+                    language: "en".into(),
+                    value: "Disclosure".into(),
+                },
+                LocalizedString {
+                    language: "nl".into(),
+                    value: "Onthullen".into(),
+                },
+            ],
+            request_origin_base_url: "https://example.com".into(),
         }
     }
 }

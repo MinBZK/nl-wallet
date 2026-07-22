@@ -1,13 +1,13 @@
 package screen.card
 
-import helper.OrganizationAuthMetadataHelper.Organization.RVIG
+import helper.OrganizationMetadataHelper.Organization.PID
 import util.MobileActions
 
 class CardDetailScreen : MobileActions() {
 
     private val cardDetailScreenCardDataCta = l10n.getString("cardDetailScreenCardDataCta")
     private val pidIdTitleText = cardMetadata.getPidDisplayName()
-    private val cardIssuerStateText = organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", RVIG)
+    private val cardIssuerStateText = organizationAuthMetadata.getDisplayNameOfOrganization(PID)
     private val cardHistoryStateText = l10n.getString("cardDetailScreenLatestSuccessInteractionUnknown")
     private val cardDataButton = l10n.getString("cardDetailScreenCardDataCta")
     private val cardHistoryButton = l10n.getString("cardDetailScreenCardHistoryCta")

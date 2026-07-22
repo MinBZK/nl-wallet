@@ -4,16 +4,15 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use crypto::x509::CertificateUsageError;
 use crypto::x509::DistinguishedName;
-use crypto::x509::DistinguishedNameError;
 use derive_more::Debug;
 use error_category::ErrorCategory;
 
 use crate::auth::Organization;
+use crate::auth::OrganizationError;
 use crate::auth::issuer_auth::IssuerRegistration;
-use crate::auth::reader_auth::ReaderRegistration;
 
 /// Relying party of X509 certificates following ETSI EN 319 412-2 and ETSI EN 319 412-3 standard.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RelyingParty {
     LegalPerson {
         common_name: String,
@@ -70,32 +69,46 @@ impl TryFrom<DistinguishedName> for RelyingParty {
     }
 }
 
-impl RelyingParty {
-    pub fn amend_to_organization(self, organization: &mut Organization) {
-        match self {
+impl From<RelyingParty> for Organization {
+    fn from(rp: RelyingParty) -> Self {
+        match rp {
             RelyingParty::LegalPerson {
                 common_name,
                 country_name,
                 organization_name,
                 organization_identifier,
-            } => {
-                organization.display_name = common_name;
-                organization.legal_name = organization_name;
-                organization.identifier = Some(organization_identifier);
-                organization.country_code = country_name;
-            }
+            } => Organization {
+                display_name: common_name,
+                legal_name: organization_name,
+                description: Default::default(),
+                category: Default::default(),
+                logo: None,
+                web_url: None,
+                identifier: organization_identifier,
+                city: None,
+                department: None,
+                country_code: country_name,
+                privacy_policy_url: None,
+            },
             RelyingParty::NaturalPerson {
                 common_name,
                 country_name,
+                serial_number,
                 given_name,
                 surname,
-                ..
-            } => {
-                organization.display_name = common_name;
-                organization.legal_name = format!("{} {}", given_name, surname);
-                organization.identifier = None;
-                organization.country_code = country_name;
-            }
+            } => Organization {
+                display_name: common_name,
+                legal_name: format!("{}, {}", surname, given_name),
+                description: Default::default(),
+                category: Default::default(),
+                logo: None,
+                web_url: None,
+                identifier: serial_number,
+                city: None,
+                department: None,
+                country_code: country_name,
+                privacy_policy_url: None,
+            },
         }
     }
 }
@@ -165,31 +178,22 @@ mod tests {
 
 /// Acts as configuration for the [Certificate::new] function
 ///
-/// TODO: PVW-5885 PVW-5870 Remove when ReaderRegistration and IssuerRegistration are removed
+/// TODO: PVW-5870 Remove when IssuerRegistration are removed
 #[derive(Debug, Clone, PartialEq)]
-#[expect(
-    clippy::large_enum_variant,
-    reason = "CertificateType is only used as a temporary result"
-)]
 pub enum CertificateType {
     Mdl(IssuerRegistration),
-    ReaderAuth(ReaderRegistration),
 }
 
-/// TODO: PVW-5885 PVW-5870 Remove when ReaderRegistration and IssuerRegistration are removed
+/// TODO: PVW-5870 Remove when IssuerRegistration are removed
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CertificateTypeError {
     #[error("certificate error: {0}")]
     #[category(defer)]
     Certificate(#[from] CertificateError),
 
-    #[error("distinguished name error: {0}")]
+    #[error("organization error: {0}")]
     #[category(critical)]
-    DistinguishedName(#[source] DistinguishedNameError),
-
-    #[error("relying party error: {0}")]
-    #[category(critical)]
-    RelyingParty(#[source] RelyingPartyError),
+    Organization(#[source] OrganizationError),
 
     #[error("certificate usage error: {0}")]
     #[category(critical)]
@@ -202,15 +206,11 @@ pub enum CertificateTypeError {
     #[error("issuer registration not found")]
     #[category(critical)]
     IssuerRegistrationNotFound,
-
-    #[error("reader registration not found")]
-    #[category(critical)]
-    ReaderRegistrationNotFound,
 }
 
 impl CertificateType {
     pub fn has_certificate_type(usage: CertificateUsage) -> bool {
-        matches!(usage, CertificateUsage::Mdl | CertificateUsage::ReaderAuth)
+        matches!(usage, CertificateUsage::Mdl)
     }
 
     pub fn from_certificate(cert: &BorrowingCertificate) -> Result<Self, CertificateTypeError> {
@@ -222,28 +222,14 @@ impl CertificateType {
                     return Err(CertificateTypeError::IssuerRegistrationNotFound);
                 };
 
-                // TODO: PVW-5885 Temporarily hack to fill in access certification fields into registration organization
-                let dn = cert
-                    .to_distinguished_name()
-                    .map_err(CertificateTypeError::DistinguishedName)?;
-                let rp = RelyingParty::try_from(dn).map_err(CertificateTypeError::RelyingParty)?;
-                rp.amend_to_organization(registration.organization.as_mut());
+                // TODO: PVW-5870 PVW-6111 Temporarily hack to fill in access certification fields into organization
+                let org = Organization::try_from(cert).map_err(CertificateTypeError::Organization)?;
+                registration.organization.display_name = org.display_name;
+                registration.organization.legal_name = org.legal_name;
+                registration.organization.identifier = org.identifier;
+                registration.organization.country_code = org.country_code;
 
                 CertificateType::Mdl(registration)
-            }
-            CertificateUsage::ReaderAuth => {
-                let Some(mut registration) = ReaderRegistration::from_certificate(cert)? else {
-                    return Err(CertificateTypeError::ReaderRegistrationNotFound);
-                };
-
-                // TODO: PVW-5895 Temporarily hack to fill in access certification fields into registration organization
-                let dn = cert
-                    .to_distinguished_name()
-                    .map_err(CertificateTypeError::DistinguishedName)?;
-                let rp = RelyingParty::try_from(dn).map_err(CertificateTypeError::RelyingParty)?;
-                rp.amend_to_organization(registration.organization.as_mut());
-
-                CertificateType::ReaderAuth(registration)
             }
             _ => return Err(CertificateTypeError::UnknownUsage(usage)),
         };
@@ -257,12 +243,11 @@ impl From<&CertificateType> for CertificateUsage {
         use CertificateType::*;
         match source {
             Mdl(_) => Self::Mdl,
-            ReaderAuth(_) => Self::ReaderAuth,
         }
     }
 }
 
-/// TODO: PVW-5885 PVW-5870 Remove when ReaderRegistration and IssuerRegistration are removed
+/// TODO: PVW-5870 Remove when IssuerRegistration are removed
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
     #[cfg(any(test, feature = "mock"))]
@@ -273,12 +258,9 @@ pub mod generate {
         use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
-        use crypto::server_keys::generate::mock::RP_CERT_DN;
-        use crypto::server_keys::generate::mock::RP_CERT_SAN_URI;
         use crypto::x509::CertificateError;
 
         use crate::auth::issuer_auth::IssuerRegistration;
-        use crate::auth::reader_auth::ReaderRegistration;
 
         pub fn generate_issuer_mock_with_registration(
             ca: &Ca,
@@ -299,17 +281,6 @@ pub mod generate {
                 PID_ISSUER_CERT_DN.clone(),
                 issuer_registration.to_certificate_configuration()?,
                 [PID_ISSUER_CERT_SAN_URI.clone()],
-            )
-        }
-
-        pub fn generate_reader_mock_with_registration(
-            ca: &Ca,
-            reader_registration: &ReaderRegistration,
-        ) -> Result<KeyPair, CertificateError> {
-            ca.generate_key_pair(
-                RP_CERT_DN.clone(),
-                reader_registration.to_certificate_configuration()?,
-                [RP_CERT_SAN_URI.clone()],
             )
         }
     }

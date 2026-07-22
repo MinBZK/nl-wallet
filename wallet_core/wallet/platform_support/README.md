@@ -242,14 +242,13 @@ To exercise the `SessionEstablished` path manually, use the QR code logged by th
 swift scripts/close_proximity/disclosure_mac_reader.swift --qr-code "<logged-qr-code>"
 ```
 
-To exercise a real signed reader `DeviceRequest`, point the helper at the repo's reader CA material and a `reader_auth.json`. The helper will generate a valid signed mdoc `DeviceRequest` for the session transcript and can print the decrypted plaintext `DeviceResponse` for reuse in assertions:
+To exercise a real signed reader `DeviceRequest`, point the helper at the repo's WRPAC CA material. The helper will generate a valid signed mdoc `DeviceRequest` for the session transcript and can print the decrypted plaintext `DeviceResponse` for reuse in assertions:
 
 ```bash
 swift scripts/close_proximity/disclosure_mac_reader.swift \
   --qr-code "<logged-qr-code>" \
-  --reader-ca-crt-file <path-to-ca.reader.crt.pem> \
-  --reader-ca-key-file <path-to-ca.reader.key.pem> \
-  --reader-auth-file <path-to-reader_auth.json> \
+  --wrpac-ca-crt-file <path-to-ca.wrpac.crt.pem> \
+  --wrpac-ca-key-file <path-to-ca.wrpac.key.pem> \
   --print-device-response-hex
 ```
 
@@ -258,14 +257,13 @@ The auto-launch wrappers also accept these payload fields in the `CLOSE_PROXIMIT
 ```json
 {
   "qr": "<base64url-device-engagement>",
-  "reader_ca_crt_file": "<path-to-ca.reader.crt.pem>",
-  "reader_ca_key_file": "<path-to-ca.reader.key.pem>",
-  "reader_auth_file": "<path-to-reader_auth.json>",
+  "wrpac_ca_crt_file": "<path-to-ca.wrpac.crt.pem>",
+  "wrpac_ca_key_file": "<path-to-ca.wrpac.key.pem>",
   "print_device_response_hex": true
 }
 ```
 
-If you already have a plaintext `DeviceRequest`, you can inject it directly with `device_request_hex` instead of the reader CA fields.
+If you already have a plaintext `DeviceRequest`, you can inject it directly with `device_request_hex` instead of the WRPAC CA fields.
 
 There are also host-side wrapper scripts that watch for the QR marker and launch the Mac helper automatically.
 

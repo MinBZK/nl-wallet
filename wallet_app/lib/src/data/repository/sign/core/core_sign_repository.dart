@@ -8,7 +8,7 @@ import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/start_sign_result/start_sign_result.dart';
 import '../../../../util/mapper/mapper.dart';
-import '../../../../util/sentry_breadcrumbs.dart';
+import '../../../../util/sentry/sentry_breadcrumbs.dart';
 import '../sign_repository.dart';
 
 class CoreSignRepository implements SignRepository {

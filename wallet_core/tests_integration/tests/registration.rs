@@ -1,4 +1,5 @@
 use db_test::DbSetup;
+use hsm::test::HsmSetup;
 use rstest::rstest;
 use sea_orm::Database;
 use serde_json::json;
@@ -14,7 +15,8 @@ async fn ltc51_test_wallet_registration(
     #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
 ) {
     let db_setup = DbSetup::create().await;
-    let (wallet, _, _) = setup_wallet_and_default_env(&db_setup, vendor).await;
+    let hsm_setup = HsmSetup::new();
+    let (wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, vendor).await;
 
     let connection = Database::connect(db_setup.wallet_provider_url())
         .await
@@ -31,6 +33,7 @@ async fn ltc51_test_wallet_registration(
 #[serial(hsm)]
 async fn ltc43_test_registration_blocked() {
     let db_setup = DbSetup::create().await;
+    let hsm_setup = HsmSetup::new();
 
     let (mut settings, root_ca) = update_policy_server_settings();
     settings.update_policy =
@@ -38,6 +41,7 @@ async fn ltc43_test_registration_blocked() {
 
     let (mut wallet, _, _) = setup_wallet_and_env(
         &db_setup,
+        &hsm_setup,
         WalletDeviceVendor::Apple,
         (settings, root_ca),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),

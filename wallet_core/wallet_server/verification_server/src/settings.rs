@@ -6,8 +6,6 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateUsage;
 use dcql::Query;
 use derive_more::AsRef;
 use derive_more::From;
@@ -51,10 +49,6 @@ pub struct VerifierSettings {
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EphemeralIdSecret,
     pub allow_origins: Option<CorsOrigin>,
-
-    /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
-    /// application startup.
-    pub reader_trust_anchors: TrustAnchors,
 
     /// Publicly reachable URL used by the wallet during sessions.
     pub public_url: BaseUrl,
@@ -183,7 +177,6 @@ impl ServerSettings for VerifierSettings {
             .separator("__")
             .prefix_separator("__")
             .list_separator(",")
-            .with_list_parse_key("reader_trust_anchors")
             .with_list_parse_key("issuer_trust_anchors")
             .with_list_parse_key("wrpac_trust_anchors")
             .with_list_parse_key("wrprc_trust_anchors")
@@ -211,12 +204,7 @@ impl ServerSettings for VerifierSettings {
             .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &self.reader_trust_anchors,
-            Some(CertificateUsage::ReaderAuth),
-            &time,
-        )?;
+        verify_key_pairs(&key_pairs, &self.server_settings.wrpac_trust_anchors, None, &time)?;
 
         Ok(())
     }

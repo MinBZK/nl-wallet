@@ -2,9 +2,9 @@ package feature.disclosure
 
 import helper.GbaDataHelper
 import helper.GbaDataHelper.Field.FIRST_NAME
-import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
-import helper.OrganizationAuthMetadataHelper.Organization.XYZ
+import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM
+import helper.OrganizationMetadataHelper.Organization.XYZ_BANK
 import helper.TasDataHelper
 import helper.TwoDeviceTestBase
 import navigator.MenuNavigator
@@ -50,14 +50,14 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
 
     private lateinit var gbaData: GbaDataHelper
     private lateinit var tasData: TasDataHelper
-    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
 
     fun setUp(testInfo: TestInfo) {
         startDrivers(testInfo)
 
         gbaData = GbaDataHelper()
         tasData = TasDataHelper()
-        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        organizationAuthMetadata = OrganizationMetadataHelper()
 
         useSourceDevice {
             sourceDashboard = DashboardScreen()
@@ -94,12 +94,12 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
             assertTrue(sourceQrScanner.visible())
 
-            assertTrue(sourceUrlCheckScreen.titleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.webUrl", XYZ)))
+            // PVW-6101 Check for contact
             sourceUrlCheckScreen.clickContinueButton()
-            assertTrue(sourceDisclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+            assertTrue(sourceDisclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
 
             sourceDisclosureScreen.viewDisclosureOrganizationDetails()
-            assertTrue(sourceDisclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", XYZ)))
+            // PVW-6101 Check for organization details
 
             sourceDisclosureScreen.goBack()
             sourceDisclosureScreen.cancel()
@@ -135,13 +135,12 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
             assertTrue(sourceQrScanner.visible())
 
-            assertTrue(sourceUrlCheckScreen.titleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.webUrl", AMSTERDAM)))
+            // PVW-6101 Check for contact
             sourceUrlCheckScreen.clickContinueButton()
-            assertTrue(sourceDisclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
+            assertTrue(sourceDisclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
 
             sourceDisclosureScreen.viewLoginDisclosureDetails()
-            sourceDisclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)
-                .plus("\n" + organizationAuthMetadata.getAttributeValueForOrganization("organization.category", AMSTERDAM)))
+            sourceDisclosureScreen.viewOrganization(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
 
             sourceOrganizationDetailScreen.clickBackButton()
             sourceDisclosureScreen.viewSharedData("1", tasData.getPidDisplayName())

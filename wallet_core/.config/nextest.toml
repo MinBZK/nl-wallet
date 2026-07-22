@@ -1,21 +1,16 @@
 [test-groups]
-hsm = { max-threads = 1 }
-mock-pkce = { max-threads = 1 }
-metrics-recorder = { max-threads = 1 }
+# Not needed for `hsm`
+MockPkcePair = { max-threads = 1 }
+MetricsRecorder = { max-threads = 1 }
 # Not needed for `MockCloseProximityDisclosureClient`
 
 [[profile.default.overrides]]
-# Include all tests_integration because not all of the tests can run independently inbetween binaries
-filter = 'package(tests_integration) | (package(wallet_provider) & binary(hsm)) | (package(hsm) & binary(hsm))'
-test-group = 'hsm'
+filter = 'package(=openid4vc) & test(/::test_auth_url::/)'
+test-group = 'MockPkcePair'
 
 [[profile.default.overrides]]
-filter = 'package(openid4vc) & test(/(test_start_and_into_token_request|test_user_cancels)$/)'
-test-group = 'mock-pkce'
-
-[[profile.default.overrides]]
-filter = 'package(measure) & binary(measure_tests)'
-test-group = 'metrics-recorder'
+filter = 'package(=measure) & binary(=measure_tests)'
+test-group = 'MetricsRecorder'
 
 [profile.ci]
 fail-fast = false

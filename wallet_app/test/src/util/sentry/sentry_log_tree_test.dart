@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:test/test.dart';
-import 'package:wallet/src/util/sentry_log_tree.dart';
+import 'package:wallet/src/util/sentry/sentry_log_tree.dart';
 
 void main() {
   test('registers all Fimber levels', () {

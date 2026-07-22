@@ -2,6 +2,7 @@ use std::assert_matches;
 use std::time::Duration;
 
 use db_test::DbSetup;
+use hsm::test::HsmSetup;
 use rstest::rstest;
 use serial_test::serial;
 use tests_integration::common::*;
@@ -17,9 +18,10 @@ async fn ltc37_test_unlock_ok(
     #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
 ) {
     let db_setup = DbSetup::create().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112234".into();
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, vendor).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, vendor).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     wallet.lock();
@@ -39,6 +41,7 @@ async fn ltc37_test_unlock_ok(
 #[serial(hsm)]
 async fn ltc47_test_block() {
     let db_setup = DbSetup::create().await;
+    let hsm_setup = HsmSetup::new();
     let correct_pin: Pin = "112234".into();
 
     let (mut settings, wp_root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
@@ -48,6 +51,7 @@ async fn ltc47_test_block() {
 
     let (mut wallet, _, _) = setup_wallet_and_env(
         &db_setup,
+        &hsm_setup,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         (settings, wp_root_ca),
@@ -91,12 +95,13 @@ async fn ltc47_test_block() {
 #[serial(hsm)]
 async fn ltc46_test_unlock_error() {
     let db_setup = DbSetup::create().await;
+    let hsm_setup = HsmSetup::new();
     let correct_pin: Pin = "112234".into();
     let wrong_pin_1: Pin = "555555".into();
     let wrong_pin_2: Pin = "555556".into();
     let wrong_pin_3: Pin = "555557".into();
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, correct_pin.clone()).await;
 
     wallet.lock();
