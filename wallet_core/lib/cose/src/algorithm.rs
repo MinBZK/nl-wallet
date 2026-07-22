@@ -18,8 +18,11 @@ pub enum CoseAlgorithmIdentifier {
 }
 
 impl CoseAlgorithmIdentifier {
-    /// Whether this identifier denotes ES256 or ESP256. This classification does not imply support by every
-    /// cryptographic operation in this crate.
+    /// Whether this identifier is compatible with ECDSA using P-256 and SHA-256.
+    ///
+    /// COSE ES256 (-7) specifies ECDSA with SHA-256, but not the curve. When the caller knows that the key uses P-256,
+    /// ES256 and fully specified ESP256 (-9) describe the same operation. This classification does not imply that every
+    /// cryptographic operation in this crate accepts both identifiers on the wire.
     pub fn is_ecdsa_p256(&self) -> bool {
         matches!(
             self,

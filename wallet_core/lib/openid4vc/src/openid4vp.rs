@@ -323,6 +323,11 @@ pub struct MsoMdocAlgValues {
 }
 
 impl MsoMdocAlgValues {
+    /// Whether both issuer and device authentication metadata support ECDSA using P-256 and SHA-256.
+    ///
+    /// OpenID4VP treats ES256 (-7) used with a P-256 key as matching metadata containing either ES256 or fully
+    /// specified ESP256 (-9). See
+    /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-final.html#appendix-B.2.2-2.1>.
     pub fn contains_ecdsa_p256(&self) -> bool {
         let contains_ecdsa_p256 =
             |alg: &VecNonEmpty<CoseAlgorithmIdentifier>| alg.iter().any(CoseAlgorithmIdentifier::is_ecdsa_p256);
