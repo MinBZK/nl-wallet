@@ -8,7 +8,7 @@ use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
-use regex::Regex;
+use regex::regex;
 use reqwest::header::HeaderValue;
 use tests_integration::common::*;
 use tokio::fs;
@@ -64,7 +64,7 @@ async fn test_wallet_config() {
     let content = fs::read(etag_file.as_path()).await.unwrap();
     let header_value = HeaderValue::from_bytes(&content).unwrap();
 
-    let quoted_hash_regex = Regex::new(r#"".+""#).unwrap();
+    let quoted_hash_regex = regex!(r#"".+""#);
     assert!(quoted_hash_regex.is_match(header_value.to_str().unwrap()));
 
     // Second fetch should use earlier etag
