@@ -12,11 +12,11 @@ use coset::CoseSign1;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
-use coset::ProtectedHeader;
 use coset::RegisteredLabel;
 use coset::cwt::ClaimsSet;
 use coset::cwt::Timestamp;
 use coset::iana;
+use coset::iana::CborTag;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
@@ -344,8 +344,8 @@ fn header_contains_label(header: &Header, label: &Label) -> bool {
 fn parse_cose_sign1(bytes: &[u8]) -> Result<CoseSign1, WrprcCwtError> {
     let value = Value::from_slice(bytes).map_err(WrprcCwtError::CoseSerialization)?;
     let value = match value {
-        Value::Tag(tag, value) if tag == iana::CborTag::Cwt as u64 => match *value {
-            Value::Tag(tag, value) if tag == iana::CborTag::CoseSign1 as u64 => *value,
+        Value::Tag(tag, value) if tag == CborTag::Cwt as u64 => match *value {
+            Value::Tag(tag, value) if tag == CborTag::CoseSign1 as u64 => *value,
             Value::Tag(tag, _) => return Err(WrprcCwtError::UnexpectedCborTag(tag)),
             _ => {
                 return Err(WrprcCwtError::InvalidCoseSign1(
@@ -353,82 +353,12 @@ fn parse_cose_sign1(bytes: &[u8]) -> Result<CoseSign1, WrprcCwtError> {
                 ));
             }
         },
-        Value::Tag(tag, value) if tag == iana::CborTag::CoseSign1 as u64 => *value,
+        Value::Tag(tag, value) if tag == CborTag::CoseSign1 as u64 => *value,
         Value::Tag(tag, _) => return Err(WrprcCwtError::UnexpectedCborTag(tag)),
         value => value,
     };
 
-    let Value::Array(elements) = value else {
-        return Err(WrprcCwtError::InvalidCoseSign1("top-level CBOR value must be an array"));
-    };
-    if elements.len() != 4 {
-        return Err(WrprcCwtError::InvalidCoseSign1(
-            "top-level array must contain four items",
-        ));
-    }
-
-    let mut elements = elements.into_iter();
-    let protected = parse_protected_header(
-        elements
-            .next()
-            .ok_or(WrprcCwtError::InvalidCoseSign1("missing protected header"))?,
-    )?;
-    let unprotected = parse_header_map(
-        elements
-            .next()
-            .ok_or(WrprcCwtError::InvalidCoseSign1("missing unprotected header"))?,
-        "unprotected header must be a CBOR map",
-    )?;
-    let payload = match elements
-        .next()
-        .ok_or(WrprcCwtError::InvalidCoseSign1("missing payload"))?
-    {
-        Value::Bytes(payload) => Some(payload),
-        Value::Null => None,
-        _ => return Err(WrprcCwtError::InvalidCoseSign1("payload must be a byte string or null")),
-    };
-    let signature = match elements
-        .next()
-        .ok_or(WrprcCwtError::InvalidCoseSign1("missing signature"))?
-    {
-        Value::Bytes(signature) => signature,
-        _ => return Err(WrprcCwtError::InvalidCoseSign1("signature must be a byte string")),
-    };
-
-    Ok(CoseSign1 {
-        protected,
-        unprotected,
-        payload,
-        signature,
-    })
-}
-
-fn parse_protected_header(value: Value) -> Result<ProtectedHeader, WrprcCwtError> {
-    let Value::Bytes(original_data) = value else {
-        return Err(WrprcCwtError::InvalidCoseSign1(
-            "protected header must be encoded as a byte string",
-        ));
-    };
-
-    let header = if original_data.is_empty() {
-        Header::default()
-    } else {
-        let value = Value::from_slice(&original_data).map_err(WrprcCwtError::CoseSerialization)?;
-        parse_header_map(value, "protected header byte string must contain a CBOR map")?
-    };
-
-    Ok(ProtectedHeader {
-        original_data: Some(original_data),
-        header,
-    })
-}
-
-fn parse_header_map(value: Value, invalid_map_message: &'static str) -> Result<Header, WrprcCwtError> {
-    if !matches!(&value, Value::Map(_)) {
-        return Err(WrprcCwtError::InvalidCoseSign1(invalid_map_message));
-    }
-
-    Header::from_cbor_value(value).map_err(WrprcCwtError::CoseSerialization)
+    CoseSign1::from_cbor_value(value).map_err(WrprcCwtError::CoseSerialization)
 }
 
 #[cfg(test)]
@@ -492,13 +422,13 @@ mod tests {
         let encoded = signed.to_vec().unwrap();
         let parsed = UnverifiedWrprcCwt::<ToyMessage>::from_slice(&encoded).unwrap();
         let tagged = Value::Tag(
-            iana::CborTag::CoseSign1 as u64,
+            CborTag::CoseSign1 as u64,
             Box::new(Value::from_slice(&encoded).unwrap()),
         )
         .to_vec()
         .unwrap();
         UnverifiedWrprcCwt::<ToyMessage>::from_slice(&tagged).unwrap();
-        let cwt_tagged = Value::Tag(iana::CborTag::Cwt as u64, Box::new(Value::from_slice(&tagged).unwrap()))
+        let cwt_tagged = Value::Tag(CborTag::Cwt as u64, Box::new(Value::from_slice(&tagged).unwrap()))
             .to_vec()
             .unwrap();
         UnverifiedWrprcCwt::<ToyMessage>::from_slice(&cwt_tagged).unwrap();
@@ -674,7 +604,7 @@ mod tests {
         let not_an_array = cbor_serialize(&Value::Map(Vec::new())).unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::<ToyMessage>::from_slice(&not_an_array),
-            Err(WrprcCwtError::InvalidCoseSign1(_))
+            Err(WrprcCwtError::CoseSerialization(_))
         ));
 
         let protected_header_not_bytes = cbor_serialize(&Value::Array(vec![
@@ -686,11 +616,11 @@ mod tests {
         .unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::<ToyMessage>::from_slice(&protected_header_not_bytes),
-            Err(WrprcCwtError::InvalidCoseSign1(_))
+            Err(WrprcCwtError::CoseSerialization(_))
         ));
 
         let cwt_tag_without_cose_tag = Value::Tag(
-            iana::CborTag::Cwt as u64,
+            CborTag::Cwt as u64,
             Box::new(Value::Array(vec![
                 Value::Bytes(Vec::new()),
                 Value::Map(Vec::new()),
