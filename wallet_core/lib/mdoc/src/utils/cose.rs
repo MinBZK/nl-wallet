@@ -273,7 +273,8 @@ impl<T> MdocCose<CoseSign1, T> {
         let chain = chain.into_iter().collect_vec();
 
         // Verify the certificate against the trusted IACAs
-        cert.verify(usage, &chain, time, trust_anchors)
+
+        cert.verify(usage, &chain, time, trust_anchors, None)
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
