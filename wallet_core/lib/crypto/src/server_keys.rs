@@ -229,10 +229,14 @@ pub mod generate {
             this_update: OffsetDateTime,
             next_update: OffsetDateTime,
         ) -> Result<CertificateRevocationList, CertificateError> {
+            // RFC 5280 requires `crlNumber` to be monotonically increasing for each CRL issued by
+            // this CA. Deriving it from `this_update` guarantees that by construction, since time
+            // only moves forward, without requiring callers to track/pass an explicit counter.
+            let crl_number = u64::try_from(this_update.unix_timestamp()).expect("this_update must be after 1970");
             let params = CertificateRevocationListParams {
                 this_update,
                 next_update,
-                crl_number: SerialNumber::from(1u64),
+                crl_number: SerialNumber::from(crl_number),
                 issuing_distribution_point: None,
                 revoked_certs,
                 key_identifier_method: KeyIdMethod::Sha256,

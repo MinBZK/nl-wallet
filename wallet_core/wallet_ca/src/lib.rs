@@ -10,6 +10,7 @@ use p256::pkcs8::EncodePrivateKey;
 use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;
+use rcgen::CertificateRevocationList;
 
 pub fn read_public_key(public_key_file: &CachedInput) -> Result<Pem> {
     let pem = Pem::try_from(public_key_file.get_data())?;
@@ -75,5 +76,15 @@ fn write_signing_key_inner(file_path: &Path, key: &SigningKey) -> Result<()> {
         pem::encode_config(&key_pem, EncodeConfig::new().set_line_ending(LineEnding::LF)),
     )?;
     eprintln!("Key stored in '{}'", file_path.display());
+    Ok(())
+}
+
+pub fn write_crl(file_prefix: &str, crl: &CertificateRevocationList, force: bool) -> Result<()> {
+    let crl_file = format!("{file_prefix}.crl.pem");
+    let crl_path = Path::new(&crl_file);
+    assert_not_exists(crl_path, force)?;
+
+    fs::write(crl_path, crl.pem()?)?;
+    eprintln!("CRL stored in '{}'", crl_path.display());
     Ok(())
 }

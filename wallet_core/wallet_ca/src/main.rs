@@ -27,12 +27,16 @@ use mdoc::NameSpaces;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::create_doc_request;
 use mdoc::utils::serialization::cbor_serialize;
+use rcgen::RevokedCertParams;
+use rcgen::SerialNumber;
+use time::OffsetDateTime;
 use url::Url;
 use utils::built_info::version_string;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_ca::read_public_key;
 use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_certificate;
+use wallet_ca::write_crl;
 use wallet_ca::write_key_pair;
 
 /// Generate private keys and certificates
@@ -211,6 +215,26 @@ enum Command {
         /// Hex-encoded CBOR SessionTranscript
         #[arg(long)]
         session_transcript_hex: String,
+    },
+    /// Generate a CRL, signed by the CA
+    Crl {
+        /// Path to the CA key file in PEM format
+        #[arg(short = 'k', long, value_parser)]
+        ca_key_file: CachedInput,
+        /// Path to the CA certificate file in PEM format
+        #[arg(short = 'c', long, value_parser)]
+        ca_crt_file: CachedInput,
+        #[arg(short, long)]
+        file_prefix: String,
+        /// Duration for which the CRL will be valid (used to calculate `nextUpdate`)
+        #[arg(short, long)]
+        days: u32,
+        /// Revoked Serial Numbers, hex-encoded (colons optional, as in `openssl x509 -noout -serial`/-text output)
+        #[arg(short, long = "serial-number", num_args(0..))]
+        serial_numbers: Vec<String>,
+        /// Overwrite existing files
+        #[arg(long, default_value = "false")]
+        force: bool,
     },
 }
 
@@ -425,6 +449,37 @@ impl Command {
                 ))?;
 
                 println!("{}", hex::encode(cbor_serialize(&device_request)?));
+                Ok(())
+            }
+            Crl {
+                ca_key_file,
+                ca_crt_file,
+                file_prefix,
+                days,
+                serial_numbers,
+                force,
+            } => {
+                let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
+
+                let this_update = OffsetDateTime::now_utc();
+                let next_update = this_update + time::Duration::days(i64::from(days));
+                let revoked_certs = serial_numbers
+                    .into_iter()
+                    .map(|sn| {
+                        let serial_number = hex::decode(sn.replace(':', ""))
+                            .with_context(|| format!("invalid hex-encoded serial number '{sn}'"))?;
+                        Ok(RevokedCertParams {
+                            serial_number: SerialNumber::from(serial_number),
+                            revocation_time: this_update,
+                            reason_code: Some(rcgen::RevocationReason::Unspecified),
+                            invalidity_date: None,
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+
+                let crl = ca.generate_crl_with_validity(revoked_certs, this_update, next_update)?;
+
+                write_crl(&file_prefix, &crl, force)?;
                 Ok(())
             }
         }
