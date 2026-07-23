@@ -49,7 +49,7 @@ yoke = { workspace = true, features = ["derive"] }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
 
 error_category.path = "../error_category"
-http_utils.path = "../http_utils"
+http_utils = { path = "../http_utils", features = ["client"] }
 utils.path = "../utils"
 
 anyhow = { workspace = true, optional = true }
