@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use chrono::DateTime;
 use chrono::Utc;
+use http_utils::reqwest::bytes_with_max_response_size;
 use itertools::Itertools;
 use moka::Expiry;
 use moka::future::Cache;
@@ -28,6 +29,8 @@ use crate::x509::CertificateUsage;
 pub enum CrlProviderError {
     #[error("HTTP error fetching CRL: {0}")]
     Http(#[source] reqwest::Error),
+    #[error("CRL response exceeds maximum size of {MAX_CRL_SIZE} bytes")]
+    TooLarge,
     #[error("CRL parsing error: {0}")]
     Parsing(#[source] webpki::Error),
     #[error("Invalid URL: {0}")]
@@ -46,6 +49,14 @@ const FALLBACK_TTL: Duration = Duration::from_mins(5);
 
 /// Upper bound on the cache TTL derived from a CRL's `nextUpdate` field.
 const MAX_TTL: Duration = Duration::from_hours(7 * 24);
+
+/// Upper bound on the size of a single CRL response. Real-world CRLs are typically well under 1 MB (median around
+/// 90 KB among popular CAs); this is generous headroom for the closed, comparatively small WRPAC access-certificate
+/// ecosystem, while still bounding memory use against a malicious or malfunctioning CRL distribution point.
+const MAX_CRL_SIZE: usize = 5 * 1024 * 1024;
+
+/// Timeout for a single CRL fetch request, so a hung or slow-drip connection doesn't stall certificate verification.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// A parsed CRL together with its cache TTL.
 #[derive(Debug)]
@@ -156,17 +167,22 @@ impl CrlProvider {
         if let Some(cached) = self.cache.get(&url).await {
             return Ok(FetchedCrl::Cached(cached));
         }
-        let bytes = self
+        let mut response = self
             .client
             .get(url.clone())
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await
             .map_err(CrlProviderError::Http)?
             .error_for_status()
-            .map_err(CrlProviderError::Http)?
-            .bytes()
-            .await
             .map_err(CrlProviderError::Http)?;
+
+        // Read the body in chunks rather than via `.bytes()`, so a CRL distribution point cannot
+        // exhaust memory by returning an unbounded or never-ending response body.
+        let bytes = bytes_with_max_response_size(&mut response, MAX_CRL_SIZE)
+            .await
+            .map_err(CrlProviderError::Http)?
+            .ok_or(CrlProviderError::TooLarge)?;
 
         // Extract TTL using `x509_parser`, falling back to a short retry TTL rather than caching
         // this entry indefinitely if `nextUpdate` couldn't be determined. Uses the same injected
@@ -585,6 +601,26 @@ mod tests {
         let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
         assert!(matches!(error, CrlProviderError::Parsing(_)));
+        mock.assert_calls_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn crl_provider_returns_too_large_error_when_response_exceeds_max_size() {
+        let server = MockServer::start_async().await;
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/crl.der");
+                then.status(200).body(vec![0u8; MAX_CRL_SIZE + 1]);
+            })
+            .await;
+
+        let url: Url = server.url("/crl.der").parse().unwrap();
+        let cert = generate_cert_with_cdps(vec![url]);
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+
+        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+
+        assert!(matches!(error, CrlProviderError::TooLarge));
         mock.assert_calls_async(1).await;
     }
 
