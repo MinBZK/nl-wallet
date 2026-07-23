@@ -31,9 +31,12 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::EndEntityCert;
 use webpki::Error;
+use webpki::ExpirationPolicy;
 use webpki::ExtendedKeyUsageValidator;
 use webpki::KeyPurposeIdIter;
-use webpki::RevocationOptions;
+use webpki::RevocationCheckDepth;
+use webpki::RevocationOptionsBuilder;
+use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
@@ -50,6 +53,7 @@ use yoke::Yoke;
 use yoke::Yokeable;
 
 use crate::trust_anchor::TrustAnchors;
+use crate::x509::crl::FetchedCrl;
 
 #[cfg(any(test, feature = "generate"))]
 mod config;
@@ -214,7 +218,7 @@ impl BorrowingCertificate {
         intermediate_certs: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
-        revocation: Option<RevocationOptions<'_>>,
+        crls: Option<&[FetchedCrl]>,
     ) -> Result<(), CertificateError> {
         let chain = once(self).chain(intermediate_certs).collect_vec();
 
@@ -237,6 +241,16 @@ impl BorrowingCertificate {
                 .expect("time of verification should lie after UNIX epoch"),
         ));
         let key_usage = usage.map(|u| webpki::KeyUsage::required(u.as_oid_bytes()));
+
+        let crl_refs = crls.map(|crls| crls.iter().map(FetchedCrl::crl).collect_vec());
+        let revocation = crl_refs.as_ref().map(|crl_refs| {
+            RevocationOptionsBuilder::new(crl_refs)
+                .expect("crl_refs is non-empty, checked above")
+                .with_depth(RevocationCheckDepth::Chain)
+                .with_expiration_policy(ExpirationPolicy::Enforce)
+                .with_status_policy(UnknownStatusPolicy::Deny)
+                .build()
+        });
 
         self.end_entity_certificate()
             .verify_for_usage(
@@ -467,7 +481,6 @@ mod tests {
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
-    use webpki::RevocationOptionsBuilder;
     use x509_parser::certificate::X509Certificate;
 
     use super::*;
@@ -581,8 +594,7 @@ mod tests {
         };
         let crl_der = ca.generate_crl(vec![revoked]).unwrap().der().to_vec();
         let crl = parse_crl_der(&crl_der).unwrap();
-        let crls = [&crl];
-        let revocation = RevocationOptionsBuilder::new(&crls).unwrap().build();
+        let crls = [FetchedCrl::new_for_test(crl)];
 
         // Verify without CRL should succeed
         leaf_certificate
@@ -591,7 +603,7 @@ mod tests {
 
         // Verify with CRL should fail
         let error = leaf_certificate
-            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca), Some(revocation))
+            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca), Some(&crls))
             .expect_err("revoked certificate should fail verification");
         assert_matches!(
             error,

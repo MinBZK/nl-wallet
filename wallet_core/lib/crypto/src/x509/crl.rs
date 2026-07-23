@@ -12,11 +12,7 @@ use url::Url;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
-use webpki::ExpirationPolicy;
 use webpki::OwnedCertRevocationList;
-use webpki::RevocationCheckDepth;
-use webpki::RevocationOptionsBuilder;
-use webpki::UnknownStatusPolicy;
 use x509_parser::extensions::DistributionPointName;
 use x509_parser::extensions::GeneralName;
 use x509_parser::extensions::ParsedExtension;
@@ -48,11 +44,32 @@ pub enum CrlProviderError {
 /// indefinitely.
 const FALLBACK_TTL: Duration = Duration::from_mins(5);
 
+/// Upper bound on the cache TTL derived from a CRL's `nextUpdate` field.
+const MAX_TTL: Duration = Duration::from_hours(7 * 24);
+
 /// A parsed CRL together with its cache TTL.
 #[derive(Debug)]
 pub struct CachedCrl {
     crl: CertRevocationList<'static>,
     ttl: Duration,
+}
+
+/// The result of fetching a single CRL for use in one `verify_chain` call: either served from the cache, or retrieved
+/// fresh over the network this call. A fresh result's signature has not been checked yet, so it is only a candidate for
+/// insertion into the cache — see `verify_chain`, which commits it after a successful verification.
+#[derive(Debug)]
+pub enum FetchedCrl {
+    Cached(Arc<CachedCrl>),
+    Fresh { url: Url, fetched: Arc<CachedCrl> },
+}
+
+impl FetchedCrl {
+    pub(super) fn crl(&self) -> &CertRevocationList<'static> {
+        match self {
+            FetchedCrl::Cached(cached) => &cached.crl,
+            FetchedCrl::Fresh { fetched, .. } => &fetched.crl,
+        }
+    }
 }
 
 struct CrlExpiry;
@@ -65,9 +82,9 @@ impl Expiry<Url, Arc<CachedCrl>> for CrlExpiry {
 
 /// Downloads and caches RFC 5280 CRLs keyed by URL.
 ///
-/// Used to check revocation status of signing certificates during SD-JWT and MsoMdoc message
-/// verification. The cache TTL for each entry is derived from the CRL's `nextUpdate` field so
-/// entries are refreshed automatically when the CRL expires.
+/// The cache TTL for each entry is derived from the CRL's `nextUpdate` field so entries are refreshed automatically
+/// when the CRL expires. A freshly-fetched CRL is only committed to the cache once it has been used in a successful
+/// `verify_chain` call (i.e. its signature has been checked by `rustls-webpki`).
 pub struct CrlProvider {
     client: Client,
     cache: Cache<Url, Arc<CachedCrl>>,
@@ -82,17 +99,7 @@ impl CrlProvider {
         Self { client, cache }
     }
 
-    #[cfg(any(test, feature = "mock"))]
-    pub fn new_without_caching(client: Client) -> Self {
-        Self {
-            client,
-            cache: Cache::builder().max_capacity(0).build(),
-        }
-    }
-
-    /// Verify a certificate chain, checking the revocation status of every certificate in the
-    /// chain (leaf and intermediates) against the CRL(s) referenced by each certificate's CDP
-    /// extension (`RevocationCheckDepth::Chain`).
+    /// Verify a certificate chain, checking the revocation status of every certificate in the chain against their CRLs.
     pub async fn verify_chain(
         &self,
         chain: &[BorrowingCertificate],
@@ -106,23 +113,23 @@ impl CrlProvider {
         for cert in chain {
             crls.extend(self.crls_for_cert(cert, time).await?);
         }
+
         if crls.is_empty() {
             return Err(CrlProviderError::NoCrlDistributionPoint);
         }
-        let crl_refs = crls.iter().map(|cached| &cached.crl).collect_vec();
-        // `rustls-webpki` verifies the CRL signature (using the issuer's public key from the
-        // certificate chain) and checks the certificate's serial number against the CRL as part of
-        // `verify_for_usage` below, so no separate CRL signature verification is done here.
-        let revocation = RevocationOptionsBuilder::new(&crl_refs)
-            .expect("crl_refs is non-empty, checked above")
-            .with_depth(RevocationCheckDepth::Chain)
-            .with_expiration_policy(ExpirationPolicy::Enforce)
-            .with_status_policy(UnknownStatusPolicy::Deny)
-            .build();
 
-        // Verify the leaf certificate against intermediates and trust_anchors, based on time and revocation options.
-        leaf.verify(usage, intermediate_certs, time, trust_anchors, Some(revocation))
-            .map_err(|error| CrlProviderError::Verification(Box::new(error)))
+        // Verify the whole certificate chain before storing fetched CRLs in cache. This is needed since we cannot
+        // directly and easily verify the signature of a CRL using `rustls-webpki`.
+        leaf.verify(usage, intermediate_certs, time, trust_anchors, Some(crls.as_slice()))
+            .map_err(|error| CrlProviderError::Verification(Box::new(error)))?;
+
+        // Commit any freshly-fetched CRLs to the cache after successful verification.
+        for fetched in crls {
+            if let FetchedCrl::Fresh { url, fetched: cached } = fetched {
+                self.cache.insert(url, cached).await;
+            }
+        }
+        Ok(())
     }
 
     /// Fetch all CRLs referenced in the certificate's CDP extension, either from cache or the network.
@@ -130,26 +137,24 @@ impl CrlProvider {
         &self,
         cert: &BorrowingCertificate,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Vec<Arc<CachedCrl>>, CrlProviderError> {
+    ) -> Result<Vec<FetchedCrl>, CrlProviderError> {
         let urls = extract_crl_distribution_points(cert);
         let mut crls = Vec::new();
         for url in urls.iter().flatten() {
-            let cached = self
+            let fetched = self
                 .fetch_crl(url.parse().map_err(CrlProviderError::InvalidUrl)?, time)
                 .await?;
-            crls.push(cached);
+            crls.push(fetched);
         }
         Ok(crls)
     }
 
-    /// Fetch and parse the CRL at `url`, or return the already-parsed, cached CRL if a usable one is present.
-    async fn fetch_crl(
-        &self,
-        url: Url,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Arc<CachedCrl>, CrlProviderError> {
+    /// Fetch and parse the CRL at `url`, or return the already-parsed, cached CRL if present. A freshly-fetched CRL's
+    /// signature has not yet been checked, so it is not inserted into the cache here — the caller commits it via
+    /// `self.cache.insert` only after successfully using it in `verify_chain`.
+    async fn fetch_crl(&self, url: Url, time: &impl Generator<DateTime<Utc>>) -> Result<FetchedCrl, CrlProviderError> {
         if let Some(cached) = self.cache.get(&url).await {
-            return Ok(cached);
+            return Ok(FetchedCrl::Cached(cached));
         }
         let bytes = self
             .client
@@ -166,16 +171,16 @@ impl CrlProvider {
         // Extract TTL using `x509_parser`, falling back to a short retry TTL rather than caching
         // this entry indefinitely if `nextUpdate` couldn't be determined. Uses the same injected
         // `time` as verification, so cache eviction and expiry enforcement agree on "now".
+        // Capped at `MAX_TTL`, since `nextUpdate` comes from the not-yet-verified CRL itself.
         let ttl = parse_x509_crl(&bytes)
             .ok()
             .and_then(|(_, crl)| ttl_from_next_update(&crl, time))
-            .unwrap_or(FALLBACK_TTL);
+            .unwrap_or(FALLBACK_TTL)
+            .min(MAX_TTL);
 
-        // Insert new CachedCrl in cache
         let crl = parse_crl_der(&bytes).map_err(CrlProviderError::Parsing)?;
-        let cached = Arc::new(CachedCrl { crl, ttl });
-        self.cache.insert(url, cached.clone()).await;
-        Ok(cached)
+        let fetched = Arc::new(CachedCrl { crl, ttl });
+        Ok(FetchedCrl::Fresh { url, fetched })
     }
 }
 
@@ -245,6 +250,32 @@ pub fn ttl_from_next_update(crl: &CertificateRevocationList, time: &impl Generat
     let now_secs = time.generate().timestamp();
     let remaining = (next_update_secs - now_secs).max(0) as u64;
     Some(Duration::from_secs(remaining))
+}
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use super::*;
+
+    impl CrlProvider {
+        pub fn new_without_caching(client: Client) -> Self {
+            Self {
+                client,
+                cache: Cache::builder().max_capacity(0).build(),
+            }
+        }
+    }
+
+    impl FetchedCrl {
+        /// Wrap an already-parsed CRL for use in `BorrowingCertificate::verify` without going through
+        /// `CrlProvider` (the TTL is irrelevant here, since it's only used by `CrlProvider`'s cache).
+        #[cfg(test)]
+        pub(crate) fn new_for_test(crl: CertRevocationList<'static>) -> Self {
+            FetchedCrl::Cached(Arc::new(CachedCrl {
+                crl,
+                ttl: Duration::ZERO,
+            }))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -468,26 +499,31 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn crl_provider_caches_response_for_repeated_fetches() {
+    async fn verify_chain_caches_crl_after_successful_verification() {
         let server = MockServer::start_async().await;
+        let url: Url = server.url("/crl.der").parse().unwrap();
+        let (ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
         let mock = server
             .mock_async(|when, then| {
                 when.method(GET).path("/crl.der");
-                then.status(200).body(empty_revocation_list());
+                then.status(200).body(ca.generate_crl(vec![]).unwrap().der());
             })
             .await;
 
-        let url: Url = server.url("/crl.der").parse().unwrap();
-        let cert = generate_cert_with_cdps(vec![url]);
         let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let trust_anchors = TrustAnchors::from(&ca);
 
-        let first = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
-        let second = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
+        provider
+            .verify_chain(std::slice::from_ref(&leaf), &trust_anchors, None, &TimeGenerator)
+            .await
+            .expect("certificate should verify");
+        provider
+            .verify_chain(&[leaf], &trust_anchors, None, &TimeGenerator)
+            .await
+            .expect("certificate should verify again, served from cache");
 
-        assert_eq!(first.len(), 1);
-        assert_eq!(second.len(), 1);
-
-        // Server should have been invoked once
+        // The second call's CRL should have come from the cache, committed after the first
+        // call's successful verification, so the server should have been invoked only once.
         mock.assert_calls_async(1).await;
     }
 
@@ -506,40 +542,6 @@ mod tests {
         let provider = CrlProvider::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
 
         provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
-        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
-
-        // Server should have been invoked twice
-        mock.assert_calls_async(2).await;
-    }
-
-    #[tokio::test]
-    async fn crl_provider_refetches_after_ttl_expires() {
-        let server = MockServer::start_async().await;
-        let this_update = OffsetDateTime::now_utc();
-        // Expires in 100 milliseconds
-        let next_update = this_update + Duration::from_millis(100);
-        let ca = Ca::generate_mock();
-        let crl = ca.generate_crl_with_validity(vec![], this_update, next_update).unwrap();
-
-        let mock = server
-            .mock_async(|when, then| {
-                when.method(GET).path("/crl.der");
-                then.status(200).body(crl.der());
-            })
-            .await;
-
-        let url: Url = server.url("/crl.der").parse().unwrap();
-        let cert = generate_cert_with_cdps(vec![url]);
-        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
-
-        // Invoke once to initialize the cache
-        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
-        mock.assert_calls_async(1).await;
-
-        // Wait 200 milliseconds until CRL is expired
-        tokio::time::sleep(Duration::from_millis(200)).await;
-
-        // Invoke again after expiry
         provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
 
         // Server should have been invoked twice
@@ -654,7 +656,7 @@ mod tests {
             reason_code: Some(RevocationReason::KeyCompromise),
             invalidity_date: None,
         };
-        server
+        let mock = server
             .mock_async(|when, then| {
                 when.method(GET).path("/crl.der");
                 then.status(200).body(ca.generate_crl(vec![revoked]).unwrap().der());
@@ -662,9 +664,10 @@ mod tests {
             .await;
 
         let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let trust_anchors = TrustAnchors::from(&ca);
 
         let error = provider
-            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(std::slice::from_ref(&leaf), &trust_anchors, None, &TimeGenerator)
             .await
             .expect_err("revoked certificate should fail verification");
         assert!(matches!(
@@ -672,6 +675,14 @@ mod tests {
             CrlProviderError::Verification(error)
                 if matches!(&*error, CertificateError::Verification(error) if matches!(**error, webpki::Error::CertRevoked))
         ));
+
+        // A CRL used in a failed verification must not be cached: a repeated call should
+        // refetch it from the network rather than serve it from cache.
+        provider
+            .verify_chain(&[leaf], &trust_anchors, None, &TimeGenerator)
+            .await
+            .expect_err("revoked certificate should still fail verification on retry");
+        mock.assert_calls_async(2).await;
     }
 
     #[tokio::test]
