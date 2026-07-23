@@ -27,6 +27,7 @@ use mdoc::NameSpaces;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::create_doc_request;
 use mdoc::utils::serialization::cbor_serialize;
+use url::Url;
 use utils::built_info::version_string;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_ca::read_public_key;
@@ -81,6 +82,9 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
+        /// URLs where CRLs for this issuer (ca) are hosted
+        #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
+        crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -132,6 +136,9 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
+        /// URLs where CRLs for this issuer (ca) are hosted
+        #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
+        crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -270,6 +277,7 @@ impl Command {
         cert_type: CertType,
         issuer_auth_file: Option<CachedInput>,
         days: u32,
+        crl_distribution_points: Vec<Url>,
     ) -> Result<CertificateConfiguration> {
         let usage = match cert_type {
             CertType::Issuer => Some(CertificateUsage::Mdl),
@@ -285,6 +293,7 @@ impl Command {
         Ok(CertificateConfiguration {
             usage,
             extension,
+            crl_distribution_points,
             ..Self::get_ca_configuration(days)
         })
     }
@@ -310,6 +319,7 @@ impl Command {
             Cert {
                 ca_key_file,
                 ca_crt_file,
+                crl_distribution_points,
                 common_name,
                 country_name,
                 organization_name,
@@ -335,7 +345,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, days)?;
+                let config =
+                    Self::get_certificate_configuration(cert_type, issuer_auth_file, days, crl_distribution_points)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let key_pair = ca.generate_key_pair(distinguished_name, config, san_uris)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
@@ -345,6 +356,7 @@ impl Command {
                 public_key_file,
                 ca_key_file,
                 ca_crt_file,
+                crl_distribution_points,
                 common_name,
                 country_name,
                 organization_name,
@@ -371,7 +383,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, days)?;
+                let config =
+                    Self::get_certificate_configuration(cert_type, issuer_auth_file, days, crl_distribution_points)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let certificate =
                     ca.generate_certificate(public_key.contents(), distinguished_name, config, san_uris)?;

@@ -27,8 +27,12 @@ use predicates::str::StartsWithPredicate;
 use rand_core::OsRng;
 use time::Duration;
 use time::OffsetDateTime;
+use url::Url;
 use x509_parser::extensions::GeneralName;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
+
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::crl::extract_crl_distribution_points;
 
 trait RangeCompare<Offset> {
     /// Compare [`self`] to the range of [`other`] +/- the [`offset`].
@@ -169,6 +173,23 @@ fn assert_generated_certificate(
     if let Some(usage) = usage {
         assert_eq!(CertificateUsage::from_certificate(&crt)?, usage);
     }
+
+    Ok(())
+}
+
+/// Verify the CRL Distribution Point URIs from a generated certificate's CDP extension against the expected CRL
+/// Distribution Point URIs.
+fn assert_generated_certificate_crl_distribution_points(crt_file: &ChildPath, expected: &[Url]) -> Result<()> {
+    let crt_pem_bytes = std::fs::read(crt_file)?;
+    let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+    let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
+
+    let uris = extract_crl_distribution_points(&cert)
+        .map(|urls| urls.into_inner())
+        .unwrap_or_default();
+
+    let expected: Vec<String> = expected.iter().map(ToString::to_string).collect();
+    assert_eq!(uris, expected);
 
     Ok(())
 }
@@ -777,6 +798,82 @@ fn happy_flow_with_san() -> Result<()> {
             OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_with_crl_distribution_points() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    let crl_distribution_points: Vec<Url> = vec![
+        "http://crl1.example.com/wrpac.crl".parse().unwrap(),
+        "http://crl2.example.com/wrpac.crl".parse().unwrap(),
+    ];
+
+    // Generate WRPAC key pair with multiple CDPs
+    {
+        let (rp_auth_prefix, rp_auth_crt, rp_auth_key) = keypair_paths(&temp, "test-wrpac-cdp-kp");
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_wrpac_kp(&ca_crt, &ca_key, &rp_auth_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--crl-distribution-point")
+            .args(crl_distribution_points.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_key_pair(&rp_auth_crt, &rp_auth_key)?);
+
+        assert_generated_key(&rp_auth_key)?;
+        assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &crl_distribution_points)?;
+    }
+
+    // Generate WRPAC certificate with multiple CDPs
+    {
+        let (rp_auth_prefix, rp_auth_crt, _) = keypair_paths(&temp, "test-wrpac-cdp-crt");
+
+        let public_key_path = public_key_path(&temp, "test-wrpac-cdp-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_wrpac_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--crl-distribution-point")
+            .args(crl_distribution_points.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
+
+        assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &crl_distribution_points)?;
+    }
+
+    // Generate a WRPAC certificate without the flag: no CDP extension should be present
+    {
+        let (rp_auth_prefix, rp_auth_crt, _) = keypair_paths(&temp, "test-wrpac-no-cdp-crt");
+
+        let public_key_path = public_key_path(&temp, "test-wrpac-no-cdp-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_wrpac_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
+
+        assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &[])?;
     }
 
     // Explicitly close the temp folder, for better error reporting

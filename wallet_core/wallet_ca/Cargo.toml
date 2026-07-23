@@ -22,6 +22,7 @@ tokio = { workspace = true, features = ["rt"] }
 p256 = { workspace = true, features = ["pem"] }
 pem.workspace = true
 serde_json.workspace = true
+url.workspace = true
 x509-parser.workspace = true
 
 crypto = { path = "../lib/crypto", features = ["generate"] }
