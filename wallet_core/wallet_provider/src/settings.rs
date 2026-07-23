@@ -206,8 +206,10 @@ impl Settings {
                 "wia_wallet_solution_certification_information",
                 "https://wallet.edi.rijksoverheid.nl",
             )?
+            .set_default("audit_log.options.acquire_timeout_in_sec", "10")?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?
             .set_default("audit_log.options.max_connections", "10")?
+            .set_default("database.options.acquire_timeout_in_sec", "10")?
             .set_default("database.options.connect_timeout_in_sec", "3")?
             .set_default("database.options.max_connections", "10")?
             .set_default("webserver.port", 8001)?

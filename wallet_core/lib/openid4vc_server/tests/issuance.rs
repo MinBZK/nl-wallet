@@ -328,7 +328,7 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.credential_previews().len(), attestation_count.get());
+    assert_eq!(session.credential_previews().len(), attestation_count);
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
@@ -359,7 +359,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     let mut session = start_issuance_session(&server).await;
 
     let previews = session.credential_previews();
-    assert_eq!(previews.len(), 1);
+    assert_eq!(previews.len().get(), 1);
     let attributes = previews[0].credential_payload.attributes.as_ref();
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
@@ -949,7 +949,7 @@ async fn token_ok() {
 
     assert_eq!(token_response.token_type, TokenType::DPoP);
     assert!(token_response.refresh_token.is_none());
-    assert_eq!(token_response.scope, HashSet::new());
+    assert!(token_response.scope.is_none());
     assert!(token_response.expires_in.is_none());
 
     let EntryContainer { entry, .. } = token_response
@@ -1257,6 +1257,68 @@ async fn token_rejects_scope_mismatch() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn pre_authorized_code_flow_rejects_token_request_scope() {
+    let attestation_count = NonZeroUsize::MIN;
+    let PreAuthCodeFlowServer {
+        issuer,
+        tls_trust_anchor,
+        wia_keypair,
+        ..
+    } = start_pre_authorized_code_flow_server(attestation_count).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!(
+        "{}issuance/token",
+        issuer.issuer_identifier().as_base_url().as_ref().as_str()
+    )
+    .parse()
+    .unwrap();
+
+    let documents = mock_issuable_documents(attestation_count);
+    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
+    let pre_authorized_code = credential_offer
+        .grants
+        .unwrap()
+        .pre_authorized_code
+        .unwrap()
+        .pre_authorized_code;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+        redirect_uri: None,
+        scope: Some(HashSet::from([
+            "com.example.pid_dc+sd-jwt".parse().unwrap(),
+            "other_scope".parse().unwrap(),
+        ])),
+        code_verifier: None,
+        authorization_details: None,
+    };
+
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+        .issue_wia(issuer.issuer_identifier().to_string(), None)
+        .await
+        .unwrap();
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_scope"), "unexpected body: {body}");
 }
 
 #[tokio::test]

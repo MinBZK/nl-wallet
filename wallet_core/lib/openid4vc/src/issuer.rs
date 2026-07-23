@@ -189,6 +189,9 @@ pub enum TokenRequestError {
         actual: HashSet<Scope>,
     },
 
+    #[error("use of scope values in Pre-Authorized Token Request is not supported, received: {}", .0.iter().join(" "))]
+    PreAuthorizedScopeUnsupported(HashSet<Scope>),
+
     #[error("missing redirect_uri in Authorization Code flow")]
     MissingRedirectUri,
 
@@ -319,7 +322,6 @@ pub struct AccessTokenIssued {
 pub struct PreparedCredential {
     pub credential_configuration_id: CredentialConfigurationId,
     pub format: Format,
-    pub batch_size: NonZeroU8,
     pub credential_payload: PreviewableCredentialPayload,
     pub batch_id: Uuid,
 }
@@ -403,9 +405,6 @@ pub struct IssuerData<K, L> {
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
-
-    /// The maximum amount of copies of a credential that the holder can request.
-    batch_size: NonZeroU8,
 
     metadata: IssuerMetadata,
     metadata_keypair: KeyPair<K>,
@@ -504,7 +503,6 @@ impl PreparedCredential {
         let credential = Self {
             credential_configuration_id: config_id,
             format,
-            batch_size: issuer_data.batch_size,
             credential_payload,
             batch_id,
         };
@@ -633,7 +631,6 @@ where
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
             server_url: server_url.into_inner(),
-            batch_size,
             metadata,
             metadata_keypair: keypair,
         };
@@ -853,7 +850,6 @@ where
         let preview = CredentialPreview {
             config_id: credential.credential_configuration_id.clone(),
             format: credential.format,
-            batch_size: credential.batch_size,
             credential_payload: credential.credential_payload.clone(),
             issuer_certificate: credential_config.key_pair.certificate().clone(),
         };
@@ -1117,23 +1113,31 @@ impl Grant {
         Ok(())
     }
 
-    /// Verify the `scope` of the [`TokenRequest`] when in the Authorization Code flow, if it is present.
+    /// Verify the `scope` of the [`TokenRequest`], if it is present.
     fn verify_scope(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
-        if let Grant::AuthorizationCode(AuthRequestValues {
-            scope: request_scope, ..
-        }) = self
-        {
-            // The client has the option of further restricting the requested scope as included in the Authorization
-            // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
-            // we check that the scope in the Token Request is exactly the same as what was included in the
-            // Authorization Request.
-            if let Some(scope) = token_request.scope.as_ref()
-                && scope != request_scope
-            {
-                return Err(TokenRequestError::ScopeMismatch {
-                    expected: request_scope.clone(),
-                    actual: scope.clone(),
-                });
+        match self {
+            Grant::AuthorizationCode(AuthRequestValues {
+                scope: request_scope, ..
+            }) => {
+                // The client has the option of further restricting the requested scope as included in the Authorization
+                // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
+                // we check that the scope in the Token Request is exactly the same as what was included in the
+                // Authorization Request.
+                if let Some(scope) = token_request.scope.as_ref()
+                    && scope != request_scope
+                {
+                    return Err(TokenRequestError::ScopeMismatch {
+                        expected: request_scope.clone(),
+                        actual: scope.clone(),
+                    });
+                }
+            }
+
+            Grant::PreAuthorizedCode => {
+                // If the Token Request was Pre-Authorized, we choose not to support scope values at all.
+                if let Some(scope) = token_request.scope.as_ref() {
+                    return Err(TokenRequestError::PreAuthorizedScopeUnsupported(scope.clone()));
+                }
             }
         }
 
@@ -1274,6 +1278,14 @@ fn build_token_response<K, L>(
         .collect::<Result<_, _>>()?;
 
     let dpop_nonce = random_string(32);
+
+    // Note that, in the Authorization Code flow, we assume that the implementer of `AuthorizationCodeFlow` provides all
+    // of the credentials that are identified by the scopes that the wallet includes in the Authorization Request.
+    // Therefore we do not need to include a `scope` value in the Token Response, as the scope that the wallet requested
+    // is never curtailed.
+    //
+    // In the the Pre-Authorized Code flow we do not allow `scope` values from the wallet, so any scope restriction does
+    // not apply.
     let token_response = TokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
 
     Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))
@@ -1498,7 +1510,8 @@ impl Session<AccessTokenIssued> {
             .iter()
             .map(|credential| {
                 // For every credential collect for every copy the verified key
-                let format_pubkeys: VecNonEmpty<_> = (0..credential.batch_size.get())
+                let copy_count = issuer_data.metadata.batch_size().get();
+                let format_pubkeys: VecNonEmpty<_> = (0..copy_count)
                     .map(|_| {
                         let cred_req = credential_requests
                             .credential_requests
@@ -1526,7 +1539,7 @@ impl Session<AccessTokenIssued> {
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .try_into()
-                    .unwrap(); // ok because `batch_size` has a `NonZeroU8` value in `CredentialPreviewContent`.
+                    .expect("guaranteerd to be non-empty because copy_count's source is non-zero");
 
                 let credential_config = issuer_data
                     .get_credential_config_for_prepared_credential(credential)
@@ -2089,11 +2102,13 @@ mod tests {
             .pre_authorized_code
             .unwrap()
             .pre_authorized_code;
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         let mut session = HttpIssuanceSession::create(
             message_client,
             credential_configs,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            batch_size,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
@@ -2143,11 +2158,13 @@ mod tests {
             })
             .collect();
 
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         HttpIssuanceSession::create(
             message_client,
             credential_configs,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            batch_size,
             &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,

@@ -1,19 +1,25 @@
+use std::collections::VecDeque;
+use std::io::Read;
+use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use async_dropper::AsyncDrop;
 use async_dropper::AsyncDropper;
 use async_trait::async_trait;
 use config::Config;
 use config::ConfigError;
-use config::File;
 use crypto::utils::random_bytes;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use rand_core::OsRng;
+use regex::regex;
 use serde::Deserialize;
 use serde_with::serde_as;
+use tempfile::TempDir;
 use utils::path::prefix_local_path;
 
 use crate::model::Hsm;
@@ -26,6 +32,98 @@ use crate::service::Pkcs11Client;
 use crate::service::Pkcs11Hsm;
 use crate::settings;
 
+static HSM_SETUP: AtomicBool = AtomicBool::new(false);
+
+#[derive(Default)]
+pub struct HsmSetup {
+    _temp_dir: Option<TempDir>,
+}
+
+impl HsmSetup {
+    pub fn new() -> HsmSetup {
+        // Check for nextest, as this setup does not work with normal cargo test. The reason is that
+        // nextest has a process per test setup instead of single process for each test binary used
+        // by cargo test. Tests using the HSM should have a `#[serial(hsm)]` macro to ensure serial
+        // execution when running via cargo test.
+        match std::env::var("NEXTEST") {
+            Ok(val) if &val == "1" => {}
+            _ => return HsmSetup { _temp_dir: None },
+        }
+
+        // Should only run once
+        if HSM_SETUP.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            panic!("HSM setup should only be ran once")
+        }
+
+        // Read config
+        let home_dir = std::env::home_dir().expect("no home directory");
+        let mut config = String::with_capacity(1024);
+        std::fs::File::open(home_dir.join(".config/softhsm2/softhsm2.conf"))
+            .expect("could not open softhsm2 config file")
+            .read_to_string(&mut config)
+            .expect("could not read softhsm2 config file");
+
+        // Create config dir and token dir
+        let temp_dir = TempDir::new().expect("failed to create temporary directory");
+        let token_dir = temp_dir.path().join("tokens");
+
+        // Get current token dir
+        let caps = regex!(r#"(?m)^(directories\.tokendir) *= *(.+)$"#)
+            .captures(config.as_str())
+            .expect("could not find token dir pattern");
+
+        // Replace token dir in our own config
+        let mut temp_config = String::with_capacity(config.len());
+        temp_config.push_str(&config[..caps.get_match().start()]);
+        temp_config.push_str(&caps[1]);
+        temp_config.push_str(" = ");
+        temp_config.push_str(token_dir.to_str().expect("unicode path error"));
+        temp_config.push_str(&config[caps.get_match().end()..]);
+
+        // Copy source token dir to destination
+        let source_dir = caps[2].parse().expect("unicode path error");
+        copy_dir(source_dir, token_dir).expect("failed to copy tokens directory");
+
+        // Create config file
+        let config_file = temp_dir.path().join("softhsm2.conf");
+        std::fs::File::create(&config_file)
+            .expect("could not create config file")
+            .write_all(temp_config.as_bytes())
+            .expect("could not write config file");
+
+        // Set env var
+        let env_value = config_file.to_str().expect("unicode path error");
+        unsafe { std::env::set_var("SOFTHSM2_CONF", env_value) };
+
+        HsmSetup {
+            _temp_dir: Some(temp_dir),
+        }
+    }
+
+    pub fn pkcs11_hsm(&self, settings: settings::Hsm) -> Result<Pkcs11Hsm, HsmError> {
+        Pkcs11Hsm::from_settings(settings)
+    }
+}
+
+fn copy_dir(src: PathBuf, dst: PathBuf) -> std::io::Result<()> {
+    let mut queue = VecDeque::from([(src, dst)]);
+    while let Some((src, dst)) = queue.pop_front() {
+        std::fs::create_dir(dst.as_path())?;
+        for entry in std::fs::read_dir(src)? {
+            let entry = entry?;
+            let src_path = entry.path();
+            let dst_path = dst.join(entry.file_name());
+
+            if entry.file_type()?.is_dir() {
+                queue.push_back((src_path, dst_path));
+            } else {
+                std::fs::copy(src_path, dst_path)?;
+            }
+        }
+    }
+    Ok(())
+}
+
 #[serde_as]
 #[derive(Clone, Deserialize)]
 struct TestSettings {
@@ -35,7 +133,7 @@ struct TestSettings {
 impl TestSettings {
     fn new(config_file: &Path) -> Result<Self, ConfigError> {
         Config::builder()
-            .add_source(File::from(prefix_local_path(config_file).as_ref()).required(true))
+            .add_source(config::File::from(prefix_local_path(config_file).as_ref()).required(true))
             .build()?
             .try_deserialize()
     }
@@ -86,9 +184,9 @@ impl TestCase<MockPkcs11Client<HsmError>> {
 }
 
 impl TestCase<Pkcs11Hsm> {
-    pub fn new(config_file: &str, identifier_prefix: &str) -> Self {
+    pub fn new(hsm_setup: &HsmSetup, config_file: &str, identifier_prefix: &str) -> Self {
         let settings = TestSettings::new(config_file.as_ref()).unwrap();
-        let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).unwrap();
+        let hsm = hsm_setup.pkcs11_hsm(settings.hsm.clone()).unwrap();
         Self {
             identifier: format!("{}-{}", identifier_prefix, crypto::utils::random_string(8)),
             hsm: Some(hsm),

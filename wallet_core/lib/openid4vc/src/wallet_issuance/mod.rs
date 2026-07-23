@@ -15,7 +15,6 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_types::credential_kind::CredentialKind;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use indexmap::IndexSet;
@@ -50,6 +49,7 @@ use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
+use crate::scope::Scope;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 
@@ -178,6 +178,18 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     HeaderToStr(#[from] ToStrError),
 
+    #[error("unknown Credential Configuration ID(s) received in Token Response: {}", .0.iter().join(", "))]
+    #[category(critical)]
+    TokenResponseUnknownCredentialConfigIds(Vec<CredentialConfigurationId>),
+
+    #[error("empty scope set received in Token Response")]
+    #[category(critical)]
+    TokenResponseEmptyScope,
+
+    #[error("unknown scope values received in Token Response: {}", .0.iter().join(" "))]
+    #[category(critical)]
+    TokenResponseUnknownScope(Vec<Scope>),
+
     #[error("uri `{0}` has different host than issuer identifier `{1}`")]
     #[category(critical)]
     HostMismatchWithIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
@@ -185,17 +197,6 @@ pub enum WalletIssuanceError {
     #[error("type metadata for `{0}` not found")]
     #[category(critical)]
     TypeMetadataNotFound(CredentialConfigurationId),
-
-    #[error("received unknown credential config id(s) in preview: {}", .0.iter().join(", "))]
-    #[category(critical)]
-    UnknownPreviewCredentialConfig(Vec<CredentialConfigurationId>),
-
-    #[error(
-        "format / attestation type received in preview does not match credential config for id(s): {}",
-        .0.iter().map(|(id, expected, received)| format!("{id} - expected: {expected} received: {received}")).join(", ")
-    )]
-    #[category(critical)]
-    PreviewCredentialConfigMismatch(Vec<(CredentialConfigurationId, CredentialKind, CredentialKind)>),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
@@ -440,7 +441,7 @@ pub trait IssuanceSession {
 
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
-    fn credential_previews(&self) -> &[CredentialPreview];
+    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
     fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
 

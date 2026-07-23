@@ -252,7 +252,7 @@ where
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
         let pid_config = &config.pid_attributes;
-        let pid_preview = Self::pid_preview(issuance_session.credential_previews(), pid_config)?;
+        let pid_preview = Self::pid_preview(issuance_session.credential_previews().as_ref(), pid_config)?;
 
         self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
@@ -592,7 +592,10 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             let (preview, _) = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
-            client.expect_credential_previews().once().return_const(vec![preview]);
+            client
+                .expect_credential_previews()
+                .once()
+                .return_const(vec_nonempty![preview]);
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -844,7 +847,10 @@ mod tests {
                 .attributes
                 .prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
 
-            client.expect_credential_previews().once().return_const(vec![preview]);
+            client
+                .expect_credential_previews()
+                .once()
+                .return_const(vec_nonempty![preview]);
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -892,7 +898,10 @@ mod tests {
                     )
                     .unwrap();
 
-                client.expect_credential_previews().once().return_const(vec![preview]);
+                client
+                    .expect_credential_previews()
+                    .once()
+                    .return_const(vec_nonempty![preview]);
 
                 Ok(client)
             });

@@ -60,7 +60,7 @@ pub enum AttributesError {
     SomeAttributesNotProcessed(Box<IndexMap<String, Vec<Entry>>>),
 
     #[error("missing a mandatory attribute: {0:?}")]
-    MissingMandatoryAttribute(Vec<Vec<String>>),
+    MissingMandatoryAttribute(Vec<VecNonEmpty<ClaimPath>>),
 }
 
 impl From<AttributeValue> for ciborium::Value {
@@ -264,10 +264,23 @@ impl Attributes {
 
         let missing_mandatory = type_metadata
             .mandatory_claims()
-            .filter_map(|claim_path| {
-                (!flattened_attributes.contains_key(&claim_path))
-                    .then(|| claim_path.iter().map(ToString::to_string).collect_vec())
+            .filter(|path| {
+                let has_claim = path
+                    .iter()
+                    .map(ClaimPath::try_key_path)
+                    .collect::<Option<Vec<_>>>()
+                    .map(|path| {
+                        // If a mandatory claim exists entirely of `SelectByKey` values, check that this path is present
+                        // in the attributes.
+                        let path = VecNonEmpty::try_from(path).expect("source of path is non-empty");
+                        flattened_attributes.contains_key(&path)
+                    })
+                    // Otherwise, we know that this claim is not present, as non-`SelecByKey` paths are not supported.
+                    .unwrap_or(false);
+
+                !has_claim
             })
+            .cloned()
             .collect_vec();
 
         if !missing_mandatory.is_empty() {
@@ -1350,6 +1363,10 @@ pub mod test {
                     "path": ["adult"],
                     "display": [{"locale": "en", "label": "adult"}],
                 },
+                {
+                    "path": ["country", 0, "area_code"],
+                    "display": [{"locale": "en", "label": "first country area code"}],
+                },
             ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
@@ -1398,15 +1415,31 @@ pub mod test {
                     "path": ["adult"],
                     "display": [{"locale": "en", "label": "adult"}],
                 },
+                {
+                    "path": ["nationality", null, "passport_number"],
+                    "display": [{"locale": "en", "label": "passport number"}],
+                    "mandatory": true,
+                },
             ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let result = example_attributes().validate(&type_metadata);
+        let expected_paths = vec![
+            vec_nonempty![ClaimPath::SelectByKey("birth_date".to_string())],
+            vec_nonempty![
+                ClaimPath::SelectByKey("birth".to_string()),
+                ClaimPath::SelectByKey("city".to_string())
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("nationality".to_string()),
+                ClaimPath::SelectAll,
+                ClaimPath::SelectByKey("passport_number".to_string())
+            ],
+        ];
         assert_matches!(
             result,
-            Err(AttributesError::MissingMandatoryAttribute(message))
-                if message == vec![vec!["birth_date"], vec!["birth", "city"]]
+            Err(AttributesError::MissingMandatoryAttribute(paths)) if paths == expected_paths
         );
     }
 

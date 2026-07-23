@@ -152,21 +152,25 @@ impl NormalizedTypeMetadata {
         (self.vcts.into_first(), self.display, self.claims)
     }
 
-    /// Returns all claim paths that only consist out of `SelectByKey` as a `VecNonEmpty` of `&str`
+    /// Returns all claim paths that only consist out of `SelectByKey` as a `VecNonEmpty` of `&str`.
     pub fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
-        self.claims
-            .iter()
-            .map(|claim| claim.path.iter().filter_map(|path| path.try_key_path()).collect_vec())
-            .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
+        self.claims.iter().filter_map(|claim| {
+            let path = claim
+                .path
+                .iter()
+                .map(ClaimPath::try_key_path)
+                .collect::<Option<Vec<_>>>()?;
+
+            Some(path.try_into().expect("source of path is non-empty"))
+        })
     }
 
-    /// Returns all claim paths that are mandatory
-    pub fn mandatory_claims(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
+    /// Returns all claim paths that are mandatory.
+    pub fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
         self.claims
             .iter()
             .filter(|claim| claim.mandatory)
-            .map(|claim| claim.path.iter().filter_map(|path| path.try_key_path()).collect_vec())
-            .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
+            .map(|claim| &claim.path)
     }
 }
 

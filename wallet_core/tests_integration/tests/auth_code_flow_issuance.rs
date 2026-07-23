@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crypto::server_keys::generate::Ca;
 use db_test::DbName;
 use db_test::DbSetup;
+use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::UnverifiedJwt;
@@ -146,9 +147,10 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
 #[serial(hsm)]
 async fn test_acf_demo_issuer_wallet_issuance() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     let acf = setup_auth_code_env(&db_setup, None).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
@@ -192,9 +194,10 @@ async fn test_acf_demo_issuer_wallet_issuance() {
 #[serial(hsm)]
 async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
     let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
     let acf = setup_auth_code_env(&db_setup, None).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 

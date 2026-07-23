@@ -27,7 +27,6 @@ use dcql::CredentialQuery;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
 use futures::FutureExt;
-use hsm::service::Pkcs11Hsm;
 use http::StatusCode;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::HttpClient;
@@ -194,7 +193,6 @@ async fn start_wallet_server<S, C>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     settings: VerifierSettings,
-    hsm: Option<Pkcs11Hsm>,
     disclosure_sessions: Arc<S>,
     status_list_client: C,
 ) where
@@ -208,7 +206,7 @@ async fn start_wallet_server<S, C>(
             wallet_listener,
             internal_listener,
             settings,
-            hsm,
+            None,
             disclosure_sessions,
             status_list_client,
         )
@@ -285,22 +283,15 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
 
     let (settings, wallet_listener, issuer_ca, _) =
         wallet_server_settings_and_listener(auth, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
     let auth = &settings.server_settings.internal_server;
 
     let internal_url = internal_url(&settings);
 
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
-        hsm,
         Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(issuer_ca.generate_issuer_status_list_mock().unwrap()),
     )
@@ -444,20 +435,14 @@ async fn test_new_session_parameters_error() {
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
         wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
 
     let internal_url = internal_url(&settings);
+
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings,
-        hsm,
         Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
@@ -498,20 +483,14 @@ async fn test_disclosure_not_found() {
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, _, _) =
         wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
 
     let internal_url = internal_url(&settings);
+
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
-        hsm,
         Arc::new(MemorySessionStore::default()),
         StatusListClientStub::new(
             Ca::generate_issuer_mock_ca()
@@ -585,21 +564,13 @@ where
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
     let (settings, wallet_listener, issuer_ca, rp_trust_anchor) =
         wallet_server_settings_and_listener(internal_server, request).await;
-    let hsm = settings
-        .server_settings
-        .hsm
-        .clone()
-        .map(Pkcs11Hsm::from_settings)
-        .transpose()
-        .unwrap();
 
     let internal_url = internal_url(&settings);
-
+    assert!(settings.server_settings.hsm.is_none());
     start_wallet_server(
         wallet_listener,
         internal_listener,
         settings.clone(),
-        hsm,
         disclosure_sessions,
         StatusListClientStub::new(issuer_ca.generate_pid_issuer_status_list_mock().unwrap()),
     )
