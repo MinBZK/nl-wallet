@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use chrono::DateTime;
 use chrono::Utc;
+use error_category::ErrorCategory;
 use http_utils::reqwest::bytes_with_max_response_size;
 use itertools::Itertools;
 use moka::Expiry;
@@ -25,7 +26,8 @@ use crate::x509::BorrowingCertificate;
 use crate::x509::CertificateError;
 use crate::x509::CertificateUsage;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum CrlProviderError {
     #[error("HTTP error fetching CRL: {0}")]
     Http(#[source] reqwest::Error),
@@ -36,11 +38,11 @@ pub enum CrlProviderError {
     #[error("Invalid URL: {0}")]
     InvalidUrl(#[source] url::ParseError),
     #[error("certificate chain is empty")]
+    #[category(critical)]
     EmptyChain,
     #[error("no usable CRL distribution point available for certificate")]
+    #[category(critical)]
     NoCrlDistributionPoint,
-    #[error("certificate verification failed: {0}")]
-    Verification(#[source] Box<CertificateError>),
 }
 
 /// TTL used for a cached CRL when its `nextUpdate` field could not be determined, to guard against caching an entry
@@ -117,22 +119,23 @@ impl CrlProvider {
         trust_anchors: &TrustAnchors,
         usage: Option<CertificateUsage>,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(), CrlProviderError> {
-        let (leaf, intermediate_certs) = chain.split_first().ok_or(CrlProviderError::EmptyChain)?;
+    ) -> Result<(), CertificateError> {
+        let (leaf, intermediate_certs) = chain
+            .split_first()
+            .ok_or(CertificateError::Crl(CrlProviderError::EmptyChain))?;
 
         let mut crls = Vec::new();
         for cert in chain {
-            crls.extend(self.crls_for_cert(cert, time).await?);
+            crls.extend(self.crls_for_cert(cert, time).await.map_err(CertificateError::Crl)?);
         }
 
         if crls.is_empty() {
-            return Err(CrlProviderError::NoCrlDistributionPoint);
+            return Err(CertificateError::Crl(CrlProviderError::NoCrlDistributionPoint));
         }
 
         // Verify the whole certificate chain before storing fetched CRLs in cache. This is needed since we cannot
         // directly and easily verify the signature of a CRL using `rustls-webpki`.
-        leaf.verify(usage, intermediate_certs, time, trust_anchors, Some(crls.as_slice()))
-            .map_err(|error| CrlProviderError::Verification(Box::new(error)))?;
+        leaf.verify(usage, intermediate_certs, time, trust_anchors, Some(crls.as_slice()))?;
 
         // Commit any freshly-fetched CRLs to the cache after successful verification.
         for fetched in crls {
@@ -708,8 +711,7 @@ mod tests {
             .expect_err("revoked certificate should fail verification");
         assert!(matches!(
             error,
-            CrlProviderError::Verification(error)
-                if matches!(&*error, CertificateError::Verification(error) if matches!(**error, webpki::Error::CertRevoked))
+            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertRevoked)
         ));
 
         // A CRL used in a failed verification must not be cached: a repeated call should
@@ -797,8 +799,7 @@ mod tests {
             .expect_err("chain with a revoked intermediate certificate should fail verification");
         assert!(matches!(
             error,
-            CrlProviderError::Verification(error)
-                if matches!(&*error, CertificateError::Verification(error) if matches!(**error, webpki::Error::CertRevoked))
+            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertRevoked)
         ));
     }
 
@@ -811,7 +812,10 @@ mod tests {
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
             .await
             .expect_err("certificate without a CDP extension should fail verification");
-        assert!(matches!(error, CrlProviderError::NoCrlDistributionPoint));
+        assert!(matches!(
+            error,
+            CertificateError::Crl(CrlProviderError::NoCrlDistributionPoint)
+        ));
     }
 
     #[tokio::test]
@@ -841,8 +845,7 @@ mod tests {
             .expect_err("expired CRL should fail verification");
         assert!(matches!(
             error,
-            CrlProviderError::Verification(error)
-                if matches!(&*error, CertificateError::Verification(error) if matches!(**error, webpki::Error::CrlExpired { .. }))
+            CertificateError::Verification(error) if matches!(*error, webpki::Error::CrlExpired { .. })
         ));
     }
 
@@ -855,6 +858,6 @@ mod tests {
             .verify_chain(&[], &TrustAnchors::from(&ca), None, &TimeGenerator)
             .await
             .expect_err("empty chain should fail verification");
-        assert!(matches!(error, CrlProviderError::EmptyChain));
+        assert!(matches!(error, CertificateError::Crl(CrlProviderError::EmptyChain)));
     }
 }
