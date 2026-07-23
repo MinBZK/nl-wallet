@@ -540,7 +540,7 @@ where
         let config = self.config_repository.get();
         if pid_purpose.is_some() {
             self.compare_recovery_code_against_stored(
-                Self::pid_preview(previews, &config.pid_attributes)?,
+                Self::pid_preview(previews.as_ref(), &config.pid_attributes)?,
                 &config.pid_attributes,
             )
             .await?;
@@ -558,7 +558,7 @@ where
         // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
         // the list of stored attestations. This means the oldest attestation is matched first.
         let previews_and_identity: Vec<(&CredentialPreview, Option<Uuid>)> = match_preview_and_stored_attestations(
-            previews,
+            previews.as_ref(),
             stored,
             &TimeGenerator,
             pid_purpose.is_some().then_some(&config.pid_attributes),
@@ -1422,7 +1422,9 @@ mod tests {
             session
                 .expect_type_metadata()
                 .return_const([(preview.config_id.clone(), type_metadata)].into());
-            session.expect_credential_previews().return_const(vec![preview]);
+            session
+                .expect_credential_previews()
+                .return_const(vec_nonempty![preview]);
             session.expect_issuer().return_const(IssuerRegistration::new_mock());
             Ok(session)
         });
@@ -1593,7 +1595,9 @@ mod tests {
                 .zip_eq(std::iter::repeat_n(type_metadata, preview_count))
                 .collect(),
         );
-        issuance_session.expect_credential_previews().return_const(previews);
+        issuance_session
+            .expect_credential_previews()
+            .return_const(previews.try_into().unwrap());
         issuance_session
             .expect_issuer()
             .return_const(IssuerRegistration::new_mock());
@@ -1650,7 +1654,7 @@ mod tests {
         ]));
         issuance_session
             .expect_credential_previews()
-            .return_const(vec![sd_jwt_preview, mdoc_preview]);
+            .return_const(vec_nonempty![sd_jwt_preview, mdoc_preview]);
         issuance_session
             .expect_issuer()
             .return_const(IssuerRegistration::new_mock());
@@ -1757,7 +1761,9 @@ mod tests {
             session
                 .expect_type_metadata()
                 .return_const([(preview.config_id.clone(), type_metadata)].into());
-            session.expect_credential_previews().return_const(vec![preview]);
+            session
+                .expect_credential_previews()
+                .return_const(vec_nonempty![preview]);
             session.expect_issuer().return_const(IssuerRegistration::new_mock());
             Ok(IssuanceFlow::PreAuthorizedCode {
                 issuance_session: session,

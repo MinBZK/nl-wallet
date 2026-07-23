@@ -921,20 +921,23 @@ impl VpAuthorizationResponse {
                     )
                 }
                 VerifiablePresentation::SdJwt(sdw_jwt_payloads) => {
-                    let (keys, attestations): (Vec<_>, Vec<_>) =
-                        try_join_all(sdw_jwt_payloads.into_iter().map(|unverified_presentation| async {
-                            Self::sd_jwt_to_disclosed_attestation(
-                                unverified_presentation,
-                                auth_request,
-                                time,
-                                trust_anchors,
-                                revocation_verifier,
-                            )
-                            .await
-                        }))
-                        .await?
-                        .into_iter()
-                        .unzip();
+                    let (keys, attestations): (Vec<_>, Vec<_>) = try_join_all(
+                        sdw_jwt_payloads
+                            .into_nonempty_iter()
+                            .map(|unverified_presentation| async {
+                                Self::sd_jwt_to_disclosed_attestation(
+                                    unverified_presentation,
+                                    auth_request,
+                                    time,
+                                    trust_anchors,
+                                    revocation_verifier,
+                                )
+                                .await
+                            }),
+                    )
+                    .await?
+                    .into_iter()
+                    .unzip();
 
                     (attestations.try_into().unwrap(), keys)
                 }
