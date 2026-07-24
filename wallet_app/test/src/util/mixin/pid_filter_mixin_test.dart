@@ -97,7 +97,7 @@ void main() {
   group('filterDuplicatePidEvents', () {
     final dateTime = DateTime(2026, 1, 1);
 
-    test('returns all events when no PID events are present', () async {
+    test('ltc23 returns all events when no PID events are present', () async {
       final nonPidCard = WalletMockData.card.copyWith(attestationType: nonPidType);
       final events = [
         WalletEvent.issuance(
@@ -118,7 +118,7 @@ void main() {
       expect(result, events);
     });
 
-    test('filters duplicate PID events, keeping the one with higher priority attestation', () async {
+    test('ltc23 filters duplicate PID events, keeping the one with higher priority attestation', () async {
       final pidCard1 = WalletMockData.card.copyWith(attestationType: pidType1, format: AttestationFormat.mdoc);
       final pidCard2 = WalletMockData.card.copyWith(
         attestationId: 'id2',
@@ -147,7 +147,7 @@ void main() {
       expect(result, [event1]);
     });
 
-    test('does not filter PID events that are not matches (different actions)', () async {
+    test('ltc23 does not filter PID events that are not matches (different actions)', () async {
       final pidCard1 = WalletMockData.card.copyWith(attestationType: pidType1, format: AttestationFormat.sdJwt);
       final pidCard2 = WalletMockData.card.copyWith(
         attestationId: 'id2',
@@ -175,7 +175,7 @@ void main() {
       expect(result, containsAllInOrder([event1, event2]));
     });
 
-    test('handles mixed PID and non-PID events correctly', () async {
+    test('ltc23 handles mixed PID and non-PID events correctly', () async {
       final pidCard1 = WalletMockData.card.copyWith(attestationType: pidType1, format: AttestationFormat.mdoc);
       final pidCard2 = WalletMockData.card.copyWith(
         attestationId: 'id2',
@@ -212,7 +212,7 @@ void main() {
       expect(result, isNot(contains(pidEvent2)));
     });
 
-    test('filters duplicate PID deletion events', () async {
+    test('ltc23 filters duplicate PID deletion events', () async {
       final pidCard1 = WalletMockData.card.copyWith(attestationType: pidType1, format: AttestationFormat.mdoc);
       final pidCard2 = WalletMockData.card.copyWith(
         attestationId: 'id2',
@@ -238,7 +238,7 @@ void main() {
       expect(result, [event1]);
     });
 
-    test('includes non-card events like disclosure events', () async {
+    test('ltc23 includes non-card events like disclosure events', () async {
       final pidCard1 = WalletMockData.card.copyWith(attestationType: pidType1, format: AttestationFormat.sdJwt);
       final disclosureEvent = WalletMockData.disclosureEvent;
 
