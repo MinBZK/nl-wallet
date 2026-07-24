@@ -84,7 +84,7 @@ fn test_google_registration() {
     let msg = ChallengeResponse::<Registration>::new_google(
         &attested_private_key,
         attested_certificate_chain.try_into().unwrap(),
-        integrity_token,
+        Some(integrity_token),
         &pin_signing_key,
         challenge.to_vec(),
     )
