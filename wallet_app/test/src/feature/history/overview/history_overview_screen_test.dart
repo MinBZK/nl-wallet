@@ -43,7 +43,7 @@ void main() {
   );
 
   group('goldens', () {
-    testGoldens('ltc30 HistoryOverviewLoadSuccess light', (tester) async {
+    testGoldens('ltc22 ltc23 HistoryOverviewLoadSuccess light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -53,7 +53,7 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
-    testGoldens('ltc30 HistoryOverviewLoadSuccess dark', (tester) async {
+    testGoldens('ltc22 ltc23 HistoryOverviewLoadSuccess dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -64,7 +64,7 @@ void main() {
       await screenMatchesGolden('success.dark');
     });
 
-    testGoldens('ltc30 HistoryOverviewLoadInProgress light', (tester) async {
+    testGoldens('ltc22 ltc23 HistoryOverviewLoadInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -74,7 +74,7 @@ void main() {
       await screenMatchesGolden('loading.light');
     });
 
-    testGoldens('ltc30 HistoryOverviewLoadFailure light', (tester) async {
+    testGoldens('ltc22 ltc23 HistoryOverviewLoadFailure light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -119,7 +119,7 @@ void main() {
       expect(find.text(WalletMockData.issuanceEvent.card.title.testValue), findsOneWidget);
     });
 
-    testWidgets('ltc30 SignAttribute renders the organization title', (tester) async {
+    testWidgets('ltc22 ltc23 SignAttribute renders the organization title', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -133,7 +133,7 @@ void main() {
       expect(find.text(WalletMockData.organization.displayName), findsOneWidget);
     });
 
-    testWidgets('ltc30 InteractionAttribute renders the organization title', (tester) async {
+    testWidgets('ltc22 ltc23 InteractionAttribute renders the organization title', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -147,7 +147,7 @@ void main() {
       expect(find.text(WalletMockData.organization.displayName), findsOneWidget);
     });
 
-    testWidgets('ltc30 HistoryOverviewLoadFailure shows error description and retry cta', (tester) async {
+    testWidgets('ltc22 ltc23 HistoryOverviewLoadFailure shows error description and retry cta', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -160,7 +160,7 @@ void main() {
       expect(find.text(l10n.generalRetry), findsOneWidget);
     });
 
-    testWidgets('ltc30 Disclosure events displays type, verifier name, logo, and timestamp', (tester) async {
+    testWidgets('ltc22 ltc23 Disclosure events displays type, verifier name, logo, and timestamp', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -179,7 +179,7 @@ void main() {
       expect(find.byType(Image), findsExactly(2));
     });
 
-    testWidgets('ltc30 Rejected sharing event shows user aborted indication', (tester) async {
+    testWidgets('ltc22 ltc23 Rejected sharing event shows user aborted indication', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -192,7 +192,7 @@ void main() {
       expect(find.text(l10n.cardHistoryDisclosureCancelled), findsOneWidget);
     });
 
-    testWidgets('ltc30 Failed sharing event shows transaction failure indication', (tester) async {
+    testWidgets('ltc22 ltc23 Failed sharing event shows transaction failure indication', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -205,7 +205,7 @@ void main() {
       expect(find.text(l10n.cardHistoryDisclosureError), findsOneWidget);
     });
 
-    testWidgets('ltc30 Issuance event displays type, timestamp, issued cards, and illustration', (tester) async {
+    testWidgets('ltc22 ltc23 Issuance event displays type, timestamp, issued cards, and illustration', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -221,7 +221,7 @@ void main() {
       expect(find.byType(Image), findsOneWidget);
     });
 
-    testWidgets('ltc30 Events are displayed in anti-chronological order and events are categorized by month', (
+    testWidgets('ltc22 ltc23 Events are displayed in anti-chronological order and events are categorized by month', (
       tester,
     ) async {
       await tester.pumpWidgetWithAppWrapper(
