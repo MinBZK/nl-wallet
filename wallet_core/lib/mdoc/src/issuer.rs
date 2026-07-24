@@ -12,7 +12,7 @@ impl IssuerSigned {
     pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
         use attestation_types::qualification::AttestationQualification;
 
-        use crate::utils::cose::MdocCose;
+        use crate::utils::cose::TypedCose;
 
         let mut mso = self.issuer_auth.dangerous_parse_unverified()?.0;
 
@@ -20,7 +20,8 @@ impl IssuerSigned {
         mso.issuer_uri = Some(key.certificate().san_dns_name_or_uris()?.into_first());
         mso.attestation_qualification = Some(AttestationQualification::default());
 
-        self.issuer_auth = MdocCose::sign(&mso.into(), self.issuer_auth.0.unprotected.clone(), key, true).await?;
+        self.issuer_auth =
+            TypedCose::sign(&mso.into(), self.issuer_auth.as_ref().unprotected.clone(), key, true).await?;
 
         Ok(())
     }

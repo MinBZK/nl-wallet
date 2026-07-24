@@ -21,7 +21,7 @@ use utils::vec_nonempty;
 
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
-use crate::utils::cose::MdocCose;
+use crate::utils::cose::TypedCose;
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::ReaderAuthenticationString;
@@ -95,7 +95,7 @@ pub struct DocRequest {
 /// ```cddl
 /// ReaderAuth = COSE_Sign1
 /// ```
-pub type ReaderAuth = MdocCose<CoseSign1, Value>;
+pub type ReaderAuth = TypedCose<CoseSign1, Value>;
 
 /// The data that the mdoc reader authenticates.
 ///

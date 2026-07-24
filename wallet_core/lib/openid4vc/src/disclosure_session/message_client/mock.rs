@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use cose::KnownCoseAlgorithmIdentifier;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -22,7 +23,6 @@ use utils::vec_nonempty;
 
 use super::VpMessageClient;
 use super::VpMessageClientError;
-use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::jose::JwsAlgorithm;

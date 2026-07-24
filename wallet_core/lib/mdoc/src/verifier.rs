@@ -97,7 +97,10 @@ impl Default for SupportedAlgorithms {
     fn default() -> Self {
         Self {
             issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
-            device_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+            device_algorithms: vec_nonempty![
+                RegisteredLabelWithPrivate::Assigned(Algorithm::ES256),
+                RegisteredLabelWithPrivate::Assigned(Algorithm::HMAC_256_256),
+            ],
         }
     }
 }
@@ -231,7 +234,7 @@ impl IssuerSigned {
     ) -> Result<IssuerSignedVerificationResult> {
         let TaggedBytes(mso) =
             self.issuer_auth
-                .verify_against_trust_anchors(Some(CertificateUsage::Mdl), time, trust_anchors)?;
+                .verify_against_trust_anchors(trust_anchors, time, Some(CertificateUsage::Mdl))?;
 
         mso.validity_info
             .verify_is_valid_at(time.generate(), validity)
@@ -455,7 +458,6 @@ mod tests {
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
     use token_status_list::verification::client::mock::StatusListClientStub;
-    use utils::vec_nonempty;
 
     use super::*;
     use crate::examples::EXAMPLE_ATTR_NAME;
@@ -531,13 +533,8 @@ mod tests {
         // Do the verification
         let eph_reader_key = Examples::ephemeral_reader_key();
 
-        let supported_algorithms = SupportedAlgorithms {
-            issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
-            device_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::HMAC_256_256)],
-        };
-
         let disclosed_attrs = device_response
-            .verify_inner(
+            .verify(
                 Some(&eph_reader_key),
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
@@ -545,7 +542,6 @@ mod tests {
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
-                &supported_algorithms,
             )
             .await
             .unwrap();
