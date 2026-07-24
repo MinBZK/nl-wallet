@@ -252,7 +252,6 @@ mod tests {
     )]
     #[tokio::test]
     async fn https_uri(#[case] value: &str, #[case] expected: Result<String, HttpsUriError>) {
-        // The `HttpsUriError` that `nutype` returns does not implement `PartialEq`
         assert_eq!(value.parse::<HttpsUri>().map(|u| u.to_string()), expected);
     }
 

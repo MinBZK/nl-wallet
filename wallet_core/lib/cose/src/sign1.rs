@@ -168,6 +168,7 @@ impl<T> TypedCose<CoseSign1, T> {
                 &chain.into_iter().collect::<Vec<_>>(),
                 time,
                 trust_anchors,
+                None,
             )
             .map_err(CoseError::Certificate)?;
         self.verify_and_parse(certificate.public_key())

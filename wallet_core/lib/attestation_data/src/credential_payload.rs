@@ -940,40 +940,24 @@ mod test {
         );
 
         let sd_jwt = SdJwtBuilder::new(claims)
-            .make_concealable(
-                vec![ClaimPath::SelectByKey(String::from("birth_date"))]
-                    .try_into()
-                    .unwrap(),
-            )
+            .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("birth_date"))])
             .unwrap()
-            .make_concealable(
-                vec![
-                    ClaimPath::SelectByKey(String::from("place_of_birth")),
-                    ClaimPath::SelectByKey(String::from("locality")),
-                ]
-                .try_into()
-                .unwrap(),
-            )
+            .make_concealable(vec_nonempty![
+                ClaimPath::SelectByKey(String::from("place_of_birth")),
+                ClaimPath::SelectByKey(String::from("locality")),
+            ])
             .unwrap()
-            .make_concealable(
-                vec![
-                    ClaimPath::SelectByKey(String::from("place_of_birth")),
-                    ClaimPath::SelectByKey(String::from("country")),
-                    ClaimPath::SelectByKey(String::from("name")),
-                ]
-                .try_into()
-                .unwrap(),
-            )
+            .make_concealable(vec_nonempty![
+                ClaimPath::SelectByKey(String::from("place_of_birth")),
+                ClaimPath::SelectByKey(String::from("country")),
+                ClaimPath::SelectByKey(String::from("name")),
+            ])
             .unwrap()
-            .make_concealable(
-                vec![
-                    ClaimPath::SelectByKey(String::from("place_of_birth")),
-                    ClaimPath::SelectByKey(String::from("country")),
-                    ClaimPath::SelectByKey(String::from("area_code")),
-                ]
-                .try_into()
-                .unwrap(),
-            )
+            .make_concealable(vec_nonempty![
+                ClaimPath::SelectByKey(String::from("place_of_birth")),
+                ClaimPath::SelectByKey(String::from("country")),
+                ClaimPath::SelectByKey(String::from("area_code")),
+            ])
             .unwrap()
             .add_decoys(&[ClaimPath::SelectByKey(String::from("place_of_birth"))], 1)
             .unwrap()

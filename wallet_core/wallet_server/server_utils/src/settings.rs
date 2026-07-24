@@ -209,7 +209,7 @@ pub fn verify_key_pairs(
 
         key_pair
             .certificate
-            .verify(usage, &[], time, trust_anchors)
+            .verify(usage, &[], time, trust_anchors, None)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
         if let Some(usage) = usage

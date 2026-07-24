@@ -1099,7 +1099,7 @@ mod test {
 
         for issuance_session in issuance_sessions {
             // Check that the issuance session contains the expected credential preview.
-            assert_eq!(issuance_session.credential_previews().len(), 1);
+            assert_eq!(issuance_session.credential_previews().len().get(), 1);
             assert_eq!(
                 issuance_session.credential_previews()[0]
                     .credential_payload

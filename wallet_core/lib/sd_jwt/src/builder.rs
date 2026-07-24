@@ -255,11 +255,7 @@ mod examples {
 
             // issuer signs SD-JWT
             SdJwtBuilder::new(claims)
-                .make_concealable(
-                    vec![ClaimPath::SelectByKey(String::from("family_name"))]
-                        .try_into()
-                        .unwrap(),
-                )
+                .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("family_name"))])
                 .unwrap()
                 .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("bsn"))])
                 .unwrap()
@@ -299,44 +295,39 @@ mod test {
             use super::*;
 
             mod on_top_level {
+                use utils::vec_nonempty;
+
                 use super::*;
 
                 #[test]
                 fn can_be_done_for_object_values() {
-                    let result = builder_from_json(json!({ "address": {} })).make_concealable(
-                        vec![ClaimPath::SelectByKey(String::from("address"))]
-                            .try_into()
-                            .unwrap(),
-                    );
+                    let result = builder_from_json(json!({ "address": {} }))
+                        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("address"))]);
 
                     assert!(result.is_ok());
                 }
 
                 #[test]
                 fn can_be_done_for_array_elements() {
-                    let result = builder_from_json(json!({ "nationalities": ["US", "DE"] })).make_concealable(
-                        vec![ClaimPath::SelectByKey(String::from("nationalities"))]
-                            .try_into()
-                            .unwrap(),
-                    );
+                    let result = builder_from_json(json!({ "nationalities": ["US", "DE"] }))
+                        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("nationalities"))]);
 
                     assert!(result.is_ok());
                 }
             }
 
             mod as_subproperties {
+                use utils::vec_nonempty;
+
                 use super::*;
 
                 #[test]
                 fn can_be_done_for_object_values() {
-                    let result = builder_from_json(json!({ "address": { "country": "US" } })).make_concealable(
-                        vec![
+                    let result =
+                        builder_from_json(json!({ "address": { "country": "US" } })).make_concealable(vec_nonempty![
                             ClaimPath::SelectByKey(String::from("address")),
                             ClaimPath::SelectByKey(String::from("country")),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                    );
+                        ]);
 
                     assert!(result.is_ok());
                 }
@@ -346,15 +337,11 @@ mod test {
                     let result = builder_from_json(json!({
                       "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
-                    .make_concealable(
-                        vec![
-                            ClaimPath::SelectByKey(String::from("address")),
-                            ClaimPath::SelectByKey(String::from("contact_person")),
-                            ClaimPath::SelectByIndex(0),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                    );
+                    .make_concealable(vec_nonempty![
+                        ClaimPath::SelectByKey(String::from("address")),
+                        ClaimPath::SelectByKey(String::from("contact_person")),
+                        ClaimPath::SelectByIndex(0),
+                    ]);
 
                     assert!(result.is_ok());
                 }
@@ -380,14 +367,10 @@ mod test {
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_paths() {
-                    let result = builder_from_json(json!({})).make_concealable(
-                        vec![
-                            ClaimPath::SelectByKey(String::from("nationalities")),
-                            ClaimPath::SelectByIndex(0),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                    );
+                    let result = builder_from_json(json!({})).make_concealable(vec_nonempty![
+                        ClaimPath::SelectByKey(String::from("nationalities")),
+                        ClaimPath::SelectByIndex(0),
+                    ]);
 
                     assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))));
                 }
@@ -397,14 +380,10 @@ mod test {
                     let result = builder_from_json(json!({
                       "nationalities": ["US", "DE"]
                     }))
-                    .make_concealable(
-                        vec![
-                            ClaimPath::SelectByKey(String::from("nationalities")),
-                            ClaimPath::SelectByIndex(2),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                    );
+                    .make_concealable(vec_nonempty![
+                        ClaimPath::SelectByKey(String::from("nationalities")),
+                        ClaimPath::SelectByIndex(2),
+                    ]);
 
                     assert_matches!(
                         result,
@@ -414,6 +393,8 @@ mod test {
             }
 
             mod as_subproperties {
+                use utils::vec_nonempty;
+
                 use super::*;
                 use crate::error::ClaimError;
 
@@ -422,14 +403,10 @@ mod test {
                     let result = builder_from_json(json!({
                       "address": {}
                     }))
-                    .make_concealable(
-                        vec![
-                            ClaimPath::SelectByKey(String::from("address")),
-                            ClaimPath::SelectByKey(String::from("region")),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                    );
+                    .make_concealable(vec_nonempty![
+                        ClaimPath::SelectByKey(String::from("address")),
+                        ClaimPath::SelectByKey(String::from("region")),
+                    ]);
 
                     assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _))) if key == "region".parse().unwrap());
                 }
@@ -439,15 +416,11 @@ mod test {
                     let result = builder_from_json(json!({
                       "address": {}
                     }))
-                    .make_concealable(
-                        vec![
-                            ClaimPath::SelectByKey(String::from("address")),
-                            ClaimPath::SelectByKey(String::from("contact_person")),
-                            ClaimPath::SelectByIndex(2),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                    );
+                    .make_concealable(vec_nonempty![
+                        ClaimPath::SelectByKey(String::from("address")),
+                        ClaimPath::SelectByKey(String::from("contact_person")),
+                        ClaimPath::SelectByIndex(2),
+                    ]);
 
                     assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))));
                 }
@@ -457,15 +430,11 @@ mod test {
                     let result = builder_from_json(json!({
                       "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
-                    .make_concealable(
-                        vec![
-                            ClaimPath::SelectByKey(String::from("address")),
-                            ClaimPath::SelectByKey(String::from("contact_person")),
-                            ClaimPath::SelectByIndex(2),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                    );
+                    .make_concealable(vec_nonempty![
+                        ClaimPath::SelectByKey(String::from("address")),
+                        ClaimPath::SelectByKey(String::from("contact_person")),
+                        ClaimPath::SelectByIndex(2),
+                    ]);
 
                     assert_matches!(
                         result,
@@ -495,8 +464,16 @@ mod test {
 
                 assert!(result.is_ok());
                 assert_eq!(
-                    result.unwrap().encoder.object_claims()._sd.as_ref().unwrap().len(),
-                    2.try_into().unwrap()
+                    result
+                        .unwrap()
+                        .encoder
+                        .object_claims()
+                        ._sd
+                        .as_ref()
+                        .unwrap()
+                        .len()
+                        .get(),
+                    2
                 );
             }
         }

@@ -81,15 +81,22 @@ pub mod generate {
     use p256::pkcs8::DecodePrivateKey;
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
+    use rcgen::CertificateRevocationList;
+    use rcgen::CertificateRevocationListParams;
+    use rcgen::CrlDistributionPoint;
     use rcgen::DnType;
     use rcgen::IsCa;
     use rcgen::Issuer;
+    use rcgen::KeyIdMethod;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PublicKeyData;
+    use rcgen::RevokedCertParams;
     use rcgen::SanType;
+    use rcgen::SerialNumber;
     use rcgen::SubjectPublicKeyInfo;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
+    use time::Duration;
     use time::OffsetDateTime;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
@@ -203,6 +210,36 @@ pub mod generate {
 
         pub fn to_trust_anchor(&self) -> TrustAnchor<'_> {
             self.borrowing_trust_anchor.as_trust_anchor().clone()
+        }
+
+        /// Generate a signed CRL from this CA, revoking the given certificates.
+        pub fn generate_crl(
+            &self,
+            revoked_certs: Vec<RevokedCertParams>,
+        ) -> Result<CertificateRevocationList, CertificateError> {
+            let now = OffsetDateTime::now_utc();
+            self.generate_crl_with_validity(revoked_certs, now, now + Duration::days(7))
+        }
+
+        /// Generate a signed CRL from this CA, revoking the given certificates, with explicit
+        /// `thisUpdate`/`nextUpdate` fields. Used to test CRL expiry handling.
+        pub fn generate_crl_with_validity(
+            &self,
+            revoked_certs: Vec<RevokedCertParams>,
+            this_update: OffsetDateTime,
+            next_update: OffsetDateTime,
+        ) -> Result<CertificateRevocationList, CertificateError> {
+            let params = CertificateRevocationListParams {
+                this_update,
+                next_update,
+                crl_number: SerialNumber::from(1u64),
+                issuing_distribution_point: None,
+                revoked_certs,
+                key_identifier_method: KeyIdMethod::Sha256,
+            };
+            params
+                .signed_by(&self.issuer)
+                .map_err(CertificateError::GeneratingFailed)
         }
 
         /// Generate a new intermediate CA key pair, with any constraint
@@ -322,6 +359,13 @@ pub mod generate {
             if let Some(extension) = source.extension {
                 result.custom_extensions.push(extension);
             }
+            result.crl_distribution_points = source
+                .crl_distribution_points
+                .into_iter()
+                .map(|uri| CrlDistributionPoint {
+                    uris: vec![uri.to_string()],
+                })
+                .collect();
             result
         }
     }

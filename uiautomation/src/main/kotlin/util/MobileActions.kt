@@ -20,6 +20,7 @@ import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.TimeoutException
+import org.openqa.selenium.WebDriverException
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.interactions.PointerInput.Origin
@@ -249,6 +250,56 @@ open class MobileActions {
             // Switch to the last window handle (a.k.a. tab)
             val windowHandles = (driver as AppiumDriver).windowHandles
             driver.switchTo().window(windowHandles.last())
+        }
+    }
+
+    fun switchToWebViewWindowContaining(
+        locator: By,
+        timeoutMillis: Long = WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS,
+    ) {
+        val contextDriver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver
+        }
+        try {
+            WebDriverWait(driver, Duration.ofMillis(timeoutMillis))
+                .ignoring(WebDriverException::class.java)
+                .until {
+                    contextDriver.contextHandles
+                        .filter { it.startsWith(WEB_VIEW_CONTEXT_PREFIX) }
+                        .any { context ->
+                            contextDriver.context(context)
+                            driver.windowHandles.any { window ->
+                                driver.switchTo().window(window)
+                                driver.findElements(locator).isNotEmpty()
+                            }
+                        }
+                }
+        } catch (e: TimeoutException) {
+            logWebViewLandscape()
+            throw e
+        }
+    }
+
+    private fun logWebViewLandscape() {
+        val contextDriver = when (platform()) {
+            Platform.ANDROID -> driver as AndroidDriver
+            Platform.IOS -> driver as IOSDriver
+        }
+        println("=== Web view landscape (could not locate target element) ===")
+        contextDriver.contextHandles.forEach { context ->
+            println("Context: $context")
+            if (context.startsWith(WEB_VIEW_CONTEXT_PREFIX)) {
+                try {
+                    contextDriver.context(context)
+                    driver.windowHandles.forEach { window ->
+                        driver.switchTo().window(window)
+                        println("  window=$window url=${driver.currentUrl} title=${driver.title}")
+                    }
+                } catch (e: Exception) {
+                    println("  (could not enumerate windows: ${e.message})")
+                }
+            }
         }
     }
 
@@ -790,6 +841,7 @@ open class MobileActions {
         const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 4000L
         const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
+        const val WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS = 15_000L
         const val BROWSER_STARTUP_TIMEOUT = 2000L
         const val DEFAULT_RESET_SLEEP = 10_000L
         const val ANIMATION_SETTLE_MILLIS = 300L

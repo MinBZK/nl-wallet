@@ -328,7 +328,7 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.credential_previews().len(), attestation_count.get());
+    assert_eq!(session.credential_previews().len(), attestation_count);
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
@@ -359,7 +359,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     let mut session = start_issuance_session(&server).await;
 
     let previews = session.credential_previews();
-    assert_eq!(previews.len(), 1);
+    assert_eq!(previews.len().get(), 1);
     let attributes = previews[0].credential_payload.attributes.as_ref();
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());

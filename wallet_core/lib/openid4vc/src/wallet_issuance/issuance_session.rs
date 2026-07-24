@@ -944,8 +944,8 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(())
     }
 
-    fn credential_previews(&self) -> &[CredentialPreview] {
-        self.session_state.credential_previews.as_slice()
+    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview> {
+        &self.session_state.credential_previews
     }
 
     fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata> {

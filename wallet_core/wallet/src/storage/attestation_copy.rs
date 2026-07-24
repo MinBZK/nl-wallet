@@ -476,12 +476,10 @@ mod tests {
             validity_window: ValidityWindow::new_valid_mock(),
         };
 
-        let bsn_path = vec![
+        let bsn_path = vec_nonempty![
             ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
             ClaimPath::SelectByKey(PID_BSN.to_string()),
-        ]
-        .try_into()
-        .unwrap();
+        ];
 
         (copy, bsn_path)
     }
