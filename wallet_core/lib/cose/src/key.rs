@@ -16,6 +16,8 @@ use serde::ser::Serializer;
 use crate::serialization::deserialize_as_cbor_value;
 use crate::serialization::serialize_as_cbor_value;
 
+const P256_COORDINATE_LENGTH: usize = 32;
+
 /// A serde-compatible wrapper around [`coset::CoseKey`].
 #[derive(Debug, Clone, PartialEq, AsRef, From, Into)]
 pub struct CoseKey(coset::CoseKey);
@@ -61,6 +63,9 @@ pub enum CoseKeyConversionError {
     #[error("COSE key coordinate must be a byte string")]
     #[category(critical)]
     InvalidCoordinate,
+    #[error("invalid COSE P-256 key coordinate length: expected {expected} bytes, got {actual}")]
+    #[category(critical)]
+    InvalidCoordinateLength { expected: usize, actual: usize },
     #[error("failed to construct P-256 verifying key: {0}")]
     VerifyingKeyConstruction(#[from] p256::ecdsa::Error),
 }
@@ -118,11 +123,20 @@ fn parameter(key: &coset::CoseKey, parameter: iana::Ec2KeyParameter) -> Option<&
 }
 
 fn coordinate(key: &coset::CoseKey, parameter_name: iana::Ec2KeyParameter) -> Result<&[u8], CoseKeyConversionError> {
-    parameter(key, parameter_name)
+    let coordinate = parameter(key, parameter_name)
         .ok_or(CoseKeyConversionError::MissingCoordinate)?
         .as_bytes()
         .map(Vec::as_slice)
-        .ok_or(CoseKeyConversionError::InvalidCoordinate)
+        .ok_or(CoseKeyConversionError::InvalidCoordinate)?;
+
+    if coordinate.len() != P256_COORDINATE_LENGTH {
+        return Err(CoseKeyConversionError::InvalidCoordinateLength {
+            expected: P256_COORDINATE_LENGTH,
+            actual: coordinate.len(),
+        });
+    }
+
+    Ok(coordinate)
 }
 
 #[cfg(test)]
@@ -155,6 +169,33 @@ mod tests {
         cose_key.0.params.reverse();
 
         assert_eq!(VerifyingKey::try_from(&cose_key).unwrap(), *signing_key.verifying_key());
+    }
+
+    #[test]
+    fn p256_conversion_rejects_coordinates_with_invalid_lengths() {
+        let signing_key = SigningKey::random(&mut OsRng);
+        let encoded_point = signing_key.verifying_key().to_encoded_point(false);
+        let x = encoded_point.x().unwrap().as_slice();
+        let y = encoded_point.y().unwrap().as_slice();
+
+        for (x, y, invalid_length) in [
+            (x[..31].to_vec(), [&x[31..], y].concat(), 31),
+            ([x, &y[..1]].concat(), y[1..].to_vec(), 33),
+            (x.to_vec(), y[..31].to_vec(), 31),
+            (x.to_vec(), [y, &[0]].concat(), 33),
+        ] {
+            let cose_key: CoseKey = CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_256, x, y)
+                .build()
+                .into();
+
+            assert!(matches!(
+                VerifyingKey::try_from(&cose_key),
+                Err(CoseKeyConversionError::InvalidCoordinateLength {
+                    expected: P256_COORDINATE_LENGTH,
+                    actual,
+                }) if actual == invalid_length
+            ));
+        }
     }
 
     #[test]
