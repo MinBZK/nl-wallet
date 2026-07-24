@@ -71,18 +71,16 @@ class DeleteCardTests : TestBase() {
 
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickHollandUniversityMdocButton()
+        indexWebPage.clickMuseumMaandkaartButton()
         issuerWebPage.openSameDeviceWalletFlow()
 
-        disclosureForIssuanceScreen.switchToNativeContext()
-        disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(DEFAULT_PIN)
+        cardIssuanceScreen.switchToNativeContext()
         cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton();
-        dashboardScreen.scrollToEndOfScreen()
 
-        dashboardScreen.clickCard(cardMetadata.getDiplomaDisplayName())
+        dashboardScreen.scrollToEndOfScreen()
+        dashboardScreen.clickCard(cardMetadata.getMuseumMaandkaartDisplayName())
         cardDetailScreen.clickDeleteCardButton()
         cardDetailScreen.clickConfirmDeleteCard()
         pinScreen.enterPin(DEFAULT_PIN)
@@ -90,7 +88,7 @@ class DeleteCardTests : TestBase() {
 
         cardDeletedScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
-        assertTrue(!dashboardScreen.cardVisible(cardMetadata.getInsuranceDisplayName()), "Deleted card is still visible")
+        assertTrue(!dashboardScreen.cardVisible(cardMetadata.getMuseumMaandkaartDisplayName()), "Deleted card is still visible")
 
         dashboardScreen.clickMenuButton()
         menuScreen.clickHistoryButton()
