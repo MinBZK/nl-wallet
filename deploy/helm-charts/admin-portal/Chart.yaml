@@ -1,12 +1,9 @@
 apiVersion: v2
-name: admin-portal
-description: A Helm chart for the Wallet Admin Portal
-
 type: application
-
+name: admin-portal
 version: 0.1.0
-
 appVersion: ""
+description: A Helm chart for the Wallet Admin Portal
 
 dependencies:
   - name: sp-common
