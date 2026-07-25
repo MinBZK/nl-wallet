@@ -35,7 +35,7 @@ spec:
       serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
         - name: {{ include "common.names.fullname" . }}
-          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ printf "%s:%s" (list .Values.global.imageRegistry .Values.image.repository | compact | join "/") .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
           {{- with .Values.resources }}
