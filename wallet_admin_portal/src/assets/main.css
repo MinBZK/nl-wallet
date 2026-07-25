@@ -51,8 +51,8 @@
   --color-border: #e8eaef;
   --color-text-primary: #152a62;
   --color-text-secondary: #445581;
-  --sidebar-footer-height: 76px;
   --header-height: 86px;
+  --footer-height: 76px;
 
   font-family: 'RO Sans', sans-serif;
   /* Only the faces above are bundled, so let the browser pick a real face

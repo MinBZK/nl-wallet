@@ -32,7 +32,7 @@
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
-  height: var(--sidebar-footer-height);
+  height: var(--footer-height);
   padding: 14px 24px 18px;
   border-top: 2px solid var(--color-border);
   margin-top: auto;
@@ -81,7 +81,7 @@ select {
   height: 36px;
   border: none;
   border-radius: 12px;
-  background: --var(--color-background);
+  background: var(--color-background);
   font-weight: 700;
   cursor: pointer;
   align-items: center;
