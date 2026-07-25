@@ -6,21 +6,17 @@
       <div class="section-label">ALGEMEEN</div>
 
       <RouterLink to="/tasks" class="nav-item" exact-active-class="active">
-        <span class="icon">▦</span>
+        <img src="@/assets/icons/checklist.svg" alt="" class="icon" />
         <span>Openstaande taken</span>
       </RouterLink>
 
       <RouterLink to="/history" class="nav-item" exact-active-class="active">
-        <span class="icon">⏱</span>
+        <img src="@/assets/icons/history.svg" alt="" class="icon" />
         <span>Taakgeschiedenis</span>
       </RouterLink>
     </div>
 
-    <SidebarUserCard
-      name="Joss van Leiden"
-      role="Teamleider"
-      avatar-url="https://i.pravatar.cc/80?img=12"
-    />
+    <SidebarUserCard name="Joss van Leiden" role="Teamleider" />
   </aside>
 </template>
 
@@ -69,8 +65,7 @@ import SidebarUserCard from './SidebarUserCard.vue'
 }
 
 .icon {
-  width: 20px;
-  text-align: center;
-  color: #4b55d6;
+  width: 24px;
+  height: 24px;
 }
 </style>

@@ -1,6 +1,7 @@
 <template>
   <div class="user-card">
-    <img class="avatar" :src="avatarUrl" alt="User avatar" />
+    <img v-if="avatarUrl" class="avatar avatar-image" :src="avatarUrl" alt="" />
+    <div v-else class="avatar avatar-initials" aria-hidden="true">{{ initials }}</div>
     <div class="user-meta">
       <div class="user-name">{{ name }}</div>
       <div class="user-role">{{ role }}</div>
@@ -12,11 +13,22 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+
+const props = defineProps<{
   name: string
   role: string
-  avatarUrl: string
+  avatarUrl?: string
 }>()
+
+const initials = computed(() => {
+  const parts = props.name.split(' ').filter(Boolean)
+  const relevant = parts.length > 1 ? parts.slice(0, 1).concat(parts.slice(-1)) : parts
+  return relevant
+    .map((part) => part.charAt(0))
+    .join('')
+    .toUpperCase()
+})
 </script>
 
 <style scoped>
@@ -26,7 +38,7 @@ defineProps<{
   gap: 16px;
   margin-top: auto;
   box-sizing: border-box;
-  height: var(--sidebar-footer-height);
+  height: var(--footer-height);
   border-top: 2px solid var(--color-border);
   padding: 16px;
 }
@@ -35,7 +47,21 @@ defineProps<{
   width: 34px;
   height: 34px;
   border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.avatar-image {
   object-fit: cover;
+}
+
+.avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8eaf9;
+  color: #383ede;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .user-meta {
