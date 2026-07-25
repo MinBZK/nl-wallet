@@ -18,7 +18,7 @@ import AppSidebar from './components/sidebar/AppSidebar.vue'
   grid-template-columns: 260px 1fr;
   height: 100vh;
   overflow: hidden;
-  background: --var(--color-background);
+  background: var(--color-background);
   font-family: 'RO Sans', sans-serif;
 }
 
@@ -27,7 +27,7 @@ import AppSidebar from './components/sidebar/AppSidebar.vue'
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: --var(--color-background);
+  background: var(--color-background);
   border-left: 1px solid #e7e7ef;
 }
 </style>
