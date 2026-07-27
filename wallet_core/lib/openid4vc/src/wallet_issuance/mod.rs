@@ -324,13 +324,13 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialOfferNoPreAuthorizedCode,
 
-    #[error("Attestation-Based Client Authentication metadata error: {0}")]
+    #[error("could not verify Authorization Server support for Attestation-Based Client Authentication: {0}")]
     ClientAttestationMetadata(#[source] ClientAttestationMetadataError),
 
-    #[error("Attestation-Based Client Authentication challenge mechanism error: {0}")]
+    #[error("could not determine Attestation-Based Client Authentication challenge mechanism: {0}")]
     ClientAttestationChallengeMechanism(#[source] ClientAttestationChallengeMechanismError),
 
-    #[error("Attestation-Based Client Authentication challenge error: {0}")]
+    #[error("could not fetch Attestation-Based Client Authentication challenge: {0}")]
     ClientAttestationChallenge(#[source] ClientAttestationChallengeError),
 }
 
