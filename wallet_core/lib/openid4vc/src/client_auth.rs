@@ -170,12 +170,98 @@ pub async fn fetch_client_auth_challenge(
 mod tests {
     use std::assert_matches;
 
+    use http::Response as HttpResponse;
+    use jwt::nonce::Nonce;
     use jwt::wia::WIA_CLIENT_AUTH_METHOD;
+    use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
+    use reqwest::Response;
+    use url::Url;
 
+    use super::ClientAttestationChallengeMechanism;
     use super::ClientAttestationError;
     use super::JwsAlgorithm;
     use super::check_client_attestation_metadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+
+    fn http_response(header_value: Option<&str>) -> Response {
+        let mut builder = HttpResponse::builder();
+        if let Some(header_value) = header_value {
+            builder = builder.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, header_value);
+        }
+
+        Response::from(builder.body("").unwrap())
+    }
+
+    #[test]
+    fn try_new_acf_none() {
+        let mechanism = ClientAttestationChallengeMechanism::try_new_acf(None, &http_response(None)).unwrap();
+
+        assert_matches!(mechanism, ClientAttestationChallengeMechanism::None);
+    }
+
+    #[test]
+    fn try_new_acf_challenge_endpoint() {
+        let url: Url = "https://issuer.example.com/challenge".parse().unwrap();
+
+        let mechanism =
+            ClientAttestationChallengeMechanism::try_new_acf(Some(url.clone()), &http_response(None)).unwrap();
+
+        assert_matches!(
+            mechanism,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(endpoint) if endpoint == url
+        );
+    }
+
+    #[test]
+    fn try_new_acf_header() {
+        let mechanism =
+            ClientAttestationChallengeMechanism::try_new_acf(None, &http_response(Some("the-nonce"))).unwrap();
+
+        assert_matches!(
+            mechanism,
+            ClientAttestationChallengeMechanism::Header(nonce) if nonce == Nonce::from("the-nonce".to_string())
+        );
+    }
+
+    #[test]
+    fn try_new_acf_double_challenge_mechanism() {
+        let url: Url = "https://issuer.example.com/challenge".parse().unwrap();
+
+        let error =
+            ClientAttestationChallengeMechanism::try_new_acf(Some(url), &http_response(Some("the-nonce"))).unwrap_err();
+
+        assert_matches!(error, ClientAttestationError::DoubleChallengeMechanism);
+    }
+
+    #[test]
+    fn try_new_acf_header_non_visible_ascii() {
+        let mut builder = HttpResponse::builder();
+        builder = builder.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, [0xffu8].as_slice());
+        let response = Response::from(builder.body("").unwrap());
+
+        let error = ClientAttestationChallengeMechanism::try_new_acf(None, &response).unwrap_err();
+
+        assert_matches!(error, ClientAttestationError::ChallengeHeaderNonVisibleAscii);
+    }
+
+    #[test]
+    fn new_pre_authorized_none() {
+        let mechanism = ClientAttestationChallengeMechanism::new_pre_authorized(None);
+
+        assert_matches!(mechanism, ClientAttestationChallengeMechanism::None);
+    }
+
+    #[test]
+    fn new_pre_authorized_challenge_endpoint() {
+        let url: Url = "https://issuer.example.com/challenge".parse().unwrap();
+
+        let mechanism = ClientAttestationChallengeMechanism::new_pre_authorized(Some(url.clone()));
+
+        assert_matches!(
+            mechanism,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(endpoint) if endpoint == url
+        );
+    }
 
     /// Returns [`AuthorizationServerMetadata`] that fully supports Attestation-Based Client Authentication.
     fn oauth_metadata_with_client_attestation_support() -> AuthorizationServerMetadata {
