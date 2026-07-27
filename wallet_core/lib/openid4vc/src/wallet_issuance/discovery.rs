@@ -544,10 +544,7 @@ impl HttpIssuanceDiscovery {
         // In the pre-authorized code flow, no PAR request was sent whose response might have included a
         // challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
         // if the issuer has one, or the issuer does not use WIA PoP challenges so we don't use one.
-        let client_auth_challenge = match challenge_endpoint {
-            None => ClientAttestationChallengeMechanism::None,
-            Some(url) => ClientAttestationChallengeMechanism::ChallengeEndpoint(url),
-        };
+        let client_auth_challenge = ClientAttestationChallengeMechanism::new_pre_authorized(challenge_endpoint);
 
         HttpIssuanceSession::create(
             message_client,

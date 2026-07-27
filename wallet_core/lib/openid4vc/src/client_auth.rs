@@ -101,7 +101,11 @@ pub enum ClientAttestationChallengeMechanism {
 }
 
 impl ClientAttestationChallengeMechanism {
-    pub fn try_new(endpoint: Option<Url>, http_response: &Response) -> Result<Self, ClientAttestationError> {
+    /// Construct a new `ClientAttestationChallengeMechanism` during the Authorization Code Flow (ACF).
+    pub fn try_new_acf(
+        challenge_endpoint: Option<Url>,
+        http_response: &Response,
+    ) -> Result<Self, ClientAttestationError> {
         let header_value = http_response
             .headers()
             .get(WIA_CLIENT_CHALLENGE_HEADER_NAME)
@@ -115,11 +119,23 @@ impl ClientAttestationChallengeMechanism {
             })
             .transpose()?;
 
-        match (endpoint, header_value) {
+        match (challenge_endpoint, header_value) {
             (Some(_), Some(_)) => Err(ClientAttestationError::DoubleChallengeMechanism),
             (None, None) => Ok(Self::None),
             (None, Some(challenge)) => Ok(Self::Header(challenge)),
             (Some(url), None) => Ok(Self::ChallengeEndpoint(url)),
+        }
+    }
+
+    /// Construct a new `ClientAttestationChallengeMechanism` during the Pre-Authorized Code Flow.
+    ///
+    /// In the Pre-Authorized Code Flow, no PAR request was sent whose response might have included a
+    /// challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
+    /// if the issuer has one, or the issuer does not use WIA PoP challenges so we don't use one.
+    pub fn new_pre_authorized(challenge_endpoint: Option<Url>) -> Self {
+        match challenge_endpoint {
+            None => ClientAttestationChallengeMechanism::None,
+            Some(url) => ClientAttestationChallengeMechanism::ChallengeEndpoint(url),
         }
     }
 }

@@ -182,7 +182,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .map_err(WalletIssuanceError::ParHttp)?;
 
         let client_auth_challenge =
-            ClientAttestationChallengeMechanism::try_new(auth_endpoints.challenge_endpoint, &response)
+            ClientAttestationChallengeMechanism::try_new_acf(auth_endpoints.challenge_endpoint, &response)
                 .map_err(WalletIssuanceError::ClientAttestation)?;
 
         let par_response = if response.status().is_success() {
