@@ -378,6 +378,7 @@ mod tests {
     use crate::pkce::MockPkcePair;
     use crate::pkce::S256PkcePair;
     use crate::wallet_issuance::authorization_endpoints::AuthorizationEndpoints;
+    use crate::wallet_issuance::mock::RecordingWiaClient;
 
     const ISSUER_URL: &str = "https://example.com";
     const TOKEN_ENDPOINT: &str = "/issuance/token";
@@ -597,12 +598,13 @@ mod tests {
             })
             .await;
 
+        let challenge = "foobar";
         if challenge_endpoint_configured {
             server
                 .mock_async(|when, then| {
                     when.method(POST).path("/issuance/client_auth_challenge");
                     then.status(200).json_body(json!({
-                        "attestation_challenge": "foobar",
+                        "attestation_challenge": challenge,
                     }));
                 })
                 .await;
@@ -632,6 +634,7 @@ mod tests {
             )],
         );
         let batch_size = issuer_metadata.batch_size().try_into().unwrap();
+        let wia_client = RecordingWiaClient::default();
         let result = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             issuer_metadata.credential_configurations_supported,
@@ -642,10 +645,16 @@ mod tests {
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
             None,
-            &MockWiaClient::new(),
+            &wia_client,
             issuer_metadata.credential_issuer,
         )
         .await;
+
+        // The WIA generated for the PAR request should include the challenge fetched from the challenge
+        // endpoint if and only if one is configured, regardless of whether a header challenge is also present:
+        // the latter is only known after the PAR response has been received.
+        let expected_challenge = challenge_endpoint_configured.then(|| Nonce::from(challenge.to_string()));
+        assert_eq!(*wia_client.received_challenge.borrow(), Some(expected_challenge));
 
         match expected {
             ExpectedChallengeMechanism::None => {

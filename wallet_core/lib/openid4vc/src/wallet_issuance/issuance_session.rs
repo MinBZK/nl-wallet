@@ -1207,7 +1207,6 @@ impl IssuanceState {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
-    use std::cell::RefCell;
     use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::time::Duration;
@@ -1268,6 +1267,7 @@ mod tests {
     use crate::token::TokenType;
     use crate::wallet_issuance::TypeMetadataChainError;
     use crate::wallet_issuance::WalletIssuanceError;
+    use crate::wallet_issuance::mock::RecordingWiaClient;
 
     impl<H> HttpIssuanceSession<H> {
         pub fn batch_size(&self) -> NonZeroU8 {
@@ -1317,24 +1317,6 @@ mod tests {
             map_pre_authorized_token_error(other, &pre_authorized),
             WalletIssuanceError::TokenRequest(_)
         );
-    }
-
-    /// A [`WiaClient`] that records the challenge it was given, delegating the actual WIA issuance to a
-    /// [`MockWiaClient`].
-    /// The outer `Option` records whether it was set by the test.
-    /// The inner `Option` corresponds to the `Option` in the second parameter to `RecordingWiaClient::issue_wia`.
-    #[derive(Default)]
-    struct RecordingWiaClient {
-        received_challenge: RefCell<Option<Option<Nonce>>>,
-    }
-
-    impl WiaClient for RecordingWiaClient {
-        type Error = <MockWiaClient as WiaClient>::Error;
-
-        async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
-            *self.received_challenge.borrow_mut() = Some(challenge.clone());
-            MockWiaClient::new().issue_wia(aud, challenge).await
-        }
     }
 
     #[rstest]
