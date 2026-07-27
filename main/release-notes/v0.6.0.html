@@ -355,6 +355,10 @@ insurance attestation including a user consent page.</p></li>
 showing an organization to the user.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> service can now serve a custom styled DigiD login page, where
 a preconfigured BSN can be selected, or a custom BSN can be entered.</p></li>
+<li><p>A new <code class="docutils literal notranslate"><span class="pre">admin-portal</span></code> service has been added. It is a Vue 3 web GUI for
+administrative tasks such as (de)blocking and revocation, served by NGINX.
+The service ships with a Helm chart (<code class="docutils literal notranslate"><span class="pre">deploy/helm-charts/admin-portal</span></code>),
+and a Docker image built in CI (<code class="docutils literal notranslate"><span class="pre">nl-wallet-admin-portal</span></code>).</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
