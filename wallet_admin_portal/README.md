@@ -1,54 +1,24 @@
 # Wallet Admin Portal
 
-This template should help get you started developing with Vue 3 in Vite.
+This "Wallet Admin Portal" is a Vue 3 + Vite web GUI for administrative tasks.
+It provides access to support functions such as (de)blocking and revocation,
+by calling an administrative API on the wallet backend.
 
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Development
 
 ```sh
-pnpm install
+pnpm install        # install dependencies
+pnpm build          # type-check and build for production
+pnpm type-check     # run vue-tsc type checking
+pnpm test:unit      # run unit tests (vitest, watch mode)
+pnpm coverage       # run unit tests with coverage
+pnpm format         # format src/ with oxfmt
+pnpm lint           # run oxlint + eslint with auto-fix
+pnpm dev            # start dev server with hot-reload
+pnpm preview        # preview the production build locally
 ```
 
-### Compile and Hot-Reload for Development
+## Deployment
 
-```sh
-pnpm dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-pnpm build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-pnpm test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-pnpm lint
-```
+Deployment can be done in a variety of ways. In our case, we deploy using Helm.
+Consequently, we have Helm charts available [here](../deploy/helm-charts/admin-portal).
