@@ -75,6 +75,16 @@
 | `httpRoute.labels`      | Additional labels for the route      | `{}`   |
 | `httpRoute.annotations` | Additional annotations for the route | `{}`   |
 
+### HTTP route internal parameters
+
+| Name                            | Description                          | Value   |
+| ------------------------------- | ------------------------------------ | ------- |
+| `httpRouteInternal.enabled`     | Enable or disable the route          | `false` |
+| `httpRouteInternal.parentRefs`  | Parent references to the gateway     | `[]`    |
+| `httpRouteInternal.hostnames`   | Hostnames for the route              | `[]`    |
+| `httpRouteInternal.labels`      | Additional labels for the route      | `{}`    |
+| `httpRouteInternal.annotations` | Additional annotations for the route | `{}`    |
+
 ### Container probes
 
 | Name                            | Description                                  | Value   |
