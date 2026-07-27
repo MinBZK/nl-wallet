@@ -16,7 +16,7 @@ use serde_with::skip_serializing_none;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::iso::mdocs::*;
-use crate::utils::cose::MdocCose;
+use crate::utils::cose::TypedCose;
 use crate::utils::serialization::NullCborValue;
 use crate::utils::serialization::RequiredValue;
 use crate::utils::serialization::TaggedBytes;
@@ -146,7 +146,7 @@ pub struct IssuerSigned {
 /// ```cddl
 /// IssuerAuth = COSE_Sign1
 /// ```
-pub type IssuerAuth = MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>;
+pub type IssuerAuth = TypedCose<CoseSign1, TaggedBytes<MobileSecurityObject>>;
 
 impl IssuerSigned {
     /// Get a list of attributes ([`Entry`] instances) contained in the mdoc, mapped per [`NameSpace`].
@@ -230,8 +230,8 @@ pub struct DeviceSignedItems(IndexMap<DataElementIdentifier, DataElementValue>);
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum DeviceAuth {
-    DeviceSignature(MdocCose<CoseSign1, RequiredValue<NullCborValue>>),
-    DeviceMac(MdocCose<CoseMac0, RequiredValue<NullCborValue>>),
+    DeviceSignature(TypedCose<CoseSign1, RequiredValue<NullCborValue>>),
+    DeviceMac(TypedCose<CoseMac0, RequiredValue<NullCborValue>>),
 }
 
 /// Error codes for each namespace

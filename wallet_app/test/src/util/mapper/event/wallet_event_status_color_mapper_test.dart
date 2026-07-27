@@ -11,43 +11,43 @@ void main() {
   });
 
   group('useErrorColor', () {
-    test('DeletionEvent does not use error color', () {
+    test('ltc22 ltc23 DeletionEvent does not use error color', () {
       expect(mapper.useErrorColor(WalletMockData.deletionEvent), isFalse);
     });
 
-    test('Successful DisclosureEvent does not use error color', () {
+    test('ltc22 ltc23 Successful DisclosureEvent does not use error color', () {
       expect(mapper.useErrorColor(WalletMockData.disclosureEvent), isFalse);
     });
 
-    test('Cancelled DisclosureEvent uses error color', () {
+    test('ltc22 ltc23 Cancelled DisclosureEvent uses error color', () {
       expect(mapper.useErrorColor(WalletMockData.cancelledDisclosureEvent), isTrue);
     });
 
-    test('Failed DisclosureEvent uses error color', () {
+    test('ltc22 ltc23 Failed DisclosureEvent uses error color', () {
       expect(mapper.useErrorColor(WalletMockData.failedDisclosureEvent), isTrue);
     });
 
-    test('Successful IssuanceEvent does not use error color', () {
+    test('ltc22 ltc23 Successful IssuanceEvent does not use error color', () {
       expect(mapper.useErrorColor(WalletMockData.issuanceEvent), isFalse);
     });
 
-    test('Renewed IssuanceEvent does not use error color', () {
+    test('ltc22 ltc23 Renewed IssuanceEvent does not use error color', () {
       expect(mapper.useErrorColor(WalletMockData.issuanceEventCardRenewed), isFalse);
     });
 
-    test('Expired IssuanceEvent uses error color', () {
+    test('ltc22 ltc23 Expired IssuanceEvent uses error color', () {
       expect(mapper.useErrorColor(WalletMockData.issuanceEventCardStatusExpired), isTrue);
     });
 
-    test('Revoked IssuanceEvent uses error color', () {
+    test('ltc22 ltc23 Revoked IssuanceEvent uses error color', () {
       expect(mapper.useErrorColor(WalletMockData.issuanceEventCardStatusRevoked), isTrue);
     });
 
-    test('Corrupted IssuanceEvent uses error color', () {
+    test('ltc22 ltc23 Corrupted IssuanceEvent uses error color', () {
       expect(mapper.useErrorColor(WalletMockData.issuanceEventCardStatusCorrupted), isTrue);
     });
 
-    test('SignEvent does not use error color', () {
+    test('ltc22 ltc23 SignEvent does not use error color', () {
       expect(mapper.useErrorColor(WalletMockData.signEvent), isFalse);
     });
   });

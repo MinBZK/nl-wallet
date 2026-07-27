@@ -1,6 +1,5 @@
 package screen.issuance
 
-import helper.LocalizationHelper
 import util.MobileActions
 
 class CardIssuanceScreen : MobileActions() {
@@ -10,12 +9,14 @@ class CardIssuanceScreen : MobileActions() {
     private val stopButton = l10n.getString("generalBottomBackCta")
     private val viewDetailsButton = l10n.getString("issuanceReviewCardsPageShowDetailsCta")
     private val dashboardButton = l10n.getString("issuanceSuccessPageCloseCta")
-    private val renewCardSectionTitle = l10n.getPluralString("issuanceReviewCardsPageRenewSectionTitle", 1, mapOf("cards" to "1"))
+    private val renewCardsSectionTitle = l10n.getPluralString("issuanceReviewCardsPageRenewSectionTitle", 2, mapOf("cards" to "2"))
 
     fun clickAddCardButton() {
         scrollToElementWithText(addCardButton)
         clickElementWithText(addCardButton)
     }
+
+    fun addCardButtonVisible(timeoutInSeconds: Long = 20) = elementWithTextVisible(addCardButton, timeoutInSeconds)
 
     fun clickAdd2CardsButton() {
         scrollToElementWithText(add2CardsButton)
@@ -42,7 +43,7 @@ class CardIssuanceScreen : MobileActions() {
         ))
     }
 
-    fun renewCardSectionTitleVisible() = elementWithTextVisible(renewCardSectionTitle)
+    fun renewCardsSectionTitleVisible() = elementWithTextVisible(renewCardsSectionTitle)
 
     fun clickToDashboardButton() = clickElementWithText(dashboardButton)
 }

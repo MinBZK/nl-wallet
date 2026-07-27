@@ -91,6 +91,7 @@ ts-rs = { workspace = true, optional = true }
 
 attestation_data.path = "../attestation_data"
 attestation_types.path = "../attestation_types"
+cose.path = "../cose"
 crypto.path = "../crypto"
 dcql.path = "../dcql"
 error_category.path = "../error_category"
