@@ -21,4 +21,4 @@ pnpm preview        # preview the production build locally
 ## Deployment
 
 Deployment can be done in a variety of ways. In our case, we deploy using Helm.
-Consequently, we have Helm charts available [here](../deploy/helm-charts/admin-portal).
+Consequently, [we have Helm charts available](../deploy/helm-charts/admin-portal).
