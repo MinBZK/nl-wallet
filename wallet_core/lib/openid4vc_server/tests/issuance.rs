@@ -1322,12 +1322,8 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!(
-        "{}issuance/token",
-        issuer.issuer_identifier().as_base_url().as_ref().as_str()
-    )
-    .parse()
-    .unwrap();
+    let base = issuer.issuer_identifier().as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
     let documents = mock_issuable_documents(attestation_count);
     let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
@@ -1350,8 +1346,14 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
-        .issue_wia(issuer.issuer_identifier().to_string(), None)
+        .issue_wia(issuer.issuer_identifier().to_string(), Some(challenge))
         .await
         .unwrap();
 
