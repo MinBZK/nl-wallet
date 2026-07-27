@@ -23,6 +23,7 @@ use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization_details::EntryContainer;
+use openid4vc::client_auth::fetch_client_auth_challenge;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
@@ -704,8 +705,14 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -792,8 +799,14 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -912,9 +925,8 @@ async fn token_ok() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
-        .parse()
-        .unwrap();
+    let base = issuer_identifier.as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token").parse().unwrap();
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
@@ -925,8 +937,14 @@ async fn token_ok() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -984,9 +1002,8 @@ async fn token_rejects_missing_code_verifier() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
-        .parse()
-        .unwrap();
+    let base = issuer_identifier.as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
@@ -997,8 +1014,14 @@ async fn token_rejects_missing_code_verifier() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1033,9 +1056,8 @@ async fn token_rejects_unknown_code_verifier() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
-        .parse()
-        .unwrap();
+    let base = issuer_identifier.as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode { code },
@@ -1046,8 +1068,14 @@ async fn token_rejects_unknown_code_verifier() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1085,9 +1113,8 @@ async fn token_rejects_grant_type_mismatch() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
-        .parse()
-        .unwrap();
+    let base = issuer_identifier.as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::PreAuthorizedCode {
@@ -1100,8 +1127,14 @@ async fn token_rejects_grant_type_mismatch() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1136,9 +1169,8 @@ async fn token_rejects_authorization_details() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
-        .parse()
-        .unwrap();
+    let base = issuer_identifier.as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token").parse().unwrap();
 
     // Create a Token Request that contains (valid) `authorization_details`. The issuer should reject this as
     // being unsupported.
@@ -1157,8 +1189,14 @@ async fn token_rejects_authorization_details() {
         ),
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1191,9 +1229,8 @@ async fn token_rejects_scope_mismatch() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
-        .parse()
-        .unwrap();
+    let base = issuer_identifier.as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token").parse().unwrap();
 
     // Reducing the scope in the Token Request should result in an "invalid_scope" error response.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
@@ -1207,8 +1244,14 @@ async fn token_rejects_scope_mismatch() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1241,8 +1284,14 @@ async fn token_rejects_scope_mismatch() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1273,12 +1322,8 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!(
-        "{}issuance/token",
-        issuer.issuer_identifier().as_base_url().as_ref().as_str()
-    )
-    .parse()
-    .unwrap();
+    let base = issuer.issuer_identifier().as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
     let documents = mock_issuable_documents(attestation_count);
     let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
@@ -1301,8 +1346,14 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
-        .issue_wia(issuer.issuer_identifier().to_string(), None)
+        .issue_wia(issuer.issuer_identifier().to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1386,9 +1437,8 @@ async fn token_rejects_differing_redirect_uri() {
         .build()
         .unwrap();
 
-    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
-        .parse()
-        .unwrap();
+    let base = issuer_identifier.as_base_url().as_ref().as_str();
+    let token_url: Url = format!("{base}issuance/token").parse().unwrap();
 
     // A Token Request without a `redirect_uri` should result in a 400 response with the `invalid_request` error code.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
@@ -1402,8 +1452,14 @@ async fn token_rejects_differing_redirect_uri() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 
@@ -1434,8 +1490,14 @@ async fn token_rejects_differing_redirect_uri() {
         authorization_details: None,
     };
 
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
     let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
-        .issue_wia(issuer_identifier.to_string(), None)
+        .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
 

@@ -17,7 +17,6 @@ use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
@@ -38,6 +37,9 @@ use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
 use self::issuance_session::IssuanceTypeMetadata;
+use crate::client_auth::ClientAttestationChallengeError;
+use crate::client_auth::ClientAttestationChallengeMechanismError;
+use crate::client_auth::ClientAttestationMetadataError;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
 use crate::errors::CredentialErrorCode;
@@ -46,7 +48,6 @@ use crate::errors::RemoteErrorResponse;
 use crate::errors::TokenErrorCode;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
-use crate::jose::JwsAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
 use crate::scope::Scope;
@@ -323,23 +324,14 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialOfferNoPreAuthorizedCode,
 
-    #[error("the Authorization Server does not support attestation-based client authentication")]
-    #[category(expected)]
-    NoAttestationBasedClientAuthSupport,
+    #[error("could not verify Authorization Server support for Attestation-Based Client Authentication: {0}")]
+    ClientAttestationMetadata(#[source] ClientAttestationMetadataError),
 
-    #[error(
-        "the Authorization Server does not support ES256 for client attestation signing: {}",
-        .0.as_ref().map(|algs| algs.iter().join(", ")).unwrap_or_else(|| "<none>".to_string())
-    )]
-    #[category(expected)]
-    ClientAttestationSigningAlgNotSupported(Option<IndexSet<JwsAlgorithm>>),
+    #[error("could not determine Attestation-Based Client Authentication challenge mechanism: {0}")]
+    ClientAttestationChallengeMechanism(#[source] ClientAttestationChallengeMechanismError),
 
-    #[error(
-        "the Authorization Server does not support ES256 for client attestation PoP signing: {}",
-        .0.as_ref().map(|algs| algs.iter().join(", ")).unwrap_or_else(|| "<none>".to_string())
-    )]
-    #[category(expected)]
-    ClientAttestationPopSigningAlgNotSupported(Option<IndexSet<JwsAlgorithm>>),
+    #[error("could not fetch Attestation-Based Client Authentication challenge: {0}")]
+    ClientAttestationChallenge(#[source] ClientAttestationChallengeError),
 }
 
 #[derive(Debug)]

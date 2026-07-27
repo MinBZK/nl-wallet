@@ -18,6 +18,7 @@ use futures::try_join;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwt::nonce::Nonce;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use jwt::wia::WiaDisclosure;
@@ -53,6 +54,8 @@ use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
 use super::credential::SdJwtCopy;
 use crate::authorization_details::IssuerAuthorizationDetails;
+use crate::client_auth::ClientAttestationChallengeMechanism;
+use crate::client_auth::fetch_client_auth_challenge;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -98,6 +101,8 @@ pub trait VcMessageClient {
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
     ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError>;
+
+    async fn request_challenge(&self, url: Url) -> Result<Nonce, WalletIssuanceError>;
 
     async fn request_credential_preview(
         &self,
@@ -189,6 +194,12 @@ impl VcMessageClient for HttpVcMessageClient {
                 }
             })
             .await
+    }
+
+    async fn request_challenge(&self, challenge_endpoint: Url) -> Result<Nonce, WalletIssuanceError> {
+        fetch_client_auth_challenge(&self.http_client, challenge_endpoint)
+            .await
+            .map_err(WalletIssuanceError::ClientAttestationChallenge)
     }
 
     async fn request_credential_preview(
@@ -459,6 +470,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         issuer_endpoints: IssuerEndpoints,
         batch_size: NonZeroU8,
         token_endpoint: &Url,
+        client_auth_challenge: ClientAttestationChallengeMechanism,
         token_request: TokenRequest,
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
@@ -472,8 +484,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let dpop_signing_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
+        let challenge = match client_auth_challenge {
+            ClientAttestationChallengeMechanism::None => None,
+            ClientAttestationChallengeMechanism::Header(challenge) => Some(challenge),
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(url) => {
+                Some(message_client.request_challenge(url).await?)
+            }
+        };
+
         let wia = wia_client
-            .issue_wia(auth_server_identifier.to_string(), None)
+            .issue_wia(auth_server_identifier.to_string(), challenge)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
@@ -1187,6 +1207,7 @@ impl IssuanceState {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::time::Duration;
     use std::vec;
@@ -1246,6 +1267,7 @@ mod tests {
     use crate::token::TokenType;
     use crate::wallet_issuance::TypeMetadataChainError;
     use crate::wallet_issuance::WalletIssuanceError;
+    use crate::wallet_issuance::mock::RecordingWiaClient;
 
     impl<H> HttpIssuanceSession<H> {
         pub fn batch_size(&self) -> NonZeroU8 {
@@ -1295,6 +1317,78 @@ mod tests {
             map_pre_authorized_token_error(other, &pre_authorized),
             WalletIssuanceError::TokenRequest(_)
         );
+    }
+
+    #[rstest]
+    #[case(ClientAttestationChallengeMechanism::None, None, false)]
+    #[case(
+        ClientAttestationChallengeMechanism::Header(Nonce::from("header-challenge".to_string())),
+        Some(Nonce::from("header-challenge".to_string())),
+        false
+    )]
+    #[case(
+        ClientAttestationChallengeMechanism::ChallengeEndpoint("https://example.com/challenge".parse().unwrap()),
+        Some(Nonce::from("endpoint-challenge".to_string())),
+        true
+    )]
+    fn test_create_client_auth_challenge_mechanism(
+        #[case] mechanism: ClientAttestationChallengeMechanism,
+        #[case] expected_challenge: Option<Nonce>,
+        #[case] expect_challenge_request: bool,
+    ) {
+        let issuer_identifier: IssuerIdentifier = "https://example.com".parse().unwrap();
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let issuer_metadata = IssuerMetadata::new_mock(
+            issuer_identifier,
+            vec![(
+                config_id,
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
+        );
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
+
+        let mut mock_msg_client = MockVcMessageClient::new();
+        // Fail the token request (the step right after the challenge is resolved and the WIA is issued) with an
+        // unambiguous, recognizable error, so `create()` short-circuits there. This keeps the fixture minimal: only
+        // `request_token` (and `request_challenge`) need to be mocked, without also having to mock the type
+        // metadata/preview fetching, trust anchors, etc. that follow.
+        mock_msg_client
+            .expect_request_token()
+            .once()
+            .return_once(move |_url, _token_request, _dpop_header, _wia_disclosure| Err(invalid_grant_error()));
+        if expect_challenge_request {
+            mock_msg_client
+                .expect_request_challenge()
+                .once()
+                .return_once(move |_url| Ok("endpoint-challenge".to_string().into()));
+        }
+
+        let wia_client = RecordingWiaClient::default();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = TrustAnchors::from(&ca);
+
+        let error = HttpIssuanceSession::create(
+            mock_msg_client,
+            issuer_metadata.credential_configurations_supported,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            batch_size,
+            &oauth_metadata.token_endpoint,
+            mechanism,
+            TokenRequest::new_mock(),
+            &wia_client,
+            &oauth_metadata.issuer,
+            &trust_anchors,
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("should fail at the (mocked) token request, after the challenge has been resolved");
+
+        // The failure should occur at the (mocked) token request, confirming that the challenge resolution itself
+        // succeeded and did not short-circuit `create()` earlier.
+        assert_matches!(error, WalletIssuanceError::PreAuthorizedCodeExpired);
+        assert_eq!(*wia_client.received_challenge.borrow(), Some(expected_challenge));
     }
 
     #[derive(Debug, Clone, Copy)]
@@ -1359,6 +1453,9 @@ mod tests {
             },
         );
         mock_msg_client
+            .expect_request_challenge()
+            .return_once(move |_url| Ok("challenge".to_string().into()));
+        mock_msg_client
             .expect_request_type_metadata()
             .return_once(move |_url| Ok(TypeMetadataDocuments::from_single_example(type_metadata).2));
 
@@ -1392,6 +1489,7 @@ mod tests {
             issuer_metadata.endpoints,
             batch_size,
             &oauth_metadata.token_endpoint,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.issuer,
@@ -1699,6 +1797,9 @@ mod tests {
             },
         );
         mock_msg_client
+            .expect_request_challenge()
+            .return_once(move |_url| Ok("challenge".to_string().into()));
+        mock_msg_client
             .expect_request_type_metadata()
             .returning(|_url| Ok(TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example()).2));
         mock_msg_client
@@ -1734,6 +1835,7 @@ mod tests {
             issuer_metadata.endpoints,
             batch_size,
             &oauth_metadata.token_endpoint,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.issuer,
