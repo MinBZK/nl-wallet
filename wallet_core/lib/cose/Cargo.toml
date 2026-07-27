@@ -1,0 +1,30 @@
+[package]
+name = "cose"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+chrono.workspace = true
+ciborium.workspace = true
+coset.workspace = true
+derive_more = { workspace = true, features = ["as_ref", "from", "into"] }
+p256.workspace = true
+ring.workspace = true
+serde = { workspace = true, features = ["derive"] }
+strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+
+crypto.path = "../crypto"
+error_category.path = "../error_category"
+utils.path = "../utils"
+
+[dev-dependencies]
+rand_core.workspace = true
+tokio = { workspace = true, features = ["macros"] }
+
+crypto = { path = "../crypto", features = ["generate", "mock"] }
+utils = { path = "../utils", features = ["mock_time"] }

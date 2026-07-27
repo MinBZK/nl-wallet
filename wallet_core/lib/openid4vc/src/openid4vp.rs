@@ -12,6 +12,8 @@ use attestation_data::disclosure::DisclosedAttestations;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use cose::CoseAlgorithmIdentifier;
+use cose::KnownCoseAlgorithmIdentifier;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use dcql::CredentialQueryIdentifier;
@@ -78,8 +80,6 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
-use crate::cose::CoseAlgorithmIdentifier;
-use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::jose::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
@@ -323,6 +323,11 @@ pub struct MsoMdocAlgValues {
 }
 
 impl MsoMdocAlgValues {
+    /// Whether both issuer and device authentication metadata support ECDSA using P-256 and SHA-256.
+    ///
+    /// OpenID4VP treats ES256 (-7) used with a P-256 key as matching metadata containing either ES256 or fully
+    /// specified ESP256 (-9). See
+    /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-final.html#appendix-B.2.2-2.1>.
     pub fn contains_ecdsa_p256(&self) -> bool {
         let contains_ecdsa_p256 =
             |alg: &VecNonEmpty<CoseAlgorithmIdentifier>| alg.iter().any(CoseAlgorithmIdentifier::is_ecdsa_p256);
@@ -921,20 +926,23 @@ impl VpAuthorizationResponse {
                     )
                 }
                 VerifiablePresentation::SdJwt(sdw_jwt_payloads) => {
-                    let (keys, attestations): (Vec<_>, Vec<_>) =
-                        try_join_all(sdw_jwt_payloads.into_iter().map(|unverified_presentation| async {
-                            Self::sd_jwt_to_disclosed_attestation(
-                                unverified_presentation,
-                                auth_request,
-                                time,
-                                trust_anchors,
-                                revocation_verifier,
-                            )
-                            .await
-                        }))
-                        .await?
-                        .into_iter()
-                        .unzip();
+                    let (keys, attestations): (Vec<_>, Vec<_>) = try_join_all(
+                        sdw_jwt_payloads
+                            .into_nonempty_iter()
+                            .map(|unverified_presentation| async {
+                                Self::sd_jwt_to_disclosed_attestation(
+                                    unverified_presentation,
+                                    auth_request,
+                                    time,
+                                    trust_anchors,
+                                    revocation_verifier,
+                                )
+                                .await
+                            }),
+                    )
+                    .await?
+                    .into_iter()
+                    .unzip();
 
                     (attestations.try_into().unwrap(), keys)
                 }
@@ -1139,6 +1147,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use base64::prelude::*;
+    use cose::KnownCoseAlgorithmIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
@@ -1187,7 +1196,6 @@ mod tests {
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
-    use crate::cose::KnownCoseAlgorithmIdentifier;
     use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;

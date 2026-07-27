@@ -50,7 +50,7 @@ void main() {
   });
 
   group('WalletEvent_Deletion', () {
-    test('maps to a successful DeletionEvent with the mapped card', () {
+    test('ltc22 ltc23 maps to a successful DeletionEvent with the mapped card', () {
       const input = core.WalletEvent_Deletion(
         id: 'evt-1',
         dateTime: '2024-05-01T00:00:00.000Z',
@@ -69,7 +69,7 @@ void main() {
   });
 
   group('WalletEvent_Disclosure', () {
-    test('maps a successful disclosure to a DisclosureEvent with the relying party', () {
+    test('ltc22 ltc23 maps a successful disclosure to a DisclosureEvent with the relying party', () {
       const input = core.WalletEvent_Disclosure(
         id: 'evt-2',
         dateTime: '2024-03-01T00:00:00.000Z',
@@ -91,7 +91,7 @@ void main() {
   });
 
   group('WalletEvent_Issuance', () {
-    test('maps a non-renewed issuance to IssuanceEvent.cardIssued', () {
+    test('ltc22 ltc23 maps a non-renewed issuance to IssuanceEvent.cardIssued', () {
       const input = core.WalletEvent_Issuance(
         id: 'evt-3',
         dateTime: '2024-01-01T00:00:00.000Z',
@@ -108,7 +108,7 @@ void main() {
       expect(issuance.card, WalletMockData.card);
     });
 
-    test('maps a renewed issuance to IssuanceEvent.cardRenewed', () {
+    test('ltc22 ltc23 maps a renewed issuance to IssuanceEvent.cardRenewed', () {
       const input = core.WalletEvent_Issuance(
         id: 'evt-4',
         dateTime: '2024-01-01T00:00:00.000Z',

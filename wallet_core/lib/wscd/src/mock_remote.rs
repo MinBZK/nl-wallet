@@ -31,6 +31,7 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::repeat_n;
 
 use crate::Poa;
 use crate::wscd::IssuanceResult;
@@ -147,16 +148,14 @@ impl IssuanceWscd for MockRemoteWscd {
         );
 
         let mut keys = self.disclosure.signing_keys.lock();
-        let attestation_keys: VecNonEmpty<_> = (0..count.get())
+        let attestation_keys: VecNonEmpty<_> = repeat_n((), count)
             .map(|_| {
                 let key = SigningKey::random(&mut OsRng);
                 let identifier = verifying_key_sha256(key.verifying_key());
                 keys.insert(identifier.clone(), key.clone());
                 MockRemoteEcdsaKey::new(identifier, key)
             })
-            .collect_vec()
-            .try_into()
-            .unwrap(); // `count` is non-zero, so the unwrap is safe.
+            .collect();
         drop(keys);
 
         let pops = attestation_keys

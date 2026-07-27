@@ -33,7 +33,6 @@ pub mod verifier;
 pub mod errors;
 
 pub mod cleanup;
-pub mod cose;
 pub mod jose;
 pub mod nonce;
 pub mod server_state;

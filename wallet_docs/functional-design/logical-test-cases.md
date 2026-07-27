@@ -284,16 +284,35 @@ from an issuer<br>
 
 ### LTC22
 
-#### View activity list
+#### View complete history
 
-**Given** user has completed PID setup and opened the app<br>
+**Scenario Outline:**<br>
+**Given** user has performed activity `<activity>`<br>
 **When** user selects 'activities' from settings or dashboard<br>
-**Then** system displays list of all usage and management activities<br>
-**When** user selects an activity<br>
+**Then** system displays a list of all usage and management activities,
+grouped by month and sorted newest first<br>
+**And** the list shows the activity with label `<label>`<br>
+**When** user selects the activity<br>
 **Then** system displays details for the selected activity<br>
 **When** user navigates back<br>
 **And** user selects 'About Organization'<br>
-**Then** system displays information about the organization<br>
+**Then** system displays information about the `<organization>`<br>
+
+**Examples:**
+
+| activity                                  | label                     | organization  |
+| ----------------------------------------- | ------------------------- | ------------- |
+| card issuance                             | "Card created"            | issuer        |
+| card renewal                              | "Card renewed"            | issuer        |
+| data sharing completed                    | "Data shared"             | relying party |
+| data sharing failed after data was sent   | "Sharing may have failed" | relying party |
+| data sharing failed before data was sent  | "Sharing failed"          | relying party |
+| data sharing stopped by user              | "Sharing stopped"         | relying party |
+| login completed                           | "Logged in"               | relying party |
+| login failed after data was sent          | "Login may have failed"   | relying party |
+| login failed before data was sent         | "Login failed"            | relying party |
+| login stopped by user                     | "Log in is stopped"       | relying party |
+| card deletion                             | "Card deleted"            | issuer        |
 
 ---
 
@@ -301,14 +320,28 @@ from an issuer<br>
 
 #### View card-specific activity list
 
-**Given** user has completed PID setup and opened the app<br>
-**When** user selects 'activities' on card details screen<br>
-**Then** system displays list of activities related to the selected card<br>
-**When** user selects an activity<br>
+**Scenario Outline:** activity is shown for the related card<br>
+**Given** user has performed activity `<activity>`<br>
+**When** user selects 'activities' on the details screen of a card<br>
+**Then** system displays a list of activities related to the selected card,
+grouped by month and sorted newest first<br>
+**And** the list shows the activity with label `<label>`<br>
+**When** user selects the activity<br>
 **Then** system displays details for the selected activity<br>
 **When** user navigates back<br>
 **And** user selects 'About Organization'<br>
 **Then** system displays organization information<br>
+
+**Examples:**
+
+| activity                                | label                     |
+| --------------------------------------- | ------------------------- |
+| card issuance                           | "Card created"            |
+| card renewal                            | "Card renewed"            |
+| data sharing completed                  | "Data shared"             |
+| data sharing failed after data was sent | "Sharing may have failed" |
+| login completed                         | "Logged in"               |
+| login failed after data was sent        | "Login may have failed"   |
 
 ---
 

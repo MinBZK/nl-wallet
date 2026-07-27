@@ -57,7 +57,7 @@ impl DeviceSigned {
 
         let cose = CoseMac0Builder::new()
             .payload(cbor_serialize(device_auth)?)
-            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
+            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::HMAC_256_256).build())
             .create_tag(&[], |data| ring::hmac::sign(&key, data).as_ref().into())
             .build()
             .clone_without_payload();
@@ -116,7 +116,6 @@ mod tests {
             device_signed: mac_device_signed,
             errors: None,
         };
-
         document
             .verify(
                 Some(&eph_reader_key),

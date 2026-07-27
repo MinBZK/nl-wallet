@@ -295,6 +295,24 @@ impl HttpClient {
     }
 }
 
+/// Read `response` bytes in chunks with a `max_response_size`, to avoid exhausting memory.
+/// Returns None when the read size exceeds `max_response_size`.
+pub async fn bytes_with_max_response_size(
+    response: &mut Response,
+    max_response_size: usize,
+) -> Result<Option<Vec<u8>>, reqwest::Error> {
+    // Read the body in chunks rather than via `.bytes()`, so a CRL distribution point cannot
+    // exhaust memory by returning an unbounded or never-ending response body.
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await? {
+        if bytes.len() + chunk.len() > max_response_size {
+            return Ok(None);
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(Some(bytes))
+}
+
 #[cfg(any(test, feature = "test"))]
 pub mod test {
     use base64::Engine;
