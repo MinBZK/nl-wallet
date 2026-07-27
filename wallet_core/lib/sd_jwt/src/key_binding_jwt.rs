@@ -11,11 +11,12 @@ use crypto::wscd::WscdPoa;
 use derive_more::Display;
 use derive_more::FromStr;
 use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
 use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
+use jwt::JwtValidation;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
+use jwt::ValidationWrapper;
 use jwt::VerifiedJwt;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
@@ -78,8 +79,8 @@ impl UnverifiedKeyBindingJwt {
         kb_verification_options: &KbVerificationOptions,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
-        let validation_options = kb_jwt_validation(kb_verification_options.expected_aud);
-        let verified = self.0.into_verified(pubkey, &validation_options)?;
+        let validation = kb_jwt_validation(kb_verification_options.expected_aud);
+        let verified = self.0.into_verified(pubkey, validation)?;
 
         let payload = verified.payload();
         if payload.nonce != *kb_verification_options.expected_nonce {
@@ -104,18 +105,17 @@ impl UnverifiedKeyBindingJwt {
     }
 }
 
-fn kb_jwt_validation(expected_aud: &str) -> Validation {
+fn kb_jwt_validation(expected_aud: &str) -> ValidationWrapper {
     let mut validation = BASE_KB_JWT_VALIDATION.to_owned();
-    validation.set_audience(&[expected_aud]);
+    validation.require_aud(expected_aud);
     validation
+        .try_into_validation()
+        .expect("should be a single algorithm family")
 }
 
-static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validation = Validation::new(Algorithm::ES256);
-    validation.validate_aud = true;
-    validation.validate_exp = false;
-    validation.validate_nbf = false;
-    validation.set_required_spec_claims(&["aud"]);
+static BASE_KB_JWT_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
+    let mut validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
+    validation.dont_validate_exp();
     validation
 });
 

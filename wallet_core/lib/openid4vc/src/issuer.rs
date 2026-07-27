@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::ops::Add;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
@@ -32,8 +33,8 @@ use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use jwt::Algorithm;
+use jwt::JwtValidation;
 use jwt::SignedJwt;
-use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
@@ -456,8 +457,8 @@ impl<K, L> IssuerData<K, L> {
         )
     }
 
-    fn accepted_wallet_client_ids_vec(&self) -> Vec<&String> {
-        self.accepted_wallet_client_ids.iter().collect()
+    fn accepted_wallet_client_ids_vec(&self) -> impl Iterator<Item = &String> {
+        self.accepted_wallet_client_ids.iter()
     }
 
     fn verify_wia(
@@ -473,7 +474,7 @@ impl<K, L> IssuerData<K, L> {
         wia_disclosure.verify(
             &self.wia_trust_anchors,
             expected_aud,
-            &self.accepted_wallet_client_ids_vec(),
+            self.accepted_wallet_client_ids_vec(),
             client_id,
         )
     }
@@ -1485,7 +1486,7 @@ impl Session<AccessTokenIssued> {
         }?;
 
         let (holder_pubkey, request_nonce) = credential_request.verify(
-            &issuer_data.accepted_wallet_client_ids_vec(),
+            issuer_data.accepted_wallet_client_ids_vec(),
             &issuer_data.metadata.credential_issuer,
         )?;
 
@@ -1600,7 +1601,7 @@ impl Session<AccessTokenIssued> {
                         }
 
                         let (key, nonce) = cred_req.verify(
-                            &issuer_data.accepted_wallet_client_ids_vec(),
+                            issuer_data.accepted_wallet_client_ids_vec(),
                             &issuer_data.metadata.credential_issuer,
                         )?;
 
@@ -1722,7 +1723,7 @@ impl<T: IssuanceState> Session<T> {
 impl CredentialRequest {
     fn verify(
         &self,
-        accepted_wallet_client_ids: &[impl ToString],
+        accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
         credential_issuer_identifier: &IssuerIdentifier,
     ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
         let (holder_pubkey, nonce) = self
@@ -1792,21 +1793,23 @@ impl CredentialResponse {
     }
 }
 
+static CREDENTIAL_REQUEST_PROOF_VALIDATION: LazyLock<JwtValidation> =
+    LazyLock::new(|| JwtValidation::default_with_algorithms([Algorithm::ES256]));
+
 impl CredentialRequestProof {
     pub fn verify(
         &self,
-        accepted_wallet_client_ids: &[impl ToString],
+        accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
         credential_issuer_identifier: &IssuerIdentifier,
     ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
         let CredentialRequestProof::Jwt { jwt } = self;
 
-        let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.set_required_spec_claims(&["iss", "aud"]);
-        validation_options.set_issuer(accepted_wallet_client_ids);
-        validation_options.set_audience(&[credential_issuer_identifier]);
+        let mut validation = CREDENTIAL_REQUEST_PROOF_VALIDATION.to_owned();
+        validation.require_iss(accepted_wallet_client_ids);
+        validation.require_aud(credential_issuer_identifier);
 
         let (header, payload) = jwt
-            .parse_and_verify_with_jwk(validation_options)
+            .parse_and_verify_with_jwk(validation)
             .map_err(CredentialRequestError::InvalidProofJwt)?;
 
         let public_key = header

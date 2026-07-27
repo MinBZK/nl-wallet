@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use derive_more::Constructor;
 use http_utils::reqwest::IntoReqwestClient;
-use jwt::DEFAULT_VALIDATIONS;
+use jwt::ESP256_ONLY_VALIDATION;
 use jwt::JwtDecodingKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -33,7 +33,7 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
     ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
             Some(jwt) => {
-                match jwt.parse_and_verify(&signing_public_key, &DEFAULT_VALIDATIONS) {
+                match jwt.parse_and_verify(&signing_public_key, &*ESP256_ONLY_VALIDATION) {
                     Ok((_, stored_config)) if stored_config.version >= initial_config.version => stored_config,
                     // Initial config is newer or JWT is tampered/invalid: fall back to the embedded config.
                     // We do not write the embedded config to disk since it has no corresponding JWT.
@@ -93,7 +93,7 @@ mod tests {
     use crypto::PublicKey;
     use http_utils::client::InternalHttpConfig;
     use http_utils::client::TlsPinningConfig;
-    use jwt::DEFAULT_VALIDATIONS;
+    use jwt::ESP256_ONLY_VALIDATION;
     use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
@@ -194,7 +194,7 @@ mod tests {
 
         // Verify the JWT was written to disk and can be parsed back
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
-        let (_, file_config) = jwt.parse_and_verify(&decoding_key, &DEFAULT_VALIDATIONS).unwrap();
+        let (_, file_config) = jwt.parse_and_verify(&decoding_key, &*ESP256_ONLY_VALIDATION).unwrap();
 
         assert_eq!(
             700, file_config.lock_timeouts.background_timeout,
@@ -244,7 +244,7 @@ mod tests {
         // since it has no corresponding JWT. The next HTTP fetch will update the file.
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
         let (_, stored_config) = jwt
-            .parse_and_verify(&config_decoding_key, &DEFAULT_VALIDATIONS)
+            .parse_and_verify(&config_decoding_key, &*ESP256_ONLY_VALIDATION)
             .unwrap();
         assert_eq!(
             10, stored_config.version,

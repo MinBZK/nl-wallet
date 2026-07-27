@@ -51,11 +51,10 @@ use derive_more::FromStr;
 use error_category::ErrorCategory;
 use futures::FutureExt;
 use jwt::Algorithm;
-use jwt::AlgorithmFamilyExt;
 use jwt::JwtTyp;
+use jwt::JwtValidation;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
-use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
@@ -143,11 +142,8 @@ impl JwtTyp for DpopPayload {
 #[derive(Clone, AsRef, FromStr, Display)]
 pub struct Dpop(UnverifiedJwt<DpopPayload, HeaderWithJwk>);
 
-static DPOP_VALIDATION_OPTIONS: LazyLock<Validation> = LazyLock::new(|| {
-    let mut options = Validation::new(Algorithm::ES256);
-    options.required_spec_claims.clear(); // remove "exp" from required claims
-    options
-});
+static DPOP_VALIDATION: LazyLock<JwtValidation> =
+    LazyLock::new(|| JwtValidation::default_with_algorithms([Algorithm::ES256]));
 
 impl Dpop {
     pub fn new(
@@ -208,7 +204,7 @@ impl Dpop {
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<PublicKey> {
         let (header, payload) = self
             .0
-            .parse_and_verify_with_jwk(DPOP_VALIDATION_OPTIONS.to_owned())
+            .parse_and_verify_with_jwk(DPOP_VALIDATION.to_owned())
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, None)?;
         Ok(jwk_to_public_key(&header.jwk)?)
@@ -223,12 +219,11 @@ impl Dpop {
         access_token: Option<&AccessToken>,
         nonce: Option<&str>,
     ) -> Result<()> {
-        let mut validation = DPOP_VALIDATION_OPTIONS.to_owned();
-        validation.algorithms = expected_public_key.algorithm_family().algorithms().to_vec();
+        let validation = DPOP_VALIDATION.to_owned().into_validation(&expected_public_key);
 
         let (_, payload) = self
             .0
-            .parse_and_verify_with_expected_jwk(expected_public_key, &validation)
+            .parse_and_verify_with_expected_jwk(expected_public_key, validation)
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, nonce)?;
 

@@ -146,7 +146,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
-    use jwt::wia::WIA_JWT_VALIDATIONS;
+    use jwt::wia::WIA_JWT_VALIDATION;
     use jwt::wia::WiaPopClaims;
     use jwt::wia::WiaWalletInfo;
     use utils::generator::TimeGenerator;
@@ -186,7 +186,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 Some(CertificateUsage::Wia),
-                WIA_JWT_VALIDATIONS.to_owned(),
+                WIA_JWT_VALIDATION.to_owned(),
             )
             .unwrap();
 

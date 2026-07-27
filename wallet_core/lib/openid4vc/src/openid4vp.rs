@@ -42,8 +42,8 @@ use jwe::error::JweJsonEncryptionError;
 use jwk_simple::Key;
 use jwt::Algorithm;
 use jwt::JwtTyp;
+use jwt::JwtValidation;
 use jwt::UnverifiedJwt;
-use jwt::Validation;
 use jwt::error::JwtX5cVerifyError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
@@ -421,9 +421,9 @@ pub enum AuthRequestValidationError {
     WalletNonceMismatch,
 }
 
-static AUD_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validation = Validation::new(Algorithm::ES256);
-    validation.set_required_spec_claims(&["aud"]);
+static VP_AUTH_REQUEST_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
+    let mut validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
+    validation.require_aud(VpAuthorizationRequestAudience::SelfIssued);
     validation
 });
 
@@ -434,11 +434,12 @@ impl VpAuthorizationRequest {
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        let mut validation_options = AUD_VALIDATIONS.to_owned();
-        validation_options.set_audience(&[VpAuthorizationRequestAudience::SelfIssued.to_string()]);
-
-        let (header, auth_request) =
-            jws.parse_and_verify_against_trust_anchors(trust_anchors, &TimeGenerator, None, validation_options)?;
+        let (header, auth_request) = jws.parse_and_verify_against_trust_anchors(
+            trust_anchors,
+            &TimeGenerator,
+            None,
+            VP_AUTH_REQUEST_VALIDATION.clone(),
+        )?;
 
         Ok((auth_request, header.x5c.into_first()))
     }

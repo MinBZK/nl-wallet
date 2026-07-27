@@ -4,6 +4,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
@@ -24,11 +25,12 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
 #[cfg(any(test, feature = "examples"))]
 use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
+use jwt::JwtValidation;
 use jwt::UnverifiedJwt;
+use jwt::ValidationWrapper;
 use jwt::VerifiedJwt;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
@@ -177,7 +179,7 @@ impl UnverifiedSdJwt {
             trust_anchors,
             time,
             Some(CertificateUsage::Mdl),
-            SD_JWT_VALIDATIONS.to_owned(),
+            SD_JWT_VALIDATION.to_owned().into(),
         )?;
 
         let disclosures = Self::parse_and_verify_disclosures(&self.disclosures, issuer_signed.payload())?;
@@ -533,7 +535,7 @@ impl UnverifiedSdJwtPresentation {
             trust_anchors,
             time,
             Some(CertificateUsage::Mdl),
-            SD_JWT_VALIDATIONS.to_owned(),
+            SD_JWT_VALIDATION.to_owned().into(),
         )?;
 
         let key_binding_jwt = self.key_binding_jwt.into_verified(
@@ -739,13 +741,14 @@ impl UnsignedSdJwtPresentation {
     }
 }
 
-static SD_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validation = Validation::new(Algorithm::ES256);
-    validation.validate_aud = false;
-    validation.validate_nbf = true;
-    validation.leeway = 0;
-    validation.required_spec_claims.clear(); // remove "exp" from required claims
+static SD_JWT_VALIDATION: LazyLock<ValidationWrapper> = LazyLock::new(|| {
+    let mut validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
+    validation.validate_nbf();
+    validation.set_leeway(Duration::default());
+    validation.dangerous_dont_validate_aud();
     validation
+        .try_into_validation()
+        .expect("should only be defined with one family")
 });
 
 #[cfg(any(test, feature = "examples"))]
@@ -756,7 +759,7 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     pub(crate) fn into_verified(self, pubkey: &JwtDecodingKey) -> Result<VerifiedSdJwt<C, H>, DecoderError> {
-        let issuer_signed = self.issuer_signed.into_verified(pubkey, &SD_JWT_VALIDATIONS)?;
+        let issuer_signed = self.issuer_signed.into_verified(pubkey, &*SD_JWT_VALIDATION)?;
         let disclosures = Self::parse_and_verify_disclosures(&self.disclosures, issuer_signed.payload())?;
         Ok(VerifiedSdJwt {
             issuer_signed,
@@ -787,7 +790,7 @@ where
         let issuer_signed = self
             .sd_jwt
             .issuer_signed
-            .into_verified(issuer_pubkey, &SD_JWT_VALIDATIONS)?;
+            .into_verified(issuer_pubkey, &*SD_JWT_VALIDATION)?;
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: kb_expected_aud,

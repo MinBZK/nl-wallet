@@ -6,6 +6,8 @@ use jsonwebtoken::jwk::AlgorithmParameters;
 use jsonwebtoken::jwk::EllipticCurve;
 use rsa::signature;
 
+use crate::InvalidNumberOfAlgorithmFamiliesError;
+
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum JwtParseError {
     #[error("JSON parsing error: {0}")]
@@ -94,6 +96,10 @@ pub enum JwtVerifyError {
     #[error("error converting JWK: {0}")]
     #[category(critical)]
     JwkConversion(#[source] jsonwebtoken::errors::Error),
+
+    #[error(transparent)]
+    #[category(critical)]
+    MultipleAlgorithms(#[from] InvalidNumberOfAlgorithmFamiliesError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

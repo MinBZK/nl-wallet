@@ -7,8 +7,7 @@ use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::From;
 use futures::future::try_join_all;
-use jwt::AlgorithmFamilyExt;
-use jwt::DEFAULT_VALIDATIONS;
+use jwt::DEFAULT_VALIDATION;
 use jwt::JsonJwt;
 use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
@@ -158,15 +157,13 @@ impl Poa {
         let nonce = payload.payload.nonce.ok_or(PoaVerificationError::MissingNonce)?;
 
         // Validate all the JWTs, against the keys in the payload of the JWTs.
-        let mut validations = DEFAULT_VALIDATIONS.to_owned();
-        validations.set_audience(&[expected_aud]);
-        validations.set_issuer(accepted_issuers);
+        let mut base_validation = DEFAULT_VALIDATION.to_owned();
+        base_validation.require_aud(expected_aud);
+        base_validation.require_iss(accepted_issuers);
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
             let pubkey = jwk_to_public_key(jwk)?;
-            // jsonwebtoken::Validation can only be used with a single algorithm family
-            validations.algorithms = pubkey.algorithm_family().algorithms().to_vec();
-
-            jwt.parse_and_verify(JwtDecodingKey::from(&pubkey), &validations)
+            let validation = base_validation.clone().into_validation(&pubkey);
+            jwt.parse_and_verify(JwtDecodingKey::from(&pubkey), validation)
                 .map_err(PoaVerificationError::InvalidJwt)?;
         }
 
@@ -202,7 +199,7 @@ mod tests {
 
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use jwt::DEFAULT_VALIDATIONS;
+    use jwt::DEFAULT_VALIDATION;
     use jwt::JwtDecodingKey;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
@@ -253,13 +250,14 @@ mod tests {
 
         let jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.clone().into();
 
-        let mut validations = DEFAULT_VALIDATIONS.to_owned();
-        validations.set_audience(&[&aud]);
-        validations.set_issuer(&[&iss]);
+        let mut base_validation = DEFAULT_VALIDATION.to_owned();
+        base_validation.require_aud(&aud);
+        base_validation.require_iss([&iss]);
 
         // Manually verify the JWTs
         for (jwt, key) in jwts.into_iter().zip([&key1, &key2]) {
-            jwt.parse_and_verify(JwtDecodingKey::from(key), &validations).unwrap();
+            let validation = base_validation.clone().into_validation(key);
+            jwt.parse_and_verify(JwtDecodingKey::from(key), &validation).unwrap();
         }
 
         poa.verify(

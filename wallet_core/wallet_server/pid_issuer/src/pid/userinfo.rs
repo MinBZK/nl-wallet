@@ -9,8 +9,8 @@ use jwe::error::JweStringDecryptionError;
 use jwt::Algorithm;
 use jwt::Header;
 use jwt::JwtTyp;
+use jwt::JwtValidation;
 use jwt::UnverifiedJwt;
-use jwt::Validation;
 use jwt::error::JwtParseError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
@@ -156,14 +156,14 @@ where
         .decrypt_string(&jwe, ExpectedEncryptionAlgorithm::Algorithms(&[expected_enc_alg]))
         .map_err(UserInfoError::JweDecryption)?;
 
-    let validation = userinfo_validation(client_id);
+    let validation = userinfo_jwt_validation(client_id);
     verify_against_keys(&jws, &jwks, validation)
 }
 
 fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     token: &str,
     jwks: &JwkSet,
-    validation: Validation,
+    validation: JwtValidation,
 ) -> Result<C, UserInfoError> {
     // using `Header` make the `typ` optional, but it will still be validated against `C::TYP`, if present
     let jwt: UnverifiedJwt<C, HeaderWithKid<Header>> = token.parse()?;
@@ -173,10 +173,9 @@ fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     Ok(claims)
 }
 
-fn userinfo_validation(client_id: &str) -> Validation {
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.required_spec_claims.clear(); // don't require exp
-    validation.set_audience(&[client_id]);
+fn userinfo_jwt_validation(client_id: impl ToString) -> JwtValidation {
+    let mut validation = JwtValidation::default_with_algorithms([Algorithm::RS256]);
+    validation.require_aud(client_id);
     validation
 }
 
@@ -214,6 +213,7 @@ mod tests {
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenResponse;
     use rsa::RsaKeyPair;
+    use rstest::rstest;
     use serde_json::json;
     use url::Url;
 
@@ -348,18 +348,17 @@ mod tests {
         })
     });
 
-    fn create_jws(include_kid: bool) -> (String, JwkSet) {
-        let algoritm = Algorithm::RS256; // RDO-max uses RS256
+    fn create_jws(include_kid: bool, algorithm: Algorithm) -> (String, JwkSet) {
         let kid = "key_id";
 
-        let mut header = Header::new(algoritm);
+        let mut header = Header::new(algorithm);
         if include_kid {
             header.kid = Some(kid.to_string());
         }
         let encoding_key = EncodingKey::from_rsa_der(&RsaKeyPair::generate(2048).unwrap().to_raw_private_key());
         let jws = jsonwebtoken::encode(&header, LazyLock::force(&JWS_PAYLOAD), &encoding_key).unwrap();
 
-        let mut jwk = Jwk::from_encoding_key(&encoding_key, algoritm).unwrap();
+        let mut jwk = Jwk::from_encoding_key(&encoding_key, algorithm).unwrap();
         jwk.common.key_id = Some(kid.to_string());
         let jwks = JwkSet { keys: vec![jwk] };
 
@@ -410,8 +409,8 @@ mod tests {
             }]
         })).unwrap();
 
-        let mut validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
-        validation.validate_exp = false; // we have no way to set the clock, so skip exp validation
+        let mut validation = userinfo_jwt_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
+        validation.dont_validate_exp();
         let payload: UserInfo = verify_against_keys(jwt, &jwks, validation).unwrap();
 
         assert_eq!(payload.bsn, "999991772".to_owned());
@@ -419,9 +418,9 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_success() {
-        let (jws, jwks) = create_jws(true);
+        let (jws, jwks) = create_jws(true, Algorithm::RS256);
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
+        let validation = userinfo_jwt_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let payload =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect("verifying JWS should succeed");
 
@@ -436,9 +435,9 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_missing_key_id() {
-        let (jws, jwks) = create_jws(false);
+        let (jws, jwks) = create_jws(false, Algorithm::RS256);
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
+        let validation = userinfo_jwt_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect_err("verifying JWS should fail");
 
@@ -451,11 +450,11 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_key_not_found() {
-        let (jws, mut jwks) = create_jws(true);
+        let (jws, mut jwks) = create_jws(true, Algorithm::RS256);
 
         jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
 
-        let validation = userinfo_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
+        let validation = userinfo_jwt_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect_err("verifying JWS should fail");
 
@@ -464,9 +463,30 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_wrong_aud() {
-        let (jws, jwks) = create_jws(true);
+        let (jws, jwks) = create_jws(true, Algorithm::RS256);
 
-        let validation = userinfo_validation("wrong_aud");
+        let validation = userinfo_jwt_validation("wrong_aud");
+        let error =
+            verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect_err("verifying JWS should fail");
+
+        assert_matches!(error, UserInfoError::JwtVerify(_));
+    }
+
+    #[rstest]
+    fn test_verify_against_keys_error_wrong_alg(
+        // anything other than RS256 should fail, non-RSA aren't compatible with the generated RSA key
+        #[values(
+            Algorithm::RS384,
+            Algorithm::RS512,
+            Algorithm::PS256,
+            Algorithm::PS384,
+            Algorithm::PS512
+        )]
+        algorithm: Algorithm,
+    ) {
+        let (jws, jwks) = create_jws(true, algorithm);
+
+        let validation = userinfo_jwt_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let error =
             verify_against_keys::<serde_json::Value>(&jws, &jwks, validation).expect_err("verifying JWS should fail");
 
@@ -494,7 +514,7 @@ mod tests {
     async fn request_userinfo_happy_path() {
         let server = MockServer::start_async().await;
         let metadata = create_metadata(&server);
-        let (jws, jwks) = create_jws(true);
+        let (jws, jwks) = create_jws(true, Algorithm::RS256);
         let jwe = create_test_jwe(&jws);
         let token_response = TokenResponse::new(AccessToken::from("test-access-token".to_string()));
 

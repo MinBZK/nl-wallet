@@ -81,7 +81,7 @@ use crate::flags::WalletFlags;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
 
-fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+fn default_validation(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     validate_wallet_user_not_revoked(wallet_user)?;
     validate_wallet_user_not_transferred(wallet_user)?;
     validate_no_pin_change_in_progress(wallet_user)?;
@@ -91,7 +91,7 @@ fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValida
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        default_validations(wallet_user)
+        default_validation(wallet_user)
     }
 }
 
@@ -174,7 +174,7 @@ impl ValidateInstruction for IssueWia {
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        default_validations(wallet_user)?;
+        default_validation(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -1437,6 +1437,7 @@ mod tests {
     use std::collections::HashSet;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
+    use std::sync::LazyLock;
     use std::sync::Mutex;
 
     use base64::prelude::*;
@@ -1451,8 +1452,8 @@ mod tests {
     use hsm::service::HsmError;
     use jwt::Algorithm;
     use jwt::JwtDecodingKey;
+    use jwt::JwtValidation;
     use jwt::UnverifiedJwt;
-    use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
@@ -2213,17 +2214,19 @@ mod tests {
             .unwrap()
     }
 
+    static ISSUANCE_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
+        let mut validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
+        validation.require_iss(std::iter::once(NL_WALLET_CLIENT_ID));
+        validation.require_aud(POP_AUD);
+        validation
+    });
+
     fn validate_issuance(
         pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
         wia_with_disclosure: Option<&WiaDisclosure>,
     ) {
-        let mut validations = Validation::new(Algorithm::ES256);
-        validations.set_required_spec_claims(&["iss", "aud"]);
-        validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
-        validations.set_audience(&[POP_AUD]);
-
         pops.iter().for_each(|pop| {
-            pop.parse_and_verify_with_jwk(validations.clone()).unwrap();
+            pop.parse_and_verify_with_jwk(ISSUANCE_VALIDATION.to_owned()).unwrap();
         });
 
         if let Some(wia_with_disclosure) = wia_with_disclosure {
@@ -2238,7 +2241,13 @@ mod tests {
 
             wia_with_disclosure
                 .wia_pop()
-                .parse_and_verify(JwtDecodingKey::from(&wia_key), &validations)
+                .parse_and_verify(
+                    JwtDecodingKey::from(&wia_key),
+                    ISSUANCE_VALIDATION
+                        .to_owned()
+                        .try_into_validation()
+                        .expect("created with only ES256"),
+                )
                 .unwrap();
         }
     }

@@ -6,7 +6,7 @@ use crypto::trust_anchor::TrustAnchors;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
-use jwt::DEFAULT_VALIDATIONS;
+use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use url::Url;
@@ -402,7 +402,7 @@ impl HttpIssuanceDiscovery {
                 wrpac_trust_anchors,
                 &TimeGenerator,
                 None,
-                DEFAULT_VALIDATIONS.to_owned(),
+                DEFAULT_VALIDATION.to_owned(),
             )
             .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?
             .into_payload();

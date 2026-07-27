@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use base64::prelude::*;
 use chrono::DateTime;
@@ -25,7 +26,9 @@ use ecdsa::elliptic_curve::AffinePoint;
 use ecdsa::elliptic_curve::CurveArithmetic;
 use ecdsa::elliptic_curve::FieldBytesSize;
 use ecdsa::elliptic_curve::sec1;
+use error_category::ErrorCategory;
 use itertools::Itertools;
+use jsonwebtoken::Algorithm;
 use jsonwebtoken::AlgorithmFamily;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Header;
@@ -204,16 +207,16 @@ where
     H: TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    /// Verify the JWT using the provided public key and `validation_options`, then deserialize header and payload.
+    /// Verify the JWT using the provided public key and `validation`, then deserialize header and payload.
     ///
     /// - Enforces `JwtTyp::TYP` on the header `typ` value.
     /// - Returns `(header, payload)` on success.
     pub fn parse_and_verify(
         &self,
         pubkey: impl AsRef<DecodingKey>,
-        validation_options: &Validation,
+        validation: impl AsRef<Validation>,
     ) -> Result<(H, T), JwtVerifyError> {
-        let token_data = jsonwebtoken::decode::<T>(&self.serialization, pubkey.as_ref(), validation_options)
+        let token_data = jsonwebtoken::decode::<T>(&self.serialization, pubkey.as_ref(), validation.as_ref())
             .map_err(JwtVerifyError::Validation)?;
 
         T::is_valid_typ(token_data.header.typ.as_deref())?;
@@ -230,10 +233,10 @@ where
     /// Calls `parse_and_verify` and returns a `VerifiedJwt<T, H>`.
     pub fn into_verified(
         self,
-        pubkey: &JwtDecodingKey,
-        validation_options: &Validation,
+        pubkey: impl AsRef<DecodingKey>,
+        validation: impl AsRef<Validation>,
     ) -> Result<VerifiedJwt<T, H>, JwtVerifyError> {
-        let (header, payload) = self.parse_and_verify(pubkey, validation_options)?;
+        let (header, payload) = self.parse_and_verify(pubkey, validation)?;
 
         Ok(VerifiedJwt {
             header,
@@ -256,7 +259,7 @@ where
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
-        mut validation_options: Validation,
+        validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
         let certificates = self
             .extract_x5c_certificates()
@@ -274,10 +277,8 @@ where
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
         let pubkey = PublicKey::from(*leaf_cert.public_key());
 
-        // jsonwebtoken::Validation can only be used with a single algorithm family
-        validation_options.algorithms = pubkey.algorithm_family().algorithms().to_vec();
-
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), &validation_options)
+        let validation = validation.into_validation(&pubkey);
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
             .map_err(JwtX5cVerifyError::JwtVerify)
     }
 
@@ -286,10 +287,10 @@ where
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
-        validation_options: Validation,
+        validation: JwtValidation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
-            self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
+            self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation)?;
 
         Ok(VerifiedJwt {
             header,
@@ -308,16 +309,14 @@ where
     /// Verify the JWT against the contained JWK in the header.
     pub fn parse_and_verify_with_jwk(
         &self,
-        mut validation_options: Validation,
+        validation: JwtValidation,
     ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
         let pubkey = jwk_to_public_key(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?)
             .map_err(JwtParseError::Jwk)
             .map_err(JwtVerifyError::ParseError)?;
 
-        // jsonwebtoken::Validation can only be used with a single algorithm family
-        validation_options.algorithms = pubkey.algorithm_family().algorithms().to_vec();
-
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), &validation_options)
+        let validation = validation.into_validation(&pubkey);
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
     }
 
     /// Verify the JWT against an expected JWK in the header.
@@ -326,9 +325,9 @@ where
     pub fn parse_and_verify_with_expected_jwk(
         &self,
         expected_pubkey: PublicKey,
-        validation_options: &Validation,
+        validation: impl AsRef<Validation>,
     ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
-        let (header, payload) = self.parse_and_verify(JwtDecodingKey::from(&expected_pubkey), validation_options)?;
+        let (header, payload) = self.parse_and_verify(JwtDecodingKey::from(&expected_pubkey), validation)?;
 
         // Compare the specified key against the one in the JWT header
         let contained_key = jwk_to_public_key(&header.jwk)
@@ -355,7 +354,7 @@ where
     pub fn parse_and_verify_with_jwkset(
         &self,
         jwks: &JwkSet,
-        mut validation_options: Validation,
+        validation: JwtValidation,
     ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
         let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
         let jwk = jwks.find(&kid).ok_or(JwtVerifyError::KeyNotFound(kid))?;
@@ -363,10 +362,8 @@ where
             .map_err(JwtParseError::Jwk)
             .map_err(JwtVerifyError::ParseError)?;
 
-        // jsonwebtoken::Validation can only be used with a single algorithm family
-        validation_options.algorithms = pubkey.algorithm_family().algorithms().to_vec();
-
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), &validation_options)
+        let validation = validation.into_validation(&pubkey);
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
     }
 }
 
@@ -383,7 +380,7 @@ where
 /// # Example
 /// ```
 /// # use crypto::PublicKey;
-/// # use jwt::DEFAULT_VALIDATIONS;
+/// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
@@ -405,7 +402,7 @@ where
 /// let unverified = signed.into_unverified();
 /// let (_, payload) = unverified.parse_and_verify(
 ///     JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
-///     &DEFAULT_VALIDATIONS,
+///     &*ESP256_ONLY_VALIDATION,
 /// )?;
 /// assert_eq!(payload.name, "alice");
 /// # Ok::<(), anyhow::Error>(())
@@ -619,7 +616,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// From an `UnverifiedJwt`:
 /// ```
 /// # use crypto::PublicKey;
-/// # use jwt::DEFAULT_VALIDATIONS;
+/// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
@@ -641,7 +638,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// let unverified = signed.into_unverified();
 /// let verified = unverified.into_verified(
 ///     &JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
-///     &DEFAULT_VALIDATIONS,
+///     &*ESP256_ONLY_VALIDATION,
 /// )?;
 /// assert_eq!(verified.payload().name, "alice");
 /// # Ok::<(), anyhow::Error>(())
@@ -650,7 +647,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 ///
 /// Or directly from a `SignedJwt`:
 /// ```
-/// # use jwt::DEFAULT_VALIDATIONS;
+/// # use jwt::DEFAULT_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
 /// # use jwt::SignedJwt;
@@ -771,29 +768,145 @@ impl JwtDecodingKey {
     }
 }
 
-pub trait AlgorithmFamilyExt {
-    fn algorithm_family(&self) -> AlgorithmFamily;
+#[derive(Debug, Clone, From, AsRef)]
+pub struct ValidationWrapper(pub Validation);
+
+/// `JwtValidation` provides validation settings for JWT verification.
+///
+/// It wraps [`jsonwebtoken::Validation`] and mainly serves to fix an issue with algorithm validation containing
+/// multiple families, which is not supported by [`jsonwebtoken`] by default.
+#[derive(Debug, Clone, From)]
+pub struct JwtValidation(Validation);
+
+impl Default for JwtValidation {
+    fn default() -> Self {
+        let default_algorithm_families = [AlgorithmFamily::Ec, AlgorithmFamily::Rsa]; // both EC and RSA are supported by default
+        Self::default_with_algorithms(
+            default_algorithm_families
+                .iter()
+                .flat_map(|f| f.algorithms())
+                .copied()
+                .collect_vec(),
+        )
+    }
 }
 
-impl AlgorithmFamilyExt for PublicKey {
-    fn algorithm_family(&self) -> AlgorithmFamily {
+impl From<ValidationWrapper> for JwtValidation {
+    fn from(value: ValidationWrapper) -> Self {
+        Self(value.0)
+    }
+}
+
+#[derive(Debug, Clone, thiserror::Error, ErrorCategory)]
+#[error("the number of algorithm families should be exactly one: {0:?}")]
+#[category(critical)]
+pub struct InvalidNumberOfAlgorithmFamiliesError(Vec<AlgorithmFamily>);
+
+impl JwtValidation {
+    pub fn default_with_algorithms(algorithms: impl Into<Vec<Algorithm>>) -> Self {
+        let mut validation = Validation::default();
+        validation.algorithms = algorithms.into();
+        validation.required_spec_claims = Default::default(); // remove "exp" from required claims
+        Self(validation)
+    }
+
+    /// Since `jsonwebtoken` only supports one algorithm family at a time, this converts a `JwtValidation` into a valid
+    /// `Validation` for the given public key.
+    pub fn into_validation(mut self, public_key: &PublicKey) -> ValidationWrapper {
+        // only include algorithms supported by the public key
+        self.0.algorithms = self
+            .0
+            .algorithms
+            .into_iter()
+            .filter(|alg| public_key.supported_algorithms().contains(alg))
+            .collect_vec();
+
+        ValidationWrapper(self.0)
+    }
+
+    /// Tries to convert the `JwtValidation` into a `Validation`
+    pub fn try_into_validation(self) -> Result<ValidationWrapper, InvalidNumberOfAlgorithmFamiliesError> {
+        // `AlgorithmFamily` doesn't implement `Hash`, so we need to use a `Vec` to track unique families
+        let families = self.0.algorithms.iter().fold(vec![], |mut acc, alg| {
+            let family = alg.family();
+            if !acc.contains(&family) {
+                acc.push(family);
+            }
+
+            acc
+        });
+
+        // only (exactly) one algorithm family at a time is supported by `jsonwebtoken`
+        if families.len() != 1 {
+            return Err(InvalidNumberOfAlgorithmFamiliesError(families));
+        }
+
+        Ok(ValidationWrapper(self.0))
+    }
+
+    // Require the `sub` (subject) claim to be present and validate it.
+    pub fn require_sub(&mut self, sub: impl Into<String>) {
+        self.0.required_spec_claims.insert("sub".to_owned());
+        self.0.sub = Some(sub.into());
+    }
+
+    pub fn require_aud(&mut self, aud: impl ToString) {
+        self.0.required_spec_claims.insert("aud".to_owned());
+        self.0.set_audience(&[aud]);
+        self.0.validate_aud = true;
+    }
+
+    pub fn require_iss(&mut self, accepted_iss: impl IntoIterator<Item = impl ToString>) {
+        self.0.required_spec_claims.insert("iss".to_owned());
+        self.0.set_issuer(&accepted_iss.into_iter().collect_vec());
+    }
+
+    /// Require the `exp` (expiration) claim to be present and validate it.
+    pub fn require_exp(&mut self) {
+        self.0.required_spec_claims.insert("exp".to_owned());
+        self.0.validate_exp = true;
+    }
+
+    /// Disable validation of the `exp` (expiration) claim, even if present.
+    pub fn dont_validate_exp(&mut self) {
+        self.0.validate_exp = false;
+    }
+
+    /// Validate `nbf` (not before) claim, if present.
+    pub fn validate_nbf(&mut self) {
+        self.0.validate_nbf = true;
+    }
+
+    pub fn set_leeway(&mut self, leeway: Duration) {
+        self.0.leeway = leeway.as_secs();
+    }
+
+    /// DANGEROUS: disable validation of the `aud` (audience) claim, even if present.
+    pub fn dangerous_dont_validate_aud(&mut self) {
+        self.0.validate_aud = false;
+    }
+}
+
+pub trait SupportedAlgorithms {
+    fn supported_algorithms(&self) -> &[Algorithm];
+}
+
+impl SupportedAlgorithms for PublicKey {
+    fn supported_algorithms(&self) -> &[Algorithm] {
         match self {
-            PublicKey::ESP256(_) | PublicKey::ESP384(_) => AlgorithmFamily::Ec,
-            PublicKey::RSA2048(_) | PublicKey::RSA3072(_) | PublicKey::RSA4096(_) => AlgorithmFamily::Rsa,
+            PublicKey::ESP256(_) | PublicKey::ESP384(_) => AlgorithmFamily::Ec.algorithms(),
+            PublicKey::RSA2048(_) | PublicKey::RSA3072(_) | PublicKey::RSA4096(_) => AlgorithmFamily::Rsa.algorithms(),
         }
     }
 }
 
-pub static DEFAULT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| default_validations(AlgorithmFamily::Ec));
+pub static DEFAULT_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(JwtValidation::default);
 
-pub fn default_validations(family: AlgorithmFamily) -> Validation {
-    let mut validation_options = Validation::new_for_family(family);
-
-    validation_options.required_spec_claims.clear(); // remove "exp" from required claims
-    validation_options.leeway = 60;
-
-    validation_options
-}
+pub static ESP256_ONLY_VALIDATION: LazyLock<ValidationWrapper> = LazyLock::new(|| {
+    JwtValidation::default_with_algorithms([Algorithm::ES256])
+        .try_into_validation()
+        .expect("should succeed because only one family is used to create this validation")
+});
 
 /// Trait defining the expected `sub` field value for a JWT payload. To use `sign_with_sub`, types used as payloads of
 /// JWTs must implement this trait, which enforces that only JWTs with a matching `sub` field are accepted when using
@@ -852,23 +965,24 @@ impl<T: JwtTyp> JwtTyp for PayloadWithSub<T> {
     const TYP: &'static str = T::TYP;
 }
 
-static SUB_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validations = DEFAULT_VALIDATIONS.to_owned();
-    validations.required_spec_claims.insert("sub".to_string());
-    validations
-});
+fn default_sub_validation<T: JwtSub + 'static>() -> LazyLock<ValidationWrapper> {
+    LazyLock::new(|| {
+        let mut validation = JwtValidation::from(ESP256_ONLY_VALIDATION.to_owned());
+        validation.require_sub(T::SUB.to_owned());
+        validation.try_into_validation().unwrap()
+    })
+}
 
 impl<T, H, E> UnverifiedJwt<T, H>
 where
-    T: DeserializeOwned + JwtTyp + JwtSub,
+    T: DeserializeOwned + JwtTyp + JwtSub + 'static,
     H: DeserializeOwned + TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
     /// Verify the JWT, and parse and return its payload.
     pub fn parse_and_verify_with_sub(&self, pubkey: &JwtDecodingKey) -> Result<(H, T), JwtVerifyError> {
-        let mut validations = SUB_JWT_VALIDATIONS.to_owned();
-        validations.sub = Some(T::SUB.to_owned());
-        self.parse_and_verify(pubkey, &validations)
+        let validation = default_sub_validation::<T>();
+        self.parse_and_verify(pubkey, &*validation)
     }
 }
 
@@ -1179,7 +1293,7 @@ mod tests {
         let (_, parsed) = jwt
             .parse_and_verify(
                 JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
-                &DEFAULT_VALIDATIONS,
+                &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
 
@@ -1217,7 +1331,7 @@ mod tests {
         let parsed = jwt
             .parse_and_verify(
                 JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
-                &DEFAULT_VALIDATIONS,
+                &*ESP256_ONLY_VALIDATION,
             )
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
@@ -1235,7 +1349,7 @@ mod tests {
         let (_, parsed) = unverified_jwt
             .parse_and_verify(
                 JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
-                &DEFAULT_VALIDATIONS,
+                &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
 
@@ -1244,8 +1358,8 @@ mod tests {
         let verified_jwt = unverified_jwt
             .clone()
             .into_verified(
-                &PublicKey::from(*private_key.verifying_key()).into(),
-                &DEFAULT_VALIDATIONS,
+                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
 
@@ -1288,7 +1402,7 @@ mod tests {
             .as_ref()
             .parse_and_verify(
                 JwtDecodingKey::from(PublicKey::from(*key1.verifying_key())),
-                &DEFAULT_VALIDATIONS,
+                &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
 
@@ -1317,7 +1431,7 @@ mod tests {
                 .as_ref()
                 .parse_and_verify(
                     JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
-                    &DEFAULT_VALIDATIONS,
+                    &*ESP256_ONLY_VALIDATION,
                 )
                 .unwrap();
 
@@ -1346,7 +1460,7 @@ mod tests {
         let (_, parsed) = jwt
             .parse_and_verify(
                 JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
-                &DEFAULT_VALIDATIONS,
+                &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
 
@@ -1419,7 +1533,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 None,
-                DEFAULT_VALIDATIONS.to_owned(),
+                DEFAULT_VALIDATION.to_owned(),
             )
             .unwrap();
 
@@ -1437,7 +1551,7 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATIONS.to_owned()).unwrap();
+        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATION.to_owned()).unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(
@@ -1446,7 +1560,10 @@ mod tests {
         );
 
         let (header, deserialized) = jwt
-            .parse_and_verify_with_expected_jwk(PublicKey::from(*signing_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify_with_expected_jwk(
+                PublicKey::from(*signing_key.verifying_key()),
+                ESP256_ONLY_VALIDATION.to_owned(),
+            )
             .unwrap();
 
         assert_eq!(deserialized, payload);
@@ -1466,7 +1583,7 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATIONS.to_owned()).unwrap();
+        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATION.to_owned()).unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(
@@ -1476,7 +1593,10 @@ mod tests {
 
         let wrong_key = SigningKey::generate();
         let error = jwt
-            .parse_and_verify_with_expected_jwk(PublicKey::from(*wrong_key.verifying_key()), &DEFAULT_VALIDATIONS)
+            .parse_and_verify_with_expected_jwk(
+                PublicKey::from(*wrong_key.verifying_key()),
+                ESP256_ONLY_VALIDATION.to_owned(),
+            )
             .expect_err("should fail because the expected key is different from the actual key");
 
         assert_matches!(error, JwtVerifyError::Validation(_));
@@ -1508,7 +1628,7 @@ mod tests {
             .unwrap();
 
         let (verified_header, deserialized) = jwt
-            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATIONS.to_owned())
+            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATION.to_owned())
             .unwrap();
 
         assert_eq!(deserialized, payload);
@@ -1540,7 +1660,7 @@ mod tests {
             .unwrap();
 
         let err = jwt
-            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATIONS.to_owned())
+            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATION.to_owned())
             .unwrap_err();
 
         assert_matches!(err, JwtVerifyError::KeyNotFound(_));
@@ -1572,7 +1692,7 @@ mod tests {
             .unwrap();
 
         let err = jwt
-            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATIONS.to_owned())
+            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATION.to_owned())
             .unwrap_err();
 
         assert_matches!(err, JwtVerifyError::Validation(_));
@@ -1620,7 +1740,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 None,
-                DEFAULT_VALIDATIONS.to_owned(),
+                DEFAULT_VALIDATION.to_owned(),
             )
             .unwrap();
 
@@ -1646,7 +1766,7 @@ mod tests {
                 &TrustAnchors::from(&other_ca),
                 &TimeGenerator,
                 None,
-                DEFAULT_VALIDATIONS.to_owned(),
+                DEFAULT_VALIDATION.to_owned(),
             )
             .unwrap_err();
         assert_matches!(
@@ -1673,12 +1793,7 @@ mod tests {
             .into_unverified();
 
         let err = jwt
-            .parse_and_verify_against_trust_anchors(
-                &trust_anchors,
-                &TimeGenerator,
-                None,
-                DEFAULT_VALIDATIONS.to_owned(),
-            )
+            .parse_and_verify_against_trust_anchors(&trust_anchors, &TimeGenerator, None, DEFAULT_VALIDATION.to_owned())
             .unwrap_err();
 
         assert_matches!(
@@ -1731,8 +1846,8 @@ mod tests {
             .parse::<UnverifiedJwt<_>>()
             .unwrap()
             .into_verified(
-                &JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
-                &DEFAULT_VALIDATIONS,
+                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
 
@@ -1799,10 +1914,12 @@ mod tests {
         let unverified: UnverifiedJwt<ToyMessage> = token_str.parse().unwrap();
 
         let public_key = private_key.public_key();
-        let validation_options = default_validations(public_key.algorithm_family());
+        let validation = JwtValidation::default_with_algorithms(public_key.supported_algorithms().to_vec())
+            .try_into_validation()
+            .unwrap();
 
         let decoding_key = JwtDecodingKey::from(public_key);
-        let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation_options).unwrap();
+        let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation).unwrap();
 
         assert_eq!(parsed, payload);
     }
