@@ -2304,6 +2304,31 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn token_request_rejects_wia_with_disallowed_client_id() {
+        let (issuer, trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+
+        // WIA signed by the trusted key pair, targeting the correct audience, but with a client id that
+        // is not among the issuer's accepted wallet client ids.
+        let bad_wia = MockWiaClient::new_with_client_id(wia_keypair, "not-an-accepted-client".to_string())
+            .issue_wia(issuer_identifier.to_string(), None)
+            .await
+            .unwrap();
+
+        let message_client = VcMessageClientStub {
+            wia_override: Some(bad_wia),
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let error =
+            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        assert_matches!(
+            error,
+            WalletIssuanceError::TokenRequest(err)
+                if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
+        );
+    }
+
     /// Builds a `TokenRequest` for a fresh pre-authorized session on `issuer`, along with a `Dpop`
     /// proof that verifies against the issuer's token endpoint
     async fn mock_token_request_and_dpop(issuer: &MockIssuer) -> (TokenRequest, Dpop) {
