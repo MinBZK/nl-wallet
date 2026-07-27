@@ -63,6 +63,7 @@ http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 jwk-simple.workspace = true
+mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["serde"] }
 rand_core.workspace = true

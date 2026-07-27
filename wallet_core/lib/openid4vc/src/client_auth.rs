@@ -134,7 +134,9 @@ pub async fn fetch_client_auth_challenge(
     challenge_endpoint: Url,
 ) -> Result<Nonce, ClientAttestationError> {
     let challenge = http_client
-        .post(challenge_endpoint, |builder| builder.header(ACCEPT, "application/json"))
+        .post(challenge_endpoint, |builder| {
+            builder.header(ACCEPT, mime::APPLICATION_JSON.as_ref())
+        })
         .await
         .map_err(ClientAttestationError::ChallengeRequest)?
         .error_for_status()
