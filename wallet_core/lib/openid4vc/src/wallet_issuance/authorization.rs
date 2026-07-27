@@ -160,7 +160,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         let challenge = if let Some(challenge_endpoint) = &auth_endpoints.challenge_endpoint {
             let challenge = fetch_client_auth_challenge(&http_client, challenge_endpoint.clone())
                 .await
-                .map_err(WalletIssuanceError::ClientAttestation)?;
+                .map_err(WalletIssuanceError::ClientAttestationChallenge)?;
             Some(challenge)
         } else {
             None
@@ -183,7 +183,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 
         let client_auth_challenge =
             ClientAttestationChallengeMechanism::try_new_acf(auth_endpoints.challenge_endpoint, &response)
-                .map_err(WalletIssuanceError::ClientAttestation)?;
+                .map_err(WalletIssuanceError::ClientAttestationChallengeMechanism)?;
 
         let par_response = if response.status().is_success() {
             response
@@ -368,7 +368,7 @@ mod tests {
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::client_auth::ClientAttestationChallengeMechanism;
-    use crate::client_auth::ClientAttestationError;
+    use crate::client_auth::ClientAttestationChallengeMechanismError;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::RemoteErrorCode;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -671,7 +671,9 @@ mod tests {
             ExpectedChallengeMechanism::Both => {
                 assert_matches!(
                     result.unwrap_err(),
-                    WalletIssuanceError::ClientAttestation(ClientAttestationError::DoubleChallengeMechanism)
+                    WalletIssuanceError::ClientAttestationChallengeMechanism(
+                        ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
+                    )
                 );
             }
         }

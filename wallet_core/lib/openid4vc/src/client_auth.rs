@@ -15,27 +15,7 @@ use crate::jose::JwsAlgorithm;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum ClientAttestationError {
-    #[error("cannot use both a challenge endpoint and a header value for attestation-based client authentication")]
-    #[category(unexpected)]
-    DoubleChallengeMechanism,
-
-    #[error("could not request WIA challenge: {0}")]
-    #[category(pd)]
-    ChallengeRequest(#[source] reqwest::Error),
-
-    #[error("WIA challenge endpoint returned an error status: {0}")]
-    #[category(pd)]
-    ChallengeStatus(#[source] reqwest::Error),
-
-    #[error("could not parse WIA challenge response: {0}")]
-    #[category(pd)]
-    ChallengeBody(#[source] reqwest::Error),
-
-    #[error("OAuth-Client-Attestation-Challenge contained non-visible-ASCII bytes")]
-    #[category(critical)]
-    ChallengeHeaderNonVisibleAscii,
-
+pub enum ClientAttestationMetadataError {
     #[error("the Authorization Server does not support attestation-based client authentication")]
     #[category(expected)]
     NoAttestationBasedClientAuthSupport,
@@ -58,13 +38,13 @@ pub enum ClientAttestationError {
 /// Verify that the Authorization Server metadata advertises support for Attestation-Based Client Authentication.
 pub fn check_client_attestation_metadata(
     oauth_metadata: &AuthorizationServerMetadata,
-) -> Result<(), ClientAttestationError> {
+) -> Result<(), ClientAttestationMetadataError> {
     if !oauth_metadata
         .token_endpoint_auth_methods_supported
         .as_ref()
         .is_some_and(|auth_methods| auth_methods.contains(WIA_CLIENT_AUTH_METHOD))
     {
-        return Err(ClientAttestationError::NoAttestationBasedClientAuthSupport);
+        return Err(ClientAttestationMetadataError::NoAttestationBasedClientAuthSupport);
     }
 
     if !oauth_metadata
@@ -72,7 +52,7 @@ pub fn check_client_attestation_metadata(
         .as_ref()
         .is_some_and(|algs| algs.contains(&JwsAlgorithm::ES256))
     {
-        return Err(ClientAttestationError::ClientAttestationSigningAlgNotSupported(
+        return Err(ClientAttestationMetadataError::ClientAttestationSigningAlgNotSupported(
             oauth_metadata.client_attestation_signing_alg_values_supported.clone(),
         ));
     }
@@ -82,11 +62,13 @@ pub fn check_client_attestation_metadata(
         .as_ref()
         .is_some_and(|algs| algs.contains(&JwsAlgorithm::ES256))
     {
-        return Err(ClientAttestationError::ClientAttestationPopSigningAlgNotSupported(
-            oauth_metadata
-                .client_attestation_pop_signing_alg_values_supported
-                .clone(),
-        ));
+        return Err(
+            ClientAttestationMetadataError::ClientAttestationPopSigningAlgNotSupported(
+                oauth_metadata
+                    .client_attestation_pop_signing_alg_values_supported
+                    .clone(),
+            ),
+        );
     }
 
     Ok(())
@@ -101,27 +83,38 @@ pub enum ClientAttestationChallengeMechanism {
     None,
 }
 
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum ClientAttestationChallengeMechanismError {
+    #[error("cannot use both a challenge endpoint and a header value for attestation-based client authentication")]
+    #[category(unexpected)]
+    DoubleChallengeMechanism,
+
+    #[error("OAuth-Client-Attestation-Challenge contained non-visible-ASCII bytes")]
+    #[category(critical)]
+    ChallengeHeaderNonVisibleAscii,
+}
+
 impl ClientAttestationChallengeMechanism {
     /// Construct a new `ClientAttestationChallengeMechanism` during the Authorization Code Flow (ACF).
     pub fn try_new_acf(
         challenge_endpoint: Option<Url>,
         http_response: &Response,
-    ) -> Result<Self, ClientAttestationError> {
+    ) -> Result<Self, ClientAttestationChallengeMechanismError> {
         let header_value = http_response
             .headers()
             .get(WIA_CLIENT_CHALLENGE_HEADER_NAME)
             .map(|value| {
-                Ok::<_, ClientAttestationError>(Nonce::from(
+                Ok::<_, ClientAttestationChallengeMechanismError>(Nonce::from(
                     value
                         .to_str()
-                        .map_err(|_| ClientAttestationError::ChallengeHeaderNonVisibleAscii)?
+                        .map_err(|_| ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii)?
                         .to_string(),
                 ))
             })
             .transpose()?;
 
         match (challenge_endpoint, header_value) {
-            (Some(_), Some(_)) => Err(ClientAttestationError::DoubleChallengeMechanism),
+            (Some(_), Some(_)) => Err(ClientAttestationChallengeMechanismError::DoubleChallengeMechanism),
             (None, None) => Ok(Self::None),
             (None, Some(challenge)) => Ok(Self::Header(challenge)),
             (Some(url), None) => Ok(Self::ChallengeEndpoint(url)),
@@ -146,21 +139,36 @@ pub struct AttestationChallenge {
     pub attestation_challenge: Nonce,
 }
 
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum ClientAttestationChallengeError {
+    #[error("could not request WIA challenge: {0}")]
+    #[category(pd)]
+    ChallengeRequest(#[source] reqwest::Error),
+
+    #[error("WIA challenge endpoint returned an error status: {0}")]
+    #[category(pd)]
+    ChallengeStatus(#[source] reqwest::Error),
+
+    #[error("could not parse WIA challenge response: {0}")]
+    #[category(pd)]
+    ChallengeBody(#[source] reqwest::Error),
+}
+
 pub async fn fetch_client_auth_challenge(
     http_client: &HttpClient,
     challenge_endpoint: Url,
-) -> Result<Nonce, ClientAttestationError> {
+) -> Result<Nonce, ClientAttestationChallengeError> {
     let challenge = http_client
         .post(challenge_endpoint, |builder| {
             builder.header(ACCEPT, mime::APPLICATION_JSON.as_ref())
         })
         .await
-        .map_err(ClientAttestationError::ChallengeRequest)?
+        .map_err(ClientAttestationChallengeError::ChallengeRequest)?
         .error_for_status()
-        .map_err(ClientAttestationError::ChallengeStatus)?
+        .map_err(ClientAttestationChallengeError::ChallengeStatus)?
         .json::<AttestationChallenge>()
         .await
-        .map_err(ClientAttestationError::ChallengeBody)?
+        .map_err(ClientAttestationChallengeError::ChallengeBody)?
         .attestation_challenge;
 
     Ok(challenge)
@@ -178,7 +186,8 @@ mod tests {
     use url::Url;
 
     use super::ClientAttestationChallengeMechanism;
-    use super::ClientAttestationError;
+    use super::ClientAttestationChallengeMechanismError;
+    use super::ClientAttestationMetadataError;
     use super::JwsAlgorithm;
     use super::check_client_attestation_metadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -230,7 +239,10 @@ mod tests {
         let error =
             ClientAttestationChallengeMechanism::try_new_acf(Some(url), &http_response(Some("the-nonce"))).unwrap_err();
 
-        assert_matches!(error, ClientAttestationError::DoubleChallengeMechanism);
+        assert_matches!(
+            error,
+            ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
+        );
     }
 
     #[test]
@@ -241,7 +253,10 @@ mod tests {
 
         let error = ClientAttestationChallengeMechanism::try_new_acf(None, &response).unwrap_err();
 
-        assert_matches!(error, ClientAttestationError::ChallengeHeaderNonVisibleAscii);
+        assert_matches!(
+            error,
+            ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii
+        );
     }
 
     #[test]
@@ -290,7 +305,7 @@ mod tests {
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
-            Err(ClientAttestationError::NoAttestationBasedClientAuthSupport)
+            Err(ClientAttestationMetadataError::NoAttestationBasedClientAuthSupport)
         );
     }
 
@@ -301,7 +316,7 @@ mod tests {
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
-            Err(ClientAttestationError::NoAttestationBasedClientAuthSupport)
+            Err(ClientAttestationMetadataError::NoAttestationBasedClientAuthSupport)
         );
     }
 
@@ -312,7 +327,9 @@ mod tests {
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
-            Err(ClientAttestationError::ClientAttestationSigningAlgNotSupported(None))
+            Err(ClientAttestationMetadataError::ClientAttestationSigningAlgNotSupported(
+                None
+            ))
         );
     }
 
@@ -324,7 +341,7 @@ mod tests {
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
-            Err(ClientAttestationError::ClientAttestationSigningAlgNotSupported(Some(algs)))
+            Err(ClientAttestationMetadataError::ClientAttestationSigningAlgNotSupported(Some(algs)))
                 if algs.iter().eq([&JwsAlgorithm::Other("RS256".to_string())])
         );
     }
@@ -336,7 +353,7 @@ mod tests {
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
-            Err(ClientAttestationError::ClientAttestationPopSigningAlgNotSupported(None))
+            Err(ClientAttestationMetadataError::ClientAttestationPopSigningAlgNotSupported(None))
         );
     }
 
@@ -348,7 +365,7 @@ mod tests {
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
-            Err(ClientAttestationError::ClientAttestationPopSigningAlgNotSupported(Some(algs)))
+            Err(ClientAttestationMetadataError::ClientAttestationPopSigningAlgNotSupported(Some(algs)))
                 if algs.iter().eq([&JwsAlgorithm::Other("RS256".to_string())])
         );
     }

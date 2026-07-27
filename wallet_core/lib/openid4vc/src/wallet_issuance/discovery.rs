@@ -467,7 +467,7 @@ impl HttpIssuanceDiscovery {
 
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer, wrpac_trust_anchors).await?;
 
-        check_client_attestation_metadata(&oauth_metadata).map_err(WalletIssuanceError::ClientAttestation)?;
+        check_client_attestation_metadata(&oauth_metadata).map_err(WalletIssuanceError::ClientAttestationMetadata)?;
 
         // Limit credential copy count to a sane maximum, even if the issuer indicates it can provide more copies.
         let batch_size = std::cmp::min(issuer_metadata.batch_size(), BATCH_SIZE_MAX.into())
@@ -605,7 +605,7 @@ mod test {
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
     use crate::authorization_details::AuthorizationDetails;
-    use crate::client_auth::ClientAttestationError;
+    use crate::client_auth::ClientAttestationMetadataError;
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
     use crate::credential_offer::GrantPreAuthorizedCode;
@@ -1543,7 +1543,9 @@ mod test {
 
         assert_matches!(
             error,
-            WalletIssuanceError::ClientAttestation(ClientAttestationError::NoAttestationBasedClientAuthSupport)
+            WalletIssuanceError::ClientAttestationMetadata(
+                ClientAttestationMetadataError::NoAttestationBasedClientAuthSupport
+            )
         );
     }
 }

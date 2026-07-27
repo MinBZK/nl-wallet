@@ -37,7 +37,9 @@ use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
 use self::issuance_session::IssuanceTypeMetadata;
-use crate::client_auth::ClientAttestationError;
+use crate::client_auth::ClientAttestationChallengeError;
+use crate::client_auth::ClientAttestationChallengeMechanismError;
+use crate::client_auth::ClientAttestationMetadataError;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
 use crate::errors::CredentialErrorCode;
@@ -322,8 +324,14 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialOfferNoPreAuthorizedCode,
 
-    #[error("Attestation-Based Client Authentication error: {0}")]
-    ClientAttestation(#[source] ClientAttestationError),
+    #[error("Attestation-Based Client Authentication metadata error: {0}")]
+    ClientAttestationMetadata(#[source] ClientAttestationMetadataError),
+
+    #[error("Attestation-Based Client Authentication challenge mechanism error: {0}")]
+    ClientAttestationChallengeMechanism(#[source] ClientAttestationChallengeMechanismError),
+
+    #[error("Attestation-Based Client Authentication challenge error: {0}")]
+    ClientAttestationChallenge(#[source] ClientAttestationChallengeError),
 }
 
 #[derive(Debug)]

@@ -199,7 +199,7 @@ impl VcMessageClient for HttpVcMessageClient {
     async fn request_challenge(&self, challenge_endpoint: Url) -> Result<Nonce, WalletIssuanceError> {
         fetch_client_auth_challenge(&self.http_client, challenge_endpoint)
             .await
-            .map_err(WalletIssuanceError::ClientAttestation)
+            .map_err(WalletIssuanceError::ClientAttestationChallenge)
     }
 
     async fn request_credential_preview(
