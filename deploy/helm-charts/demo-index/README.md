@@ -90,3 +90,10 @@
 | Name          | Description                                 | Value   |
 | ------------- | ------------------------------------------- | ------- |
 | `logRequests` | Log request and response headers and bodies | `false` |
+
+### WRPAC CRL
+
+| Name                       | Description                                                              | Value           |
+| -------------------------- | ------------------------------------------------------------------------ | --------------- |
+| `wrpacCrl.configMapName`   | ConfigMap containing the DER-encoded WRPAC CRL; disabled when empty      | `""`            |
+| `wrpacCrl.key`             | Key in the ConfigMap containing the DER-encoded WRPAC CRL                | `wrpac.crl.der` |

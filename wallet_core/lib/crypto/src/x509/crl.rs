@@ -60,6 +60,9 @@ const MAX_CRL_SIZE: usize = 5 * 1024 * 1024;
 /// Timeout for a single CRL fetch request, so a hung or slow-drip connection doesn't stall certificate verification.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Maximum number of CRLs retained by the default provider used by the wallet.
+const DEFAULT_CACHE_CAPACITY: u64 = 100;
+
 /// A parsed CRL together with its cache TTL.
 #[derive(Debug)]
 pub struct CachedCrl {
@@ -98,9 +101,18 @@ impl Expiry<Url, Arc<CachedCrl>> for CrlExpiry {
 /// The cache TTL for each entry is derived from the CRL's `nextUpdate` field so entries are refreshed automatically
 /// when the CRL expires. A freshly-fetched CRL is only committed to the cache once it has been used in a successful
 /// `verify_chain` call (i.e. its signature has been checked by `rustls-webpki`).
+#[derive(Debug)]
 pub struct CrlProvider {
     client: Client,
     cache: Cache<Url, Arc<CachedCrl>>,
+    #[cfg(feature = "mock")]
+    verify_without_revocation: bool,
+}
+
+impl Default for CrlProvider {
+    fn default() -> Self {
+        Self::new(Client::new(), DEFAULT_CACHE_CAPACITY)
+    }
 }
 
 impl CrlProvider {
@@ -109,7 +121,24 @@ impl CrlProvider {
             .max_capacity(max_capacity)
             .expire_after(CrlExpiry)
             .build();
-        Self { client, cache }
+        Self {
+            client,
+            cache,
+            #[cfg(feature = "mock")]
+            verify_without_revocation: false,
+        }
+    }
+
+    /// Construct a provider that performs path validation without revocation checking.
+    ///
+    /// This is only available to test builds that enable the `mock` feature. Production WRPAC consumers must use a
+    /// regular provider so missing or unusable CRLs fail closed.
+    #[cfg(feature = "mock")]
+    pub fn new_mock_without_revocation() -> Self {
+        Self {
+            verify_without_revocation: true,
+            ..Self::default()
+        }
     }
 
     /// Verify a certificate chain, checking the revocation status of every certificate in the chain against their CRLs.
@@ -123,6 +152,15 @@ impl CrlProvider {
         let (leaf, intermediate_certs) = chain
             .split_first()
             .ok_or(CertificateError::Crl(CrlProviderError::EmptyChain))?;
+
+        #[cfg(feature = "mock")]
+        if self.verify_without_revocation {
+            return leaf.verify(usage, intermediate_certs, time, trust_anchors, None);
+        }
+
+        // Validate the certificate path before following distribution-point URLs supplied by the certificate. This
+        // prevents an untrusted certificate from turning CRL retrieval into an arbitrary network request.
+        leaf.verify(usage, intermediate_certs, time, trust_anchors, None)?;
 
         let mut crls = Vec::new();
         for cert in chain {
@@ -280,6 +318,8 @@ pub mod mock {
             Self {
                 client,
                 cache: Cache::builder().max_capacity(0).build(),
+                #[cfg(feature = "mock")]
+                verify_without_revocation: false,
             }
         }
     }
@@ -680,6 +720,28 @@ mod tests {
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
             .await
             .expect("certificate should verify");
+    }
+
+    #[tokio::test]
+    async fn verify_chain_does_not_fetch_crl_for_untrusted_certificate() {
+        let server = MockServer::start_async().await;
+        let url: Url = server.url("/crl.der").parse().unwrap();
+        let (_untrusted_ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
+        let trusted_ca = Ca::generate_mock();
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/crl.der");
+                then.status(200).body("request should not be made");
+            })
+            .await;
+
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        provider
+            .verify_chain(&[leaf], &TrustAnchors::from(&trusted_ca), None, &TimeGenerator)
+            .await
+            .expect_err("untrusted certificate should fail before CRL retrieval");
+
+        mock.assert_calls_async(0).await;
     }
 
     #[tokio::test]

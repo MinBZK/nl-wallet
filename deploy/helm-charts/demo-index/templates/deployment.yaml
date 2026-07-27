@@ -53,6 +53,12 @@ spec:
             - name: config-volume
               mountPath: /demo_index.toml
               subPath: config.toml
+            {{- with .Values.wrpacCrl.configMapName }}
+            - name: wrpac-crl-volume
+              mountPath: /assets/wrpac.crl.der
+              subPath: wrpac.crl.der
+              readOnly: true
+            {{- end }}
           env:
             - name: DEMO_INDEX__STRUCTURED_LOGGING
               value: "true"
@@ -64,3 +70,11 @@ spec:
         - name: config-volume
           configMap:
             name: nl-wallet-demo-index-data
+        {{- with .Values.wrpacCrl.configMapName }}
+        - name: wrpac-crl-volume
+          configMap:
+            name: {{ . }}
+            items:
+              - key: {{ $.Values.wrpacCrl.key }}
+                path: wrpac.crl.der
+        {{- end }}

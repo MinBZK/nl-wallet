@@ -16,6 +16,7 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use crypto::x509::crl::CrlProvider;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -270,6 +271,30 @@ where
             .map_err(JwtX5cVerifyError::JwtVerify)
     }
 
+    /// Verify the X.509 certificate chain, including fail-closed CRL checking, and then verify the JWS.
+    pub async fn parse_and_verify_against_trust_anchors_with_crl(
+        &self,
+        trust_anchors: &TrustAnchors,
+        crl_provider: &CrlProvider,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation_options: &Validation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        let certificates = self
+            .extract_x5c_certificates()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
+
+        crl_provider
+            .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
+            .await
+            .map_err(JwtX5cVerifyError::CertificateValidation)?;
+
+        let pubkey = EcdsaDecodingKey::from(certificates.first().public_key());
+        self.parse_and_verify(&pubkey, validation_options)
+            .map_err(JwtX5cVerifyError::JwtVerify)
+    }
+
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &TrustAnchors,
@@ -279,6 +304,31 @@ where
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
+
+        Ok(VerifiedJwt {
+            header,
+            payload,
+            jwt: self,
+        })
+    }
+
+    pub async fn into_verified_against_trust_anchors_with_crl(
+        self,
+        trust_anchors: &TrustAnchors,
+        crl_provider: &CrlProvider,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation_options: &Validation,
+    ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
+        let (header, payload) = self
+            .parse_and_verify_against_trust_anchors_with_crl(
+                trust_anchors,
+                crl_provider,
+                time,
+                certificate_usage,
+                validation_options,
+            )
+            .await?;
 
         Ok(VerifiedJwt {
             header,

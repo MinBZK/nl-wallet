@@ -6347,6 +6347,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fae430c6b28f1ad601274e78b7dffa0546de0b73b4cd32f46723c0c2a16f7a5"
 dependencies = [
  "aws-lc-rs",
+ "pem",
  "ring",
  "rustls-pki-types",
  "time",
@@ -9736,9 +9737,11 @@ dependencies = [
  "pem",
  "predicates",
  "rand_core 0.6.4",
+ "rcgen 0.14.5",
  "serde_json",
  "time",
  "tokio",
+ "url",
  "utils",
  "x509-parser 0.18.0",
 ]

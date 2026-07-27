@@ -53,8 +53,8 @@ use yoke::Yoke;
 use yoke::Yokeable;
 
 use crate::trust_anchor::TrustAnchors;
-use crate::x509::crl::FetchedCrl;
 use crate::x509::crl::CrlProviderError;
+use crate::x509::crl::FetchedCrl;
 
 #[cfg(any(test, feature = "generate"))]
 mod config;

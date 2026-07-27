@@ -11,6 +11,8 @@ use crypto::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
+use crypto::x509::crl::CrlProvider;
 use derive_more::IsVariant;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
@@ -231,6 +233,12 @@ pub enum CloseProximityDisclosureError {
     #[error("invalid DocRequest")]
     InvalidDocRequest(#[from] mdoc::Error),
 
+    #[error("reader access certificate revocation validation failed")]
+    InvalidReaderCertificate(#[from] CertificateError),
+
+    #[error("invalid reader authentication certificate chain")]
+    InvalidReaderCertificateChain(#[source] CoseError),
+
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
     UnsupportedDocFormat { doc_format: String },
@@ -274,7 +282,9 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         CloseProximityDisclosureError::UnsupportedDocFormat { .. } => Some(DeviceResponseStatus::InvalidRequest),
         CloseProximityDisclosureError::MissingReaderAuth
         | CloseProximityDisclosureError::InconsistentReaderAuths
-        | CloseProximityDisclosureError::InvalidDocRequest(_) => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::InvalidDocRequest(_)
+        | CloseProximityDisclosureError::InvalidReaderCertificate(_)
+        | CloseProximityDisclosureError::InvalidReaderCertificateChain(_) => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
@@ -404,12 +414,15 @@ where
         let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
 
         let wallet_config = self.config_repository.get();
-        let verifier_certificate = match verify_device_request(
+        let verifier_certificate = match verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &TimeGenerator,
             wallet_config.wrpac_trust_anchors(),
-        ) {
+            &self.crl_provider,
+        )
+        .await
+        {
             Ok(verifier_certificate) => verifier_certificate,
             Err(error) => {
                 self.send_close_proximity_error_response_and_stop(&error).await?;
@@ -793,6 +806,35 @@ pub fn verify_device_request(
     Ok(certificate)
 }
 
+/// Verify a device request and its reader authentication, requiring a valid CRL for the complete WRPAC chain.
+pub async fn verify_device_request_with_crl(
+    device_request: &DeviceRequest,
+    session_transcript: &SessionTranscript,
+    time: &impl Generator<DateTime<Utc>>,
+    trust_anchors: &TrustAnchors,
+    crl_provider: &CrlProvider,
+) -> Result<BorrowingCertificate, CloseProximityDisclosureError> {
+    let certificate = verify_device_request(device_request, session_transcript, time, trust_anchors)?;
+
+    // `verify_device_request` guarantees every DocRequest has the same authenticated leaf certificate. Use the full
+    // x5chain from the first ReaderAuth so intermediate certificates are covered by revocation checking as well.
+    let reader_auth = device_request
+        .doc_requests
+        .first()
+        .reader_auth
+        .as_ref()
+        .expect("reader authentication was checked above");
+    let certificate_chain = reader_auth
+        .x5chain()
+        .map_err(CloseProximityDisclosureError::InvalidReaderCertificateChain)?;
+
+    crl_provider
+        .verify_chain(certificate_chain.as_slice(), trust_anchors, None, time)
+        .await?;
+
+    Ok(certificate)
+}
+
 fn verify_requested_doc_formats(device_request: &DeviceRequest) -> Result<(), CloseProximityDisclosureError> {
     for items_request in device_request.items_requests() {
         let Some(requested_doc_format) = items_request
@@ -845,6 +887,9 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
+    use crypto::x509::CertificateError;
+    use crypto::x509::crl::CrlProvider;
+    use crypto::x509::crl::CrlProviderError;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
@@ -896,6 +941,7 @@ mod tests {
     use super::PlatformError;
     use super::close_proximity_disclosure_proposal;
     use super::verify_device_request;
+    use super::verify_device_request_with_crl;
     use crate::DisclosureAttestationOptions;
     use crate::DisclosureProposalPresentation;
     use crate::Pin;
@@ -1553,6 +1599,29 @@ mod tests {
         );
 
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_with_crl_fails_without_distribution_point() {
+        let items_request = pid_given_name_items_request();
+
+        let (device_request, session_transcript, trust_anchors) = setup_device_request(vec![items_request], None).await;
+
+        let result = verify_device_request_with_crl(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+            &CrlProvider::default(),
+        )
+        .await;
+
+        assert_matches!(
+            result,
+            Err(CloseProximityDisclosureError::InvalidReaderCertificate(
+                CertificateError::Crl(CrlProviderError::NoCrlDistributionPoint)
+            ))
+        );
     }
 
     #[tokio::test]

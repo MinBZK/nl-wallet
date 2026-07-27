@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crypto::x509::crl::CrlProvider;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use futures::try_join;
@@ -161,12 +162,36 @@ pub struct WalletRepositories<CR, UR> {
     pub update_policy_repository: UR,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct WalletClients<APC, CID, DCC, SLC> {
     pub account_provider_client: APC,
     pub credential_issuer_discovery: CID,
     pub disclosure_client: DCC,
+    pub crl_provider: Arc<CrlProvider>,
     pub status_list_client: SLC,
+}
+
+impl<APC, CID, DCC, SLC> Default for WalletClients<APC, CID, DCC, SLC>
+where
+    APC: Default,
+    CID: Default,
+    DCC: Default,
+    SLC: Default,
+{
+    fn default() -> Self {
+        #[cfg(any(test, feature = "test"))]
+        let crl_provider = Arc::new(CrlProvider::new_mock_without_revocation());
+        #[cfg(not(any(test, feature = "test")))]
+        let crl_provider = Arc::new(CrlProvider::default());
+
+        Self {
+            account_provider_client: APC::default(),
+            credential_issuer_discovery: CID::default(),
+            disclosure_client: DCC::default(),
+            crl_provider,
+            status_list_client: SLC::default(),
+        }
+    }
 }
 
 fn reqwest_client_builder() -> ClientBuilder {
@@ -185,8 +210,17 @@ where
     APC: Default,
 {
     pub fn new() -> Result<Self, reqwest::Error> {
-        let credential_issuer_discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?);
-        let disclosure_client = VpDisclosureClient::new_with_client(HttpClient::try_new(reqwest_client_builder())?);
+        // Note that HTTP is explicitly allowed for CRL distribution points. CRL integrity and issuer authenticity are
+        // established by the CRL signature during certificate-chain verification.
+        let crl_provider = Arc::new(CrlProvider::default());
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new_with_crl_provider(
+            HttpClient::try_new(reqwest_client_builder())?,
+            Arc::clone(&crl_provider),
+        );
+        let disclosure_client = VpDisclosureClient::new_with_client_and_crl_provider(
+            HttpClient::try_new(reqwest_client_builder())?,
+            Arc::clone(&crl_provider),
+        );
         // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
@@ -194,6 +228,7 @@ where
             account_provider_client: APC::default(),
             credential_issuer_discovery,
             disclosure_client,
+            crl_provider,
             status_list_client,
         };
 
@@ -247,6 +282,7 @@ where
             issuance_discovery: wallet_clients.credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             close_proximity_disclosure: PhantomData,
+            crl_provider: wallet_clients.crl_provider,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session,
             lock: WalletLock::new(true),

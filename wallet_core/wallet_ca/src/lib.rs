@@ -80,11 +80,16 @@ fn write_signing_key_inner(file_path: &Path, key: &SigningKey) -> Result<()> {
 }
 
 pub fn write_crl(file_prefix: &str, crl: &CertificateRevocationList, force: bool) -> Result<()> {
-    let crl_file = format!("{file_prefix}.crl.pem");
-    let crl_path = Path::new(&crl_file);
-    assert_not_exists(crl_path, force)?;
+    let pem_file = format!("{file_prefix}.crl.pem");
+    let pem_path = Path::new(&pem_file);
+    let der_file = format!("{file_prefix}.crl.der");
+    let der_path = Path::new(&der_file);
+    assert_not_exists(pem_path, force)?;
+    assert_not_exists(der_path, force)?;
 
-    fs::write(crl_path, crl.pem()?)?;
-    eprintln!("CRL stored in '{}'", crl_path.display());
+    fs::write(pem_path, crl.pem()?)?;
+    fs::write(der_path, crl.der())?;
+    eprintln!("CRL stored in '{}'", pem_path.display());
+    eprintln!("CRL stored in '{}'", der_path.display());
     Ok(())
 }

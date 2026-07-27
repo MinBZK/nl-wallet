@@ -184,6 +184,7 @@ pub struct Wallet<
     issuance_discovery: CID,
     disclosure_client: DCC,
     close_proximity_disclosure: PhantomData<CPC>,
+    crl_provider: Arc<crypto::x509::crl::CrlProvider>,
     status_list_client: Arc<SLC>,
     session: Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>,
     lock: WalletLock,

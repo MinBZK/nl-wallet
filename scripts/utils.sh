@@ -336,6 +336,11 @@ function generate_pid_issuer_hsm_key_pair {
 function generate_pid_issuer_key_pair {
     echo -e "${INFO}Generating PID Issuer $1 key pair${NC}"
 
+    local crl_args=()
+    if [[ $1 == 'wrpac' ]]; then
+        crl_args+=(--crl-distribution-point "${WRPAC_CRL_DISTRIBUTION_POINT}")
+    fi
+
     # Generate a private key and certificate
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert --type $1 \
@@ -345,6 +350,7 @@ function generate_pid_issuer_key_pair {
         --organization-name "${access_certificates[(pid,legal_name)]}" \
         --organization-id "${access_certificates[(pid,oid)]}" \
         --san-uri "https://pid.example.com" \
+        "${crl_args[@]}" \
         --file-prefix "${TARGET_DIR}/pid_issuer/$1" \
         --force
 
@@ -416,6 +422,7 @@ function generate_demo_issuer_key_pairs {
         --organization-name "${access_certificates[($1,legal_name)]}" \
         --organization-id "${access_certificates[($1,oid)]}" \
         --san-uri "https://$1.example.com" \
+        --crl-distribution-point "${WRPAC_CRL_DISTRIBUTION_POINT}" \
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.wrpac" \
         --force
 
@@ -443,9 +450,12 @@ function generate_demo_issuer_issuance_key_pairs {
 # $2 - Type of certificate
 # $3 - Short name of the CA (default to type of certificate)
 function generate_demo_issuer_issuance_key_pair {
-    ca_args=()
+    local ca_args=()
     if [[ ${2:-} == 'issuer' ]]; then
         ca_args+=(--issuer-auth-file "${DEVENV}/$1_issuer_auth.json")
+    fi
+    if [[ ${2:-} == 'wrpac' ]]; then
+        ca_args+=(--crl-distribution-point "${WRPAC_CRL_DISTRIBUTION_POINT}")
     fi
 
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
@@ -472,7 +482,10 @@ function generate_demo_issuer_issuance_key_pair {
 #
 # $1 - Short name of the Relying Party
 function generate_demo_relying_party_key_pair {
-    ca_args=(--common-name "${access_certificates[($1,name)]}")
+    local ca_args=(
+        --common-name "${access_certificates[($1,name)]}"
+        --crl-distribution-point "${WRPAC_CRL_DISTRIBUTION_POINT}"
+    )
     if [[ -z ${access_certificates[($1,serial_number)]:-} ]]; then
         ca_args+=(
             --organization-name "${access_certificates[($1,legal_name)]}"

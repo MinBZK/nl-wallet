@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
+use std::sync::Arc;
 
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::crl::CrlProvider;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
@@ -44,11 +46,24 @@ const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
 
 pub struct HttpIssuanceDiscovery {
     http_client: HttpClient,
+    crl_provider: Arc<CrlProvider>,
 }
 
 impl HttpIssuanceDiscovery {
     pub fn new(http_client: HttpClient) -> Self {
-        Self { http_client }
+        #[cfg(any(test, feature = "mock"))]
+        let crl_provider = Arc::new(CrlProvider::new_mock_without_revocation());
+        #[cfg(not(any(test, feature = "mock")))]
+        let crl_provider = Arc::new(CrlProvider::default());
+
+        Self::new_with_crl_provider(http_client, crl_provider)
+    }
+
+    pub fn new_with_crl_provider(http_client: HttpClient, crl_provider: Arc<CrlProvider>) -> Self {
+        Self {
+            http_client,
+            crl_provider,
+        }
     }
 }
 
@@ -392,7 +407,14 @@ impl HttpIssuanceDiscovery {
             .parse()?;
 
         let issuer_metadata_payload = issuer_metadata_jwt
-            .into_verified_against_trust_anchors(wrpac_trust_anchors, &TimeGenerator, None, &DEFAULT_VALIDATIONS)
+            .into_verified_against_trust_anchors_with_crl(
+                wrpac_trust_anchors,
+                &self.crl_provider,
+                &TimeGenerator,
+                None,
+                &DEFAULT_VALIDATIONS,
+            )
+            .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?
             .into_payload();
         if *issuer_metadata_payload.sub != credential_offer.credential_issuer {
@@ -591,6 +613,7 @@ mod test {
     use std::assert_matches;
     use std::borrow::Cow;
     use std::collections::HashMap;
+    use std::sync::Arc;
     use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -602,6 +625,9 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_string;
+    use crypto::x509::CertificateError;
+    use crypto::x509::crl::CrlProvider;
+    use crypto::x509::crl::CrlProviderError;
     use futures::future::try_join_all;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
@@ -1295,6 +1321,7 @@ mod test {
     async fn start_check_metadata<'a>(
         to_signed_metadata: impl FnOnce(IssuerIdentifier, IssuerMetadata) -> SignedIssuerMetadataPayload<'a>,
         use_trust_anchors: bool,
+        crl_provider: Option<Arc<CrlProvider>>,
     ) -> (
         IssuerIdentifier,
         Result<IssuanceFlow<HttpAuthorizationSession, HttpIssuanceSession>, WalletIssuanceError>,
@@ -1314,7 +1341,11 @@ mod test {
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
         // Start discovery
-        let discovery = HttpIssuanceDiscovery::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let discovery = match crl_provider {
+            Some(crl_provider) => HttpIssuanceDiscovery::new_with_crl_provider(http_client, crl_provider),
+            None => HttpIssuanceDiscovery::new(http_client),
+        };
         let result = discovery
             .start(
                 &offer_url,
@@ -1334,7 +1365,7 @@ mod test {
 
     #[tokio::test]
     async fn start_untrusted_metadata() {
-        let (_, result) = start_check_metadata(default_signed_metadata(), false).await;
+        let (_, result) = start_check_metadata(default_signed_metadata(), false, None).await;
 
         assert_matches!(
             result,
@@ -1345,8 +1376,23 @@ mod test {
     }
 
     #[tokio::test]
+    async fn start_metadata_with_crl_fails_without_distribution_point() {
+        let (_, result) =
+            start_check_metadata(default_signed_metadata(), true, Some(Arc::new(CrlProvider::default()))).await;
+
+        assert_matches!(
+            result,
+            Err(WalletIssuanceError::CredentialIssuerMetadataVerify(
+                JwtX5cVerifyError::CertificateValidation(CertificateError::Crl(
+                    CrlProviderError::NoCrlDistributionPoint
+                ))
+            ))
+        );
+    }
+
+    #[tokio::test]
     async fn start_expired_metadata() {
-        let (_, result) = start_check_metadata(custom_signed_metadata(None, None, true), true).await;
+        let (_, result) = start_check_metadata(custom_signed_metadata(None, None, true), true, None).await;
 
         assert_matches!(
             result,
@@ -1362,6 +1408,7 @@ mod test {
         let (offered_identifier, result) = start_check_metadata(
             custom_signed_metadata(Some(different_identifier.clone()), None, false),
             true,
+            None,
         )
         .await;
 
@@ -1379,6 +1426,7 @@ mod test {
         let (offered_identifier, result) = start_check_metadata(
             custom_signed_metadata(None, Some(different_identifier.clone()), false),
             true,
+            None,
         )
         .await;
 

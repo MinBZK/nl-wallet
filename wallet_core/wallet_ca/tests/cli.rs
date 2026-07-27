@@ -10,9 +10,11 @@ use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::SubjectAltNameUri;
+use crypto::x509::crl::extract_crl_distribution_points;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
@@ -32,9 +34,6 @@ use x509_parser::extensions::GeneralName;
 use x509_parser::num_bigint::BigUint;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
 use x509_parser::parse_x509_crl;
-
-use crypto::x509::BorrowingCertificate;
-use crypto::x509::crl::extract_crl_distribution_points;
 
 trait RangeCompare<Offset> {
     /// Compare [`self`] to the range of [`other`] +/- the [`offset`].
@@ -75,8 +74,12 @@ fn predicate_successfully_generated_certificate(crt: &Path) -> Result<RegexPredi
     Ok(result)
 }
 
-fn predicate_successfully_generated_crl(crl: &Path) -> Result<RegexPredicate> {
-    let result = predicate::str::is_match(format!("CRL stored in '{}'", crl.display(),))?;
+fn predicate_successfully_generated_crl(pem_crl: &Path, der_crl: &Path) -> Result<RegexPredicate> {
+    let result = predicate::str::is_match(format!(
+        "CRL stored in '{}'\nCRL stored in '{}'",
+        pem_crl.display(),
+        der_crl.display(),
+    ))?;
     Ok(result)
 }
 
@@ -208,16 +211,18 @@ fn assert_generated_certificate_crl_distribution_points(crt_file: &ChildPath, ex
 /// Verify a generated CRL's issuer, validity window, `crlNumber` and revoked serial numbers (as raw bytes, in the
 /// order they appear on the CRL).
 fn assert_generated_crl(
-    crl_file: &ChildPath,
+    pem_crl_file: &ChildPath,
+    der_crl_file: &ChildPath,
     expected_issuer_dn: &DistinguishedName,
     start: OffsetDateTime,
     end: OffsetDateTime,
     expected_revoked_serials: &[Vec<u8>],
 ) -> Result<()> {
     // Read CRL and verify PEM label
-    let crl_pem_bytes = std::fs::read(crl_file)?;
+    let crl_pem_bytes = std::fs::read(pem_crl_file)?;
     let (_, crl_pem) = x509_parser::pem::parse_x509_pem(&crl_pem_bytes)?;
     assert_eq!(crl_pem.label, "X509 CRL");
+    assert_eq!(std::fs::read(der_crl_file)?, crl_pem.contents);
     let (_, crl) = parse_x509_crl(&crl_pem.contents)?;
 
     let issuer_dn = DistinguishedName::try_from(crl.issuer())?;
@@ -432,6 +437,10 @@ fn public_key_path(temp: &TempDir, prefix: &str) -> ChildPath {
 
 fn crl_path(temp: &TempDir, prefix: &str) -> ChildPath {
     temp.child(format!("{prefix}.crl.pem"))
+}
+
+fn crl_der_path(temp: &TempDir, prefix: &str) -> ChildPath {
+    temp.child(format!("{prefix}.crl.der"))
 }
 
 fn generate_public_key(path: &ChildPath) {
@@ -965,15 +974,17 @@ fn happy_flow_crl_empty() -> Result<()> {
     let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
     let crl_prefix = temp.child("test-crl");
     let crl = crl_path(&temp, "test-crl");
+    let crl_der = crl_der_path(&temp, "test-crl");
 
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_crl(&ca_crt, &ca_key, &crl_prefix, "7")
         .assert()
         .success()
-        .stderr(predicate_successfully_generated_crl(&crl)?);
+        .stderr(predicate_successfully_generated_crl(&crl, &crl_der)?);
 
     assert_generated_crl(
         &crl,
+        &crl_der,
         &ca_dn,
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + Duration::days(7),
@@ -999,6 +1010,7 @@ fn happy_flow_crl_with_revoked_certificates() -> Result<()> {
     let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
     let crl_prefix = temp.child("test-crl");
     let crl = crl_path(&temp, "test-crl");
+    let crl_der = crl_der_path(&temp, "test-crl");
 
     // Serial numbers are free-form input to the `crl` command (it never looks at an actual
     // certificate), so cover both accepted formats with literal values: colon-separated hex, as
@@ -1010,10 +1022,11 @@ fn happy_flow_crl_with_revoked_certificates() -> Result<()> {
         .arg("01020304")
         .assert()
         .success()
-        .stderr(predicate_successfully_generated_crl(&crl)?);
+        .stderr(predicate_successfully_generated_crl(&crl, &crl_der)?);
 
     assert_generated_crl(
         &crl,
+        &crl_der,
         &ca_dn,
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + DEFAULT_CRL_LIFETIME,

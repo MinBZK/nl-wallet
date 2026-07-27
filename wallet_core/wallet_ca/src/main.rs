@@ -237,7 +237,8 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
-        /// Prefix to use for the generated file: <FILE_PREFIX>.crl.pem
+        /// Prefix for the generated files: <FILE_PREFIX>.crl.pem and <FILE_PREFIX>.crl.der. Publish the DER file at
+        /// the URL embedded in certificates as a CRL Distribution Point.
         #[arg(short, long)]
         file_prefix: String,
         /// Duration for which the CRL will be valid (used to calculate `nextUpdate`); choose based on how often you
