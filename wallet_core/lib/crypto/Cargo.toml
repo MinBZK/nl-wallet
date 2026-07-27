@@ -30,10 +30,12 @@ derive_more = { workspace = true, features = ["debug", "as_ref", "from", "from_s
 hex = { workspace = true, features = ["serde"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
+moka = { workspace = true, features = ["future"] }
 p256 = { workspace = true, features = ["pem"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 rand.workspace = true
+reqwest.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -41,12 +43,13 @@ serde_with = { workspace = true, features = ["macros"] }
 sha2.workspace = true
 thiserror.workspace = true
 trait-variant.workspace = true
+url.workspace = true
 x509-parser = { workspace = true, features = ["verify", "validate"] }
 yoke = { workspace = true, features = ["derive"] }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
 
 error_category.path = "../error_category"
-http_utils.path = "../http_utils"
+http_utils = { path = "../http_utils", features = ["client"] }
 utils.path = "../utils"
 
 anyhow = { workspace = true, optional = true }
@@ -60,6 +63,12 @@ time = { workspace = true, optional = true }
 
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
+der = { workspace = true, features = ["derive", "oid"] }
+httpmock.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 rstest.workspace = true
 time.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+http_utils = { path = "../http_utils", features = ["httpmock"] }
+utils = { path = "../utils", features = ["mock_time"] }

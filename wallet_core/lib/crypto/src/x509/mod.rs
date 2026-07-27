@@ -31,8 +31,12 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::EndEntityCert;
 use webpki::Error;
+use webpki::ExpirationPolicy;
 use webpki::ExtendedKeyUsageValidator;
 use webpki::KeyPurposeIdIter;
+use webpki::RevocationCheckDepth;
+use webpki::RevocationOptionsBuilder;
+use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
@@ -49,9 +53,11 @@ use yoke::Yoke;
 use yoke::Yokeable;
 
 use crate::trust_anchor::TrustAnchors;
+use crate::x509::crl::FetchedCrl;
 
 #[cfg(any(test, feature = "generate"))]
 mod config;
+pub mod crl;
 mod dn;
 mod key_identifier;
 #[cfg(any(test, feature = "generate"))]
@@ -212,6 +218,7 @@ impl BorrowingCertificate {
         intermediate_certs: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
+        crls: Option<&[FetchedCrl]>,
     ) -> Result<(), CertificateError> {
         let chain = once(self).chain(intermediate_certs).collect_vec();
 
@@ -235,6 +242,16 @@ impl BorrowingCertificate {
         ));
         let key_usage = usage.map(|u| webpki::KeyUsage::required(u.as_oid_bytes()));
 
+        let crl_refs = crls.map(|crls| crls.iter().map(FetchedCrl::crl).collect_vec());
+        let revocation = crl_refs.as_ref().map(|crl_refs| {
+            RevocationOptionsBuilder::new(crl_refs)
+                .expect("crl_refs is non-empty, checked above")
+                .with_depth(RevocationCheckDepth::Chain)
+                .with_expiration_policy(ExpirationPolicy::Enforce)
+                .with_status_policy(UnknownStatusPolicy::Deny)
+                .build()
+        });
+
         self.end_entity_certificate()
             .verify_for_usage(
                 &supported_sig_algs,
@@ -242,7 +259,7 @@ impl BorrowingCertificate {
                 intermediate_certs.as_slice(),
                 time,
                 OptionalExtendedKeyUsageValidator(key_usage),
-                None,
+                revocation,
                 None,
             )
             .map(|_| ())
@@ -458,6 +475,9 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use rcgen::RevocationReason;
+    use rcgen::RevokedCertParams;
+    use rcgen::SerialNumber;
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
@@ -466,6 +486,7 @@ mod tests {
     use super::*;
     use crate::server_keys::generate::Ca;
     use crate::trust_anchor::TrustAnchors;
+    use crate::x509::crl::parse_crl_der;
 
     #[test]
     fn generate_ca() {
@@ -522,7 +543,7 @@ mod tests {
         // Test verify with no usage
         key_pair
             .certificate()
-            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca), None)
             .expect("Expected verify to succeed");
 
         // Test verify with correct usage
@@ -533,6 +554,7 @@ mod tests {
                 &[],
                 &TimeGenerator,
                 &TrustAnchors::from(&ca),
+                None,
             )
             .expect("Expected verify to succeed");
 
@@ -544,8 +566,49 @@ mod tests {
                 &[],
                 &TimeGenerator,
                 &TrustAnchors::from(&ca),
+                None,
             )
             .expect_err("Expected verify to fail");
+    }
+
+    #[test]
+    fn verify_fails_for_revoked_certificate() {
+        // Create a CA and a leaf certificate
+        let ca = Ca::generate_mock();
+        let leaf = ca
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .unwrap();
+        let leaf_certificate = leaf.certificate();
+
+        // Create a CRL with the leaf certificate, signed by the CA.
+        let serial = leaf_certificate
+            .x509_certificate()
+            .tbs_certificate
+            .raw_serial()
+            .to_vec();
+        let revoked = RevokedCertParams {
+            serial_number: SerialNumber::from_slice(&serial),
+            revocation_time: OffsetDateTime::now_utc(),
+            reason_code: Some(RevocationReason::KeyCompromise),
+            invalidity_date: None,
+        };
+        let crl_der = ca.generate_crl(vec![revoked]).unwrap().der().to_vec();
+        let crl = parse_crl_der(&crl_der).unwrap();
+        let crls = [FetchedCrl::new_for_test(crl)];
+
+        // Verify without CRL should succeed
+        leaf_certificate
+            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca), None)
+            .expect("certificate should verify");
+
+        // Verify with CRL should fail
+        let error = leaf_certificate
+            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca), Some(&crls))
+            .expect_err("revoked certificate should fail verification");
+        assert_matches!(
+            error,
+            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertRevoked)
+        );
     }
 
     fn generate_and_verify_issuer_for_validity(
@@ -565,7 +628,7 @@ mod tests {
             .unwrap();
         issuer_key_pair
             .certificate()
-            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca), None)
             .expect_err("Expected verify to fail")
     }
 
@@ -667,7 +730,7 @@ mod tests {
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
         // Path: leaf ← cross-cert (new key, signed by old CA) ← old CA trust anchor.
         leaf.certificate()
-            .verify(None, from_ref(&cross_cert), &time, &TrustAnchors::from(&old_ca))
+            .verify(None, from_ref(&cross_cert), &time, &TrustAnchors::from(&old_ca), None)
             .expect("leaf should verify against old CA via cross-cert intermediate");
 
         // Phase 2: same verification but with the self-signed new CA cert added to the
@@ -679,12 +742,13 @@ mod tests {
                 &[cross_cert, new_ca.as_borrowing_certificate().unwrap()],
                 &time,
                 &TrustAnchors::from(&old_ca),
+                None,
             )
             .expect("leaf should still verify when self-signed new CA cert is added to intermediates");
 
         // Phase 3: leaf verified directly against the new CA trust anchor (no intermediates).
         leaf.certificate()
-            .verify(None, &[], &time, &TrustAnchors::from(&new_ca))
+            .verify(None, &[], &time, &TrustAnchors::from(&new_ca), None)
             .expect("leaf should verify against self-signed new CA");
     }
 
@@ -717,13 +781,19 @@ mod tests {
         // Verify whole chain with leaf, intermediate and ca trust anchor
         leaf_key_pair
             .certificate()
-            .verify(None, from_ref(&intermediate_cert), &time, &TrustAnchors::from(&ca))
+            .verify(
+                None,
+                from_ref(&intermediate_cert),
+                &time,
+                &TrustAnchors::from(&ca),
+                None,
+            )
             .expect("should verify");
 
         // Verify leaf with only intermediate as trust anchor
         leaf_key_pair
             .certificate()
-            .verify(None, &[], &time, &TrustAnchors::from(&intermediate_ca))
+            .verify(None, &[], &time, &TrustAnchors::from(&intermediate_ca), None)
             .expect("should verify");
 
         // Verify whole chain with intermediate both in intermediates and trust anchors
@@ -734,6 +804,7 @@ mod tests {
                 from_ref(&intermediate_cert),
                 &time,
                 &TrustAnchors::try_from(vec![intermediate_ta, ca_ta.clone()]).unwrap(),
+                None,
             )
             .expect_err("should detect TrustAnchorInChain");
         assert_matches!(error, CertificateError::TrustAnchorInChain);
@@ -741,7 +812,13 @@ mod tests {
         // Verify whole chain with ca in both intermediates and trust anchors
         let error = leaf_key_pair
             .certificate()
-            .verify(None, &[intermediate_cert, ca_cert], &time, &TrustAnchors::from(&ca))
+            .verify(
+                None,
+                &[intermediate_cert, ca_cert],
+                &time,
+                &TrustAnchors::from(&ca),
+                None,
+            )
             .expect_err("should detect TrustAnchorInChain");
         assert_matches!(error, CertificateError::TrustAnchorInChain);
     }

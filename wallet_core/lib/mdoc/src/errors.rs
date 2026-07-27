@@ -1,3 +1,4 @@
+use cose::CoseKeyConversionError;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 
@@ -34,4 +35,10 @@ pub enum Error {
 
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
+}
+
+impl From<CoseKeyConversionError> for Error {
+    fn from(value: CoseKeyConversionError) -> Self {
+        Self::Crypto(value.into())
+    }
 }

@@ -8,6 +8,7 @@ use jwt::wia::WiaDisclosure;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
 use wscd::mock_remote::MockWiaClient;
 use wscd::wscd::WiaClient;
 
@@ -150,7 +151,7 @@ mockall::mock! {
 
         pub fn reject(&self) -> Result<(), WalletIssuanceError>;
 
-        pub fn credential_previews(&self) -> &[CredentialPreview];
+        pub fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
         pub fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
 
@@ -171,7 +172,7 @@ impl IssuanceSession for MockIssuanceSession {
         self.reject()
     }
 
-    fn credential_previews(&self) -> &[CredentialPreview] {
+    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview> {
         self.credential_previews()
     }
 

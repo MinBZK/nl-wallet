@@ -103,19 +103,15 @@ async fn concealing_property_of_concealable_value_works() {
             }
         }),
         [
-            vec![
+            vec_nonempty![
                 ClaimPath::SelectByKey(String::from("parent")),
                 ClaimPath::SelectByKey(String::from("property1")),
-            ]
-            .try_into()
-            .unwrap(),
-            vec![
+            ],
+            vec_nonempty![
                 ClaimPath::SelectByKey(String::from("parent")),
                 ClaimPath::SelectByKey(String::from("property2")),
                 ClaimPath::SelectByIndex(0),
-            ]
-            .try_into()
-            .unwrap(),
+            ],
             vec_nonempty![ClaimPath::SelectByKey(String::from("parent"))],
         ],
         holder_signing_key.verifying_key(),
@@ -214,19 +210,15 @@ async fn sd_jwt_sd_hash() {
             }
         }),
         [
-            vec![
+            vec_nonempty![
                 ClaimPath::SelectByKey(String::from("parent")),
                 ClaimPath::SelectByKey(String::from("property1")),
-            ]
-            .try_into()
-            .unwrap(),
-            vec![
+            ],
+            vec_nonempty![
                 ClaimPath::SelectByKey(String::from("parent")),
                 ClaimPath::SelectByKey(String::from("property2")),
                 ClaimPath::SelectByIndex(0),
-            ]
-            .try_into()
-            .unwrap(),
+            ],
             vec_nonempty![ClaimPath::SelectByKey(String::from("parent"))],
         ],
         holder_signing_key.verifying_key(),
@@ -308,35 +300,19 @@ async fn test_presentation() {
     let signed_sd_jwt = SdJwtBuilder::new(claims)
         .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("email"))])
         .unwrap()
-        .make_concealable(
-            vec![ClaimPath::SelectByKey(String::from("phone_number"))]
-                .try_into()
-                .unwrap(),
-        )
+        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("phone_number"))])
         .unwrap()
-        .make_concealable(
-            vec![
-                ClaimPath::SelectByKey(String::from("address")),
-                ClaimPath::SelectByKey(String::from("street_address")),
-            ]
-            .try_into()
-            .unwrap(),
-        )
+        .make_concealable(vec_nonempty![
+            ClaimPath::SelectByKey(String::from("address")),
+            ClaimPath::SelectByKey(String::from("street_address")),
+        ])
         .unwrap()
-        .make_concealable(
-            vec![ClaimPath::SelectByKey(String::from("address"))]
-                .try_into()
-                .unwrap(),
-        )
+        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("address"))])
         .unwrap()
-        .make_concealable(
-            vec![
-                ClaimPath::SelectByKey(String::from("nationalities")),
-                ClaimPath::SelectByIndex(0),
-            ]
-            .try_into()
-            .unwrap(),
-        )
+        .make_concealable(vec_nonempty![
+            ClaimPath::SelectByKey(String::from("nationalities")),
+            ClaimPath::SelectByIndex(0),
+        ])
         .unwrap()
         .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 1)
         .unwrap()
@@ -357,14 +333,10 @@ async fn test_presentation() {
         .into_presentation_builder()
         .disclose(&vec_nonempty![ClaimPath::SelectByKey(String::from("email"))])
         .unwrap()
-        .disclose(
-            &vec![
-                ClaimPath::SelectByKey(String::from("address")),
-                ClaimPath::SelectByKey(String::from("street_address")),
-            ]
-            .try_into()
-            .unwrap(),
-        )
+        .disclose(&vec_nonempty![
+            ClaimPath::SelectByKey(String::from("address")),
+            ClaimPath::SelectByKey(String::from("street_address")),
+        ])
         .unwrap()
         .finish()
         .sign(

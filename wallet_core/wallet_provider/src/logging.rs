@@ -10,7 +10,7 @@ use std::os::fd::RawFd;
 use std::thread;
 
 use log::Level;
-use regex::Regex;
+use regex::regex;
 
 #[derive(Debug, thiserror::Error)]
 pub enum LogError {
@@ -33,15 +33,10 @@ impl Logger for DefaultLogger {
     }
 }
 
-struct LevelPattern(Regex);
-
-impl LevelPattern {
-    fn new() -> Self {
-        Self(Regex::new(r"[^|]+\|[^|]+\| ([TDIWE]):").unwrap())
-    }
-
-    fn parse_level_from_line(&self, line: &str) -> Option<Level> {
-        self.0.captures(line).map(|captures| match &captures[1] {
+fn parse_level_from_line(line: &str) -> Option<Level> {
+    regex!(r"[^|]+\|[^|]+\| ([TDIWE]):")
+        .captures(line)
+        .map(|captures| match &captures[1] {
             "T" => Level::Trace,
             "D" => Level::Debug,
             "I" => Level::Info,
@@ -49,7 +44,6 @@ impl LevelPattern {
             "E" => Level::Error,
             _ => panic!("Regex capture captures too much"),
         })
-    }
 }
 
 fn redirect_output_to_log<L: Logger>(fd: RawFd) -> Result<thread::JoinHandle<()>, LogError> {
@@ -58,13 +52,12 @@ fn redirect_output_to_log<L: Logger>(fd: RawFd) -> Result<thread::JoinHandle<()>
         let reader = File::from(read_fd);
         let reader = BufReader::new(reader);
 
-        let level_pattern = LevelPattern::new();
         let mut log_level = Level::Info;
 
         for line in reader.lines() {
             match line {
                 Ok(line) => {
-                    if let Some(new_level) = level_pattern.parse_level_from_line(&line) {
+                    if let Some(new_level) = parse_level_from_line(&line) {
                         log_level = new_level;
                     }
                     L::log(log_level, &line);
@@ -140,13 +133,11 @@ mod test {
 
     #[test]
     fn test_parse_log_level() {
-        let level_pattern = LevelPattern::new();
         assert_eq!(
-            level_pattern
-                .parse_level_from_line("18.07.2025 18:07:20.250 | [00000001:00000001] C_Test | I: Info information"),
+            parse_level_from_line("18.07.2025 18:07:20.250 | [00000001:00000001] C_Test | I: Info information"),
             Some(Level::Info)
         );
-        assert_eq!(level_pattern.parse_level_from_line("Something else"), None);
+        assert_eq!(parse_level_from_line("Something else"), None);
     }
 
     static LOGS: Mutex<Vec<(Level, String)>> = Mutex::new(Vec::new());

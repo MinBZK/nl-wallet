@@ -205,7 +205,7 @@ pub struct DeviceKeyInfo {
 impl TryFrom<DeviceKeyInfo> for VerifyingKey {
     type Error = CryptoError;
     fn try_from(value: DeviceKeyInfo) -> Result<Self, Self::Error> {
-        (&value.device_key).try_into()
+        (&value.device_key).try_into().map_err(Into::into)
     }
 }
 

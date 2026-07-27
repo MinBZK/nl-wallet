@@ -91,7 +91,7 @@ class RenewCardTests : TestBase() {
         disclosureForIssuanceScreen.switchToNativeContext()
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
-        cardIssuanceScreen.clickAddCardButton()
+        cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
 
@@ -103,9 +103,9 @@ class RenewCardTests : TestBase() {
         issuerWebPage.switchToNativeContext()
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
-        assertTrue(cardIssuanceScreen.renewCardSectionTitleVisible(), "renew card screen not displayed")
+        assertTrue(cardIssuanceScreen.renewCardsSectionTitleVisible(), "renew cards screen not displayed")
 
-        cardIssuanceScreen.clickAddCardButton()
+        cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()

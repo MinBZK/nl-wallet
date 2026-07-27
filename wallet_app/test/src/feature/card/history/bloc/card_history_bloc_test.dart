@@ -33,7 +33,7 @@ void main() {
   );
 
   blocTest(
-    'verify success state for non-PID card',
+    'ltc23 verify success state for non-PID card',
     build: () => CardHistoryBloc(
       getWalletCardUseCase,
       getWalletEventsForCardUseCase,
@@ -60,7 +60,7 @@ void main() {
   );
 
   blocTest(
-    'verify success state for PID card',
+    'ltc23 verify success state for PID card',
     build: () => CardHistoryBloc(
       getWalletCardUseCase,
       getWalletEventsForCardUseCase,
@@ -87,7 +87,7 @@ void main() {
   );
 
   blocTest(
-    'verify error state',
+    'ltc23 verify error state',
     build: () => CardHistoryBloc(
       getWalletCardUseCase,
       getWalletEventsForCardUseCase,

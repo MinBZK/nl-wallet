@@ -433,7 +433,7 @@ pub trait IssuanceSession {
 
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
-    fn credential_previews(&self) -> &[CredentialPreview];
+    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
     fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
 

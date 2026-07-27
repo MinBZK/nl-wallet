@@ -298,7 +298,7 @@ mod tests {
 
                 issuance_session
                     .expect_credential_previews()
-                    .return_const(vec![credential_preview]);
+                    .return_const(vec_nonempty![credential_preview]);
 
                 issuance_session
                     .expect_issuer()

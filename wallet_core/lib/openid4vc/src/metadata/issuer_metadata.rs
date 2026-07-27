@@ -8,6 +8,8 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::data_uri::DataUri;
+use cose::CoseAlgorithmIdentifier;
+use cose::KnownCoseAlgorithmIdentifier;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -32,8 +34,6 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::cose::CoseAlgorithmIdentifier;
-use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;

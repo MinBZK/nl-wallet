@@ -172,14 +172,10 @@ mod test {
     fn simple() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
         encoder
-            .conceal(
-                vec![
-                    ClaimPath::SelectByKey(String::from("claim1")),
-                    ClaimPath::SelectByKey(String::from("abc")),
-                ]
-                .try_into()
-                .unwrap(),
-            )
+            .conceal(vec_nonempty![
+                ClaimPath::SelectByKey(String::from("claim1")),
+                ClaimPath::SelectByKey(String::from("abc")),
+            ])
             .unwrap();
         encoder
             .conceal(vec_nonempty![ClaimPath::SelectByKey(String::from("id"))])
@@ -195,10 +191,7 @@ mod test {
                 .claims
                 .contains_key(&"id".parse::<ClaimName>().unwrap())
         );
-        assert_eq!(
-            encoder.object.claims()._sd.as_ref().unwrap().len(),
-            11.try_into().unwrap()
-        );
+        assert_eq!(encoder.object.claims()._sd.as_ref().unwrap().len().get(), 11);
         assert_eq!(
             encoder
                 .object
@@ -245,25 +238,17 @@ mod test {
     fn errors() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
         encoder
-            .conceal(
-                vec![
-                    ClaimPath::SelectByKey(String::from("claim1")),
-                    ClaimPath::SelectByKey(String::from("abc")),
-                ]
-                .try_into()
-                .unwrap(),
-            )
+            .conceal(vec_nonempty![
+                ClaimPath::SelectByKey(String::from("claim1")),
+                ClaimPath::SelectByKey(String::from("abc")),
+            ])
             .unwrap();
         assert_matches!(
             encoder
-                .conceal(
-                    vec![
-                        ClaimPath::SelectByKey(String::from("claim2")),
-                        ClaimPath::SelectByIndex(2),
-                    ]
-                    .try_into()
-                    .unwrap(),
-                )
+                .conceal(vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("claim2")),
+                    ClaimPath::SelectByIndex(2),
+                ],)
                 .unwrap_err(),
             EncoderError::ClaimStructure(ClaimError::IndexOutOfBounds(2, _))
         );

@@ -51,6 +51,7 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use url::Url;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 use web_utils::error::Result;
@@ -330,7 +331,7 @@ async fn pre_authorized_usecase(
     help_base_url: Url,
 ) -> Result<Response> {
     let documents = data
-        .iter()
+        .nonempty_iter()
         .map(|doc| {
             let (credential_kind, attributes) = doc.clone().into();
 
@@ -339,9 +340,7 @@ async fn pre_authorized_usecase(
             IssuableDocument::try_new_with_random_id(credential_kind, attributes)
                 .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
         })
-        .collect::<Result<Vec<_>>>()?
-        .try_into()
-        .unwrap(); // we started with a VecNonEmpty
+        .collect::<Result<_>>()?;
 
     let offer_response = default_reqwest_client_builder()
         .build()

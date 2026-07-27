@@ -164,7 +164,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let previews = issuance_session.credential_previews();
-    assert_eq!(previews.len(), 2);
+    assert_eq!(previews.len().get(), 2);
 
     let payload = &previews[0].credential_payload;
     assert_eq!(payload.attestation_type, PID_ATTESTATION_TYPE);
