@@ -94,6 +94,7 @@ pub fn check_client_attestation_metadata(
 
 /// The Attestation-Based Client Authentication challenge mechanism to be used during the Token Request.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ClientAttestationChallengeMechanism {
     ChallengeEndpoint(Url),
     Header(Nonce),
