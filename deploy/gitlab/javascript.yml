@@ -57,3 +57,27 @@ test-revocation-portal-js:
       - wallet_core/revocation_portal/coverage/lcov.info
       - wallet_core/revocation_portal/allure-results
       - wallet_core/revocation_portal/test-results/junit.xml
+
+build-admin-portal:
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  rules: !reference [.default-or-merge-request, rules]
+  script:
+    - set -euxo pipefail
+    - cd wallet_admin_portal
+    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm run lint
+    - pnpm run type-check
+    - pnpm run coverage
+    - pnpm run build
+  after_script:
+    - deploy/bin/store-artifact.sh wallet_admin_portal/test-results/junit.xml qt/quality-time/junit-results/admin-portal.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/admin-portal.zip wallet_admin_portal/allure-results/*
+  artifacts:
+    name: wallet-admin-portal
+    reports:
+      junit: wallet_admin_portal/test-results/junit.xml
+    paths:
+      - wallet_admin_portal/dist
+      - wallet_admin_portal/coverage/lcov.info
+      - wallet_admin_portal/allure-results
+      - wallet_admin_portal/test-results/junit.xml

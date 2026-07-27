@@ -172,6 +172,12 @@ trivy-publish:
     - job: build-pid-issuer-migrations-image
       artifacts: false
       optional: true
+    - job: build-revocation-portal-image
+      artifacts: false
+      optional: true
+    - job: build-admin-portal-image
+      artifacts: false
+      optional: true
   script:
     - |
       BASIC_AUTH="${HARBOR_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_ROBOT_SECRET})"
