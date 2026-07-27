@@ -504,9 +504,11 @@ mod tests {
         server
             .mock_async(|when, then| {
                 when.method(POST).path("/issuance/client_auth_challenge");
-                then.status(200).json_body(json!({
-                    "attestation_challenge": "foobar",
-                }));
+                then.status(200)
+                    .json_body(json!({
+                        "attestation_challenge": "foobar",
+                    }))
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref());
             })
             .await;
 
