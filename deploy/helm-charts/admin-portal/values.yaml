@@ -90,6 +90,21 @@ httpRoute:
   labels: {}
   annotations: {}
 
+## @section HTTP route internal parameters
+## Parameters for the internal HTTPRoute configuration
+## @param httpRouteInternal.enabled Enable or disable the route
+## @param httpRouteInternal.parentRefs Parent references to the gateway
+## @param httpRouteInternal.hostnames Hostnames for the route
+## @param httpRouteInternal.labels Additional labels for the route
+## @param httpRouteInternal.annotations Additional annotations for the route
+##
+httpRouteInternal:
+  enabled: false
+  parentRefs: []
+  hostnames: []
+  labels: {}
+  annotations: {}
+
 ## @section Container probes
 ## @param probes.config.liveness Additional configuration for liveness probe
 ## @param probes.config.readiness Additional configuration for readiness probe

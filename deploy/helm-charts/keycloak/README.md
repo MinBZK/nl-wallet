@@ -119,11 +119,11 @@ Step-by-step:
 
 ### Deployment parameters
 
-| Name                                 | Description                                                            | Value |
-| ------------------------------------ | ---------------------------------------------------------------------- | ----- |
-| `deployment.strategy`                | Strategy used to replace old pods by new ones                          | `nil` |
-| `deployment.revisionHistoryLimit`    | The number of old ReplicaSets to retain to allow rollback              | `2`   |
-| `deployment.progressDeadlineSeconds` | The number of seconds you want to wait for your Deployment to progress | `300` |
+| Name                                 | Description                                                                                                                                                                               | Value      |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `deployment.strategy.type`           | Strategy used to replace old pods by new ones. Defaults to Recreate because the chart uses a RWO PVC (dev-file database); switch to RollingUpdate only after moving to a shared database. | `Recreate` |
+| `deployment.revisionHistoryLimit`    | The number of old ReplicaSets to retain to allow rollback                                                                                                                                 | `2`        |
+| `deployment.progressDeadlineSeconds` | The number of seconds you want to wait for your Deployment to progress                                                                                                                    | `300`      |
 
 ### Security parameters
 
