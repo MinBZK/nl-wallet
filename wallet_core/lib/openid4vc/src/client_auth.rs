@@ -32,9 +32,9 @@ pub enum ClientAttestationError {
     #[category(pd)]
     ChallengeBody(#[source] reqwest::Error),
 
-    #[error("OAuth-Client-Attestation-Challenge contained non-UTF8 bytes")]
+    #[error("OAuth-Client-Attestation-Challenge contained non-visible-ASCII bytes")]
     #[category(critical)]
-    ChallengeHeaderNonUtf8Bytes,
+    ChallengeHeaderNonVisibleAscii,
 
     #[error("the Authorization Server does not support attestation-based client authentication")]
     #[category(expected)]
@@ -109,7 +109,7 @@ impl ClientAttestationChallengeMechanism {
                 Ok::<_, ClientAttestationError>(Nonce::from(
                     value
                         .to_str()
-                        .map_err(|_| ClientAttestationError::ChallengeHeaderNonUtf8Bytes)?
+                        .map_err(|_| ClientAttestationError::ChallengeHeaderNonVisibleAscii)?
                         .to_string(),
                 ))
             })
