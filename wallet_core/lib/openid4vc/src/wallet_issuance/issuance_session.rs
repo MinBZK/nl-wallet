@@ -699,7 +699,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
                     // Required by our own profile
                     if !uri.has_same_scheme_and_host(credential_issuer.as_issuer_url()) {
-                        return Err(WalletIssuanceError::HostMismatchWithIssuerIdentifier(
+                        return Err(WalletIssuanceError::TypeMetadataHostMismatch(
                             uri,
                             credential_issuer.clone().into(),
                         ));
@@ -1706,7 +1706,7 @@ mod tests {
     }
 
     #[test]
-    fn test_start_issuance_type_metadata_uri_error() {
+    fn test_start_issuance_type_metadata_host_mismatch() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         // Create issuer metadata with incorrect type_metadata_uri
@@ -1741,7 +1741,7 @@ mod tests {
         )
         .expect_err("starting issuance session should not succeed");
 
-        assert_matches!(error, WalletIssuanceError::HostMismatchWithIssuerIdentifier(uri, issuer_identifier)
+        assert_matches!(error, WalletIssuanceError::TypeMetadataHostMismatch(uri, issuer_identifier)
             if uri == type_metadata_uri && *issuer_identifier == configured_issuer_identifier);
     }
 

@@ -191,9 +191,9 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TokenResponseUnknownScope(Vec<Scope>),
 
-    #[error("uri `{0}` has different host than issuer identifier `{1}`")]
+    #[error("type metadata URI \"{0}\" has different host than issuer identifier \"{1}\"")]
     #[category(critical)]
-    HostMismatchWithIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
+    TypeMetadataHostMismatch(IssuerUrl, Box<IssuerIdentifier>),
 
     #[error("type metadata for `{0}` not found")]
     #[category(critical)]
