@@ -21,10 +21,7 @@ export default defineConfig(({ mode }) => {
       "process.env.NODE_ENV": `'${process.env.NODE_ENV}'`,
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
     },
-    plugins: [
-      vue(),
-      dts({ tsconfigPath: "tsconfig.build.json", cleanVueFileName: true, rollupTypes: true }),
-    ],
+    plugins: [vue(), dts({ tsconfigPath: "tsconfig.build.json", cleanVueFileName: true, bundleTypes: true })],
     build: {
       copyPublicDir: false,
       lib: {
