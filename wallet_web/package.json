@@ -52,9 +52,6 @@
     "vue": "^3.2.25",
     "vue-tsc": "^2.0.16"
   },
-  "dependencies": {
-    "@lavamoat/preinstall-always-fail": "^2.1.1"
-  },
   "overrides": {
     "@microsoft/api-extractor": {
       "minimatch": "^10.2.3"
