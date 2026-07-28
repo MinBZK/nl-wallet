@@ -191,6 +191,10 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TokenResponseUnknownScope(Vec<Scope>),
 
+    #[error("type metadata URI is missing for credential configuration ID(s): {}", .0.iter().join(", "))]
+    #[category(critical)]
+    TypeMetadataUriMissing(Vec<CredentialConfigurationId>),
+
     #[error("type metadata URI \"{0}\" has different host than issuer identifier \"{1}\"")]
     #[category(critical)]
     TypeMetadataHostMismatch(IssuerUrl, Box<IssuerIdentifier>),

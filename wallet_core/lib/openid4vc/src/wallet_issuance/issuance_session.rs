@@ -72,7 +72,6 @@ use crate::errors::RemoteErrorCode;
 use crate::errors::RemoteErrorResponse;
 use crate::errors::TokenErrorCode;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
@@ -685,34 +684,38 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, IssuanceTypeMetadata>, WalletIssuanceError> {
+        let (configurations, missing_uri_config_ids): (Vec<_>, Vec<_>) = credential_configurations
+            .into_iter()
+            .partition_map(|(config_id, config)| match config.type_metadata_uri.as_ref() {
+                Some(uri) => Either::Left((config_id, config, uri)),
+                None => Either::Right(config_id.clone()),
+            });
+
+        // TODO (PVW-5547): Use Credential Metadata from Issuer Metadata if type metadata URI is not present.
+        if !missing_uri_config_ids.is_empty() {
+            return Err(WalletIssuanceError::TypeMetadataUriMissing(missing_uri_config_ids));
+        }
+
         // Get all unique type metadata uris
-        let type_metadata_uris: HashMap<IssuerUrl, Vec<(&CredentialConfigurationId, &CredentialConfiguration)>> =
-            credential_configurations
-                .into_iter()
-                .map(|(config_id, config)| {
-                    let uri = config
-                        .type_metadata_uri
-                        .as_ref()
-                        // TODO (PVW-5547): Implement fallback if type_metadata_uri is not given
-                        .expect("type_metadata_uri is mandatory")
-                        .to_owned();
+        let type_metadata_uris: HashMap<_, _> = configurations
+            .into_iter()
+            .map(|(config_id, config, uri)| {
+                // Required by our own profile
+                if !uri.has_same_scheme_and_host(credential_issuer.as_issuer_url()) {
+                    return Err(WalletIssuanceError::TypeMetadataHostMismatch(
+                        uri.clone(),
+                        credential_issuer.clone().into(),
+                    ));
+                }
 
-                    // Required by our own profile
-                    if !uri.has_same_scheme_and_host(credential_issuer.as_issuer_url()) {
-                        return Err(WalletIssuanceError::TypeMetadataHostMismatch(
-                            uri,
-                            credential_issuer.clone().into(),
-                        ));
-                    }
-
-                    Ok((uri, (config_id, config)))
-                })
-                .process_results(|iter| iter.into_group_map())?;
+                Ok((uri, (config_id, config)))
+            })
+            .process_results(|iter| iter.into_group_map())?;
 
         // Fetch type metadata from uris
         let type_metadata_docs = try_join_all(type_metadata_uris.into_iter().map(|(uri, configs)| async {
             message_client
-                .request_type_metadata(uri.into_url())
+                .request_type_metadata(uri.as_url().clone())
                 .await
                 .map(|docs| (docs, configs))
         }))
@@ -1257,6 +1260,7 @@ mod tests {
     use crate::errors::ErrorResponse;
     use crate::errors::RemoteErrorCode;
     use crate::issuer_identifier::IssuerIdentifier;
+    use crate::issuer_identifier::IssuerUrl;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::metadata::well_known::WellKnownMetadata;
@@ -1703,6 +1707,44 @@ mod tests {
         .expect_err("starting issuance session should not succeed");
 
         assert_matches!(error, WalletIssuanceError::TypeMetadataVerification(_));
+    }
+
+    #[test]
+    fn test_start_issuance_type_metadata_uri_missing() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        // Create issuer metadata with missing type_metadata_uri.
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
+        );
+        issuer_metadata
+            .credential_configurations_supported
+            .values_mut()
+            .for_each(|config| config.type_metadata_uri = None);
+
+        let error = test_start_issuance(
+            &ca,
+            &TrustAnchors::from(&ca),
+            issuer_metadata,
+            vec![(
+                config_id.clone(),
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            )],
+            TypeMetadata::pid_example(),
+            TokenResponseFields::Neither,
+        )
+        .expect_err("starting issuance session should not succeed");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::TypeMetadataUriMissing(missing_config_ids) if missing_config_ids == vec![config_id]
+        );
     }
 
     #[test]
