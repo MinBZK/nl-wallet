@@ -729,7 +729,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 let attestation_type = config
                     .format
                     .attestation_type()
-                    // TODO (PVW-5547): Only SD-JWT will be supported, also handle this graciously
+                    // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
                     .expect("unsupported format");
 
                 // Normalize
