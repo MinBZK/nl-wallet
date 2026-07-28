@@ -50,6 +50,7 @@ class GenericIssuance : TestBase() {
         indexWebPage.switchToWebViewContext()
         indexWebPage.clickLoyaltyButton()
         issuerWebPage.openSameDeviceWalletFlow()
+        issuerWebPage.acceptOpenWalletDialog()
 
         cardIssuanceScreen.switchToNativeContext()
         cardIssuanceScreen.clickAddCardButton()
@@ -69,6 +70,7 @@ class GenericIssuance : TestBase() {
         indexWebPage.switchToWebViewContext()
         indexWebPage.clickInsuranceButton()
         issuerWebPage.openSameDeviceWalletFlow()
+        issuerWebPage.acceptOpenWalletDialog()
 
         issuerConsentWebPage.switchToConsentPage()
         assertTrue(issuerConsentWebPage.visible(), "Issuer consent page not visible")
@@ -94,6 +96,7 @@ class GenericIssuance : TestBase() {
         indexWebPage.switchToWebViewContext()
         indexWebPage.clickMuseumMaandkaartButton()
         issuerWebPage.openSameDeviceWalletFlow()
+        issuerWebPage.acceptOpenWalletDialog()
 
         cardIssuanceScreen.switchToNativeContext()
         cardIssuanceScreen.clickAddCardButton()
