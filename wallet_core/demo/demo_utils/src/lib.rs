@@ -13,7 +13,7 @@ pub static WALLET_WEB_JS_SHA256: LazyLock<String> =
 
 pub static WALLET_WEB_CSS_SHA256: LazyLock<String> = LazyLock::new(|| {
     // Same regex as in wallet-web/utils/extract-style-hash.ts
-    regex!(r#"\[\["styles",\['([^']+)']]]"#)
+    regex!(r#"\[\[`styles`,\[`([^`]+)`]]]"#)
         .captures(&String::from_utf8_lossy(&read_wallet_web()))
         .map(|caps| BASE64_STANDARD.encode(crypto::utils::sha256(caps.get(1).unwrap().as_str().as_bytes())))
         .expect("no style in nl-wallet-web.js found")

@@ -5,13 +5,17 @@ build-wallet-web:
     VITE_HELP_BASE_URL: ${WALLET_WEB_HELP_BASE_URL}
   script:
     - set -euxo pipefail
-    - (cd wallet_web; npm ci --ignore-scripts && npm run format-check && npm run lint && npm run type-check && npm run
-      coverage -- --run)
-    - (cd wallet_web; npm run build)
+    - cd wallet_web
+    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm run format-check
+    - pnpm run lint
+    - pnpm run type-check
+    - pnpm run coverage
+    - pnpm run build
     # copy the built files to the demo utils assets folder
-    - cp -p wallet_web/dist/nl-wallet-web.iife.js wallet_core/demo/demo_utils/static/
-    - cp -p wallet_web/dist/nl-wallet-web.iife.js wallet_core/demo/demo_issuer/assets/
-    - cp -p wallet_web/dist/nl-wallet-web.iife.js wallet_core/demo/demo_relying_party/assets/
+    - cp -p dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/static/
+    - cp -p dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_issuer/assets/
+    - cp -p dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_relying_party/assets/
   after_script:
     - deploy/bin/store-artifact.sh wallet_web/test-results/junit.xml qt/quality-time/junit-results/web.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/web.zip wallet_web/allure-results/*
