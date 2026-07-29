@@ -400,7 +400,7 @@ impl OfferedCredentialConfig {
 fn credential_request_types_from_preview(
     credential_previews: &VecNonEmpty<CredentialPreview>,
     batch_size: NonZeroU8,
-) -> Result<VecNonEmpty<CredentialRequestType>, WalletIssuanceError> {
+) -> VecNonEmpty<CredentialRequestType> {
     // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
     // has no support (yet) for issuance of multiple copies of multiple attestations.
     // We implement this below by simply flattening the relevant nested iterators when communicating with the
@@ -414,20 +414,18 @@ fn credential_request_types_from_preview(
     // TODO (PVW-4366): Have the batch issuance endpoint consider the `credential_type` field
     //                  of the `CredentialRequest`s and only issue those formats.
 
-    let credential_request_types = credential_previews
+    credential_previews
         .iter()
-        .map(|preview| {
+        .flat_map(|preview| {
             let request_type =
                 CredentialRequestType::from_format(preview.format, preview.credential_payload.attestation_type.clone());
 
             // Construct a `Vec<CredentialRequestType>`, with one entry per copy for this credential.
-            Ok(std::iter::repeat_n(request_type, usize::from(batch_size.get())))
+            std::iter::repeat_n(request_type, usize::from(batch_size.get()))
         })
-        .process_results::<_, _, WalletIssuanceError, _>(|iter| iter.flatten().collect_vec())?
+        .collect_vec()
         .try_into()
-        .expect("source is a VecNonEmpty which maps into repeat with NonZeroU8");
-
-    Ok(credential_request_types)
+        .expect("source is a VecNonEmpty which maps into repeat with NonZeroU8")
 }
 
 /// Detects if an issuance error that occurred during a token request is a PreAuthorizedCodeExpired error.
@@ -541,7 +539,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 .map_err(WalletIssuanceError::CredentialPreviewVerification)?;
         }
 
-        let credential_request_types = credential_request_types_from_preview(&credential_previews, batch_size)?;
+        let credential_request_types = credential_request_types_from_preview(&credential_previews, batch_size);
 
         let session_state = IssuanceState {
             access_token: token_response.access_token,
@@ -2010,8 +2008,7 @@ mod tests {
         issuance_type_metadata: IssuanceTypeMetadata,
         has_nonce_endpoint: bool,
     ) -> IssuanceState {
-        let credential_request_types =
-            credential_request_types_from_preview(&credential_previews, NonZeroU8::MIN).unwrap();
+        let credential_request_types = credential_request_types_from_preview(&credential_previews, NonZeroU8::MIN);
         let issuer_identifier = "https://issuer.example.com".parse().unwrap();
 
         let config_id = credential_previews.first().config_id.clone();
