@@ -18,7 +18,19 @@ id = "RUSTSEC-2026-0173"
 ignoreUntil = 2027-01-01
 reason = "`proc-macro-error2` is a transitive dependency that is no longer maintained used by `sea-bae` (`sea-orm-macros`) and `serde_valid_derive` (`serde_valid`). Waiting for those crates to find alternatives."
 
-[[IgnoredVulns]]
-id = "GHSA-98m9-hrrm-r99r"
-ignoreUntil = 2027-01-01
-reason = "`faraday` version v1.10.6 is not vulnerable, see https://github.com/lostisland/faraday/releases/tag/v1.10.6"
+[[PackageOverrides]]
+name = "brace-expansion"
+version = "1.1.17"
+ecosystem = "npm"
+vulnerability.ignore = true
+effectiveUntil = 2026-11-01
+reason = "GHSA-mh99-v99m-4gvg: contains the backported fix (EXPANSION_MAX_LENGTH), but the advisory only lists 5.0.8 as fixed. Can remove when the advisory marks 1.1.17 as fixed."
+
+[[PackageOverrides]]
+name = "brace-expansion"
+version = "2.1.3"
+ecosystem = "npm"
+vulnerability.ignore = true
+effectiveUntil = 2026-11-01
+reason = "GHSA-mh99-v99m-4gvg: contains the backported fix (EXPANSION_MAX_LENGTH), but the advisory only lists 5.0.8 as fixed. Can remove when the advisory marks 2.1.3 as fixed."
+
