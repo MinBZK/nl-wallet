@@ -77,7 +77,7 @@ test-ios:
     # Sign
     - |
       bundle exec fastlane ios sign \
-        app_store:"true" \
+        app_store:"${APP_STORE_DISTRIBUTION:-true}" \
         bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}"
   after_script:
     - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
@@ -95,6 +95,63 @@ build-ios-app-ont:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_ALLOW_RELEASE_LOGS: "true"
+
+build-ios-app-adhoc-ont:
+  extends: .build-ios-app
+  rules: !reference [.default-or-merge-request-manual, rules]
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: build-env-ont
+      artifacts: true
+    - job: wallet-config-ont
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+    APP_NAME: "NL Wallet (latest)"
+    APP_STORE_DISTRIBUTION: "false"
+  after_script:
+    - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
+    - cp *.ipa "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    - deploy/bin/store-artifact.sh "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa" qt/quality-time/apps/
+    - rm "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+
+build-ios-simulator-app-ont:
+  extends: .build-ios-app
+  rules: !reference [.default-or-merge-request-manual, rules]
+  needs:
+    - job: build-env-ont
+      artifacts: true
+    - job: wallet-config-ont
+      artifacts: true
+  artifacts:
+    name: wallet-ios-simulator
+    paths:
+      - "wallet_app/build/ios/iphonesimulator/Runner.app"
+      - "wallet_app/ios/compile_rust_core.log"
+      - "wallet_app/ios/*.xcactivitylog"
+  variables:
+    APP_BUILD_MODE: "debug"
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+    APP_NAME: "NL Wallet (latest)"
+  script:
+    - set -euo pipefail
+    - git config --global url.https://gitlab-ci-token:${CI_JOB_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
+    - bundle install
+    - |
+      bundle exec fastlane ios build_simulator \
+        app_name:"${APP_NAME}" \
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        build_mode:"${APP_BUILD_MODE}" \
+        mock:"${APP_MOCK}" \
+        fake_attestation:"true" \
+        allow_insecure_url:"true" \
+        universal_link_base:"${UL_HOSTNAME:-}" \
+        show_debug_options:true \
+        build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
+  after_script:
+    - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
+    - (cd wallet_app/build/ios/iphonesimulator && zip -r "Runner-${CI_COMMIT_SHA}.app.zip" Runner.app)
+    - deploy/bin/store-artifact.sh "wallet_app/build/ios/iphonesimulator/Runner-${CI_COMMIT_SHA}.app.zip" qt/quality-time/apps/
 
 build-ios-app-mock:
   extends: .build-ios-app

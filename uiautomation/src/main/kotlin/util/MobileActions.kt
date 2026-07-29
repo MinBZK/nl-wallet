@@ -55,7 +55,13 @@ open class MobileActions {
 
     protected fun clickWebElement(element: WebElement) {
         val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
-        wait.until(ExpectedConditions.visibilityOf(element))
+        wait.until(ExpectedConditions.elementToBeClickable(element))
+        (driver as JavascriptExecutor).executeScript("arguments[0].dispatchEvent(new MouseEvent('click', {bubbles: true}))", element)
+    }
+
+    protected fun clickNativeElement(element: WebElement) {
+        val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+        wait.until(ExpectedConditions.elementToBeClickable(element))
         element.click()
     }
 
@@ -253,6 +259,11 @@ open class MobileActions {
         }
     }
 
+
+    // Context handles look like "WEBVIEW_<appId>.<pageId>"; page ids increase as pages are
+    // opened, so among equally matching pages the highest id is the one the app just opened.
+    private fun webViewPageId(handle: String): Long = handle.substringAfterLast('.').toLongOrNull() ?: 0L
+
     fun switchToWebViewWindowContaining(
         locator: By,
         timeoutMillis: Long = WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS,
@@ -333,31 +344,47 @@ open class MobileActions {
         }
     }
 
-    protected fun getWebModalAnchor(): WebElement {
-        Thread.sleep(BROWSER_STARTUP_TIMEOUT)
-        when (platform()) {
-            Platform.ANDROID -> {
-                val startButton = driver.findElement(By.tagName("nl-wallet-button"))
-                val jsExecutor = driver as JavascriptExecutor
-                val jsScript = "return arguments[0].querySelector('.modal-anchor')"
-                return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
-            }
-            Platform.IOS -> {
-                val wait = WebDriverWait(driver, Duration.ofSeconds(10))
-                val startButton = wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("nl-wallet-button")))
-
-                val js = driver as JavascriptExecutor
-                val modalAnchor = js.executeScript(
-                    """
-                    const host = arguments[0];
-                    if (!host?.shadowRoot) return null;
-                    return host.shadowRoot.querySelector('.modal-anchor');
-                    """.trimIndent(),
-                    startButton
-                ) as WebElement
-                return modalAnchor
-            }
+    protected fun waitForWebShadowElement(dataTestId: String) {
+        val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("nl-wallet-button")))
+        val js = driver as JavascriptExecutor
+        wait.until {
+            js.executeScript(
+                """
+                const host = document.querySelector('nl-wallet-button');
+                return !!host?.shadowRoot?.querySelector('[data-testid="$dataTestId"]');
+                """.trimIndent()
+            ) as Boolean
         }
+    }
+
+    protected fun clickWebShadowButton(dataTestId: String) {
+        waitForWebShadowElement(dataTestId)
+        (driver as JavascriptExecutor).executeScript(
+            """
+            const host = document.querySelector('nl-wallet-button');
+            const button = host.shadowRoot.querySelector('[data-testid="$dataTestId"]');
+            setTimeout(() => button.click(), 0);
+            """.trimIndent()
+        )
+    }
+
+    protected fun clickWebShadowButtonWithGesture(dataTestId: String, vararg nativeLabels: String) {
+        waitForWebShadowElement(dataTestId)
+        switchToNativeContext()
+        val locator = when (platform()) {
+            Platform.ANDROID -> By.xpath(
+                "//*[" + nativeLabels.joinToString(" or ") {
+                    "contains(@text, '$it') or contains(@content-desc, '$it')"
+                } + "]"
+            )
+            Platform.IOS -> AppiumBy.iOSNsPredicateString(
+                nativeLabels.joinToString(" OR ") { "name CONTAINS ${quoteForIos(it)}" }
+            )
+        }
+        WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+            .until(ExpectedConditions.elementToBeClickable(locator))
+            .click()
     }
 
     fun platform(): Platform = Platform.fromString(driver.capabilities.platformName?.name ?: throw IllegalStateException("No platform name"))
@@ -709,14 +736,17 @@ open class MobileActions {
         timeoutSeconds: Int = 60,
         wrpacCaCrtFile: String? = null,
         wrpacCaKeyFile: String? = null,
-        readerAuthFile: String? = null,
+        requestDocType: String? = null,
+        requestAttributes: List<String> = emptyList(),
         waitForDeviceResponse: Boolean = false,
     ): Process {
         val qrPayload = mdocQrString.removePrefix("mdoc:")
         val scriptPath = File("../scripts/close_proximity/disclosure_mac_reader.swift").canonicalPath
         val cmd = mutableListOf("swift", scriptPath, "--qr-code", qrPayload, "--timeout", timeoutSeconds.toString())
-        if (wrpacCaCrtFile != null && wrpacCaKeyFile != null && readerAuthFile != null) {
+        if (wrpacCaCrtFile != null && wrpacCaKeyFile != null) {
             cmd += listOf("--wrpac-ca-crt-file", wrpacCaCrtFile, "--wrpac-ca-key-file", wrpacCaKeyFile)
+            requestDocType?.let { cmd += listOf("--request-doc-type", it) }
+            requestAttributes.forEach { cmd += listOf("--request-attribute", it) }
         }
         if (waitForDeviceResponse) {
             cmd += "--print-device-response-hex"
@@ -733,10 +763,23 @@ open class MobileActions {
                 "mobile: deepLink",
                 mapOf("url" to url, "package" to "com.android.chrome"),
             )
-            Platform.IOS -> (driver as JavascriptExecutor).executeScript(
-                "mobile: safari launch",
-                mapOf("url" to url),
-            )
+            Platform.IOS -> {
+                val iosDriver = driver as IOSDriver
+                iosDriver.activateApp("com.apple.mobilesafari")
+                val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS))
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        AppiumBy.iOSNsPredicateString("name == 'TabBarItemTitle'")
+                    )
+                ).click()
+                Thread.sleep(ANIMATION_SETTLE_MILLIS)
+                val editField = iosDriver.findElements(
+                    AppiumBy.iOSNsPredicateString(
+                        "name == 'URL' OR name == 'TabBarItemTitle' OR type == 'XCUIElementTypeTextField'"
+                    )
+                ).first()
+                editField.sendKeys(url + "\n")
+            }
         }
         Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
     }
@@ -787,13 +830,6 @@ open class MobileActions {
                 )
                 agreeButton.click()
                 Thread.sleep(SCREEN_TRANSITION_MILLIS)
-                val nextButton = wait.until(
-                    ExpectedConditions.elementToBeClickable(
-                        By.xpath("//*[@clickable='true' and (contains(@text,'Next') or contains(@text,'Volgende'))]")
-                    )
-                )
-                nextButton.click()
-                Thread.sleep(SCREEN_TRANSITION_MILLIS)
                 repeat(3) {
                     androidDriver.fingerPrint(1)
                     Thread.sleep(ANIMATION_SETTLE_MILLIS)
@@ -842,7 +878,6 @@ open class MobileActions {
         const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 4000L
         const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         const val WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS = 15_000L
-        const val BROWSER_STARTUP_TIMEOUT = 2000L
         const val DEFAULT_RESET_SLEEP = 10_000L
         const val ANIMATION_SETTLE_MILLIS = 300L
         const val SCREEN_TRANSITION_MILLIS = 1000L

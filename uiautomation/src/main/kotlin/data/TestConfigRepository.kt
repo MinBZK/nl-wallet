@@ -8,6 +8,7 @@ class TestConfigRepository {
     companion object {
         val testConfig = TestConfig(
             appIdentifier = System.getProperty("test.config.app.identifier"),
+            appPath = System.getProperty("test.config.app.path", ""),
             deviceName = System.getProperty("test.config.device.name"),
             platform = Platform.fromString(System.getProperty("test.config.platform.name")),
             platformVersion = System.getProperty("test.config.platform.version"),

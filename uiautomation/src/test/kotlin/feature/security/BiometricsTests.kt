@@ -120,6 +120,7 @@ class BiometricsTests : TestBase() {
         assertTrue(biometricsSetupScreen.visible(), "Biometric setup is not visible")
 
         biometricsSetupScreen.toggleBiometricUnlock()
+        biometricsSetupScreen.clickCloseButton()
         biometricsSetupScreen.clickBackButton()
         settingsScreen.clickBackButton()
         menuScreen.clickLogoutButton()

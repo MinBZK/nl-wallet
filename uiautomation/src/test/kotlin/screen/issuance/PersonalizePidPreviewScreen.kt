@@ -21,7 +21,7 @@ class PersonalizePidPreviewScreen : MobileActions() {
 
     fun clickAcceptButton() {
         switchToNativeContext()
-        visible()
+        elementWithTextVisible(walletPersonalizeCheckDataOfferingPageTitle, timeoutInSeconds = 30)
         scrollToEndOfScreen()
         scrollToElementWithText(acceptButton)
         clickElementWithText(acceptButton)

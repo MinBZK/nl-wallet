@@ -2,6 +2,7 @@ package domain
 
 data class TestConfig(
     val appIdentifier: String, // package name (Android) or bundle ID (iOS)
+    val appPath: String,
     val deviceName: String,
     val platform: Platform,
     val platformVersion: String,
