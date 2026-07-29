@@ -4,7 +4,7 @@ import { stdout, exit } from "node:process"
 
 const scriptFile = readFileSync("dist/nl-wallet-web.iife.js", { encoding: "utf8" })
 // Same regex as used in wallet_core/demo/demo_utils/src/lib.rs
-const match = new RegExp(String.raw`\[\["styles",\['([^']+)']]]`).exec(scriptFile)
+const match = /\[\[`styles`,\[`([^`]+)`]]]/.exec(scriptFile)
 if (match == null) {
   stdout.write("ERROR: Could not find style in file\n")
   exit(1)

@@ -68,9 +68,9 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" || -z "${SKIP_KEYCLOAK:-}" ]]; then
     have docker
 fi
 
-# Only check for node if we build wallet_web
+# Only check for node and pnpm if we build wallet_web
 if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
-    have node
+    have node pnpm
 fi
 
 ########################################################################
@@ -268,7 +268,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     cd "${WALLET_WEB_DIR}"
 
     export VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
-    npm ci --ignore-scripts && npm run build
+    pnpm install --frozen-lockfile --ignore-scripts && pnpm run build
 
     cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/
 
