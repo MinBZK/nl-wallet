@@ -6,5 +6,5 @@ class BleDisconnectedScreen : MobileActions() {
 
     private val title = l10n.getString("disclosureDisconnectedPageTitle")
 
-    fun visible() = elementWithTextVisible(title)
+    fun visible() = elementWithTextVisible(title, timeoutInSeconds = 30)
 }

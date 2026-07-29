@@ -93,6 +93,7 @@ private indirect enum Cbor {
     case tagged(UInt64, Cbor)
     case bool(Bool)
     case null
+    case raw(Data)
 }
 
 extension Cbor {
@@ -241,6 +242,8 @@ private func cborEncode(_ value: Cbor) -> Data {
         return Data([0xF5])
     case .null:
         return Data([0xF6])
+    case .raw(let data):
+        return data
     }
 }
 
@@ -286,6 +289,8 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     var expectedDeviceResponseHex: String?
     var wrpacCaCrtFile: String?
     var wrpacCaKeyFile: String?
+    var requestDocType: String?
+    var requestAttributes: [(namespace: String, element: String)] = []
     var printDeviceResponseHex = false
     var index = 0
 
@@ -332,6 +337,27 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                 throw ArgumentError.missingValue("--wrpac-ca-key-file")
             }
             wrpacCaKeyFile = arguments[index]
+        case "--request-doc-type":
+            index += 1
+            guard index < arguments.count else {
+                throw ArgumentError.missingValue("--request-doc-type")
+            }
+            requestDocType = arguments[index]
+        case "--request-attribute":
+            index += 1
+            guard index < arguments.count else {
+                throw ArgumentError.missingValue("--request-attribute")
+            }
+            let raw = arguments[index]
+            guard let slash = raw.lastIndex(of: "/"), slash != raw.startIndex, raw.index(after: slash) != raw.endIndex
+            else {
+                throw ArgumentError.invalidConfiguration(
+                    "--request-attribute must be formatted as <namespace>/<element>, got \(raw)"
+                )
+            }
+            requestAttributes.append(
+                (namespace: String(raw[raw.startIndex..<slash]), element: String(raw[raw.index(after: slash)...]))
+            )
         case "--print-device-response-hex":
             printDeviceResponseHex = true
         case "--help":
@@ -348,6 +374,14 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                                          encrypted into the first reader message.
                   --wrpac-ca-crt-file  <path>
                   --wrpac-ca-key-file  <path>
+                                         WRPAC leaf certificate and private key (PEM) used to
+                                         sign reader authentication. Requires --request-doc-type
+                                         and one or more --request-attribute.
+                  --request-doc-type <docType>
+                                         mdoc docType to request, e.g. urn:eudi:pid:nl:1.
+                  --request-attribute <namespace>/<element>
+                                         Attribute to request; repeatable. Example:
+                                         urn:eudi:pid:nl:1/bsn
                   --expect-device-response-hex <hex>
                                          After SessionEstablished, wait for the holder to send
                                          an encrypted DeviceResponse with status 20, validate the
@@ -394,6 +428,11 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
             "--device-request-hex cannot be combined with --wrpac-ca-crt-file/--wrpac-ca-key-file"
         )
     }
+    if usesReaderMaterial && (requestDocType == nil || requestAttributes.isEmpty) {
+        throw ArgumentError.invalidConfiguration(
+            "--wrpac-ca-crt-file/--wrpac-ca-key-file require --request-doc-type and at least one --request-attribute"
+        )
+    }
 
     if let qrCode {
         let engagement = try parseDeviceEngagement(fromBase64Url: qrCode)
@@ -401,11 +440,13 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
         let deviceRequest: Data
         if let deviceRequestHex {
             deviceRequest = try hexDecodedData(deviceRequestHex)
-        } else if let wrpacCaCrtFile, let wrpacCaKeyFile {
+        } else if let wrpacCaCrtFile, let wrpacCaKeyFile, let requestDocType {
             deviceRequest = try generateReaderDeviceRequest(
                 encodedSessionTranscript: encodedSessionTranscript,
                 wrpacCaCrtFile: wrpacCaCrtFile,
                 wrpacCaKeyFile: wrpacCaKeyFile,
+                docType: requestDocType,
+                attributes: requestAttributes,
             )
         } else {
             deviceRequest = Configuration.sessionEstablishedDeviceRequest
@@ -686,59 +727,84 @@ private func generateReaderDeviceRequest(
     encodedSessionTranscript: Data,
     wrpacCaCrtFile: String,
     wrpacCaKeyFile: String,
+    docType: String,
+    attributes: [(namespace: String, element: String)]
 ) throws -> Data {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = [
-        "cargo",
-        "run",
-        "--quiet",
-        "--manifest-path",
-        "wallet_core/Cargo.toml",
-        "--bin",
-        "wallet_ca",
-        "--",
-        "reader-device-request",
-        "--ca-crt-file",
-        wrpacCaCrtFile,
-        "--ca-key-file",
-        wrpacCaKeyFile,
-        "--session-transcript-hex",
-        hexEncodedData(encodedSessionTranscript),
-    ]
-    process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-
-    let stdout = Pipe()
-    let stderr = Pipe()
-    process.standardOutput = stdout
-    process.standardError = stderr
-
-    do {
-        try process.run()
-    } catch {
-        throw ArgumentError.externalToolFailure(error.localizedDescription)
+    let signingKey = try P256.Signing.PrivateKey(
+        pemRepresentation: try String(contentsOfFile: wrpacCaKeyFile, encoding: .utf8))
+    let certificateDer = try derData(fromPemFile: wrpacCaCrtFile, label: "CERTIFICATE")
+    var namespaceOrder: [String] = []
+    var elementsByNamespace: [String: [String]] = [:]
+    for attribute in attributes {
+        if elementsByNamespace[attribute.namespace] == nil {
+            namespaceOrder.append(attribute.namespace)
+            elementsByNamespace[attribute.namespace] = []
+        }
+        elementsByNamespace[attribute.namespace]?.append(attribute.element)
     }
+    let nameSpaces = Cbor.map(
+        namespaceOrder.map { namespace in
+            (
+                Cbor.text(namespace),
+                Cbor.map(elementsByNamespace[namespace]!.map { (Cbor.text($0), Cbor.bool(true)) })
+            )
+        })
+    let itemsRequest = Cbor.map([
+        (.text("docType"), .text(docType)),
+        (.text("nameSpaces"), nameSpaces),
+    ])
+    let itemsRequestBytes = Cbor.tagged(24, .bytes(cborEncode(itemsRequest)))
 
-    process.waitUntilExit()
+    let readerAuthentication = Cbor.array([
+        .text("ReaderAuthentication"),
+        .raw(encodedSessionTranscript),
+        itemsRequestBytes,
+    ])
+    let payload = cborEncode(.tagged(24, .bytes(cborEncode(readerAuthentication))))
 
-    let stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
-    let stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
-    let stdoutText = String(decoding: stdoutData, as: UTF8.self).trimmingCharacters(
-        in: .whitespacesAndNewlines)
-    let stderrText = String(decoding: stderrData, as: UTF8.self).trimmingCharacters(
-        in: .whitespacesAndNewlines)
+    let protectedHeader = cborEncode(.map([(.int(1), .int(-7))]))
+    let sigStructure = cborEncode(
+        .array([
+            .text("Signature1"),
+            .bytes(protectedHeader),
+            .bytes(Data()),
+            .bytes(payload),
+        ]))
+    let signature = try signingKey.signature(for: sigStructure).rawRepresentation
+    let readerAuth = Cbor.array([
+        .bytes(protectedHeader),
+        .map([(.int(33), .bytes(certificateDer))]),
+        .null,  // detached payload
+        .bytes(signature),
+    ])
 
-    guard process.terminationStatus == 0 else {
-        throw ArgumentError.externalToolFailure(
-            stderrText.isEmpty
-                ? "wallet_ca exited with code \(process.terminationStatus)" : stderrText)
+    let docRequest = Cbor.map([
+        (.text("itemsRequest"), itemsRequestBytes),
+        (.text("readerAuth"), readerAuth),
+    ])
+    let deviceRequest = Cbor.map([
+        (.text("version"), .text("1.0")),
+        (.text("docRequests"), .array([docRequest])),
+    ])
+    return cborEncode(deviceRequest)
+}
+
+private func derData(fromPemFile path: String, label: String) throws -> Data {
+    let pem = try String(contentsOfFile: path, encoding: .utf8)
+    let begin = "-----BEGIN \(label)-----"
+    let end = "-----END \(label)-----"
+    guard let beginRange = pem.range(of: begin), let endRange = pem.range(of: end),
+        beginRange.upperBound <= endRange.lowerBound
+    else {
+        throw ArgumentError.invalidConfiguration("No \(label) PEM block found in \(path)")
     }
-    guard !stdoutText.isEmpty else {
-        throw ArgumentError.externalToolFailure(
-            "wallet_ca did not return a DeviceRequest hex payload")
+    let base64 = pem[beginRange.upperBound..<endRange.lowerBound]
+        .split(whereSeparator: { $0 == "\n" || $0 == "\r" })
+        .joined()
+    guard let der = Data(base64Encoded: base64) else {
+        throw ArgumentError.invalidConfiguration("Invalid base64 in \(label) PEM block of \(path)")
     }
-
-    return try hexDecodedData(stdoutText)
+    return der
 }
 
 private func decryptedDeviceResponsePlaintext(

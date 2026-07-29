@@ -94,17 +94,11 @@ tasks.register<Test>("testAllAndroids") {
     }
 }
 
-tasks.register<Test>("twoDeviceTest") {
-    useJUnitPlatform {
-        includeTags("twoDevice")
-        exclude("suite/**")
-    }
-}
-
 tasks.withType<Test>().configureEach {
     jvmArgs("--add-modules=java.instrument")
     val testConfigMap = mapOf(
         "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
+        "test.config.app.path" to "",
         "test.config.device.name" to "emulator-5554",
         "test.config.platform.name" to "Android",
         "test.config.platform.version" to 14.0,

@@ -10,8 +10,6 @@ import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.assertAll
@@ -27,7 +25,6 @@ import screen.wallet_transfer.WalletTransferTargetScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.10 Transfer Wallet")
-@Tags(Tag("twoDevice"))
 class WalletTransferTests : TwoDeviceTestBase() {
 
     private lateinit var gbaData: GbaDataHelper
