@@ -139,7 +139,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
 
     use super::super::mdoc::PartialMdoc;
@@ -169,7 +169,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let (partial_mdocs, keys): (Vec<_>, Vec<_>) = (0..3)
             .map(|index| {
-                let key = MockRemoteEcdsaKey::new(format!("key_{index}"), SigningKey::random(&mut OsRng));
+                let key = MockRemoteEcdsaKey::new(format!("key_{index}"), SigningKey::generate());
                 let mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &key);
 
                 (mdoc, key)

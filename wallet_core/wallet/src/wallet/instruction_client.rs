@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crypto::PublicKey;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKey;
@@ -82,7 +83,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
+                PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
             ),
         ))
     }

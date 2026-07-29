@@ -13,7 +13,7 @@ use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::NO_SAN;
 use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use serde::Deserialize;
 use serde::Serialize;
 use utils::generator::TimeGenerator;
@@ -50,7 +50,7 @@ fn typed_cose_clone_and_serde_do_not_require_payload_traits() {
 
 #[tokio::test]
 async fn typed_cose_signs_verifies_and_parses() {
-    let key = SigningKey::random(&mut OsRng);
+    let key = SigningKey::generate();
     let payload = ToyMessage::default();
     let cose = TypedCose::sign(&payload, Header::default(), &key, true).await.unwrap();
 
@@ -61,7 +61,7 @@ async fn typed_cose_signs_verifies_and_parses() {
 
 #[tokio::test]
 async fn invalid_signature_is_rejected() {
-    let key = SigningKey::random(&mut OsRng);
+    let key = SigningKey::generate();
     let mut cose = TypedCose::sign(&ToyMessage::default(), Header::default(), &key, true)
         .await
         .unwrap();
@@ -81,7 +81,7 @@ async fn invalid_signature_is_rejected() {
 
 #[tokio::test]
 async fn missing_or_unsupported_algorithm_is_rejected() {
-    let key = SigningKey::random(&mut OsRng);
+    let key = SigningKey::generate();
 
     let mut missing = TypedCose::sign(&ToyMessage::default(), Header::default(), &key, true)
         .await
@@ -104,7 +104,7 @@ async fn missing_or_unsupported_algorithm_is_rejected() {
 
 #[tokio::test]
 async fn reads_unprotected_header_parameters() {
-    let key = SigningKey::random(&mut OsRng);
+    let key = SigningKey::generate();
     let header = HeaderBuilder::new()
         .value(42, 0.into())
         .text_value("Hello".to_owned(), "World".into())

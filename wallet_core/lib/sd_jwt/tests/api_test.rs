@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::PublicKey;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
@@ -10,11 +11,11 @@ use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use futures::FutureExt;
 use itertools::Itertools;
-use jwt::jwk::jwk_from_p256;
+use jwt::jwk::jwk_from_public_key;
 use jwt::nonce::Nonce;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::disclosure::DisclosureContent;
@@ -94,7 +95,7 @@ fn complex_sd_jwt_vc() {
 
 #[tokio::test]
 async fn concealing_property_of_concealable_value_works() {
-    let holder_signing_key = SigningKey::random(&mut OsRng);
+    let holder_signing_key = SigningKey::generate();
     let (signed_sd_jwt, _, _) = make_sd_jwt(
         json!({
             "parent": {
@@ -118,7 +119,7 @@ async fn concealing_property_of_concealable_value_works() {
     )
     .await;
 
-    let holder_key = SigningKey::random(&mut OsRng);
+    let holder_key = SigningKey::generate();
     let verified_sd_jwt = signed_sd_jwt.into_verified();
     verified_sd_jwt
         .into_presentation_builder()
@@ -138,7 +139,7 @@ async fn concealing_property_of_concealable_value_works() {
 #[tokio::test]
 async fn sd_jwt_without_disclosures_works() {
     let time = MockTimeGenerator::default();
-    let holder_signing_key = SigningKey::random(&mut OsRng);
+    let holder_signing_key = SigningKey::generate();
     let (signed_sd_jwt, trust_anchors, issuer_keypair) = make_sd_jwt(
         json!({
             "parent": {
@@ -201,7 +202,7 @@ async fn sd_jwt_without_disclosures_works() {
 
 #[tokio::test]
 async fn sd_jwt_sd_hash() {
-    let holder_signing_key = SigningKey::random(&mut OsRng);
+    let holder_signing_key = SigningKey::generate();
     let (signed_sd_jwt, _, _) = make_sd_jwt(
         json!({
             "parent": {
@@ -225,7 +226,7 @@ async fn sd_jwt_sd_hash() {
     )
     .await;
 
-    let signing_key = SigningKey::random(&mut OsRng);
+    let signing_key = SigningKey::generate();
 
     let verified_sd_jwt = signed_sd_jwt.into_verified();
     let signed_presentation = verified_sd_jwt
@@ -259,7 +260,7 @@ async fn sd_jwt_sd_hash() {
 
 #[tokio::test]
 async fn test_presentation() {
-    let holder_key = SigningKey::random(&mut OsRng);
+    let holder_key = SigningKey::generate();
 
     let claims = SdJwtVcClaims::example_from_json(
         holder_key.verifying_key(),
@@ -289,11 +290,15 @@ async fn test_presentation() {
 
     println!(
         "issuer_privkey pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(issuer_keypair.certificate().public_key()).unwrap()).unwrap()
+        serde_json::to_string_pretty(
+            &jwk_from_public_key(&PublicKey::from(*issuer_keypair.certificate().public_key())).unwrap()
+        )
+        .unwrap()
     );
     println!(
         "holder_key pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(holder_key.verifying_key()).unwrap()).unwrap()
+        serde_json::to_string_pretty(&jwk_from_public_key(&PublicKey::from(*holder_key.verifying_key())).unwrap())
+            .unwrap()
     );
 
     // issuer signs SD-JWT

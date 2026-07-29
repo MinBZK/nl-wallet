@@ -1045,7 +1045,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -1301,7 +1301,7 @@ mod tests {
             requested_format,
             address_credential_payload.clone(),
             NormalizedTypeMetadata::nl_address_example(),
-            &SigningKey::random(&mut OsRng),
+            &SigningKey::generate(),
         );
 
         let mut attributes_root = address_credential_payload.previewable_payload.attributes.into_inner();
@@ -1317,7 +1317,7 @@ mod tests {
             requested_format,
             address_credential_payload,
             NormalizedTypeMetadata::nl_address_example(),
-            &SigningKey::random(&mut OsRng),
+            &SigningKey::generate(),
         );
 
         // The wallet will query the database for both attestation types, mock returning them.
@@ -3062,7 +3062,7 @@ mod tests {
             NormalizedTypeMetadata::from_single_example(type_metadata_with_non_selectively_disclosable_claim);
 
         // Create a credential payload with an sd claim and 2 non-sd claims
-        let holder_key = SigningKey::random(&mut OsRng);
+        let holder_key = SigningKey::generate();
         let previewable_payload = CredentialPayload::example_with_attributes(
             my_attestation_type,
             Attributes::example([

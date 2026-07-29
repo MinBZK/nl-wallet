@@ -5,6 +5,7 @@ use std::sync::LazyLock;
 
 use aes_gcm::Aes256Gcm;
 use aes_gcm::aead::KeyInit;
+use aes_gcm::aead::OsRng;
 use crypto::keys::EcdsaKey;
 use crypto::keys::EncryptionKey;
 use crypto::keys::SecureEcdsaKey;
@@ -15,8 +16,8 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Signer;
+use p256::elliptic_curve::Generate;
 use parking_lot::Mutex;
-use rand_core::OsRng;
 
 use super::PlatformEcdsaKey;
 use super::PlatformEncryptionKey;
@@ -86,7 +87,7 @@ impl StoredByIdentifier for MockHardwareEcdsaKey {
         // Otherwise, increment the reference count or create a new random key
         // and insert it into the static hashmap.
         let key = maybe_key.map(Arc::clone).unwrap_or_else(|| {
-            let signing_key = SigningKey::random(&mut OsRng).into();
+            let signing_key = SigningKey::generate().into();
 
             signing_keys.insert(identifier.to_string(), Arc::clone(&signing_key));
 

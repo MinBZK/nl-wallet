@@ -9,6 +9,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
@@ -26,8 +27,7 @@ use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
 use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
@@ -481,7 +481,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .as_ref()
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
-        let dpop_signing_key = SigningKey::random(&mut OsRng);
+        let dpop_signing_key = SigningKey::generate();
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
         let challenge = match client_auth_challenge {
@@ -817,7 +817,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                         .map_err(WalletIssuanceError::JwtParse)?;
 
                     let pubkey = header
-                        .verifying_key()
+                        .public_key()
                         .map_err(|e| WalletIssuanceError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
@@ -1029,7 +1029,7 @@ impl Credential {
     fn into_issued_mdoc(
         self,
         key_identifier: String,
-        verifying_key: &VerifyingKey,
+        public_key: &PublicKey,
         preview: &CredentialPreview,
         normalized_type_metadata: &NormalizedTypeMetadata,
         trust_anchors: &TrustAnchors,
@@ -1066,7 +1066,7 @@ impl Credential {
 
                 Self::validate_credential(
                     preview,
-                    verifying_key,
+                    public_key,
                     issued_credential_payload,
                     &credential_issuer_certificate,
                 )?;
@@ -1084,7 +1084,7 @@ impl Credential {
     fn into_issued_sd_jwt(
         self,
         key_identifier: String,
-        verifying_key: &VerifyingKey,
+        holder_pubkey: &PublicKey,
         preview: &CredentialPreview,
         normalized_type_metadata: &NormalizedTypeMetadata,
         trust_anchors: &TrustAnchors,
@@ -1109,7 +1109,7 @@ impl Credential {
 
                 Self::validate_credential(
                     preview,
-                    verifying_key,
+                    holder_pubkey,
                     issued_credential_payload,
                     sd_jwt.issuer_leaf_certificate(),
                 )?;
@@ -1125,11 +1125,11 @@ impl Credential {
 
     fn validate_credential(
         preview: &CredentialPreview,
-        holder_pubkey: &VerifyingKey,
+        holder_pubkey: &PublicKey,
         credential_payload: CredentialPayload,
         credential_issuer_certificate: &BorrowingCertificate,
     ) -> Result<(), WalletIssuanceError> {
-        if credential_payload.confirmation_key.verifying_key()? != *holder_pubkey {
+        if credential_payload.confirmation_key.try_to_public_key()? != *holder_pubkey {
             return Err(WalletIssuanceError::PublicKeyMismatch);
         }
 
@@ -1233,7 +1233,7 @@ mod tests {
     use crypto::x509::CertificateError;
     use derive_more::Debug;
     use futures::FutureExt;
-    use jwt::jwk::jwk_to_p256;
+    use jwt::jwk::jwk_to_public_key;
     use jwt::nonce::Nonce;
     use mdoc::utils::serialization::TaggedBytes;
     use mockall::predicate::eq;
@@ -1881,7 +1881,7 @@ mod tests {
             credential_request_types,
             type_metadata: [(config_id, issuance_type_metadata)].into(),
             issuer_registration: IssuerRegistration::new_mock(),
-            dpop_signing_key: SigningKey::random(&mut OsRng),
+            dpop_signing_key: SigningKey::generate(),
             dpop_nonce: Some("dpop_nonce".to_string()),
         }
     }
@@ -1963,12 +1963,12 @@ mod tests {
             let proof_jwt = match request.proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => jwt,
             };
-            let holder_pubkey = jwk_to_p256(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
+            let holder_pubkey = jwk_to_public_key(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
 
             self.into_response_from_holder_pubkey(&holder_pubkey)
         }
 
-        pub fn into_response_from_holder_pubkey(self, holder_pubkey: &VerifyingKey) -> CredentialResponse {
+        pub fn into_response_from_holder_pubkey(self, holder_pubkey: &PublicKey) -> CredentialResponse {
             let credential_payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
                 self.previewable_payload,
                 Utc::now(),
@@ -2002,7 +2002,7 @@ mod tests {
             .parse::<Dpop>()
             .unwrap()
             .verify_expecting_key(
-                dpop_signing_key.verifying_key(),
+                PublicKey::from(*dpop_signing_key.verifying_key()),
                 url,
                 &Method::POST,
                 Some(&"access_token".to_string().into()),
@@ -2231,12 +2231,12 @@ mod tests {
         Credential,
         CredentialPreview,
         IssuanceTypeMetadata,
-        VerifyingKey,
+        PublicKey,
         TrustAnchors,
     ) {
         let (signer, preview_data, _, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata_state();
         let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
-        let holder_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
         let credential_response = signer
             .into_response_from_holder_pubkey(&holder_pubkey)
             .into_immediate_credential()
@@ -2273,7 +2273,7 @@ mod tests {
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
-        let other_public_key = *SigningKey::random(&mut OsRng).verifying_key();
+        let other_public_key = PublicKey::from(*SigningKey::generate().verifying_key());
         let error = credential
             .into_issued_mdoc(
                 "key_id".to_string(),

@@ -20,6 +20,7 @@ use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -790,7 +791,7 @@ fn prepare_example_credential_payload(
     let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
         payload_preview,
         Utc::now(),
-        holder_privkey.verifying_key(),
+        &PublicKey::from(*holder_privkey.verifying_key()),
         Integrity::from(""),
         StatusClaim::new_mock(),
     )

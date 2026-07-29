@@ -3,6 +3,7 @@ use std::time::Duration;
 use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::x509::CertificateError;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
@@ -172,4 +173,7 @@ pub enum SigningError {
 
     #[error("invalid KB-JWT: {0}")]
     KeyBinding(#[from] KeyBindingError),
+
+    #[error("unsupported holder public key: {0:?}")]
+    UnsupportedHolderPublicKey(Box<PublicKey>),
 }

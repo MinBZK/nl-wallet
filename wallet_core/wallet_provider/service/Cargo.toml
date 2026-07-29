@@ -75,6 +75,7 @@ futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 parking_lot.workspace = true
+getrandom.workspace = true
 rand_core.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true

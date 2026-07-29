@@ -1477,6 +1477,7 @@ pub(crate) mod tests {
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -1486,10 +1487,10 @@ pub(crate) mod tests {
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
     use platform_support::utils::mock::MockHardwareUtilities;
-    use rand_core::OsRng;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -2082,8 +2083,9 @@ pub(crate) mod tests {
     async fn insert_pid_in_both_formats(storage: &mut MockHardwareDatabaseStorage) -> String {
         let mdoc = Mdoc::new_mock().await;
 
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let holder_key = SigningKey::generate();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         let attestation_type = mdoc.doc_type().to_string();
         assert_eq!(sd_jwt.claims().vct, attestation_type);
@@ -2240,8 +2242,9 @@ pub(crate) mod tests {
         key_identifier: &str,
         extended_attestation_types: &[&str],
     ) {
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let holder_key = SigningKey::generate();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         storage
             .insert_credentials(
@@ -2401,8 +2404,9 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let holder_key = SigningKey::generate();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy {
@@ -2601,8 +2605,9 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create issued_copies that will be inserted into the database
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let holder_key = SigningKey::generate();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy {
@@ -2671,8 +2676,9 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         // Create new issued_copies that will be updated
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let holder_key = SigningKey::generate();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy {
@@ -2933,8 +2939,9 @@ pub(crate) mod tests {
         let timestamp4 = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let organization = Organization::new_mock();
 
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
+        let holder_key = SigningKey::generate();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
             key_identifier: "sd_jwt_key_id".to_string(),
@@ -3150,8 +3157,8 @@ pub(crate) mod tests {
         timestamp: DateTime<Utc>,
         copies: usize,
     ) -> (Uuid, VerifiedSdJwt) {
-        let sd_jwt =
-            SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified();
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*SigningKey::generate().verifying_key()))
+            .into_verified();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy { key_identifier: key_identifier.to_string(), sd_jwt: sd_jwt.clone() }; copies
@@ -3315,7 +3322,7 @@ pub(crate) mod tests {
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
             key_identifier: "renewed_key_id".to_string(),
-            sd_jwt: SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key())
+            sd_jwt: SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*SigningKey::generate().verifying_key()))
                 .into_verified()
         }]);
 

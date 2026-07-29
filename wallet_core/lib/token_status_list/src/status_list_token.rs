@@ -114,7 +114,7 @@ pub mod verification {
     use crypto::x509::CanonicalDistinguishedName;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
-    use jwt::DEFAULT_VALIDATIONS;
+    use jwt::DEFAULT_VALIDATION;
     use jwt::error::JwtX5cVerifyError;
     use url::Url;
     use utils::generator::Generator;
@@ -157,7 +157,7 @@ pub mod verification {
                 issuer_trust_anchors,
                 time,
                 Some(CertificateUsage::OAuthStatusSigning),
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATION.to_owned(),
             )?;
 
             let slt_dn = header
@@ -249,9 +249,11 @@ mod test {
     use std::ops::Add;
 
     use chrono::Days;
+    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use jwt::DEFAULT_VALIDATIONS;
+    use jwt::ESP256_ONLY_VALIDATION;
+    use jwt::JwtDecodingKey;
     use jwt::error::JwtX5cVerifyError;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -272,7 +274,10 @@ mod test {
 
         let verified = signed
             .0
-            .into_verified(&keypair.private_key().verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .into_verified(
+                JwtDecodingKey::from(PublicKey::from(*keypair.private_key().verifying_key())),
+                &*ESP256_ONLY_VALIDATION,
+            )
             .unwrap();
         assert_eq!(*verified.header(), expected_header);
         // the `iat` claim is set when signing the token

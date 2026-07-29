@@ -286,6 +286,7 @@ mod tests {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
+    use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -414,7 +415,8 @@ mod tests {
         let sd_jwt_public_key = *sd_jwt_key.verifying_key();
         let wscd = MockRemoteWscd::new(vec![sd_jwt_key]);
 
-        let verified_sd_jwt = SignedSdJwt::pid_example(&issuer_key_pair, &sd_jwt_public_key).into_verified();
+        let verified_sd_jwt =
+            SignedSdJwt::pid_example(&issuer_key_pair, &PublicKey::from(sd_jwt_public_key)).into_verified();
         let unsigned_presentation = verified_sd_jwt
             .into_presentation_builder()
             .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])

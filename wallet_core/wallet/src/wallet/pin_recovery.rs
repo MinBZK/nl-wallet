@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
@@ -358,7 +359,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    config.account_server.instruction_result_public_key.as_inner().into(),
+                    PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
                 ),
             )
             .await
@@ -434,7 +435,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
+                PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
             )),
         )
         .send(DiscloseRecoveryCodePinRecovery {
@@ -501,6 +502,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
@@ -987,7 +989,7 @@ mod tests {
 
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
+        let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
         let (pid_issuer, _) = mock_issuance_session([
             (

@@ -32,8 +32,8 @@ use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
-use p256::elliptic_curve::sec1::ToEncodedPoint;
-use rand::rngs::OsRng;
+use p256::elliptic_curve::Generate;
+use p256::elliptic_curve::sec1::ToSec1Point;
 use serde_bytes::ByteBuf;
 
 const BLE_RETRIEVAL_METHOD_TYPE: u64 = 2;
@@ -160,7 +160,7 @@ pub fn close_proximity_create_qr_session_setup(
         )));
     }
 
-    let e_device_private_key = SecretKey::random(&mut OsRng);
+    let e_device_private_key = SecretKey::generate();
     let encoded_device_engagement = encode_device_engagement(&e_device_private_key, &peripheral_server_uuid)?;
 
     Ok(CloseProximityQrSessionSetup {
@@ -196,9 +196,9 @@ fn encode_device_engagement(
     peripheral_server_uuid: &[u8],
 ) -> Result<Vec<u8>, CloseProximitySessionCryptoError> {
     let public_key = e_device_private_key.public_key();
-    let encoded_point = public_key.to_encoded_point(false);
+    let encoded_point = public_key.to_sec1_point(false);
     let verifying_key =
-        VerifyingKey::from_encoded_point(&encoded_point).map_err(|error| session_encryption_error(&error))?;
+        VerifyingKey::from_sec1_point(&encoded_point).map_err(|error| session_encryption_error(&error))?;
     let e_device_key: CoseKey = (&verifying_key)
         .try_into()
         .map_err(|error| session_encryption_error(&error))?;
@@ -275,7 +275,7 @@ mod tests {
     use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
     use p256::ecdsa::VerifyingKey;
-    use p256::elliptic_curve::sec1::ToEncodedPoint;
+    use p256::elliptic_curve::sec1::ToSec1Point;
 
     use super::CloseProximitySessionCrypto;
     use super::close_proximity_build_session_transcript;
@@ -289,8 +289,8 @@ mod tests {
 
     fn encoded_cose_key(secret_key: &p256::SecretKey) -> Vec<u8> {
         let public_key = secret_key.public_key();
-        let encoded_point = public_key.to_encoded_point(false);
-        let verifying_key = VerifyingKey::from_encoded_point(&encoded_point).unwrap();
+        let encoded_point = public_key.to_sec1_point(false);
+        let verifying_key = VerifyingKey::from_sec1_point(&encoded_point).unwrap();
         let cose_key: CoseKey = (&verifying_key).try_into().unwrap();
         cbor_serialize(&cose_key).unwrap()
     }

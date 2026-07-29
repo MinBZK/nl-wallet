@@ -67,8 +67,8 @@ use openid4vc::wallet_issuance::issuance_session::HttpIssuanceSession;
 use openid4vc_server::issuer::create_authorization_router;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
 use p256::pkcs8::EncodePrivateKey;
-use rand_core::OsRng;
 use reqwest::Method;
 use reqwest::RequestBuilder;
 use reqwest::StatusCode;
@@ -878,7 +878,7 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
 /// handler runs before DPoP semantic verification, so the value just has to deserialize —
 /// the URL/method don't need to match what the handler will later try to verify against.
 fn dpop_header_for(token_url: &Url) -> String {
-    let signing_key = SigningKey::random(&mut OsRng);
+    let signing_key = SigningKey::generate();
     Dpop::new(&signing_key, token_url.clone(), &Method::POST, None, None)
         .unwrap()
         .to_string()

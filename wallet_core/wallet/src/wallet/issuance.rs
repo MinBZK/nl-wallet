@@ -900,6 +900,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
@@ -1853,7 +1854,7 @@ mod tests {
     }
 
     fn mdoc_pid() -> (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
-        let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
+        let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::generate());
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
         (StoredAttestation::MsoMdoc { mdoc }, metadata_docs, normalized_metadata)

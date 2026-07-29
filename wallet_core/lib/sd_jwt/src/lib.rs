@@ -65,14 +65,16 @@
 //! ```
 //! # use attestation_types::claim_path::ClaimPath;
 //! # use chrono::Utc;
+//! # use crypto::PublicKey;
 //! # use crypto::server_keys::generate::Ca;
 //! # use crypto::trust_anchor::TrustAnchors;
 //! # use jwt::confirmation::ConfirmationClaim;
 //! # use jwt::headers::HeaderWithX5c;
 //! # use jwt::nonce::Nonce;
-//! # use jwt::jwk::jwk_from_p256;
+//! # use jwt::jwk::jwk_from_public_key;
 //! # use p256::ecdsa::SigningKey;
 //! # use p256::ecdsa::VerifyingKey;
+//! # use p256::elliptic_curve::Generate;
 //! # use rand::rngs::OsRng;
 //! # use crypto::trust_anchor::BorrowingTrustAnchor;
 //! # use sd_jwt::builder::SdJwtBuilder;
@@ -98,10 +100,10 @@
 //! let issuer_keypair = ca.generate_issuer_mock()?;
 //!
 //! // 1) Issuer constructs SD-JWT VC claims, including the holder's public key.
-//! let holder_privkey = SigningKey::random(&mut OsRng);
+//! let holder_privkey = SigningKey::generate();
 //! let claims = SdJwtVcClaims {
 //!     _sd_alg: None,
-//!     cnf: ConfirmationClaim::Jwk(jwk_from_p256(&holder_privkey.verifying_key())?),
+//!     cnf: ConfirmationClaim::Jwk(jwk_from_public_key(&PublicKey::from(*holder_privkey.verifying_key()))?),
 //!     vct: "com:example:vct".into(),
 //!     vct_integrity: None,
 //!     iss: "https://issuer.example.com".parse()?,

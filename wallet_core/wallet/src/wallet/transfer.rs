@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use jwe::algorithm::EcdhAlgorithm;
@@ -272,7 +273,8 @@ where
             .ok_or_else(|| TransferError::NotRegistered)?;
 
         let config = self.config_repository.get();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+        let instruction_result_public_key =
+            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
 
         let remote_instruction = self
             .new_instruction_client(
@@ -443,7 +445,8 @@ where
             .ok_or_else(|| TransferError::NotRegistered)?;
 
         let config = self.config_repository.get();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+        let instruction_result_public_key =
+            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
 
         let instruction_client = self.new_hw_signed_instruction_client(
             Arc::clone(attested_key),

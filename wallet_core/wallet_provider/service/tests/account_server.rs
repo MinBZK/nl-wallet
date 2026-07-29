@@ -4,6 +4,7 @@ use std::time::Duration;
 use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
 use base64::prelude::*;
+use crypto::PublicKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use db_test::DbSetup;
@@ -12,8 +13,8 @@ use hsm::service::HsmError;
 use itertools::Itertools;
 use jwt::nonce::Nonce;
 use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
-use rand::rngs::OsRng;
 use rstest::rstest;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
@@ -150,7 +151,7 @@ async fn do_registration(
         .expect("Could not process registration message at account server");
 
     let (_, cert_data) = certificate
-        .parse_and_verify_with_sub(&(&certificate_signing_key.verifying_key().await.unwrap()).into())
+        .parse_and_verify_with_sub(&PublicKey::from(certificate_signing_key.verifying_key().await.unwrap()).into())
         .expect("Could not parse and verify wallet certificate");
 
     (certificate, hw_privkey, cert_data, user_state)
@@ -184,11 +185,11 @@ async fn test_instruction_challenge(
     let db = db_from_setup(&db_setup).await;
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 
-    let certificate_signing_key = SigningKey::random(&mut OsRng);
+    let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
     let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
-    let pin_privkey = SigningKey::random(&mut OsRng);
+    let pin_privkey = SigningKey::generate();
 
     let attestation_ca = match attestation_type {
         AttestationType::Apple => AttestationCa::Apple(&MOCK_APPLE_CA),
@@ -240,11 +241,11 @@ async fn test_wia_status() {
     let db = db_from_setup(&db_setup).await;
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 
-    let certificate_signing_key = SigningKey::random(&mut OsRng);
+    let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
     let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
-    let pin_privkey = SigningKey::random(&mut OsRng);
+    let pin_privkey = SigningKey::generate();
 
     let (certificate, hw_privkey, cert_data, user_state) = do_registration(
         &account_server,

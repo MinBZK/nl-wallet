@@ -200,7 +200,7 @@ impl VerifiedAttestation {
         //     identifier calculated here is already compared with the value extracted in step 9. For this reason we
         //     do not take the key identifier as a parameter and only calculate it here in preparation for step 9.
 
-        let key_identifier = Sha256::digest(public_key.to_encoded_point(false));
+        let key_identifier = Sha256::digest(public_key.to_sec1_point(false));
 
         // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s RP
         //    ID hash.
@@ -402,7 +402,7 @@ pub mod mock {
             let aaguid = environment.to_aaguid();
 
             let verifying_key = signing_key.verifying_key();
-            let encoded_point = verifying_key.to_encoded_point(false);
+            let encoded_point = verifying_key.to_sec1_point(false);
             let credential_id = Sha256::digest(encoded_point).to_vec();
 
             let key = CoseKeyBuilder::new_ec2_pub_key(

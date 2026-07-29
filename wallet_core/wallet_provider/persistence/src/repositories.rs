@@ -566,7 +566,7 @@ pub mod mock {
     use mockall;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use semver::Version;
     use uuid::Uuid;
     use uuid::uuid;
@@ -1112,7 +1112,7 @@ pub mod mock {
             Ok(key_identifiers
                 .iter()
                 .map(|id| {
-                    let privkey = SigningKey::random(&mut OsRng);
+                    let privkey = SigningKey::generate();
 
                     (
                         id.clone(),

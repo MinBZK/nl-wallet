@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use crypto::PublicKey;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
@@ -128,7 +129,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
     // Perform the same sanity checks as during registration, with the addition of checking the received wallet_id.
     pub fn validate_certificate(&self, certificate: &WalletCertificate) -> ChangePinResult<()> {
         let (_, cert_claims) = certificate
-            .parse_and_verify_with_sub(&self.certificate_public_key.into())
+            .parse_and_verify_with_sub(&PublicKey::from(*self.certificate_public_key).into())
             .map_err(ChangePinError::CertificateValidation)?;
 
         if cert_claims.hw_pubkey.as_inner() != self.hw_pubkey {
@@ -317,7 +318,7 @@ mod test {
     use jwt::SignedJwt;
     use mockall::predicate::eq;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use wallet_account::RevocationCode;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
@@ -332,8 +333,8 @@ mod test {
     const CHANGE_PIN_RETRIES: u8 = 2;
 
     async fn create_registration_data() -> (RegistrationData, VerifyingKey, VerifyingKey) {
-        let certificate_signing_key = SigningKey::random(&mut OsRng);
-        let hw_privkey = SigningKey::random(&mut OsRng);
+        let certificate_signing_key = SigningKey::generate();
+        let hw_privkey = SigningKey::generate();
         let certificate_public_key = *certificate_signing_key.verifying_key();
         let hw_pubkey = *hw_privkey.verifying_key();
 
@@ -564,7 +565,7 @@ mod test {
     async fn begin_change_pin_certificate_validation_error() {
         let (change_pin_client, change_pin_storage, registration_data, _, hw_pubkey) =
             setup_change_pin_certificate_sanity_check_test().await;
-        let other_certificate_public_key = *SigningKey::random(&mut OsRng).verifying_key();
+        let other_certificate_public_key = *SigningKey::generate().verifying_key();
 
         let change_pin_session = BeginChangePinOperation::new(
             &change_pin_client,
@@ -587,7 +588,7 @@ mod test {
     async fn begin_change_pin_public_key_mismatch_error() {
         let (change_pin_client, change_pin_storage, registration_data, certificate_public_key, _) =
             setup_change_pin_certificate_sanity_check_test().await;
-        let other_hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let other_hw_pubkey = *SigningKey::generate().verifying_key();
 
         let change_pin_session = BeginChangePinOperation::new(
             &change_pin_client,

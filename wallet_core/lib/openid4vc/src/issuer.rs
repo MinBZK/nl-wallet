@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::ops::Add;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
@@ -20,6 +21,7 @@ use chrono::DurationRound;
 use chrono::Utc;
 use crypto::EcdsaKey;
 use crypto::EcdsaKeySend;
+use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
@@ -31,8 +33,8 @@ use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use jwt::Algorithm;
+use jwt::JwtValidation;
 use jwt::SignedJwt;
-use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
@@ -42,7 +44,6 @@ use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
-use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
@@ -329,7 +330,7 @@ pub enum Grant {
 pub struct AccessTokenIssued {
     pub access_token: AccessToken,
     pub prepared_credentials: VecNonEmpty<PreparedCredential>,
-    pub dpop_public_key: VerifyingKey,
+    pub dpop_public_key: PublicKey,
     pub dpop_nonce: String,
 }
 
@@ -456,8 +457,8 @@ impl<K, L> IssuerData<K, L> {
         )
     }
 
-    fn accepted_wallet_client_ids_vec(&self) -> Vec<&String> {
-        self.accepted_wallet_client_ids.iter().collect()
+    fn accepted_wallet_client_ids_vec(&self) -> impl Iterator<Item = &String> {
+        self.accepted_wallet_client_ids.iter()
     }
 
     fn verify_wia(
@@ -473,7 +474,7 @@ impl<K, L> IssuerData<K, L> {
         wia_disclosure.verify(
             &self.wia_trust_anchors,
             expected_aud,
-            &self.accepted_wallet_client_ids_vec(),
+            self.accepted_wallet_client_ids_vec(),
             client_id,
         )
     }
@@ -1013,7 +1014,7 @@ where
         }
 
         dpop.verify_expecting_key(
-            &session_data.dpop_public_key,
+            session_data.dpop_public_key.to_owned(),
             &self.issuer_data.server_url.join(endpoint_name),
             &Method::DELETE,
             Some(&access_token),
@@ -1256,7 +1257,7 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &impl NonceStore,
-    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
+    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
         let wia_claims = verify_wia_and_consume_nonce(
             issuer_data,
             nonce_store,
@@ -1296,7 +1297,7 @@ impl Session<AuthCodeIssued> {
     /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
     fn finalize_token_response(
         self,
-        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError>,
+        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
             Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
@@ -1325,7 +1326,7 @@ fn build_token_response<K, L>(
     server_url: &BaseUrl,
     credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
     issuer_data: &IssuerData<K, L>,
-) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, VerifyingKey, String), TokenRequestError> {
+) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -1436,7 +1437,7 @@ impl Session<AccessTokenIssued> {
 
         // Check that the DPoP is valid and its key matches the one from the Token Request
         dpop.verify_expecting_key(
-            &session_data.dpop_public_key,
+            session_data.dpop_public_key.to_owned(),
             &server_url.join(endpoint),
             &Method::POST,
             Some(access_token),
@@ -1485,7 +1486,7 @@ impl Session<AccessTokenIssued> {
         }?;
 
         let (holder_pubkey, request_nonce) = credential_request.verify(
-            &issuer_data.accepted_wallet_client_ids_vec(),
+            issuer_data.accepted_wallet_client_ids_vec(),
             &issuer_data.metadata.credential_issuer,
         )?;
 
@@ -1600,7 +1601,7 @@ impl Session<AccessTokenIssued> {
                         }
 
                         let (key, nonce) = cred_req.verify(
-                            &issuer_data.accepted_wallet_client_ids_vec(),
+                            issuer_data.accepted_wallet_client_ids_vec(),
                             &issuer_data.metadata.credential_issuer,
                         )?;
 
@@ -1722,9 +1723,9 @@ impl<T: IssuanceState> Session<T> {
 impl CredentialRequest {
     fn verify(
         &self,
-        accepted_wallet_client_ids: &[impl ToString],
+        accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
         credential_issuer_identifier: &IssuerIdentifier,
-    ) -> Result<(VerifyingKey, Nonce), CredentialRequestError> {
+    ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
         let (holder_pubkey, nonce) = self
             .proof
             .as_ref()
@@ -1740,7 +1741,7 @@ impl CredentialResponse {
         credential_format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
-        holder_pubkey: &VerifyingKey,
+        holder_pubkey: &PublicKey,
         credential_config: &CredentialConfiguration<K, L>,
         status_claim: StatusClaim,
     ) -> Result<CredentialResponse, CredentialRequestError>
@@ -1792,25 +1793,27 @@ impl CredentialResponse {
     }
 }
 
+static CREDENTIAL_REQUEST_PROOF_VALIDATION: LazyLock<JwtValidation> =
+    LazyLock::new(|| JwtValidation::default_with_algorithms([Algorithm::ES256]));
+
 impl CredentialRequestProof {
     pub fn verify(
         &self,
-        accepted_wallet_client_ids: &[impl ToString],
+        accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
         credential_issuer_identifier: &IssuerIdentifier,
-    ) -> Result<(VerifyingKey, Nonce), CredentialRequestError> {
+    ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
         let CredentialRequestProof::Jwt { jwt } = self;
 
-        let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.set_required_spec_claims(&["iss", "aud"]);
-        validation_options.set_issuer(accepted_wallet_client_ids);
-        validation_options.set_audience(&[credential_issuer_identifier]);
+        let mut validation = CREDENTIAL_REQUEST_PROOF_VALIDATION.to_owned();
+        validation.require_iss(accepted_wallet_client_ids);
+        validation.require_aud(credential_issuer_identifier);
 
         let (header, payload) = jwt
-            .parse_and_verify_with_jwk(&validation_options)
+            .parse_and_verify_with_jwk(validation)
             .map_err(CredentialRequestError::InvalidProofJwt)?;
 
         let public_key = header
-            .verifying_key()
+            .public_key()
             .map_err(CredentialRequestError::InvalidProofPublicKey)?;
 
         let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
@@ -1830,7 +1833,7 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
     use tracing_test::traced_test;
@@ -2344,7 +2347,7 @@ mod tests {
 
         let token_request = TokenRequest::new_mock_with_pre_authorized_code(code);
         let dpop = Dpop::new(
-            &SigningKey::random(&mut OsRng),
+            &SigningKey::generate(),
             issuer.issuer_data.server_url.join("token"),
             &Method::POST,
             None,

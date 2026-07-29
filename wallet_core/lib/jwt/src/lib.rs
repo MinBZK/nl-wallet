@@ -47,5 +47,4 @@ pub mod wia;
 pub use jsonwebtoken::Algorithm;
 pub use jsonwebtoken::EncodingKey;
 pub use jsonwebtoken::Header;
-pub use jsonwebtoken::Validation;
 pub use jwt::*;

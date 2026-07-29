@@ -1,8 +1,12 @@
+use crypto::PublicKey;
+use crypto::PublicKeyError;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
+use jsonwebtoken::jwk::AlgorithmParameters;
 use jsonwebtoken::jwk::EllipticCurve;
-use p256::ecdsa::VerifyingKey;
-use p256::ecdsa::signature;
+use rsa::signature;
+
+use crate::InvalidNumberOfAlgorithmFamiliesError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum JwtParseError {
@@ -79,7 +83,7 @@ pub enum JwtVerifyError {
 
     #[error("JWK in JWT header does not match expected public key: expected {0:?}, found {1:?}")]
     #[category(critical)]
-    IncorrectJwkPublicKey(Box<VerifyingKey>, Box<VerifyingKey>),
+    IncorrectJwkPublicKey(Box<PublicKey>, Box<PublicKey>),
 
     #[error("key not found in JWK set: {0}")]
     #[category(critical)]
@@ -92,6 +96,10 @@ pub enum JwtVerifyError {
     #[error("error converting JWK: {0}")]
     #[category(critical)]
     JwkConversion(#[source] jsonwebtoken::errors::Error),
+
+    #[error(transparent)]
+    #[category(critical)]
+    MultipleAlgorithms(#[from] InvalidNumberOfAlgorithmFamiliesError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -107,18 +115,22 @@ pub enum JwtSignError {
     #[error("error signing JWT: {0}")]
     #[category(critical)]
     Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("verifying key error: {0}")]
+    #[category(critical)]
+    VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
 pub enum JwkConversionError {
-    #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
+    #[error("unsupported JWK EC curve: {0:?}")]
     #[category(critical)]
-    UnsupportedJwkEcCurve { found: EllipticCurve },
+    UnsupportedJwkEcCurve(EllipticCurve),
 
-    #[error("unsupported JWK algorithm")]
+    #[error("unsupported JWK algorithm: {0:?}")]
     #[category(critical)]
-    UnsupportedJwkAlgorithm,
+    UnsupportedJwkAlgorithm(AlgorithmParameters),
 
     #[error("base64 decoding failed: {0}")]
     Base64Error(#[source] base64::DecodeError),
@@ -132,6 +144,19 @@ pub enum JwkConversionError {
 
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
+
+    #[error("unsupported JWK RSA key size: {0}")]
+    #[category(critical)]
+    UnsupportedJwkRsaKeySize(PublicKeyError),
+
+    #[error("invalid RSA key: {0}")]
+    InvalidRsaKey(rsa::errors::Error),
+
+    #[error("invalid EC key: {0}")]
+    InvalidEcKey(ecdsa::Error),
+
+    #[error("invalid EC coordinate: {0}")]
+    InvalidCoordinate(#[source] std::array::TryFromSliceError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

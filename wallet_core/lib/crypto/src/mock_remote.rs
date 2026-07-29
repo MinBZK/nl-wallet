@@ -9,8 +9,8 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Signer;
+use p256::elliptic_curve::Generate;
 use parking_lot::Mutex;
-use rand_core::OsRng;
 
 use crate::CredentialEcdsaKey;
 use crate::EcdsaKey;
@@ -46,7 +46,7 @@ impl Hash for MockRemoteEcdsaKey {
 
 impl MockRemoteEcdsaKey {
     pub fn new_random(identifier: String) -> Self {
-        Self::new(identifier, SigningKey::random(&mut OsRng))
+        Self::new(identifier, SigningKey::generate())
     }
 
     pub fn verifying_key(&self) -> &VerifyingKey {

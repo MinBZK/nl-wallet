@@ -152,7 +152,7 @@ impl ClonePayload for CoseMac0 {
 mod tests {
     use coset::Header;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use serde::Deserialize;
     use serde::Serialize;
 
@@ -167,7 +167,7 @@ mod tests {
 
     #[tokio::test]
     async fn remove_add_payload() {
-        let key = SigningKey::random(&mut OsRng);
+        let key = SigningKey::generate();
         let payload = ToyMessage {
             number: 42,
             string: "Hello, world!".to_owned(),

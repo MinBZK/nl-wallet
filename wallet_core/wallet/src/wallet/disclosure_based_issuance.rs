@@ -191,7 +191,7 @@ mod tests {
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -228,7 +228,7 @@ mod tests {
         let disclosable_attestation = match requested_format {
             Format::MsoMdoc => {
                 let ca = Ca::generate_issuer_mock_ca().unwrap();
-                let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
+                let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::generate());
                 let partial_mdoc = Box::new(PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key));
 
                 DisclosableAttestation::new(
@@ -329,7 +329,7 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let (mdoc, metadata) = create_example_pid_mdoc(&SigningKey::random(&mut OsRng));
+        let (mdoc, metadata) = create_example_pid_mdoc(&SigningKey::generate());
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),

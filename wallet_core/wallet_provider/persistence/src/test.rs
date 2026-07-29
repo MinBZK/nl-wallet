@@ -15,7 +15,7 @@ use hsm::model::encrypter::Encrypter;
 use hsm::model::mock::MockPkcs11Client;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
 use url::Url;
@@ -59,7 +59,7 @@ pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
     Encrypter::<VerifyingKey>::encrypt(
         &MockPkcs11Client::<Infallible>::default(),
         identifier,
-        *SigningKey::random(&mut OsRng).verifying_key(),
+        *SigningKey::generate().verifying_key(),
     )
     .await
     .unwrap()
@@ -95,7 +95,7 @@ where
         db,
         WalletUserCreate {
             wallet_id,
-            hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
+            hw_pubkey: *SigningKey::generate().verifying_key(),
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
             attestation_date_time: Utc::now(),
             attestation,

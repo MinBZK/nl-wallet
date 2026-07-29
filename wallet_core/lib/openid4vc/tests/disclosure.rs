@@ -96,7 +96,7 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use ring::hmac;
 use ring::rand;
 use rstest::rstest;
@@ -202,7 +202,7 @@ fn disclosure_jwe(
     trust_anchors: &TrustAnchors,
     issuer_ca: &Ca,
 ) -> String {
-    let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
+    let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::generate());
     let partial_mdocs = vec_nonempty![PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key)];
     let encryption_nonce = "encryption_nonce".to_string();
 
