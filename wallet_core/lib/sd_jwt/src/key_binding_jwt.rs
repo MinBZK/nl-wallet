@@ -11,11 +11,12 @@ use crypto::wscd::WscdPoa;
 use derive_more::Display;
 use derive_more::FromStr;
 use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
+use jwt::JwtValidation;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
+use jwt::ValidationWrapper;
 use jwt::VerifiedJwt;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
@@ -74,12 +75,12 @@ impl UnverifiedKeyBindingJwt {
     /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#section-8.3-4.5.1>
     pub fn into_verified(
         self,
-        pubkey: &EcdsaDecodingKey,
+        pubkey: &JwtDecodingKey,
         kb_verification_options: &KbVerificationOptions,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
-        let validation_options = kb_jwt_validation(kb_verification_options.expected_aud);
-        let verified = self.0.into_verified(pubkey, &validation_options)?;
+        let validation = kb_jwt_validation(kb_verification_options.expected_aud);
+        let verified = self.0.into_verified(pubkey, validation)?;
 
         let payload = verified.payload();
         if payload.nonce != *kb_verification_options.expected_nonce {
@@ -104,18 +105,17 @@ impl UnverifiedKeyBindingJwt {
     }
 }
 
-fn kb_jwt_validation(expected_aud: &str) -> Validation {
+fn kb_jwt_validation(expected_aud: &str) -> ValidationWrapper {
     let mut validation = BASE_KB_JWT_VALIDATION.to_owned();
-    validation.set_audience(&[expected_aud]);
+    validation.require_aud(expected_aud);
     validation
+        .try_into_validation()
+        .expect("should be a single algorithm family")
 }
 
-static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validation = Validation::new(Algorithm::ES256);
-    validation.validate_aud = true;
-    validation.validate_exp = false;
-    validation.validate_nbf = false;
-    validation.set_required_spec_claims(&["aud"]);
+static BASE_KB_JWT_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
+    let mut validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
+    validation.dont_validate_exp();
     validation
 });
 
@@ -226,17 +226,17 @@ mod test {
     use base64::prelude::*;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
-    use jwt::EcdsaDecodingKey;
     use jwt::SignedJwt;
     use jwt::error::JwtVerifyError;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use serde_json::json;
     use utils::generator::mock::MockTimeGenerator;
@@ -292,7 +292,7 @@ mod test {
     fn test_key_binding_jwt_builder() {
         let sd_jwt = VerifiedSdJwt::spec_sd_jwt_vc();
 
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let hasher = Sha256Hasher;
 
         let time = MockTimeGenerator::new(Utc::now());
@@ -389,7 +389,7 @@ mod test {
 
     #[tokio::test]
     async fn test_parse_should_validate() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
@@ -403,7 +403,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &EcdsaDecodingKey::from(signing_key.verifying_key()),
+                &PublicKey::from(*signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -424,7 +424,7 @@ mod test {
         #[case] iat_acceptance_window: Duration,
         #[case] expected_valid: bool,
     ) {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let iat_generator = MockTimeGenerator::new(Utc.timestamp_opt(iat_epoch, 0).unwrap());
         let iat = iat_generator.generate();
@@ -447,7 +447,7 @@ mod test {
         };
 
         let result = jwt_str.parse::<UnverifiedKeyBindingJwt>().unwrap().into_verified(
-            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            &PublicKey::from(*signing_key.verifying_key()).into(),
             &kb_verification_options,
             &now_generator,
         );
@@ -463,7 +463,7 @@ mod test {
 
     #[tokio::test]
     async fn test_parse_should_error_for_wrong_nonce() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let jwt_str = example_kb_jwt(&signing_key).await.to_string();
 
@@ -478,7 +478,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &EcdsaDecodingKey::from(signing_key.verifying_key()),
+                &PublicKey::from(*signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -491,7 +491,7 @@ mod test {
 
     #[tokio::test]
     async fn test_parse_should_error_for_invalid_audience() {
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "other_aud",
@@ -505,7 +505,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &EcdsaDecodingKey::from(signing_key.verifying_key()),
+                &PublicKey::from(*signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )

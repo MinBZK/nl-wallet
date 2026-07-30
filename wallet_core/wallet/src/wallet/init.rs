@@ -412,7 +412,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use wallet_account::RevocationCode;
 
@@ -497,7 +497,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_init_fetch_with_registration() {
         let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
-        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
+        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::generate());
 
         let pin_salt = pin_key::new_pin_salt();
         let expected_pin_salt = pin_salt.clone();
@@ -543,7 +543,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_init_restores_issuance_oauth_session() {
         let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
-        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
+        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::generate());
 
         let mut storage = MockStorage::default();
         storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));
@@ -627,7 +627,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_init_restores_pin_recovery_oauth_session() {
         let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
-        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
+        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::generate());
 
         let mut storage = MockStorage::default();
         storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));
@@ -707,7 +707,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_init_errors_on_conflicting_persisted_sessions() {
         let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
-        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
+        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::generate());
 
         let mut storage = MockStorage::default();
         storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));

@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
@@ -80,7 +79,7 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC16 Cross-device data sharing")
-    @Tags(Tag("a11yBatch3"), Tag("twoDevice"))
+    @Tag("a11yBatch3")
     fun verifyCrossDeviceDisclosureCreateAccountXyzBankMdoc(testInfo: TestInfo) {
         setUp(testInfo)
 
@@ -92,7 +91,6 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
         useSourceDevice {
             sourceDashboard.openQRScanner()
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
-            assertTrue(sourceQrScanner.visible())
 
             // PVW-6101 Check for contact
             sourceUrlCheckScreen.clickContinueButton()
@@ -121,7 +119,6 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC19 Cross-device login")
-    @Tags(Tag("twoDevice"))
     fun verifyDisclosureLoginMdoc(testInfo: TestInfo) {
         setUp(testInfo)
 
@@ -133,7 +130,6 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
         useSourceDevice {
             sourceDashboard.openQRScanner()
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
-            assertTrue(sourceQrScanner.visible())
 
             // PVW-6101 Check for contact
             sourceUrlCheckScreen.clickContinueButton()

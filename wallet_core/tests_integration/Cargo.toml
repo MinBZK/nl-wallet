@@ -238,6 +238,7 @@ performance_test = [
     "dcql/mock",
     "dep:base64",
     "dep:ctor",
+    "dep:crypto",
     "dep:dotenvy",
     "dep:indexmap",
     "dep:openid4vc",

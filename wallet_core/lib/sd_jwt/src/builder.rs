@@ -94,20 +94,21 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// # Example:
 /// ```
 /// # use attestation_types::claim_path::ClaimPath;
+/// # use crypto::PublicKey;
 /// # use chrono::Utc;
 /// # use crypto::server_keys::generate::Ca;
 /// # use jwt::confirmation::ConfirmationClaim;
 /// # use p256::ecdsa::SigningKey;
-/// # use rand_core::OsRng;
+/// # use p256::elliptic_curve::Generate;
 /// # use sd_jwt::builder::SdJwtBuilder;
 /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
 /// # use utils::date_time_seconds::DateTimeSeconds;
 ///
 ///  # tokio_test::block_on(async {
-/// let holder_key = SigningKey::random(&mut OsRng);
+/// let holder_key = SigningKey::generate();
 /// let claims = SdJwtVcClaims {
 ///     _sd_alg: None,
-///     cnf: ConfirmationClaim::from_verifying_key(&holder_key.verifying_key())?,
+///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*holder_key.verifying_key()))?,
 ///     vct: "urn:example:vct".into(),
 ///     vct_integrity: None,
 ///     iss: "https://issuer.example.com".parse()?,
@@ -163,18 +164,19 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// ```
     /// # use attestation_types::claim_path::ClaimPath;
     /// # use chrono::Utc;
+    /// # use crypto::PublicKey;
     /// # use jwt::confirmation::ConfirmationClaim;
     /// # use p256::ecdsa::SigningKey;
+    /// # use p256::elliptic_curve::Generate;
     /// # use serde_json::json;
     /// # use sd_jwt::builder::SdJwtBuilder;
     /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
     /// # use utils::date_time_seconds::DateTimeSeconds;
     /// # use utils::vec_nonempty;
-    /// # use rand_core::OsRng;
     ///
     /// let builder = SdJwtBuilder::new(SdJwtVcClaims {
     ///     _sd_alg: None,
-    ///     cnf: ConfirmationClaim::from_verifying_key(&SigningKey::random(&mut OsRng).verifying_key())?,
+    ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*SigningKey::generate().verifying_key()))?,
     ///     vct: "com:example:vct".into(),
     ///     vct_integrity: None,
     ///     iss: "https://issuer.example.com".parse()?  ,
@@ -239,9 +241,9 @@ impl<H: Hasher> SdJwtBuilder<H> {
 #[cfg(feature = "examples")]
 mod examples {
     use attestation_types::claim_path::ClaimPath;
+    use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
     use futures::FutureExt;
-    use p256::ecdsa::VerifyingKey;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
 
@@ -250,7 +252,7 @@ mod examples {
     use crate::sd_jwt::SdJwtVcClaims;
 
     impl SignedSdJwt {
-        pub fn pid_example(issuer_keypair: &KeyPair, holder_pubkey: &VerifyingKey) -> Self {
+        pub fn pid_example(issuer_keypair: &KeyPair, holder_pubkey: &PublicKey) -> Self {
             let claims = SdJwtVcClaims::pid_example(holder_pubkey, &MockTimeGenerator::default());
 
             // issuer signs SD-JWT
@@ -274,7 +276,7 @@ mod test {
     use std::assert_matches;
 
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use serde_json::json;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -282,7 +284,7 @@ mod test {
 
     fn builder_from_json(object: serde_json::Value) -> SdJwtBuilder<Sha256Hasher> {
         SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
-            SigningKey::random(&mut OsRng).verifying_key(),
+            SigningKey::generate().verifying_key(),
             object,
             &MockTimeGenerator::default(),
         ))

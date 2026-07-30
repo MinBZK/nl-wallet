@@ -227,7 +227,7 @@ pub mod mock {
     use crypto::trust_anchor::TrustAnchors;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
@@ -267,7 +267,7 @@ pub mod mock {
 
         pub async fn new_mock() -> Self {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
-            let key = MockRemoteEcdsaKey::new("identifier".to_owned(), SigningKey::random(&mut OsRng));
+            let key = MockRemoteEcdsaKey::new("identifier".to_owned(), SigningKey::generate());
             Self::new_mock_with_ca_and_key(&ca, &key).await
         }
 

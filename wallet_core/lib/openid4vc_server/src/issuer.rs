@@ -42,6 +42,7 @@ use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
+use openid4vc::client_auth::AttestationChallenge;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -119,7 +120,7 @@ where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    N: Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
     AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
@@ -152,6 +153,7 @@ where
         .route("/issuance/credential", delete(reject_credential))
         .route("/issuance/batch_credential", post(batch_credential))
         .route("/issuance/batch_credential", delete(reject_batch_credential))
+        .route("/issuance/client_auth_challenge", post(client_auth_challenge))
         .with_state(IssuanceState { issuer })
 }
 
@@ -225,7 +227,7 @@ async fn nonce<K, L, S, N>(
 where
     N: NonceStore,
 {
-    let c_nonce = state.issuer.generate_proof_nonce().await.map_err(|error| {
+    let c_nonce = state.issuer.generate_nonce().await.map_err(|error| {
         warn!("generating fresh c_nonce failed: {}", error);
 
         // Any error that occurs while generating the nonce is de facto a problem with the server.
@@ -236,6 +238,27 @@ where
     // See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-7.2-3>
     let header = TypedHeader(CacheControl::new().with_no_store());
     let body = Json(NonceResponse { c_nonce });
+
+    Ok((header, body))
+}
+
+async fn client_auth_challenge<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+) -> Result<(TypedHeader<CacheControl>, Json<AttestationChallenge>), StatusCode>
+where
+    N: NonceStore,
+{
+    let attestation_challenge = state.issuer.generate_nonce().await.map_err(|error| {
+        warn!("generating fresh attestation_challenge failed: {}", error);
+
+        // Any error that occurs while generating the nonce is de facto a problem with the server.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Including this header is mandatory.
+    // See: <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#section-6.1>
+    let header = TypedHeader(CacheControl::new().with_no_store());
+    let body = Json(AttestationChallenge { attestation_challenge });
 
     Ok((header, body))
 }
@@ -329,6 +352,7 @@ async fn token<K, L, S, N>(
 where
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
+    N: NonceStore,
 {
     let (response, dpop_nonce) = state
         .issuer
@@ -356,6 +380,7 @@ async fn pushed_authorization_request<K, L, S, N, PAS, AF>(
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
     PAS: Store<String, VciAuthorizationRequest>,
+    N: NonceStore,
 {
     let response = state
         .authorizing_issuer

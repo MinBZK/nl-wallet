@@ -1,11 +1,15 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
+use jwt::nonce::Nonce;
+use jwt::wia::WiaDisclosure;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::mock_remote::MockWiaClient;
 use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
@@ -17,6 +21,22 @@ use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::token::CredentialPreview;
+
+/// A [`WiaClient`] that records the challenge it was given, delegating the actual WIA issuance to a
+/// [`MockWiaClient`].
+#[derive(Default)]
+pub struct RecordingWiaClient {
+    pub received_challenge: RefCell<Option<Option<Nonce>>>,
+}
+
+impl WiaClient for RecordingWiaClient {
+    type Error = <MockWiaClient as WiaClient>::Error;
+
+    async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+        *self.received_challenge.borrow_mut() = Some(challenge.clone());
+        MockWiaClient::new().issue_wia(aud, challenge).await
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MockAuthorizationSessionData {

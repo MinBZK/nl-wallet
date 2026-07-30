@@ -419,8 +419,8 @@ mod tests {
     use apple_app_attest::AssertionCounter;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use serde::Deserialize;
     use serde::Serialize;
@@ -463,7 +463,7 @@ mod tests {
 
     #[test]
     fn test_ecdsa_signed_message() {
-        let key = SigningKey::random(&mut OsRng);
+        let key = SigningKey::generate();
         let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Google, &key)
             .now_or_never()
             .unwrap()
@@ -500,14 +500,14 @@ mod tests {
 
     #[test]
     fn test_signed_message_signature_verification_error() {
-        let key = SigningKey::random(&mut OsRng);
+        let key = SigningKey::generate();
         let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Google, &key)
             .now_or_never()
             .unwrap()
             .expect("should sign message with ECDSA key");
 
         // Verifying with a wrong public key should return a `Error::SignatureVerification`.
-        let other_key = SigningKey::random(&mut OsRng);
+        let other_key = SigningKey::generate();
         let error = signed_message
             .parse_and_verify_ecdsa(EcdsaSignatureType::Google, other_key.verifying_key())
             .expect_err("verifying SignedMessage should return an error");
@@ -553,7 +553,7 @@ mod tests {
             SignatureType::AppleAssertion => SignatureType::Ecdsa(EcdsaSignatureType::Pin),
         };
 
-        let ecdsa_key = SigningKey::random(&mut OsRng);
+        let ecdsa_key = SigningKey::generate();
         let attested_key = create_mock_apple_attested_key();
         let payload = ToyPayload::default();
 
@@ -589,7 +589,7 @@ mod tests {
 
     #[test]
     fn test_subject_ecdsa_signed_message() {
-        let key = SigningKey::random(&mut OsRng);
+        let key = SigningKey::generate();
         let signed_message = SignedSubjectMessage::sign_ecdsa(ToyPayload::default(), EcdsaSignatureType::Google, &key)
             .now_or_never()
             .unwrap()
@@ -647,7 +647,7 @@ mod tests {
             }
         }
 
-        let ecdsa_key = SigningKey::random(&mut OsRng);
+        let ecdsa_key = SigningKey::generate();
         let attested_key = create_mock_apple_attested_key();
         let payload = WrongToyPayload {
             string: "WRONG!".to_string(),

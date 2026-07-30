@@ -9,12 +9,11 @@
 use std::borrow::Cow;
 
 use base64::prelude::*;
-use crypto::WithVerifyingKey;
+use crypto::PublicKey;
 use crypto::x509::BorrowingCertificate;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -24,8 +23,8 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::JwtTyp;
 use crate::error::JwkConversionError;
 use crate::error::JwtParseError;
-use crate::jwk::jwk_from_p256;
-use crate::jwk::jwk_to_p256;
+use crate::jwk::jwk_from_public_key;
+use crate::jwk::jwk_to_public_key;
 
 /// Default `typ` value for JWTs when a payload does not override `JwtTyp::TYP`.
 ///
@@ -93,12 +92,8 @@ pub struct HeaderWithJwk<H = HeaderWithTyp> {
 }
 
 impl HeaderWithJwk {
-    pub async fn try_from_verifying_key(key: &impl WithVerifyingKey) -> Result<Self, JwkConversionError> {
-        let jwk = jwk_from_p256(
-            &key.verifying_key()
-                .await
-                .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
-        )?;
+    pub fn try_from_public_key(key: &PublicKey) -> Result<Self, JwkConversionError> {
+        let jwk = jwk_from_public_key(key)?;
         Ok(HeaderWithJwk {
             header: HeaderWithTyp::default(),
             jwk,
@@ -111,8 +106,8 @@ impl<H> HeaderWithJwk<H> {
         &self.header
     }
 
-    pub fn verifying_key(&self) -> Result<VerifyingKey, JwkConversionError> {
-        jwk_to_p256(&self.jwk)
+    pub fn public_key(&self) -> Result<PublicKey, JwkConversionError> {
+        jwk_to_public_key(&self.jwk)
     }
 }
 

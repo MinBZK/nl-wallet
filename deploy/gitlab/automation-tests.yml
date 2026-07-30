@@ -34,6 +34,176 @@ scheduled-automation-tests-trigger:
     IOS_ACCEPT_ALERTS: "true"
     ENABLE_BROWSERSTACK_A11Y_CHECKS: false
 
+.extract-reader-ca-credentials:
+  extends: .env-k8s
+  before_script: &extract-reader-ca-credentials-script
+    - AMSTERDAM_CA_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.private_key}' | base64 --decode)
+    - AMSTERDAM_CA_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.certificate}' | base64 --decode)
+    - echo "$AMSTERDAM_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/amsterdam.wrpac.key.pem
+    - echo "$AMSTERDAM_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/amsterdam.wrpac.crt.pem
+    - export AMSTERDAM_CA_KEY_FILE=/tmp/amsterdam.wrpac.key.pem
+    - export AMSTERDAM_CA_CRT_FILE=/tmp/amsterdam.wrpac.crt.pem
+    - MONKEY_BIKE_CA_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.private_key}' | base64 --decode)
+    - MONKEY_BIKE_CA_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.certificate}' | base64 --decode)
+    - echo "$MONKEY_BIKE_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/monkey_bike.wrpac.key.pem
+    - echo "$MONKEY_BIKE_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/monkey_bike.wrpac.crt.pem
+    - export MONKEY_BIKE_CA_KEY_FILE=/tmp/monkey_bike.wrpac.key.pem
+    - export MONKEY_BIKE_CA_CRT_FILE=/tmp/monkey_bike.wrpac.crt.pem
+
+# Install the Apple development certificate and provisioning profiles that Appium needs to build
+# WebDriverAgent for real iOS devices, from the fastlane match repository (read-only). The job
+# token must be allowlisted on the certificates project. The login keychain is unlocked first
+# because the runner executes outside a GUI session (the runner user's login password comes from
+# the nl-wallet-macmini secret); without this, codesign fails with errSecInternalComponent and
+# xcodebuild exits with code 65.
+# Also extracts the WRPAC CA credentials (composed via YAML anchor so both command lists are
+# defined only once); the iOS device jobs use this template via extends.
+.install-ios-signing:
+  extends: .env-k8s
+  before_script:
+    - *extract-reader-ca-credentials-script
+    - MACOS_KEYCHAIN_PASSWORD="$(kubectl get secret nl-wallet-macmini -o jsonpath='{.data.password}' | base64 --decode)"
+    - security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db
+    - security set-keychain-settings ~/Library/Keychains/login.keychain-db
+    - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
+    - export MATCH_PASSWORD
+    - MATCH_GIT_BASIC_AUTHORIZATION="$(printf 'gitlab-ci-token:%s' "$CI_JOB_TOKEN" | base64)"
+    - export MATCH_GIT_BASIC_AUTHORIZATION
+    - export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
+    - bundle install
+    - bundle exec fastlane match development --readonly
+    # Quoted because the unquoted 'codesign: ' colon would make YAML parse this line as a mapping.
+    - 'security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db > /dev/null'
+    # Point the WebDriverAgentRunner target at the match profile (per-target manual signing);
+    # see the script header why neither automatic signing nor a global xcconfig works.
+    - bundle exec ruby deploy/qa-util/patch-wda-signing.rb
+
+automation-tests-load-device-config:
+  extends: .env-k8s
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  script:
+    - |
+      SECRET_JSON=$(kubectl get secret nl-wallet-macmini -o json)
+      : > devices.env
+      for key in \
+        android_device_1_udid \
+        android_1_name \
+        android_1_os_version \
+        android_2_udid \
+        android_2_name \
+        android_2_os_version \
+        ios_1_udid \
+        ios_1_name \
+        ios_1_os_version \
+        ios_2_udid \
+        ios_2_name \
+        ios_2_os_version \
+        emulator_udid \
+        emulator_os_version \
+        simulator_udid \
+        simulator_os_version \
+      ; do
+        value=$(echo "$SECRET_JSON" | jq -r --arg k "$key" '.data[$k] // empty' | base64 --decode)
+        upper=$(echo "$key" | tr '[:lower:]' '[:upper:]')
+        # No surrounding quotes: GitLab's dotenv artifact parser keeps them as
+        # literal characters, which would corrupt the value (e.g. an iOS UDID
+        # would become '"<udid>"' and Appium rejects it as an unknown device).
+        printf '%s=%s\n' "$upper" "$value" >> devices.env
+      done
+  artifacts:
+    reports:
+      dotenv: devices.env
+
+automation-tests-fetch-android-app:
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  needs:
+    - job: build-android-app-ont
+      artifacts: false
+      optional: true
+  script:
+    - mc cp "qt/quality-time/apps/${APP}" "${APP}"
+  artifacts:
+    name: android-app
+    paths:
+      - "${APP}"
+  variables:
+    APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+
+automation-tests-fetch-ios-app:
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  needs:
+    - job: build-ios-app-adhoc-ont
+      artifacts: false
+      optional: true
+  script:
+    - mc cp "qt/quality-time/apps/${APP}" "${APP}"
+  artifacts:
+    name: ios-app
+    paths:
+      - "${APP}"
+  variables:
+    APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+
+automation-tests-fetch-ios-simulator-app:
+  rules:
+    - !reference [.on-schedule-automation, rules]
+  needs:
+    - job: build-ios-simulator-app-ont
+      artifacts: false
+      optional: true
+  script:
+    - mkdir -p wallet_app/build/ios/iphonesimulator
+    - mc cp "qt/quality-time/apps/Runner-${CI_COMMIT_SHA}.app.zip" "wallet_app/build/ios/iphonesimulator/Runner-${CI_COMMIT_SHA}.app.zip"
+  artifacts:
+    name: ios-simulator-app
+    paths:
+      - "wallet_app/build/ios/iphonesimulator/Runner-${CI_COMMIT_SHA}.app.zip"
+
+.automation-tests-macos-devices:
+  resource_group: automation-tests
+  tags:
+    - macos-devices
+  artifacts:
+    name: uiautomation
+    when: always
+    paths:
+      - uiautomation/build/test-results/**/*.xml
+      - uiautomation/build/allure-results
+      - uiautomation/build/reports
+      - uiautomation/appium.log
+    reports:
+      junit: uiautomation/build/test-results/**/*.xml
+  rules:
+    - !reference [.on-schedule-automation, rules]
+
+.automation-tests-macos-android-devices:
+  extends: .automation-tests-macos-devices
+  variables:
+    ANDROID_HOME: "/opt/homebrew/share/android-commandlinetools"
+    ANDROID_SDK_ROOT: "/opt/homebrew/share/android-commandlinetools"
+
+.automation-two-device-tests:
+  script: |
+    cd uiautomation
+    ./gradlew --no-daemon --info --stacktrace test --tests ${TEST_SUITE} \
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+      -Dtest.config.app.path="../${APP}" \
+      -Dtest.config.source.platform.name="${PLATFORM_NAME}" \
+      -Dtest.config.source.name="${SOURCE_DEVICE_NAME}" \
+      -Dtest.config.source.udid="${SOURCE_DEVICE_UDID}" \
+      -Dtest.config.source.platform.version="${SOURCE_PLATFORM_VERSION}" \
+      -Dtest.config.destination.platform.name="${PLATFORM_NAME}" \
+      -Dtest.config.destination.name="${DESTINATION_DEVICE_NAME}" \
+      -Dtest.config.destination.udid="${DESTINATION_DEVICE_UDID}" \
+      -Dtest.config.destination.platform.version="${DESTINATION_PLATFORM_VERSION}" \
+      -Dtest.config.remote=false \
+      -Dfile.encoding=UTF-8 \
+      || true
+    compgen -G "build/test-results/test/*.xml"
+
 .run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .run-automation-tests-base
@@ -75,6 +245,13 @@ run-automation-tests-publish-results:
     - { job: run-automation-notifications-tests }
     - { job: run-automation-revocation-tests }
     - { job: run-automation-permissions-tests }
+    - { job: run-automation-close-proximity-tests-android }
+    - { job: run-automation-close-proximity-tests-ios }
+    - { job: run-automation-cross-device-tests-android }
+    - { job: run-automation-cross-device-tests-ios }
+    - { job: run-automation-wallet-transfer-tests-android }
+    - { job: run-automation-wallet-transfer-tests-ios }
+    - { job: run-automation-biometrics-tests-ios }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
@@ -130,6 +307,161 @@ run-automation-permissions-tests:
     TESTS: "suite.PermissionsTestSuite"
     AUTO_GRANT_PERMISSIONS: "false"
     IOS_DEFAULT_ALERT_ACTION: "dismiss"
+
+run-automation-close-proximity-tests-android:
+  extends: [.automation-tests-macos-android-devices, .extract-reader-ca-credentials]
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-fetch-android-app
+      artifacts: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+  script: |
+    cd uiautomation
+    ./gradlew --no-daemon --info --stacktrace test --tests suite.CloseProximityTestSuite \
+      -Dtest.config.app.path="../${APP}" \
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+      -Dtest.config.device.name="${ANDROID_DEVICE_NAME}" \
+      -Dtest.config.platform.name="Android" \
+      -Dtest.config.device.udid="${ANDROID_UDID}" \
+      -Dtest.config.platform.version="${ANDROID_PLATFORM_VERSION}" \
+      -Dtest.config.remote=false \
+      -Dfile.encoding=UTF-8 \
+      || true
+    compgen -G "build/test-results/test/*.xml"
+  variables:
+    APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    ANDROID_DEVICE_NAME: "${ANDROID_1_NAME}"
+    ANDROID_PLATFORM_VERSION: "${ANDROID_1_OS_VERSION}"
+    ANDROID_UDID: "${ANDROID_1_UDID}"
+
+run-automation-close-proximity-tests-ios:
+  extends: [.automation-tests-macos-devices, .install-ios-signing]
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-fetch-ios-app
+      artifacts: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+  script: |
+    cd uiautomation
+    ./gradlew --no-daemon --info --stacktrace test --tests suite.CloseProximityTestSuite \
+      -Dtest.config.app.path="../${APP}" \
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+      -Dtest.config.device.udid="${IOS_DEVICE_UDID}" \
+      -Dtest.config.platform.name="IOS" \
+      -Dtest.config.platform.version="${IOS_PLATFORM_VERSION}" \
+      -Dtest.config.remote=false \
+      -Dfile.encoding=UTF-8 \
+      || true
+    compgen -G "build/test-results/test/*.xml"
+  variables:
+    APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    IOS_DEVICE_UDID: "${IOS_1_UDID}"
+    IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
+
+run-automation-cross-device-tests-android:
+  extends: [.automation-tests-macos-android-devices, .automation-two-device-tests]
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-fetch-android-app
+      artifacts: true
+    - job: build-env-ont
+      artifacts: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+  variables:
+    TEST_SUITE: "suite.CrossDeviceTestSuite"
+    PLATFORM_NAME: "Android"
+    APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    SOURCE_DEVICE_NAME: "${ANDROID_1_NAME}"
+    SOURCE_PLATFORM_VERSION: "${ANDROID_1_OS_VERSION}"
+    SOURCE_UDID: "${ANDROID_1_UDID}"
+    DESTINATION_DEVICE_NAME: "${ANDROID_2_NAME}"
+    DESTINATION_PLATFORM_VERSION: "${ANDROID_2_OS_VERSION}"
+    DESTINATION_UDID: "${ANDROID_2_UDID}"
+
+run-automation-cross-device-tests-ios:
+  extends: [.automation-tests-macos-devices, .automation-two-device-tests, .install-ios-signing]
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-fetch-ios-app
+      artifacts: true
+    - job: build-env-ont
+      artifacts: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+  variables:
+    TEST_SUITE: "suite.CrossDeviceTestSuite"
+    PLATFORM_NAME: "IOS"
+    APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    SOURCE_DEVICE_UDID: "${IOS_2_UDID}"
+    SOURCE_PLATFORM_VERSION: "${IOS_2_OS_VERSION}"
+    DESTINATION_DEVICE_UDID: "${IOS_1_UDID}"
+    DESTINATION_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
+
+run-automation-wallet-transfer-tests-android:
+  extends: [.automation-tests-macos-android-devices, .automation-two-device-tests]
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-fetch-android-app
+      artifacts: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+  variables:
+    TEST_SUITE: "suite.WalletTransferTestSuite"
+    PLATFORM_NAME: "Android"
+    APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    SOURCE_DEVICE_NAME: "${ANDROID_1_NAME}"
+    SOURCE_PLATFORM_VERSION: "${ANDROID_1_OS_VERSION}"
+    SOURCE_UDID: "${ANDROID_1_UDID}"
+    DESTINATION_DEVICE_NAME: "${ANDROID_2_NAME}"
+    DESTINATION_PLATFORM_VERSION: "${ANDROID_2_OS_VERSION}"
+    DESTINATION__UDID: "${ANDROID_2_UDID}"
+
+run-automation-wallet-transfer-tests-ios:
+  extends: [.automation-tests-macos-devices, .automation-two-device-tests, .install-ios-signing]
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-fetch-ios-app
+      artifacts: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+  variables:
+    TEST_SUITE: "suite.WalletTransferTestSuite"
+    PLATFORM_NAME: "IOS"
+    APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    SOURCE_DEVICE_UDID: "${IOS_1_UDID}"
+    SOURCE_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
+    DESTINATION_DEVICE_UDID: "${IOS_2_UDID}"
+    DESTINATION_PLATFORM_VERSION: "${IOS_2_OS_VERSION}"
+
+run-automation-biometrics-tests-ios:
+  extends: .automation-tests-macos-devices
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-fetch-ios-simulator-app
+      artifacts: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+  script: |
+    rm -rf wallet_app/build/ios/iphonesimulator/Runner.app
+    unzip -q -o "wallet_app/build/ios/iphonesimulator/Runner-${CI_COMMIT_SHA}.app.zip" -d wallet_app/build/ios/iphonesimulator/
+    xcrun simctl bootstatus "${IOS_SIMULATOR_UDID}" -b
+    cd uiautomation
+    ./gradlew --no-daemon --info --stacktrace test --tests suite.BiometricsTestSuite \
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+      -Dtest.config.app.path="../wallet_app/build/ios/iphonesimulator/Runner.app" \
+      -Dtest.config.device.udid="${IOS_SIMULATOR_UDID}" \
+      -Dtest.config.platform.name="IOS" \
+      -Dtest.config.platform.version="${IOS_SIMULATOR_VERSION}" \
+      -Dtest.config.remote=false \
+      -Dfile.encoding=UTF-8 \
+      || true
+    compgen -G "build/test-results/test/*.xml"
+  variables:
+    IOS_SIMULATOR_UDID: "${SIMULATOR_UDID}"
+    IOS_SIMULATOR_VERSION: "${SIMULATOR_OS_VERSION}"
 
 run-automation-english-tests:
   extends: .run-automation-tests-common-setup

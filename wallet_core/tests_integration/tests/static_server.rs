@@ -1,13 +1,14 @@
 use std::assert_matches;
 use std::env;
 
+use crypto::PublicKey;
 use http_utils::client::TlsPinningConfig;
 use jwt::SignedJwt;
 use jwt::error::JwtVerifyError;
 use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
-use rand_core::OsRng;
 use regex::regex;
 use reqwest::header::HeaderValue;
 use tests_integration::common::*;
@@ -47,7 +48,7 @@ async fn test_wallet_config() {
     let _ = fs::remove_file(etag_file.as_path()).await;
 
     let http_config = HttpConfigurationRepository::new(
-        config_server_config.signing_public_key.as_inner().into(),
+        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         storage_path.clone(),
         default_wallet_config(),
     )
@@ -93,7 +94,7 @@ async fn test_wallet_config_stale() {
     };
 
     let http_config = HttpConfigurationRepository::new(
-        config_server_config.signing_public_key.as_inner().into(),
+        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         env::temp_dir(),
         default_wallet_config(),
     )
@@ -123,7 +124,7 @@ async fn test_wallet_config_signature_verification_failed() {
     served_wallet_config.version = 0;
 
     let (mut static_settings, static_root_ca) = static_server_settings();
-    let signing_key = SigningKey::random(&mut OsRng);
+    let signing_key = SigningKey::generate();
     let pkcs8_der = signing_key.to_pkcs8_der().unwrap();
     let jwt = SignedJwt::sign(
         &served_wallet_config,
@@ -141,7 +142,7 @@ async fn test_wallet_config_signature_verification_failed() {
     };
 
     let http_config = HttpConfigurationRepository::new(
-        config_server_config.signing_public_key.as_inner().into(),
+        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         env::temp_dir(),
         default_wallet_config(),
     )

@@ -278,6 +278,7 @@ impl BorrowingCertificate {
         &self.0.get().x509_cert
     }
 
+    // TODO change to PublicKey (PVW-6023)
     pub fn public_key(&self) -> &VerifyingKey {
         &self.0.get().public_key
     }

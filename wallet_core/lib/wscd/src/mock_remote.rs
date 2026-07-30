@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use attestation_types::status_claim::StatusClaim;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -26,7 +27,8 @@ use jwt::wia::WiaPopClaims;
 use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
+use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -150,7 +152,7 @@ impl IssuanceWscd for MockRemoteWscd {
         let mut keys = self.disclosure.signing_keys.lock();
         let attestation_keys: VecNonEmpty<_> = repeat_n((), count)
             .map(|_| {
-                let key = SigningKey::random(&mut OsRng);
+                let key = SigningKey::generate();
                 let identifier = verifying_key_sha256(key.verifying_key());
                 keys.insert(identifier.clone(), key.clone());
                 MockRemoteEcdsaKey::new(identifier, key)
@@ -214,7 +216,7 @@ impl WiaClient for MockWiaClient {
     type Error = MockRemoteWscdError;
 
     async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
-        let wia_key = SigningKey::random(&mut OsRng);
+        let wia_key = SigningKey::generate();
         let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
 
         let wia_keypair = self
@@ -229,9 +231,9 @@ impl WiaClient for MockWiaClient {
 
         let exp = Utc::now() + Duration::from_secs(600);
 
-        let wia = SignedJwt::sign_with_certificate(
+        let wia = SignedJwt::sign_with_iat(
             &WiaClaims::new(
-                wia_key.verifying_key(),
+                &PublicKey::from(*wia_key.verifying_key()),
                 wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
                 client_id.clone(),
                 exp.into(),
@@ -244,6 +246,7 @@ impl WiaClient for MockWiaClient {
             )
             .unwrap(),
             &wia_keypair,
+            &TimeGenerator,
         )
         .now_or_never()
         .unwrap()

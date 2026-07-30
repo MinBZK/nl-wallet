@@ -2,20 +2,14 @@
   <div class="app-shell">
     <AppSidebar />
     <main class="main-content">
-      <TopHeader />
-      <TasksFilters />
-      <TasksTable />
-      <PaginationBar />
+      <RouterView />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import AppSidebar from './components/AppSidebar.vue'
-import TopHeader from './components/TopHeader.vue'
-import TasksFilters from './components/TasksFilters.vue'
-import TasksTable from './components/TasksTable.vue'
-import PaginationBar from './components/PaginationBar.vue'
+import { RouterView } from 'vue-router'
+import AppSidebar from './components/sidebar/AppSidebar.vue'
 </script>
 
 <style scoped>
@@ -24,8 +18,7 @@ import PaginationBar from './components/PaginationBar.vue'
   grid-template-columns: 260px 1fr;
   height: 100vh;
   overflow: hidden;
-  background: #fafafa;
-  color: #1f2a44;
+  background: var(--color-background);
   font-family: 'RO Sans', sans-serif;
 }
 
@@ -34,7 +27,7 @@ import PaginationBar from './components/PaginationBar.vue'
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: #fff;
+  background: var(--color-background);
   border-left: 1px solid #e7e7ef;
 }
 </style>

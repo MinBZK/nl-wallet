@@ -8,26 +8,31 @@ code base using Appium and BrowserStack.
 - [Prerequisites for installation on MacOS](#prerequisites-for-installation-on-macos)
 - [Appium Setup](#appium-setup)
 - [Run Automation Tests](#run-automation-tests)
+- [Building the app for emulator and simulator](#building-the-app-for-emulator-and-simulator)
+- [BrowserStack run](#browserstack-run)
+- [Customizing local test runs](#customizing-local-test-runs)
+- [Customizing Browserstack test runs](#customizing-browserstack-test-runs)
+- [Real Device Configuration](#real-device-configuration)
 - [Two-Device Tests](#two-device-tests)
 - [Test Annotations](#test-annotations)
 
 ## Prerequisites for installation on MacOS
 
 1. Install Java SE Development Kit 11 or later.
-   https://www.oracle.com/java/technologies/downloads/#java11</b>
+   https://www.oracle.com/java/technologies/downloads/#java11
 2. Set JAVA_HOME in your environment variable:
    `export JAVA_HOME=$(/usr/libexec/java_home) export PATH=$JAVA_HOME/bin:$PATH`.
-3. `Node & NPM`</b> - Download & install node from
+3. `Node & NPM` - Download & install node from
    `https://nodejs.org/en/download/`.
-4. `Gradle`</b> - Install Gradle.
-5. `Android`</b> - Install Android Studio & set <i><b>ANDROID_HOME</b></i> path.
+4. `Gradle` - Install Gradle.
+5. `Android` - Install Android Studio & set `ANDROID_HOME` path.
     - Downloading the Android SDK
     - Download the Android SDK tools such as
         1. Build tools
         2. Platform tools
         3. Android Emulator
         4. Create an emulator device with API version 33 from AVD manager
-6. `iOS`</b> - Install XCode on your machine & download required iPhone/iPad
+6. `iOS` - Install XCode on your machine & download required iPhone/iPad
    simulators.
 
 ## Appium Setup
@@ -40,7 +45,8 @@ code base using Appium and BrowserStack.
 3. Install
    [Appium xcuitest Driver](https://github.com/appium/appium-xcuitest-driver):
    `appium driver install xcuitest`
-4. Verify setup by running: `appium doctor`
+4. Verify each driver's setup: `appium driver doctor xcuitest` and
+   `appium driver doctor uiautomator2`
 
 ## Run Automation Tests
 
@@ -48,8 +54,11 @@ code base using Appium and BrowserStack.
 
 1. Make sure that you are in the correct directory: `uiautomation` where the
    Gradle project is located.
-2. See "[Customizing the test run](#customizing-test-runs)" for more info on how
-   to customize & run test locally or remote.
+2. See "[Customizing local test runs](#customizing-local-test-runs)" for more
+   info on how to customize & run tests locally or remote.
+
+The Appium server is started automatically by the Gradle test run; it handles
+running the tests and reporting the results on the console.
 
 ### Local run
 
@@ -89,13 +98,17 @@ code base using Appium and BrowserStack.
     universal_link_base:app.example.com`.
   followed by signing it with:
    `bundle exec fastlane ios sign app_store:false`
-- For IOS the value of variable ipaPath in
-  `uiautomation/src/main/kotlin/driver/LocalMobileDriver.kt` needs to be changed
-  to the location of the IPA build with the previous command.
-- For IOS additional driver capabilities must be set to run the test on a real
-  device. This can be done by filling the values in
-  `uiautomation/src/main/kotlin/driver/LocalMobileDriver.kt` for the following
-  capabilities: `udid`, `xcodeOrgId`, `xcodeSigningId`, `updatedWDABundleId`
+- Provide the built app to the tests with the `test.config.app.path` system
+  property (path relative to `uiautomation`). If omitted, it falls back to the
+  `IPA_PATH` (iOS) / `APK_PATH` (Android) constant in
+  `uiautomation/src/main/kotlin/driver/AppiumOptionsFactory.kt`. Those constants
+  are version-pinned (e.g. `nl.ictu.edi.wallet.latest-0.6.0.ipa`), so either bump
+  them per release or — preferably — pass `-Dtest.config.app.path` explicitly.
+- To run on a real iOS device, select it with `-Dtest.config.udid`. The signing
+  capabilities are already configured in the driver (`xcodeOrgId` and
+  `xcodeSigningId` in `AppiumOptionsFactory.kt`, `updatedWDABundleId` in
+  `LocalMobileDriver.kt`); see
+  [Real Device Configuration](#real-device-configuration) for the full setup.
 
 ## Building the app for emulator and simulator
 
@@ -136,14 +149,11 @@ Output: `wallet_app/build/ios/iphonesimulator/Runner.app`
 
 Update the `IPA_PATH` constant in
 `uiautomation/src/main/kotlin/driver/AppiumOptionsFactory.kt` to point to
-this path before running the tests.
+this path before running the tests (or pass `-Dtest.config.app.path`).
 
-The Appium Server will start automatically. Appium Server will handle the
-process of running the tests and displaying the results on the console.
+## BrowserStack run
 
-### BrowserStack run
-
-#### Precondition
+### Precondition
 
 - Add the following environment variables to the `~/.bash_profile` or `~/.zshrc`
   file:
@@ -160,7 +170,7 @@ process of running the tests and displaying the results on the console.
 This will run the all the tests and output the test execution results on
 [App Automate dashboard](https://app-automate.browserstack.com/dashboard).
 
-### Customizing local test runs
+## Customizing local test runs
 
 The following parameters can be used to customize the test run:
 
@@ -169,13 +179,18 @@ The following parameters can be used to customize the test run:
 2. `test.config.device.name`; The name of the device to be used for testing, use
    your local device for Android testing.
 3. `test.config.platform.name`; The name of the platform to be used for testing,
-   use `android` for local Android testing.
+   use `Android` for local Android testing or `iOS` for local iOS testing.
 4. `test.config.platform.version`; The version of the platform to be used for
-   testing, set this to the Android version of the device.
-5. `test.config.remote`; The value of this parameter should be set to `false` to
+   testing, set this to the OS version of the device.
+5. `test.config.udid`; The UDID of the device to be used for testing. Required
+   to select a specific real iOS device.
+6. `test.config.remote`; The value of this parameter should be set to `false` to
    run the tests locally, else `true` for BrowserStack test runs.
-6. `test.config.automation.name`; The value of this parameter should be set to
-   `UIAutomator2` for Android.
+7. `test.config.automation.name`; The value of this parameter should be set to
+   `UIAutomator2` for Android or `XCUITest` for iOS.
+8. `test.config.commit.sha`; The commit SHA used to build the BrowserStack app
+   name (`NLWallet{Android,Ios}_{identifier}_{sha}`); only relevant for remote
+   runs.
 
 #### Local test run examples:
 
@@ -197,7 +212,7 @@ Full test suite run example:
     -Dtest.config.automation.name="UIAutomator2"
 ```
 
-### Customizing Browserstack test runs
+## Customizing Browserstack test runs
 
 The e2e testframework uses the Browserstack SDK to run test against
 browserstack. The SDK looks in the root of the `uiautomation` directory for a
@@ -222,38 +237,105 @@ Remote test run example:
     -Dtest.config.remote=true
 ```
 
+## Real Device Configuration
+
+Some e2e suites run against physical devices on the `macos-devices` CI runner (a
+Mac mini, reachable with ssh and can be reproduced locally). Physical devices need one-time preparation.
+
+### iOS
+
+- **Developer Mode & pairing** — enable Settings ▸ Privacy & Security ▸
+  Developer Mode, trust the host on first connect, and keep the device unlocked
+  during a run.
+- **Disable Auto-Lock** — set Settings ▸ Display & Brightness ▸ Auto-Lock to
+  **Never**.
+- **Disable the passcode** — turn off the device passcode (Settings ▸ Face ID &
+  Passcode ▸ Turn Passcode Off). A passcode-locked device interrupts WDA and the
+  app flows.
+- **Browser** — Safari must be the default browser, configured with the
+  **bottom** tab bar layout (Settings ▸ Apps ▸ Safari ▸ "Tab Bar"). The browser
+  locators used by the tests (`TabBarItemTitle`, `TabOverviewButton`) assume this
+  bottom layout.
+- **WebDriverAgent signing** — WDA must be signed with the fastlane match
+  profile `match Development nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner`.
+  Automatic signing cannot use match profiles, so CI applies a per-target patch
+  (`deploy/bin/patch-wda-signing.rb`, wired into `.install-ios-signing` in
+  `deploy/gitlab/automation-tests.yml`).
+
+### Android
+
+- **Developer options** — enable USB debugging and keep "Stay awake" on.
+- **Browser** — Chrome is the browser the tests drive; ensure it is installed and
+  set as the default browser.
+
+
 ## Two-Device Tests
 
-Two-device tests simulate a cross-device transfer flow by running against a
-source device and a destination device simultaneously. They are tagged with
-`twoDevice` and use the dedicated `twoDeviceTest` Gradle task.
+Two-device tests drive a **source** and a **destination** device simultaneously
+from a single Appium server to exercise cross-device flows. They extend
+`TwoDeviceTestBase` and are grouped into JUnit suites rather than run by a
+dedicated Gradle task — run the ordinary `test` task and select a suite with
+`--tests`:
+
+- `suite.CrossDeviceTestSuite` — cross-device disclosure and disclosure-based
+  issuance
+- `suite.WalletTransferTestSuite` — device-to-device wallet transfer
+
+Both devices must run the **same platform** (two Android or two iOS devices).
+See [Real Device Configuration](#real-device-configuration) for how to prepare
+the physical devices first.
 
 ### Required system properties
 
 | Property | Description |
 |---|---|
-| `test.config.source.name` | Device name of the source device |
-| `test.config.source.platform.name` | Platform of the source device (`android` or `ios`) |
+| `test.config.app.identifier` | App identifier (package name / bundle ID) |
+| `test.config.app.path` | Path to the app to install, relative to `uiautomation` (falls back to the `APK_PATH`/`IPA_PATH` constants in `AppiumOptionsFactory.kt`) |
+| `test.config.source.name` | Device name of the source device (used for Android; ignored for iOS, which selects by UDID) |
+| `test.config.source.platform.name` | Platform of the source device (`Android` or `iOS`) |
 | `test.config.source.platform.version` | OS version of the source device |
 | `test.config.source.udid` | UDID of the source device |
 | `test.config.destination.name` | Device name of the destination device |
-| `test.config.destination.platform.name` | Platform of the destination device (`android` or `ios`) |
+| `test.config.destination.platform.name` | Platform of the destination device (`Android` or `iOS`) |
 | `test.config.destination.platform.version` | OS version of the destination device |
 | `test.config.destination.udid` | UDID of the destination device |
 
-### Run example
+The cross-device disclosure/issuance tests also read the `DEMO_INDEX_URL`
+environment variable — the relying-party demo index used to start the flow in
+the browser. Export it before running.
+
+### Run example (two iOS devices)
 
 ```bash
-./gradlew twoDeviceTest \
+export DEMO_INDEX_URL="https://example.com/"
+
+./gradlew test --tests suite.CrossDeviceTestSuite \
     -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
-    -Dtest.config.source.name="Pixel 7" \
-    -Dtest.config.source.platform.name="android" \
-    -Dtest.config.source.platform.version="14.0" \
-    -Dtest.config.source.udid="emulator-5554" \
-    -Dtest.config.destination.name="Pixel 6" \
-    -Dtest.config.destination.platform.name="android" \
-    -Dtest.config.destination.platform.version="14.0" \
-    -Dtest.config.destination.udid="emulator-5556"
+    -Dtest.config.app.path="../nl.ictu.edi.wallet.latest.ipa" \
+    -Dtest.config.source.platform.name="iOS" \
+    -Dtest.config.source.udid="00008150-00126CXXXXXXXXXX" \
+    -Dtest.config.source.platform.version="26.3" \
+    -Dtest.config.destination.platform.name="iOS" \
+    -Dtest.config.destination.udid="00008110-00126CXXXXXXXXXX" \
+    -Dtest.config.destination.platform.version="18.7.8" \
+    -Dtest.config.remote=false \
+    -Dfile.encoding=UTF-8
+```
+
+### Run example (two Android devices)
+
+```bash
+./gradlew test --tests suite.WalletTransferTestSuite \
+    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+    -Dtest.config.app.path="../nl.ictu.edi.wallet.latest-release.apk" \
+    -Dtest.config.source.platform.name="Android" \
+    -Dtest.config.source.name="NE2213" \
+    -Dtest.config.source.platform.version="15.0" \
+    -Dtest.config.destination.platform.name="Android" \
+    -Dtest.config.destination.name="Pixel_9a" \
+    -Dtest.config.destination.platform.version="16.0" \
+    -Dtest.config.remote=false \
+    -Dfile.encoding=UTF-8
 ```
 
 ## Test Annotations
@@ -303,9 +385,9 @@ object FeatureTestSuite {
 }
 ```
 
-The code snippet provided utilizes annotations to define a test suite called
-"RunTests" that includes all tests within the "feature" package. Here's what
-each annotation does:
+The code snippet above defines a test suite named `FeatureTestSuite` that
+includes all tests within the "feature" package. Here's what each annotation
+does:
 
 - @SelectPackages("feature"): This annotation specifies that only the tests
   within the "feature" package should be included in the test suite. It acts as
@@ -313,7 +395,10 @@ each annotation does:
 - @Suite: This annotation marks the class as a test suite. It indicates that the
   class is responsible for defining and executing a suite of tests rather than
   being a regular test class.
-- @SuiteDisplayName("Run all tests"): This annotation assigns a display name to
-  the test suite. In this case, the display name is set as "Run all tests,"
-  which provides a descriptive name for the suite, indicating that it
-  encompasses all tests within the "feature" package.
+- @SuiteDisplayName("Feature test suite"): This annotation assigns a display name
+  to the test suite, providing a descriptive name shown in the test output.
+
+Suites can also select explicit classes with `@SelectClasses(...)` instead of a
+package — for example `suite.CrossDeviceTestSuite`, which groups the
+cross-device tests described under
+[Two-Device Tests](#two-device-tests).

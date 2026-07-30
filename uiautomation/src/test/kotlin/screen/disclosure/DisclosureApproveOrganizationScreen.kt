@@ -42,9 +42,9 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         switchToWebViewContext()
     }
 
-    fun organizationNameForSharingFlowVisible(organizationName: String): Boolean {
+    fun organizationNameForSharingFlowVisible(organizationName: String, timeoutInSeconds: Long = 5): Boolean {
         val selectorText = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organizationName)
-        return elementWithTextVisible(selectorText);
+        return elementWithTextVisible(selectorText, timeoutInSeconds);
     }
 
     fun organizationNameForLoginFlowVisible(organizationName: String): Boolean {

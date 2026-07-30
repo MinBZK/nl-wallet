@@ -1,6 +1,7 @@
 use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 
 use crate::keys::EcdsaKey;
 use crate::x509::BorrowingCertificate;
@@ -66,7 +67,7 @@ impl<S> From<KeyPair<S>> for BorrowingCertificate {
 impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
     type Error = S::Error;
 
-    async fn verifying_key(&self) -> Result<p256::ecdsa::VerifyingKey, Self::Error> {
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         self.private_key.verifying_key().await
     }
 

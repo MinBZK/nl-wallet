@@ -47,6 +47,13 @@
 }
 
 :root {
+  --color-background: #fcfcfc;
+  --color-border: #e8eaef;
+  --color-text-primary: #152a62;
+  --color-text-secondary: #445581;
+  --header-height: 86px;
+  --footer-height: 76px;
+
   font-family: 'RO Sans', sans-serif;
   /* Only the faces above are bundled, so let the browser pick a real face
      instead of synthesising the missing ones (e.g. bold italic). */
@@ -58,4 +65,5 @@
 
 body {
   margin: 0;
+  color: var(--color-text-primary);
 }

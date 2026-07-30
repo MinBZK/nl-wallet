@@ -136,5 +136,5 @@ impl TryFrom<Vec<u8>> for DerSignature {
 }
 
 pub fn verifying_key_sha256(key: &VerifyingKey) -> String {
-    BASE64_STANDARD.encode(sha256(key.to_encoded_point(false).as_bytes()))
+    BASE64_STANDARD.encode(sha256(&key.to_sec1_bytes()))
 }

@@ -116,7 +116,7 @@ mod tests {
     use utils::vec_nonempty;
 
     use super::*;
-    use crate::DEFAULT_VALIDATIONS;
+    use crate::DEFAULT_VALIDATION;
     use crate::UnverifiedJwt;
     use crate::headers::HeaderWithX5c;
 
@@ -265,7 +265,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
                 None,
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATION.to_owned(),
             )
             .unwrap();
 
@@ -305,7 +305,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &MockTimeGenerator::default(),
                 None,
-                &DEFAULT_VALIDATIONS,
+                DEFAULT_VALIDATION.to_owned(),
             )
             .unwrap(); // should parse even without an `iat` field
 

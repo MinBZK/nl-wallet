@@ -19,9 +19,12 @@ mock = []
 base64.workspace = true
 chrono = { workspace = true, features = ["now", "serde"] }
 derive_more = { workspace = true, features = ["as_ref", "constructor", "display", "from", "into"] }
+ecdsa = { workspace = true, features = ["algorithm"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
 p256.workspace = true
+p384.workspace = true
+rsa.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -41,6 +44,7 @@ utils.path = "../utils"
 anyhow.workspace = true
 axum.workspace = true
 futures.workspace = true
+rand.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

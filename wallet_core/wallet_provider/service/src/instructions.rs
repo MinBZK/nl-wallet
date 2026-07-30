@@ -5,6 +5,7 @@ use std::num::NonZeroUsize;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::DerSignature;
@@ -80,7 +81,7 @@ use crate::flags::WalletFlags;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
 
-fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+fn default_validation(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     validate_wallet_user_not_revoked(wallet_user)?;
     validate_wallet_user_not_transferred(wallet_user)?;
     validate_no_pin_change_in_progress(wallet_user)?;
@@ -90,7 +91,7 @@ fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValida
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        default_validations(wallet_user)
+        default_validation(wallet_user)
     }
 }
 
@@ -173,7 +174,7 @@ impl ValidateInstruction for IssueWia {
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        default_validations(wallet_user)?;
+        default_validation(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -753,7 +754,13 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, generators)?;
 
-        let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
+        let pubkey = verified_sd_jwt
+            .holder_pubkey()
+            .expect("holder pubkey should be a valid JWK");
+        let PublicKey::ESP256(key) = pubkey else {
+            return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
+        };
+
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         let tx = user_state.repositories.begin_transaction().await?;
@@ -849,7 +856,12 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, generators)?;
 
-        let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
+        let pubkey = verified_sd_jwt
+            .holder_pubkey()
+            .expect("holder pubkey should be a valid JWK");
+        let crypto::PublicKey::ESP256(key) = pubkey else {
+            return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
+        };
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         // Idempotency check
@@ -1425,10 +1437,12 @@ mod tests {
     use std::collections::HashSet;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
+    use std::sync::LazyLock;
     use std::sync::Mutex;
 
     use base64::prelude::*;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -1437,9 +1451,9 @@ mod tests {
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
     use jwt::Algorithm;
-    use jwt::EcdsaDecodingKey;
+    use jwt::JwtDecodingKey;
+    use jwt::JwtValidation;
     use jwt::UnverifiedJwt;
-    use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
@@ -1449,7 +1463,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::signature::Verifier;
-    use rand::rngs::OsRng;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use semver::Version;
     use strum::IntoEnumIterator;
@@ -1594,8 +1608,8 @@ mod tests {
             poa_nonce: poa_nonce.clone(),
             poa_aud: poa_aud.clone(),
         };
-        let signing_key_1 = SigningKey::random(&mut OsRng);
-        let signing_key_2 = SigningKey::random(&mut OsRng);
+        let signing_key_1 = SigningKey::generate();
+        let signing_key_2 = SigningKey::generate();
         let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
         let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
         let signing_key_1_public = *signing_key_1.verifying_key();
@@ -1650,7 +1664,10 @@ mod tests {
             .poa
             .unwrap()
             .verify(
-                &[signing_key_1_public, signing_key_2_public],
+                &[
+                    PublicKey::from(signing_key_1_public),
+                    PublicKey::from(signing_key_2_public),
+                ],
                 &poa_aud,
                 &[NL_WALLET_CLIENT_ID.to_string()],
                 poa_nonce.as_ref().unwrap(),
@@ -2197,17 +2214,19 @@ mod tests {
             .unwrap()
     }
 
+    static ISSUANCE_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
+        let mut validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
+        validation.require_iss(std::iter::once(NL_WALLET_CLIENT_ID));
+        validation.require_aud(POP_AUD);
+        validation
+    });
+
     fn validate_issuance(
         pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
         wia_with_disclosure: Option<&WiaDisclosure>,
     ) {
-        let mut validations = Validation::new(Algorithm::ES256);
-        validations.set_required_spec_claims(&["iss", "aud"]);
-        validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
-        validations.set_audience(&[POP_AUD]);
-
         pops.iter().for_each(|pop| {
-            pop.parse_and_verify_with_jwk(&validations).unwrap();
+            pop.parse_and_verify_with_jwk(ISSUANCE_VALIDATION.to_owned()).unwrap();
         });
 
         if let Some(wia_with_disclosure) = wia_with_disclosure {
@@ -2217,12 +2236,18 @@ mod tests {
                 .unwrap()
                 .1
                 .cnf
-                .verifying_key()
+                .try_to_public_key()
                 .unwrap();
 
             wia_with_disclosure
                 .wia_pop()
-                .parse_and_verify(EcdsaDecodingKey::from(&wia_key), &validations)
+                .parse_and_verify(
+                    JwtDecodingKey::from(&wia_key),
+                    ISSUANCE_VALIDATION
+                        .to_owned()
+                        .try_into_validation()
+                        .expect("created with only ES256"),
+                )
                 .unwrap();
         }
     }
@@ -2257,7 +2282,7 @@ mod tests {
     }
 
     fn mock_change_pin_start_instruction() -> ChangePinStart {
-        let privkey = SigningKey::random(&mut OsRng);
+        let privkey = SigningKey::generate();
         let signature: Signature = privkey.sign("bla".as_bytes());
         ChangePinStart {
             pin_pubkey: (*privkey.verifying_key()).into(),
@@ -2284,7 +2309,7 @@ mod tests {
     fn mock_start_pin_recovery_instruction() -> StartPinRecovery {
         StartPinRecovery {
             issuance_instruction: mock_issuance_instruction(),
-            pin_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+            pin_pubkey: (*SigningKey::generate().verifying_key()).into(),
         }
     }
 

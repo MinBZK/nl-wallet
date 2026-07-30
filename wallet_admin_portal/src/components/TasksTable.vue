@@ -61,7 +61,6 @@ const tasks = [
 .tasks-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
   box-shadow: 0 1px 0 #e9e9f1;
 }
 

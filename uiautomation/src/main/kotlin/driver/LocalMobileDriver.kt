@@ -41,7 +41,6 @@ object LocalMobileDriver {
     ): AppiumDriver {
         val serviceUrl = AppiumServiceProvider.service?.url
             ?: throw IllegalStateException("Appium service not started — call AppiumServiceProvider.startService() first")
-        val bundleIdSuffix = if (index != null) ".$index" else ""
 
         return when (platform) {
             Platform.ANDROID -> AndroidDriver(serviceUrl, buildAndroidOptions().apply {
@@ -60,7 +59,7 @@ object LocalMobileDriver {
                 )
             }
             Platform.IOS -> IOSDriver(serviceUrl, buildIOSOptions(
-                updatedWDABundleId = "nl.ictu.edi.wallet.web-driver-agent-runner$bundleIdSuffix",
+                updatedWDABundleId = "nl.ictu.edi.wallet.web-driver-agent-runner",
                 wdaLocalPort = if (index != null) 8099 + index else null,
             ).apply {
                 if (deviceName.isNotBlank()) setDeviceName(deviceName)

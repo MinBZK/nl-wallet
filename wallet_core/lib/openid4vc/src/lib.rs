@@ -17,6 +17,7 @@ pub mod pkce;
 // Issuance code for the server and client.
 pub mod authorization_code_flow;
 pub mod authorizing_issuer;
+pub mod client_auth;
 pub mod credential_configurations;
 pub mod issuable_document;
 pub mod issuer;

@@ -2,6 +2,7 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::x509::CertificateError;
@@ -17,7 +18,7 @@ use jwt::wia::WiaPopClaims;
 use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 
@@ -75,11 +76,11 @@ where
         // The WIA private key is not persisted in the WP database: it is generated here, used here, and forgotten
         // immediately afterwards. There is therefore no need to protect it by generating it in the HSM, so
         // we use an ordinary in-memory private key here.
-        let wia_privkey = SigningKey::random(&mut OsRng);
+        let wia_privkey = SigningKey::generate();
 
-        let wia = SignedJwt::sign_with_certificate(
+        let wia = SignedJwt::sign_with_iat(
             &WiaClaims::new(
-                wia_privkey.verifying_key(),
+                &PublicKey::from(*wia_privkey.verifying_key()),
                 iss,
                 self.sub.clone(),
                 wia_exp,
@@ -92,6 +93,7 @@ where
             )
             .map_err(WiaIssuerError::KeyConversion)?,
             &self.keypair,
+            time,
         )
         .await
         .map_err(WiaIssuerError::SignError)?
@@ -144,7 +146,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
-    use jwt::wia::WIA_JWT_VALIDATIONS;
+    use jwt::wia::WIA_JWT_VALIDATION;
     use jwt::wia::WiaPopClaims;
     use jwt::wia::WiaWalletInfo;
     use utils::generator::TimeGenerator;
@@ -184,7 +186,7 @@ mod tests {
                 &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 Some(CertificateUsage::Wia),
-                &WIA_JWT_VALIDATIONS,
+                WIA_JWT_VALIDATION.to_owned(),
             )
             .unwrap();
 

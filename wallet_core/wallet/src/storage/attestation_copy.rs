@@ -427,13 +427,14 @@ mod tests {
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
     use mdoc::holder::Mdoc;
     use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use ssri::Integrity;
     use utils::generator::mock::MockTimeGenerator;
@@ -452,11 +453,11 @@ mod tests {
     fn mdoc_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
         let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-        let holder_privkey = SigningKey::random(&mut OsRng);
+        let holder_privkey = SigningKey::generate();
         let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
             payload_preview,
             Utc::now(),
-            holder_privkey.verifying_key(),
+            &PublicKey::from(*holder_privkey.verifying_key()),
             Integrity::from(""),
             StatusClaim::new_mock(),
         )

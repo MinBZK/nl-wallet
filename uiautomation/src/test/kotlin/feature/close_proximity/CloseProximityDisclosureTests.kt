@@ -23,10 +23,28 @@ import java.io.File
 class CloseProximityDisclosureTests : TestBase() {
 
     companion object {
-        private val WRPAC_CA_CRT_FILE = System.getenv("WRPAC_CA_CRT_FILE")
-            ?: File("../scripts/devenv/target/ca.reader.crt.pem").canonicalPath
-        private val WRPAC_CA_KEY_FILE = System.getenv("WRPAC_CA_KEY_FILE")
-            ?: File("../scripts/devenv/target/ca.reader.key.pem").canonicalPath
+        private val AMSTERDAM_CA_CRT_FILE = System.getenv("AMSTERDAM_CA_CRT_FILE")
+            ?: File("../scripts/devenv/target/demo_relying_party/mijn_amsterdam.crt.pem").canonicalPath
+        private val AMSTERDAM_CA_KEY_FILE = System.getenv("AMSTERDAM_CA_KEY_FILE")
+            ?: File("../scripts/devenv/target/demo_relying_party/mijn_amsterdam.key.pem").canonicalPath
+        private val MONKEY_BIKE_CA_CRT_FILE = System.getenv("MONKEY_BIKE_CA_CRT_FILE")
+            ?: File("../scripts/devenv/target/demo_relying_party/monkey_bike.crt.pem").canonicalPath
+        private val MONKEY_BIKE_CA_KEY_FILE = System.getenv("MONKEY_BIKE_CA_KEY_FILE")
+            ?: File("../scripts/devenv/target/demo_relying_party/monkey_bike.key.pem").canonicalPath
+
+        private const val PID_DOC_TYPE = "urn:eudi:pid:nl:1"
+        private val AMSTERDAM_ATTRIBUTES = listOf("urn:eudi:pid:nl:1/bsn")
+        private val MONKEY_BIKE_ATTRIBUTES = listOf(
+            "urn:eudi:pid:nl:1/given_name",
+            "urn:eudi:pid:nl:1/family_name",
+            "urn:eudi:pid:nl:1/birthdate",
+            "urn:eudi:pid:nl:1/gender",
+            "urn:eudi:pid:nl:1.address/street_address",
+            "urn:eudi:pid:nl:1.address/house_number",
+            "urn:eudi:pid:nl:1.address/postal_code",
+            "urn:eudi:pid:nl:1.address/locality",
+        )
+        private const val READER_STARTUP_TIMEOUT_SECONDS = 40L
     }
 
     private lateinit var dashboardScreen: DashboardScreen
@@ -59,13 +77,21 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            wrpacCaCrtFile = WRPAC_CA_CRT_FILE,
-            wrpacCaKeyFile = WRPAC_CA_KEY_FILE,
+            wrpacCaCrtFile = AMSTERDAM_CA_CRT_FILE,
+            wrpacCaKeyFile = AMSTERDAM_CA_KEY_FILE,
+            requestDocType = PID_DOC_TYPE,
+            requestAttributes = AMSTERDAM_ATTRIBUTES,
             waitForDeviceResponse = true,
         )
         val outputBuffer = mockBleReaderApp.captureOutput()
 
-        disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM))
+        assertTrue(
+            disclosureScreen.organizationNameForSharingFlowVisible(
+                organizationAuthMetadata.getDisplayNameOfOrganization(OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM),
+                timeoutInSeconds = READER_STARTUP_TIMEOUT_SECONDS,
+            ),
+            "Disclosure screen not shown, reader output so far:\n$outputBuffer",
+        )
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToDashBoard()
@@ -95,13 +121,18 @@ class CloseProximityDisclosureTests : TestBase() {
         dashboardScreen.showQRCode()
         closeProximityQrScreen.centerQr()
         val qrString = closeProximityQrScreen.getQr()
-        closeProximityQrScreen.startMockBleReaderApp(
+        val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            wrpacCaCrtFile = WRPAC_CA_CRT_FILE,
-            wrpacCaKeyFile = WRPAC_CA_KEY_FILE,
-            readerAuthFile = File("../scripts/devenv/monkey_bike_reader_auth.json").canonicalPath,
+            wrpacCaCrtFile = MONKEY_BIKE_CA_CRT_FILE,
+            wrpacCaKeyFile = MONKEY_BIKE_CA_KEY_FILE,
+            requestDocType = PID_DOC_TYPE,
+            requestAttributes = MONKEY_BIKE_ATTRIBUTES,
         )
-        assertTrue(attributesMissingErrorScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
+        val outputBuffer = mockBleReaderApp.captureOutput()
+        assertTrue(
+            attributesMissingErrorScreen.attributesMissingMessageVisible(timeoutInSeconds = READER_STARTUP_TIMEOUT_SECONDS),
+            "Attributes missing message not visible, reader output so far:\n$outputBuffer",
+        )
     }
 
     @RetryingTest(value = 2, name = "{displayName} - {index}")
@@ -115,13 +146,21 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            wrpacCaCrtFile = WRPAC_CA_CRT_FILE,
-            wrpacCaKeyFile = WRPAC_CA_KEY_FILE,
-            readerAuthFile = File("../scripts/devenv/mijn_amsterdam_reader_auth.json").canonicalPath,
+            wrpacCaCrtFile = AMSTERDAM_CA_CRT_FILE,
+            wrpacCaKeyFile = AMSTERDAM_CA_KEY_FILE,
+            requestDocType = PID_DOC_TYPE,
+            requestAttributes = AMSTERDAM_ATTRIBUTES,
             waitForDeviceResponse = true,
         )
+        val outputBuffer = mockBleReaderApp.captureOutput()
 
-        disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM))
+        assertTrue(
+            disclosureScreen.organizationNameForSharingFlowVisible(
+                organizationAuthMetadata.getDisplayNameOfOrganization(OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM),
+                timeoutInSeconds = READER_STARTUP_TIMEOUT_SECONDS,
+            ),
+            "Disclosure screen not shown, reader output so far:\n$outputBuffer",
+        )
         disclosureScreen.share()
 
         mockBleReaderApp.destroyForcibly()

@@ -349,7 +349,7 @@ fn session_iv(identifier: u32, counter: u32) -> [u8; 12] {
 mod tests {
     use p256::SecretKey;
     use p256::ecdsa::VerifyingKey;
-    use p256::elliptic_curve::sec1::ToEncodedPoint;
+    use p256::elliptic_curve::sec1::ToSec1Point;
 
     use super::EReaderKeyBytes;
     use super::SessionEncryption;
@@ -366,8 +366,8 @@ mod tests {
 
     fn reader_key_bytes(secret_key: &p256::SecretKey) -> EReaderKeyBytes {
         let public_key = secret_key.public_key();
-        let encoded_point = public_key.to_encoded_point(false);
-        let verifying_key = VerifyingKey::from_encoded_point(&encoded_point).unwrap();
+        let encoded_point = public_key.to_sec1_point(false);
+        let verifying_key = VerifyingKey::from_sec1_point(&encoded_point).unwrap();
         let cose_key: CoseKey = (&verifying_key).try_into().unwrap();
         TaggedBytes(cose_key)
     }

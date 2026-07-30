@@ -287,6 +287,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -489,7 +490,8 @@ mod tests {
             Format::SdJwt => {
                 let issuer_key_pair = ca.generate_issuer_mock().unwrap();
                 let verified_sd_jwt =
-                    SignedSdJwt::pid_example(&issuer_key_pair, attestation_key.verifying_key()).into_verified();
+                    SignedSdJwt::pid_example(&issuer_key_pair, &PublicKey::from(*attestation_key.verifying_key()))
+                        .into_verified();
                 let unsigned_presentation = verified_sd_jwt
                     .into_presentation_builder()
                     .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])

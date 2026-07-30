@@ -21,6 +21,7 @@ use hsm::service::HsmError;
 use itertools::Either;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
 use rstest::rstest;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
@@ -275,7 +276,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
                 &tx,
                 WalletUserCreate {
                     wallet_id: wallet_id.clone(),
-                    hw_pubkey: *SigningKey::random(&mut rand::thread_rng()).verifying_key(),
+                    hw_pubkey: *SigningKey::generate().verifying_key(),
                     encrypted_pin_pubkey: encrypted_pin_key("key1").await,
                     attestation_date_time: Utc::now(),
                     attestation: WalletUserAttestationCreate::Apple {

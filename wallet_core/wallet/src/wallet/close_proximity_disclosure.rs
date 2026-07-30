@@ -881,6 +881,7 @@ mod tests {
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
     use ciborium::value::Value;
+    use crypto::PublicKey;
     use crypto::WithVerifyingKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
@@ -912,12 +913,12 @@ mod tests {
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
+    use p256::elliptic_curve::Generate;
     use parking_lot::Mutex;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannel;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
-    use rand_core::OsRng;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use serial_test::serial;
     use utils::generator::mock::MockTimeGenerator;
@@ -1297,7 +1298,7 @@ mod tests {
             Format::MsoMdoc,
             pid_credential_payload.clone(),
             NormalizedTypeMetadata::nl_pid_example(),
-            &SigningKey::random(&mut OsRng),
+            &SigningKey::generate(),
         );
 
         let (pid2, _) = example_pid_stored_attestation_copy(Format::MsoMdoc);
@@ -1309,7 +1310,7 @@ mod tests {
             Format::MsoMdoc,
             pid_credential_payload,
             NormalizedTypeMetadata::nl_pid_example(),
-            &SigningKey::random(&mut OsRng),
+            &SigningKey::generate(),
         );
 
         wallet
@@ -1558,7 +1559,7 @@ mod tests {
     }
 
     fn qr_session_transcript(device_engagement: Option<DeviceEngagement>) -> SessionTranscript {
-        let ephemeral_key_pair = SigningKey::random(&mut OsRng);
+        let ephemeral_key_pair = SigningKey::generate();
         let cose_key: CoseKey = ephemeral_key_pair.verifying_key().try_into().unwrap();
         SessionTranscript::new_qr(cose_key, device_engagement)
     }
@@ -1859,7 +1860,7 @@ mod tests {
             .returning(|_, _| Ok(vec![0u8; 32]));
 
         // Sign a dummy payload with a throwaway key to get a well-formed DerSignature.
-        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::generate();
         let signature: Signature = signing_key.sign(b"");
         let der_sig = DerSignature::from(signature);
 
@@ -1961,7 +1962,10 @@ mod tests {
             .unwrap(),
         ];
 
-        let expected_keys = [key1.verifying_key().to_owned(), key2.verifying_key().to_owned()];
+        let expected_keys = [
+            PublicKey::from(*key1.verifying_key()),
+            PublicKey::from(*key2.verifying_key()),
+        ];
 
         let remote_key1 = MockRemoteEcdsaKey::new(key_id1, key1);
         let remote_key2 = MockRemoteEcdsaKey::new(key_id2, key2);

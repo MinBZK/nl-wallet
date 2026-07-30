@@ -15,7 +15,7 @@ use crypto::utils::random_bytes;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use regex::regex;
 use serde::Deserialize;
 use serde_with::serde_as;
@@ -252,7 +252,7 @@ impl<H> TestCase<H> {
 
         Hsm::generate_aes_encryption_key(hsm, identifier).await.unwrap();
 
-        let verifying_key = *SigningKey::random(&mut OsRng).verifying_key();
+        let verifying_key = *SigningKey::generate().verifying_key();
         let encrypted = Encrypter::encrypt(hsm, identifier, verifying_key).await.unwrap();
 
         let decrypted = Decrypter::decrypt(hsm, identifier, encrypted).await.unwrap();

@@ -5,7 +5,7 @@ use crypto::utils::random_string;
 use db_test::DbSetup;
 use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
+use p256::elliptic_curve::Generate;
 use uuid::Uuid;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
@@ -24,7 +24,7 @@ use wallet_provider_persistence::wallet_user_key::unblock_blocked_keys_in_same_b
 pub mod common;
 
 fn test_wallet_user_key() -> WalletUserKey {
-    let privkey = SigningKey::random(&mut OsRng);
+    let privkey = SigningKey::generate();
     let key = WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key());
     WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),

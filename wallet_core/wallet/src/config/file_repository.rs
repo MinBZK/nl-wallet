@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use derive_more::Constructor;
 use http_utils::reqwest::IntoReqwestClient;
-use jwt::DEFAULT_VALIDATIONS;
-use jwt::EcdsaDecodingKey;
+use jwt::ESP256_ONLY_VALIDATION;
+use jwt::JwtDecodingKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::ConfigurationError;
@@ -28,12 +28,12 @@ pub struct FileStorageConfigurationRepository<T> {
 impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
     pub async fn init(
         storage_path: PathBuf,
-        signing_public_key: EcdsaDecodingKey,
+        signing_public_key: JwtDecodingKey,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
             Some(jwt) => {
-                match jwt.parse_and_verify(&signing_public_key, &DEFAULT_VALIDATIONS) {
+                match jwt.parse_and_verify(&signing_public_key, &*ESP256_ONLY_VALIDATION) {
                     Ok((_, stored_config)) if stored_config.version >= initial_config.version => stored_config,
                     // Initial config is newer or JWT is tampered/invalid: fall back to the embedded config.
                     // We do not write the embedded config to disk since it has no corresponding JWT.
@@ -90,14 +90,15 @@ where
 mod tests {
     use std::sync::Arc;
 
+    use crypto::PublicKey;
     use http_utils::client::InternalHttpConfig;
     use http_utils::client::TlsPinningConfig;
-    use jwt::DEFAULT_VALIDATIONS;
-    use jwt::EcdsaDecodingKey;
+    use jwt::ESP256_ONLY_VALIDATION;
+    use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use parking_lot::RwLock;
-    use rand_core::OsRng;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
     use super::RawJwtProvider;
@@ -161,8 +162,8 @@ mod tests {
 
     #[tokio::test]
     async fn should_store_config_to_filesystem() {
-        let signing_key = SigningKey::random(&mut OsRng);
-        let decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
+        let signing_key = SigningKey::generate();
+        let decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
 
         let mut initial_wallet_config = default_wallet_config();
         initial_wallet_config.lock_timeouts.background_timeout = 500;
@@ -193,7 +194,7 @@ mod tests {
 
         // Verify the JWT was written to disk and can be parsed back
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
-        let (_, file_config) = jwt.parse_and_verify(&decoding_key, &DEFAULT_VALIDATIONS).unwrap();
+        let (_, file_config) = jwt.parse_and_verify(&decoding_key, &*ESP256_ONLY_VALIDATION).unwrap();
 
         assert_eq!(
             700, file_config.lock_timeouts.background_timeout,
@@ -203,8 +204,8 @@ mod tests {
 
     #[tokio::test]
     async fn should_use_newer_embedded_wallet_get() {
-        let signing_key = SigningKey::random(&mut OsRng);
-        let config_decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
+        let signing_key = SigningKey::generate();
+        let config_decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
 
         let config_dir = tempfile::tempdir().unwrap();
         let path = config_dir.keep();
@@ -243,7 +244,7 @@ mod tests {
         // since it has no corresponding JWT. The next HTTP fetch will update the file.
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
         let (_, stored_config) = jwt
-            .parse_and_verify(&config_decoding_key, &DEFAULT_VALIDATIONS)
+            .parse_and_verify(&config_decoding_key, &*ESP256_ONLY_VALIDATION)
             .unwrap();
         assert_eq!(
             10, stored_config.version,

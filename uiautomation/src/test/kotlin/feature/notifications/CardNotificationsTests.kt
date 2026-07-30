@@ -73,6 +73,8 @@ class CardNotificationsTests : TestBase() {
         indexWebPage.switchToWebViewContext()
         indexWebPage.clickLoyaltyButton()
         issuerWebPage.openSameDeviceWalletFlow()
+        issuerWebPage.acceptOpenWalletDialog()
+
         disclosureForIssuanceScreen.switchToNativeContext()
         cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)

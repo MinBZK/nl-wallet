@@ -1,0 +1,8 @@
+node_modules
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.log
+coverage
+.eslintcache
+.git

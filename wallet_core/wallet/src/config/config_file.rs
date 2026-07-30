@@ -31,7 +31,7 @@ fn path_for_config_file(storage_path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use jwt::SignedJwt;
-    use rand_core::OsRng;
+    use p256::elliptic_curve::Generate;
 
     use crate::config::config_file::get_config_file;
     use crate::config::config_file::update_config_file;
@@ -39,7 +39,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_read_and_update_config() {
-        let signing_key = p256::ecdsa::SigningKey::random(&mut OsRng);
+        let signing_key = p256::ecdsa::SigningKey::generate();
         let mut config = default_wallet_config();
         config.lock_timeouts.background_timeout = 1500;
         let jwt = SignedJwt::sign(&config, &signing_key).await.unwrap();

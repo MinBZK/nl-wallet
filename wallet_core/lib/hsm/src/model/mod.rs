@@ -36,7 +36,7 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::ecdsa::signature::Signer;
-    use rand::rngs::OsRng;
+    use p256::elliptic_curve::Generate;
     use sha2::Sha256;
 
     use crate::model::Hsm;
@@ -118,7 +118,7 @@ pub mod mock {
         }
 
         async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(), Self::Error> {
-            let key = SigningKey::random(&mut OsRng);
+            let key = SigningKey::generate();
             self.0.insert(String::from(identifier), key);
             Ok(())
         }
@@ -268,7 +268,7 @@ pub mod mock {
         }
 
         async fn generate_wrapped_key(&self, _wrapping_key_identifier: &str) -> Result<WrappedKey, HsmError> {
-            let key = SigningKey::random(&mut OsRng);
+            let key = SigningKey::generate();
             Ok(WrappedKey::new(key.to_bytes().to_vec(), *key.verifying_key()))
         }
 

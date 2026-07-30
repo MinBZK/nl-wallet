@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -169,7 +170,8 @@ where
             .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+        let instruction_result_public_key =
+            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
 
         let remote_instruction = self
             .new_instruction_client(
@@ -281,9 +283,9 @@ mod tests {
     use jwt::SignedJwt;
     use mockall::predicate::*;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use parking_lot::Mutex;
     use platform_support::attested_key::AttestedKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::AccountRevokedData;
@@ -652,7 +654,7 @@ mod tests {
             iss: "wallet_unit_test".to_string(),
             iat: Utc::now(),
         };
-        let other_key = SigningKey::random(&mut OsRng);
+        let other_key = SigningKey::generate();
         let result = SignedJwt::sign_with_sub(result_claims, &other_key)
             .await
             .unwrap()

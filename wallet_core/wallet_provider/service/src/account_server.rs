@@ -30,6 +30,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::PublicKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
@@ -43,7 +44,7 @@ use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
@@ -351,6 +352,9 @@ pub enum InstructionError {
 
     #[error("system revocation error: {0}")]
     SystemRevocationError(#[from] RevocationError),
+
+    #[error("unsupported holder public key: {0:?}")]
+    UnsupportedHolderPublicKey(Box<PublicKey>),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -497,7 +501,7 @@ pub struct AndroidAttestationConfiguration {
 }
 
 pub struct AccountServerKeys {
-    pub wallet_certificate_signing_pubkey: EcdsaDecodingKey,
+    pub wallet_certificate_signing_pubkey: JwtDecodingKey,
     pub pin_keys: AccountServerPinKeys,
     pub revocation_code_key_identifier: String,
 }
@@ -1525,7 +1529,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     }
 
     fn verify_registration_challenge(
-        certificate_signing_pubkey: &EcdsaDecodingKey,
+        certificate_signing_pubkey: &JwtDecodingKey,
         challenge: &[u8],
     ) -> Result<RegistrationChallengeClaims, RegistrationError> {
         let jwt: UnverifiedJwt<RegistrationChallengeClaims> = String::from_utf8(challenge.to_owned())
@@ -1719,11 +1723,12 @@ pub mod mock {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
+    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use rand_core::OsRng;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use token_status_list::status_list_service::mock::MockStatusListService;
@@ -1794,7 +1799,7 @@ pub mod mock {
             "mock_account_server".into(),
             Duration::from_millis(15000),
             AccountServerKeys {
-                wallet_certificate_signing_pubkey: certificate_signing_pubkey.into(),
+                wallet_certificate_signing_pubkey: PublicKey::from(*certificate_signing_pubkey).into(),
                 pin_keys: AccountServerPinKeys {
                     encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
                     public_disclosure_protection_key_identifier:
@@ -1964,8 +1969,9 @@ pub mod mock {
 
     pub fn recovery_code_sd_jwt(issuer_ca: &Ca) -> (SigningKey, UnverifiedSdJwt) {
         let issuer_key = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
+        let holder_key = SigningKey::generate();
+        let sd_jwt =
+            SignedSdJwt::pid_example(&issuer_key, &PublicKey::from(*holder_key.verifying_key())).into_verified();
 
         let sd_jwt = sd_jwt
             .into_presentation_builder()
@@ -1999,6 +2005,7 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::PublicKey;
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -2009,12 +2016,11 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::EcdsaDecodingKey;
     use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use p256::elliptic_curve::Generate;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
     use semver::Version;
@@ -2414,7 +2420,7 @@ mod tests {
         instruction_result_signing_key: &SigningKey,
         user_state: &mut MockUserState,
     ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate) {
-        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_privkey = SigningKey::generate();
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let encrypted_new_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
@@ -2466,7 +2472,7 @@ mod tests {
             .expect("should return instruction result");
 
         let new_certificate = new_certificate_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result")
             .1
             .result;
@@ -2488,14 +2494,14 @@ mod tests {
             setup_and_do_registration(attestation_type).await;
 
         let (_, cert_data) = cert
-            .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*setup.signing_key.verifying_key()).into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.as_inner(), hw_privkey.verifying_key());
 
         let (wallet_user, _pin_pubkey) = verify_wallet_certificate(
             &cert,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -2639,7 +2645,7 @@ mod tests {
 
         // Create a hardware key that is the opposite type of the one used during registration.
         let wrong_hw_privkey = match attestation_type {
-            AttestationType::Apple => MockHardwareKey::Google(SigningKey::random(&mut OsRng)),
+            AttestationType::Apple => MockHardwareKey::Google(SigningKey::generate()),
             AttestationType::Google => MockHardwareKey::Apple(MockAppleAttestedKey::new_random(
                 account_server.apple_config.app_identifier.clone(),
             )),
@@ -3058,7 +3064,7 @@ mod tests {
             setup_and_do_registration(attestation_type).await;
         user_state.repositories.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
         let challenge_error =
             do_instruction_challenge::<CheckPin>(&account_server, &hw_privkey, cert.clone(), 9, &user_state)
@@ -3082,7 +3088,7 @@ mod tests {
         .expect("should return unit instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
     }
 
@@ -3092,7 +3098,7 @@ mod tests {
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
         let (new_pin_privkey, _new_pin_pubkey, encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
@@ -3106,7 +3112,7 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3123,7 +3129,7 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3197,7 +3203,7 @@ mod tests {
             .expect("should return instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         user_state.repositories = WalletUserTestRepo {
@@ -3237,9 +3243,9 @@ mod tests {
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
-        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_privkey = SigningKey::generate();
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let challenge =
@@ -3289,7 +3295,7 @@ mod tests {
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
         let (new_pin_privkey, _new_pin_pubkey, _encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
@@ -3379,7 +3385,7 @@ mod tests {
             .expect("should return instruction result for old pin");
 
         instruction_result
-            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
+            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         // Check that checking the PIN with the new certificate now fails
@@ -3423,7 +3429,7 @@ mod tests {
         let (setup, account_server, hw_privkey, cert, _revocation_code, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
         let (_new_pin_privkey, _new_pin_pubkey, encrypted_new_pin_pubkey, _new_cert) = do_pin_change_start(
             &account_server,
@@ -3473,7 +3479,7 @@ mod tests {
             ..user_state.repositories
         };
 
-        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_privkey = SigningKey::generate();
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let instruction = StartPinRecovery {
@@ -3488,7 +3494,7 @@ mod tests {
             .sign_instruction(instruction, challenge, 46, &new_pin_privkey, cert)
             .await;
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
         let result = account_server
             .handle_start_pin_recovery_instruction(
@@ -3518,7 +3524,7 @@ mod tests {
 
         verify_wallet_certificate(
             &result.certificate,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            &PublicKey::from(setup.signing_pubkey).into(),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier:
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
@@ -3560,7 +3566,7 @@ mod tests {
             ..user_state.repositories
         };
 
-        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_privkey = SigningKey::generate();
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         // Setup the two instructions that the wallet sends during PIN recovery
@@ -3643,7 +3649,7 @@ mod tests {
             status_list_service: user_state.status_list_service,
         };
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
         account_server
             .handle_instruction(
@@ -3700,7 +3706,7 @@ mod tests {
             )
             .await;
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+        let instruction_result_signing_key = SigningKey::generate();
 
         user_state.repositories.state = WalletUserState::Transferring;
 
@@ -3769,7 +3775,7 @@ mod tests {
 
         // Get registration challenge
         let challenge = account_server
-            .registration_challenge(&SigningKey::random(&mut OsRng), &user_state)
+            .registration_challenge(&SigningKey::generate(), &user_state)
             .await
             .expect("Could not get registration challenge");
 
@@ -3890,7 +3896,7 @@ mod tests {
             setup_challenge_solution_revoked().await;
 
         // Create ChangePinStart instruction
-        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_privkey = SigningKey::generate();
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let pop_pin_pubkey = new_pin_privkey.try_sign(challenge.as_slice()).await.unwrap();
         let instruction = ChangePinStart {
@@ -3942,7 +3948,7 @@ mod tests {
             setup_challenge_solution_revoked().await;
 
         // Create ChangePinStart instruction
-        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_privkey = SigningKey::generate();
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {

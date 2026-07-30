@@ -1,8 +1,9 @@
 use p384::ecdsa::VerifyingKey;
+use p384::pkcs8::DecodePublicKey as _;
 use rsa::BigUint;
 use rsa::RsaPublicKey;
+use rsa::pkcs8::DecodePublicKey as _;
 use rsa::traits::PublicKeyParts;
-use spki::DecodePublicKey;
 use x509_parser::public_key::PublicKey;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,11 +13,11 @@ pub enum RootPublicKey {
 }
 
 impl RootPublicKey {
-    pub fn rsa_from_der(der: impl AsRef<[u8]>) -> Result<Self, spki::Error> {
+    pub fn rsa_from_der(der: impl AsRef<[u8]>) -> Result<Self, rsa::pkcs8::spki::Error> {
         RsaPublicKey::from_public_key_der(der.as_ref()).map(Self::Rsa)
     }
 
-    pub fn ecdsa_from_der(der: impl AsRef<[u8]>) -> Result<Self, spki::Error> {
+    pub fn ecdsa_from_der(der: impl AsRef<[u8]>) -> Result<Self, p384::pkcs8::spki::Error> {
         VerifyingKey::from_public_key_der(der.as_ref()).map(Self::Ecdsa)
     }
 }
@@ -31,7 +32,7 @@ impl<'a> PartialEq<PublicKey<'a>> for RootPublicKey {
                 *public_key.n() == modulus && *public_key.e() == exponent
             }
             (Self::Ecdsa(verifying_key), PublicKey::EC(other_key)) => {
-                verifying_key.to_encoded_point(false).as_bytes() == other_key.data()
+                verifying_key.to_sec1_point(false).as_bytes() == other_key.data()
             }
             _ => false,
         }
@@ -45,7 +46,7 @@ impl PartialEq<RootPublicKey> for PublicKey<'_> {
 }
 
 impl TryFrom<&[u8]> for RootPublicKey {
-    type Error = spki::Error;
+    type Error = rsa::pkcs8::spki::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let public_key = RootPublicKey::rsa_from_der(value)
@@ -88,10 +89,12 @@ mod test_keys {
 
 #[cfg(test)]
 mod test {
+    use p256::elliptic_curve::Generate;
     use p384::ecdsa::SigningKey;
+    use p384::pkcs8::EncodePublicKey as _;
     use rsa::RsaPrivateKey;
     use rsa::RsaPublicKey;
-    use spki::EncodePublicKey;
+    use rsa::pkcs8::EncodePublicKey as _;
     use x509_parser::prelude::FromDer;
     use x509_parser::x509::SubjectPublicKeyInfo;
 
@@ -119,12 +122,10 @@ mod test {
 
     #[test]
     fn test_root_public_key_ecdsa_partial_eq() {
-        let mut thread_rng = rand::thread_rng();
-
-        let signing_key = SigningKey::random(&mut thread_rng);
+        let signing_key = SigningKey::generate();
         let verifying_key = RootPublicKey::Ecdsa(*signing_key.verifying_key());
 
-        let other_signing_key = SigningKey::random(&mut thread_rng);
+        let other_signing_key = SigningKey::generate();
         let other_verifying_key = RootPublicKey::Ecdsa(*other_signing_key.verifying_key());
 
         let public_key_der = signing_key.verifying_key().to_public_key_der().unwrap();

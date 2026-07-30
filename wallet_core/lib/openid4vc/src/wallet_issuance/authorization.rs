@@ -23,6 +23,8 @@ use super::issuance_session::HttpVcMessageClient;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::client_auth::ClientAttestationChallengeMechanism;
+use crate::client_auth::fetch_client_auth_challenge;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ParErrorCode;
 use crate::errors::RemoteErrorCode;
@@ -80,6 +82,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
     token_endpoint: Url,
+    client_attestation_challenge: ClientAttestationChallengeMechanism,
     authorization_server: IssuerIdentifier,
     http_client: HttpClient,
 
@@ -96,6 +99,7 @@ pub struct HttpAuthorizationSessionData {
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
     token_endpoint: Url,
+    client_attestation_challenge: ClientAttestationChallengeMechanism,
     authorization_server: IssuerIdentifier,
     auth_url: Url,
     redirect_uri: Url,
@@ -153,8 +157,17 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
+        let challenge = if let Some(challenge_endpoint) = &auth_endpoints.challenge_endpoint {
+            let challenge = fetch_client_auth_challenge(&http_client, challenge_endpoint.clone())
+                .await
+                .map_err(WalletIssuanceError::ClientAttestationChallenge)?;
+            Some(challenge)
+        } else {
+            None
+        };
+
         let wia = wia_client
-            .issue_wia(authorization_server.to_string(), None)
+            .issue_wia(authorization_server.to_string(), challenge)
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
@@ -167,6 +180,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             })
             .await
             .map_err(WalletIssuanceError::ParHttp)?;
+
+        let client_auth_challenge =
+            ClientAttestationChallengeMechanism::try_new_acf(auth_endpoints.challenge_endpoint, &response)
+                .map_err(WalletIssuanceError::ClientAttestationChallengeMechanism)?;
 
         let par_response = if response.status().is_success() {
             response
@@ -193,6 +210,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             issuer_endpoints,
             batch_size,
             token_endpoint: auth_endpoints.token_endpoint,
+            client_attestation_challenge: client_auth_challenge,
             authorization_server,
             http_client,
             auth_url,
@@ -248,6 +266,7 @@ impl HttpAuthorizationSession {
             issuer_endpoints: data.issuer_endpoints,
             batch_size: data.batch_size,
             token_endpoint: data.token_endpoint,
+            client_attestation_challenge: data.client_attestation_challenge,
             authorization_server: data.authorization_server,
             http_client,
             auth_url: data.auth_url,
@@ -277,6 +296,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             issuer_endpoints: self.issuer_endpoints.clone(),
             batch_size: self.batch_size,
             token_endpoint: self.token_endpoint.clone(),
+            client_attestation_challenge: self.client_attestation_challenge.clone(),
             authorization_server: self.authorization_server.clone(),
             auth_url: self.auth_url.clone(),
             redirect_uri: self.redirect_uri.clone(),
@@ -310,6 +330,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.issuer_endpoints,
             self.batch_size,
             &self.token_endpoint,
+            self.client_attestation_challenge,
             token_request,
             wia_client,
             &self.authorization_server,
@@ -333,6 +354,8 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use httpmock::Method::POST;
     use httpmock::MockServer;
+    use jwt::nonce::Nonce;
+    use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -344,6 +367,8 @@ mod tests {
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
+    use crate::client_auth::ClientAttestationChallengeMechanism;
+    use crate::client_auth::ClientAttestationChallengeMechanismError;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::RemoteErrorCode;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -353,9 +378,11 @@ mod tests {
     use crate::pkce::MockPkcePair;
     use crate::pkce::S256PkcePair;
     use crate::wallet_issuance::authorization_endpoints::AuthorizationEndpoints;
+    use crate::wallet_issuance::mock::RecordingWiaClient;
 
     const ISSUER_URL: &str = "https://example.com";
     const TOKEN_ENDPOINT: &str = "/issuance/token";
+    const CHALLENGE_ENDPOINT: &str = "/issuance/client_auth_challenge";
     const REDIRECT_URI: &str = "redirect://here";
     const CSRF_TOKEN: &str = "csrf_token";
     const CODE: &str = "code";
@@ -389,6 +416,9 @@ mod tests {
             issuer_endpoints: issuer_metadata.endpoints,
             batch_size,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
+            client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT),
+            ),
             authorization_server: ISSUER_URL.parse().unwrap(),
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -428,11 +458,13 @@ mod tests {
         let authorization_endpoint = base_url.join("/authorize");
         let pushed_authorization_request_endpoint = base_url.join("/issuance/par");
         let token_endpoint = base_url.join("/issuance/token");
+        let challenge_endpoint = Some(base_url.join("/issuance/client_auth_challenge"));
 
         AuthorizationEndpoints {
             authorization_endpoint,
             par_endpoint: pushed_authorization_request_endpoint,
             token_endpoint,
+            challenge_endpoint,
         }
     }
 
@@ -467,6 +499,17 @@ mod tests {
                         "request_uri": PAR_REQUEST_URI,
                         "expires_in": 60,
                     }));
+            })
+            .await;
+
+        server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/client_auth_challenge");
+                then.status(200)
+                    .json_body(json!({
+                        "attestation_challenge": "foobar",
+                    }))
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref());
             })
             .await;
 
@@ -514,6 +557,135 @@ mod tests {
         assert!(!params.contains_key("redirect_uri"));
         assert!(!params.contains_key("issuer_state"));
         assert!(!params.contains_key("scope"));
+    }
+
+    /// Which client attestation challenge mechanism(s) a `test_auth_url_client_auth_challenge_mechanism` case
+    /// exercises, and what `HttpAuthorizationSession::create()` is expected to do with them.
+    enum ExpectedChallengeMechanism {
+        None,
+        Header,
+        ChallengeEndpoint,
+        Both,
+    }
+
+    #[rstest]
+    #[case::none(false, false, ExpectedChallengeMechanism::None)]
+    #[case::header(false, true, ExpectedChallengeMechanism::Header)]
+    #[case::challenge_endpoint(true, false, ExpectedChallengeMechanism::ChallengeEndpoint)]
+    #[case::double_challenge_mechanism(true, true, ExpectedChallengeMechanism::Both)]
+    #[tokio::test]
+    #[serial(MockPkcePair)]
+    async fn test_auth_url_client_auth_challenge_mechanism(
+        #[case] challenge_endpoint_configured: bool,
+        #[case] header_present: bool,
+        #[case] expected: ExpectedChallengeMechanism,
+    ) {
+        let server = MockServer::start_async().await;
+
+        server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/par");
+                let then = then
+                    .status(201)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "request_uri": PAR_REQUEST_URI,
+                        "expires_in": 60,
+                    }));
+                if header_present {
+                    then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "header-challenge");
+                }
+            })
+            .await;
+
+        let challenge = "foobar";
+        if challenge_endpoint_configured {
+            server
+                .mock_async(|when, then| {
+                    when.method(POST).path("/issuance/client_auth_challenge");
+                    then.status(200).json_body(json!({
+                        "attestation_challenge": challenge,
+                    }));
+                })
+                .await;
+        }
+
+        let auth_endpoints = {
+            let mut auth_endpoints = authorization_endpoints(&server.base_url().parse().unwrap());
+            if !challenge_endpoint_configured {
+                auth_endpoints.challenge_endpoint = None;
+            }
+            auth_endpoints
+        };
+
+        let pkce_context = MockPkcePair::generate_context();
+        pkce_context.expect().return_once(|| {
+            let mut pkce_pair = MockPkcePair::new();
+            pkce_pair.expect_code_challenge().return_const("challenge".to_string());
+            pkce_pair
+        });
+
+        let config_id: CredentialConfigurationId = "config_id".to_string().into();
+        let issuer_metadata = IssuerMetadata::new_mock(
+            server.base_url().parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
+        let wia_client = RecordingWiaClient::default();
+        let result = HttpAuthorizationSession::<MockPkcePair>::create(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            issuer_metadata.credential_configurations_supported,
+            issuer_metadata.credential_issuer.clone(),
+            issuer_metadata.endpoints,
+            batch_size,
+            auth_endpoints,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            REDIRECT_URI.parse().unwrap(),
+            None,
+            &wia_client,
+            issuer_metadata.credential_issuer,
+        )
+        .await;
+
+        // The WIA generated for the PAR request should include the challenge fetched from the challenge
+        // endpoint if and only if one is configured, regardless of whether a header challenge is also present:
+        // the latter is only known after the PAR response has been received.
+        let expected_challenge = challenge_endpoint_configured.then(|| Nonce::from(challenge.to_string()));
+        assert_eq!(*wia_client.received_challenge.borrow(), Some(expected_challenge));
+
+        match expected {
+            ExpectedChallengeMechanism::None => {
+                assert_matches!(
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::None
+                );
+            }
+            ExpectedChallengeMechanism::Header => {
+                assert_matches!(
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::Header(challenge)
+                        if challenge == Nonce::from("header-challenge".to_string())
+                );
+            }
+            ExpectedChallengeMechanism::ChallengeEndpoint => {
+                assert_matches!(
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::ChallengeEndpoint(url)
+                        if url == server.base_url().parse::<Url>().unwrap().join("/issuance/client_auth_challenge").unwrap()
+                );
+            }
+            ExpectedChallengeMechanism::Both => {
+                assert_matches!(
+                    result.unwrap_err(),
+                    WalletIssuanceError::ClientAttestationChallengeMechanism(
+                        ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
+                    )
+                );
+            }
+        }
     }
 
     #[tokio::test]
@@ -654,6 +826,9 @@ mod tests {
             issuer_endpoints: issuer_metadata.endpoints,
             batch_size,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
+            client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT),
+            ),
             auth_url: ISSUER_URL.parse().unwrap(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             code_verifier: "verifier".to_string(),
@@ -667,6 +842,7 @@ mod tests {
             issuer_endpoints: persisted.issuer_endpoints,
             token_endpoint: persisted.token_endpoint,
             batch_size: persisted.batch_size,
+            client_attestation_challenge: persisted.client_attestation_challenge,
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
             redirect_uri: persisted.redirect_uri.clone(),

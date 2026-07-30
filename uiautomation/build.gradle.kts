@@ -23,7 +23,7 @@ dependencies {
 
     implementation("com.codeborne:selenide-appium:7.9.4")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
-    implementation("io.appium:java-client:10.0.0")
+    implementation("io.appium:java-client:10.1.1")
     implementation("io.rest-assured:rest-assured:5.5.5")
     implementation("org.junit.jupiter:junit-jupiter:5.13.4")
     implementation("org.junit-pioneer:junit-pioneer:2.3.0")
@@ -94,17 +94,11 @@ tasks.register<Test>("testAllAndroids") {
     }
 }
 
-tasks.register<Test>("twoDeviceTest") {
-    useJUnitPlatform {
-        includeTags("twoDevice")
-        exclude("suite/**")
-    }
-}
-
 tasks.withType<Test>().configureEach {
     jvmArgs("--add-modules=java.instrument")
     val testConfigMap = mapOf(
         "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
+        "test.config.app.path" to "",
         "test.config.device.name" to "emulator-5554",
         "test.config.platform.name" to "Android",
         "test.config.platform.version" to 14.0,

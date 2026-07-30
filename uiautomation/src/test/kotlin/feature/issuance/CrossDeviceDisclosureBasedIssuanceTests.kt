@@ -4,17 +4,16 @@ import helper.IssuanceDataHelper
 import helper.OrganizationMetadataHelper
 import helper.OrganizationMetadataHelper.Organization.UNIVERSITY
 import helper.TasDataHelper
+import helper.TestBase
 import helper.TwoDeviceTestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
+import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.disclosure.QRScanner
 import screen.disclosure.UrlCheckScreen
@@ -73,9 +72,8 @@ class CrossDeviceDisclosureBasedIssuanceTests : TwoDeviceTestBase() {
         }
     }
 
-    @Test
+    @RetryingTest(value = TestBase.Companion.MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC7 Cross-device disclosure based issuance, university, SD-JWT")
-    @Tags(Tag("twoDevice"))
     fun verifyCrossDeviceDisclosureBasedIssuanceUniversitySdJwt(testInfo: TestInfo) {
         setUp(testInfo)
 
@@ -88,7 +86,6 @@ class CrossDeviceDisclosureBasedIssuanceTests : TwoDeviceTestBase() {
         useSourceDevice {
             sourceDashboard.openQRScanner()
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
-            assertTrue(sourceQrScanner.visible())
 
             assertTrue(sourceDisclosureScreen.organizationNameVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)))
 

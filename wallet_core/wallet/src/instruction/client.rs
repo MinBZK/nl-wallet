@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use http_utils::client::TlsPinningConfig;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtDecodingKey;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
@@ -42,7 +42,7 @@ pub struct InstructionClientParameters {
     pin_salt: KeyBytes,
     wallet_certificate: WalletCertificate,
     client_config: TlsPinningConfig,
-    instruction_result_public_key: EcdsaDecodingKey,
+    instruction_result_public_key: JwtDecodingKey,
 }
 
 // Manually implement clone in order to prevent Clone trait bounds on the generics.
