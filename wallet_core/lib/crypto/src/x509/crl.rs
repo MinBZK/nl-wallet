@@ -184,7 +184,8 @@ impl CrlProvider {
         Ok(())
     }
 
-    /// Fetch all CRLs referenced in the certificate's CDP extension, either from cache or the network.
+    /// Fetch all usable CRLs referenced in the certificate's CDP extension, either from cache or the network.
+    /// A failed distribution point is tolerated when at least one alternative succeeds.
     pub async fn crls_for_cert(
         &self,
         cert: &BorrowingCertificate,
@@ -192,11 +193,23 @@ impl CrlProvider {
     ) -> Result<Vec<FetchedCrl>, CrlProviderError> {
         let urls = extract_crl_distribution_points(cert);
         let mut crls = Vec::new();
+        let mut first_error = None;
         for url in urls.iter().flatten() {
-            let fetched = self
-                .fetch_crl(url.parse().map_err(CrlProviderError::InvalidUrl)?, time)
-                .await?;
-            crls.push(fetched);
+            let result = match url.parse() {
+                Ok(url) => self.fetch_crl(url, time).await,
+                Err(error) => Err(CrlProviderError::InvalidUrl(error)),
+            };
+            match result {
+                Ok(fetched) => crls.push(fetched),
+                Err(error) => {
+                    first_error.get_or_insert(error);
+                }
+            }
+        }
+        if crls.is_empty()
+            && let Some(error) = first_error
+        {
+            return Err(error);
         }
         Ok(crls)
     }
@@ -477,7 +490,7 @@ mod tests {
     #[test]
     fn parse_empty_crl() {
         let ca = Ca::generate_mock();
-        let crl = ca.generate_crl(vec![]).unwrap();
+        let crl = ca.generate_crl(vec![], 1).unwrap();
         parse_crl_der(crl.der()).unwrap();
     }
 
@@ -493,7 +506,7 @@ mod tests {
             reason_code: Some(RevocationReason::KeyCompromise),
             invalidity_date: None,
         };
-        let crl = ca.generate_crl(vec![revoked]).unwrap();
+        let crl = ca.generate_crl(vec![revoked], 1).unwrap();
 
         // Parse the CRL
         let parsed = parse_crl_der(crl.der()).unwrap();
@@ -518,7 +531,7 @@ mod tests {
         let now_secs = 1_700_000_000i64;
         let now = OffsetDateTime::from_unix_timestamp(now_secs).unwrap();
         let next_update = now + Duration::from_secs(3600);
-        let crl = ca.generate_crl_with_validity(vec![], now, next_update).unwrap();
+        let crl = ca.generate_crl_with_validity(vec![], now, next_update, 1).unwrap();
 
         let (_, parsed) = parse_x509_crl(crl.der()).unwrap();
         let time = MockTimeGenerator::new(DateTime::from_timestamp(now_secs, 0).unwrap());
@@ -533,7 +546,9 @@ mod tests {
         let this_update_secs = 0i64;
         let this_update = OffsetDateTime::UNIX_EPOCH;
         let next_update = this_update + Duration::from_secs(3600);
-        let crl = ca.generate_crl_with_validity(vec![], this_update, next_update).unwrap();
+        let crl = ca
+            .generate_crl_with_validity(vec![], this_update, next_update, 1)
+            .unwrap();
 
         let (_, parsed) = parse_x509_crl(crl.der()).unwrap();
         // "Now" is well past `next_update`.
@@ -554,7 +569,7 @@ mod tests {
 
     fn empty_revocation_list() -> Vec<u8> {
         let ca = Ca::generate_mock();
-        ca.generate_crl(vec![]).unwrap().der().to_vec()
+        ca.generate_crl(vec![], 1).unwrap().der().to_vec()
     }
 
     #[tokio::test]
@@ -565,7 +580,7 @@ mod tests {
         let mock = server
             .mock_async(|when, then| {
                 when.method(GET).path("/crl.der");
-                then.status(200).body(ca.generate_crl(vec![]).unwrap().der());
+                then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
             })
             .await;
 
@@ -625,6 +640,35 @@ mod tests {
 
         assert!(matches!(error, CrlProviderError::Http(_)));
         mock.assert_calls_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn verify_chain_uses_working_alternative_distribution_point() {
+        let server = MockServer::start_async().await;
+        let unavailable_url: Url = server.url("/unavailable.crl").parse().unwrap();
+        let available_url: Url = server.url("/available.crl").parse().unwrap();
+        let (ca, leaf) = ca_and_leaf_with_cdps(vec![unavailable_url, available_url]);
+        let unavailable_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/unavailable.crl");
+                then.status(500);
+            })
+            .await;
+        let available_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/available.crl");
+                then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
+            })
+            .await;
+
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        provider
+            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .await
+            .expect("certificate should verify using the working distribution point");
+
+        unavailable_mock.assert_calls_async(1).await;
+        available_mock.assert_calls_async(1).await;
     }
 
     #[tokio::test]
@@ -710,7 +754,7 @@ mod tests {
         server
             .mock_async(|when, then| {
                 when.method(GET).path("/crl.der");
-                then.status(200).body(ca.generate_crl(vec![]).unwrap().der());
+                then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
             })
             .await;
 
@@ -760,7 +804,7 @@ mod tests {
         let mock = server
             .mock_async(|when, then| {
                 when.method(GET).path("/crl.der");
-                then.status(200).body(ca.generate_crl(vec![revoked]).unwrap().der());
+                then.status(200).body(ca.generate_crl(vec![revoked], 1).unwrap().der());
             })
             .await;
 
@@ -836,13 +880,15 @@ mod tests {
         server
             .mock_async(|when, then| {
                 when.method(GET).path("/root.crl");
-                then.status(200).body(root.generate_crl(vec![revoked]).unwrap().der());
+                then.status(200)
+                    .body(root.generate_crl(vec![revoked], 1).unwrap().der());
             })
             .await;
         server
             .mock_async(|when, then| {
                 when.method(GET).path("/intermediate.crl");
-                then.status(200).body(intermediate.generate_crl(vec![]).unwrap().der());
+                then.status(200)
+                    .body(intermediate.generate_crl(vec![], 1).unwrap().der());
             })
             .await;
 
@@ -892,7 +938,7 @@ mod tests {
             .mock_async(|when, then| {
                 when.method(GET).path("/crl.der");
                 then.status(200).body(
-                    ca.generate_crl_with_validity(vec![], this_update, next_update)
+                    ca.generate_crl_with_validity(vec![], this_update, next_update, 1)
                         .unwrap()
                         .der(),
                 );

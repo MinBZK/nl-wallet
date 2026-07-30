@@ -597,7 +597,7 @@ mod tests {
             reason_code: Some(RevocationReason::KeyCompromise),
             invalidity_date: None,
         };
-        let crl_der = ca.generate_crl(vec![revoked]).unwrap().der().to_vec();
+        let crl_der = ca.generate_crl(vec![revoked], 1).unwrap().der().to_vec();
         let crl = parse_crl_der(&crl_der).unwrap();
         let crls = [FetchedCrl::new_for_test(crl)];
 

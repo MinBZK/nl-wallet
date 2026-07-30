@@ -217,23 +217,21 @@ pub mod generate {
         pub fn generate_crl(
             &self,
             revoked_certs: Vec<RevokedCertParams>,
+            crl_number: u64,
         ) -> Result<CertificateRevocationList, CertificateError> {
             let now = OffsetDateTime::now_utc();
-            self.generate_crl_with_validity(revoked_certs, now, now + Duration::days(7))
+            self.generate_crl_with_validity(revoked_certs, now, now + Duration::days(7), crl_number)
         }
 
-        /// Generate a signed CRL from this CA, revoking the given certificates, with explicit
-        /// `thisUpdate`/`nextUpdate` fields. Used to test CRL expiry handling.
+        /// Generate a signed CRL from this CA with explicit `thisUpdate`, `nextUpdate`, and `crlNumber` fields.
+        /// The caller is responsible for increasing `crl_number` for every CRL issued by this CA.
         pub fn generate_crl_with_validity(
             &self,
             revoked_certs: Vec<RevokedCertParams>,
             this_update: OffsetDateTime,
             next_update: OffsetDateTime,
+            crl_number: u64,
         ) -> Result<CertificateRevocationList, CertificateError> {
-            // RFC 5280 requires `crlNumber` to be monotonically increasing for each CRL issued by
-            // this CA. Deriving it from `this_update` guarantees that by construction, since time
-            // only moves forward, without requiring callers to track/pass an explicit counter.
-            let crl_number = u64::try_from(this_update.unix_timestamp()).expect("this_update must be after 1970");
             let params = CertificateRevocationListParams {
                 this_update,
                 next_update,

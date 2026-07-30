@@ -33,6 +33,7 @@ use time::OffsetDateTime;
 use url::Url;
 use utils::built_info::version_string;
 use utils::vec_at_least::VecNonEmpty;
+use wallet_ca::next_crl_number;
 use wallet_ca::read_public_key;
 use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_certificate;
@@ -227,9 +228,9 @@ enum Command {
     },
     /// Generate a CRL, signed by the CA
     ///
-    /// `crlNumber` is derived from the generation time, so it increases automatically on every regeneration. To
-    /// actually revoke a certificate, regenerate the CRL for its issuing CA with that certificate's serial number
-    /// added to --serial-number, and re-publish the resulting file at the CDP URL(s) baked into the certificate.
+    /// `crlNumber` starts at the generation time and advances from the existing DER file on regeneration. To actually
+    /// revoke a certificate, regenerate the CRL for its issuing CA with the same file prefix and that certificate's
+    /// serial number added to --serial-number, then re-publish the result at the certificate's CDP URL(s).
     Crl {
         /// Path to the CA key file in PEM format
         #[arg(short = 'k', long, value_parser)]
@@ -479,6 +480,7 @@ impl Command {
 
                 let this_update = OffsetDateTime::now_utc();
                 let next_update = this_update + time::Duration::days(i64::from(days));
+                let crl_number = next_crl_number(&file_prefix, this_update)?;
                 let revoked_certs = serial_numbers
                     .into_iter()
                     .map(|sn| {
@@ -493,7 +495,7 @@ impl Command {
                     })
                     .collect::<Result<Vec<_>>>()?;
 
-                let crl = ca.generate_crl_with_validity(revoked_certs, this_update, next_update)?;
+                let crl = ca.generate_crl_with_validity(revoked_certs, this_update, next_update, crl_number)?;
 
                 write_crl(&file_prefix, &crl, force)?;
                 Ok(())

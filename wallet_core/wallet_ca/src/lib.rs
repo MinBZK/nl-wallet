@@ -1,4 +1,5 @@
 use std::fs;
+use std::mem::size_of;
 use std::path::Path;
 
 use anyhow::Result;
@@ -11,6 +12,8 @@ use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;
 use rcgen::CertificateRevocationList;
+use time::OffsetDateTime;
+use x509_parser::parse_x509_crl;
 
 pub fn read_public_key(public_key_file: &CachedInput) -> Result<Pem> {
     let pem = Pem::try_from(public_key_file.get_data())?;
@@ -92,4 +95,65 @@ pub fn write_crl(file_prefix: &str, crl: &CertificateRevocationList, force: bool
     eprintln!("CRL stored in '{}'", pem_path.display());
     eprintln!("CRL stored in '{}'", der_path.display());
     Ok(())
+}
+
+fn select_crl_number(timestamp_number: u64, previous_number: u64) -> Option<u64> {
+    previous_number
+        .checked_add(1)
+        .map(|incremented_number| timestamp_number.max(incremented_number))
+}
+
+/// Select a `crlNumber` for an output prefix. A new sequence starts at `this_update`'s Unix timestamp. When a DER CRL
+/// already exists, the result is guaranteed to exceed its number even if the clock has not advanced or moved backwards.
+pub fn next_crl_number(file_prefix: &str, this_update: OffsetDateTime) -> Result<u64> {
+    let timestamp_number = u64::try_from(this_update.unix_timestamp())
+        .map_err(|_| anyhow!("CRL thisUpdate must be on or after the Unix epoch"))?;
+    let der_file = format!("{file_prefix}.crl.der");
+    let der_path = Path::new(&der_file);
+    if !der_path.exists() {
+        return Ok(timestamp_number);
+    }
+
+    let der = fs::read(der_path)?;
+    let (remainder, previous_crl) = parse_x509_crl(&der)
+        .map_err(|error| anyhow!("Could not parse existing CRL '{}': {error}", der_path.display()))?;
+    if !remainder.is_empty() {
+        return Err(anyhow!("Existing CRL '{}' contains trailing data", der_path.display()));
+    }
+    let previous_number = previous_crl
+        .crl_number()
+        .ok_or_else(|| anyhow!("Existing CRL '{}' has no crlNumber", der_path.display()))?;
+    let previous_number_bytes = previous_number.to_bytes_be();
+    if previous_number_bytes.len() > size_of::<u64>() {
+        return Err(anyhow!(
+            "Existing CRL '{}' has a crlNumber that is too large",
+            der_path.display()
+        ));
+    }
+    let previous_number = previous_number_bytes
+        .into_iter()
+        .fold(0_u64, |value, byte| (value << 8) | u64::from(byte));
+    select_crl_number(timestamp_number, previous_number).ok_or_else(|| {
+        anyhow!(
+            "Existing CRL '{}' has the maximum supported crlNumber",
+            der_path.display()
+        )
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_crl_number;
+
+    #[test]
+    fn crl_number_increases_when_clock_does_not() {
+        assert_eq!(select_crl_number(42, 42), Some(43));
+        assert_eq!(select_crl_number(41, 42), Some(43));
+    }
+
+    #[test]
+    fn crl_number_uses_later_timestamp_and_rejects_overflow() {
+        assert_eq!(select_crl_number(44, 42), Some(44));
+        assert_eq!(select_crl_number(42, u64::MAX), None);
+    }
 }

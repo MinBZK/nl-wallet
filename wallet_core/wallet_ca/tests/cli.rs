@@ -234,8 +234,8 @@ fn assert_generated_crl(
     let next_update = crl.next_update().expect("CRL should have a nextUpdate").to_datetime();
     assert_eq!(next_update.cmp_range(&end, Duration::minutes(1)), Ordering::Equal);
 
-    // verify crlNumber is present and derived from thisUpdate, so it is guaranteed to increase on every
-    // regeneration
+    // The initial crlNumber starts the sequence at thisUpdate. Regeneration tests separately verify that the existing
+    // DER file advances the sequence.
     let crl_number = crl.crl_number().expect("CRL should have a crlNumber");
     let expected_crl_number = BigUint::from(u64::try_from(this_update.unix_timestamp())?);
     assert_eq!(crl_number, &expected_crl_number);
@@ -1080,6 +1080,9 @@ fn regenerating_crl() -> Result<()> {
         .generate_crl(&ca_crt, &ca_key, &crl_prefix, "90")
         .assert()
         .success();
+    let first_crl_der = std::fs::read(crl_der_path(&temp, "test-crl"))?;
+    let (_, first_crl) = parse_x509_crl(&first_crl_der)?;
+    let first_crl_number = first_crl.crl_number().expect("CRL should have a crlNumber").clone();
 
     // Re-generating the CRL should fail without --force
     Command::new(assert_cmd::cargo::cargo_bin!())
@@ -1094,6 +1097,11 @@ fn regenerating_crl() -> Result<()> {
         .arg("--force")
         .assert()
         .success();
+    let second_crl_der = std::fs::read(crl_der_path(&temp, "test-crl"))?;
+    let (_, second_crl) = parse_x509_crl(&second_crl_der)?;
+    let second_crl_number = second_crl.crl_number().expect("CRL should have a crlNumber");
+
+    assert!(second_crl_number > &first_crl_number);
 
     temp.close()?;
 

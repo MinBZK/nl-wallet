@@ -42,7 +42,8 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
 ```
 
 To revoke a certificate, obtain its serial number and regenerate the CRL with
-that serial number included:
+that serial number included. Keep the previous DER file at the same output
+prefix so `wallet_ca` can advance its `crlNumber` even when the clock has not:
 
 ```shell
 openssl x509 -in target/example-wrpac.crt.pem -noout -serial
