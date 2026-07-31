@@ -17,9 +17,7 @@ cd "$BASE_DIR"
 while IFS= read -r -d '' lockfile; do
     echo "Fixing $lockfile..."
     cd "$(dirname "$lockfile")"
-    # First try to update. If it can't be fixed, override
     pnpm audit --fix update || true
-    pnpm audit --fix override && pnpm install || true
 done < <(find "$BASE_DIR" -name pnpm-lock.yaml -not -path '*/node_modules/*' -print0)
 
 cd "$BASE_DIR"
