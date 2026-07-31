@@ -212,9 +212,9 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataUriMultipleAttestationTypes(Box<Vec<(IssuerUrl, Vec<String>)>>),
 
-    #[error("type metadata for \"{0}\" not found")]
+    #[error("type metadata for vct \"{0}\" not found")]
     #[category(critical)]
-    TypeMetadataNotFound(CredentialConfigurationId),
+    TypeMetadataNotFound(String),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
@@ -452,7 +452,7 @@ pub trait IssuanceSession {
 
     fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
-    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
+    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

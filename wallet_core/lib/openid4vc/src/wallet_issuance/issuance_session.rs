@@ -354,7 +354,7 @@ struct IssuanceState {
     batch_size: NonZeroU8,
     credential_previews: VecNonEmpty<CredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
-    type_metadata: HashMap<CredentialConfigurationId, IssuanceTypeMetadata>,
+    type_metadata: HashMap<String, IssuanceTypeMetadata>,
     issuer_registration: IssuerRegistration,
     #[debug(skip)]
     dpop_signing_key: SigningKey,
@@ -679,7 +679,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &CredentialConfiguration)>,
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
-    ) -> Result<HashMap<CredentialConfigurationId, IssuanceTypeMetadata>, WalletIssuanceError> {
+    ) -> Result<HashMap<String, IssuanceTypeMetadata>, WalletIssuanceError> {
         // Get the metadata URI and attestation_type for each credential configuration, while collecting any Credential
         // Configuration IDs for which no type metadata URI is given.
         let (configs_data, missing_uri_config_ids): (Vec<_>, Vec<_>) = credential_configurations
@@ -692,7 +692,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
                         .expect("unsupported format");
 
-                    Either::Left((uri, (config_id, attestation_type)))
+                    Either::Left((uri, attestation_type))
                 }
                 None => Either::Right(config_id.clone()),
             });
@@ -704,10 +704,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         // Transform this to all unique type metadata URIs, along with all configuration IDs and attestation types per
         // URI.
-        let attestation_types_and_config_ids_per_uri = configs_data.into_iter().into_group_map();
+        let attestation_types_per_uri = configs_data.into_iter().into_group_map();
 
         // Check that all URIs have the same scheme and host as the Issuer Identifier, as is required by our profile.
-        let mismatched_uris = attestation_types_and_config_ids_per_uri
+        let mismatched_uris = attestation_types_per_uri
             .keys()
             .filter(|uri| !uri.has_same_scheme_and_host(credential_issuer.as_issuer_url()))
             .copied()
@@ -722,19 +722,15 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         }
 
         // Make sure there is only one attestation type per URI, while retaining the config IDs.
-        let (uri_attestation_type_and_config_ids, multi_attestation_type_uris): (Vec<_>, Vec<_>) =
-            attestation_types_and_config_ids_per_uri.into_iter().partition_map(
-                |(uri, config_ids_and_attestation_types)| {
-                    let (config_ids, attestation_types): (Vec<_>, HashSet<_>) =
-                        config_ids_and_attestation_types.into_iter().unzip();
+        let (attestation_types_and_uris, multi_attestation_type_uris): (Vec<_>, Vec<_>) = attestation_types_per_uri
+            .into_iter()
+            .partition_map(
+                |(uri, attestation_types)| match attestation_types.into_iter().exactly_one() {
+                    Ok(attestation_type) => Either::Left((attestation_type, uri)),
+                    Err(attestation_types_iter) => {
+                        let attestation_types = attestation_types_iter.map(str::to_string).collect_vec();
 
-                    match attestation_types.into_iter().exactly_one() {
-                        Ok(attestation_type) => Either::Left((uri, attestation_type, config_ids)),
-                        Err(attestation_types_iter) => {
-                            let attestation_types = attestation_types_iter.map(str::to_string).collect_vec();
-
-                            Either::Right((uri.clone(), attestation_types))
-                        }
+                        Either::Right((uri.clone(), attestation_types))
                     }
                 },
             );
@@ -746,8 +742,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         }
 
         // Fetch type metadata documents from URIs, then normalize the chain of documents.
-        let config_ids_and_metadata = try_join_all(uri_attestation_type_and_config_ids.into_iter().map(
-            async |(uri, attestation_type, config_ids)| -> Result<_, WalletIssuanceError> {
+        let metadata_per_attestation_type = try_join_all(attestation_types_and_uris.into_iter().map(
+            async |(attestation_type, uri)| -> Result<_, WalletIssuanceError> {
                 let documents = message_client.request_type_metadata(uri.as_url().clone()).await?;
 
                 let (normalized_metadata, raw_metadata) = documents
@@ -759,24 +755,14 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     raw_metadata,
                 };
 
-                Ok((config_ids, metadata))
+                Ok((attestation_type.to_string(), metadata))
             },
         ))
-        .await?;
+        .await?
+        .into_iter()
+        .collect();
 
-        // Finally, duplicate the normalized type metadata per config ID.
-        let metadata_per_config_id = config_ids_and_metadata
-            .into_iter()
-            .flat_map(|(config_ids, metadata)| {
-                let config_id_count = config_ids.len();
-                config_ids
-                    .into_iter()
-                    .zip_eq(std::iter::repeat_n(metadata, config_id_count))
-                    .map(|(config_id, metadata)| (config_id.clone(), metadata))
-            })
-            .collect();
-
-        Ok(metadata_per_config_id)
+        Ok(metadata_per_attestation_type)
     }
 }
 
@@ -889,8 +875,14 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 let copy_count = usize::from(self.session_state.batch_size.get());
 
                 // Get type metadata of attestation type
-                let Some(type_metadata) = self.session_state.type_metadata.get(&preview.config_id) else {
-                    Err(WalletIssuanceError::TypeMetadataNotFound(preview.config_id.clone()))?
+                let Some(type_metadata) = self
+                    .session_state
+                    .type_metadata
+                    .get(&preview.credential_payload.attestation_type)
+                else {
+                    Err(WalletIssuanceError::TypeMetadataNotFound(
+                        preview.credential_payload.attestation_type.clone(),
+                    ))?
                 };
 
                 // Consume the amount of copies from the front of `responses_and_keys`.
@@ -1000,7 +992,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         &self.session_state.credential_previews
     }
 
-    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata> {
+    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata> {
         &self.session_state.type_metadata
     }
 
@@ -1584,7 +1576,10 @@ mod tests {
                 Attribute::Single(AttributeValue::Text(v)) if v == "De Bruijn");
 
         assert_eq!(
-            type_metadata.get(&preview.config_id).unwrap().normalized_metadata,
+            type_metadata
+                .get(&preview.credential_payload.attestation_type)
+                .unwrap()
+                .normalized_metadata,
             TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example())
                 .2
                 .into_normalized(&preview.credential_payload.attestation_type)
@@ -2004,7 +1999,7 @@ mod tests {
         let mut issuer_metadata = IssuerMetadata::new_mock(
             issuer_identifier,
             vec![(
-                config_id.clone(),
+                config_id,
                 CredentialKind::new(Format::SdJwt, attestation_type.to_string()),
             )],
         );
@@ -2020,7 +2015,7 @@ mod tests {
             batch_size: NonZeroU8::MIN,
             credential_previews,
             credential_request_types,
-            type_metadata: [(config_id, issuance_type_metadata)].into(),
+            type_metadata: [(attestation_type.to_string(), issuance_type_metadata)].into(),
             issuer_registration: IssuerRegistration::new_mock(),
             dpop_signing_key: SigningKey::generate(),
             dpop_nonce: Some("dpop_nonce".to_string()),
