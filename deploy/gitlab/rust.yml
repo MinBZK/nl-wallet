@@ -94,7 +94,7 @@ test-rust:
         POSTGRES_PASSWORD: "postgres"
   script:
     - ./scripts/setup-devenv.sh
-    - ./scripts/start-devenv.sh demo_index
+    - ./scripts/start-devenv.sh dx
     - curl --fail --silent --show-error --retry 120 --retry-connrefused --retry-delay 1
       --output /dev/null http://localhost:3005/wrpac.crl.der
     - cd wallet_core
