@@ -43,6 +43,7 @@ use serde::de::DeserializeOwned;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::single_unique::SingleUnique;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 use wscd::wscd::IssuanceWscd;
@@ -415,17 +416,15 @@ fn credential_request_types_from_preview(
     //                  of the `CredentialRequest`s and only issue those formats.
 
     credential_previews
-        .iter()
+        .nonempty_iter()
         .flat_map(|preview| {
             let request_type =
                 CredentialRequestType::from_format(preview.format, preview.credential_payload.attestation_type.clone());
 
             // Construct a `Vec<CredentialRequestType>`, with one entry per copy for this credential.
-            std::iter::repeat_n(request_type, usize::from(batch_size.get()))
+            utils::vec_at_least::repeat_n(request_type, batch_size.into())
         })
-        .collect_vec()
-        .try_into()
-        .expect("source is a VecNonEmpty which maps into repeat with NonZeroU8")
+        .collect()
 }
 
 /// Detects if an issuance error that occurred during a token request is a PreAuthorizedCodeExpired error.
@@ -693,7 +692,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
                         .expect("unsupported format");
 
-                    Either::Left((config_id, attestation_type, uri))
+                    Either::Left((uri, (config_id, attestation_type)))
                 }
                 None => Either::Right(config_id.clone()),
             });
@@ -705,10 +704,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         // Transform this to all unique type metadata URIs, along with all configuration IDs and attestation types per
         // URI.
-        let attestation_types_and_config_ids_per_uri = configs_data
-            .into_iter()
-            .map(|(config_id, attestation_type, uri)| (uri, (config_id, attestation_type)))
-            .into_group_map();
+        let attestation_types_and_config_ids_per_uri = configs_data.into_iter().into_group_map();
 
         // Check that all URIs have the same scheme and host as the Issuer Identifier, as is required by our profile.
         let mismatched_uris = attestation_types_and_config_ids_per_uri
@@ -728,24 +724,17 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         // Make sure there is only one attestation type per URI, while retaining the config IDs.
         let (uri_attestation_type_and_config_ids, multi_attestation_type_uris): (Vec<_>, Vec<_>) =
             attestation_types_and_config_ids_per_uri.into_iter().partition_map(
-                |(uri, config_ids_and_attestation_types)| match config_ids_and_attestation_types
-                    .iter()
-                    .map(|(_, attestation_type)| *attestation_type)
-                    .unique()
-                    .exactly_one()
-                {
-                    Ok(attestation_type) => {
-                        let config_ids = config_ids_and_attestation_types
-                            .into_iter()
-                            .map(|(config_id, _)| config_id)
-                            .collect_vec();
+                |(uri, config_ids_and_attestation_types)| {
+                    let (config_ids, attestation_types): (Vec<_>, HashSet<_>) =
+                        config_ids_and_attestation_types.into_iter().unzip();
 
-                        Either::Left((uri, attestation_type, config_ids))
-                    }
-                    Err(attestation_types) => {
-                        let attestation_types = attestation_types.into_iter().map(str::to_string).collect_vec();
+                    match attestation_types.into_iter().exactly_one() {
+                        Ok(attestation_type) => Either::Left((uri, attestation_type, config_ids)),
+                        Err(attestation_types_iter) => {
+                            let attestation_types = attestation_types_iter.map(str::to_string).collect_vec();
 
-                        Either::Right((uri.clone(), attestation_types))
+                            Either::Right((uri.clone(), attestation_types))
+                        }
                     }
                 },
             );
