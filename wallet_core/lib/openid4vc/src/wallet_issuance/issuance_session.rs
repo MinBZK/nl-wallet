@@ -703,7 +703,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             return Err(WalletIssuanceError::TypeMetadataUriMissing(missing_uri_config_ids));
         }
 
-        // Transorm this to all unique type metadata URIs, along with all configuration IDs and attestation types per
+        // Transform this to all unique type metadata URIs, along with all configuration IDs and attestation types per
         // URI.
         let attestation_types_and_config_ids_per_uri = configs_data
             .into_iter()
