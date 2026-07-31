@@ -17,7 +17,7 @@ There are several categories of tests, which are gated behind features:
 To run these tests, perform the following steps:
 
 * Set up the local environment using `./scripts/setup-devenv.sh`.
-* Start PostgreSQL using `./scripts/start-devenv.sh postgres`.
+* Start PostgreSQL and demo-index using `./scripts/start-devenv.sh postgres demo_index`.
 * Run the tests from `wallet_core` using `cargo test --package tests_integration --features integration_test`.
 
 ## DigiD connector integration test
