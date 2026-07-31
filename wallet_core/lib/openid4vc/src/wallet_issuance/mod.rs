@@ -195,7 +195,11 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataUriMissing(Vec<CredentialConfigurationId>),
 
-    #[error("type metadata URI(s) with different host than issuer identifier \"{}\": {}", .0, .1.iter().join(", "))]
+    #[error(
+        "type metadata URI(s) found in Issuer Metadata with issuer identifier \"{}\" that have a different host: {}",
+        .0,
+        .1.iter().join(", ")
+    )]
     #[category(critical)]
     TypeMetadataHostMismatch(Box<IssuerIdentifier>, Box<Vec<IssuerUrl>>),
 
@@ -208,7 +212,7 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataUriMultipleAttestationTypes(Box<Vec<(IssuerUrl, Vec<String>)>>),
 
-    #[error("type metadata for `{0}` not found")]
+    #[error("type metadata for \"{0}\" not found")]
     #[category(critical)]
     TypeMetadataNotFound(CredentialConfigurationId),
 
