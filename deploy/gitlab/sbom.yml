@@ -9,10 +9,11 @@ build-sbom:
 
     ## NPM
     - cd wallet_web
-    - cyclonedx-npm --spec-version 1.5 --output-format json --output-file bom.json --package-lock-only
-    # only keep bundled dependencies
-    - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
-    - mv bom-bundled.json bom.json
+    - pnpm sbom --sbom-format cyclonedx --sbom-spec-version 1.5 --lockfile-only > bom.json
+    - cd ..
+
+    - cd wallet_admin_portal
+    - pnpm sbom --sbom-format cyclonedx --sbom-spec-version 1.5 --lockfile-only > bom.json
     - cd ..
 
     ## Flutter
