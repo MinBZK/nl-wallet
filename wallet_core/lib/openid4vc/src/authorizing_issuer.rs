@@ -8,7 +8,6 @@
 //! step of the flow. Deployments that only do the pre-authorized-code grant (no flow) use the bare [`Issuer`]
 //! directly and never construct an [`AuthorizingIssuer`].
 
-use std::collections::HashSet;
 use std::error::Error;
 use std::sync::Arc;
 
@@ -44,7 +43,6 @@ use crate::issuer::WiaVerificationError;
 use crate::nonce::store::NonceStore;
 use crate::par;
 use crate::par::PAR_TTL;
-use crate::scope::Scope;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::store::Store;
@@ -94,9 +92,6 @@ pub enum AuthorizeError {
 pub enum AuthorizationRequestError {
     #[error("invalid authorization request: {0}")]
     InvalidAuthorizationRequest(#[source] InvalidAuthorizationRequest),
-
-    #[error("none of the scopes requested reference a known credential configuration: {}", .0.iter().join(" "))]
-    NoValidScope(HashSet<Scope>),
 
     #[error("authorization code flow error: {0}")]
     AuthorizationCodeFlow(#[source] BoxedErrorWithCode<AuthorizationErrorCode>),
