@@ -191,13 +191,30 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TokenResponseUnknownScope(Vec<Scope>),
 
-    #[error("uri `{0}` has different host than issuer identifier `{1}`")]
+    #[error("type metadata URI is missing for credential configuration ID(s): {}", .0.iter().join(", "))]
     #[category(critical)]
-    HostMismatchWithIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
+    TypeMetadataUriMissing(Vec<CredentialConfigurationId>),
 
-    #[error("type metadata for `{0}` not found")]
+    #[error(
+        "type metadata URI(s) found in Issuer Metadata with issuer identifier \"{}\" that have a different host: {}",
+        .0,
+        .1.iter().join(", ")
+    )]
     #[category(critical)]
-    TypeMetadataNotFound(CredentialConfigurationId),
+    TypeMetadataHostMismatch(Box<IssuerIdentifier>, Box<Vec<IssuerUrl>>),
+
+    #[error(
+        "type metadata URI(s) for multiple attestation types detected: {}",
+        .0.iter().map(|(uri, attestation_types)| {
+            format!("{}: {}", uri, attestation_types.iter().join(" / "))
+        }).join(", ")
+    )]
+    #[category(critical)]
+    TypeMetadataUriMultipleAttestationTypes(Box<Vec<(IssuerUrl, Vec<String>)>>),
+
+    #[error("type metadata for vct \"{0}\" not found")]
+    #[category(critical)]
+    TypeMetadataNotFound(String),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
@@ -435,7 +452,7 @@ pub trait IssuanceSession {
 
     fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
-    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
+    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }
