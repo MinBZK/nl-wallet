@@ -171,12 +171,8 @@ pub struct WalletClients<APC, CID, DCC, SLC> {
 
 fn reqwest_client_builder() -> ClientBuilder {
     cfg_select! {
-        feature = "allow_insecure_url" => {
-            default_reqwest_client_builder()
-        }
-        _ => {
-            http_utils::reqwest::default_tls_reqwest_client_builder()
-        }
+        feature = "allow_insecure_url" => default_reqwest_client_builder(),
+        _ => http_utils::reqwest::default_tls_reqwest_client_builder(),
     }
 }
 
