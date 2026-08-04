@@ -32,6 +32,7 @@ pub enum CrlProviderError {
     #[error("HTTP error fetching CRL: {0}")]
     Http(#[source] reqwest::Error),
     #[error("CRL response exceeds maximum size of {MAX_CRL_SIZE} bytes")]
+    #[category(critical)]
     TooLarge,
     #[error("CRL parsing error: {0}")]
     Parsing(#[source] webpki::Error),
