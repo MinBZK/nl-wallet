@@ -95,10 +95,11 @@ use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
 use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
-type KeyHolderType = cfg_select! {
-    feature = "fake_attestation" => platform_support::attested_key::mock::PersistentMockAttestedKeyHolder,
-    _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder,
-};
+type KeyHolderType =
+    cfg_select! {
+        feature = "fake_attestation" => platform_support::attested_key::mock::PersistentMockAttestedKeyHolder,
+        _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder,
+    };
 
 #[derive(Debug, Default)]
 enum WalletRegistration<A, G> {

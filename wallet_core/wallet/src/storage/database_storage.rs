@@ -216,9 +216,7 @@ impl<K> DatabaseStorage<K> {
 
         // Get path to database as "<storage_path>/<name>.db"
         cfg_select! {
-            debug_assertions => {
-                self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
-            }
+            debug_assertions => self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}")),
             _ => {
                 // Temporarily hack to prevent backwards compatibility problems by including
                 // db version identifier. Should be removed when doing PVW-4707.

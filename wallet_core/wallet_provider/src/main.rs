@@ -48,32 +48,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let play_integrity_client = cfg_select! {
         feature = "mock_android_integrity_verdict" => {
-            {
-                use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
+            use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
 
-                tracing::warn!(
-                    "DANGEROUS - Android integrity verdicts are mocked. This should NOT be used in production!"
-                );
+            tracing::warn!("DANGEROUS - Android integrity verdicts are mocked. This should NOT be used in production!");
 
-                MockPlayIntegrityClient::new(
-                    settings.android.package_name.clone(),
-                    settings.android.play_store_certificate_hashes.clone(),
-                )
-            }
+            MockPlayIntegrityClient::new(
+                settings.android.package_name.clone(),
+                settings.android.play_store_certificate_hashes.clone(),
+            )
         }
         _ => {
-            {
-                use android_attest::play_integrity::client::PlayIntegrityClient;
-                use android_attest::play_integrity::client::ServiceAccountAuthenticator;
-                use utils::path::prefix_local_path;
+            use android_attest::play_integrity::client::PlayIntegrityClient;
+            use android_attest::play_integrity::client::ServiceAccountAuthenticator;
+            use utils::path::prefix_local_path;
 
-                let credentials_file_path = prefix_local_path(&settings.android.credentials_file);
-                PlayIntegrityClient::new(
-                    reqwest_client,
-                    ServiceAccountAuthenticator::new(credentials_file_path.as_ref()).await?,
-                    &settings.android.package_name,
-                )?
-            }
+            let credentials_file_path = prefix_local_path(&settings.android.credentials_file);
+            PlayIntegrityClient::new(
+                reqwest_client,
+                ServiceAccountAuthenticator::new(credentials_file_path.as_ref()).await?,
+                &settings.android.package_name,
+            )?
         }
     };
 
