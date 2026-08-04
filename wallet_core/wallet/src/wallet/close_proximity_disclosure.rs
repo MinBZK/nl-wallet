@@ -12,6 +12,7 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CrlProvider;
 use derive_more::IsVariant;
 use entity::disclosure_event::EventStatus;
@@ -233,8 +234,11 @@ pub enum CloseProximityDisclosureError {
     #[error("invalid DocRequest")]
     InvalidDocRequest(#[from] mdoc::Error),
 
-    #[error("reader access certificate revocation validation failed")]
+    #[error("reader access certificate validation failed")]
     InvalidReaderCertificate(#[from] CertificateError),
+
+    #[error("reader access certificate CRL verification failed")]
+    ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
 
     #[error("invalid reader authentication certificate chain")]
     InvalidReaderCertificateChain(#[source] CoseError),
@@ -284,6 +288,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::InvalidReaderCertificate(_)
+        | CloseProximityDisclosureError::ReaderCertificateCrlVerification(_)
         | CloseProximityDisclosureError::InvalidReaderCertificateChain(_) => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
@@ -830,7 +835,8 @@ pub async fn verify_device_request_with_crl(
 
     crl_provider
         .verify_chain(certificate_chain.as_slice(), trust_anchors, None, time)
-        .await?;
+        .await
+        .map_err(CloseProximityDisclosureError::ReaderCertificateCrlVerification)?;
 
     Ok(certificate)
 }
@@ -888,9 +894,8 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
-    use crypto::x509::CertificateError;
+    use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::CrlProvider;
-    use crypto::x509::crl::CrlProviderError;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
@@ -1619,8 +1624,8 @@ mod tests {
 
         assert_matches!(
             result,
-            Err(CloseProximityDisclosureError::InvalidReaderCertificate(
-                CertificateError::Crl(CrlProviderError::NoCrlDistributionPoint)
+            Err(CloseProximityDisclosureError::ReaderCertificateCrlVerification(
+                CertificateCrlVerificationError::NoCrlDistributionPoint
             ))
         );
     }

@@ -53,7 +53,6 @@ use yoke::Yoke;
 use yoke::Yokeable;
 
 use crate::trust_anchor::TrustAnchors;
-use crate::x509::crl::CrlProviderError;
 use crate::x509::crl::FetchedCrl;
 
 #[cfg(any(test, feature = "generate"))]
@@ -132,9 +131,6 @@ pub enum CertificateError {
     #[error("certificate chain must not contain the trust anchor")]
     #[category(critical)]
     TrustAnchorInChain,
-    #[error("certificate revocation list error")]
-    #[category(defer)]
-    Crl(#[source] CrlProviderError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:

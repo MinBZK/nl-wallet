@@ -602,9 +602,8 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_string;
-    use crypto::x509::CertificateError;
+    use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::CrlProvider;
-    use crypto::x509::crl::CrlProviderError;
     use futures::future::try_join_all;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
@@ -1359,9 +1358,7 @@ mod test {
         assert_matches!(
             result,
             Err(WalletIssuanceError::CredentialIssuerMetadataVerify(
-                JwtX5cVerifyError::CertificateValidation(CertificateError::Crl(
-                    CrlProviderError::NoCrlDistributionPoint
-                ))
+                JwtX5cVerifyError::CertificateCrlValidation(CertificateCrlVerificationError::NoCrlDistributionPoint)
             ))
         );
     }

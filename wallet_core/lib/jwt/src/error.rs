@@ -1,6 +1,7 @@
 use crypto::PublicKey;
 use crypto::PublicKeyError;
 use crypto::x509::CertificateError;
+use crypto::x509::crl::CertificateCrlVerificationError;
 use error_category::ErrorCategory;
 use jsonwebtoken::jwk::AlgorithmParameters;
 use jsonwebtoken::jwk::EllipticCurve;
@@ -174,4 +175,7 @@ pub enum JwtX5cVerifyError {
 
     #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),
+
+    #[error("error verifying certificate with CRLs: {0}")]
+    CertificateCrlValidation(#[source] CertificateCrlVerificationError),
 }

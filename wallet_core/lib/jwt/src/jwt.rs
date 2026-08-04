@@ -300,7 +300,7 @@ where
         crl_provider
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
             .await
-            .map_err(JwtX5cVerifyError::CertificateValidation)?;
+            .map_err(JwtX5cVerifyError::CertificateCrlValidation)?;
 
         let pubkey = PublicKey::from(*certificates.first().public_key());
         let validation = validation.into_validation(&pubkey);

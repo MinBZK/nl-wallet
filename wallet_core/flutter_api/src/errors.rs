@@ -411,6 +411,9 @@ fn close_proximity_can_retry(error: &CloseProximityDisclosureError) -> Option<bo
         CloseProximityDisclosureError::InvalidReaderCertificate(error) => {
             Some(detect_networking_error(error).is_some())
         }
+        CloseProximityDisclosureError::ReaderCertificateCrlVerification(error) => {
+            Some(detect_networking_error(error).is_some())
+        }
         CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
         CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
         _ => Some(false),
@@ -660,6 +663,9 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::InvalidReaderCertificate(error) => {
+                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Verifier)
+            }
+            CloseProximityDisclosureError::ReaderCertificateCrlVerification(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Verifier)
             }
             CloseProximityDisclosureError::DeviceResponseEncoding(_)

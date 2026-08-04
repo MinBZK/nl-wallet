@@ -1172,9 +1172,8 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::CertificateError;
+    use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::CrlProvider;
-    use crypto::x509::crl::CrlProviderError;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1425,9 +1424,7 @@ mod tests {
         assert_matches!(
             result,
             Err(AuthRequestValidationError::JwtVerification(
-                JwtX5cVerifyError::CertificateValidation(CertificateError::Crl(
-                    CrlProviderError::NoCrlDistributionPoint
-                ))
+                JwtX5cVerifyError::CertificateCrlValidation(CertificateCrlVerificationError::NoCrlDistributionPoint)
             ))
         );
     }
