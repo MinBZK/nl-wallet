@@ -238,10 +238,12 @@ impl CrlProvider {
             .map_err(CrlProviderError::Http)?
             .ok_or(CrlProviderError::TooLarge)?;
 
-        // Extract TTL using `x509_parser`, falling back to a short retry TTL rather than caching
-        // this entry indefinitely if `nextUpdate` couldn't be determined. Uses the same injected
-        // `time` as verification, so cache eviction and expiry enforcement agree on "now".
-        // Capped at `MAX_TTL`, since `nextUpdate` comes from the not-yet-verified CRL itself.
+        // `rustls-webpki` parses and enforces `nextUpdate`, but does not expose
+        // its value. Use `x509_parser` only as a best-effort metadata pass to
+        // derive the cache TTL; `webpki` below remains authoritative for parsing
+        // and verification. Fall back to a short TTL if extraction fails, and cap
+        // it because the CRL has not yet been verified. Use the injected time so
+        // cache eviction and verification agree on "now".
         let ttl = parse_x509_crl(&bytes)
             .ok()
             .and_then(|(_, crl)| ttl_from_next_update(&crl, time))
