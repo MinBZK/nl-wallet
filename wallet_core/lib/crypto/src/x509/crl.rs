@@ -159,18 +159,9 @@ impl CrlFetcher for HttpCrlFetcher {
 pub struct CertificateCrlVerifier<F> {
     fetcher: F,
     cache: Cache<Url, Arc<CachedCrl>>,
-    #[cfg(feature = "mock")]
-    verify_without_revocation: bool,
 }
 
 pub type HttpCertificateCrlVerifier = CertificateCrlVerifier<HttpCrlFetcher>;
-pub type CrlProvider = HttpCertificateCrlVerifier;
-
-impl Default for HttpCertificateCrlVerifier {
-    fn default() -> Self {
-        Self::new_with_default_cache(Client::new())
-    }
-}
 
 impl CertificateCrlVerifier<HttpCrlFetcher> {
     pub fn new_with_default_cache(client: Client) -> Self {
@@ -180,14 +171,6 @@ impl CertificateCrlVerifier<HttpCrlFetcher> {
     pub fn new(client: Client, max_capacity: u64) -> Self {
         Self::new_with_fetcher(HttpCrlFetcher::new(client), max_capacity)
     }
-
-    #[cfg(feature = "mock")]
-    pub fn new_mock_without_revocation() -> Self {
-        Self {
-            verify_without_revocation: true,
-            ..Self::default()
-        }
-    }
 }
 
 impl<F> CertificateCrlVerifier<F> {
@@ -196,12 +179,7 @@ impl<F> CertificateCrlVerifier<F> {
             .max_capacity(max_capacity)
             .expire_after(CrlExpiry)
             .build();
-        Self {
-            fetcher,
-            cache,
-            #[cfg(feature = "mock")]
-            verify_without_revocation: false,
-        }
+        Self { fetcher, cache }
     }
 }
 
@@ -282,13 +260,6 @@ where
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(), CertificateCrlVerificationError> {
         let (leaf, intermediate_certs) = chain.split_first().ok_or(CertificateCrlVerificationError::EmptyChain)?;
-
-        #[cfg(feature = "mock")]
-        if self.verify_without_revocation {
-            return leaf
-                .verify(usage, intermediate_certs, time, trust_anchors)
-                .map_err(CertificateCrlVerificationError::Certificate);
-        }
 
         // Validate the certificate path before following distribution-point URLs supplied by the certificate. This
         // prevents an untrusted certificate from turning CRL retrieval into an arbitrary network request.
