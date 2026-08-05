@@ -282,6 +282,10 @@ where
         .await
         .inspect_err(|error| warn!("processing credential failed: {}", error))?;
 
+    // According to <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-2.2>, the
+    // issuer should respond with a 202 status code in case for a deferred `CredentialResponse`. As we do not support
+    // deferred responses, the status code is always 200.
+
     Ok(Json(response))
 }
 
