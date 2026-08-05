@@ -168,7 +168,7 @@ pub struct WalletClients<APC, CID, DCC, SLC> {
     pub account_provider_client: APC,
     pub credential_issuer_discovery: CID,
     pub disclosure_client: DCC,
-    pub crl_provider: Arc<CrlProvider>,
+    pub crl_provider: CrlProvider,
     pub status_list_client: SLC,
 }
 
@@ -181,9 +181,9 @@ where
 {
     fn default() -> Self {
         #[cfg(any(test, feature = "test"))]
-        let crl_provider = Arc::new(CrlProvider::new_mock_without_revocation());
+        let crl_provider = CrlProvider::new_mock_without_revocation();
         #[cfg(not(any(test, feature = "test")))]
-        let crl_provider = Arc::new(CrlProvider::default());
+        let crl_provider = CrlProvider::default();
 
         Self {
             account_provider_client: APC::default(),
@@ -213,16 +213,12 @@ where
     pub fn new() -> Result<Self, reqwest::Error> {
         // Note that HTTP is explicitly allowed for CRL distribution points. CRL integrity and issuer authenticity are
         // established by the CRL signature during certificate-chain verification.
-        let crl_provider = Arc::new(CrlProvider::new_with_default_cache(
-            default_reqwest_client_builder().build()?,
-        ));
-        let credential_issuer_discovery = HttpIssuanceDiscovery::new(
-            HttpClient::try_new(reqwest_client_builder())?,
-            crl_provider.as_ref().clone(),
-        );
+        let crl_provider = CrlProvider::new_with_default_cache(default_reqwest_client_builder().build()?);
+        let credential_issuer_discovery =
+            HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_provider.clone());
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
-            crl_provider.as_ref().clone(),
+            crl_provider.clone(),
         );
         // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
