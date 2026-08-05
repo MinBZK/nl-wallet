@@ -18,7 +18,9 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
-use crypto::x509::crl::CrlProvider;
+use crypto::x509::crl::CertificateCrlVerificationError;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::CrlFetcher;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -283,7 +285,7 @@ where
 
         let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
         leaf_cert
-            .verify(certificate_usage, &intermediate_certs, time, trust_anchors, None)
+            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
@@ -294,8 +296,8 @@ where
     pub async fn parse_and_verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
-        crl_provider: &CrlProvider,
-        time: &impl Generator<DateTime<Utc>>,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
+        time: &(impl Generator<DateTime<Utc>> + Sync),
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
@@ -304,10 +306,15 @@ where
             .map_err(JwtVerifyError::ParseError)
             .map_err(JwtX5cVerifyError::JwtVerify)?;
 
-        crl_provider
+        crl_verifier
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
             .await
-            .map_err(JwtX5cVerifyError::CertificateCrlValidation)?;
+            .map_err(|error| match error {
+                CertificateCrlVerificationError::Certificate(source) => {
+                    JwtX5cVerifyError::CertificateValidation(source)
+                }
+                error => JwtX5cVerifyError::CertificateCrlValidation(error),
+            })?;
 
         self.parse_and_verify_with_leaf_certificate(certificates.first(), validation)
     }
@@ -332,15 +339,15 @@ where
     pub async fn into_verified_against_trust_anchors_with_crl(
         self,
         trust_anchors: &TrustAnchors,
-        crl_provider: &CrlProvider,
-        time: &impl Generator<DateTime<Utc>>,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
+        time: &(impl Generator<DateTime<Utc>> + Sync),
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) = self
             .parse_and_verify_against_trust_anchors_with_crl(
                 trust_anchors,
-                crl_provider,
+                crl_verifier,
                 time,
                 certificate_usage,
                 validation,
@@ -1241,6 +1248,7 @@ mod tests {
     use crypto::x509::DistinguishedName;
     use crypto::x509::NO_SAN;
     use crypto::x509::crl::CertificateCrlVerificationError;
+    use crypto::x509::crl::HttpCertificateCrlVerifier;
     use ecdsa::elliptic_curve::Generate;
     use futures::FutureExt;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
@@ -1622,7 +1630,7 @@ mod tests {
                 then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
             })
             .await;
-        let crl_verifier = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+        let crl_verifier = HttpCertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
@@ -1650,7 +1658,7 @@ mod tests {
     async fn test_parse_and_verify_jwt_with_cert_and_crl_requires_distribution_point() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_wrpac_verifier_mock().unwrap();
-        let crl_verifier = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+        let crl_verifier = HttpCertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
 
         let jwt = SignedJwt::sign_with_certificate(&json!({"hello": "world"}), &keypair)
             .await

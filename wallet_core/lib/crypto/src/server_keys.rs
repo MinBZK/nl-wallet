@@ -381,6 +381,7 @@ pub mod generate {
         use super::*;
         use crate::x509::NO_SAN;
         use crate::x509::SubjectAltNameUri;
+        use crate::x509::crl::mock::MOCK_CRL_DISTRIBUTION_POINT;
 
         pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA wrpac"));
@@ -435,8 +436,30 @@ pub mod generate {
                 self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default(), NO_SAN)
             }
 
+            pub fn generate_wrpac_issuer_mock_with_crl(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(
+                    ISSUANCE_CERT_DN.clone(),
+                    CertificateConfiguration {
+                        crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
+                        ..Default::default()
+                    },
+                    NO_SAN,
+                )
+            }
+
             pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(RP_CERT_DN.clone(), Default::default(), NO_SAN)
+            }
+
+            pub fn generate_wrpac_verifier_mock_with_crl(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(
+                    RP_CERT_DN.clone(),
+                    CertificateConfiguration {
+                        crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
+                        ..Default::default()
+                    },
+                    NO_SAN,
+                )
             }
 
             pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
