@@ -1,5 +1,4 @@
 use std::fs;
-use std::mem::size_of;
 use std::path::Path;
 
 use anyhow::Result;
@@ -123,16 +122,12 @@ pub fn next_crl_number(file_prefix: &str, this_update: OffsetDateTime) -> Result
     let previous_number = previous_crl
         .crl_number()
         .ok_or_else(|| anyhow!("Existing CRL '{}' has no crlNumber", der_path.display()))?;
-    let previous_number_bytes = previous_number.to_bytes_be();
-    if previous_number_bytes.len() > size_of::<u64>() {
-        return Err(anyhow!(
+    let previous_number = u64::try_from(previous_number).map_err(|_| {
+        anyhow!(
             "Existing CRL '{}' has a crlNumber that is too large",
             der_path.display()
-        ));
-    }
-    let previous_number = previous_number_bytes
-        .into_iter()
-        .fold(0_u64, |value, byte| (value << 8) | u64::from(byte));
+        )
+    })?;
     select_crl_number(timestamp_number, previous_number).ok_or_else(|| {
         anyhow!(
             "Existing CRL '{}' has the maximum supported crlNumber",
