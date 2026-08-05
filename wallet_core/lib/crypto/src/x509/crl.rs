@@ -70,7 +70,7 @@ pub enum CertificateCrlVerificationError {
     #[category(pd)]
     CrlRetrieval {
         #[source]
-        source: CrlRetrievalError,
+        source: Box<CrlRetrievalError>,
         additional_errors: Vec<CrlRetrievalError>,
     },
     #[error("invalid CRL distribution point URL: {0}")]
@@ -255,7 +255,7 @@ where
                 .next()
                 .expect("every URL for the certificate should have produced an error");
             return Err(CertificateCrlVerificationError::CrlRetrieval {
-                source,
+                source: Box::new(source),
                 additional_errors: errors.collect(),
             });
         }
@@ -843,12 +843,12 @@ mod tests {
         assert!(matches!(
             error,
             CertificateCrlVerificationError::CrlRetrieval {
-                source: CrlRetrievalError::Fetch {
-                    source: CrlFetchError::Http(_),
-                    ..
-                },
+                source,
                 additional_errors,
-            } if additional_errors.is_empty()
+            } if matches!(*source, CrlRetrievalError::Fetch {
+                source: CrlFetchError::Http(_),
+                ..
+            }) && additional_errors.is_empty()
         ));
         mock.assert_calls_async(1).await;
     }
@@ -989,7 +989,7 @@ mod tests {
                 additional_errors,
             } => {
                 assert!(matches!(
-                    source,
+                    *source,
                     CrlRetrievalError::Fetch {
                         url,
                         source: CrlFetchError::Http(_),
@@ -1025,9 +1025,9 @@ mod tests {
         assert!(matches!(
             error,
             CertificateCrlVerificationError::CrlRetrieval {
-                source: CrlRetrievalError::Parsing { .. },
+                source,
                 additional_errors,
-            } if additional_errors.is_empty()
+            } if matches!(*source, CrlRetrievalError::Parsing { .. }) && additional_errors.is_empty()
         ));
         mock.assert_calls_async(1).await;
     }
@@ -1051,12 +1051,12 @@ mod tests {
         assert!(matches!(
             error,
             CertificateCrlVerificationError::CrlRetrieval {
-                source: CrlRetrievalError::Fetch {
-                    source: CrlFetchError::TooLarge,
-                    ..
-                },
+                source,
                 additional_errors,
-            } if additional_errors.is_empty()
+            } if matches!(*source, CrlRetrievalError::Fetch {
+                source: CrlFetchError::TooLarge,
+                ..
+            }) && additional_errors.is_empty()
         ));
         mock.assert_calls_async(1).await;
     }
