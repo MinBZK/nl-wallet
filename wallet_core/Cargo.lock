@@ -4436,6 +4436,7 @@ dependencies = [
  "error_category",
  "futures",
  "http_utils",
+ "httpmock",
  "itertools 0.14.0",
  "jsonwebtoken",
  "p256 0.14.0",
