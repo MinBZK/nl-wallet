@@ -190,12 +190,13 @@ automation-tests-fetch-ios-simulator-app:
     cd uiautomation
     ./gradlew --no-daemon --info --stacktrace test --tests ${TEST_SUITE} \
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
-      -Dtest.config.app.path="../${APP}" \
-      -Dtest.config.source.platform.name="${PLATFORM_NAME}" \
+      -Dtest.config.source.app.path="../${SOURCE_APP}" \
+      -Dtest.config.source.platform.name="${SOURCE_PLATFORM_NAME}" \
       -Dtest.config.source.name="${SOURCE_DEVICE_NAME}" \
       -Dtest.config.source.udid="${SOURCE_DEVICE_UDID}" \
       -Dtest.config.source.platform.version="${SOURCE_PLATFORM_VERSION}" \
-      -Dtest.config.destination.platform.name="${PLATFORM_NAME}" \
+      -Dtest.config.destination.app.path="../${DESTINATION_APP}" \
+      -Dtest.config.destination.platform.name="${DESTINATION_PLATFORM_NAME}" \
       -Dtest.config.destination.name="${DESTINATION_DEVICE_NAME}" \
       -Dtest.config.destination.udid="${DESTINATION_DEVICE_UDID}" \
       -Dtest.config.destination.platform.version="${DESTINATION_PLATFORM_VERSION}" \
@@ -357,8 +358,8 @@ run-automation-close-proximity-tests-ios:
     compgen -G "build/test-results/test/*.xml"
   variables:
     APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
-    IOS_DEVICE_UDID: "${IOS_1_UDID}"
-    IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
+    IOS_DEVICE_UDID: "${IOS_2_UDID}"
+    IOS_PLATFORM_VERSION: "${IOS_2_OS_VERSION}"
 
 run-automation-cross-device-tests-android:
   extends: [.automation-tests-macos-android-devices, .automation-two-device-tests]
@@ -372,20 +373,24 @@ run-automation-cross-device-tests-android:
       artifacts: true
   variables:
     TEST_SUITE: "suite.CrossDeviceTestSuite"
-    PLATFORM_NAME: "Android"
-    APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    SOURCE_PLATFORM_NAME: "Android"
+    DESTINATION_PLATFORM_NAME: "Android"
+    SOURCE_APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    DESTINATION_APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
     SOURCE_DEVICE_NAME: "${ANDROID_1_NAME}"
     SOURCE_PLATFORM_VERSION: "${ANDROID_1_OS_VERSION}"
-    SOURCE_UDID: "${ANDROID_1_UDID}"
+    SOURCE_DEVICE_UDID: "${ANDROID_1_UDID}"
     DESTINATION_DEVICE_NAME: "${ANDROID_2_NAME}"
     DESTINATION_PLATFORM_VERSION: "${ANDROID_2_OS_VERSION}"
-    DESTINATION_UDID: "${ANDROID_2_UDID}"
+    DESTINATION_DEVICE_UDID: "${ANDROID_2_UDID}"
 
 run-automation-cross-device-tests-ios:
-  extends: [.automation-tests-macos-devices, .automation-two-device-tests, .install-ios-signing]
+  extends: [.automation-tests-macos-android-devices, .automation-tests-macos-devices, .automation-two-device-tests, .install-ios-signing]
   resource_group: real-device-automation-tests
   needs:
     - job: automation-tests-fetch-ios-app
+      artifacts: true
+    - job: automation-tests-fetch-android-app
       artifacts: true
     - job: build-env-ont
       artifacts: true
@@ -393,12 +398,15 @@ run-automation-cross-device-tests-ios:
       artifacts: true
   variables:
     TEST_SUITE: "suite.CrossDeviceTestSuite"
-    PLATFORM_NAME: "IOS"
-    APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    SOURCE_PLATFORM_NAME: "IOS"
+    DESTINATION_PLATFORM_NAME: "Android"
+    SOURCE_APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    DESTINATION_APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
     SOURCE_DEVICE_UDID: "${IOS_2_UDID}"
     SOURCE_PLATFORM_VERSION: "${IOS_2_OS_VERSION}"
-    DESTINATION_DEVICE_UDID: "${IOS_1_UDID}"
-    DESTINATION_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
+    DESTINATION_DEVICE_NAME: "${ANDROID_2_NAME}"
+    DESTINATION_PLATFORM_VERSION: "${ANDROID_2_OS_VERSION}"
+    DESTINATION_DEVICE_UDID: "${ANDROID_2_UDID}"
 
 run-automation-wallet-transfer-tests-android:
   extends: [.automation-tests-macos-android-devices, .automation-two-device-tests]
@@ -410,14 +418,16 @@ run-automation-wallet-transfer-tests-android:
       artifacts: true
   variables:
     TEST_SUITE: "suite.WalletTransferTestSuite"
-    PLATFORM_NAME: "Android"
-    APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    SOURCE_PLATFORM_NAME: "Android"
+    DESTINATION_PLATFORM_NAME: "Android"
+    SOURCE_APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    DESTINATION_APP: "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
     SOURCE_DEVICE_NAME: "${ANDROID_1_NAME}"
     SOURCE_PLATFORM_VERSION: "${ANDROID_1_OS_VERSION}"
-    SOURCE_UDID: "${ANDROID_1_UDID}"
+    SOURCE_DEVICE_UDID: "${ANDROID_1_UDID}"
     DESTINATION_DEVICE_NAME: "${ANDROID_2_NAME}"
     DESTINATION_PLATFORM_VERSION: "${ANDROID_2_OS_VERSION}"
-    DESTINATION__UDID: "${ANDROID_2_UDID}"
+    DESTINATION_DEVICE_UDID: "${ANDROID_2_UDID}"
 
 run-automation-wallet-transfer-tests-ios:
   extends: [.automation-tests-macos-devices, .automation-two-device-tests, .install-ios-signing]
@@ -429,8 +439,10 @@ run-automation-wallet-transfer-tests-ios:
       artifacts: true
   variables:
     TEST_SUITE: "suite.WalletTransferTestSuite"
-    PLATFORM_NAME: "IOS"
-    APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    SOURCE_PLATFORM_NAME: "IOS"
+    DESTINATION_PLATFORM_NAME: "IOS"
+    SOURCE_APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    DESTINATION_APP: "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
     SOURCE_DEVICE_UDID: "${IOS_1_UDID}"
     SOURCE_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
     DESTINATION_DEVICE_UDID: "${IOS_2_UDID}"

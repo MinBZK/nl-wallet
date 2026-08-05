@@ -11,5 +11,5 @@ class IssuerConsentWebPage : MobileActions() {
 
     fun visible() = isWebElementVisible(findWebElement(giveConsentButtonLocator))
 
-    fun clickGiveConsentButton() = clickWebElement(findWebElement(giveConsentButtonLocator))
+    fun clickGiveConsentButton() = clickWebElementWithGesture(findWebElement(giveConsentButtonLocator))
 }

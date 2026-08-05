@@ -17,6 +17,7 @@ use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
 
+use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorizing_issuer::AuthorizationRequestError;
 use crate::authorizing_issuer::AuthorizeError;
 use crate::authorizing_issuer::CompleteAuthorizationError;
@@ -339,9 +340,13 @@ impl ErrorWithCode for AuthorizationRequestError {
 
     fn error_code(&self) -> Self::ErrorCode {
         match self {
-            Self::InvalidAuthorizationRequest(_) => AuthorizationErrorCode::InvalidRequest,
+            Self::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge) => {
+                AuthorizationErrorCode::InvalidRequest
+            }
 
-            Self::NoValidScope(_) => AuthorizationErrorCode::InvalidScope,
+            Self::InvalidAuthorizationRequest(InvalidAuthorizationRequest::NoValidScope(_)) => {
+                AuthorizationErrorCode::InvalidScope
+            }
 
             Self::AuthorizationCodeFlow(error) => error.error_code(),
 

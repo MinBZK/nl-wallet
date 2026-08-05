@@ -53,13 +53,13 @@ open class MobileActions {
         return true
     }
 
-    protected fun clickWebElement(element: WebElement) {
+    protected fun clickWebElementWithMouseEvent(element: WebElement) {
         val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
         wait.until(ExpectedConditions.elementToBeClickable(element))
         (driver as JavascriptExecutor).executeScript("arguments[0].dispatchEvent(new MouseEvent('click', {bubbles: true}))", element)
     }
 
-    protected fun clickNativeElement(element: WebElement) {
+    protected fun clickWebElementWithGesture(element: WebElement) {
         val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
         wait.until(ExpectedConditions.elementToBeClickable(element))
         element.click()

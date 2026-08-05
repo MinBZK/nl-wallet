@@ -1187,6 +1187,7 @@ impl Grant {
 
             Grant::PreAuthorizedCode => {
                 // If the Token Request was Pre-Authorized, we choose not to support scope values at all.
+                // TODO (PVW-6161): Support scope values for the Pre-Authorized Code flow.
                 if let Some(scope) = token_request.scope.as_ref() {
                     return Err(TokenRequestError::PreAuthorizedScopeUnsupported(scope.clone()));
                 }

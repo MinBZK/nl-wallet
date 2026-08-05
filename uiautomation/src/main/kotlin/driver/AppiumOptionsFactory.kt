@@ -9,11 +9,11 @@ import util.TestInfoHandler
 internal const val APK_PATH = "../nl.ictu.edi.wallet.latest-0.6.0-release.apk"
 internal const val IPA_PATH = "../nl.ictu.edi.wallet.latest-0.6.0.ipa"
 
-internal fun buildAndroidOptions(): UiAutomator2Options {
+internal fun buildAndroidOptions(appPath: String = ""): UiAutomator2Options {
     val autoGrant = EnvironmentUtil.getVar("AUTO_GRANT_PERMISSIONS").toBooleanStrictOrNull() ?: true
-    val appPath = testConfig.appPath.ifBlank { APK_PATH }
+    val finalAppPath = appPath.ifBlank { testConfig.appPath }.ifBlank { APK_PATH }
     return UiAutomator2Options().apply {
-        setApp(appPath)
+        setApp(finalAppPath)
         setAppPackage(testConfig.appIdentifier)
         setLanguage(TestInfoHandler.language)
         setLocale(TestInfoHandler.locale)
@@ -24,11 +24,15 @@ internal fun buildAndroidOptions(): UiAutomator2Options {
     }
 }
 
-internal fun buildIOSOptions(updatedWDABundleId: String, wdaLocalPort: Int? = null): XCUITestOptions {
+internal fun buildIOSOptions(
+    appPath: String = "",
+    updatedWDABundleId: String,
+    wdaLocalPort: Int? = null
+): XCUITestOptions {
     val acceptAlerts = EnvironmentUtil.getVar("IOS_ACCEPT_ALERTS").toBooleanStrictOrNull() ?: true
-    val appPath = testConfig.appPath.ifBlank { IPA_PATH }
+    val finalAppPath = appPath.ifBlank { testConfig.appPath }.ifBlank { IPA_PATH }
     return XCUITestOptions().apply {
-        setApp(appPath)
+        setApp(finalAppPath)
         setBundleId(testConfig.appIdentifier)
         setLanguage(TestInfoHandler.language)
         setLocale(TestInfoHandler.locale)

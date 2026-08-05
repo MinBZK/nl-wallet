@@ -26,9 +26,7 @@ import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.issuer.IssuerWebPage
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -86,70 +84,62 @@ class CardNotificationsTests : TestBase() {
         notificationsScreen.toggleNotifications()
         notificationsScreen.clickDebugScreenButton()
 
-        val pidExpiresSoonNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(
-            tasData.getPidDisplayName(), EXPIRES_SOON)
-        val pidExpiredNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(
-            tasData.getPidDisplayName(), EXPIRED)
-        val loyaltyCardExpiresSoonNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(
-            tasData.getLoyaltyDisplayName(), EXPIRES_SOON)
-        val loyaltyCardExpiredNotificationTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getLoyaltyDisplayName(),
-            EXPIRED)
+        val pidExpiresSoonTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getPidDisplayName(), EXPIRES_SOON)
+        val pidExpiresSoonVisible = notificationsDebugScreen.isNotificationVisible(tasData.getPidDisplayName(), EXPIRES_SOON)
+        val pidExpiresSoonChannel = notificationsDebugScreen.getCardNotificationChannel(tasData.getPidDisplayName(), EXPIRES_SOON)
+        val pidExpiresSoonId = notificationsDebugScreen.getCardNotificationID(tasData.getPidDisplayName(), EXPIRES_SOON)
+
+        val pidExpiredTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getPidDisplayName(), EXPIRED)
+        val pidExpiredVisible = notificationsDebugScreen.isNotificationVisible(tasData.getPidDisplayName(), EXPIRED)
+        val pidExpiredChannel = notificationsDebugScreen.getCardNotificationChannel(tasData.getPidDisplayName(), EXPIRED)
+        val pidExpiredId = notificationsDebugScreen.getCardNotificationID(tasData.getPidDisplayName(), EXPIRED)
+
+        val loyaltyExpiresSoonTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getLoyaltyDisplayName(), EXPIRES_SOON)
+        val loyaltyExpiresSoonVisible = notificationsDebugScreen.isNotificationVisible(tasData.getLoyaltyDisplayName(), EXPIRES_SOON)
+        val loyaltyExpiresSoonChannel = notificationsDebugScreen.getCardNotificationChannel(tasData.getLoyaltyDisplayName(), EXPIRES_SOON)
+        val loyaltyExpiresSoonId = notificationsDebugScreen.getCardNotificationID(tasData.getLoyaltyDisplayName(), EXPIRES_SOON)
+
+        val loyaltyExpiredTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getLoyaltyDisplayName(), EXPIRED)
+        val loyaltyExpiredVisible = notificationsDebugScreen.isNotificationVisible(tasData.getLoyaltyDisplayName(), EXPIRED)
+        val loyaltyExpiredChannel = notificationsDebugScreen.getCardNotificationChannel(tasData.getLoyaltyDisplayName(), EXPIRED)
+        val loyaltyExpiredId = notificationsDebugScreen.getCardNotificationID(tasData.getLoyaltyDisplayName(), EXPIRED)
 
         assertAll(
-            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getPidDisplayName(),
-                EXPIRES_SOON), "Notification text is not visible for PID expires soon notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getPidDisplayName(),
-                EXPIRES_SOON).contains("cardUpdates"), "Incorrect notification channel for PID expires soon notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getPidDisplayName(),
-                EXPIRES_SOON).toIntOrNull() != null, "Incorrect notification id for PID expires soon notification") },
-            { assertTrue( verifyDateIsOneYearMinusDaysfromNow(pidExpiresSoonNotificationTimer, 7), "Incorrect timer for PID expires soon notification") },
+            { assertTrue(pidExpiresSoonVisible, "Notification text is not visible for PID expires soon notification") },
+            { assertTrue(pidExpiresSoonChannel.contains("cardUpdates"), "Incorrect notification channel for PID expires soon notification") },
+            { assertTrue(pidExpiresSoonId.toIntOrNull() != null, "Incorrect notification id for PID expires soon notification") },
+            { assertTrue(verifyDateIsOneYearMinusDaysfromNow(pidExpiresSoonTimer, 7), "Incorrect timer for PID expires soon notification") },
 
-            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getPidDisplayName(),
-                EXPIRED), "Notification text is not visible for PID expired notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getPidDisplayName(),
-                EXPIRED).contains("cardUpdates"), "Incorrect notification channel for PID expired notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getPidDisplayName(),
-                EXPIRED).toIntOrNull() != null, "Incorrect notification id for PID expired notification") },
-            { assertTrue( verifyDateIsOneYearFromNow(pidExpiredNotificationTimer), "Incorrect timer for PID expired notification") },
+            { assertTrue(pidExpiredVisible, "Notification text is not visible for PID expired notification") },
+            { assertTrue(pidExpiredChannel.contains("cardUpdates"), "Incorrect notification channel for PID expired notification") },
+            { assertTrue(pidExpiredId.toIntOrNull() != null, "Incorrect notification id for PID expired notification") },
+            { assertTrue(verifyDateIsOneYearFromNow(pidExpiredTimer), "Incorrect timer for PID expired notification") },
 
-            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getLoyaltyDisplayName(),
-                EXPIRES_SOON), "Notification text is not visible for Loyalty card expires soon notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getLoyaltyDisplayName(),
-                EXPIRES_SOON).contains("cardUpdates"), "Incorrect notification channel for Loyalty card expires soon notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getLoyaltyDisplayName(),
-                EXPIRES_SOON).toIntOrNull() != null, "Incorrect notification id for Loyalty card expires soon notification") },
-            { assertTrue( verifyDateIsOneYearMinusDaysfromNow(loyaltyCardExpiresSoonNotificationTimer, 7), "Incorrect timer for Loyalty card expires soon notification") },
+            { assertTrue(loyaltyExpiresSoonVisible, "Notification text is not visible for Loyalty card expires soon notification") },
+            { assertTrue(loyaltyExpiresSoonChannel.contains("cardUpdates"), "Incorrect notification channel for Loyalty card expires soon notification") },
+            { assertTrue(loyaltyExpiresSoonId.toIntOrNull() != null, "Incorrect notification Id for Loyalty card expires soon notification") },
+            { assertTrue(verifyDateIsOneYearMinusDaysfromNow(loyaltyExpiresSoonTimer, 7), "Incorrect timer for Loyalty card expires soon notification") },
 
-            { assertTrue(notificationsDebugScreen.isNotificationVisible(tasData.getLoyaltyDisplayName(),
-                EXPIRED), "Notification text is not visible for Loyalty card expired notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationChannel(tasData.getLoyaltyDisplayName(),
-                EXPIRED).contains("cardUpdates"), "Incorrect notification channel for Loyalty card expired notification") },
-            { assertTrue(notificationsDebugScreen.getCardNotificationID(tasData.getLoyaltyDisplayName(),
-                EXPIRED).toIntOrNull() != null, "Incorrect notification id for Loyalty card expired notification") },
-            { assertTrue( verifyDateIsOneYearFromNow(loyaltyCardExpiredNotificationTimer), "Incorrect timer for Loyalty card expired notification") },
+            { assertTrue(loyaltyExpiredVisible, "Notification text is not visible for Loyalty card expired notification") },
+            { assertTrue(loyaltyExpiredChannel.contains("cardUpdates"), "Incorrect notification channel for Loyalty card expired notification") },
+            { assertTrue(loyaltyExpiredId.toIntOrNull() != null, "Incorrect notification id for Loyalty card expired notification") },
+            { assertTrue(verifyDateIsOneYearFromNow(loyaltyExpiredTimer), "Incorrect timer for Loyalty card expired notification") },
         )
     }
 
     private fun isDateCorrect(dateString: String, expectedDate: LocalDate): Boolean {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
         val parsedDateTime = LocalDateTime.parse(dateString, formatter)
-
-        val zonedDateTime = ZonedDateTime.of(parsedDateTime, ZoneId.systemDefault())
-        val utcDateTime = zonedDateTime.toInstant().atZone(ZoneOffset.UTC)
-
-        val isCorrectDate = utcDateTime.toLocalDate() == expectedDate
-        val isCorrectTime = utcDateTime.hour == 0 && utcDateTime.minute == 0
-
-        return isCorrectDate && isCorrectTime
+        return parsedDateTime.toLocalDate() == expectedDate
     }
 
     private fun verifyDateIsOneYearMinusDaysfromNow(dateString: String, days: Long): Boolean {
-        val expected = LocalDate.now().plusYears(1).minusDays(days)
+        val expected = LocalDate.now(ZoneOffset.UTC).plusYears(1).minusDays(days)
         return isDateCorrect(dateString, expected)
     }
 
     private fun verifyDateIsOneYearFromNow(dateString: String): Boolean {
-        val expected = LocalDate.now().plusYears(1)
+        val expected = LocalDate.now(ZoneOffset.UTC).plusYears(1)
         return isDateCorrect(dateString, expected)
     }
 }

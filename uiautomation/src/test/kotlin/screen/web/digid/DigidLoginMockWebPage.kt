@@ -20,7 +20,7 @@ class DigidLoginMockWebPage : MobileActions() {
 
     fun clickLoginButton() {
         isWebElementVisible(findWebElement(mockLoginButtonLocator))
-        clickWebElement(findWebElement(mockLoginButtonLocator))
+        clickWebElementWithMouseEvent(findWebElement(mockLoginButtonLocator))
     }
 
     fun login(bsn: String) {

@@ -196,7 +196,10 @@ fn verify_google_attestation_certificate_chain<'a>(
     cfg_select! {
         feature = "skip_root_key_check" => {
             // Allow any security level on the emulator.
-            tracing::warn!("Assume root key of chain is trusted [actual: {}]", root_public_key_is_trusted);
+            tracing::warn!(
+                "Assume root key of chain is trusted [actual: {}]",
+                root_public_key_is_trusted
+            );
         }
         _ => {
             if !root_public_key_is_trusted {
