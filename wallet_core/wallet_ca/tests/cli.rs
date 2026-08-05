@@ -194,12 +194,8 @@ fn assert_generated_certificate_crl_distribution_points(crt_file: &ChildPath, ex
     let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
     let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
 
-    let uris = extract_crl_distribution_points(&cert)
-        .map(|urls| urls.into_inner())
-        .unwrap_or_default();
-
-    let expected: Vec<String> = expected.iter().map(ToString::to_string).collect();
-    assert_eq!(uris, expected);
+    let uris = extract_crl_distribution_points(&cert)?;
+    assert_eq!(uris.as_slice(), expected);
 
     Ok(())
 }

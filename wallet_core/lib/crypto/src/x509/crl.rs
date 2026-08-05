@@ -14,7 +14,6 @@ use moka::future::Cache;
 use reqwest::Client;
 use url::Url;
 use utils::generator::Generator;
-use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
 use webpki::OwnedCertRevocationList;
 use x509_parser::extensions::DistributionPointName;
@@ -194,14 +193,12 @@ where
         cert: &BorrowingCertificate,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
-        let urls = extract_crl_distribution_points(cert);
+        let urls =
+            extract_crl_distribution_points(cert).map_err(CertificateCrlVerificationError::InvalidDistributionPoint)?;
         let mut crls = Vec::new();
         let mut first_error = None;
-        for url in urls.iter().flatten() {
-            let result = match url.parse() {
-                Ok(url) => self.fetch_crl(url, time).await,
-                Err(error) => Err(CertificateCrlVerificationError::InvalidDistributionPoint(error)),
-            };
+        for url in urls {
+            let result = self.fetch_crl(url, time).await;
             match result {
                 Ok(fetched) => crls.push(fetched),
                 Err(error) => {
@@ -289,11 +286,10 @@ where
     }
 }
 
-/// Extract all HTTP(S) CRL distribution point URLs from the certificate's CDP extension.
+/// Extract and parse all CRL distribution point URIs from the certificate's CDP extension.
 /// See RFC 5280, section 4.2.1.13.
-pub fn extract_crl_distribution_points(cert: &BorrowingCertificate) -> Option<VecNonEmpty<String>> {
-    let crl_distribution_points = cert
-        .x509_certificate()
+pub fn extract_crl_distribution_points(cert: &BorrowingCertificate) -> Result<Vec<Url>, url::ParseError> {
+    cert.x509_certificate()
         .extensions()
         .iter()
         .filter_map(|ext| {
@@ -330,14 +326,12 @@ pub fn extract_crl_distribution_points(cert: &BorrowingCertificate) -> Option<Ve
                     // [RFC2585].  HTTP server implementations accessed via the URI SHOULD
                     // specify the media type application/pkix-crl in the content-type
                     // header field of the response.
-                    Some(uri.to_string())
+                    Some(Url::parse(uri))
                 }
                 _ => None,
             }
         })
-        .collect_vec();
-
-    VecNonEmpty::try_from(crl_distribution_points).ok()
+        .collect()
 }
 
 /// Parse CRL DER bytes into a [`CertRevocationList`] ready for use with
@@ -534,7 +528,7 @@ mod tests {
     #[test]
     fn no_crl_distribution_points() {
         let cert = generate_cert_with_cdps(vec![]);
-        assert!(extract_crl_distribution_points(&cert).is_none());
+        assert!(extract_crl_distribution_points(&cert).unwrap().is_empty());
     }
 
     #[test]
@@ -542,7 +536,7 @@ mod tests {
         let url: Url = "http://crl.example.com/crl.crl".parse().unwrap();
         let cert = generate_cert_with_cdps(vec![url.clone()]);
         let result = extract_crl_distribution_points(&cert).unwrap();
-        assert_eq!(result.as_ref(), &[url.to_string()]);
+        assert_eq!(result, vec![url]);
     }
 
     #[test]
@@ -551,7 +545,7 @@ mod tests {
         let url2: Url = "http://crl.example.com/crl2.crl".parse().unwrap();
         let cert = generate_cert_with_cdps(vec![url1.clone(), url2.clone()]);
         let result = extract_crl_distribution_points(&cert).unwrap();
-        assert_eq!(result.as_ref(), &[url1.to_string(), url2.to_string()]);
+        assert_eq!(result, vec![url1, url2]);
     }
 
     #[test]
