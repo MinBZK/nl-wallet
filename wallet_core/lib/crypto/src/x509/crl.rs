@@ -177,15 +177,14 @@ impl CrlProvider {
 
         let mut crls = Vec::new();
         for cert in chain {
-            crls.extend(
-                self.crls_for_cert(cert, time)
-                    .await
-                    .map_err(CertificateCrlVerificationError::CrlProvider)?,
-            );
-        }
-
-        if crls.is_empty() {
-            return Err(CertificateCrlVerificationError::NoCrlDistributionPoint);
+            let cert_crls = self
+                .crls_for_cert(cert, time)
+                .await
+                .map_err(CertificateCrlVerificationError::CrlProvider)?;
+            if cert_crls.is_empty() {
+                return Err(CertificateCrlVerificationError::NoCrlDistributionPoint);
+            }
+            crls.extend(cert_crls);
         }
 
         // Verify the whole certificate chain before storing fetched CRLs in cache. This is needed since we cannot
@@ -942,6 +941,57 @@ mod tests {
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
             .await
             .expect_err("certificate without a CDP extension should fail verification");
+        assert!(matches!(error, CertificateCrlVerificationError::NoCrlDistributionPoint));
+    }
+
+    #[tokio::test]
+    async fn verify_chain_requires_crl_for_each_certificate() {
+        let server = MockServer::start_async().await;
+        let leaf_crl_url: Url = server.url("/leaf.crl").parse().unwrap();
+        let root = Ca::generate_with_intermediate_count(
+            DistinguishedName::create_mock("root"),
+            CertificateConfiguration::default(),
+            1,
+        )
+        .unwrap();
+        let intermediate = root
+            .generate_intermediate(
+                DistinguishedName::create_mock("intermediate"),
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+        let leaf = intermediate
+            .generate_key_pair(
+                DistinguishedName::create_mock("leaf"),
+                CertificateConfiguration {
+                    crl_distribution_points: vec![leaf_crl_url],
+                    ..Default::default()
+                },
+                NO_SAN,
+            )
+            .unwrap();
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/leaf.crl");
+                then.status(200)
+                    .body(intermediate.generate_crl(vec![], 1).unwrap().der());
+            })
+            .await;
+
+        let provider = CrlProvider::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let error = provider
+            .verify_chain(
+                &[
+                    leaf.certificate().clone(),
+                    intermediate.as_borrowing_certificate().unwrap(),
+                ],
+                &TrustAnchors::from(&root),
+                None,
+                &TimeGenerator,
+            )
+            .await
+            .expect_err("every certificate in the chain should require a CRL");
+
         assert!(matches!(error, CertificateCrlVerificationError::NoCrlDistributionPoint));
     }
 
