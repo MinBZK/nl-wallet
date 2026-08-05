@@ -13,7 +13,8 @@ use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::crl::CertificateCrlVerificationError;
-use crypto::x509::crl::CrlProvider;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::CrlFetcher;
 use derive_more::IsVariant;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
@@ -771,72 +772,42 @@ where
     }
 }
 
-/// Verify device request and reader authentication.
-/// Note that since each DocRequest carries its own reader authentication, the spec allows the DocRequests to be
-/// signed by distinct readers. For now, this function requires all of the DocRequests to be signed by the same
-/// reader.
-pub fn verify_device_request(
-    device_request: &DeviceRequest,
-    session_transcript: &SessionTranscript,
-    time: &impl Generator<DateTime<Utc>>,
-    trust_anchors: &TrustAnchors,
-) -> Result<BorrowingCertificate, CloseProximityDisclosureError> {
-    // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
-    let certificate = device_request
-        .doc_requests
-        .iter()
-        .try_fold(None, {
-            |result_cert, doc_request| -> Result<_, _> {
-                // `DocRequest::verify()` will return `None` if `reader_auth` is absent
-                let doc_request_cert = doc_request
-                    .verify(session_transcript, time, trust_anchors)?
-                    .ok_or(CloseProximityDisclosureError::MissingReaderAuth)?;
-
-                // If there is a certificate from a previous iteration, compare our certificate to that.
-                if let Some(result_cert) = result_cert
-                    && doc_request_cert != result_cert
-                {
-                    return Err(CloseProximityDisclosureError::InconsistentReaderAuths);
-                }
-
-                Ok(doc_request_cert.into())
-            }
-        })?
-        .unwrap(); // the try_fold either returns an error or return Some(certificate)
-
-    verify_requested_doc_formats(device_request)?;
-
-    // TODO PVW-6052 Verify that the requested attributes are included in the registration certificate.
-
-    Ok(certificate)
-}
-
 /// Verify a device request and its reader authentication, requiring a valid CRL for the complete WRPAC chain.
 pub async fn verify_device_request_with_crl(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
-    time: &impl Generator<DateTime<Utc>>,
+    time: &(impl Generator<DateTime<Utc>> + Sync),
     trust_anchors: &TrustAnchors,
-    crl_provider: &CrlProvider,
+    crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
 ) -> Result<BorrowingCertificate, CloseProximityDisclosureError> {
-    let certificate = verify_device_request(device_request, session_transcript, time, trust_anchors)?;
+    let mut certificate = None;
+    for doc_request in &device_request.doc_requests {
+        let doc_request_cert = doc_request
+            .verify_with_crl(session_transcript, time, trust_anchors, crl_verifier)
+            .await
+            .map_err(|error| match error {
+                mdoc::Error::Cose(CoseError::Certificate(error)) => {
+                    CloseProximityDisclosureError::InvalidReaderCertificate(error)
+                }
+                mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {
+                    CloseProximityDisclosureError::ReaderCertificateCrlVerification(error)
+                }
+                error => CloseProximityDisclosureError::InvalidDocRequest(error),
+            })?
+            .ok_or(CloseProximityDisclosureError::MissingReaderAuth)?;
 
-    // `verify_device_request` guarantees every DocRequest has the same authenticated leaf certificate. Use the full
-    // x5chain from the first ReaderAuth so intermediate certificates are covered by revocation checking as well.
-    let reader_auth = device_request
-        .doc_requests
-        .first()
-        .reader_auth
-        .as_ref()
-        .expect("reader authentication was checked above");
-    let certificate_chain = reader_auth
-        .x5chain()
-        .map_err(CloseProximityDisclosureError::InvalidReaderCertificateChain)?;
+        if let Some(certificate) = &certificate
+            && &doc_request_cert != certificate
+        {
+            return Err(CloseProximityDisclosureError::InconsistentReaderAuths);
+        }
+        certificate = Some(doc_request_cert);
+    }
 
-    crl_provider
-        .verify_chain(certificate_chain.as_slice(), trust_anchors, None, time)
-        .await
-        .map_err(CloseProximityDisclosureError::ReaderCertificateCrlVerification)?;
+    let certificate = certificate.expect("DeviceRequest contains at least one DocRequest");
+    verify_requested_doc_formats(device_request)?;
+
+    // TODO PVW-6052 Verify that the requested attributes are included in the registration certificate.
 
     Ok(certificate)
 }
@@ -895,10 +866,12 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::CrlProvider;
+    use crypto::x509::crl::HttpCertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
+    use http_utils::reqwest::default_reqwest_client_builder;
     use indexmap::IndexMap;
     use jwt::nonce::Nonce;
     use mdoc::DeviceEngagement;
@@ -946,7 +919,6 @@ mod tests {
     use super::DeviceResponseStatus;
     use super::PlatformError;
     use super::close_proximity_disclosure_proposal;
-    use super::verify_device_request;
     use super::verify_device_request_with_crl;
     use crate::DisclosureAttestationOptions;
     use crate::DisclosureProposalPresentation;
@@ -1251,7 +1223,7 @@ mod tests {
         wallet: &mut TestWalletMockStorage,
         items_request: ItemsRequest,
     ) -> BorrowingCertificate {
-        let key_pair = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
+        let key_pair = WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap();
         let verifier_certificate = key_pair.certificate().clone();
 
         let cose_key: CoseKey = (&key_pair.verifying_key().await.unwrap()).try_into().unwrap();
@@ -1461,7 +1433,7 @@ mod tests {
 
         let items_request = pid_given_name_items_request();
         let (mut device_request, session_transcript, _trust_anchors) =
-            setup_device_request(vec![items_request], None).await;
+            setup_device_request(vec![items_request], None, true).await;
         device_request
             .doc_requests
             .iter_mut()
@@ -1512,7 +1484,7 @@ mod tests {
             )])),
         );
         let (device_request, session_transcript, _trust_anchors) =
-            setup_device_request(vec![items_request], None).await;
+            setup_device_request(vec![items_request], None, true).await;
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         install_session_established_close_proximity_session(
@@ -1572,10 +1544,15 @@ mod tests {
     async fn setup_device_request(
         items_requests: Vec<ItemsRequest>,
         device_engagement: Option<DeviceEngagement>,
+        with_crl: bool,
     ) -> (DeviceRequest, SessionTranscript, TrustAnchors) {
         let session_transcript = qr_session_transcript(device_engagement);
 
-        let key_pair = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
+        let key_pair = if with_crl {
+            WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap()
+        } else {
+            WRPAC_CA.generate_wrpac_verifier_mock().unwrap()
+        };
         let doc_requests = join_all(
             items_requests
                 .into_iter()
@@ -1595,14 +1572,17 @@ mod tests {
     async fn test_verify_device_request_success() {
         let items_request = pid_given_name_items_request();
 
-        let (device_request, session_transcript, trust_anchors) = setup_device_request(vec![items_request], None).await;
+        let (device_request, session_transcript, trust_anchors) =
+            setup_device_request(vec![items_request], None, true).await;
 
-        let result = verify_device_request(
+        let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-        );
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+        )
+        .await;
 
         assert!(result.is_ok());
     }
@@ -1611,14 +1591,17 @@ mod tests {
     async fn test_verify_device_request_with_crl_fails_without_distribution_point() {
         let items_request = pid_given_name_items_request();
 
-        let (device_request, session_transcript, trust_anchors) = setup_device_request(vec![items_request], None).await;
+        let (device_request, session_transcript, trust_anchors) =
+            setup_device_request(vec![items_request], None, false).await;
 
+        let verifier =
+            HttpCertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
         let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CrlProvider::default(),
+            &verifier,
         )
         .await;
 
@@ -1650,14 +1633,16 @@ mod tests {
         );
 
         let (device_request, session_transcript, trust_anchors) =
-            setup_device_request(vec![pid_items_request, mdl_items_request], None).await;
+            setup_device_request(vec![pid_items_request, mdl_items_request], None, true).await;
 
-        let result = verify_device_request(
+        let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-        );
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+        )
+        .await;
 
         assert!(result.is_ok());
     }
@@ -1677,14 +1662,16 @@ mod tests {
         );
 
         let (device_request, session_transcript, trust_anchors) =
-            setup_device_request(vec![photo_id_items_request], None).await;
+            setup_device_request(vec![photo_id_items_request], None, true).await;
 
-        let result = verify_device_request(
+        let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-        );
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+        )
+        .await;
 
         assert!(result.is_ok());
     }
@@ -1700,14 +1687,17 @@ mod tests {
             )])),
         );
 
-        let (device_request, session_transcript, trust_anchors) = setup_device_request(vec![items_request], None).await;
+        let (device_request, session_transcript, trust_anchors) =
+            setup_device_request(vec![items_request], None, true).await;
 
-        let result = verify_device_request(
+        let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-        );
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+        )
+        .await;
 
         assert_matches!(
             result,
@@ -1720,15 +1710,17 @@ mod tests {
         let items_request = pid_given_name_items_request();
 
         let (device_request, _session_transcript, trust_anchors) =
-            setup_device_request(vec![items_request], None).await;
+            setup_device_request(vec![items_request], None, true).await;
         let other_session_transcript = qr_session_transcript(None);
 
-        let result = verify_device_request(
+        let result = verify_device_request_with_crl(
             &device_request,
             &other_session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-        );
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+        )
+        .await;
 
         assert_matches!(result, Err(CloseProximityDisclosureError::InvalidDocRequest(_)));
     }
@@ -1738,19 +1730,21 @@ mod tests {
         let items_request = pid_given_name_items_request();
 
         let (mut device_request, session_transcript, trust_anchors) =
-            setup_device_request(vec![items_request], None).await;
+            setup_device_request(vec![items_request], None, true).await;
 
         device_request
             .doc_requests
             .iter_mut()
             .for_each(|doc_request| doc_request.reader_auth = None);
 
-        let result = verify_device_request(
+        let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-        );
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+        )
+        .await;
 
         assert_matches!(result, Err(CloseProximityDisclosureError::MissingReaderAuth));
     }
@@ -1772,8 +1766,8 @@ mod tests {
         };
 
         // Create two different key pairs from the same CA, so that the resulting certificates differ.
-        let key_pair1 = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
-        let key_pair2 = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
+        let key_pair1 = WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap();
+        let key_pair2 = WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap();
 
         let session_transcript = qr_session_transcript(None);
 
@@ -1783,12 +1777,14 @@ mod tests {
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_request1, doc_request2]);
         let trust_anchors = TrustAnchors::from(&*WRPAC_CA);
 
-        let result = verify_device_request(
+        let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-        );
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+        )
+        .await;
 
         assert_matches!(result, Err(CloseProximityDisclosureError::InconsistentReaderAuths));
     }
