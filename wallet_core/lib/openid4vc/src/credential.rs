@@ -99,7 +99,7 @@ pub struct CredentialResponses {
 /// A Credential Response, see: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3>.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum CredentialResponse {
     Immediate {
@@ -133,7 +133,7 @@ impl CredentialResponse {
 }
 
 #[serde_as]
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum Credential {
     MsoMdoc {
