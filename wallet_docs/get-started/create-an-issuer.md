@@ -480,8 +480,10 @@ openssl pkcs8 -topk8 -nocrypt \
 Serve `${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der` at `WRPAC_CRL_URL` and
 replace it before its `nextUpdate` (seven days in this example). To revoke a
 certificate, regenerate the CRL with its hex serial number supplied through
-`--serial-number` and atomically republish the DER file. The wallet rejects a
-WRPAC when its CRL is unavailable, invalid, expired, or lists that certificate.
+`--serial-number`, then replace the published DER file in a single operation so
+clients receive either the previous or new complete CRL, never a partially
+written file. The wallet rejects a WRPAC when its CRL is unavailable, invalid,
+expired, or lists that certificate.
 
 The used CA public certificate (referenced in the previous `wallet_ca` command)
 needs to be in the list of various so-called trust anchors. Specifically,
