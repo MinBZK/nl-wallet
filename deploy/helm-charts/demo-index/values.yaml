@@ -108,10 +108,3 @@ probes:
 ## @section Logging
 ## @param logRequests Log request and response headers and bodies
 logRequests: false
-
-## @section WRPAC CRL
-## @param wrpacCrl.configMapName ConfigMap containing the DER-encoded WRPAC CRL; disabled when empty
-## @param wrpacCrl.key Key in the ConfigMap containing the DER-encoded WRPAC CRL
-wrpacCrl:
-  configMapName: ""
-  key: wrpac.crl.der
