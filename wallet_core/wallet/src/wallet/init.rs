@@ -216,9 +216,9 @@ where
         let crl_provider = Arc::new(CrlProvider::new_with_default_cache(
             default_reqwest_client_builder().build()?,
         ));
-        let credential_issuer_discovery = HttpIssuanceDiscovery::new_with_crl_provider(
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(reqwest_client_builder())?,
-            Arc::clone(&crl_provider),
+            crl_provider.as_ref().clone(),
         );
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),

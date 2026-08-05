@@ -659,7 +659,7 @@ mod tests {
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
         let sessions = Arc::new(MemorySessionStore::default());
 
-        let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap(),
             vec![
                 (Format::SdJwt, PID_ATTESTATION_TYPE.to_string(), NL_PID_METADATA.clone()),
