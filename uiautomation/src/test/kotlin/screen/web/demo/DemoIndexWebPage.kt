@@ -26,47 +26,47 @@ class DemoIndexWebPage : MobileActions() {
 
     fun visible() = isWebElementVisible(findWebElement(headerTextLocator))
 
-    fun clickAmsterdamMdocButton() = clickWebElement(findWebElement(amsterdamMdocButtonLocator))
+    fun clickAmsterdamMdocButton() = clickWebElementWithMouseEvent(findWebElement(amsterdamMdocButtonLocator))
 
-    fun clickAmsterdamSdJwtButton() = clickWebElement(findWebElement(amsterdamSdJwtButtonLocator))
+    fun clickAmsterdamSdJwtButton() = clickWebElementWithMouseEvent(findWebElement(amsterdamSdJwtButtonLocator))
 
-    fun clickXyzBankMdocButton() = clickWebElement(findWebElement(xyzBankMdocButtonLocator))
+    fun clickXyzBankMdocButton() = clickWebElementWithMouseEvent(findWebElement(xyzBankMdocButtonLocator))
 
-    fun clickXyzBankSdJwtButton() = clickWebElement(findWebElement(xyzBankSdJwtButtonLocator))
+    fun clickXyzBankSdJwtButton() = clickWebElementWithMouseEvent(findWebElement(xyzBankSdJwtButtonLocator))
 
-    fun clickXyzBankSdJwtEuPidButton() = clickWebElement(findWebElement(xyzBankSdJwtEuPidButtonLocator))
+    fun clickXyzBankSdJwtEuPidButton() = clickWebElementWithMouseEvent(findWebElement(xyzBankSdJwtEuPidButtonLocator))
 
-    fun clickMarketplaceButton() = clickWebElement(findWebElement(marketplaceButtonLocator))
+    fun clickMarketplaceButton() = clickWebElementWithMouseEvent(findWebElement(marketplaceButtonLocator))
 
-    fun clickMonkeyBikeButton() = clickWebElement(findWebElement(monkeyBikeButtonLocator))
+    fun clickMonkeyBikeButton() = clickWebElementWithMouseEvent(findWebElement(monkeyBikeButtonLocator))
 
     fun clickHollandUniversityMdocButton() {
         scrollToWebElement(hollandUniversityMdocButtonLocator)
-        clickWebElement(findWebElement(hollandUniversityMdocButtonLocator))
+        clickWebElementWithMouseEvent(findWebElement(hollandUniversityMdocButtonLocator))
     }
 
     fun clickHollandUniversitySdJwtButton() {
         scrollToWebElement(hollandUniversitySdJwtButtonLocator)
-        clickWebElement(findWebElement(hollandUniversitySdJwtButtonLocator))
+        clickWebElementWithMouseEvent(findWebElement(hollandUniversitySdJwtButtonLocator))
     }
 
     fun clickInsuranceButton() {
         scrollToWebElement(insuranceButtonLocator)
-        clickWebElement(findWebElement(insuranceButtonLocator))
+        clickWebElementWithMouseEvent(findWebElement(insuranceButtonLocator))
     }
 
     fun clickJobFinderButton() {
         scrollToWebElement(jobFinderButtonLocator)
-        clickWebElement(findWebElement(jobFinderButtonLocator))
+        clickWebElementWithMouseEvent(findWebElement(jobFinderButtonLocator))
     }
 
     fun clickLoyaltyButton() {
         scrollToWebElement(loyaltyButtonLocator)
-        clickWebElement(findWebElement(loyaltyButtonLocator))
+        clickWebElementWithMouseEvent(findWebElement(loyaltyButtonLocator))
     }
 
     fun clickMuseumMaandkaartButton() {
         scrollToWebElement(museumMaandkaartButtonLocator)
-        clickWebElement(findWebElement(museumMaandkaartButtonLocator))
+        clickWebElementWithMouseEvent(findWebElement(museumMaandkaartButtonLocator))
     }
 }

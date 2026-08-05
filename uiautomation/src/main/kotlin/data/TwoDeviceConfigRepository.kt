@@ -29,6 +29,7 @@ class TwoDeviceConfigRepository {
                     platform = sourcePlatform,
                     platformVersion = System.getProperty("test.config.source.platform.version", ""),
                     appName = buildAppName(sourcePlatform),
+                    appPath = System.getProperty("test.config.source.app.path", ""),
                     udid = System.getProperty("test.config.source.udid", ""),
                 ),
                 destination = DeviceCapabilities(
@@ -36,6 +37,7 @@ class TwoDeviceConfigRepository {
                     platform = destinationPlatform,
                     platformVersion = System.getProperty("test.config.destination.platform.version", ""),
                     appName = buildAppName(destinationPlatform),
+                    appPath = System.getProperty("test.config.destination.app.path", ""),
                     udid = System.getProperty("test.config.destination.udid", ""),
                 ),
             )

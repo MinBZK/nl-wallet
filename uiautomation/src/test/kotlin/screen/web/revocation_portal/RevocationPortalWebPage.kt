@@ -14,7 +14,7 @@ class RevocationPortalWebPage : MobileActions() {
 
     fun revokeWallet(revocationCode: String) {
         findWebElement(revocationCodeField).sendKeys(revocationCode)
-        clickWebElement(findWebElement(submitButton))
+        clickWebElementWithMouseEvent(findWebElement(submitButton))
     }
 
     fun successMessageVisible(): Boolean {

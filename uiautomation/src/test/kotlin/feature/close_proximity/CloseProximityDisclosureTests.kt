@@ -1,5 +1,6 @@
 package feature.close_proximity
 
+import domain.Platform
 import helper.DeviceResponseHelper
 import helper.OrganizationMetadataHelper
 import helper.TestBase
@@ -66,7 +67,7 @@ class CloseProximityDisclosureTests : TestBase() {
         bleDisconnectedScreen = BleDisconnectedScreen()
     }
 
-    @RetryingTest(value = 2, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC79 Close proximity data sharing")
     fun verifyCloseProximityDisclosureViaQrScan(testInfo: TestInfo) {
         setUp(testInfo)
@@ -112,7 +113,7 @@ class CloseProximityDisclosureTests : TestBase() {
         )
     }
 
-    @RetryingTest(value = 2, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC80 Wallet does not contain requested attributes at close proximity disclosure")
     fun verifyCloseProximityWalletDoesNotContainRequestedAttributes(testInfo: TestInfo) {
         setUp(testInfo)
@@ -135,7 +136,7 @@ class CloseProximityDisclosureTests : TestBase() {
         )
     }
 
-    @RetryingTest(value = 2, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC81 BLE connection lost from reader during close proximity disclosure")
     fun verifyCloseProximityBLEDisconnect(testInfo: TestInfo) {
         setUp(testInfo)
@@ -162,9 +163,12 @@ class CloseProximityDisclosureTests : TestBase() {
             "Disclosure screen not shown, reader output so far:\n$outputBuffer",
         )
         disclosureScreen.share()
-
         mockBleReaderApp.destroyForcibly()
-        pinScreen.enterPin(DEFAULT_PIN)
+        // On iOS the bluetooth disconnected screen is displayed almost immediately after the bluetooth disconnections drops
+        // On Android the bluetooth disconnected screen is displayed after users enters their PIN
+        if (disclosureScreen.platform() == Platform.ANDROID) {
+            pinScreen.enterPin(DEFAULT_PIN)
+        }
         assertTrue(bleDisconnectedScreen.visible(), "BLE disconnected screen is not visible")
     }
 }

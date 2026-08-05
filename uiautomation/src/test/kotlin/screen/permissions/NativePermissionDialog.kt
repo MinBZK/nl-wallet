@@ -17,17 +17,17 @@ class NativePermissionDialog : MobileActions() {
     }
 
     fun deny() = when (platform()) {
-        Platform.ANDROID -> clickNativeElement(findWebElement(By.id(androidDenyButtonId)))
+        Platform.ANDROID -> clickWebElementWithGesture(findWebElement(By.id(androidDenyButtonId)))
         Platform.IOS -> driver.switchTo().alert().dismiss()
     }
 
     fun denyDontAskAgain() = when (platform()) {
-        Platform.ANDROID -> clickNativeElement(findWebElement(By.id(androidDenyDontAskAgainButtonId)))
+        Platform.ANDROID -> clickWebElementWithGesture(findWebElement(By.id(androidDenyDontAskAgainButtonId)))
         Platform.IOS -> throw UnsupportedOperationException("denyDontAskAgain is not supported on iOS")
     }
 
     fun allowOneTimeOnly() = when (platform()) {
-        Platform.ANDROID -> clickNativeElement(findWebElement(By.id(androidAllowOneTimeButtonId)))
+        Platform.ANDROID -> clickWebElementWithGesture(findWebElement(By.id(androidAllowOneTimeButtonId)))
         Platform.IOS -> throw UnsupportedOperationException("allowOneTimeOnly is not supported on iOS")
     }
 }
