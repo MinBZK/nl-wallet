@@ -323,16 +323,16 @@ export WRPAC_CA_CRT
 
 # Publish an empty CRL for all locally generated WRPAC certificates. The wallet accepts HTTP distribution points:
 # authenticity and integrity are established by verifying the CRL signature against the WRPAC CA.
-WRPAC_CRL_DISTRIBUTION_POINT="http://${SERVICES_HOST}:${DEMO_INDEX_PORT}/wrpac.crl.der"
+WRPAC_CRL_DISTRIBUTION_POINT="http://${SERVICES_HOST}:${STATIC_SERVER_CRL_PORT}/wrpac.crl.der"
 export WRPAC_CRL_DISTRIBUTION_POINT
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca crl \
     --ca-key-file "${TARGET_DIR}/ca.wrpac.key.pem" \
     --ca-crt-file "${TARGET_DIR}/ca.wrpac.crt.pem" \
-    --file-prefix "${DEMO_INDEX_DIR}/assets/wrpac" \
+    --file-prefix "${TARGET_DIR}/static_server/wrpac" \
     --days 365 \
     --force
-openssl crl -in "${DEMO_INDEX_DIR}/assets/wrpac.crl.pem" -outform DER \
-    -out "${DEMO_INDEX_DIR}/assets/wrpac.crl.der"
+openssl crl -in "${TARGET_DIR}/static_server/wrpac.crl.pem" -outform DER \
+    -out "${TARGET_DIR}/static_server/wrpac.crl.der"
 
 # Generate root CA for WRPRC
 if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then

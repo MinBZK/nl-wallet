@@ -1,5 +1,6 @@
 use std::net::IpAddr;
 use std::path::Path;
+use std::path::PathBuf;
 
 use config::Config;
 use config::ConfigError;
@@ -16,6 +17,8 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
+    pub crl_port: u16,
+    pub crl_file: PathBuf,
     pub tls_config: TlsServerConfig,
 
     #[serde(deserialize_with = "VerifiedJwt::dangerous_deserialize")] // we trust our own config file
