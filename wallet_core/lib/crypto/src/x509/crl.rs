@@ -45,6 +45,8 @@ pub enum CrlProviderError {
 pub enum CertificateCrlVerificationError {
     #[error("certificate verification failed: {0}")]
     Certificate(#[source] CertificateError),
+    #[error("certificate revocation verification failed: {0}")]
+    Revocation(#[source] CertificateError),
     #[error("CRL provider error: {0}")]
     CrlProvider(#[source] CrlProviderError),
     #[error("certificate chain is empty")]
@@ -189,7 +191,7 @@ impl CrlProvider {
         // Verify the whole certificate chain before storing fetched CRLs in cache. This is needed since we cannot
         // directly and easily verify the signature of a CRL using `rustls-webpki`.
         leaf.verify(usage, intermediate_certs, time, trust_anchors, Some(crls.as_slice()))
-            .map_err(CertificateCrlVerificationError::Certificate)?;
+            .map_err(CertificateCrlVerificationError::Revocation)?;
 
         // Commit any freshly-fetched CRLs to the cache after successful verification.
         for fetched in crls {
@@ -835,7 +837,7 @@ mod tests {
             .expect_err("revoked certificate should fail verification");
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::Certificate(CertificateError::Verification(error))
+            CertificateCrlVerificationError::Revocation(CertificateError::Verification(error))
                 if matches!(*error, webpki::Error::CertRevoked)
         ));
 
@@ -926,7 +928,7 @@ mod tests {
             .expect_err("chain with a revoked intermediate certificate should fail verification");
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::Certificate(CertificateError::Verification(error))
+            CertificateCrlVerificationError::Revocation(CertificateError::Verification(error))
                 if matches!(*error, webpki::Error::CertRevoked)
         ));
     }
@@ -970,7 +972,7 @@ mod tests {
             .expect_err("expired CRL should fail verification");
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::Certificate(CertificateError::Verification(error))
+            CertificateCrlVerificationError::Revocation(CertificateError::Verification(error))
                 if matches!(*error, webpki::Error::CrlExpired { .. })
         ));
     }
