@@ -205,8 +205,9 @@ impl<F> CertificateCrlVerifier<F>
 where
     F: CrlFetcher + Sync,
 {
-    /// Fetch all usable CRLs referenced in the certificate's CDP extension, either from cache or the network.
-    /// A failed distribution point is tolerated when at least one alternative succeeds.
+    /// Resolve the CRLs referenced in the certificate's CDP extension, either from cache or the network.
+    /// Distribution points are treated as equivalent alternatives: a verified cached CRL is preferred, while a failed
+    /// distribution point is tolerated when at least one alternative succeeds.
     async fn crls_for_cert(
         &self,
         cert: &BorrowingCertificate,
@@ -214,6 +215,15 @@ where
     ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
         let urls =
             extract_crl_distribution_points(cert).map_err(CertificateCrlVerificationError::InvalidDistributionPoint)?;
+
+        // A cached CRL was already successfully used for verification. Since distribution points are equivalent
+        // alternatives, avoid network requests to the remaining URLs when one of them is already cached.
+        for url in &urls {
+            if let Some(cached) = self.cache.get(url).await {
+                return Ok(vec![FetchedCrl::Cached(cached)]);
+            }
+        }
+
         let mut results = Vec::with_capacity(urls.len());
         for url in urls {
             results.push(self.fetch_crl(url, time).await);
@@ -683,6 +693,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn verify_chain_uses_cached_distribution_point_without_fetching_alternatives() {
+        let server = MockServer::start_async().await;
+        let cached_url: Url = server.url("/cached.crl").parse().unwrap();
+        let alternative_url: Url = server.url("/alternative.crl").parse().unwrap();
+        let ca = Ca::generate_mock();
+        let cached_leaf = leaf_with_cdps(&ca, vec![cached_url.clone()]);
+        let leaf_with_alternatives = leaf_with_cdps(&ca, vec![cached_url, alternative_url]);
+        let cached_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/cached.crl");
+                then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
+            })
+            .await;
+        let alternative_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/alternative.crl");
+                then.status(500);
+            })
+            .await;
+
+        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let trust_anchors = TrustAnchors::from(&ca);
+
+        provider
+            .verify_chain(&[cached_leaf], &trust_anchors, None, &TimeGenerator)
+            .await
+            .expect("certificate should verify and populate the CRL cache");
+        provider
+            .verify_chain(&[leaf_with_alternatives], &trust_anchors, None, &TimeGenerator)
+            .await
+            .expect("certificate should verify using the cached distribution point");
+
+        cached_mock.assert_calls_async(1).await;
+        alternative_mock.assert_calls_async(0).await;
+    }
+
+    #[tokio::test]
     async fn crl_verifier_without_caching_refetches_every_time() {
         let server = MockServer::start_async().await;
         let mock = server
@@ -883,9 +930,7 @@ mod tests {
         mock.assert_calls_async(2).await;
     }
 
-    /// Generate a CA and a leaf certificate signed by it, with the given CRL distribution points.
-    fn ca_and_leaf_with_cdps(urls: Vec<Url>) -> (Ca, BorrowingCertificate) {
-        let ca = Ca::generate_mock();
+    fn leaf_with_cdps(ca: &Ca, urls: Vec<Url>) -> BorrowingCertificate {
         let config = CertificateConfiguration {
             crl_distribution_points: urls,
             ..Default::default()
@@ -893,8 +938,14 @@ mod tests {
         let leaf = ca
             .generate_key_pair(DistinguishedName::create_mock("leaf"), config, NO_SAN)
             .unwrap();
-        let certificate = leaf.certificate().clone();
-        (ca, certificate)
+        leaf.certificate().clone()
+    }
+
+    /// Generate a CA and a leaf certificate signed by it, with the given CRL distribution points.
+    fn ca_and_leaf_with_cdps(urls: Vec<Url>) -> (Ca, BorrowingCertificate) {
+        let ca = Ca::generate_mock();
+        let leaf = leaf_with_cdps(&ca, urls);
+        (ca, leaf)
     }
 
     #[tokio::test]
