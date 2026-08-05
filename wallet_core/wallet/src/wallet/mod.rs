@@ -27,7 +27,6 @@ mod test;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crypto::x509::crl::CrlProvider;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -58,6 +57,7 @@ pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::Pagination;
 pub use self::history::RecentHistoryCallback;
+use self::init::WalletCertificateCrlVerifier;
 pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::init::WalletRepositories;
@@ -185,7 +185,7 @@ pub struct Wallet<
     issuance_discovery: CID,
     disclosure_client: DCC,
     close_proximity_disclosure: PhantomData<CPC>,
-    crl_provider: CrlProvider,
+    crl_verifier: WalletCertificateCrlVerifier,
     status_list_client: Arc<SLC>,
     session: Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>,
     lock: WalletLock,

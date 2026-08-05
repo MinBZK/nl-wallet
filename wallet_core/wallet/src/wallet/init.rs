@@ -3,7 +3,9 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crypto::x509::crl::CrlProvider;
+use crypto::x509::crl::HttpCertificateCrlVerifier;
+#[cfg(any(test, feature = "test"))]
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use futures::try_join;
@@ -13,9 +15,13 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
+#[cfg(any(test, feature = "test"))]
+use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
+#[cfg(any(test, feature = "test"))]
+use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -23,6 +29,8 @@ use platform_support::utils::UtilitiesError;
 use platform_support::utils::hardware::HardwareUtilities;
 use reqwest::ClientBuilder;
 use token_status_list::verification::client::StatusListClient;
+#[cfg(any(test, feature = "test"))]
+use token_status_list::verification::client::mock::MockStatusListClient;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::sync::RwLock;
 use update_policy_model::update_policy::VersionState;
@@ -37,6 +45,8 @@ use super::WalletRegistration;
 use super::issuance::SessionState;
 use super::issuance::WalletIssuanceSession;
 use super::pin_recovery::PinRecoverySession;
+#[cfg(any(test, feature = "test"))]
+use crate::account_provider::MockAccountProviderClient;
 use crate::config::ConfigurationError;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::WalletConfigurationRepository;
@@ -168,29 +178,26 @@ pub struct WalletClients<APC, CID, DCC, SLC> {
     pub account_provider_client: APC,
     pub credential_issuer_discovery: CID,
     pub disclosure_client: DCC,
-    pub crl_provider: CrlProvider,
+    pub(crate) crl_verifier: WalletCertificateCrlVerifier,
     pub status_list_client: SLC,
 }
 
-impl<APC, CID, DCC, SLC> Default for WalletClients<APC, CID, DCC, SLC>
-where
-    APC: Default,
-    CID: Default,
-    DCC: Default,
-    SLC: Default,
-{
-    fn default() -> Self {
-        #[cfg(any(test, feature = "test"))]
-        let crl_provider = CrlProvider::new_mock_without_revocation();
-        #[cfg(not(any(test, feature = "test")))]
-        let crl_provider = CrlProvider::default();
+#[derive(Clone, Debug)]
+pub(crate) enum WalletCertificateCrlVerifier {
+    Http(HttpCertificateCrlVerifier),
+    #[cfg(any(test, feature = "test"))]
+    Mock(MockCertificateCrlVerifier),
+}
 
+#[cfg(any(test, feature = "test"))]
+impl WalletClients<MockAccountProviderClient, MockIssuanceDiscovery, MockDisclosureClient, MockStatusListClient> {
+    pub fn new_mock() -> Self {
         Self {
-            account_provider_client: APC::default(),
-            credential_issuer_discovery: CID::default(),
-            disclosure_client: DCC::default(),
-            crl_provider,
-            status_list_client: SLC::default(),
+            account_provider_client: MockAccountProviderClient::default(),
+            credential_issuer_discovery: MockIssuanceDiscovery::default(),
+            disclosure_client: MockDisclosureClient::default(),
+            crl_verifier: WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::default()),
+            status_list_client: MockStatusListClient::default(),
         }
     }
 }
@@ -213,12 +220,13 @@ where
     pub fn new() -> Result<Self, reqwest::Error> {
         // Note that HTTP is explicitly allowed for CRL distribution points. CRL integrity and issuer authenticity are
         // established by the CRL signature during certificate-chain verification.
-        let crl_provider = CrlProvider::new_with_default_cache(default_reqwest_client_builder().build()?);
+        let crl_verifier =
+            HttpCertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build()?);
         let credential_issuer_discovery =
-            HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_provider.clone());
+            HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
-            crl_provider.clone(),
+            crl_verifier.clone(),
         );
         // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
@@ -227,7 +235,7 @@ where
             account_provider_client: APC::default(),
             credential_issuer_discovery,
             disclosure_client,
-            crl_provider,
+            crl_verifier: WalletCertificateCrlVerifier::Http(crl_verifier),
             status_list_client,
         };
 
@@ -281,7 +289,7 @@ where
             issuance_discovery: wallet_clients.credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             close_proximity_disclosure: PhantomData,
-            crl_provider: wallet_clients.crl_provider,
+            crl_verifier: wallet_clients.crl_verifier,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session,
             lock: WalletLock::new(true),
@@ -586,15 +594,13 @@ mod tests {
         let config_server_config = default_config_server_config();
         let config_repository =
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
-        let wallet_clients: WalletClients<
+        let mut wallet_clients: WalletClients<
             MockAccountProviderClient,
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients {
-            credential_issuer_discovery: discovery,
-            ..Default::default()
-        };
+        > = WalletClients::new_mock();
+        wallet_clients.credential_issuer_discovery = discovery;
 
         let wallet: TestWalletMockStorage = Wallet::init_registration(
             storage,
@@ -669,15 +675,13 @@ mod tests {
         let config_server_config = default_config_server_config();
         let config_repository =
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
-        let wallet_clients: WalletClients<
+        let mut wallet_clients: WalletClients<
             MockAccountProviderClient,
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients {
-            credential_issuer_discovery: discovery,
-            ..Default::default()
-        };
+        > = WalletClients::new_mock();
+        wallet_clients.credential_issuer_discovery = discovery;
 
         let wallet: TestWalletMockStorage = Wallet::init_registration(
             storage,
@@ -751,7 +755,7 @@ mod tests {
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients::default();
+        > = WalletClients::new_mock();
 
         let result: Result<TestWalletMockStorage, WalletInitError> = Wallet::init_registration(
             storage,

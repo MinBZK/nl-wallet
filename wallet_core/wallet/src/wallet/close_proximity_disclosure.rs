@@ -80,6 +80,7 @@ use crate::wallet::disclosure::VpDisclosableAttestation;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
 use crate::wallet::disclosure::instruction_error_from_signing_error;
 use crate::wallet::disclosure::requested_attribute_paths;
+use crate::wallet::init::WalletCertificateCrlVerifier;
 use crate::wallet::state::AttestedKeyRegistrationDataAndConfig;
 
 const REQUEST_INFO_DOC_FORMAT_KEY: &str = "docFormat";
@@ -420,15 +421,30 @@ where
         let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
 
         let wallet_config = self.config_repository.get();
-        let verifier_certificate = match verify_device_request_with_crl(
-            &device_request,
-            &session_transcript,
-            &TimeGenerator,
-            wallet_config.wrpac_trust_anchors(),
-            &self.crl_provider,
-        )
-        .await
-        {
+        let verification_result = match &self.crl_verifier {
+            WalletCertificateCrlVerifier::Http(verifier) => {
+                verify_device_request_with_crl(
+                    &device_request,
+                    &session_transcript,
+                    &TimeGenerator,
+                    wallet_config.wrpac_trust_anchors(),
+                    verifier,
+                )
+                .await
+            }
+            #[cfg(any(test, feature = "test"))]
+            WalletCertificateCrlVerifier::Mock(verifier) => {
+                verify_device_request_with_crl(
+                    &device_request,
+                    &session_transcript,
+                    &TimeGenerator,
+                    wallet_config.wrpac_trust_anchors(),
+                    verifier,
+                )
+                .await
+            }
+        };
+        let verifier_certificate = match verification_result {
             Ok(verifier_certificate) => verifier_certificate,
             Err(error) => {
                 self.send_close_proximity_error_response_and_stop(&error).await?;
@@ -935,6 +951,7 @@ mod tests {
     use crate::wallet::DisclosureError;
     use crate::wallet::Session;
     use crate::wallet::disclosure::VpDisclosableAttestation;
+    use crate::wallet::init::WalletCertificateCrlVerifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WRPAC_CA;
     use crate::wallet::test::WalletDeviceVendor;
@@ -1223,6 +1240,7 @@ mod tests {
         wallet: &mut TestWalletMockStorage,
         items_request: ItemsRequest,
     ) -> BorrowingCertificate {
+        wallet.crl_verifier = WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA));
         let key_pair = WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap();
         let verifier_certificate = key_pair.certificate().clone();
 
@@ -1360,6 +1378,7 @@ mod tests {
         stop_context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        wallet.crl_verifier = WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA));
         install_session_established_close_proximity_session(
             &mut wallet,
             cbor_serialize(&qr_session_transcript(None)).unwrap(),
@@ -1487,6 +1506,7 @@ mod tests {
             setup_device_request(vec![items_request], None, true).await;
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        wallet.crl_verifier = WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA));
         install_session_established_close_proximity_session(
             &mut wallet,
             cbor_serialize(&session_transcript).unwrap(),

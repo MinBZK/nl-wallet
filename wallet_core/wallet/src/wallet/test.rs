@@ -410,7 +410,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients::default(),
+            WalletClients::new_mock(),
             RegistrationStatus::Unregistered,
             None,
         )
@@ -428,7 +428,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients::default(),
+            WalletClients::new_mock(),
         )
         .await
     }
@@ -491,7 +491,7 @@ impl TestWalletMockStorage {
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients::default(),
+            WalletClients::new_mock(),
         )
         .await
     }
