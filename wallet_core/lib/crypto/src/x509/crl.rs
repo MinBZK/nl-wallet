@@ -69,9 +69,6 @@ const MAX_TTL: Duration = Duration::from_hours(7 * 24);
 /// ecosystem, while still bounding memory use against a malicious or malfunctioning CRL distribution point.
 const MAX_CRL_SIZE: usize = 5 * 1024 * 1024;
 
-/// Timeout for a single CRL fetch request, so a hung or slow-drip connection doesn't stall certificate verification.
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
-
 /// Maximum number of CRLs retained by the default provider used by the wallet.
 const DEFAULT_CACHE_CAPACITY: u64 = 100;
 
@@ -241,7 +238,6 @@ impl CrlProvider {
         let mut response = self
             .client
             .get(url.clone())
-            .timeout(REQUEST_TIMEOUT)
             .send()
             .await
             .map_err(CrlProviderError::Http)?
