@@ -259,7 +259,7 @@ impl CrlProvider {
         // derive the cache TTL; `webpki` below remains authoritative for parsing
         // and verification. Fall back to a short TTL if extraction fails, and cap
         // it to impose a sane upper bound on the cache lifetime. Use the injected time so
-        // cache eviction and verification agree on "now".
+        // cache eviction and verification use the same time source.
         let ttl = parse_x509_crl(&bytes)
             .ok()
             .and_then(|(_, crl)| ttl_from_next_update(&crl, time))
