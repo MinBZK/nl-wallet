@@ -16,6 +16,7 @@ object LocalMobileDriver {
         platformVersion = testConfig.platformVersion,
         automationName = testConfig.automationName,
         udid = testConfig.udid,
+        appPath = testConfig.appPath,
         index = null,
     )
 
@@ -28,6 +29,7 @@ object LocalMobileDriver {
             Platform.IOS -> "XCUITest"
         },
         udid = device.udid,
+        appPath = device.appPath,
         index = index,
     )
 
@@ -37,13 +39,14 @@ object LocalMobileDriver {
         platformVersion: String,
         automationName: String,
         udid: String,
+        appPath: String,
         index: Int?,
     ): AppiumDriver {
         val serviceUrl = AppiumServiceProvider.service?.url
             ?: throw IllegalStateException("Appium service not started — call AppiumServiceProvider.startService() first")
 
         return when (platform) {
-            Platform.ANDROID -> AndroidDriver(serviceUrl, buildAndroidOptions().apply {
+            Platform.ANDROID -> AndroidDriver(serviceUrl, buildAndroidOptions(appPath).apply {
                 if (deviceName.isNotBlank()) setDeviceName(deviceName)
                 setPlatformName("Android")
                 if (platformVersion.isNotBlank()) setPlatformVersion(platformVersion)
@@ -59,6 +62,7 @@ object LocalMobileDriver {
                 )
             }
             Platform.IOS -> IOSDriver(serviceUrl, buildIOSOptions(
+                appPath = appPath,
                 updatedWDABundleId = "nl.ictu.edi.wallet.web-driver-agent-runner",
                 wdaLocalPort = if (index != null) 8099 + index else null,
             ).apply {

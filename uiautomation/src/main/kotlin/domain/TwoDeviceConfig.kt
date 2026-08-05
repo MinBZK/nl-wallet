@@ -10,5 +10,6 @@ data class DeviceCapabilities(
     val platform: Platform,
     val platformVersion: String,
     val appName: String,
+    val appPath: String,
     val udid: String = "",
 )

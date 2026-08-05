@@ -110,10 +110,12 @@ tasks.withType<Test>().configureEach {
         "test.config.source.platform.name" to "",
         "test.config.source.platform.version" to "",
         "test.config.source.udid" to "",
+        "test.config.source.app.path" to "",
         "test.config.destination.name" to "",
         "test.config.destination.platform.name" to "",
         "test.config.destination.platform.version" to "",
         "test.config.destination.udid" to "",
+        "test.config.destination.app.path" to "",
     )
     testConfigMap.forEach { (k, v) ->
         systemProperty(k, System.getProperty(k, v.toString()))

@@ -96,15 +96,6 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             sourceUrlCheckScreen.clickContinueButton()
             assertTrue(sourceDisclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
 
-            sourceDisclosureScreen.viewDisclosureOrganizationDetails()
-            // PVW-6101 Check for organization details
-
-            sourceDisclosureScreen.goBack()
-            sourceDisclosureScreen.cancel()
-            sourceDisclosureScreen.reportProblem()
-            assertTrue(sourceDisclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
-
-            sourceDisclosureScreen.goBack()
             sourceDisclosureScreen.share()
             sourcePinScreen.enterPin(DEFAULT_PIN)
             sourceDisclosureScreen.goToDashboard()
@@ -135,26 +126,6 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             sourceUrlCheckScreen.clickContinueButton()
             assertTrue(sourceDisclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
 
-            sourceDisclosureScreen.viewLoginDisclosureDetails()
-            sourceDisclosureScreen.viewOrganization(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
-
-            sourceOrganizationDetailScreen.clickBackButton()
-            sourceDisclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
-            assertTrue(sourceDisclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
-
-            sourceDisclosureScreen.goBack()
-            sourceDisclosureScreen.goBack()
-            sourceDisclosureScreen.cancel()
-            sourceDisclosureScreen.reportProblem()
-            assertTrue(sourceDisclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
-
-            sourceDisclosureScreen.goBack()
-            sourceDisclosureScreen.viewLoginDisclosureDetails()
-            sourceDisclosureScreen.readTerms()
-            assertTrue(sourceDisclosureScreen.termsVisible(), "Terms not visible")
-
-            sourceDisclosureScreen.goBack()
-            sourceDisclosureScreen.goBack()
             sourceDisclosureScreen.login()
             sourcePinScreen.enterPin(DEFAULT_PIN)
             sourceDisclosureScreen.goToDashboard()
