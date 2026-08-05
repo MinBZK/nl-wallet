@@ -331,6 +331,8 @@ cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca c
     --file-prefix "${DEMO_INDEX_DIR}/assets/wrpac" \
     --days 365 \
     --force
+openssl crl -in "${DEMO_INDEX_DIR}/assets/wrpac.crl.pem" -outform DER \
+    -out "${DEMO_INDEX_DIR}/assets/wrpac.crl.der"
 
 # Generate root CA for WRPRC
 if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then

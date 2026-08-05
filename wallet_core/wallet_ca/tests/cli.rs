@@ -74,12 +74,8 @@ fn predicate_successfully_generated_certificate(crt: &Path) -> Result<RegexPredi
     Ok(result)
 }
 
-fn predicate_successfully_generated_crl(pem_crl: &Path, der_crl: &Path) -> Result<RegexPredicate> {
-    let result = predicate::str::is_match(format!(
-        "CRL stored in '{}'\nCRL stored in '{}'",
-        pem_crl.display(),
-        der_crl.display(),
-    ))?;
+fn predicate_successfully_generated_crl(pem_crl: &Path) -> Result<RegexPredicate> {
+    let result = predicate::str::is_match(format!("CRL stored in '{}'", pem_crl.display()))?;
     Ok(result)
 }
 
@@ -212,7 +208,6 @@ fn assert_generated_certificate_crl_distribution_points(crt_file: &ChildPath, ex
 /// order they appear on the CRL).
 fn assert_generated_crl(
     pem_crl_file: &ChildPath,
-    der_crl_file: &ChildPath,
     expected_issuer_dn: &DistinguishedName,
     start: OffsetDateTime,
     end: OffsetDateTime,
@@ -222,7 +217,6 @@ fn assert_generated_crl(
     let crl_pem_bytes = std::fs::read(pem_crl_file)?;
     let (_, crl_pem) = x509_parser::pem::parse_x509_pem(&crl_pem_bytes)?;
     assert_eq!(crl_pem.label, "X509 CRL");
-    assert_eq!(std::fs::read(der_crl_file)?, crl_pem.contents);
     let (_, crl) = parse_x509_crl(&crl_pem.contents)?;
 
     let issuer_dn = DistinguishedName::try_from(crl.issuer())?;
@@ -437,10 +431,6 @@ fn public_key_path(temp: &TempDir, prefix: &str) -> ChildPath {
 
 fn crl_path(temp: &TempDir, prefix: &str) -> ChildPath {
     temp.child(format!("{prefix}.crl.pem"))
-}
-
-fn crl_der_path(temp: &TempDir, prefix: &str) -> ChildPath {
-    temp.child(format!("{prefix}.crl.der"))
 }
 
 fn generate_public_key(path: &ChildPath) {
@@ -974,22 +964,21 @@ fn happy_flow_crl_empty() -> Result<()> {
     let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
     let crl_prefix = temp.child("test-crl");
     let crl = crl_path(&temp, "test-crl");
-    let crl_der = crl_der_path(&temp, "test-crl");
 
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_crl(&ca_crt, &ca_key, &crl_prefix, "7")
         .assert()
         .success()
-        .stderr(predicate_successfully_generated_crl(&crl, &crl_der)?);
+        .stderr(predicate_successfully_generated_crl(&crl)?);
 
     assert_generated_crl(
         &crl,
-        &crl_der,
         &ca_dn,
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + Duration::days(7),
         &[],
     )?;
+    assert!(!temp.child("test-crl.crl.der").exists());
 
     temp.close()?;
 
@@ -1010,7 +999,6 @@ fn happy_flow_crl_with_revoked_certificates() -> Result<()> {
     let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
     let crl_prefix = temp.child("test-crl");
     let crl = crl_path(&temp, "test-crl");
-    let crl_der = crl_der_path(&temp, "test-crl");
 
     // Serial numbers are free-form input to the `crl` command (it never looks at an actual
     // certificate), so cover both accepted formats with literal values: colon-separated hex, as
@@ -1022,11 +1010,10 @@ fn happy_flow_crl_with_revoked_certificates() -> Result<()> {
         .arg("01020304")
         .assert()
         .success()
-        .stderr(predicate_successfully_generated_crl(&crl, &crl_der)?);
+        .stderr(predicate_successfully_generated_crl(&crl)?);
 
     assert_generated_crl(
         &crl,
-        &crl_der,
         &ca_dn,
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + DEFAULT_CRL_LIFETIME,
@@ -1080,8 +1067,9 @@ fn regenerating_crl() -> Result<()> {
         .generate_crl(&ca_crt, &ca_key, &crl_prefix, "90")
         .assert()
         .success();
-    let first_crl_der = std::fs::read(crl_der_path(&temp, "test-crl"))?;
-    let (_, first_crl) = parse_x509_crl(&first_crl_der)?;
+    let first_crl_pem_bytes = std::fs::read(&crl)?;
+    let (_, first_crl_pem) = x509_parser::pem::parse_x509_pem(&first_crl_pem_bytes)?;
+    let (_, first_crl) = parse_x509_crl(&first_crl_pem.contents)?;
     let first_crl_number = first_crl.crl_number().expect("CRL should have a crlNumber").clone();
 
     // Re-generating the CRL should fail without --force
@@ -1097,8 +1085,9 @@ fn regenerating_crl() -> Result<()> {
         .arg("--force")
         .assert()
         .success();
-    let second_crl_der = std::fs::read(crl_der_path(&temp, "test-crl"))?;
-    let (_, second_crl) = parse_x509_crl(&second_crl_der)?;
+    let second_crl_pem_bytes = std::fs::read(&crl)?;
+    let (_, second_crl_pem) = x509_parser::pem::parse_x509_pem(&second_crl_pem_bytes)?;
+    let (_, second_crl) = parse_x509_crl(&second_crl_pem.contents)?;
     let second_crl_number = second_crl.crl_number().expect("CRL should have a crlNumber");
 
     assert!(second_crl_number > &first_crl_number);

@@ -228,7 +228,7 @@ enum Command {
     },
     /// Generate a CRL, signed by the CA
     ///
-    /// `crlNumber` starts at the generation time and advances from the existing DER file on regeneration. To actually
+    /// `crlNumber` starts at the generation time and advances from the existing PEM file on regeneration. To actually
     /// revoke a certificate, regenerate the CRL for its issuing CA with the same file prefix and that certificate's
     /// serial number added to --serial-number, then re-publish the result at the certificate's CDP URL(s).
     Crl {
@@ -238,8 +238,8 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
-        /// Prefix for the generated files: <FILE_PREFIX>.crl.pem and <FILE_PREFIX>.crl.der. Publish the DER file at
-        /// the URL embedded in certificates as a CRL Distribution Point.
+        /// Prefix for the generated file: <FILE_PREFIX>.crl.pem. Convert it to DER before publishing it at the URL
+        /// embedded in certificates as a CRL Distribution Point.
         #[arg(short, long)]
         file_prefix: String,
         /// Duration for which the CRL will be valid (used to calculate `nextUpdate`); choose based on how often you

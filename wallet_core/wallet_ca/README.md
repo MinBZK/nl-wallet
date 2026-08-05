@@ -15,7 +15,7 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert --help
 ## CRL distribution points
 
 WRPAC consumers in the wallet require revocation checking. Generate a signed
-CRL for the WRPAC CA and publish the DER output at a stable HTTP or HTTPS URL:
+CRL for the WRPAC CA:
 
 ```shell
 cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- crl \
@@ -25,9 +25,14 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- crl \
     --days 7
 ```
 
-This creates `target/wrpac.crl.pem` for inspection and
-`target/wrpac.crl.der` for publication. Embed the published URL in every
-certificate issued by that CA:
+This creates `target/wrpac.crl.pem`. Convert it to DER for publication at a
+stable HTTP or HTTPS URL, then embed that URL in every certificate issued by
+the CA:
+
+```shell
+openssl crl -in target/wrpac.crl.pem -outform DER \
+    -out target/wrpac.crl.der
+```
 
 ```shell
 cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
@@ -42,7 +47,7 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
 ```
 
 To revoke a certificate, obtain its serial number and regenerate the CRL with
-that serial number included. Keep the previous DER file at the same output
+that serial number included. Keep the previous PEM file at the same output
 prefix so `wallet_ca` can advance its `crlNumber` even when the clock has not:
 
 ```shell
@@ -56,10 +61,10 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- crl \
     --force
 ```
 
-Republish the DER file before the previous CRL's `nextUpdate`. The wallet rejects
-a WRPAC if it has no usable distribution point, the CRL cannot be fetched or
-validated, or the certificate is listed as revoked. CRLs are signed, so
-transport-level integrity is not required. ETSI EN 319 412-2,
+Convert and republish the DER file before the previous CRL's `nextUpdate`.
+The wallet rejects a WRPAC if it has no usable distribution point, the CRL
+cannot be fetched or validated, or the certificate is listed as revoked. CRLs
+are signed, so transport-level integrity is not required. ETSI EN 319 412-2,
 `GEN-4.3.11-4`, requires at least one `http://` or `ldap://` CRL reference.
 The wallet does not support LDAP retrieval, so include at least one `http://`
 distribution point. Additional `https://` distribution points remain
