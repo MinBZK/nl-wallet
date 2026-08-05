@@ -235,7 +235,7 @@ pub enum CloseProximityDisclosureError {
     InvalidDocRequest(#[from] mdoc::Error),
 
     #[error("reader access certificate validation failed")]
-    InvalidReaderCertificate(#[from] CertificateError),
+    InvalidReaderCertificate(#[source] CertificateError),
 
     #[error("reader access certificate CRL verification failed")]
     ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
