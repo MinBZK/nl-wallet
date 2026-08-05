@@ -253,6 +253,17 @@ where
     H: DeserializeOwned + TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
+    fn parse_and_verify_with_leaf_certificate(
+        &self,
+        leaf_certificate: &BorrowingCertificate,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        let pubkey = PublicKey::from(*leaf_certificate.public_key());
+        let validation = validation.into_validation(&pubkey);
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
+            .map_err(JwtX5cVerifyError::JwtVerify)
+    }
+
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
     pub fn parse_and_verify_against_trust_anchors(
@@ -276,11 +287,7 @@ where
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-        let pubkey = PublicKey::from(*leaf_cert.public_key());
-
-        let validation = validation.into_validation(&pubkey);
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
-            .map_err(JwtX5cVerifyError::JwtVerify)
+        self.parse_and_verify_with_leaf_certificate(leaf_cert, validation)
     }
 
     /// Verify the X.509 certificate chain, including fail-closed CRL checking, and then verify the JWS.
@@ -302,10 +309,7 @@ where
             .await
             .map_err(JwtX5cVerifyError::CertificateCrlValidation)?;
 
-        let pubkey = PublicKey::from(*certificates.first().public_key());
-        let validation = validation.into_validation(&pubkey);
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
-            .map_err(JwtX5cVerifyError::JwtVerify)
+        self.parse_and_verify_with_leaf_certificate(certificates.first(), validation)
     }
 
     pub fn into_verified_against_trust_anchors(
