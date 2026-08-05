@@ -216,7 +216,7 @@ where
         chain: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
-        let mut urls_by_cert = chain
+        let urls_by_cert = chain
             .iter()
             .map(extract_crl_distribution_points)
             .collect::<Result<Vec<_>, _>>()
@@ -224,21 +224,6 @@ where
 
         if urls_by_cert.iter().any(Vec::is_empty) {
             return Err(CertificateCrlVerificationError::NoCrlDistributionPoint);
-        }
-
-        // Prefer a cached candidate for a certificate without making network requests to its sibling URLs. The CRL is
-        // still checked for authority, signature and expiration as part of chain verification below.
-        for urls in &mut urls_by_cert {
-            let mut cached_url = None;
-            for url in urls.iter() {
-                if self.cache.get(url).await.is_some() {
-                    cached_url = Some(url.clone());
-                    break;
-                }
-            }
-            if let Some(cached_url) = cached_url {
-                *urls = vec![cached_url];
-            }
         }
 
         let mut seen = HashSet::new();
@@ -782,7 +767,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn verify_chain_uses_cached_distribution_point_without_fetching_alternatives() {
+    async fn verify_chain_fetches_uncached_alternative_alongside_cached_crl() {
         let server = MockServer::start_async().await;
         let cached_url: Url = server.url("/cached.crl").parse().unwrap();
         let alternative_url: Url = server.url("/alternative.crl").parse().unwrap();
@@ -815,7 +800,7 @@ mod tests {
             .expect("certificate should verify using the cached distribution point");
 
         cached_mock.assert_calls_async(1).await;
-        alternative_mock.assert_calls_async(0).await;
+        alternative_mock.assert_calls_async(1).await;
     }
 
     #[tokio::test]
