@@ -56,8 +56,8 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- crl \
     --force
 ```
 
-Republish the DER file before the previous CRL's `nextUpdate`. The wallet fails
-closed if a WRPAC has no usable distribution point, the CRL cannot be fetched
-or validated, or the certificate is listed as revoked. CRLs are signed, so an
+Republish the DER file before the previous CRL's `nextUpdate`. The wallet rejects
+a WRPAC if it has no usable distribution point, the CRL cannot be fetched or
+validated, or the certificate is listed as revoked. CRLs are signed, so an
 HTTP distribution URL is supported, although HTTPS is preferable where it is
 operationally convenient.

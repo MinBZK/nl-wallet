@@ -94,7 +94,7 @@ enum Command {
         ca_crt_file: CachedInput,
         /// CRL Distribution Point URL(s) to embed in this certificate. Each URL must serve a CRL, signed by the
         /// given CA, covering this certificate's serial number; see the `crl` subcommand. If omitted, the
-        /// certificate carries no CDP extension and revocation checking against it fails closed wherever enforced.
+        /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
@@ -150,7 +150,7 @@ enum Command {
         ca_crt_file: CachedInput,
         /// CRL Distribution Point URL(s) to embed in this certificate. Each URL must serve a CRL, signed by the
         /// given CA, covering this certificate's serial number; see the `crl` subcommand. If omitted, the
-        /// certificate carries no CDP extension and revocation checking against it fails closed wherever enforced.
+        /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
