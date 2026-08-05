@@ -408,11 +408,9 @@ fn close_proximity_can_retry(error: &CloseProximityDisclosureError) -> Option<bo
     match error {
         // Platform errors are transient and worth retrying.
         CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => Some(true),
-        CloseProximityDisclosureError::InvalidReaderCertificate(error) => {
-            Some(detect_networking_error(error).is_some())
-        }
+        CloseProximityDisclosureError::InvalidReaderCertificate(error) => detect_networking_error(error).map(|_| true),
         CloseProximityDisclosureError::ReaderCertificateCrlVerification(error) => {
-            Some(detect_networking_error(error).is_some())
+            detect_networking_error(error).map(|_| true)
         }
         CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
         CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
