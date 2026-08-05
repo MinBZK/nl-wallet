@@ -1,5 +1,6 @@
 #[cfg(any(test, feature = "mock"))]
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
@@ -7,6 +8,7 @@ use std::time::Instant;
 use chrono::DateTime;
 use chrono::Utc;
 use error_category::ErrorCategory;
+use futures::future;
 use http_utils::reqwest::bytes_with_max_response_size;
 use itertools::Itertools;
 use moka::Expiry;
@@ -172,7 +174,8 @@ impl CrlFetcher for HttpCrlFetcher {
 /// Retrieves and caches RFC 5280 CRLs keyed by URL while verifying certificate chains.
 ///
 /// The cache TTL for each entry is derived from the CRL's `nextUpdate` field so entries are refreshed automatically.
-/// A freshly-fetched CRL is only committed to the cache once its signature has been checked by `rustls-webpki`.
+/// Freshly-fetched CRL candidates are only committed to the cache after the certificate chain successfully verifies;
+/// cached candidates are checked again whenever `rustls-webpki` selects them for a certificate.
 #[derive(Clone, Debug)]
 pub struct CertificateCrlVerifier<F> {
     fetcher: F,
@@ -205,46 +208,88 @@ impl<F> CertificateCrlVerifier<F>
 where
     F: CrlFetcher + Sync,
 {
-    /// Resolve the CRLs referenced in the certificate's CDP extension, either from cache or the network.
-    /// Distribution points are treated as equivalent alternatives: a verified cached CRL is preferred, while a failed
-    /// distribution point is tolerated when at least one alternative succeeds.
+    /// Resolve the CRLs referenced by every certificate, either from cache or the network. URLs are deduplicated across
+    /// the chain and fetched concurrently. A certificate's failed distribution point is tolerated when at least one
+    /// alternative succeeds.
+    async fn crls_for_chain(
+        &self,
+        chain: &[BorrowingCertificate],
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
+        let mut urls_by_cert = chain
+            .iter()
+            .map(extract_crl_distribution_points)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(CertificateCrlVerificationError::InvalidDistributionPoint)?;
+
+        if urls_by_cert.iter().any(Vec::is_empty) {
+            return Err(CertificateCrlVerificationError::NoCrlDistributionPoint);
+        }
+
+        // Prefer a cached candidate for a certificate without making network requests to its sibling URLs. The CRL is
+        // still checked for authority, signature and expiration as part of chain verification below.
+        for urls in &mut urls_by_cert {
+            let mut cached_url = None;
+            for url in urls.iter() {
+                if self.cache.get(url).await.is_some() {
+                    cached_url = Some(url.clone());
+                    break;
+                }
+            }
+            if let Some(cached_url) = cached_url {
+                *urls = vec![cached_url];
+            }
+        }
+
+        let mut seen = HashSet::new();
+        let unique_urls = urls_by_cert
+            .iter()
+            .flatten()
+            .filter(|url| seen.insert((*url).clone()))
+            .cloned()
+            .collect_vec();
+        let results = future::join_all(unique_urls.into_iter().map(|url| async move {
+            let result = self.fetch_crl(url.clone(), time).await;
+            (url, result)
+        }))
+        .await;
+
+        let failing_urls = urls_by_cert
+            .iter()
+            .find(|urls| !results.iter().any(|(url, result)| result.is_ok() && urls.contains(url)))
+            .cloned();
+        if let Some(failing_urls) = failing_urls {
+            let mut errors = results.into_iter().filter_map(|(url, result)| {
+                if failing_urls.contains(&url) {
+                    result.err()
+                } else {
+                    None
+                }
+            });
+            let source = errors
+                .next()
+                .expect("every URL for the certificate should have produced an error");
+            return Err(CertificateCrlVerificationError::CrlRetrieval {
+                source,
+                additional_errors: errors.collect(),
+            });
+        }
+
+        Ok(results.into_iter().filter_map(|(_, result)| result.ok()).collect())
+    }
+
+    #[cfg(test)]
     async fn crls_for_cert(
         &self,
         cert: &BorrowingCertificate,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
-        let urls =
-            extract_crl_distribution_points(cert).map_err(CertificateCrlVerificationError::InvalidDistributionPoint)?;
-
-        // A cached CRL was already successfully used for verification. Since distribution points are equivalent
-        // alternatives, avoid network requests to the remaining URLs when one of them is already cached.
-        for url in &urls {
-            if let Some(cached) = self.cache.get(url).await {
-                return Ok(vec![FetchedCrl::Cached(cached)]);
-            }
-        }
-
-        let mut results = Vec::with_capacity(urls.len());
-        for url in urls {
-            results.push(self.fetch_crl(url, time).await);
-        }
-
-        let (crls, errors): (Vec<_>, Vec<_>) = results.into_iter().partition_result();
-        if crls.is_empty() {
-            let mut errors = errors.into_iter();
-            if let Some(source) = errors.next() {
-                return Err(CertificateCrlVerificationError::CrlRetrieval {
-                    source,
-                    additional_errors: errors.collect(),
-                });
-            }
-        }
-        Ok(crls)
+        self.crls_for_chain(std::slice::from_ref(cert), time).await
     }
 
     /// Fetch and parse the CRL at `url`, or return the already-parsed, cached CRL if present. A freshly-fetched CRL's
-    /// signature has not yet been checked, so it is not inserted into the cache here — the caller commits it via
-    /// `self.cache.insert` only after successfully using it in `verify_chain`.
+    /// signature has not yet been checked, so it is not inserted into the cache here — the caller commits the candidate
+    /// set via `self.cache.insert` only after successful chain verification in `verify_chain`.
     async fn fetch_crl(&self, url: Url, time: &impl Generator<DateTime<Utc>>) -> Result<FetchedCrl, CrlRetrievalError> {
         if let Some(cached) = self.cache.get(&url).await {
             return Ok(FetchedCrl::Cached(cached));
@@ -293,14 +338,7 @@ where
         leaf.verify(usage, intermediate_certs, time, trust_anchors)
             .map_err(CertificateCrlVerificationError::Certificate)?;
 
-        let mut crls = Vec::new();
-        for cert in chain {
-            let cert_crls = self.crls_for_cert(cert, time).await?;
-            if cert_crls.is_empty() {
-                return Err(CertificateCrlVerificationError::NoCrlDistributionPoint);
-            }
-            crls.extend(cert_crls);
-        }
+        let crls = self.crls_for_chain(chain, time).await?;
 
         let crl_refs = crls.iter().map(FetchedCrl::crl).collect_vec();
         leaf.verify_with_crls(usage, intermediate_certs, time, trust_anchors, &crl_refs)
@@ -440,6 +478,10 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::future::poll_fn;
+    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::Ordering;
+    use std::task::Poll;
     use std::time::Duration;
 
     use crl::*;
@@ -472,6 +514,53 @@ mod tests {
     use crate::x509::NO_SAN;
 
     type CrlVerifier = HttpCertificateCrlVerifier;
+
+    #[derive(Clone, Debug)]
+    struct ConcurrencyTrackingFetcher {
+        crls: Arc<HashMap<Url, Vec<u8>>>,
+        in_flight: Arc<AtomicUsize>,
+        max_in_flight: Arc<AtomicUsize>,
+    }
+
+    impl ConcurrencyTrackingFetcher {
+        fn new(crls: impl IntoIterator<Item = (Url, Vec<u8>)>) -> Self {
+            Self {
+                crls: Arc::new(crls.into_iter().collect()),
+                in_flight: Arc::new(AtomicUsize::new(0)),
+                max_in_flight: Arc::new(AtomicUsize::new(0)),
+            }
+        }
+
+        fn max_in_flight(&self) -> usize {
+            self.max_in_flight.load(Ordering::SeqCst)
+        }
+    }
+
+    impl CrlFetcher for ConcurrencyTrackingFetcher {
+        async fn fetch(&self, url: &Url) -> Result<Vec<u8>, CrlFetchError> {
+            let in_flight = self.in_flight.fetch_add(1, Ordering::SeqCst) + 1;
+            self.max_in_flight.fetch_max(in_flight, Ordering::SeqCst);
+
+            // Yield once so all fetch futures can be polled before any of them completes.
+            let mut yielded = false;
+            poll_fn(|cx| {
+                if yielded {
+                    Poll::Ready(())
+                } else {
+                    yielded = true;
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
+                }
+            })
+            .await;
+
+            self.in_flight.fetch_sub(1, Ordering::SeqCst);
+            self.crls
+                .get(url)
+                .cloned()
+                .ok_or_else(|| CrlFetchError::MockCrlNotFound(url.clone()))
+        }
+    }
 
     mod crl {
         //! Minimal CertificateList datatypes, to support tests parsing an optional nextUpdate parameter.
@@ -806,6 +895,84 @@ mod tests {
 
         unavailable_mock.assert_calls_async(1).await;
         available_mock.assert_calls_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn verify_chain_fetches_crls_concurrently() {
+        let leaf_crl_url: Url = "https://example.com/leaf.crl".parse().unwrap();
+        let intermediate_crl_url: Url = "https://example.com/intermediate.crl".parse().unwrap();
+        let root = Ca::generate_with_intermediate_count(
+            DistinguishedName::create_mock("root"),
+            CertificateConfiguration::default(),
+            1,
+        )
+        .unwrap();
+        let intermediate = root
+            .generate_intermediate(
+                DistinguishedName::create_mock("intermediate"),
+                CertificateConfiguration {
+                    crl_distribution_points: vec![intermediate_crl_url.clone()],
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let leaf = intermediate
+            .generate_key_pair(
+                DistinguishedName::create_mock("leaf"),
+                CertificateConfiguration {
+                    crl_distribution_points: vec![leaf_crl_url.clone()],
+                    ..Default::default()
+                },
+                NO_SAN,
+            )
+            .unwrap();
+        let fetcher = ConcurrencyTrackingFetcher::new([
+            (
+                leaf_crl_url,
+                intermediate.generate_crl(vec![], 1).unwrap().der().to_vec(),
+            ),
+            (
+                intermediate_crl_url,
+                root.generate_crl(vec![], 1).unwrap().der().to_vec(),
+            ),
+        ]);
+        let verifier = CertificateCrlVerifier::new_with_fetcher(fetcher.clone(), 10);
+
+        verifier
+            .verify_chain(
+                &[
+                    leaf.certificate().clone(),
+                    intermediate.as_borrowing_certificate().unwrap(),
+                ],
+                &TrustAnchors::from(&root),
+                None,
+                &TimeGenerator,
+            )
+            .await
+            .expect("certificate chain should verify");
+
+        assert_eq!(fetcher.max_in_flight(), 2);
+    }
+
+    #[tokio::test]
+    async fn verify_chain_deduplicates_repeated_distribution_point_url() {
+        let server = MockServer::start_async().await;
+        let url: Url = server.url("/crl.der").parse().unwrap();
+        let (ca, leaf) = ca_and_leaf_with_cdps(vec![url.clone(), url]);
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/crl.der");
+                then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
+            })
+            .await;
+
+        let verifier = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        verifier
+            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .await
+            .expect("certificate should verify with a deduplicated CRL");
+
+        mock.assert_calls_async(1).await;
     }
 
     #[tokio::test]
