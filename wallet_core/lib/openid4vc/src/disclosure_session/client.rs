@@ -1,11 +1,10 @@
-use std::sync::Arc;
-
 use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils as crypto_utils;
-use crypto::x509::crl::CrlProvider;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::CrlFetcher;
+use crypto::x509::crl::HttpCrlFetcher;
 use dcql::normalized::NormalizedCredentialRequest;
-use http_utils::reqwest::HttpClient;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use tracing::info;
@@ -35,33 +34,14 @@ use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::SessionType;
 
 #[derive(Debug)]
-pub struct VpDisclosureClient<H = HttpVpMessageClient> {
+pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher> {
     client: H,
-    crl_provider: Arc<CrlProvider>,
+    crl_verifier: CertificateCrlVerifier<F>,
 }
 
-impl VpDisclosureClient<HttpVpMessageClient> {
-    pub fn new_with_client(http_client: HttpClient) -> Self {
-        Self::new(HttpVpMessageClient::new(http_client))
-    }
-
-    pub fn new_with_client_and_crl_provider(http_client: HttpClient, crl_provider: Arc<CrlProvider>) -> Self {
-        Self::new_with_crl_provider(HttpVpMessageClient::new(http_client), crl_provider)
-    }
-}
-
-impl<H> VpDisclosureClient<H> {
-    pub fn new(client: H) -> Self {
-        #[cfg(any(test, feature = "mock"))]
-        let crl_provider = Arc::new(CrlProvider::new_mock_without_revocation());
-        #[cfg(not(any(test, feature = "mock")))]
-        let crl_provider = Arc::new(CrlProvider::default());
-
-        Self::new_with_crl_provider(client, crl_provider)
-    }
-
-    pub fn new_with_crl_provider(client: H, crl_provider: Arc<CrlProvider>) -> Self {
-        Self { client, crl_provider }
+impl<H, F> VpDisclosureClient<H, F> {
+    pub fn new(client: H, crl_verifier: CertificateCrlVerifier<F>) -> Self {
+        Self { client, crl_verifier }
     }
 
     /// Report an error back to the RP.
@@ -110,9 +90,10 @@ impl<H> VpDisclosureClient<H> {
     }
 }
 
-impl<H> DisclosureClient for VpDisclosureClient<H>
+impl<H, F> DisclosureClient for VpDisclosureClient<H, F>
 where
     H: VpMessageClient + Clone,
+    F: CrlFetcher + Sync,
 {
     type Session = VpDisclosureSession<H>;
 
@@ -190,7 +171,7 @@ where
             .await?;
 
         let (vp_auth_request, certificate) =
-            VpAuthorizationRequest::try_new_with_crl(&jws, trust_anchors, &self.crl_provider).await?;
+            VpAuthorizationRequest::try_new_with_crl(&jws, trust_anchors, &self.crl_verifier).await?;
         let response_uri = vp_auth_request.response_uri.clone();
         let state = vp_auth_request.oauth_request.state.clone();
 
@@ -291,6 +272,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -370,7 +352,7 @@ mod tests {
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
 
         // Create a new `VpDisclosureClient` and start a disclosure session.
-        let client = VpDisclosureClient::new(mock_client);
+        let client = VpDisclosureClient::new(mock_client, verifier_session.crl_verifier.clone());
 
         let disclosure_session_result = client
             .start(
@@ -601,10 +583,10 @@ mod tests {
     #[test]
     fn test_vp_disclosure_client_start_error_request_uri() {
         // Calling `VpDisclosureClient::start()` with an invalid request URI object should result in an error.
-        let client = VpDisclosureClient::new(MockErrorFactoryVpMessageClient::new(
-            || panic!("message client should not be called"),
-            false,
-        ));
+        let client = VpDisclosureClient::new(
+            MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
+            MockCertificateCrlVerifier::default(),
+        );
 
         let error = client
             .start("", DisclosureUriSource::Link, &TrustAnchors::empty())
@@ -617,10 +599,10 @@ mod tests {
 
     #[test]
     fn test_vp_disclosure_client_start_error_unsupported_request_object_as_value() {
-        let client = VpDisclosureClient::new(MockErrorFactoryVpMessageClient::new(
-            || panic!("message client should not be called"),
-            false,
-        ));
+        let client = VpDisclosureClient::new(
+            MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
+            MockCertificateCrlVerifier::default(),
+        );
 
         let query = serde_qs::to_string(&VpRequestUri {
             client_id: "client_id".into(),
@@ -648,10 +630,10 @@ mod tests {
 
     #[test]
     fn test_vp_disclosure_client_start_error_unsupported_request_object_as_query_parameters() {
-        let client = VpDisclosureClient::new(MockErrorFactoryVpMessageClient::new(
-            || panic!("message client should not be called"),
-            false,
-        ));
+        let client = VpDisclosureClient::new(
+            MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
+            MockCertificateCrlVerifier::default(),
+        );
 
         let query = serde_qs::to_string(&VpRequestUri {
             client_id: "client_id".into(),
@@ -801,7 +783,7 @@ mod tests {
         ))
         .unwrap();
 
-        let client = VpDisclosureClient::new(error_client);
+        let client = VpDisclosureClient::new(error_client, MockCertificateCrlVerifier::default());
         let error = client
             .start(&request_query, DisclosureUriSource::Link, &TrustAnchors::empty())
             .now_or_never()

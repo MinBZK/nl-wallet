@@ -11,6 +11,7 @@ use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -212,14 +213,16 @@ where
     pub fn new() -> Result<Self, reqwest::Error> {
         // Note that HTTP is explicitly allowed for CRL distribution points. CRL integrity and issuer authenticity are
         // established by the CRL signature during certificate-chain verification.
-        let crl_provider = Arc::new(CrlProvider::default());
+        let crl_provider = Arc::new(CrlProvider::new_with_default_cache(
+            default_reqwest_client_builder().build()?,
+        ));
         let credential_issuer_discovery = HttpIssuanceDiscovery::new_with_crl_provider(
             HttpClient::try_new(reqwest_client_builder())?,
             Arc::clone(&crl_provider),
         );
-        let disclosure_client = VpDisclosureClient::new_with_client_and_crl_provider(
-            HttpClient::try_new(reqwest_client_builder())?,
-            Arc::clone(&crl_provider),
+        let disclosure_client = VpDisclosureClient::new(
+            HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
+            crl_provider.as_ref().clone(),
         );
         // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;

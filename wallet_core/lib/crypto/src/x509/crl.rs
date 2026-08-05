@@ -279,7 +279,7 @@ where
         chain: &[BorrowingCertificate],
         trust_anchors: &TrustAnchors,
         usage: Option<CertificateUsage>,
-        time: &(impl Generator<DateTime<Utc>> + Sync),
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(), CertificateCrlVerificationError> {
         let (leaf, intermediate_certs) = chain.split_first().ok_or(CertificateCrlVerificationError::EmptyChain)?;
 
