@@ -41,17 +41,36 @@ pub enum CrlFetchError {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
+pub enum CrlRetrievalError {
+    #[error("failed to fetch CRL from {url}: {source}")]
+    Fetch {
+        url: Url,
+        #[source]
+        source: CrlFetchError,
+    },
+    #[error("failed to parse CRL from {url}: {source}")]
+    Parsing {
+        url: Url,
+        #[source]
+        source: webpki::Error,
+    },
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum CertificateCrlVerificationError {
     #[error("certificate verification failed: {0}")]
     Certificate(#[source] CertificateError),
     #[error("certificate revocation verification failed: {0}")]
     Revocation(#[source] CertificateError),
-    #[error("CRL fetch error: {0}")]
-    CrlFetch(#[source] CrlFetchError),
-    #[error("CRL parsing error: {0}")]
+    #[error("all CRL distribution points failed; first failure: {source}; additional failures: {additional_errors:?}")]
     #[category(pd)]
-    CrlParsing(#[source] webpki::Error),
+    CrlRetrieval {
+        #[source]
+        source: CrlRetrievalError,
+        additional_errors: Vec<CrlRetrievalError>,
+    },
     #[error("invalid CRL distribution point URL: {0}")]
     #[category(pd)]
     InvalidDistributionPoint(#[source] url::ParseError),
@@ -195,21 +214,20 @@ where
     ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
         let urls =
             extract_crl_distribution_points(cert).map_err(CertificateCrlVerificationError::InvalidDistributionPoint)?;
-        let mut crls = Vec::new();
-        let mut first_error = None;
+        let mut results = Vec::with_capacity(urls.len());
         for url in urls {
-            let result = self.fetch_crl(url, time).await;
-            match result {
-                Ok(fetched) => crls.push(fetched),
-                Err(error) => {
-                    first_error.get_or_insert(error);
-                }
-            }
+            results.push(self.fetch_crl(url, time).await);
         }
-        if crls.is_empty()
-            && let Some(error) = first_error
-        {
-            return Err(error);
+
+        let (crls, errors): (Vec<_>, Vec<_>) = results.into_iter().partition_result();
+        if crls.is_empty() {
+            let mut errors = errors.into_iter();
+            if let Some(source) = errors.next() {
+                return Err(CertificateCrlVerificationError::CrlRetrieval {
+                    source,
+                    additional_errors: errors.collect(),
+                });
+            }
         }
         Ok(crls)
     }
@@ -217,11 +235,7 @@ where
     /// Fetch and parse the CRL at `url`, or return the already-parsed, cached CRL if present. A freshly-fetched CRL's
     /// signature has not yet been checked, so it is not inserted into the cache here — the caller commits it via
     /// `self.cache.insert` only after successfully using it in `verify_chain`.
-    async fn fetch_crl(
-        &self,
-        url: Url,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<FetchedCrl, CertificateCrlVerificationError> {
+    async fn fetch_crl(&self, url: Url, time: &impl Generator<DateTime<Utc>>) -> Result<FetchedCrl, CrlRetrievalError> {
         if let Some(cached) = self.cache.get(&url).await {
             return Ok(FetchedCrl::Cached(cached));
         }
@@ -229,7 +243,10 @@ where
             .fetcher
             .fetch(&url)
             .await
-            .map_err(CertificateCrlVerificationError::CrlFetch)?;
+            .map_err(|source| CrlRetrievalError::Fetch {
+                url: url.clone(),
+                source,
+            })?;
 
         // `rustls-webpki` parses and enforces `nextUpdate`, but does not expose
         // its value. Use `x509_parser` only as a best-effort metadata pass to
@@ -243,7 +260,10 @@ where
             .unwrap_or(FALLBACK_TTL)
             .min(MAX_TTL);
 
-        let crl = parse_crl_der(&bytes).map_err(CertificateCrlVerificationError::CrlParsing)?;
+        let crl = parse_crl_der(&bytes).map_err(|source| CrlRetrievalError::Parsing {
+            url: url.clone(),
+            source,
+        })?;
         let fetched = Arc::new(CachedCrl { crl, ttl });
         Ok(FetchedCrl::Fresh { url, fetched })
     }
@@ -701,7 +721,13 @@ mod tests {
 
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::CrlFetch(CrlFetchError::Http(_))
+            CertificateCrlVerificationError::CrlRetrieval {
+                source: CrlRetrievalError::Fetch {
+                    source: CrlFetchError::Http(_),
+                    ..
+                },
+                additional_errors,
+            } if additional_errors.is_empty()
         ));
         mock.assert_calls_async(1).await;
     }
@@ -736,6 +762,52 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn crl_verifier_returns_all_distribution_point_errors() {
+        let server = MockServer::start_async().await;
+        let unavailable_url: Url = server.url("/unavailable.crl").parse().unwrap();
+        let malformed_url: Url = server.url("/malformed.crl").parse().unwrap();
+        let cert = generate_cert_with_cdps(vec![unavailable_url.clone(), malformed_url.clone()]);
+        let unavailable_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/unavailable.crl");
+                then.status(500);
+            })
+            .await;
+        let malformed_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/malformed.crl");
+                then.status(200).body("not a crl");
+            })
+            .await;
+
+        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+
+        assert_eq!(error.category(), error_category::Category::PersonalData);
+        match error {
+            CertificateCrlVerificationError::CrlRetrieval {
+                source,
+                additional_errors,
+            } => {
+                assert!(matches!(
+                    source,
+                    CrlRetrievalError::Fetch {
+                        url,
+                        source: CrlFetchError::Http(_),
+                    } if url == unavailable_url
+                ));
+                assert!(matches!(
+                    additional_errors.as_slice(),
+                    [CrlRetrievalError::Parsing { url, .. }] if url == &malformed_url
+                ));
+            }
+            error => panic!("unexpected error: {error:?}"),
+        }
+        unavailable_mock.assert_calls_async(1).await;
+        malformed_mock.assert_calls_async(1).await;
+    }
+
+    #[tokio::test]
     async fn crl_verifier_returns_parsing_error_on_invalid_der() {
         let server = MockServer::start_async().await;
         let mock = server
@@ -751,7 +823,13 @@ mod tests {
 
         let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
-        assert!(matches!(error, CertificateCrlVerificationError::CrlParsing(_)));
+        assert!(matches!(
+            error,
+            CertificateCrlVerificationError::CrlRetrieval {
+                source: CrlRetrievalError::Parsing { .. },
+                additional_errors,
+            } if additional_errors.is_empty()
+        ));
         mock.assert_calls_async(1).await;
     }
 
@@ -773,7 +851,13 @@ mod tests {
 
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::CrlFetch(CrlFetchError::TooLarge)
+            CertificateCrlVerificationError::CrlRetrieval {
+                source: CrlRetrievalError::Fetch {
+                    source: CrlFetchError::TooLarge,
+                    ..
+                },
+                additional_errors,
+            } if additional_errors.is_empty()
         ));
         mock.assert_calls_async(1).await;
     }
