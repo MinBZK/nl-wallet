@@ -58,6 +58,9 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- crl \
 
 Republish the DER file before the previous CRL's `nextUpdate`. The wallet rejects
 a WRPAC if it has no usable distribution point, the CRL cannot be fetched or
-validated, or the certificate is listed as revoked. CRLs are signed, so an
-HTTP distribution URL is supported, although HTTPS is preferable where it is
-operationally convenient.
+validated, or the certificate is listed as revoked. CRLs are signed, so
+transport-level integrity is not required. ETSI EN 319 412-2,
+`GEN-4.3.11-4`, requires at least one `http://` or `ldap://` CRL reference.
+The wallet does not support LDAP retrieval, so include at least one `http://`
+distribution point. Additional `https://` distribution points remain
+supported.
