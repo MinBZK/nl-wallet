@@ -258,7 +258,7 @@ impl CrlProvider {
         // its value. Use `x509_parser` only as a best-effort metadata pass to
         // derive the cache TTL; `webpki` below remains authoritative for parsing
         // and verification. Fall back to a short TTL if extraction fails, and cap
-        // it because the CRL has not yet been verified. Use the injected time so
+        // it to impose a sane upper bound on the cache lifetime. Use the injected time so
         // cache eviction and verification agree on "now".
         let ttl = parse_x509_crl(&bytes)
             .ok()
