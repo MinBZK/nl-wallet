@@ -35,7 +35,6 @@ use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
-use futures::FutureExt;
 use http_utils::urls::BaseUrl;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -149,10 +148,11 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
     );
 }
 
-#[test]
-fn disclosure_direct() {
+#[tokio::test]
+async fn disclosure_direct() {
     let ca = Ca::generate_mock();
-    let auth_keypair = ca.generate_wrpac_verifier_mock().unwrap();
+    let auth_keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = Nonce::from("nonce".to_string());
@@ -168,13 +168,18 @@ fn disclosure_direct() {
     );
     let auth_request = iso_auth_request.clone().into();
     let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
-        .now_or_never()
-        .unwrap()
+        .await
         .unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let jwe = disclosure_jwe(&auth_request_jws.into(), &TrustAnchors::from(&ca), &issuer_ca);
+    let jwe = disclosure_jwe(
+        &auth_request_jws.into(),
+        &TrustAnchors::from(&ca),
+        &crl_verifier,
+        &issuer_ca,
+    )
+    .await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
@@ -190,17 +195,17 @@ fn disclosure_direct() {
         ))),
         false,
     )
-    .now_or_never()
-    .unwrap()
+    .await
     .unwrap();
 
     assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
 }
 
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
-fn disclosure_jwe(
+async fn disclosure_jwe(
     auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
     trust_anchors: &TrustAnchors,
+    crl_verifier: &MockCertificateCrlVerifier,
     issuer_ca: &Ca,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::generate());
@@ -208,7 +213,9 @@ fn disclosure_jwe(
     let encryption_nonce = "encryption_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
-    let (auth_request, cert) = VpAuthorizationRequest::try_new(auth_request, trust_anchors).unwrap();
+    let (auth_request, cert) = VpAuthorizationRequest::try_new(auth_request, trust_anchors, crl_verifier)
+        .await
+        .unwrap();
     let (auth_request, encryption_algorithm) = auth_request.validate(&cert, None).unwrap();
 
     // Compute the disclosure.
@@ -220,8 +227,7 @@ fn disclosure_jwe(
         &wscd,
         poa_input,
     )
-    .now_or_never()
-    .unwrap()
+    .await
     .unwrap();
 
     // Put the disclosure in an Authorization Response and encrypt it.
@@ -885,7 +891,7 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
 #[tokio::test]
 async fn test_verifier_auth_request_metadata_contract() {
     let dcql_query = Query::new_mock_mdoc_pid_example();
-    let (verifier, trust_anchor, _issuer_keypair, _crl_verifier) = setup_verifier(&dcql_query, None);
+    let (verifier, trust_anchor, _issuer_keypair, crl_verifier) = setup_verifier(&dcql_query, None);
 
     let session_token = verifier
         .new_session(
@@ -906,7 +912,9 @@ async fn test_verifier_auth_request_metadata_contract() {
         .await
         .unwrap();
 
-    let (auth_request, cert) = VpAuthorizationRequest::try_new(&jws, &trust_anchor).unwrap();
+    let (auth_request, cert) = VpAuthorizationRequest::try_new(&jws, &trust_anchor, &crl_verifier)
+        .await
+        .unwrap();
     let _ = auth_request.validate(&cert, None).unwrap();
 
     let (_, payload): (_, serde_json::Value) = jws

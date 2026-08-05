@@ -171,7 +171,7 @@ where
             .await?;
 
         let (vp_auth_request, certificate) =
-            VpAuthorizationRequest::try_new_with_crl(&jws, trust_anchors, &self.crl_verifier).await?;
+            VpAuthorizationRequest::try_new(&jws, trust_anchors, &self.crl_verifier).await?;
         let response_uri = vp_auth_request.response_uri.clone();
         let state = vp_auth_request.oauth_request.state.clone();
 
