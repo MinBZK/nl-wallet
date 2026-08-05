@@ -1,0 +1,715 @@
+//! AES-SIV-CMAC-512, the deterministic authenticated encryption mode of [RFC 5297], built out of
+//! AES-CTR and AES-CMAC.
+//!
+//! This implementation (unlike e.g. RustCrypto's `aes-siv` implementation) supports using
+//! an HSM for securing the key material, assuming that HSM supports AES-CTR and AES-CMAC.
+//! See the [`AesSivBackend`] trait, and the functions [`aes_siv_encrypt()`] and
+//! [`aes_siv_decrypt()`].
+//!
+//! # Determinism
+//!
+//! SIV takes no random nonce or IV. The initialization vector for CTR mode is instead *synthesized*
+//! from the plaintext, and doubles as the integrity tag. Encryption is therefore a pure function of
+//! the key and the plaintext: encrypting the same plaintext twice under the same key returns
+//! byte-identical ciphertext.
+//!
+//! This is a deliberate property of the mode and not a defect, but it does have an important
+//! consequence that callers have to accept:
+//!
+//! > Anyone who sees two ciphertexts learns whether the plaintexts behind them are equal.
+//!
+//! Nothing beyond that equality leaks.
+//!
+//! # When to (not) use this
+//!
+//! Use this ONLY when the ciphertext needs to be deterministic. For example, when storing a set of
+//! encrypted identifiers that needs to be searchable (e.g. an index on a corresponding database
+//! table).
+//!
+//! In all other cases, consider a conventional, probabilistic AEAD such as AES-GCM.
+//!
+//! # The construction, and the names the RFC gives its parts
+//!
+//! The code below uses the RFC's one-letter names throughout, so they are introduced here once.
+//! The key is `K`, of 512 bits, split into halves `K1` and `K2`; the plaintext is `P`.
+//! Encryption is then two steps:
+//!
+//! 1. `V = S2V(K1, P)`.
+//! 2. `C = AES-CTR(K2, Q, P)`, where `Q` is `V` with two bits cleared.
+//!
+//! The output is `Z = V || C`: the 16-byte `V` in front, the ciphertext `C` behind it.
+//!
+//! S2V ("string to vector") is the part that is specific to this mode, and is what the local
+//! `s2v()` implements. It is a pseudorandom function, built out of AES-CMAC, that compresses a key
+//! and a *list* of input strings into one 128-bit value. The RFC feeds it the associated data
+//! followed by the plaintext; with no associated data, as here, that list holds nothing but `P`,
+//! and S2V reduces to two AES-CMAC calls. Its output `V` then does double duty: it is the integrity
+//! tag, and it is (after masking) the counter block `Q` that CTR mode starts from — hence
+//! *synthetic* IV.
+//!
+//! Decryption runs the same two steps backwards: split `V` off the front of `Z`, decrypt `C` with
+//! it, then recompute S2V over the recovered plaintext and check that it reproduces the `V` that
+//! arrived in the ciphertext. If it does, the ciphertext was produced by someone holding `K`, and
+//! neither `V` nor `C` has been altered since.
+//!
+//! [RFC 5297]: https://datatracker.ietf.org/doc/html/rfc5297
+//!
+//! # Security
+//!
+//! - AES-SIV is a handful of operations arranged around two cryptographic primitives, AES-CMAC and AES-CTR. Both of
+//!   those, and all of the key material they consume, live behind [`AesSivBackend`], i.e. in the HSM. Neither `K1` nor
+//!   `K2` is ever visible to the code in this module.
+//! - Timing side channels are avoided by not branching over secret values. In particular, during decryption the
+//!   recomputed integrity tag is compared in constant time against the one from the ciphertext. Secret-dependent memory
+//!   access is also avoided in order to prevent cache or memory access side channels.
+//! - Beyond timing, plaintext is kept out of memory for longer than it needs to be: the intermediate `T` in [`s2v()`],
+//!   and the plaintext buffers in both directions are held in `Zeroizing`, so they are cleared on the error paths as
+//!   well as the success path. On decryption in particular, no plaintext byte leaves the function unless the tag check
+//!   passed.
+//!
+//! Two things this module cannot enforce, and which are therefore the caller's responsibility:
+//! `K1` and `K2` must be distinct (see [`AesSivKey::try_new()`], whose check is best-effort only),
+//! and the backend must implement the two primitives faithfully. In particular, it must use the
+//! counter block exactly as given, as [`AesSivBackend::aes_ctr()`] spells out.
+//!
+//! # Limitations
+//!
+//! This implementation is kept as small as possible, in the sense that it only implements those
+//! parts of the RFC that are currently used in this codebase. As such, this implementation has
+//! the following limitations.
+//!
+//!  - Associated data (AD) is not supported.
+//!  - AES-SIV treats plaintexts smaller than 128 bits (16 bytes) differently from larger plaintexts. This
+//!    implementation supports only plaintexts whose length equals or exceeds 128 bits.
+
+use subtle::ConstantTimeEq;
+use zeroize::Zeroizing;
+
+#[derive(Debug, thiserror::Error)]
+pub enum AesSivError {
+    #[error("plaintext too short: must be at least 16 bytes")]
+    PlaintextTooShort,
+    #[error("ciphertext too short: must be at least 32 bytes")]
+    CiphertextTooShort,
+    #[error("AES-SIV backend error: {0}")]
+    BackendError(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    /// Tampering, a wrong CMAC key and a wrong CTR key all end up here, and the message is
+    /// deliberately vague about which: a caller that can tell those apart could learn something
+    /// about the key it is holding.
+    #[error("decryption failed")]
+    AuthenticationFailed,
+}
+
+/// Types that can perform AES-CTR-256 and AES-CMAC-256.
+///
+/// For types implementing this trait, AES-SIV-CMAC-512 is available using
+/// [`aes_siv_encrypt()`] and [`aes_siv_decrypt()`].
+///
+/// AES-SIV takes a 512-bit key, which [RFC 5297, section 2.6] splits into two equal halves, and the
+/// two associated key types here are those halves: K1 is a [`MacKey`](AesSivBackend::MacKey) and
+/// keys [`aes_cmac()`](AesSivBackend::aes_cmac), while K2 is an
+/// [`EncryptionKey`](AesSivBackend::EncryptionKey) and keys [`aes_ctr()`](AesSivBackend::aes_ctr).
+///
+/// [RFC 5297, section 2.6]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.6
+pub trait AesSivBackend {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    type MacKey;
+    type EncryptionKey;
+
+    /// AES-CMAC over the whole of `input`, keyed with K1, returning the 128-bit tag.
+    ///
+    /// Every call has to be a complete MAC in itself: no state may carry over from one call to the
+    /// next.
+    async fn aes_cmac(&self, key: &Self::MacKey, input: Vec<u8>) -> Result<[u8; 16], Self::Error>;
+
+    /// AES-CTR over `input`, keyed with K2, starting from `counter_block`.
+    ///
+    /// Note that AES-CTR is symmetric: this one function serves for both encryption and decryption.
+    ///
+    /// One requirement on the implementation, which is a silent interoperability failure rather
+    /// than an error when it is not met: `counter_block` must be used exactly as given. A backend
+    /// that generates its own IV, or prepends one to its output, breaks the construction, since SIV
+    /// derives the counter from the plaintext precisely so that no separate IV exists.
+    ///
+    /// [RFC 5297, section 2.5]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.5
+    async fn aes_ctr(
+        &self,
+        key: &Self::EncryptionKey,
+        counter_block: [u8; 16],
+        input: Vec<u8>,
+    ) -> Result<Vec<u8>, Self::Error>;
+}
+
+/// AES-SIV-CMAC-512 encryption as defined in [RFC 5297, section 2.6].
+/// For decryption, see [`aes_siv_decrypt`].
+///
+/// The return value is `Z = V || C`: the 16-byte tag, followed by a ciphertext of exactly the
+/// length of the plaintext. Ciphertext expansion is thus 16 bytes, whatever the input.
+///
+/// Deriving `V` requires the entire plaintext before the first byte of ciphertext can be produced,
+/// so this is inherently two-pass and cannot be turned into a streaming API. It costs three round
+/// trips to the backend: the two [`aes_cmac()`](AesSivBackend::aes_cmac) calls that make up S2V,
+/// then one [`aes_ctr()`](AesSivBackend::aes_ctr) call.
+///
+/// # Keys
+///
+/// `mac_key` and `encryption_key` are the halves K1 and K2 of one 512-bit key K, and MUST be
+/// distinct: keying both CMAC and CTR with the same 256 bits breaks the mode.
+///
+/// # Limitations
+///
+/// This implements a subset of the RFC:
+///
+/// - No associated data is supported.
+/// - The plaintext must be at least 128 bits, i.e. 16 bytes; shorter ones are rejected with
+///   [`AesSivError::PlaintextTooShort`].
+///
+/// [RFC 5297, section 2.6]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.6
+pub async fn aes_siv_encrypt<K: AesSivBackend>(
+    backend: &K,
+    mac_key: &K::MacKey,
+    encryption_key: &K::EncryptionKey,
+    plaintext: Vec<u8>,
+) -> Result<Vec<u8>, AesSivError> {
+    if plaintext.len() < 16 {
+        return Err(AesSivError::PlaintextTooShort);
+    }
+
+    // V = S2V(K1, AD1, ..., ADn, P), with n = 0.
+    // This acts as the integrity tag.
+    let v = s2v(backend, mac_key, &plaintext)
+        .await
+        .map_err(|e| AesSivError::BackendError(e.into()))?;
+
+    // Q = V bitand (1^64 || 0^1 || 1^31 || 0^1 || 1^31)
+    // The AES-CTR counter block.
+    let q = ctr_iv(v);
+
+    // C = CTR(K2, Q, P), and the return value is Z = V || C, so V goes in front and only the
+    // plaintext following it is run through the keystream.
+    let ciphertext = backend
+        .aes_ctr(encryption_key, q, plaintext)
+        .await
+        .map_err(|e| AesSivError::BackendError(e.into()))?;
+
+    Ok([&v, ciphertext.as_slice()].concat())
+}
+
+/// AES-SIV-CMAC-512 decryption from [RFC 5297, section 2.7], the inverse of [`aes_siv_encrypt`].
+///
+/// Note that this decrypts before it authenticates, which is the opposite of the usual advice. SIV
+/// leaves no choice: V is at once the integrity tag and the CTR counter, so the plaintext has to be
+/// recovered before the tag over it can be recomputed and compared. This is exactly what
+/// [RFC 5297, section 2.7] prescribes, and it is safe here because the plaintext never leaves this
+/// function unless that comparison succeeds.
+///
+/// # Keys
+///
+/// `mac_key` and `encryption_key` are the same pair that [`aes_siv_encrypt`] takes, and are subject
+/// to the same requirement that the two halves be distinct.
+///
+/// # Limitations
+///
+/// This implements a subset of the RFC:
+///
+/// - no associated data is supported.
+/// - The ciphertext must be at least 32 bytes, i.e. 256 bits. Shorter ciphertexts are rejected with
+///   [`AesSivError::CiphertextTooShort`].
+///
+/// [RFC 5297, section 2.7]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.7
+pub async fn aes_siv_decrypt<K: AesSivBackend>(
+    backend: &K,
+    mac_key: &K::MacKey,
+    encryption_key: &K::EncryptionKey,
+    mut ciphertext: Vec<u8>,
+) -> Result<Vec<u8>, AesSivError> {
+    // The ciphertext parameter has to consist of the integrity tag V, and then of at least 16 bytes
+    // of actual ciphertext.
+    if ciphertext.len() < 16 * 2 {
+        return Err(AesSivError::CiphertextTooShort);
+    }
+
+    // Z is V || C, so the leading block is the V that encryption put there.
+    let c = ciphertext.split_off(16);
+    let v: [u8; 16] = ciphertext.try_into().unwrap();
+
+    // Q = V bitand (1^64 || 0^1 || 1^31 || 0^1 || 1^31)
+    // The AES-CTR counter block.
+    let q = ctr_iv(v);
+
+    // P = CTR(K2, Q, C)
+    // Use `Zeroizing` for `plaintext`, so if the MAC check below fails, we don't leave the plaintext
+    // around in memory. Note that this covers only this buffer and only the failure path: on
+    // success the `to_vec()` at the end hands the caller an ordinary `Vec` that is theirs to clear.
+    let plaintext = Zeroizing::new(
+        backend
+            .aes_ctr(encryption_key, q, c.to_vec())
+            .await
+            .map_err(|e| AesSivError::BackendError(e.into()))?,
+    );
+
+    // T = S2V(K1, AD1, ..., ADn, P), with n = 0, and the result is P only if T = V.
+    //
+    // This is the only thing standing between the caller and an attacker-chosen plaintext, so the
+    // comparison has to be constant time: a byte-at-a-time one would let an attacker who can submit
+    // ciphertexts and time the rejection forge a V one byte at a time. Hence subtle's ConstantTimeEq
+    // below, whereas the natural `t != v` on two [u8; 16] is not constant time.
+    let tag_matches: bool = s2v(backend, mac_key, plaintext.as_slice())
+        .await
+        .map_err(|e| AesSivError::BackendError(e.into()))?
+        .ct_eq(&v)
+        .into();
+    if !tag_matches {
+        return Err(AesSivError::AuthenticationFailed);
+    }
+
+    Ok(plaintext.to_vec())
+}
+
+/// S2V from [RFC 5297, section 2.4], over a single input string: derives the 128-bit `V` that is
+/// both the integrity tag and the basis for the counter block, from the CMAC key `K1` and the
+/// plaintext.
+///
+/// In full, S2V takes a list of input strings `S1, ..., Sn` and folds them together with a doubling
+/// step per string. Only the case without associated data is implemented here, so that list holds
+/// the plaintext and nothing else, `n` is 1, the folding loop over `S1, ..., Sn-1` collapses to
+/// nothing, and what remains is the two AES-CMAC calls below.
+///
+/// [RFC 5297, section 2.4]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.4
+async fn s2v<K: AesSivBackend>(backend: &K, key: &K::MacKey, s1: &[u8]) -> Result<[u8; 16], AesSivError> {
+    // D = AES-CMAC(K, <zero>)
+    // The all-zero block is on purpose: it is the fixed starting value the RFC specifies for D.
+    // With n = 1 the loop over S1..Sn-1 does not run, so D is not doubled and S1 is also Sn.
+    let d = backend
+        .aes_cmac(key, vec![0; 16])
+        .await
+        .map_err(|e| AesSivError::BackendError(e.into()))?;
+
+    // T = Sn xorend D
+    let t = xorend(s1, d)?;
+
+    // return V = AES-CMAC(K, T)
+    backend
+        .aes_cmac(key, t)
+        .await
+        .map_err(|e| AesSivError::BackendError(e.into()))
+}
+
+/// The counter block that CTR mode starts from, per the SIV encryption construction in
+/// [RFC 5297, section 2.6]: `Q = V bitand (1^64 || 0^1 || 1^31 || 0^1 || 1^31)`.
+///
+/// [RFC 5297, section 2.6]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.6
+fn ctr_iv(v: [u8; 16]) -> [u8; 16] {
+    (u128::from_be_bytes(v) & 0xffff_ffff_ffff_ffff_7fff_ffff_7fff_ffff).to_be_bytes()
+}
+
+/// `A xorend B` from [RFC 5297, section 2.1]: xoring `mask` onto the end of `value`, i.e.
+/// `leftmost(A, len(A) - len(B)) || (rightmost(A, len(B)) xor B)`.
+///
+/// Only supports the case where len(A) >= 128 bits.
+///
+/// [RFC 5297, section 2.1]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.1
+fn xorend(value: &[u8], mask: [u8; 16]) -> Result<Vec<u8>, AesSivError> {
+    if value.len() < 16 {
+        return Err(AesSivError::PlaintextTooShort);
+    }
+
+    let (head, tail) = value.split_at(value.len() - 16);
+    let tail = u128::from_be_bytes(tail.try_into().expect("tail is split off at exactly 16 bytes"));
+
+    let mask = u128::from_be_bytes(mask);
+
+    Ok([head, &(tail ^ mask).to_be_bytes()].concat())
+}
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use std::convert::Infallible;
+
+    use aes::Aes256;
+    use aes::cipher::KeyIvInit;
+    use aes::cipher::StreamCipher;
+    use cmac::Cmac;
+    use cmac::Mac;
+    use ctr::Ctr128BE;
+
+    use super::AesSivBackend;
+
+    /// An [`AesSivBackend`] that performs both operations in memory, on raw keys handed to it by
+    /// the caller, for tests and for local development.
+    pub struct MemoryAesSivBackend;
+
+    impl AesSivBackend for MemoryAesSivBackend {
+        type Error = Infallible;
+
+        type MacKey = [u8; 32];
+        type EncryptionKey = [u8; 32];
+
+        async fn aes_cmac(&self, key: &Self::MacKey, value: Vec<u8>) -> Result<[u8; 16], Self::Error> {
+            let mut mac = Cmac::<Aes256>::new(key.into());
+            mac.update(value.as_slice());
+            let result = mac.finalize().into_bytes().into();
+            Ok(result)
+        }
+
+        async fn aes_ctr(
+            &self,
+            key: &Self::EncryptionKey,
+            counter_block: [u8; 16],
+            input: Vec<u8>,
+        ) -> Result<Vec<u8>, Self::Error> {
+            let mut cipher = Ctr128BE::<Aes256>::new(key.into(), &counter_block.into());
+            let mut output = vec![0; input.len()];
+            cipher
+                .apply_keystream_b2b(input.as_slice(), output.as_mut_slice())
+                .expect("buffers are the same length");
+
+            Ok(output)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::AesSivError;
+    use super::aes_siv_decrypt;
+    use super::aes_siv_encrypt;
+    use super::ctr_iv;
+    use super::mock::MemoryAesSivBackend;
+    use super::s2v;
+    use super::xorend;
+
+    #[rstest]
+    // The one worked xorend in RFC 5297, from the S2V of appendix A.2: its 47-byte plaintext
+    // ("this is some plaintext to encrypt using SIV-AES") xorended with the D that S2V holds after
+    // folding in the two associated data strings and the nonce, which is the "xor" line directly
+    // above the "xorend" line there. Everything but the last block is passed through untouched,
+    // which here is the leading 31 bytes.
+    #[case(
+        "7468697320697320736f6d6520706c61696e7465787420746f20656e6372797074207573696e67205349562d414553",
+        "16592c17729a5a725567636168b48376",
+        "7468697320697320736f6d6520706c61696e7465787420746f20656e637279662d0c6201f3341575342a3745f5c625"
+    )]
+    // Exactly one block, so there is nothing to pass through and xorend degenerates to xor. An
+    // all-ones mask makes that complement the input, which is checkable by eye.
+    #[case(
+        "112233445566778899aabbccddeeff00",
+        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        "eeddccbbaa99887766554433221100ff"
+    )]
+    // A zero mask leaves the input alone.
+    #[case(
+        "112233445566778899aabbccddeeff0011223344",
+        "00000000000000000000000000000000",
+        "112233445566778899aabbccddeeff0011223344"
+    )]
+    fn test_xorend(#[case] value: &str, #[case] mask: &str, #[case] expected: &str) {
+        assert_eq!(
+            xorend(
+                &hex::decode(value).unwrap(),
+                hex::decode(mask).unwrap().try_into().unwrap()
+            )
+            .unwrap(),
+            hex::decode(expected).unwrap()
+        );
+    }
+
+    // For S2V, RFC 5297 contains no test vectors that apply. Both worked examples in appendix A use a
+    // 256-bit key, i.e. AES-SIV-CMAC-256 over AES-128 CMAC rather than the AES-256 CMAC used here,
+    // and both call S2V with more than one string (2 in A.1, 4 in A.2), so neither reaches this
+    // n = 1 path. These vectors were instead created using the RustCrypto "aes-siv" crate,
+    // whose Aes256Siv is CmacSiv<Aes256> and whose detached tag is exactly the S2V output.
+    // Encrypting with no headers makes S2V take a single string, so the tag for key K1 || K2 and
+    // plaintext P equals s2v(K1, P).
+    #[rstest]
+    #[case(
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "112233445566778899aabbccddeeff00",
+        "dfcd1b3b363f913fec392c3a9ef711df"
+    )]
+    #[case(
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "101112131415161718191a1b1c1d1e1f2021222324252627",
+        "92f11ff1abf542c53342e2757de0098e"
+    )]
+    #[case(
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67",
+        "215477c695fffb1d14e43bb018e4e204"
+    )]
+    #[case(
+        "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0",
+        "112233445566778899aabbccddeeff00",
+        "b7e6dd3032146cc7e9868aec583f62e8"
+    )]
+    #[case(
+        "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0",
+        "00000000000000000000000000000000000000000000000000000000000000000000",
+        "cf85b6c330dc2c219a34e95192a87be7"
+    )]
+    #[tokio::test]
+    async fn test_s2v(#[case] key: &str, #[case] s1: &str, #[case] expected: &str) {
+        let key: [u8; 32] = hex::decode(key).unwrap().try_into().unwrap();
+        let expected: [u8; 16] = hex::decode(expected).unwrap().try_into().unwrap();
+
+        assert_eq!(
+            s2v(&MemoryAesSivBackend, &key, &hex::decode(s1).unwrap())
+                .await
+                .unwrap(),
+            expected
+        );
+    }
+
+    #[rstest]
+    // RFC 5297, appendix A.1.
+    #[case("85632d07c6e8f37f950acd320a2ecc93", "85632d07c6e8f37f150acd320a2ecc93")]
+    // RFC 5297, appendix A.2.
+    #[case("7bdb6e3b432667eb06f4d14bff2fbd0f", "7bdb6e3b432667eb06f4d14b7f2fbd0f")]
+    // Every bit set, so only the two masked bits may change, and nothing set at all.
+    #[case("ffffffffffffffffffffffffffffffff", "ffffffffffffffff7fffffff7fffffff")]
+    #[case("00000000000000000000000000000000", "00000000000000000000000000000000")]
+    fn test_ctr_iv(#[case] v: &str, #[case] expected: &str) {
+        let v: [u8; 16] = hex::decode(v).unwrap().try_into().unwrap();
+        let expected: [u8; 16] = hex::decode(expected).unwrap().try_into().unwrap();
+
+        assert_eq!(ctr_iv(v), expected);
+    }
+
+    const KEY_A: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\
+                         202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f";
+    const KEY_B: &str = "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0\
+                         dfdedddcdbdad9d8d7d6d5d4d3d2d1d0cfcecdcccbcac9c8c7c6c5c4c3c2c1c0";
+
+    /// Splits one of the 512-bit keys above into the (K1, K2) pair that [`aes_siv_encrypt`] and
+    /// [`aes_siv_decrypt`] take, in that argument order.
+    ///
+    /// The vectors above were generated against the RustCrypto "aes-siv" crate, which takes the
+    /// single key `K = K1 || K2` of RFC 5297: the leading half is the CMAC key K1 and the trailing
+    /// half the CTR key K2. Keeping the split here means those vectors stay usable verbatim.
+    fn split_key(key: &str) -> ([u8; 32], [u8; 32]) {
+        let key: [u8; 64] = hex::decode(key).unwrap().try_into().unwrap();
+
+        let cmac_key = key[..32].try_into().unwrap();
+        let ctr_key = key[32..].try_into().unwrap();
+
+        (cmac_key, ctr_key)
+    }
+
+    #[rstest]
+    #[case(0)]
+    #[case(1)]
+    #[case(16 - 1)]
+    #[tokio::test]
+    async fn test_aes_siv_rejects_short_plaintext(#[case] len: usize) {
+        let error = aes_siv_encrypt(&MemoryAesSivBackend, &[0; 32], &[0; 32], vec![0; len])
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, AesSivError::PlaintextTooShort));
+    }
+
+    // Full Z = V || C for aes_siv_encrypt() end to end, cross-checked against the RustCrypto "aes-siv"
+    // crate (RFC 5297 has no vectors for this).
+    // The leading 16 bytes of each Z below are the V values already pinned by test_s2v.
+    #[rstest]
+    #[case(
+        KEY_A,
+        "112233445566778899aabbccddeeff00",
+        "dfcd1b3b363f913fec392c3a9ef711dfa1f4fe6c9986e37ea6b5e75e03d478b2"
+    )]
+    #[case(
+        KEY_A,
+        "101112131415161718191a1b1c1d1e1f2021222324252627",
+        "92f11ff1abf542c53342e2757de0098ec912ac7c551799cefe24283143ce945ce2b35f42c2c90e37"
+    )]
+    #[case(
+        KEY_A,
+        "00000000000000000000000000000000000000000000000000000000000000000000",
+        "1cd2b878630b7bbccfccf7602045f15a3937abc2000c6989a79fe5e36adb54c7fc46564b349df399fbb6acf63bc6eb1cbba7"
+    )]
+    #[case(
+        KEY_A,
+        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67",
+        "215477c695fffb1d14e43bb018e4e204cdb75f0dbefe93a83694395ea8f9678a\
+         4adcb246ff83778d64570f6d7ef936b42a17e513f9326566639449"
+    )]
+    #[case(
+        KEY_B,
+        "112233445566778899aabbccddeeff00",
+        "b7e6dd3032146cc7e9868aec583f62e8c7407883d7523ddfa1e047ef40331b9c"
+    )]
+    #[case(
+        KEY_B,
+        "101112131415161718191a1b1c1d1e1f2021222324252627",
+        "fc2261a9c2d144063301ce5898e9efc06752ab4877c38c47575b5c97e6b263236dd41247051049b9"
+    )]
+    #[case(
+        KEY_B,
+        "00000000000000000000000000000000000000000000000000000000000000000000",
+        "cf85b6c330dc2c219a34e95192a87be7a4b081f9ace4294ccd128e2cdc2ff0f9d02694252ce5fc031725db3ca10f85a62ea3"
+    )]
+    #[case(
+        KEY_B,
+        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67",
+        "8c9ade993d3825bfcd5d39186746eed6acb6c13f31bd7ab1282d4bb1ce062a89\
+         64c86f01a8c24ef8e93c0bd4ff09d393b2101cd2642f4895ce4766"
+    )]
+    #[tokio::test]
+    async fn test_aes_siv_encrypt(#[case] key: &str, #[case] plaintext: &str, #[case] expected: &str) {
+        let (cmac_key, ctr_key) = split_key(key);
+        let plaintext = hex::decode(plaintext).unwrap();
+
+        let z = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, plaintext.clone())
+            .await
+            .unwrap();
+
+        assert_eq!(z, hex::decode(expected).unwrap());
+        assert_eq!(z.len(), 16 + plaintext.len());
+    }
+
+    // The same pinned vectors as test_aes_siv_encrypt, read in the other direction. Testing decrypt
+    // against a round trip alone would pass even if both directions shared a compensating error, so
+    // the ciphertexts here are the externally generated ones rather than whatever encrypt produced.
+    #[rstest]
+    #[case(
+        KEY_A,
+        "dfcd1b3b363f913fec392c3a9ef711dfa1f4fe6c9986e37ea6b5e75e03d478b2",
+        "112233445566778899aabbccddeeff00"
+    )]
+    #[case(
+        KEY_A,
+        "92f11ff1abf542c53342e2757de0098ec912ac7c551799cefe24283143ce945ce2b35f42c2c90e37",
+        "101112131415161718191a1b1c1d1e1f2021222324252627"
+    )]
+    #[case(
+        KEY_A,
+        "1cd2b878630b7bbccfccf7602045f15a3937abc2000c6989a79fe5e36adb54c7fc46564b349df399fbb6acf63bc6eb1cbba7",
+        "00000000000000000000000000000000000000000000000000000000000000000000"
+    )]
+    #[case(
+        KEY_A,
+        "215477c695fffb1d14e43bb018e4e204cdb75f0dbefe93a83694395ea8f9678a\
+         4adcb246ff83778d64570f6d7ef936b42a17e513f9326566639449",
+        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"
+    )]
+    #[case(
+        KEY_B,
+        "b7e6dd3032146cc7e9868aec583f62e8c7407883d7523ddfa1e047ef40331b9c",
+        "112233445566778899aabbccddeeff00"
+    )]
+    #[case(
+        KEY_B,
+        "fc2261a9c2d144063301ce5898e9efc06752ab4877c38c47575b5c97e6b263236dd41247051049b9",
+        "101112131415161718191a1b1c1d1e1f2021222324252627"
+    )]
+    #[case(
+        KEY_B,
+        "cf85b6c330dc2c219a34e95192a87be7a4b081f9ace4294ccd128e2cdc2ff0f9d02694252ce5fc031725db3ca10f85a62ea3",
+        "00000000000000000000000000000000000000000000000000000000000000000000"
+    )]
+    #[case(
+        KEY_B,
+        "8c9ade993d3825bfcd5d39186746eed6acb6c13f31bd7ab1282d4bb1ce062a89\
+         64c86f01a8c24ef8e93c0bd4ff09d393b2101cd2642f4895ce4766",
+        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"
+    )]
+    #[tokio::test]
+    async fn test_aes_siv_decrypt(#[case] key: &str, #[case] ciphertext: &str, #[case] expected: &str) {
+        let (cmac_key, ctr_key) = split_key(key);
+        let ciphertext = hex::decode(ciphertext).unwrap();
+
+        let plaintext = aes_siv_decrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, ciphertext)
+            .await
+            .unwrap();
+
+        assert_eq!(plaintext, hex::decode(expected).unwrap());
+    }
+
+    #[rstest]
+    #[case(16)]
+    #[case(16 + 3)]
+    #[case(16 * 3)]
+    #[tokio::test]
+    async fn test_aes_siv_round_trip(#[case] len: usize) {
+        let (cmac_key, ctr_key) = split_key(KEY_A);
+        let plaintext: Vec<u8> = (0..len).map(|i| i as u8).collect();
+
+        let ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, plaintext.clone())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            aes_siv_decrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, ciphertext)
+                .await
+                .unwrap(),
+            plaintext
+        );
+    }
+
+    // Flipping any single bit anywhere in Z has to be rejected, whether it lands in V or in C.
+    #[rstest]
+    #[case(0)]
+    #[case(16 - 1)]
+    #[case(16)]
+    #[case(16 * 3 - 1)]
+    #[tokio::test]
+    async fn test_aes_siv_decrypt_rejects_tampering(#[case] index: usize) {
+        let (cmac_key, ctr_key) = split_key(KEY_A);
+
+        let mut ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, vec![0; 16 * 2])
+            .await
+            .unwrap();
+        ciphertext[index] ^= 1;
+
+        let error = aes_siv_decrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, ciphertext)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, AesSivError::AuthenticationFailed));
+    }
+
+    // Now that the two keys are passed separately, "the wrong key" covers three cases: either one of
+    // them wrong on its own, or both. All three have to be rejected, including the one where the CMAC
+    // key still matches and only the recovered plaintext is garbage.
+    #[rstest]
+    #[case(true, false)]
+    #[case(false, true)]
+    #[case(true, true)]
+    #[tokio::test]
+    async fn test_aes_siv_decrypt_rejects_wrong_key(#[case] wrong_cmac_key: bool, #[case] wrong_ctr_key: bool) {
+        let (cmac_key, ctr_key) = split_key(KEY_A);
+        let (other_cmac_key, other_ctr_key) = split_key(KEY_B);
+
+        let ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, vec![0; 16 * 2])
+            .await
+            .unwrap();
+
+        let error = aes_siv_decrypt(
+            &MemoryAesSivBackend,
+            if wrong_cmac_key { &other_cmac_key } else { &cmac_key },
+            if wrong_ctr_key { &other_ctr_key } else { &ctr_key },
+            ciphertext,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(error, AesSivError::AuthenticationFailed));
+    }
+
+    #[rstest]
+    #[case(0)]
+    #[case(16)]
+    #[case(16 * 2 - 1)]
+    #[tokio::test]
+    async fn test_aes_siv_decrypt_rejects_short_ciphertext(#[case] len: usize) {
+        let error = aes_siv_decrypt(&MemoryAesSivBackend, &[0; 32], &[0; 32], vec![0; len])
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, AesSivError::CiphertextTooShort));
+    }
+}

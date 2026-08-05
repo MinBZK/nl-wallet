@@ -1,3 +1,4 @@
+pub mod aes_siv;
 pub mod keys;
 pub mod p256_der;
 pub mod server_keys;

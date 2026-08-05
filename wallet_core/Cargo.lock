@@ -1381,6 +1381,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmac"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8543454e3c3f5126effff9cd44d562af4e31fb8ce1cc0d3dcd8f084515dbc1aa"
+dependencies = [
+ "cipher",
+ "dbl",
+ "digest 0.10.7",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1683,10 +1694,13 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 name = "crypto"
 version = "0.6.0-dev"
 dependencies = [
+ "aes",
  "aes-gcm",
  "anyhow",
  "base64 0.22.1",
  "chrono",
+ "cmac",
+ "ctr",
  "der 0.7.10",
  "derive_more",
  "ecdsa 0.17.0",
@@ -1717,6 +1731,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "sha2 0.10.9",
+ "subtle",
  "thiserror 2.0.17",
  "time",
  "tokio",
@@ -2085,6 +2100,15 @@ dependencies = [
  "url",
  "wallet_provider_migrations",
  "xxhash-rust",
+]
+
+[[package]]
+name = "dbl"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd2735a791158376708f9347fe8faba9667589d82427ef3aed6794a8981de3d9"
+dependencies = [
+ "generic-array",
 ]
 
 [[package]]
