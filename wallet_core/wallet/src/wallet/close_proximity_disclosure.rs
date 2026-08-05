@@ -242,9 +242,6 @@ pub enum CloseProximityDisclosureError {
     #[error("reader access certificate CRL verification failed")]
     ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
 
-    #[error("invalid reader authentication certificate chain")]
-    InvalidReaderCertificateChain(#[source] CoseError),
-
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
     UnsupportedDocFormat { doc_format: String },
@@ -290,8 +287,9 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::InvalidReaderCertificate(_)
-        | CloseProximityDisclosureError::ReaderCertificateCrlVerification(_)
-        | CloseProximityDisclosureError::InvalidReaderCertificateChain(_) => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::ReaderCertificateCrlVerification(_) => {
+            Some(DeviceResponseStatus::GeneralError)
+        }
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
