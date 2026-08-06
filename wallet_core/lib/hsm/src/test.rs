@@ -27,6 +27,7 @@ use crate::model::encrypted::Encrypted;
 use crate::model::encrypter::Decrypter;
 use crate::model::encrypter::Encrypter;
 use crate::model::mock::MockPkcs11Client;
+use crate::service::AesKeyUsage;
 use crate::service::HsmError;
 use crate::service::Pkcs11Client;
 use crate::service::Pkcs11Hsm;
@@ -233,7 +234,9 @@ impl<H> TestCase<H> {
         let (hsm, identifier) = self.test_params();
         let data = random_bytes(32);
 
-        Hsm::generate_aes_encryption_key(hsm, identifier).await.unwrap();
+        Hsm::generate_aes_key(hsm, identifier, AesKeyUsage::Encryption)
+            .await
+            .unwrap();
 
         let encrypted: Encrypted<Vec<u8>> = Hsm::encrypt(hsm, identifier, data.clone()).await.unwrap();
         assert_ne!(data.clone(), encrypted.data.clone());
@@ -250,7 +253,9 @@ impl<H> TestCase<H> {
     {
         let (hsm, identifier) = self.test_params();
 
-        Hsm::generate_aes_encryption_key(hsm, identifier).await.unwrap();
+        Hsm::generate_aes_key(hsm, identifier, AesKeyUsage::Encryption)
+            .await
+            .unwrap();
 
         let verifying_key = *SigningKey::generate().verifying_key();
         let encrypted = Encrypter::encrypt(hsm, identifier, verifying_key).await.unwrap();
@@ -268,7 +273,7 @@ impl<H> TestCase<H> {
     {
         let (hsm, identifier) = self.test_params();
 
-        let _ = Pkcs11Client::generate_aes_encryption_key(hsm, identifier)
+        let _ = Pkcs11Client::generate_aes_key(hsm, identifier, AesKeyUsage::Encryption)
             .await
             .unwrap();
 

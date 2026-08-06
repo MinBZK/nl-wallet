@@ -117,8 +117,23 @@ pub enum SigningMechanism {
     Sha256Hmac,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AesKeyUsage {
+    Encryption,
+    Cmac,
+}
+
+impl AesKeyUsage {
+    fn attribute(self) -> Attribute {
+        match self {
+            AesKeyUsage::Encryption => Attribute::Encrypt(true),
+            AesKeyUsage::Cmac => Attribute::Sign(true),
+        }
+    }
+}
+
 pub trait Pkcs11Client {
-    async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<PrivateKeyHandle>;
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
@@ -270,8 +285,8 @@ impl Hsm for Pkcs11Hsm {
             .map(|_| ())
     }
 
-    async fn generate_aes_encryption_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_aes_encryption_key(self, identifier)
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> std::result::Result<(), Self::Error> {
+        Pkcs11Client::generate_aes_key(self, identifier, usage)
             .await
             .map(|_| ())
     }
@@ -356,7 +371,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
 
@@ -364,10 +379,10 @@ impl Pkcs11Client for Pkcs11Hsm {
             let session = pool.get()?;
 
             let priv_key_template = &[
+                usage.attribute(),
                 Attribute::Token(true),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
-                Attribute::Encrypt(true),
                 Attribute::Class(ObjectClass::SECRET_KEY),
                 Attribute::KeyType(KeyType::AES),
                 Attribute::ValueLen(32.into()),

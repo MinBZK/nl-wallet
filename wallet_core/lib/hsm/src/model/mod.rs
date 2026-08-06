@@ -6,12 +6,13 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
 use crate::model::encrypted::Encrypted;
+use crate::service::AesKeyUsage;
 
 pub trait Hsm {
     type Error: std::error::Error + Send + Sync;
 
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error>;
-    async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<(), Self::Error>;
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<(), Self::Error>;
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(), Self::Error>;
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error>;
     async fn delete_key(&self, identifier: &str) -> Result<(), Self::Error>;
@@ -46,6 +47,7 @@ pub mod mock {
     use crate::model::encrypter::Encrypter;
     use crate::model::wrapped_key::WrappedKey;
     use crate::service::AES_BLOCK_SIZE;
+    use crate::service::AesKeyUsage;
     use crate::service::HsmError;
     use crate::service::KeyHandle;
     use crate::service::Pkcs11Client;
@@ -113,7 +115,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<(), Self::Error> {
+        async fn generate_aes_key(&self, identifier: &str, _usage: AesKeyUsage) -> Result<(), Self::Error> {
             self.1.insert(String::from(identifier), random_bytes(32));
             Ok(())
         }
@@ -179,7 +181,7 @@ pub mod mock {
     }
 
     impl<E> Pkcs11Client for MockPkcs11Client<E> {
-        async fn generate_aes_encryption_key(&self, _identifier: &str) -> Result<PrivateKeyHandle, HsmError> {
+        async fn generate_aes_key(&self, _identifier: &str, _usage: AesKeyUsage) -> Result<PrivateKeyHandle, HsmError> {
             todo!()
         }
 
