@@ -82,6 +82,7 @@
 //!  - AES-SIV treats plaintexts smaller than 128 bits (16 bytes) differently from larger plaintexts. This
 //!    implementation supports only plaintexts whose length equals or exceeds 128 bits.
 
+use derive_more::Debug;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroizing;
 
@@ -99,6 +100,44 @@ pub enum AesSivError {
     /// about the key it is holding.
     #[error("decryption failed")]
     AuthenticationFailed,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("AES-SIV keys must be distinct, but were equal")]
+pub struct AesSivKeyErrorKeysEqual;
+
+/// An AES-SIV key, consisting of a key for AES-CMAC and another key for AES-CTR.
+///
+/// In practice, K1 and K2 are always going to be the same type:
+/// - When using HSMs, one refers to keys of any kind using a string or some sort of handle;
+/// - When implementing `AesSivBackend` directly on in-memory keys, then both key fields would be of type `[u8; 32]`.
+///
+/// Nevertheless, here they are modeled as keys of distinct types for type safety. The only
+/// public way of constructing instances of this type is through `AesSivKey::<K, K>::try_new()`.
+#[derive(Debug)]
+#[debug("<AesSivKey>")]
+pub struct AesSivKey<K1, K2> {
+    mac_key: K1,
+    encryption_key: K2,
+}
+
+impl<K: Eq> AesSivKey<K, K> {
+    /// Construct a new AES-SIV key.
+    ///
+    /// NOTE: This constructor checks that its two arguments are not equal, because handing AES-SIV two
+    /// identical keys would break security. This equality check is however no more than a best effort,
+    /// because in the case of a HSM, one can always construct two unequal references to a single key.
+    /// This cannot be prevented here. It is the callers responsibility to not do this!
+    pub fn try_new(mac_key: K, encryption_key: K) -> Result<Self, AesSivKeyErrorKeysEqual> {
+        if mac_key == encryption_key {
+            return Err(AesSivKeyErrorKeysEqual);
+        }
+
+        Ok(Self {
+            mac_key,
+            encryption_key,
+        })
+    }
 }
 
 /// Types that can perform AES-CTR-256 and AES-CMAC-256.
@@ -153,11 +192,6 @@ pub trait AesSivBackend {
 /// trips to the backend: the two [`aes_cmac()`](AesSivBackend::aes_cmac) calls that make up S2V,
 /// then one [`aes_ctr()`](AesSivBackend::aes_ctr) call.
 ///
-/// # Keys
-///
-/// `mac_key` and `encryption_key` are the halves K1 and K2 of one 512-bit key K, and MUST be
-/// distinct: keying both CMAC and CTR with the same 256 bits breaks the mode.
-///
 /// # Limitations
 ///
 /// This implements a subset of the RFC:
@@ -169,8 +203,7 @@ pub trait AesSivBackend {
 /// [RFC 5297, section 2.6]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.6
 pub async fn aes_siv_encrypt<K: AesSivBackend>(
     backend: &K,
-    mac_key: &K::MacKey,
-    encryption_key: &K::EncryptionKey,
+    key: &AesSivKey<K::MacKey, K::EncryptionKey>,
     plaintext: Vec<u8>,
 ) -> Result<Vec<u8>, AesSivError> {
     if plaintext.len() < 16 {
@@ -179,7 +212,7 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
 
     // V = S2V(K1, AD1, ..., ADn, P), with n = 0.
     // This acts as the integrity tag.
-    let v = s2v(backend, mac_key, &plaintext)
+    let v = s2v(backend, &key.mac_key, &plaintext)
         .await
         .map_err(|e| AesSivError::BackendError(e.into()))?;
 
@@ -190,7 +223,7 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
     // C = CTR(K2, Q, P), and the return value is Z = V || C, so V goes in front and only the
     // plaintext following it is run through the keystream.
     let ciphertext = backend
-        .aes_ctr(encryption_key, q, plaintext)
+        .aes_ctr(&key.encryption_key, q, plaintext)
         .await
         .map_err(|e| AesSivError::BackendError(e.into()))?;
 
@@ -205,11 +238,6 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
 /// [RFC 5297, section 2.7] prescribes, and it is safe here because the plaintext never leaves this
 /// function unless that comparison succeeds.
 ///
-/// # Keys
-///
-/// `mac_key` and `encryption_key` are the same pair that [`aes_siv_encrypt`] takes, and are subject
-/// to the same requirement that the two halves be distinct.
-///
 /// # Limitations
 ///
 /// This implements a subset of the RFC:
@@ -221,8 +249,7 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
 /// [RFC 5297, section 2.7]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.7
 pub async fn aes_siv_decrypt<K: AesSivBackend>(
     backend: &K,
-    mac_key: &K::MacKey,
-    encryption_key: &K::EncryptionKey,
+    key: &AesSivKey<K::MacKey, K::EncryptionKey>,
     mut ciphertext: Vec<u8>,
 ) -> Result<Vec<u8>, AesSivError> {
     // The ciphertext parameter has to consist of the integrity tag V, and then of at least 16 bytes
@@ -245,7 +272,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
     // success the `to_vec()` at the end hands the caller an ordinary `Vec` that is theirs to clear.
     let plaintext = Zeroizing::new(
         backend
-            .aes_ctr(encryption_key, q, c.to_vec())
+            .aes_ctr(&key.encryption_key, q, c.to_vec())
             .await
             .map_err(|e| AesSivError::BackendError(e.into()))?,
     );
@@ -256,7 +283,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
     // comparison has to be constant time: a byte-at-a-time one would let an attacker who can submit
     // ciphertexts and time the rejection forge a V one byte at a time. Hence subtle's ConstantTimeEq
     // below, whereas the natural `t != v` on two [u8; 16] is not constant time.
-    let tag_matches: bool = s2v(backend, mac_key, plaintext.as_slice())
+    let tag_matches: bool = s2v(backend, &key.mac_key, plaintext.as_slice())
         .await
         .map_err(|e| AesSivError::BackendError(e.into()))?
         .ct_eq(&v)
@@ -376,6 +403,8 @@ mod tests {
     use rstest::rstest;
 
     use super::AesSivError;
+    use super::AesSivKey;
+    use super::AesSivKeyErrorKeysEqual;
     use super::aes_siv_decrypt;
     use super::aes_siv_encrypt;
     use super::ctr_iv;
@@ -505,9 +534,13 @@ mod tests {
     #[case(16 - 1)]
     #[tokio::test]
     async fn test_aes_siv_rejects_short_plaintext(#[case] len: usize) {
-        let error = aes_siv_encrypt(&MemoryAesSivBackend, &[0; 32], &[0; 32], vec![0; len])
-            .await
-            .unwrap_err();
+        let error = aes_siv_encrypt(
+            &MemoryAesSivBackend,
+            &AesSivKey::try_new([0; 32], [1; 32]).unwrap(),
+            vec![0; len],
+        )
+        .await
+        .unwrap_err();
 
         assert!(matches!(error, AesSivError::PlaintextTooShort));
     }
@@ -563,9 +596,13 @@ mod tests {
         let (cmac_key, ctr_key) = split_key(key);
         let plaintext = hex::decode(plaintext).unwrap();
 
-        let z = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, plaintext.clone())
-            .await
-            .unwrap();
+        let z = aes_siv_encrypt(
+            &MemoryAesSivBackend,
+            &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
+            plaintext.clone(),
+        )
+        .await
+        .unwrap();
 
         assert_eq!(z, hex::decode(expected).unwrap());
         assert_eq!(z.len(), 16 + plaintext.len());
@@ -622,9 +659,13 @@ mod tests {
         let (cmac_key, ctr_key) = split_key(key);
         let ciphertext = hex::decode(ciphertext).unwrap();
 
-        let plaintext = aes_siv_decrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, ciphertext)
-            .await
-            .unwrap();
+        let plaintext = aes_siv_decrypt(
+            &MemoryAesSivBackend,
+            &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
+            ciphertext,
+        )
+        .await
+        .unwrap();
 
         assert_eq!(plaintext, hex::decode(expected).unwrap());
     }
@@ -636,16 +677,15 @@ mod tests {
     #[tokio::test]
     async fn test_aes_siv_round_trip(#[case] len: usize) {
         let (cmac_key, ctr_key) = split_key(KEY_A);
+        let key = AesSivKey::try_new(cmac_key, ctr_key).unwrap();
         let plaintext: Vec<u8> = (0..len).map(|i| i as u8).collect();
 
-        let ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, plaintext.clone())
+        let ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &key, plaintext.clone())
             .await
             .unwrap();
 
         assert_eq!(
-            aes_siv_decrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, ciphertext)
-                .await
-                .unwrap(),
+            aes_siv_decrypt(&MemoryAesSivBackend, &key, ciphertext).await.unwrap(),
             plaintext
         );
     }
@@ -659,22 +699,23 @@ mod tests {
     #[tokio::test]
     async fn test_aes_siv_decrypt_rejects_tampering(#[case] index: usize) {
         let (cmac_key, ctr_key) = split_key(KEY_A);
+        let key = AesSivKey::try_new(cmac_key, ctr_key).unwrap();
 
-        let mut ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, vec![0; 16 * 2])
+        let mut ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &key, vec![0; 16 * 2])
             .await
             .unwrap();
         ciphertext[index] ^= 1;
 
-        let error = aes_siv_decrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, ciphertext)
+        let error = aes_siv_decrypt(&MemoryAesSivBackend, &key, ciphertext)
             .await
             .unwrap_err();
 
         assert!(matches!(error, AesSivError::AuthenticationFailed));
     }
 
-    // Now that the two keys are passed separately, "the wrong key" covers three cases: either one of
-    // them wrong on its own, or both. All three have to be rejected, including the one where the CMAC
-    // key still matches and only the recovered plaintext is garbage.
+    // Since the key consists of two halves, "the wrong key" covers three cases: either one of them
+    // wrong on its own, or both. All three have to be rejected, including the one where the CMAC key
+    // still matches and only the recovered plaintext is garbage.
     #[rstest]
     #[case(true, false)]
     #[case(false, true)]
@@ -684,18 +725,23 @@ mod tests {
         let (cmac_key, ctr_key) = split_key(KEY_A);
         let (other_cmac_key, other_ctr_key) = split_key(KEY_B);
 
-        let ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &cmac_key, &ctr_key, vec![0; 16 * 2])
-            .await
-            .unwrap();
-
-        let error = aes_siv_decrypt(
+        let ciphertext = aes_siv_encrypt(
             &MemoryAesSivBackend,
-            if wrong_cmac_key { &other_cmac_key } else { &cmac_key },
-            if wrong_ctr_key { &other_ctr_key } else { &ctr_key },
-            ciphertext,
+            &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
+            vec![0; 16 * 2],
         )
         .await
-        .unwrap_err();
+        .unwrap();
+
+        let wrong_key = AesSivKey::try_new(
+            if wrong_cmac_key { other_cmac_key } else { cmac_key },
+            if wrong_ctr_key { other_ctr_key } else { ctr_key },
+        )
+        .unwrap();
+
+        let error = aes_siv_decrypt(&MemoryAesSivBackend, &wrong_key, ciphertext)
+            .await
+            .unwrap_err();
 
         assert!(matches!(error, AesSivError::AuthenticationFailed));
     }
@@ -706,10 +752,22 @@ mod tests {
     #[case(16 * 2 - 1)]
     #[tokio::test]
     async fn test_aes_siv_decrypt_rejects_short_ciphertext(#[case] len: usize) {
-        let error = aes_siv_decrypt(&MemoryAesSivBackend, &[0; 32], &[0; 32], vec![0; len])
-            .await
-            .unwrap_err();
+        let error = aes_siv_decrypt(
+            &MemoryAesSivBackend,
+            &AesSivKey::try_new([0; 32], [1; 32]).unwrap(),
+            vec![0; len],
+        )
+        .await
+        .unwrap_err();
 
         assert!(matches!(error, AesSivError::CiphertextTooShort));
+    }
+
+    #[test]
+    fn test_aes_siv_rejects_identical_keys() {
+        assert!(matches!(
+            AesSivKey::try_new([0; 32], [0; 32]).unwrap_err(),
+            AesSivKeyErrorKeysEqual
+        ));
     }
 }

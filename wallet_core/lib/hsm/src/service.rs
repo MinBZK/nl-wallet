@@ -80,6 +80,7 @@ type Result<T> = std::result::Result<T, HsmError>;
 ///
 /// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
 /// leverage the type system to detect when handles are destroyed.
+#[derive(PartialEq, Eq)]
 pub struct PrivateKeyHandle(ObjectHandle);
 
 /// PublicKeyHandle that wraps ObjectHandle for public keys
