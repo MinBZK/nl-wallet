@@ -22,7 +22,7 @@ where
     F: AsyncFnOnce(TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm>,
 {
     let hsm_setup = HsmSetup::new();
-    let test_case = TestCase::new(&hsm_setup, "hsm.toml", ctx.description.unwrap());
+    let test_case = TestCase::new(&hsm_setup, "hsm.toml", ctx.description.unwrap().to_string());
     let test_case = test(test_case).await;
     // Explicitly drop, to capture possible errors.
     drop(AsyncDropper::new(test_case));

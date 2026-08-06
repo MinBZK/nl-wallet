@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::io::Read;
 use std::io::Write;
@@ -146,23 +147,35 @@ impl TestSettings {
 }
 
 pub struct TestCase<H> {
-    identifier: String,
+    identifier_prefix: String,
     hsm: Option<H>,
+
+    /// Keys which are removed from the HSM by the [`AsyncDrop`] impl.
+    identifiers: HashSet<String>,
 }
 
 // Default is needed for AsyncDrop
 impl<H> Default for TestCase<H> {
     fn default() -> Self {
         Self {
-            identifier: String::new(),
+            identifier_prefix: String::new(),
+            identifiers: HashSet::new(),
             hsm: None,
         }
     }
 }
 
 impl<H> TestCase<H> {
-    pub fn test_params(&self) -> (&H, &str) {
-        (self.hsm.as_ref().unwrap(), &self.identifier)
+    /// Convenience function for test functions, returning the HSM as well as one key identifier for use in the test.
+    pub fn test_params(&mut self) -> (&H, String) {
+        let id = self.new_identifier();
+        (self.hsm.as_ref().unwrap(), id)
+    }
+
+    pub fn new_identifier(&mut self) -> String {
+        let id = format!("{}-{}", self.identifier_prefix, crypto::utils::random_string(8));
+        self.identifiers.insert(id.clone());
+        id
     }
 }
 
@@ -175,26 +188,31 @@ impl TestCase<Pkcs11Hsm> {
 #[async_trait]
 impl AsyncDrop for TestCase<Pkcs11Hsm> {
     async fn async_drop(&mut self) -> () {
-        let (hsm, identifier) = self.test_params();
-        let _ = Hsm::delete_key(hsm, identifier).await;
+        if let Some(hsm) = &self.hsm {
+            for identifier in &self.identifiers {
+                let _ = Hsm::delete_key(hsm, identifier).await;
+            }
+        }
     }
 }
 
 impl TestCase<MockPkcs11Client<HsmError>> {
-    pub fn mock(identifier_prefix: &str) -> Self {
+    pub fn mock(identifier_prefix: String) -> Self {
         Self {
-            identifier: identifier_prefix.to_string(),
+            identifier_prefix,
+            identifiers: HashSet::new(),
             hsm: Some(MockPkcs11Client::default()),
         }
     }
 }
 
 impl TestCase<Pkcs11Hsm> {
-    pub fn new(hsm_setup: &HsmSetup, config_file: &str, identifier_prefix: &str) -> Self {
+    pub fn new(hsm_setup: &HsmSetup, config_file: &str, identifier_prefix: String) -> Self {
         let settings = TestSettings::new(config_file.as_ref()).unwrap();
         let hsm = hsm_setup.pkcs11_hsm(settings.hsm.clone()).unwrap();
         Self {
-            identifier: format!("{}-{}", identifier_prefix, crypto::utils::random_string(8)),
+            identifier_prefix,
+            identifiers: HashSet::new(),
             hsm: Some(hsm),
         }
     }
@@ -202,83 +220,86 @@ impl TestCase<Pkcs11Hsm> {
 
 // These methods are to be called by integration tests.
 impl<H> TestCase<H> {
-    pub async fn sign_sha256_hmac(self: TestCase<H>) -> TestCase<H>
+    pub async fn sign_sha256_hmac(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm,
     {
         let (hsm, identifier) = self.test_params();
         let data = random_bytes(32);
 
-        Hsm::generate_generic_secret_key(hsm, identifier).await.unwrap();
-        let signature = hsm.sign_hmac(identifier, &data).await.unwrap();
-        hsm.verify_hmac(identifier, &data, signature).await.unwrap();
+        Hsm::generate_generic_secret_key(hsm, &identifier).await.unwrap();
+        let signature = hsm.sign_hmac(&identifier, &data).await.unwrap();
+        hsm.verify_hmac(&identifier, &data, signature).await.unwrap();
 
         self
     }
 
-    pub async fn sign_ecdsa(self: TestCase<H>) -> TestCase<H>
+    pub async fn sign_ecdsa(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm,
     {
         let (hsm, identifier) = self.test_params();
         let data = Arc::new(random_bytes(32));
 
-        Hsm::generate_signing_key_pair(hsm, identifier).await.unwrap();
+        Hsm::generate_signing_key_pair(hsm, &identifier).await.unwrap();
 
-        let signature = hsm.sign_ecdsa(identifier, &data).await.unwrap();
-        let verifying_key = Hsm::get_verifying_key(hsm, identifier).await.unwrap();
+        let signature = hsm.sign_ecdsa(&identifier, &data).await.unwrap();
+        let verifying_key = Hsm::get_verifying_key(hsm, &identifier).await.unwrap();
         verifying_key.verify(&data, &signature).unwrap();
 
         self
     }
 
-    pub async fn encrypt_decrypt(self: TestCase<H>) -> TestCase<H>
+    pub async fn encrypt_decrypt(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm,
     {
         let (hsm, identifier) = self.test_params();
         let data = random_bytes(32);
 
-        Hsm::generate_aes_key(hsm, identifier, AesKeyUsage::Encryption)
+        Hsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encryption)
             .await
             .unwrap();
 
-        let encrypted: Encrypted<Vec<u8>> = Hsm::encrypt(hsm, identifier, data.clone()).await.unwrap();
+        let encrypted: Encrypted<Vec<u8>> = Hsm::encrypt(hsm, &identifier, data.clone()).await.unwrap();
         assert_ne!(data.clone(), encrypted.data.clone());
 
-        let decrypted = Hsm::decrypt(hsm, identifier, encrypted).await.unwrap();
+        let decrypted = Hsm::decrypt(hsm, &identifier, encrypted).await.unwrap();
         assert_eq!(data, decrypted);
 
         self
     }
 
-    pub async fn encrypt_decrypt_verifying_key(self: TestCase<H>) -> TestCase<H>
+    pub async fn encrypt_decrypt_verifying_key(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm + Encrypter<VerifyingKey> + Decrypter<VerifyingKey>,
     {
         let (hsm, identifier) = self.test_params();
 
-        Hsm::generate_aes_key(hsm, identifier, AesKeyUsage::Encryption)
+        Hsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encryption)
             .await
             .unwrap();
 
         let verifying_key = *SigningKey::generate().verifying_key();
-        let encrypted = Encrypter::encrypt(hsm, identifier, verifying_key).await.unwrap();
+        let encrypted = Encrypter::encrypt(hsm, &identifier, verifying_key).await.unwrap();
 
-        let decrypted = Decrypter::decrypt(hsm, identifier, encrypted).await.unwrap();
+        let decrypted = Decrypter::decrypt(hsm, &identifier, encrypted).await.unwrap();
 
         assert_eq!(verifying_key, decrypted);
 
         self
     }
 
-    pub async fn encrypt_ctr(self: TestCase<H>) -> TestCase<H>
+    pub async fn encrypt_ctr(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client,
     {
         let (hsm, identifier) = self.test_params();
 
-        let key_handle = hsm.generate_aes_key(identifier, AesKeyUsage::Encryption).await.unwrap();
+        let key_handle = hsm
+            .generate_aes_key(&identifier, AesKeyUsage::Encryption)
+            .await
+            .unwrap();
 
         let data = random_bytes(32);
         let counter_block: [u8; AES_BLOCK_SIZE] = random_bytes(AES_BLOCK_SIZE).try_into().unwrap();
@@ -297,7 +318,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn cmac(self: TestCase<H>) -> TestCase<H>
+    pub async fn cmac(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client,
     {
@@ -306,7 +327,7 @@ impl<H> TestCase<H> {
         // Note that a CMAC key is generated here, not an encryption key: the two usages are
         // mutually exclusive. SoftHSM does not enforce CKA_SIGN, so it would accept an encryption
         // key here, but a stricter HSM will not.
-        let key_handle = hsm.generate_aes_key(identifier, AesKeyUsage::Cmac).await.unwrap();
+        let key_handle = hsm.generate_aes_key(&identifier, AesKeyUsage::Cmac).await.unwrap();
 
         let data = random_bytes(32);
 
@@ -324,21 +345,21 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn wrap_key_and_sign(self: TestCase<H>) -> TestCase<H>
+    pub async fn wrap_key_and_sign(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client,
     {
         let (hsm, identifier) = self.test_params();
 
-        let _ = Pkcs11Client::generate_aes_key(hsm, identifier, AesKeyUsage::Encryption)
+        let _ = Pkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Encryption)
             .await
             .unwrap();
 
-        let wrapped = hsm.generate_wrapped_key(identifier).await.unwrap();
+        let wrapped = hsm.generate_wrapped_key(&identifier).await.unwrap();
         let public_key = *wrapped.public_key();
 
         let data = random_bytes(32);
-        let signature = Pkcs11Client::sign_wrapped(hsm, identifier, wrapped, &data)
+        let signature = Pkcs11Client::sign_wrapped(hsm, &identifier, wrapped, &data)
             .await
             .unwrap();
 
@@ -347,20 +368,20 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn aes_siv(self: TestCase<H>) -> TestCase<H>
+    pub async fn aes_siv(mut self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client + AesSivBackend<MacKey = PrivateKeyHandle, EncryptionKey = PrivateKeyHandle>,
     {
-        let (hsm, identifier) = self.test_params();
+        let mac_key_id = self.new_identifier();
+        let enc_key_id = self.new_identifier();
+
+        let hsm = self.hsm.as_ref().unwrap();
 
         // Note the usages: CMAC needs CKA_SIGN, CTR needs CKA_ENCRYPT, and the two halves of K
         // must be distinct keys.
-        let mac_key = hsm
-            .generate_aes_key(&format!("{identifier}-k1"), AesKeyUsage::Cmac)
-            .await
-            .unwrap();
+        let mac_key = hsm.generate_aes_key(&mac_key_id, AesKeyUsage::Cmac).await.unwrap();
         let encryption_key = hsm
-            .generate_aes_key(&format!("{identifier}-k2"), AesKeyUsage::Encryption)
+            .generate_aes_key(&enc_key_id, AesKeyUsage::Encryption)
             .await
             .unwrap();
 
