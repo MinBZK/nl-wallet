@@ -14,6 +14,7 @@ use serial_test::serial;
 #[case::wrap_key_and_sign(TestCase::wrap_key_and_sign)]
 #[case::encrypt_ctr(TestCase::encrypt_ctr)]
 #[case::cmac(TestCase::cmac)]
+#[case::aes_siv(TestCase::aes_siv)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn hsm_tests<F>(#[context] ctx: Context, #[case] test: F)

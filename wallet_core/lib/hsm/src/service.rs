@@ -2,6 +2,7 @@ use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crypto::aes_siv::AesSivBackend;
 use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::random_bytes;
 use crypto::utils::sha256;
@@ -737,6 +738,21 @@ impl Pkcs11Client for Pkcs11Hsm {
         let result = Pkcs11Client::sign(self, &private_handle, SigningMechanism::Ecdsa256, data).await;
         self.clone().delete_private_key_in_background(private_handle);
         result.and_then(|signature| Signature::from_slice(&signature).map_err(HsmError::from))
+    }
+}
+
+impl AesSivBackend for Pkcs11Hsm {
+    type Error = HsmError;
+
+    type MacKey = PrivateKeyHandle;
+    type EncryptionKey = PrivateKeyHandle;
+
+    async fn aes_cmac(&self, key: &Self::MacKey, input: Vec<u8>) -> Result<[u8; 16]> {
+        self.cmac(key, input).await
+    }
+
+    async fn aes_ctr(&self, key: &Self::EncryptionKey, counter_block: [u8; 16], input: Vec<u8>) -> Result<Vec<u8>> {
+        self.encrypt_ctr(key, counter_block, input).await
     }
 }
 

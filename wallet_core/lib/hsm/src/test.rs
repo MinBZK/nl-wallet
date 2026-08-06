@@ -11,6 +11,9 @@ use async_dropper::AsyncDropper;
 use async_trait::async_trait;
 use config::Config;
 use config::ConfigError;
+use crypto::aes_siv::AesSivBackend;
+use crypto::aes_siv::aes_siv_decrypt;
+use crypto::aes_siv::aes_siv_encrypt;
 use crypto::utils::random_bytes;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -32,6 +35,7 @@ use crate::service::AesKeyUsage;
 use crate::service::HsmError;
 use crate::service::Pkcs11Client;
 use crate::service::Pkcs11Hsm;
+use crate::service::PrivateKeyHandle;
 use crate::settings;
 
 static HSM_SETUP: AtomicBool = AtomicBool::new(false);
@@ -339,6 +343,49 @@ impl<H> TestCase<H> {
             .unwrap();
 
         public_key.verify(data.as_ref(), &signature).unwrap();
+
+        self
+    }
+
+    pub async fn aes_siv(self: TestCase<H>) -> TestCase<H>
+    where
+        H: Pkcs11Client + AesSivBackend<MacKey = PrivateKeyHandle, EncryptionKey = PrivateKeyHandle>,
+    {
+        let (hsm, identifier) = self.test_params();
+
+        // Note the usages: CMAC needs CKA_SIGN, CTR needs CKA_ENCRYPT, and the two halves of K
+        // must be distinct keys.
+        let mac_key = hsm
+            .generate_aes_key(&format!("{identifier}-k1"), AesKeyUsage::Cmac)
+            .await
+            .unwrap();
+        let encryption_key = hsm
+            .generate_aes_key(&format!("{identifier}-k2"), AesKeyUsage::Encryption)
+            .await
+            .unwrap();
+
+        // Test for some sizes. 16 bytes is the minimum supported plaintext size.
+        for len in [16, 32, 255] {
+            let plaintext: Vec<u8> = (0..len).map(|i| i as u8).collect();
+
+            let ciphertext = aes_siv_encrypt(hsm, &mac_key, &encryption_key, plaintext.clone())
+                .await
+                .unwrap();
+            assert_eq!(ciphertext.len(), 16 + plaintext.len());
+
+            // AES-SIV is deterministic: encrypting the plaintext two times results in equal ciphertexts.
+            let ciphertext_again = aes_siv_encrypt(hsm, &mac_key, &encryption_key, plaintext.clone())
+                .await
+                .unwrap();
+            assert_eq!(ciphertext, ciphertext_again);
+
+            assert_eq!(
+                aes_siv_decrypt(hsm, &mac_key, &encryption_key, ciphertext)
+                    .await
+                    .unwrap(),
+                plaintext
+            );
+        }
 
         self
     }
