@@ -135,6 +135,7 @@ cookie = "0.18.1"
 # coset version 0.5.x and above is held back by passkey-types
 coset = { version = "0.3.8", features = ["std"] }
 cryptoki = "0.10.0"
+cryptoki-sys = "0.4.0"
 crypto-common = "0.1.7"
 cstr = "0.2.12"
 csv = "1.4.0"
@@ -272,5 +273,8 @@ zeroize = "1.9.0"
 [patch.crates-io]
 # Pin on newer version due to https://github.com/parallaxsecond/rust-cryptoki/pull/291
 cryptoki = { git = "https://github.com/parallaxsecond/rust-cryptoki.git", rev = "2765af619ed245f8787e46987483bf96179e30cd" }
+# Must be pinned to the same revision as cryptoki above, so that CK_AES_CTR_PARAMS is the same type
+# as the one cryptoki itself uses
+cryptoki-sys = { git = "https://github.com/parallaxsecond/rust-cryptoki.git", rev = "2765af619ed245f8787e46987483bf96179e30cd" }
 # Pin on newer version due to https://github.com/Keats/jsonwebtoken/issues/510
 jsonwebtoken = { git = "https://github.com/Keats/jsonwebtoken.git", rev = "a89c743d222aee5ae1c21d3c3197dabdf25f7f77" }

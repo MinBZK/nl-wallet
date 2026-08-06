@@ -45,6 +45,7 @@ pub mod mock {
     use crate::model::encrypter::Decrypter;
     use crate::model::encrypter::Encrypter;
     use crate::model::wrapped_key::WrappedKey;
+    use crate::service::AES_BLOCK_SIZE;
     use crate::service::HsmError;
     use crate::service::KeyHandle;
     use crate::service::Pkcs11Client;
@@ -247,6 +248,19 @@ pub mod mock {
             _iv: InitializationVector,
             _encrypted_data: Vec<u8>,
         ) -> Result<Vec<u8>, HsmError> {
+            todo!()
+        }
+
+        async fn encrypt_ctr(
+            &self,
+            _key_handle: &PrivateKeyHandle,
+            _counter_block: [u8; AES_BLOCK_SIZE],
+            _data: Vec<u8>,
+        ) -> Result<Vec<u8>, HsmError> {
+            todo!()
+        }
+
+        async fn cmac(&self, _key_handle: &PrivateKeyHandle, _data: Vec<u8>) -> Result<[u8; AES_BLOCK_SIZE], HsmError> {
             todo!()
         }
 

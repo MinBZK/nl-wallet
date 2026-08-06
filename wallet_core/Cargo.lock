@@ -3578,6 +3578,7 @@ dependencies = [
  "config",
  "crypto",
  "cryptoki",
+ "cryptoki-sys",
  "dashmap 6.1.0",
  "der 0.7.10",
  "derive_more",

@@ -30,6 +30,7 @@ required-features = ["test"]
 
 [dependencies]
 cryptoki.workspace = true
+cryptoki-sys.workspace = true
 der.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true

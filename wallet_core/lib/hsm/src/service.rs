@@ -8,13 +8,16 @@ use crypto::utils::sha256;
 use cryptoki::context::CInitializeArgs;
 use cryptoki::context::Pkcs11;
 use cryptoki::mechanism::Mechanism;
+use cryptoki::mechanism::MechanismType;
 use cryptoki::mechanism::aead::GcmParams;
+use cryptoki::mechanism::vendor_defined::VendorDefinedMechanism;
 use cryptoki::object::Attribute;
 use cryptoki::object::AttributeType;
 use cryptoki::object::KeyType;
 use cryptoki::object::ObjectClass;
 use cryptoki::object::ObjectHandle;
 use cryptoki::types::AuthPin;
+use cryptoki_sys::CK_AES_CTR_PARAMS;
 use derive_more::AsRef;
 use futures::future;
 use measure::measure;
@@ -62,6 +65,9 @@ pub enum HsmError {
     #[error("key not found: '{0}'")]
     KeyNotFound(String),
 
+    #[error("CMAC has wrong length: expected {expected}, got {actual}")]
+    IncorrectCmacLength { expected: usize, actual: usize },
+
     #[cfg(feature = "mock")]
     #[error("hmac error: {0}")]
     Hmac(#[from] hmac::digest::MacError),
@@ -98,6 +104,8 @@ impl KeyHandle for PublicKeyHandle {
 }
 
 const AES_AUTHENTICATION_TAG_BITS: u64 = 128;
+pub const AES_BLOCK_SIZE: usize = 16;
+const AES_CTR_COUNTER_BITS: u64 = (AES_BLOCK_SIZE * 8) as u64;
 
 enum HandleType {
     Public,
@@ -144,6 +152,15 @@ pub trait Pkcs11Client {
         iv: InitializationVector,
         encrypted_data: Vec<u8>,
     ) -> Result<Vec<u8>>;
+    /// AES-CTR-256. Note that AES-CTR is symmetric, so this one function serves for both encryption and
+    /// decryption.
+    async fn encrypt_ctr(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        counter_block: [u8; AES_BLOCK_SIZE],
+        data: Vec<u8>,
+    ) -> Result<Vec<u8>>;
+    async fn cmac(&self, key_handle: &PrivateKeyHandle, data: Vec<u8>) -> Result<[u8; AES_BLOCK_SIZE]>;
     async fn wrap_key(
         &self,
         wrapping_key: &PrivateKeyHandle,
@@ -570,6 +587,55 @@ impl Pkcs11Client for Pkcs11Hsm {
             let gcm_params = GcmParams::new(iv.0.as_mut_slice(), &[], AES_AUTHENTICATION_TAG_BITS.into())?;
             let data = session.decrypt(&Mechanism::AesGcm(gcm_params), object_handle, &encrypted_data)?;
             Ok(data)
+        })
+        .await
+    }
+
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
+    async fn encrypt_ctr(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        counter_block: [u8; AES_BLOCK_SIZE],
+        data: Vec<u8>,
+    ) -> Result<Vec<u8>> {
+        let pool = self.pool.clone();
+        let object_handle = key_handle.to_object_handle();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            let params = CK_AES_CTR_PARAMS {
+                ulCounterBits: AES_CTR_COUNTER_BITS,
+                cb: counter_block,
+            };
+
+            // `cryptoki` has no `Mechanism` variant for AES-CTR, so the parameters are passed
+            // through `VendorDefinedMechanism`. Despite its name it pairs any mechanism type with
+            // any parameter struct.
+            let mechanism =
+                Mechanism::VendorDefined(VendorDefinedMechanism::new(MechanismType::AES_CTR, Some(&params)));
+
+            let encrypted_data = session.encrypt(&mechanism, object_handle, &data)?;
+            Ok(encrypted_data)
+        })
+        .await
+    }
+
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
+    async fn cmac(&self, key_handle: &PrivateKeyHandle, data: Vec<u8>) -> Result<[u8; AES_BLOCK_SIZE]> {
+        let pool = self.pool.clone();
+        let object_handle = key_handle.to_object_handle();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+            let cmac = session.sign(&Mechanism::AesCMac, object_handle, &data)?;
+
+            let cmac = cmac.try_into().map_err(|cmac: Vec<u8>| HsmError::IncorrectCmacLength {
+                expected: AES_BLOCK_SIZE,
+                actual: cmac.len(),
+            })?;
+
+            Ok(cmac)
         })
         .await
     }
