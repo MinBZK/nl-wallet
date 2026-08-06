@@ -61,12 +61,12 @@ use uuid::Uuid;
 use crate::authorization_details::AuthorizationDetails;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
-use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
+use crate::credential::Credentials;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurations;
@@ -1774,7 +1774,9 @@ impl CredentialResponse {
         // and the attestation config by signing it.
         let (issuer_signed, _) = credential_payload.into_signed_mdoc(&credential_config.key_pair).await?;
 
-        Ok(CredentialResponse::new_immediate(Credential::new_mdoc(issuer_signed)))
+        Ok(CredentialResponse::new_immediate(Credentials::new_single_mdoc(
+            issuer_signed,
+        )))
     }
 
     async fn new_for_sd_jwt<K, L>(
@@ -1788,7 +1790,7 @@ impl CredentialResponse {
             .into_signed_sd_jwt(credential_config.metadata.normalized(), &credential_config.key_pair)
             .await?;
 
-        Ok(CredentialResponse::new_immediate(Credential::new_sd_jwt(
+        Ok(CredentialResponse::new_immediate(Credentials::new_single_sd_jwt(
             signed_sd_jwt.into_unverified(),
         )))
     }
