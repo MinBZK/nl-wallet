@@ -4582,8 +4582,6 @@ dependencies = [
  "pastey",
  "pathdiff",
  "rayon",
- "serde",
- "serde-content",
  "smallvec",
 ]
 
@@ -7667,15 +7665,6 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
-]
-
-[[package]]
-name = "serde-content"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3753ca04f350fa92d00b6146a3555e63c55388c9ef2e11e09bce2ff1c0b509c6"
-dependencies = [
- "serde",
 ]
 
 [[package]]
