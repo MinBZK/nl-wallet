@@ -27,6 +27,7 @@ use crate::model::encrypted::Encrypted;
 use crate::model::encrypter::Decrypter;
 use crate::model::encrypter::Encrypter;
 use crate::model::mock::MockPkcs11Client;
+use crate::service::AES_BLOCK_SIZE;
 use crate::service::AesKeyUsage;
 use crate::service::HsmError;
 use crate::service::Pkcs11Client;
@@ -263,6 +264,58 @@ impl<H> TestCase<H> {
         let decrypted = Decrypter::decrypt(hsm, identifier, encrypted).await.unwrap();
 
         assert_eq!(verifying_key, decrypted);
+
+        self
+    }
+
+    pub async fn encrypt_ctr(self: TestCase<H>) -> TestCase<H>
+    where
+        H: Pkcs11Client,
+    {
+        let (hsm, identifier) = self.test_params();
+
+        let key_handle = hsm.generate_aes_key(identifier, AesKeyUsage::Encryption).await.unwrap();
+
+        let data = random_bytes(32);
+        let counter_block: [u8; AES_BLOCK_SIZE] = random_bytes(AES_BLOCK_SIZE).try_into().unwrap();
+        let encrypted = hsm.encrypt_ctr(&key_handle, counter_block, data.clone()).await.unwrap();
+        assert_ne!(data, encrypted);
+
+        // CTR turns the block cipher into a stream cipher, so there is no padding and the
+        // ciphertext is exactly as long as the plaintext.
+        assert_eq!(data.len(), encrypted.len());
+
+        // AES-CTR is symmetric, so encrypting the ciphertext under the same counter block returns
+        // the plaintext.
+        let decrypted = hsm.encrypt_ctr(&key_handle, counter_block, encrypted).await.unwrap();
+        assert_eq!(data, decrypted);
+
+        self
+    }
+
+    pub async fn cmac(self: TestCase<H>) -> TestCase<H>
+    where
+        H: Pkcs11Client,
+    {
+        let (hsm, identifier) = self.test_params();
+
+        // Note that a CMAC key is generated here, not an encryption key: the two usages are
+        // mutually exclusive. SoftHSM does not enforce CKA_SIGN, so it would accept an encryption
+        // key here, but a stricter HSM will not.
+        let key_handle = hsm.generate_aes_key(identifier, AesKeyUsage::Cmac).await.unwrap();
+
+        let data = random_bytes(32);
+
+        // The length is checked by the return type: a CMAC is exactly one block.
+        let cmac: [u8; 16] = hsm.cmac(&key_handle, data.clone()).await.unwrap();
+
+        // The same message under the same key gives the same tag, ...
+        let cmac_again = hsm.cmac(&key_handle, data).await.unwrap();
+        assert_eq!(cmac, cmac_again);
+
+        // ... and a different message a different one.
+        let other_cmac = hsm.cmac(&key_handle, random_bytes(32)).await.unwrap();
+        assert_ne!(cmac, other_cmac);
 
         self
     }
