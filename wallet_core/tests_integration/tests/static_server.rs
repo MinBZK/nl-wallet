@@ -1,5 +1,4 @@
 use std::assert_matches;
-use std::env;
 
 use crypto::PublicKey;
 use http_utils::client::TlsPinningConfig;
@@ -42,14 +41,12 @@ async fn test_wallet_config() {
         ..default_config_server_config()
     };
 
-    let storage_path = env::temp_dir();
-    let etag_file = storage_path.join("wallet-config.etag");
-    // make sure there are no storage files from previous test runs
-    let _ = fs::remove_file(etag_file.as_path()).await;
+    let storage_dir = tempfile::tempdir().unwrap();
+    let etag_file = storage_dir.path().join("wallet-config.etag");
 
     let http_config = HttpConfigurationRepository::new(
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
-        storage_path.clone(),
+        storage_dir.path().to_path_buf(),
         default_wallet_config(),
     )
     .await
@@ -93,9 +90,10 @@ async fn test_wallet_config_stale() {
         ..default_config_server_config()
     };
 
+    let storage_dir = tempfile::tempdir().unwrap();
     let http_config = HttpConfigurationRepository::new(
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
-        env::temp_dir(),
+        storage_dir.path().to_path_buf(),
         default_wallet_config(),
     )
     .await
@@ -141,9 +139,10 @@ async fn test_wallet_config_signature_verification_failed() {
         ..default_config_server_config()
     };
 
+    let storage_dir = tempfile::tempdir().unwrap();
     let http_config = HttpConfigurationRepository::new(
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
-        env::temp_dir(),
+        storage_dir.path().to_path_buf(),
         default_wallet_config(),
     )
     .await
