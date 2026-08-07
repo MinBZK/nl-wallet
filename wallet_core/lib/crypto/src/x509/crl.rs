@@ -496,8 +496,6 @@ mod tests {
     use crate::x509::DistinguishedName;
     use crate::x509::NO_SAN;
 
-    type CrlVerifier = CertificateCrlVerifier;
-
     #[derive(Clone, Debug)]
     struct ConcurrencyTrackingFetcher {
         crls: Arc<HashMap<Url, Vec<u8>>>,
@@ -747,7 +745,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         let trust_anchors = TrustAnchors::from(&ca);
 
         provider
@@ -785,7 +783,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         let trust_anchors = TrustAnchors::from(&ca);
 
         provider
@@ -813,7 +811,7 @@ mod tests {
 
         let url: Url = server.url("/crl.der").parse().unwrap();
         let cert = generate_cert_with_cdps(vec![url]);
-        let provider = CrlVerifier::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
+        let provider = CertificateCrlVerifier::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
 
         provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
         provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
@@ -834,7 +832,7 @@ mod tests {
 
         let url: Url = server.url("/crl.der").parse().unwrap();
         let cert = generate_cert_with_cdps(vec![url]);
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
@@ -870,7 +868,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         provider
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
             .await
@@ -949,7 +947,7 @@ mod tests {
             })
             .await;
 
-        let verifier = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         verifier
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
             .await
@@ -977,7 +975,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
         assert_eq!(error.category(), error_category::Category::PersonalData);
@@ -1016,7 +1014,7 @@ mod tests {
 
         let url: Url = server.url("/crl.der").parse().unwrap();
         let cert = generate_cert_with_cdps(vec![url]);
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
@@ -1042,7 +1040,7 @@ mod tests {
 
         let url: Url = server.url("/crl.der").parse().unwrap();
         let cert = generate_cert_with_cdps(vec![url]);
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
 
@@ -1071,7 +1069,7 @@ mod tests {
 
         let url: Url = server.url("/crl.der").parse().unwrap();
         let cert = generate_cert_with_cdps(vec![url]);
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
         provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
@@ -1123,7 +1121,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         provider
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
@@ -1144,7 +1142,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         provider
             .verify_chain(&[leaf], &TrustAnchors::from(&trusted_ca), None, &TimeGenerator)
             .await
@@ -1173,7 +1171,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         let trust_anchors = TrustAnchors::from(&ca);
 
         let error = provider
@@ -1259,7 +1257,7 @@ mod tests {
             .await;
 
         // Test Subject
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         // Verification should fail because of revoked intermediate
         let error = provider
@@ -1281,7 +1279,7 @@ mod tests {
     #[tokio::test]
     async fn verify_chain_fails_when_no_crl_distribution_point_is_present() {
         let (ca, leaf) = ca_and_leaf_with_cdps(vec![]);
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         let error = provider
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
@@ -1324,7 +1322,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         let error = provider
             .verify_chain(
                 &[
@@ -1360,7 +1358,7 @@ mod tests {
             })
             .await;
 
-        let provider = CrlVerifier::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
+        let provider = CertificateCrlVerifier::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
 
         let error = provider
             .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
@@ -1376,7 +1374,7 @@ mod tests {
     #[tokio::test]
     async fn verify_chain_fails_for_empty_chain() {
         let ca = Ca::generate_mock();
-        let provider = CrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         let error = provider
             .verify_chain(&[], &TrustAnchors::from(&ca), None, &TimeGenerator)
