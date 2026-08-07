@@ -949,7 +949,6 @@ mod tests {
     use crate::wallet::DisclosureError;
     use crate::wallet::Session;
     use crate::wallet::disclosure::VpDisclosableAttestation;
-    use crate::wallet::init::WalletCertificateCrlVerifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WRPAC_CA;
     use crate::wallet::test::WalletDeviceVendor;
@@ -1238,7 +1237,6 @@ mod tests {
         wallet: &mut TestWalletMockStorage,
         items_request: ItemsRequest,
     ) -> BorrowingCertificate {
-        wallet.crl_verifier = WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA));
         let key_pair = WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap();
         let verifier_certificate = key_pair.certificate().clone();
 
@@ -1376,7 +1374,6 @@ mod tests {
         stop_context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.crl_verifier = WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA));
         install_session_established_close_proximity_session(
             &mut wallet,
             cbor_serialize(&qr_session_transcript(None)).unwrap(),
@@ -1504,7 +1501,6 @@ mod tests {
             setup_device_request(vec![items_request], None, true).await;
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.crl_verifier = WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA));
         install_session_established_close_proximity_session(
             &mut wallet,
             cbor_serialize(&session_transcript).unwrap(),

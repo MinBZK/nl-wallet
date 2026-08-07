@@ -191,12 +191,12 @@ pub(crate) enum WalletCertificateCrlVerifier {
 
 #[cfg(any(test, feature = "test"))]
 impl WalletClients<MockAccountProviderClient, MockIssuanceDiscovery, MockDisclosureClient, MockStatusListClient> {
-    pub fn new_mock() -> Self {
+    pub fn new_mock(crl_verifier: MockCertificateCrlVerifier) -> Self {
         Self {
             account_provider_client: MockAccountProviderClient::default(),
             credential_issuer_discovery: MockIssuanceDiscovery::default(),
             disclosure_client: MockDisclosureClient::default(),
-            crl_verifier: WalletCertificateCrlVerifier::Mock(MockCertificateCrlVerifier::default()),
+            crl_verifier: WalletCertificateCrlVerifier::Mock(crl_verifier),
             status_list_client: MockStatusListClient::default(),
         }
     }
@@ -595,7 +595,7 @@ mod tests {
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients::new_mock();
+        > = WalletClients::new_mock(MockCertificateCrlVerifier::new_for_ca(&test::WRPAC_CA));
         wallet_clients.credential_issuer_discovery = discovery;
 
         let wallet: TestWalletMockStorage = Wallet::init_registration(
@@ -676,7 +676,7 @@ mod tests {
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients::new_mock();
+        > = WalletClients::new_mock(MockCertificateCrlVerifier::new_for_ca(&test::WRPAC_CA));
         wallet_clients.credential_issuer_discovery = discovery;
 
         let wallet: TestWalletMockStorage = Wallet::init_registration(
@@ -751,7 +751,7 @@ mod tests {
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients::new_mock();
+        > = WalletClients::new_mock(MockCertificateCrlVerifier::new_for_ca(&test::WRPAC_CA));
 
         let result: Result<TestWalletMockStorage, WalletInitError> = Wallet::init_registration(
             storage,
