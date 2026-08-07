@@ -1,10 +1,6 @@
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use crypto::server_keys::generate::Ca;
-use crypto::server_keys::generate::mock::ISSUANCE_CERT_DN;
-use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateConfiguration;
-use crypto::x509::NO_SAN;
 use crypto::x509::crl::CertificateCrlVerifier;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
@@ -31,10 +27,8 @@ use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
 use server_utils::store::StoreConnection;
-use tempfile::NamedTempFile;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use tokio::net::TcpListener;
 use utils::vec_nonempty;
 use wallet::test::default_wallet_config;
 use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -67,43 +61,8 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wia_ca = Ca::generate_issuer_mock_ca().unwrap();
     let wia_keypair = wia_ca.generate_wia_mock().unwrap();
     let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url(), Some(&wia_ca));
-    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
-    let crl_listener = TcpListener::bind("localhost:0").await.unwrap();
-    let crl_distribution_point = format!(
-        "http://localhost:{}/wrpac.crl.der",
-        crl_listener.local_addr().unwrap().port()
-    )
-    .parse()
-    .unwrap();
-    let crl_file = NamedTempFile::new().unwrap();
-    tokio::fs::write(crl_file.path(), wrpac_ca.generate_crl(vec![], 1).unwrap().der())
-        .await
-        .unwrap();
-    let crl_file_path = crl_file.path().to_path_buf();
-    let _crl_server = tokio::spawn(async move {
-        static_server::server::serve_crl_with_listener(crl_listener, crl_file_path)
-            .await
-            .expect("could not start static server CRL endpoint");
-    });
-    pid_settings
-        .authorizing_issuer_settings
-        .issuer_settings
-        .credential_metadata_keypair = wrpac_ca
-        .generate_key_pair(
-            ISSUANCE_CERT_DN.clone(),
-            CertificateConfiguration {
-                crl_distribution_points: vec![crl_distribution_point],
-                ..Default::default()
-            },
-            NO_SAN,
-        )
-        .unwrap()
-        .into();
-    pid_settings
-        .authorizing_issuer_settings
-        .issuer_settings
-        .server_settings
-        .wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
+    let (static_settings, _) = static_server_settings();
+    start_static_crl_server(&static_settings).await;
 
     let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
     pid_settings.authorizing_issuer_settings.wallet_redirect_uris = vec_nonempty![redirect_uri.clone()];
@@ -163,8 +122,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
-    let mut wallet_config = default_wallet_config();
-    wallet_config.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
+    let wallet_config = default_wallet_config();
 
     let http_client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
     let crl_verifier =
