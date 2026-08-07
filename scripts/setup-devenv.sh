@@ -333,6 +333,7 @@ cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca c
     --force
 openssl crl -in "${TARGET_DIR}/static_server/wrpac.crl.pem" -outform DER \
     -out "${TARGET_DIR}/static_server/wrpac.crl.der"
+cp "${TARGET_DIR}/static_server/wrpac.crl.der" "${STATIC_SERVER_DIR}"
 
 # Generate root CA for WRPRC
 if [[ ! -f "${TARGET_DIR}/ca.wrprc.key.pem" ]]; then
