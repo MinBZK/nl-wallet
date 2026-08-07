@@ -66,7 +66,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     Ok(())
 }
 
-async fn serve_crl_with_listener(listener: TcpListener, crl_file: PathBuf) -> Result<(), Box<dyn Error>> {
+pub async fn serve_crl_with_listener(listener: TcpListener, crl_file: PathBuf) -> Result<(), Box<dyn Error>> {
     info!("listening for CRL requests on {}", listener.local_addr()?);
 
     let app = Router::new().route("/wrpac.crl.der", get(crl)).with_state(crl_file);

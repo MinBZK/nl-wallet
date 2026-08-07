@@ -1,8 +1,11 @@
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use crypto::server_keys::generate::Ca;
+use crypto::server_keys::generate::mock::ISSUANCE_CERT_DN;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+use crypto::x509::CertificateConfiguration;
+use crypto::x509::NO_SAN;
+use crypto::x509::crl::HttpCertificateCrlVerifier;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
@@ -28,8 +31,10 @@ use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
 use server_utils::store::StoreConnection;
+use tempfile::NamedTempFile;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
+use tokio::net::TcpListener;
 use utils::vec_nonempty;
 use wallet::test::default_wallet_config;
 use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -63,10 +68,37 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wia_keypair = wia_ca.generate_wia_mock().unwrap();
     let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url(), Some(&wia_ca));
     let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+    let crl_listener = TcpListener::bind("localhost:0").await.unwrap();
+    let crl_distribution_point = format!(
+        "http://localhost:{}/wrpac.crl.der",
+        crl_listener.local_addr().unwrap().port()
+    )
+    .parse()
+    .unwrap();
+    let crl_file = NamedTempFile::new().unwrap();
+    tokio::fs::write(crl_file.path(), wrpac_ca.generate_crl(vec![], 1).unwrap().der())
+        .await
+        .unwrap();
+    let crl_file_path = crl_file.path().to_path_buf();
+    let _crl_server = tokio::spawn(async move {
+        static_server::server::serve_crl_with_listener(crl_listener, crl_file_path)
+            .await
+            .expect("could not start static server CRL endpoint");
+    });
     pid_settings
         .authorizing_issuer_settings
         .issuer_settings
-        .credential_metadata_keypair = wrpac_ca.generate_wrpac_issuer_mock_with_crl().unwrap().into();
+        .credential_metadata_keypair = wrpac_ca
+        .generate_key_pair(
+            ISSUANCE_CERT_DN.clone(),
+            CertificateConfiguration {
+                crl_distribution_points: vec![crl_distribution_point],
+                ..Default::default()
+            },
+            NO_SAN,
+        )
+        .unwrap()
+        .into();
     pid_settings
         .authorizing_issuer_settings
         .issuer_settings
@@ -135,8 +167,9 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     wallet_config.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
 
     let http_client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery =
-        HttpIssuanceDiscovery::new(http_client, MockCertificateCrlVerifier::new_for_ca(&wrpac_ca));
+    let crl_verifier =
+        HttpCertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
+    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client, crl_verifier);
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);
     let wia_client = MockWiaClient::new_with_wia_keypair(wia_keypair.clone());
