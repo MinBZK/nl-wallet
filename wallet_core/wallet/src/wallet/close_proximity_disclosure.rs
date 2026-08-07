@@ -882,12 +882,10 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::HttpCertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
-    use http_utils::reqwest::default_reqwest_client_builder;
     use indexmap::IndexMap;
     use jwt::nonce::Nonce;
     use mdoc::DeviceEngagement;
@@ -1614,8 +1612,7 @@ mod tests {
         let (device_request, session_transcript, trust_anchors) =
             setup_device_request(vec![items_request], None, false).await;
 
-        let verifier =
-            HttpCertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
+        let verifier = MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA);
         let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
