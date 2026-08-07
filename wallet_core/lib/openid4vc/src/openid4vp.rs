@@ -1158,13 +1158,11 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::HttpCertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
-    use http_utils::reqwest::default_reqwest_client_builder;
     use itertools::Itertools;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
@@ -1411,8 +1409,7 @@ mod tests {
                 .await
                 .unwrap();
 
-        let verifier =
-            HttpCertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
+        let verifier = MockCertificateCrlVerifier::default();
         let result = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
 
         assert_matches!(
