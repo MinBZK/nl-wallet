@@ -198,7 +198,7 @@ impl<T> TypedCose<CoseSign1, T> {
         self.verify_and_parse(certificate.public_key())
     }
 
-    pub(crate) async fn verify_against_trust_anchors_with_chain_and_crl(
+    async fn verify_against_trust_anchors_with_chain_and_crl(
         &self,
         x5chain: VecNonEmpty<BorrowingCertificate>,
         trust_anchors: &TrustAnchors,
