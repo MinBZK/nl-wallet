@@ -806,9 +806,9 @@ pub async fn verify_device_request_with_crl(
                 mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {
                     CloseProximityDisclosureError::ReaderCertificateCrlVerification(error)
                 }
+                mdoc::Error::MissingReaderAuthentication => CloseProximityDisclosureError::MissingReaderAuth,
                 error => CloseProximityDisclosureError::InvalidDocRequest(error),
-            })?
-            .ok_or(CloseProximityDisclosureError::MissingReaderAuth)?;
+            })?;
 
         if let Some(certificate) = &certificate
             && &doc_request_cert != certificate
