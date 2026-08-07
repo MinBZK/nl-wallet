@@ -23,6 +23,8 @@ use crypto::PublicKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use ctor::ctor;
 use db_test::DbSetup;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -41,6 +43,7 @@ use http_utils::urls::issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -168,8 +171,8 @@ pub type WalletWithStorage = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpIssuanceDiscovery,
-    VpDisclosureClient,
+    HttpIssuanceDiscovery<MockCrlFetcher>,
+    VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher>,
 >;
 
 pub async fn setup_wallet_and_default_env(
@@ -515,7 +518,16 @@ where
 
     let update_policy_repository = UpdatePolicyRepository::init();
 
-    let wallet_clients = WalletClients::new().unwrap();
+    // Keep the regular integration suite self-contained while still verifying the configured CRL's signature and
+    // revocation status. HTTP retrieval is covered by focused CRL tests.
+    let (static_settings, _) = static_server_settings();
+    let crl_distribution_point = format!("http://localhost:{}/wrpac.crl.der", static_settings.crl_port)
+        .parse()
+        .unwrap();
+    let crl = std::fs::read(static_settings.crl_file).unwrap();
+    let crl_verifier =
+        CertificateCrlVerifier::new_with_fetcher(MockCrlFetcher::new([(crl_distribution_point, crl)]), 1);
+    let wallet_clients = WalletClients::new_with_mock_crl_verifier(crl_verifier).unwrap();
 
     Wallet::init_registration(
         storage_generator().await,

@@ -202,6 +202,38 @@ impl WalletClients<MockAccountProviderClient, MockIssuanceDiscovery, MockDisclos
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+impl<APC>
+    WalletClients<
+        APC,
+        HttpIssuanceDiscovery<MockCrlFetcher>,
+        VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher>,
+        HttpStatusListClient,
+    >
+where
+    APC: Default,
+{
+    pub fn new_with_mock_crl_verifier(
+        crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    ) -> Result<Self, reqwest::Error> {
+        let credential_issuer_discovery =
+            HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
+        let disclosure_client = VpDisclosureClient::new(
+            HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
+            crl_verifier.clone(),
+        );
+        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
+
+        Ok(Self {
+            account_provider_client: APC::default(),
+            credential_issuer_discovery,
+            disclosure_client,
+            crl_verifier: WalletCertificateCrlVerifier::Mock(crl_verifier),
+            status_list_client,
+        })
+    }
+}
+
 fn reqwest_client_builder() -> ClientBuilder {
     cfg_select! {
         feature = "allow_insecure_url" => default_reqwest_client_builder(),
