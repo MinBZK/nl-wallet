@@ -61,9 +61,9 @@ impl DocRequest {
     pub async fn verify_with_crl(
         &self,
         session_transcript: &SessionTranscript,
-        time: &(impl Generator<DateTime<Utc>> + Sync),
+        time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
-        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
     ) -> Result<Option<BorrowingCertificate>> {
         let Some(reader_auth) = &self.reader_auth else {
             return Ok(None);

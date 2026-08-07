@@ -206,7 +206,7 @@ impl<F> CertificateCrlVerifier<F> {
 
 impl<F> CertificateCrlVerifier<F>
 where
-    F: CrlFetcher + Sync,
+    F: CrlFetcher,
 {
     /// Resolve the CRLs referenced by every certificate, either from cache or the network. URLs are deduplicated across
     /// the chain and fetched concurrently. A certificate's failed distribution point is tolerated when at least one

@@ -93,7 +93,7 @@ impl<H, F> VpDisclosureClient<H, F> {
 impl<H, F> DisclosureClient for VpDisclosureClient<H, F>
 where
     H: VpMessageClient + Clone,
-    F: CrlFetcher + Sync,
+    F: CrlFetcher,
 {
     type Session = VpDisclosureSession<H>;
 

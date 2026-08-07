@@ -790,9 +790,9 @@ where
 pub async fn verify_device_request_with_crl(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
-    time: &(impl Generator<DateTime<Utc>> + Sync),
+    time: &impl Generator<DateTime<Utc>>,
     trust_anchors: &TrustAnchors,
-    crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
+    crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
 ) -> Result<BorrowingCertificate, CloseProximityDisclosureError> {
     let mut certificate = None;
     for doc_request in &device_request.doc_requests {

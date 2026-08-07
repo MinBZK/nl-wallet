@@ -159,8 +159,8 @@ impl<T> TypedCose<CoseSign1, T> {
     pub async fn verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
-        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
-        time: &(impl Generator<DateTime<Utc>> + Sync),
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
     ) -> Result<T, CoseError>
     where
@@ -202,8 +202,8 @@ impl<T> TypedCose<CoseSign1, T> {
         &self,
         x5chain: VecNonEmpty<BorrowingCertificate>,
         trust_anchors: &TrustAnchors,
-        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
-        time: &(impl Generator<DateTime<Utc>> + Sync),
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
     ) -> Result<T, CoseError>
     where

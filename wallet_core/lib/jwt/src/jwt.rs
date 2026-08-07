@@ -296,8 +296,8 @@ where
     pub async fn parse_and_verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
-        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
-        time: &(impl Generator<DateTime<Utc>> + Sync),
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
@@ -339,8 +339,8 @@ where
     pub async fn into_verified_against_trust_anchors_with_crl(
         self,
         trust_anchors: &TrustAnchors,
-        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
-        time: &(impl Generator<DateTime<Utc>> + Sync),
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {

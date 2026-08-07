@@ -434,7 +434,7 @@ impl VpAuthorizationRequest {
     pub async fn try_new(
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &TrustAnchors,
-        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher + Sync>,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         let (header, auth_request) = jws
             .parse_and_verify_against_trust_anchors_with_crl(

@@ -61,7 +61,7 @@ impl<F> HttpIssuanceDiscovery<F> {
 
 impl<F> IssuanceDiscovery for HttpIssuanceDiscovery<F>
 where
-    F: CrlFetcher + Sync,
+    F: CrlFetcher,
 {
     type Authorization = HttpAuthorizationSession;
     type Issuance = HttpIssuanceSession;
@@ -368,7 +368,7 @@ impl CredentialOfferFlow {
 
 impl<F> HttpIssuanceDiscovery<F>
 where
-    F: CrlFetcher + Sync,
+    F: CrlFetcher,
 {
     /// Parse a [`CredentialOffer`] from the URI or fetch it from a remote server, then convert it to a
     /// [`NormalizedCredentialOffer`].
