@@ -33,6 +33,7 @@ impl DeviceRequest {
 }
 
 impl DocRequest {
+    #[cfg(test)]
     pub fn verify(
         &self,
         session_transcript: &SessionTranscript,
