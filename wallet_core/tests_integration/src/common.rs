@@ -505,6 +505,12 @@ pub async fn setup_wallet<F>(
 where
     F: AsyncFnOnce() -> MockHardwareDatabaseStorage,
 {
+    let (static_settings, _) = static_server_settings();
+    let mut crl_distribution_point = wallet_config.static_assets_base_url.as_ref().clone();
+    crl_distribution_point.set_scheme("http").unwrap();
+    crl_distribution_point.set_port(Some(static_settings.crl_port)).unwrap();
+    crl_distribution_point.set_path("/wrpac.crl.der");
+
     let config_repository = HttpConfigurationRepository::new(
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         tempfile::tempdir().unwrap().keep(),
@@ -522,10 +528,6 @@ where
 
     // Keep the regular integration suite self-contained while still verifying the configured CRL's signature and
     // revocation status. HTTP retrieval is covered by focused CRL tests.
-    let (static_settings, _) = static_server_settings();
-    let crl_distribution_point = format!("http://localhost:{}/wrpac.crl.der", static_settings.crl_port)
-        .parse()
-        .unwrap();
     let crl = std::fs::read(static_settings.crl_file).unwrap();
     let crl_verifier =
         CertificateCrlVerifier::new_with_fetcher(MockCrlFetcher::new([(crl_distribution_point, crl)]), 1);
