@@ -259,15 +259,6 @@ where
         Ok(results.into_iter().filter_map(|(_, result)| result.ok()).collect())
     }
 
-    #[cfg(test)]
-    async fn crls_for_cert(
-        &self,
-        cert: &BorrowingCertificate,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
-        self.crls_for_chain(std::slice::from_ref(cert), time).await
-    }
-
     /// Fetch and parse the CRL at `url`, or return the already-parsed, cached CRL if present. A freshly-fetched CRL's
     /// signature has not yet been checked, so it is not inserted into the cache here — the caller commits the candidate
     /// set via `self.cache.insert` only after successful chain verification in `verify_chain`.
@@ -813,8 +804,14 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CertificateCrlVerifier::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
 
-        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
-        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap();
+        provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap();
+        provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap();
 
         // Server should have been invoked twice
         mock.assert_calls_async(2).await;
@@ -834,7 +831,10 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+        let error = provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap_err();
 
         assert!(matches!(
             error,
@@ -976,7 +976,10 @@ mod tests {
             .await;
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
-        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+        let error = provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap_err();
 
         assert_eq!(error.category(), error_category::Category::PersonalData);
         match error {
@@ -1016,7 +1019,10 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+        let error = provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap_err();
 
         assert!(matches!(
             error,
@@ -1042,7 +1048,10 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        let error = provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+        let error = provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap_err();
 
         assert!(matches!(
             error,
@@ -1071,8 +1080,14 @@ mod tests {
         let cert = generate_cert_with_cdps(vec![url]);
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
-        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
-        provider.crls_for_cert(&cert, &TimeGenerator).await.unwrap_err();
+        provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap_err();
+        provider
+            .crls_for_chain(std::slice::from_ref(&cert), &TimeGenerator)
+            .await
+            .unwrap_err();
 
         // A response that fails to parse must not be cached, so it should be retried on every call.
         mock.assert_calls_async(2).await;
