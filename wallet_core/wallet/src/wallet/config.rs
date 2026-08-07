@@ -66,7 +66,7 @@ mod tests {
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use crate::config::default_wallet_config;
+    use crate::config::test::test_wallet_config;
 
     // Tests both setting and clearing the configuration callback.
     #[tokio::test]
@@ -104,7 +104,7 @@ mod tests {
             assert_eq!(configs.len(), 1);
             assert_eq!(
                 configs.first().unwrap().account_server.http_config.base_url(),
-                default_wallet_config().account_server.http_config.base_url()
+                test_wallet_config().account_server.http_config.base_url()
             );
         }
 
