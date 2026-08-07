@@ -101,7 +101,7 @@ const DEFAULT_CACHE_CAPACITY: u64 = 100;
 
 /// A parsed CRL together with its cache TTL.
 #[derive(Debug)]
-struct CachedCrl {
+struct ParsedCrl {
     crl: CertRevocationList<'static>,
     ttl: Duration,
 }
@@ -111,8 +111,8 @@ struct CachedCrl {
 /// insertion into the cache — see `verify_chain`, which commits it after a successful verification.
 #[derive(Debug)]
 enum FetchedCrl {
-    Cached(Arc<CachedCrl>),
-    Fresh { url: Url, fetched: Arc<CachedCrl> },
+    Cached(Arc<ParsedCrl>),
+    Fresh { url: Url, fetched: Arc<ParsedCrl> },
 }
 
 impl FetchedCrl {
@@ -126,8 +126,8 @@ impl FetchedCrl {
 
 struct CrlExpiry;
 
-impl Expiry<Url, Arc<CachedCrl>> for CrlExpiry {
-    fn expire_after_create(&self, _key: &Url, value: &Arc<CachedCrl>, _created_at: Instant) -> Option<Duration> {
+impl Expiry<Url, Arc<ParsedCrl>> for CrlExpiry {
+    fn expire_after_create(&self, _key: &Url, value: &Arc<ParsedCrl>, _created_at: Instant) -> Option<Duration> {
         Some(value.ttl)
     }
 }
@@ -179,7 +179,7 @@ impl CrlFetcher for HttpCrlFetcher {
 #[derive(Clone, Debug)]
 pub struct CertificateCrlVerifier<F = HttpCrlFetcher> {
     fetcher: F,
-    cache: Cache<Url, Arc<CachedCrl>>,
+    cache: Cache<Url, Arc<ParsedCrl>>,
 }
 
 impl CertificateCrlVerifier<HttpCrlFetcher> {
@@ -302,7 +302,7 @@ where
             url: url.clone(),
             source,
         })?;
-        let fetched = Arc::new(CachedCrl { crl, ttl });
+        let fetched = Arc::new(ParsedCrl { crl, ttl });
         Ok(FetchedCrl::Fresh { url, fetched })
     }
 
@@ -329,8 +329,8 @@ where
 
         // Commit any freshly-fetched CRLs to the cache after successful verification.
         for fetched in crls {
-            if let FetchedCrl::Fresh { url, fetched: cached } = fetched {
-                self.cache.insert(url, cached).await;
+            if let FetchedCrl::Fresh { url, fetched: parsed } = fetched {
+                self.cache.insert(url, parsed).await;
             }
         }
         Ok(())
