@@ -19,6 +19,7 @@ use derive_more::IsVariant;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use futures::future::try_join_all;
 use http_utils::client::TlsPinningConfig;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -794,31 +795,32 @@ async fn verify_device_request_with_crl(
     trust_anchors: &TrustAnchors,
     crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
 ) -> Result<BorrowingCertificate, CloseProximityDisclosureError> {
-    let mut certificate = None;
-    for doc_request in &device_request.doc_requests {
-        let doc_request_cert = doc_request
-            .verify_with_crl(session_transcript, time, trust_anchors, crl_verifier)
-            .await
-            .map_err(|error| match error {
-                mdoc::Error::Cose(CoseError::Certificate(error)) => {
-                    CloseProximityDisclosureError::InvalidReaderCertificate(error)
-                }
-                mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {
-                    CloseProximityDisclosureError::ReaderCertificateCrlVerification(error)
-                }
-                mdoc::Error::MissingReaderAuthentication => CloseProximityDisclosureError::MissingReaderAuth,
-                error => CloseProximityDisclosureError::InvalidDocRequest(error),
-            })?;
+    // Verify all `DocRequest` entries in parallel and make sure the resulting certificates are all exactly equal.
+    let certificate = try_join_all(device_request.doc_requests.iter().map(
+        async |doc_request| -> Result<_, CloseProximityDisclosureError> {
+            doc_request
+                .verify_with_crl(session_transcript, time, trust_anchors, crl_verifier)
+                .await
+                .map_err(|error| match error {
+                    mdoc::Error::Cose(CoseError::Certificate(error)) => {
+                        CloseProximityDisclosureError::InvalidReaderCertificate(error)
+                    }
+                    mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {
+                        CloseProximityDisclosureError::ReaderCertificateCrlVerification(error)
+                    }
+                    mdoc::Error::MissingReaderAuthentication => CloseProximityDisclosureError::MissingReaderAuth,
+                    error => CloseProximityDisclosureError::InvalidDocRequest(error),
+                })
+        },
+    ))
+    .await?
+    .into_iter()
+    // There is always at least one certificate, as `device_request.doc_requests` is non-empty and verification
+    // either returns a certificate or an error.
+    .unique()
+    .exactly_one()
+    .map_err(|_| CloseProximityDisclosureError::InconsistentReaderAuths)?;
 
-        if let Some(certificate) = &certificate
-            && &doc_request_cert != certificate
-        {
-            return Err(CloseProximityDisclosureError::InconsistentReaderAuths);
-        }
-        certificate = Some(doc_request_cert);
-    }
-
-    let certificate = certificate.expect("DeviceRequest contains at least one DocRequest");
     verify_requested_doc_formats(device_request)?;
 
     // TODO PVW-6052 Verify that the requested attributes are included in the registration certificate.
