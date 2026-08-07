@@ -70,6 +70,7 @@ der = { workspace = true, features = ["derive", "oid"] }
 ecdsa.workspace = true
 httpmock.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
+rsa = { workspace = true, features = ["pem"] }
 rstest.workspace = true
 time.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
