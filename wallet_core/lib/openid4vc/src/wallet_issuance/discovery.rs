@@ -600,7 +600,6 @@ mod test {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_string;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::HttpCertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
     use futures::future::try_join_all;
@@ -1310,7 +1309,7 @@ mod test {
     async fn start_check_metadata<'a>(
         to_signed_metadata: impl FnOnce(IssuerIdentifier, IssuerMetadata) -> SignedIssuerMetadataPayload<'a>,
         use_trust_anchors: bool,
-        crl_verifier: Option<HttpCertificateCrlVerifier>,
+        with_crl: bool,
     ) -> (
         IssuerIdentifier,
         Result<IssuanceFlow<HttpAuthorizationSession, HttpIssuanceSession>, WalletIssuanceError>,
@@ -1324,7 +1323,7 @@ mod test {
                 has_nonce_endpoint: false,
                 requires_key_binding: false,
                 grant_types_supported: None,
-                with_crl: crl_verifier.is_none(),
+                with_crl,
                 ..IssuerMetadataOptions::default()
             },
             to_signed_metadata,
@@ -1346,35 +1345,22 @@ mod test {
         } else {
             TrustAnchors::empty()
         };
-        let result = if let Some(crl_verifier) = crl_verifier {
-            HttpIssuanceDiscovery::new(http_client, crl_verifier)
-                .start(
-                    &offer_url,
-                    MOCK_WALLET_CLIENT_ID.to_string(),
-                    REDIRECT_URI.clone(),
-                    &TrustAnchors::empty(),
-                    &MockWiaClient::new(),
-                    &trust_anchors,
-                )
-                .await
-        } else {
-            HttpIssuanceDiscovery::new(http_client, mock_crl_verifier)
-                .start(
-                    &offer_url,
-                    MOCK_WALLET_CLIENT_ID.to_string(),
-                    REDIRECT_URI.clone(),
-                    &TrustAnchors::empty(),
-                    &MockWiaClient::new(),
-                    &trust_anchors,
-                )
-                .await
-        };
+        let result = HttpIssuanceDiscovery::new(http_client, mock_crl_verifier)
+            .start(
+                &offer_url,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &TrustAnchors::empty(),
+                &MockWiaClient::new(),
+                &trust_anchors,
+            )
+            .await;
         (credential_issuer, result)
     }
 
     #[tokio::test]
     async fn start_untrusted_metadata() {
-        let (_, result) = start_check_metadata(default_signed_metadata(), false, None).await;
+        let (_, result) = start_check_metadata(default_signed_metadata(), false, true).await;
 
         assert_matches!(
             result,
@@ -1386,9 +1372,7 @@ mod test {
 
     #[tokio::test]
     async fn start_metadata_with_crl_fails_without_distribution_point() {
-        let verifier =
-            HttpCertificateCrlVerifier::new_with_default_cache(httpmock_reqwest_client_builder().build().unwrap());
-        let (_, result) = start_check_metadata(default_signed_metadata(), true, Some(verifier)).await;
+        let (_, result) = start_check_metadata(default_signed_metadata(), true, false).await;
 
         assert_matches!(
             result,
@@ -1400,7 +1384,7 @@ mod test {
 
     #[tokio::test]
     async fn start_expired_metadata() {
-        let (_, result) = start_check_metadata(custom_signed_metadata(None, None, true), true, None).await;
+        let (_, result) = start_check_metadata(custom_signed_metadata(None, None, true), true, true).await;
 
         assert_matches!(
             result,
@@ -1416,7 +1400,7 @@ mod test {
         let (offered_identifier, result) = start_check_metadata(
             custom_signed_metadata(Some(different_identifier.clone()), None, false),
             true,
-            None,
+            true,
         )
         .await;
 
@@ -1434,7 +1418,7 @@ mod test {
         let (offered_identifier, result) = start_check_metadata(
             custom_signed_metadata(None, Some(different_identifier.clone()), false),
             true,
-            None,
+            true,
         )
         .await;
 
