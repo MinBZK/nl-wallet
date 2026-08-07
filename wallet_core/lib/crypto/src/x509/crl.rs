@@ -149,6 +149,8 @@ impl HttpCrlFetcher {
 
 impl CrlFetcher for HttpCrlFetcher {
     async fn fetch(&self, url: &Url) -> Result<Vec<u8>, CrlFetchError> {
+        // WRPAC requires servers to publish CRLs over plain HTTP. Deliberately do not enforce that server requirement
+        // here: accepting HTTPS distribution points as well improves interoperability with non-compliant deployments.
         let mut response = self
             .client
             .get(url.clone())
