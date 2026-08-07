@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::io::Read;
@@ -16,6 +17,8 @@ use crypto::aes_siv::AesSivBackend;
 use crypto::aes_siv::AesSivKey;
 use crypto::aes_siv::aes_siv_decrypt;
 use crypto::aes_siv::aes_siv_encrypt;
+use crypto::aes_siv::test::test_aes_siv_decrypt;
+use crypto::aes_siv::test::test_aes_siv_encrypt;
 use crypto::utils::random_bytes;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -152,7 +155,7 @@ pub struct TestCase<H> {
     hsm: Option<H>,
 
     /// Keys which are removed from the HSM by the [`AsyncDrop`] impl.
-    identifiers: HashSet<String>,
+    identifiers: RefCell<HashSet<String>>,
 }
 
 // Default is needed for AsyncDrop
@@ -160,7 +163,7 @@ impl<H> Default for TestCase<H> {
     fn default() -> Self {
         Self {
             identifier_prefix: String::new(),
-            identifiers: HashSet::new(),
+            identifiers: RefCell::new(HashSet::new()),
             hsm: None,
         }
     }
@@ -168,14 +171,14 @@ impl<H> Default for TestCase<H> {
 
 impl<H> TestCase<H> {
     /// Convenience function for test functions, returning the HSM as well as one key identifier for use in the test.
-    pub fn test_params(&mut self) -> (&H, String) {
+    pub fn test_params(&self) -> (&H, String) {
         let id = self.new_identifier();
         (self.hsm.as_ref().unwrap(), id)
     }
 
-    pub fn new_identifier(&mut self) -> String {
+    pub fn new_identifier(&self) -> String {
         let id = format!("{}-{}", self.identifier_prefix, crypto::utils::random_string(8));
-        self.identifiers.insert(id.clone());
+        self.identifiers.borrow_mut().insert(id.clone());
         id
     }
 }
@@ -190,7 +193,7 @@ impl TestCase<Pkcs11Hsm> {
 impl AsyncDrop for TestCase<Pkcs11Hsm> {
     async fn async_drop(&mut self) -> () {
         if let Some(hsm) = &self.hsm {
-            for identifier in &self.identifiers {
+            for identifier in self.identifiers.get_mut().iter() {
                 let _ = Hsm::delete_key(hsm, identifier).await;
             }
         }
@@ -201,7 +204,7 @@ impl TestCase<MockPkcs11Client<HsmError>> {
     pub fn mock(identifier_prefix: String) -> Self {
         Self {
             identifier_prefix,
-            identifiers: HashSet::new(),
+            identifiers: RefCell::new(HashSet::new()),
             hsm: Some(MockPkcs11Client::default()),
         }
     }
@@ -213,7 +216,7 @@ impl TestCase<Pkcs11Hsm> {
         let hsm = hsm_setup.pkcs11_hsm(settings.hsm.clone()).unwrap();
         Self {
             identifier_prefix,
-            identifiers: HashSet::new(),
+            identifiers: RefCell::new(HashSet::new()),
             hsm: Some(hsm),
         }
     }
@@ -221,7 +224,7 @@ impl TestCase<Pkcs11Hsm> {
 
 // These methods are to be called by integration tests.
 impl<H> TestCase<H> {
-    pub async fn sign_sha256_hmac(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn sign_sha256_hmac(self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm,
     {
@@ -235,7 +238,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn sign_ecdsa(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn sign_ecdsa(self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm,
     {
@@ -251,7 +254,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn encrypt_decrypt(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn encrypt_decrypt(self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm,
     {
@@ -271,7 +274,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn encrypt_decrypt_verifying_key(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn encrypt_decrypt_verifying_key(self: TestCase<H>) -> TestCase<H>
     where
         H: Hsm + Encrypter<VerifyingKey> + Decrypter<VerifyingKey>,
     {
@@ -291,7 +294,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn encrypt_ctr(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn encrypt_ctr(self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client,
     {
@@ -319,7 +322,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn cmac(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn cmac(self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client,
     {
@@ -346,7 +349,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn wrap_key_and_sign(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn wrap_key_and_sign(self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client,
     {
@@ -369,7 +372,7 @@ impl<H> TestCase<H> {
         self
     }
 
-    pub async fn aes_siv(mut self: TestCase<H>) -> TestCase<H>
+    pub async fn aes_siv(self: TestCase<H>) -> TestCase<H>
     where
         H: Pkcs11Client + AesSivBackend<MacKey = PrivateKeyHandle, EncryptionKey = PrivateKeyHandle>,
     {
@@ -403,5 +406,76 @@ impl<H> TestCase<H> {
         }
 
         self
+    }
+}
+
+// This test is not generic over `H`, unlike those above, because it needs to import keys with known
+// values, which only `Pkcs11Hsm` can do.
+impl TestCase<Pkcs11Hsm> {
+    /// Runs the pinned AES-SIV vectors from the `crypto` crate through the HSM, checking that the
+    /// PKCS#11 primitives produce RFC 5297 output rather than merely output they agree with
+    /// themselves on.
+    ///
+    /// This also tests the `CK_AES_CTR_PARAMS` marshalling in [`Pkcs11Hsm::encrypt_ctr()`], and
+    /// with it the `cryptoki-sys` patch in the workspace manifest that keeps that struct's layout
+    /// in step with the one `cryptoki` itself uses. Neither has anything else watching it.
+    ///
+    /// Known answers need keys with known values, so this imports its keys instead of generating
+    /// them. SoftHSM supports this, but a production HSM will not. If these tests woud be run
+    /// against an actual HSM, these tests will fail and will have to be disabled.
+    pub async fn aes_siv_encrypt_test_vectors(self: TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm> {
+        let hsm = self.hsm.as_ref().unwrap();
+
+        self.ensure_keys_can_be_imported(hsm).await;
+
+        test_aes_siv_encrypt(hsm, self.hsm_key_generator(hsm)).await;
+
+        self
+    }
+
+    pub async fn aes_siv_decrypt_test_vectors(self: TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm> {
+        let hsm = self.hsm.as_ref().unwrap();
+
+        self.ensure_keys_can_be_imported(hsm).await;
+
+        test_aes_siv_decrypt(hsm, self.hsm_key_generator(hsm)).await;
+
+        self
+    }
+
+    /// Ensure that we can import keys into the HSM. If not, this function will panic.
+    async fn ensure_keys_can_be_imported(&self, hsm: &Pkcs11Hsm) {
+        match hsm
+            .import_aes_key(&self.new_identifier(), AesKeyUsage::Cmac, [0; 32])
+            .await
+        {
+            Ok(_) => {}
+            Err(error) if error.is_key_import_unsupported() => {
+                // These tests are currently only run against SoftHSM, which can import keys.
+                panic!(
+                    "Cannot import keys. This HSM (simulator) does not accept imported key material ({error}). \
+                     Disable this test."
+                );
+            }
+            Err(error) => panic!("failed to import AES key: {error}"),
+        }
+    }
+
+    fn hsm_key_generator(
+        &self,
+        hsm: &Pkcs11Hsm,
+    ) -> impl AsyncFn(([u8; 32], [u8; 32])) -> (PrivateKeyHandle, PrivateKeyHandle) {
+        async |(mac_key, encryption_key)| {
+            let mac_key = hsm
+                .import_aes_key(&self.new_identifier(), AesKeyUsage::Cmac, mac_key)
+                .await
+                .expect("failed to import CMAC key");
+            let encryption_key = hsm
+                .import_aes_key(&self.new_identifier(), AesKeyUsage::Encryption, encryption_key)
+                .await
+                .expect("failed to import CTR key");
+
+            (mac_key, encryption_key)
+        }
     }
 }

@@ -14,7 +14,7 @@ doctest = false
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
 # Include TestCase type
-test = ["mock", "async-dropper/simple", "dep:async-trait", "config/toml", "dep:rand_core","dep:regex", "dep:tempfile"]
+test = ["mock", "async-dropper/simple", "dep:async-trait", "config/toml", "crypto/test", "dep:rand_core","dep:regex", "dep:tempfile"]
 # Integration test feature
 hsm_test = ["test"]
 

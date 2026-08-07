@@ -351,8 +351,160 @@ fn xorend(value: &[u8], mask: [u8; 16]) -> Result<Vec<u8>, AesSivError> {
     Ok([head, &(tail ^ mask).to_be_bytes()].concat())
 }
 
-#[cfg(any(test, feature = "mock"))]
-pub mod mock {
+#[cfg(any(test, feature = "test"))]
+pub mod test {
+    use hex_literal::hex;
+
+    use crate::aes_siv::AesSivBackend;
+    use crate::aes_siv::AesSivKey;
+    use crate::aes_siv::aes_siv_decrypt;
+    use crate::aes_siv::aes_siv_encrypt;
+
+    /// A 512-bit AES-SIV key `K = K1 || K2`, to be taken apart with [`split_key()`].
+    pub const KEY_A: [u8; 64] = hex!(
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+        "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+    );
+    /// A second 512-bit key, unrelated to [`KEY_A`], for the cases that need two.
+    pub const KEY_B: [u8; 64] = hex!(
+        "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0"
+        "dfdedddcdbdad9d8d7d6d5d4d3d2d1d0cfcecdcccbcac9c8c7c6c5c4c3c2c1c0"
+    );
+
+    /// Splits one of the 512-bit keys above into the (K1, K2) pair that [`aes_siv_encrypt`] and
+    /// [`aes_siv_decrypt`] take, in that argument order.
+    ///
+    /// [`aes_siv_encrypt`]: super::aes_siv_encrypt
+    /// [`aes_siv_decrypt`]: super::aes_siv_decrypt
+    pub fn split_key(key: [u8; 64]) -> ([u8; 32], [u8; 32]) {
+        let cmac_key = key[..32].try_into().unwrap();
+        let ctr_key = key[32..].try_into().unwrap();
+
+        (cmac_key, ctr_key)
+    }
+
+    struct TestCase {
+        pub key: [u8; 64],
+        pub plaintext: &'static [u8],
+        /// The full `Z = V || C`.
+        pub expected: &'static [u8],
+    }
+
+    impl TestCase {
+        /// The (K1, K2) pair of this case's key, as [`split_key()`] returns it.
+        fn keys(&self) -> ([u8; 32], [u8; 32]) {
+            split_key(self.key)
+        }
+    }
+
+    /// Full `Z = V || C` for [`aes_siv_encrypt()`](super::aes_siv_encrypt) end to end, cross-checked
+    /// against the RustCrypto "aes-siv" crate (RFC 5297 has no vectors for this).
+    ///
+    /// The leading 16 bytes of each `Z` below are the `V` values already pinned by `test_s2v`.
+    const AES_SIV_TEST_CASES: [TestCase; 8] = [
+        TestCase {
+            key: KEY_A,
+            plaintext: &hex!("112233445566778899aabbccddeeff00"),
+            expected: &hex!("dfcd1b3b363f913fec392c3a9ef711dfa1f4fe6c9986e37ea6b5e75e03d478b2"),
+        },
+        TestCase {
+            key: KEY_A,
+            plaintext: &hex!("101112131415161718191a1b1c1d1e1f2021222324252627"),
+            expected: &hex!("92f11ff1abf542c53342e2757de0098ec912ac7c551799cefe24283143ce945ce2b35f42c2c90e37"),
+        },
+        TestCase {
+            key: KEY_A,
+            plaintext: &hex!("00000000000000000000000000000000000000000000000000000000000000000000"),
+            expected: &hex!(
+                "1cd2b878630b7bbccfccf7602045f15a3937abc2000c6989a79fe5e36adb54c7fc46564b349df399fbb6acf63bc6eb1cbba7"
+            ),
+        },
+        TestCase {
+            key: KEY_A,
+            plaintext: &hex!("74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"),
+            expected: &hex!(
+                "215477c695fffb1d14e43bb018e4e204cdb75f0dbefe93a83694395ea8f9678a"
+                "4adcb246ff83778d64570f6d7ef936b42a17e513f9326566639449"
+            ),
+        },
+        TestCase {
+            key: KEY_B,
+            plaintext: &hex!("112233445566778899aabbccddeeff00"),
+            expected: &hex!("b7e6dd3032146cc7e9868aec583f62e8c7407883d7523ddfa1e047ef40331b9c"),
+        },
+        TestCase {
+            key: KEY_B,
+            plaintext: &hex!("101112131415161718191a1b1c1d1e1f2021222324252627"),
+            expected: &hex!("fc2261a9c2d144063301ce5898e9efc06752ab4877c38c47575b5c97e6b263236dd41247051049b9"),
+        },
+        TestCase {
+            key: KEY_B,
+            plaintext: &hex!("00000000000000000000000000000000000000000000000000000000000000000000"),
+            expected: &hex!(
+                "cf85b6c330dc2c219a34e95192a87be7a4b081f9ace4294ccd128e2cdc2ff0f9d02694252ce5fc031725db3ca10f85a62ea3"
+            ),
+        },
+        TestCase {
+            key: KEY_B,
+            plaintext: &hex!("74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"),
+            expected: &hex!(
+                "8c9ade993d3825bfcd5d39186746eed6acb6c13f31bd7ab1282d4bb1ce062a89"
+                "64c86f01a8c24ef8e93c0bd4ff09d393b2101cd2642f4895ce4766"
+            ),
+        },
+    ];
+
+    /// Runs [`AES_SIV_TEST_CASES`] against `backend`, so that any [`AesSivBackend`] implementation
+    /// can be held to the same known answers.
+    ///
+    /// `key_generator` turns the raw (K1, K2) bytes of a case into whatever the backend uses to refer to keys.
+    pub async fn test_aes_siv_encrypt<K, B>(backend: &B, key_generator: impl AsyncFn(([u8; 32], [u8; 32])) -> (K, K))
+    where
+        K: Eq,
+        B: AesSivBackend<MacKey = K, EncryptionKey = K>,
+    {
+        for (index, case) in AES_SIV_TEST_CASES.iter().enumerate() {
+            let (cmac_key, ctr_key) = key_generator(case.keys()).await;
+
+            let z = aes_siv_encrypt(
+                backend,
+                &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
+                case.plaintext.to_vec(),
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(z, case.expected, "case {index}");
+            assert_eq!(z.len(), 16 + case.plaintext.len(), "case {index}");
+        }
+    }
+
+    /// The same pinned vectors as [`test_aes_siv_encrypt`], read in the other direction. Testing decrypt
+    /// against a round trip alone would pass even if both directions shared a compensating error, so
+    /// the ciphertexts here are the externally generated ones rather than whatever encrypt produced.
+    pub async fn test_aes_siv_decrypt<K, B>(backend: &B, key_generator: impl AsyncFn(([u8; 32], [u8; 32])) -> (K, K))
+    where
+        K: Eq,
+        B: AesSivBackend<MacKey = K, EncryptionKey = K>,
+    {
+        for (index, case) in AES_SIV_TEST_CASES.iter().enumerate() {
+            let (cmac_key, ctr_key) = key_generator(case.keys()).await;
+
+            let plaintext = aes_siv_decrypt(
+                backend,
+                &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
+                case.expected.to_vec(),
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(plaintext, case.plaintext, "case {index}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
     use std::convert::Infallible;
 
     use aes::Aes256;
@@ -361,8 +513,21 @@ pub mod mock {
     use cmac::Cmac;
     use cmac::Mac;
     use ctr::Ctr128BE;
+    use hex_literal::hex;
+    use rstest::rstest;
 
     use super::AesSivBackend;
+    use super::AesSivError;
+    use super::AesSivKey;
+    use super::AesSivKeyErrorKeysEqual;
+    use super::aes_siv_decrypt;
+    use super::aes_siv_encrypt;
+    use super::ctr_iv;
+    use super::s2v;
+    use super::test::KEY_A;
+    use super::test::KEY_B;
+    use super::test::split_key;
+    use super::xorend;
 
     /// An [`AesSivBackend`] that performs both operations in memory, on raw keys handed to it by
     /// the caller, for tests and for local development.
@@ -396,21 +561,6 @@ pub mod mock {
             Ok(output)
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use rstest::rstest;
-
-    use super::AesSivError;
-    use super::AesSivKey;
-    use super::AesSivKeyErrorKeysEqual;
-    use super::aes_siv_decrypt;
-    use super::aes_siv_encrypt;
-    use super::ctr_iv;
-    use super::mock::MemoryAesSivBackend;
-    use super::s2v;
-    use super::xorend;
 
     #[rstest]
     // The one worked xorend in RFC 5297, from the S2V of appendix A.2: its 47-byte plaintext
@@ -419,32 +569,25 @@ mod tests {
     // above the "xorend" line there. Everything but the last block is passed through untouched,
     // which here is the leading 31 bytes.
     #[case(
-        "7468697320697320736f6d6520706c61696e7465787420746f20656e6372797074207573696e67205349562d414553",
-        "16592c17729a5a725567636168b48376",
-        "7468697320697320736f6d6520706c61696e7465787420746f20656e637279662d0c6201f3341575342a3745f5c625"
+        &hex!("7468697320697320736f6d6520706c61696e7465787420746f20656e6372797074207573696e67205349562d414553"),
+        hex!("16592c17729a5a725567636168b48376"),
+        &hex!("7468697320697320736f6d6520706c61696e7465787420746f20656e637279662d0c6201f3341575342a3745f5c625")
     )]
     // Exactly one block, so there is nothing to pass through and xorend degenerates to xor. An
     // all-ones mask makes that complement the input, which is checkable by eye.
     #[case(
-        "112233445566778899aabbccddeeff00",
-        "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-        "eeddccbbaa99887766554433221100ff"
+        &hex!("112233445566778899aabbccddeeff00"),
+        hex!("ffffffffffffffffffffffffffffffff"),
+        &hex!("eeddccbbaa99887766554433221100ff")
     )]
     // A zero mask leaves the input alone.
     #[case(
-        "112233445566778899aabbccddeeff0011223344",
-        "00000000000000000000000000000000",
-        "112233445566778899aabbccddeeff0011223344"
+        &hex!("112233445566778899aabbccddeeff0011223344"),
+        hex!("00000000000000000000000000000000"),
+        &hex!("112233445566778899aabbccddeeff0011223344")
     )]
-    fn test_xorend(#[case] value: &str, #[case] mask: &str, #[case] expected: &str) {
-        assert_eq!(
-            xorend(
-                &hex::decode(value).unwrap(),
-                hex::decode(mask).unwrap().try_into().unwrap()
-            )
-            .unwrap(),
-            hex::decode(expected).unwrap()
-        );
+    fn test_xorend(#[case] value: &[u8], #[case] mask: [u8; 16], #[case] expected: &[u8]) {
+        assert_eq!(xorend(value, mask).unwrap(), expected);
     }
 
     // For S2V, RFC 5297 contains no test vectors that apply. Both worked examples in appendix A use a
@@ -452,80 +595,49 @@ mod tests {
     // and both call S2V with more than one string (2 in A.1, 4 in A.2), so neither reaches this
     // n = 1 path. These vectors were instead created using the RustCrypto "aes-siv" crate,
     // whose Aes256Siv is CmacSiv<Aes256> and whose detached tag is exactly the S2V output.
-    // Encrypting with no headers makes S2V take a single string, so the tag for key K1 || K2 and
+    // Encrypting with no AD makes S2V take a single string, so the tag for key K1 || K2 and
     // plaintext P equals s2v(K1, P).
     #[rstest]
     #[case(
-        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-        "112233445566778899aabbccddeeff00",
-        "dfcd1b3b363f913fec392c3a9ef711df"
+        hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"),
+        &hex!("112233445566778899aabbccddeeff00"),
+        hex!("dfcd1b3b363f913fec392c3a9ef711df")
     )]
     #[case(
-        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-        "101112131415161718191a1b1c1d1e1f2021222324252627",
-        "92f11ff1abf542c53342e2757de0098e"
+        hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"),
+        &hex!("101112131415161718191a1b1c1d1e1f2021222324252627"),
+        hex!("92f11ff1abf542c53342e2757de0098e")
     )]
     #[case(
-        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67",
-        "215477c695fffb1d14e43bb018e4e204"
+        hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"),
+        &hex!("74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"),
+        hex!("215477c695fffb1d14e43bb018e4e204")
     )]
     #[case(
-        "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0",
-        "112233445566778899aabbccddeeff00",
-        "b7e6dd3032146cc7e9868aec583f62e8"
+        hex!("fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0"),
+        &hex!("112233445566778899aabbccddeeff00"),
+        hex!("b7e6dd3032146cc7e9868aec583f62e8")
     )]
     #[case(
-        "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0",
-        "00000000000000000000000000000000000000000000000000000000000000000000",
-        "cf85b6c330dc2c219a34e95192a87be7"
+        hex!("fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0"),
+        &hex!("00000000000000000000000000000000000000000000000000000000000000000000"),
+        hex!("cf85b6c330dc2c219a34e95192a87be7")
     )]
     #[tokio::test]
-    async fn test_s2v(#[case] key: &str, #[case] s1: &str, #[case] expected: &str) {
-        let key: [u8; 32] = hex::decode(key).unwrap().try_into().unwrap();
-        let expected: [u8; 16] = hex::decode(expected).unwrap().try_into().unwrap();
-
-        assert_eq!(
-            s2v(&MemoryAesSivBackend, &key, &hex::decode(s1).unwrap())
-                .await
-                .unwrap(),
-            expected
-        );
+    async fn test_s2v(#[case] key: [u8; 32], #[case] s1: &[u8], #[case] expected: [u8; 16]) {
+        assert_eq!(s2v(&MemoryAesSivBackend, &key, s1).await.unwrap(), expected);
     }
 
     #[rstest]
     // RFC 5297, appendix A.1.
-    #[case("85632d07c6e8f37f950acd320a2ecc93", "85632d07c6e8f37f150acd320a2ecc93")]
+    #[case(hex!("85632d07c6e8f37f950acd320a2ecc93"), hex!("85632d07c6e8f37f150acd320a2ecc93"))]
     // RFC 5297, appendix A.2.
-    #[case("7bdb6e3b432667eb06f4d14bff2fbd0f", "7bdb6e3b432667eb06f4d14b7f2fbd0f")]
+    #[case(hex!("7bdb6e3b432667eb06f4d14bff2fbd0f"), hex!("7bdb6e3b432667eb06f4d14b7f2fbd0f"))]
     // Every bit set, so only the two masked bits may change, and nothing set at all.
-    #[case("ffffffffffffffffffffffffffffffff", "ffffffffffffffff7fffffff7fffffff")]
-    #[case("00000000000000000000000000000000", "00000000000000000000000000000000")]
-    fn test_ctr_iv(#[case] v: &str, #[case] expected: &str) {
-        let v: [u8; 16] = hex::decode(v).unwrap().try_into().unwrap();
-        let expected: [u8; 16] = hex::decode(expected).unwrap().try_into().unwrap();
-
+    #[case(hex!("ffffffffffffffffffffffffffffffff"), hex!("ffffffffffffffff7fffffff7fffffff"))]
+    #[case(hex!("00000000000000000000000000000000"), hex!("00000000000000000000000000000000"))]
+    fn test_ctr_iv(#[case] v: [u8; 16], #[case] expected: [u8; 16]) {
         assert_eq!(ctr_iv(v), expected);
-    }
-
-    const KEY_A: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\
-                         202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f";
-    const KEY_B: &str = "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0\
-                         dfdedddcdbdad9d8d7d6d5d4d3d2d1d0cfcecdcccbcac9c8c7c6c5c4c3c2c1c0";
-
-    /// Splits one of the 512-bit keys above into the (K1, K2) pair that [`aes_siv_encrypt`] and
-    /// [`aes_siv_decrypt`] take, in that argument order.
-    ///
-    /// The vectors above were generated against the RustCrypto "aes-siv" crate, which takes the
-    /// single key `K = K1 || K2` of RFC 5297: the leading half is the CMAC key K1 and the trailing
-    /// half the CTR key K2. Keeping the split here means those vectors stay usable verbatim.
-    fn split_key(key: &str) -> ([u8; 32], [u8; 32]) {
-        let key: [u8; 64] = hex::decode(key).unwrap().try_into().unwrap();
-
-        let cmac_key = key[..32].try_into().unwrap();
-        let ctr_key = key[32..].try_into().unwrap();
-
-        (cmac_key, ctr_key)
     }
 
     #[rstest]
@@ -545,129 +657,19 @@ mod tests {
         assert!(matches!(error, AesSivError::PlaintextTooShort));
     }
 
-    // Full Z = V || C for aes_siv_encrypt() end to end, cross-checked against the RustCrypto "aes-siv"
-    // crate (RFC 5297 has no vectors for this).
-    // The leading 16 bytes of each Z below are the V values already pinned by test_s2v.
-    #[rstest]
-    #[case(
-        KEY_A,
-        "112233445566778899aabbccddeeff00",
-        "dfcd1b3b363f913fec392c3a9ef711dfa1f4fe6c9986e37ea6b5e75e03d478b2"
-    )]
-    #[case(
-        KEY_A,
-        "101112131415161718191a1b1c1d1e1f2021222324252627",
-        "92f11ff1abf542c53342e2757de0098ec912ac7c551799cefe24283143ce945ce2b35f42c2c90e37"
-    )]
-    #[case(
-        KEY_A,
-        "00000000000000000000000000000000000000000000000000000000000000000000",
-        "1cd2b878630b7bbccfccf7602045f15a3937abc2000c6989a79fe5e36adb54c7fc46564b349df399fbb6acf63bc6eb1cbba7"
-    )]
-    #[case(
-        KEY_A,
-        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67",
-        "215477c695fffb1d14e43bb018e4e204cdb75f0dbefe93a83694395ea8f9678a\
-         4adcb246ff83778d64570f6d7ef936b42a17e513f9326566639449"
-    )]
-    #[case(
-        KEY_B,
-        "112233445566778899aabbccddeeff00",
-        "b7e6dd3032146cc7e9868aec583f62e8c7407883d7523ddfa1e047ef40331b9c"
-    )]
-    #[case(
-        KEY_B,
-        "101112131415161718191a1b1c1d1e1f2021222324252627",
-        "fc2261a9c2d144063301ce5898e9efc06752ab4877c38c47575b5c97e6b263236dd41247051049b9"
-    )]
-    #[case(
-        KEY_B,
-        "00000000000000000000000000000000000000000000000000000000000000000000",
-        "cf85b6c330dc2c219a34e95192a87be7a4b081f9ace4294ccd128e2cdc2ff0f9d02694252ce5fc031725db3ca10f85a62ea3"
-    )]
-    #[case(
-        KEY_B,
-        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67",
-        "8c9ade993d3825bfcd5d39186746eed6acb6c13f31bd7ab1282d4bb1ce062a89\
-         64c86f01a8c24ef8e93c0bd4ff09d393b2101cd2642f4895ce4766"
-    )]
-    #[tokio::test]
-    async fn test_aes_siv_encrypt(#[case] key: &str, #[case] plaintext: &str, #[case] expected: &str) {
-        let (cmac_key, ctr_key) = split_key(key);
-        let plaintext = hex::decode(plaintext).unwrap();
-
-        let z = aes_siv_encrypt(
-            &MemoryAesSivBackend,
-            &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
-            plaintext.clone(),
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(z, hex::decode(expected).unwrap());
-        assert_eq!(z.len(), 16 + plaintext.len());
+    /// Async version of [`std::convert::identity`].
+    async fn identity<T>(val: T) -> T {
+        val
     }
 
-    // The same pinned vectors as test_aes_siv_encrypt, read in the other direction. Testing decrypt
-    // against a round trip alone would pass even if both directions shared a compensating error, so
-    // the ciphertexts here are the externally generated ones rather than whatever encrypt produced.
-    #[rstest]
-    #[case(
-        KEY_A,
-        "dfcd1b3b363f913fec392c3a9ef711dfa1f4fe6c9986e37ea6b5e75e03d478b2",
-        "112233445566778899aabbccddeeff00"
-    )]
-    #[case(
-        KEY_A,
-        "92f11ff1abf542c53342e2757de0098ec912ac7c551799cefe24283143ce945ce2b35f42c2c90e37",
-        "101112131415161718191a1b1c1d1e1f2021222324252627"
-    )]
-    #[case(
-        KEY_A,
-        "1cd2b878630b7bbccfccf7602045f15a3937abc2000c6989a79fe5e36adb54c7fc46564b349df399fbb6acf63bc6eb1cbba7",
-        "00000000000000000000000000000000000000000000000000000000000000000000"
-    )]
-    #[case(
-        KEY_A,
-        "215477c695fffb1d14e43bb018e4e204cdb75f0dbefe93a83694395ea8f9678a\
-         4adcb246ff83778d64570f6d7ef936b42a17e513f9326566639449",
-        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"
-    )]
-    #[case(
-        KEY_B,
-        "b7e6dd3032146cc7e9868aec583f62e8c7407883d7523ddfa1e047ef40331b9c",
-        "112233445566778899aabbccddeeff00"
-    )]
-    #[case(
-        KEY_B,
-        "fc2261a9c2d144063301ce5898e9efc06752ab4877c38c47575b5c97e6b263236dd41247051049b9",
-        "101112131415161718191a1b1c1d1e1f2021222324252627"
-    )]
-    #[case(
-        KEY_B,
-        "cf85b6c330dc2c219a34e95192a87be7a4b081f9ace4294ccd128e2cdc2ff0f9d02694252ce5fc031725db3ca10f85a62ea3",
-        "00000000000000000000000000000000000000000000000000000000000000000000"
-    )]
-    #[case(
-        KEY_B,
-        "8c9ade993d3825bfcd5d39186746eed6acb6c13f31bd7ab1282d4bb1ce062a89\
-         64c86f01a8c24ef8e93c0bd4ff09d393b2101cd2642f4895ce4766",
-        "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67"
-    )]
+    // In these tests the in-memory backend takes and uses the raw key bytes directly.
     #[tokio::test]
-    async fn test_aes_siv_decrypt(#[case] key: &str, #[case] ciphertext: &str, #[case] expected: &str) {
-        let (cmac_key, ctr_key) = split_key(key);
-        let ciphertext = hex::decode(ciphertext).unwrap();
-
-        let plaintext = aes_siv_decrypt(
-            &MemoryAesSivBackend,
-            &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
-            ciphertext,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(plaintext, hex::decode(expected).unwrap());
+    async fn test_aes_siv_encrypt() {
+        super::test::test_aes_siv_encrypt(&MemoryAesSivBackend, identity).await
+    }
+    #[tokio::test]
+    async fn test_aes_siv_decrypt() {
+        super::test::test_aes_siv_decrypt(&MemoryAesSivBackend, identity).await
     }
 
     #[rstest]

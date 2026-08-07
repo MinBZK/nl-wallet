@@ -21,6 +21,8 @@ generate = ["dep:time", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 mock = ["dep:parking_lot", "dep:rand_core"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 mock_secure_keys = []
+# Expose AES-SIV test vectors
+test = ["dep:hex-literal"]
 
 [dependencies]
 aes-gcm.workspace = true
@@ -72,6 +74,7 @@ cmac.workspace = true
 ctr.workspace = true
 der = { workspace = true, features = ["derive", "oid"] }
 ecdsa.workspace = true
+hex-literal.workspace = true
 httpmock.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 rsa = { workspace = true, features = ["pem"] }
