@@ -1293,26 +1293,34 @@ mod tests {
         assert_eq!(client_id.id, expected_hash);
     }
 
-    fn setup_mdoc() -> (
-        TrustAnchors,
-        KeyPair,
-        JweEcdhSecretKey,
-        NormalizedVpAuthorizationRequest,
-    ) {
+    fn setup_mdoc() -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest) {
         setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_iso_example())
+    }
+
+    fn setup_mdoc_without_crl_distribution_point() -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest)
+    {
+        setup_with_credential_requests_and_crl_distribution_point(
+            NormalizedCredentialRequests::new_mock_mdoc_iso_example(),
+            false,
+        )
     }
 
     fn setup_with_credential_requests(
         credential_requests: NormalizedCredentialRequests,
-    ) -> (
-        TrustAnchors,
-        KeyPair,
-        JweEcdhSecretKey,
-        NormalizedVpAuthorizationRequest,
-    ) {
+    ) -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest) {
+        setup_with_credential_requests_and_crl_distribution_point(credential_requests, true)
+    }
+
+    fn setup_with_credential_requests_and_crl_distribution_point(
+        credential_requests: NormalizedCredentialRequests,
+        with_crl_distribution_point: bool,
+    ) -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest) {
         let ca = Ca::generate_mock();
-        let trust_anchor = TrustAnchors::from(&ca);
-        let rp_keypair = ca.generate_wrpac_verifier_mock().unwrap();
+        let rp_keypair = if with_crl_distribution_point {
+            ca.generate_wrpac_verifier_mock_with_crl().unwrap()
+        } else {
+            ca.generate_wrpac_verifier_mock().unwrap()
+        };
 
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();
@@ -1328,7 +1336,7 @@ mod tests {
             None,
         );
 
-        (trust_anchor, rp_keypair, encryption_secret_key, auth_request)
+        (ca, rp_keypair, encryption_secret_key, auth_request)
     }
 
     #[test]
@@ -1380,12 +1388,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_authorization_request_jwt() {
-        let (_, _, _, mut auth_request) = setup_mdoc();
-        let ca = Ca::generate_mock();
+        let (ca, rp_keypair, _, mut auth_request) = setup_mdoc();
         let trust_anchor = TrustAnchors::from(&ca);
-        let rp_keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
         let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
-        auth_request.client_id = ClientId::x509_hash_from_certificate(rp_keypair.certificate());
         auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
@@ -1403,7 +1408,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_authorization_request_jwt_with_crl_fails_without_distribution_point() {
-        let (trust_anchor, rp_keypair, _, auth_request) = setup_mdoc();
+        let (ca, rp_keypair, _, auth_request) = setup_mdoc_without_crl_distribution_point();
+        let trust_anchor = TrustAnchors::from(&ca);
         let auth_request_jwt =
             SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
                 .await
