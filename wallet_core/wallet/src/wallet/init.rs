@@ -175,11 +175,11 @@ pub struct WalletRepositories<CR, UR> {
 
 #[derive(Debug)]
 pub struct WalletClients<APC, CID, DCC, SLC> {
-    pub account_provider_client: APC,
-    pub credential_issuer_discovery: CID,
-    pub disclosure_client: DCC,
-    pub(crate) crl_verifier: WalletCertificateCrlVerifier,
-    pub status_list_client: SLC,
+    account_provider_client: APC,
+    credential_issuer_discovery: CID,
+    disclosure_client: DCC,
+    crl_verifier: WalletCertificateCrlVerifier,
+    status_list_client: SLC,
 }
 
 #[derive(Clone, Debug)]
