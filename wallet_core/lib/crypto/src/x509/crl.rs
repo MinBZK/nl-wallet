@@ -177,12 +177,10 @@ impl CrlFetcher for HttpCrlFetcher {
 /// Freshly-fetched CRL candidates are only committed to the cache after the certificate chain successfully verifies;
 /// cached candidates are checked again whenever `rustls-webpki` selects them for a certificate.
 #[derive(Clone, Debug)]
-pub struct CertificateCrlVerifier<F> {
+pub struct CertificateCrlVerifier<F = HttpCrlFetcher> {
     fetcher: F,
     cache: Cache<Url, Arc<CachedCrl>>,
 }
-
-pub type HttpCertificateCrlVerifier = CertificateCrlVerifier<HttpCrlFetcher>;
 
 impl CertificateCrlVerifier<HttpCrlFetcher> {
     pub fn new_with_default_cache(client: Client) -> Self {
@@ -419,15 +417,13 @@ pub mod mock {
         crls: Arc<HashMap<Url, Vec<u8>>>,
     }
 
-    pub type MockCertificateCrlVerifier = CertificateCrlVerifier<MockCrlFetcher>;
-
-    impl Default for MockCertificateCrlVerifier {
+    impl Default for CertificateCrlVerifier<MockCrlFetcher> {
         fn default() -> Self {
             Self::new_with_fetcher(MockCrlFetcher::default(), DEFAULT_CACHE_CAPACITY)
         }
     }
 
-    impl MockCertificateCrlVerifier {
+    impl CertificateCrlVerifier<MockCrlFetcher> {
         pub fn new_for_ca(ca: &Ca) -> Self {
             let crl = ca.generate_crl(vec![], 1).unwrap().der().to_vec();
             Self::new_with_fetcher(
@@ -498,7 +494,7 @@ mod tests {
     use crate::x509::DistinguishedName;
     use crate::x509::NO_SAN;
 
-    type CrlVerifier = HttpCertificateCrlVerifier;
+    type CrlVerifier = CertificateCrlVerifier;
 
     #[derive(Clone, Debug)]
     struct ConcurrencyTrackingFetcher {

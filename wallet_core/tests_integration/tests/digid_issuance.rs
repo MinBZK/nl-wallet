@@ -5,7 +5,7 @@ use crypto::server_keys::generate::mock::ISSUANCE_CERT_DN;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::NO_SAN;
-use crypto::x509::crl::HttpCertificateCrlVerifier;
+use crypto::x509::crl::CertificateCrlVerifier;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
@@ -168,7 +168,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let http_client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
     let crl_verifier =
-        HttpCertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
+        CertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client, crl_verifier);
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);

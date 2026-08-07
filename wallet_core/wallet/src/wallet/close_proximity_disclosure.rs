@@ -882,7 +882,8 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+    use crypto::x509::crl::CertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCrlFetcher;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
@@ -1594,7 +1595,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1608,7 +1609,7 @@ mod tests {
         let (device_request, session_transcript, trust_anchors) =
             setup_device_request(vec![items_request], None, false).await;
 
-        let verifier = MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA);
+        let verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA);
         let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
@@ -1653,7 +1654,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1682,7 +1683,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1708,7 +1709,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1731,7 +1732,7 @@ mod tests {
             &other_session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1755,7 +1756,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1795,7 +1796,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
         )
         .await;
 

@@ -10,7 +10,8 @@ use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use http::header;
 use http::header::ACCEPT;
 use http::header::CONTENT_TYPE;
@@ -108,7 +109,7 @@ struct AuthCodeFlowServer {
     issuer_identifier: IssuerIdentifier,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
-    crl_verifier: MockCertificateCrlVerifier,
+    crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
 }
 
 /// Bundle returned by `start_pre_authorized_code_flow_server`.
@@ -117,7 +118,7 @@ struct PreAuthCodeFlowServer {
     trust_anchors: TrustAnchors,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
-    crl_verifier: MockCertificateCrlVerifier,
+    crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
 }
 
 async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCodeFlowServer {

@@ -140,7 +140,8 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+    use crypto::x509::crl::CertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCrlFetcher;
     use utils::generator::TimeGenerator;
 
     use super::*;
@@ -191,7 +192,7 @@ mod tests {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
-        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
+        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
         let session_transcript = SessionTranscript::new_mock();
         let items_request = ItemsRequest::new_example();
         let doc_request = create_doc_request(items_request.clone(), &session_transcript, &key_pair).await;
@@ -219,7 +220,7 @@ mod tests {
     async fn test_doc_request_verify_with_crl_requires_distribution_point() {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
-        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
+        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
         let session_transcript = SessionTranscript::new_mock();
         let doc_request = create_doc_request(ItemsRequest::new_example(), &session_transcript, &key_pair).await;
 

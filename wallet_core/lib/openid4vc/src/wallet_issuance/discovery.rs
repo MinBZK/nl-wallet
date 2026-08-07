@@ -600,7 +600,7 @@ mod test {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_string;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+    use crypto::x509::crl::CertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
     use futures::future::try_join_all;
     use http::header;
@@ -662,7 +662,7 @@ mod test {
     fn mock_discovery() -> HttpIssuanceDiscovery<MockCrlFetcher> {
         HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            MockCertificateCrlVerifier::default(),
+            CertificateCrlVerifier::<MockCrlFetcher>::default(),
         )
     }
 
@@ -698,14 +698,14 @@ mod test {
         server: &MockServer,
         options: IssuerMetadataOptions<'_>,
         to_signed_metadata: impl FnOnce(IssuerIdentifier, IssuerMetadata) -> SignedIssuerMetadataPayload<'a>,
-    ) -> (IssuerIdentifier, TrustAnchors, MockCertificateCrlVerifier) {
+    ) -> (IssuerIdentifier, TrustAnchors, CertificateCrlVerifier<MockCrlFetcher>) {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let wrpac_keypair = if options.with_crl {
             ca.generate_wrpac_issuer_mock_with_crl().unwrap()
         } else {
             ca.generate_wrpac_issuer_mock().unwrap()
         };
-        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
+        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
 
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
@@ -819,7 +819,7 @@ mod test {
         IssuerIdentifier,
         TrustAnchors,
         TrustAnchors,
-        MockCertificateCrlVerifier,
+        CertificateCrlVerifier<MockCrlFetcher>,
     ) {
         let server = MockServer::start_async().await;
 

@@ -30,7 +30,8 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
-use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -152,7 +153,7 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
 async fn disclosure_direct() {
     let ca = Ca::generate_mock();
     let auth_keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
+    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = Nonce::from("nonce".to_string());
@@ -205,7 +206,7 @@ async fn disclosure_direct() {
 async fn disclosure_jwe(
     auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
     trust_anchors: &TrustAnchors,
-    crl_verifier: &MockCertificateCrlVerifier,
+    crl_verifier: &CertificateCrlVerifier<MockCrlFetcher>,
     issuer_ca: &Ca,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::generate());
@@ -283,7 +284,10 @@ async fn disclosure_using_message_client(
     let request_uri = message_client.start_session();
 
     // Perform the first part, which creates the disclosure session.
-    let client = VpDisclosureClient::new(message_client, MockCertificateCrlVerifier::new_for_ca(&ca));
+    let client = VpDisclosureClient::new(
+        message_client,
+        CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca),
+    );
     let session = client
         .start(&request_uri, DisclosureUriSource::Link, &TrustAnchors::from(&ca))
         .await
@@ -1059,7 +1063,7 @@ fn setup_wallet_initiated_usecase_verifier<G>(
     TrustAnchors,
     KeyPair,
     ClientId,
-    MockCertificateCrlVerifier,
+    CertificateCrlVerifier<MockCrlFetcher>,
 )
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
@@ -1093,7 +1097,7 @@ where
         ))),
     ));
 
-    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&wrpac_ca);
+    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&wrpac_ca);
 
     (
         verifier,
@@ -1113,7 +1117,7 @@ fn setup_verifier(
     Arc<MockRpInitiatedUseCaseVerifier>,
     TrustAnchors,
     KeyPair,
-    MockCertificateCrlVerifier,
+    CertificateCrlVerifier<MockCrlFetcher>,
 ) {
     // Initialize key material
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -1174,7 +1178,7 @@ fn setup_verifier(
         ))),
     ));
 
-    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&wrpac_ca);
+    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&wrpac_ca);
 
     (verifier, TrustAnchors::from(&wrpac_ca), issuer_keypair, crl_verifier)
 }
@@ -1184,7 +1188,7 @@ async fn start_disclosure_session<US, UC>(
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: TrustAnchors,
-    crl_verifier: MockCertificateCrlVerifier,
+    crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
 ) -> Result<VpDisclosureSession<VerifierMockVpMessageClient<MockVerifier<US>>>, VpSessionError>
 where
     US: UseCases<UseCase = UC, Key = SigningKey>,

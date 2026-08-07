@@ -24,7 +24,8 @@ use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use dcql::CredentialQuery;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -125,7 +126,7 @@ async fn wallet_server_settings_and_listener(
     TcpListener,
     Ca,
     TrustAnchors,
-    MockCertificateCrlVerifier,
+    CertificateCrlVerifier<MockCrlFetcher>,
 ) {
     // Set up the listener.
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -145,7 +146,7 @@ async fn wallet_server_settings_and_listener(
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&wrpac_ca);
+    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&wrpac_ca);
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -574,7 +575,7 @@ async fn start_disclosure<S>(
     BaseUrl,
     Ca,
     TrustAnchors,
-    MockCertificateCrlVerifier,
+    CertificateCrlVerifier<MockCrlFetcher>,
 )
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,

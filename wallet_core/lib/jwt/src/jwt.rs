@@ -1248,7 +1248,7 @@ mod tests {
     use crypto::x509::DistinguishedName;
     use crypto::x509::NO_SAN;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::HttpCertificateCrlVerifier;
+    use crypto::x509::crl::CertificateCrlVerifier;
     use ecdsa::elliptic_curve::Generate;
     use futures::FutureExt;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
@@ -1630,7 +1630,7 @@ mod tests {
                 then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
             })
             .await;
-        let crl_verifier = HttpCertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
@@ -1658,7 +1658,7 @@ mod tests {
     async fn test_parse_and_verify_jwt_with_cert_and_crl_requires_distribution_point() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_wrpac_verifier_mock().unwrap();
-        let crl_verifier = HttpCertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
 
         let jwt = SignedJwt::sign_with_certificate(&json!({"hello": "world"}), &keypair)
             .await
