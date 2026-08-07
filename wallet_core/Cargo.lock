@@ -4583,8 +4583,6 @@ dependencies = [
  "pastey",
  "pathdiff",
  "rayon",
- "serde",
- "serde-content",
  "smallvec",
 ]
 
@@ -7672,15 +7670,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-content"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3753ca04f350fa92d00b6146a3555e63c55388c9ef2e11e09bce2ff1c0b509c6"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde-value"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7801,15 +7790,14 @@ dependencies = [
 
 [[package]]
 name = "serde_valid"
-version = "2.0.0"
+version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de7f50148816c0fbeab7089476c91dbfae94bd891cc4e2c535f30b54ceb90ad2"
+checksum = "4b441ba4464f0faf811267a3392ff53e2d9a2f8c4f23941b62ec7c452dd80451"
 dependencies = [
  "indexmap 2.12.1",
  "itertools 0.14.0",
  "num-traits",
  "once_cell",
- "paste",
  "regex",
  "serde",
  "serde_json",
@@ -7821,13 +7809,11 @@ dependencies = [
 
 [[package]]
 name = "serde_valid_derive"
-version = "2.0.0"
+version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c030af8a53ec37caf1ed98e5ce02cf7d4f65e637e8eaa089ed785689e86c9046"
+checksum = "5cd65e72e4b76575cde962665a131c1c83c2fe1c328c27e2f036a16567fe59af"
 dependencies = [
  "itertools 0.14.0",
- "paste",
- "proc-macro-error2",
  "proc-macro2",
  "quote",
  "strsim",
@@ -7836,11 +7822,10 @@ dependencies = [
 
 [[package]]
 name = "serde_valid_literal"
-version = "2.0.0"
+version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50b2fb68eefc69006cebe74b0f672ae68464c72b150dacd00d0877227c1300f7"
+checksum = "3728389b4f730ec97f933664f5db0731f80b64c3b23ff904a5dec5f93f205ce9"
 dependencies = [
- "paste",
  "regex",
 ]
 
@@ -8156,9 +8141,9 @@ dependencies = [
 
 [[package]]
 name = "spin"
-version = "0.9.8"
+version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+checksum = "3763264f6b73151db08c50ff20d7d8a0b8796e021cdea7ceedad07b80155fa0e"
 dependencies = [
  "lock_api",
 ]
