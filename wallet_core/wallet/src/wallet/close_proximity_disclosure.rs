@@ -226,10 +226,6 @@ fn spawn_listener(
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum CloseProximityDisclosureError {
-    #[error("Device Request has no ReaderAuth")]
-    #[category(critical)]
-    MissingReaderAuth,
-
     #[error("not all ReaderAuths are identical")]
     #[category(critical)]
     InconsistentReaderAuths,
@@ -284,8 +280,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         CloseProximityDisclosureError::MalformedDeviceRequest(_) => Some(DeviceResponseStatus::CborDecodingError),
         CloseProximityDisclosureError::InvalidDeviceRequest(_) => Some(DeviceResponseStatus::InvalidRequest),
         CloseProximityDisclosureError::UnsupportedDocFormat { .. } => Some(DeviceResponseStatus::InvalidRequest),
-        CloseProximityDisclosureError::MissingReaderAuth
-        | CloseProximityDisclosureError::InconsistentReaderAuths
+        CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::InvalidReaderCertificate(_)
         | CloseProximityDisclosureError::ReaderCertificateCrlVerification(_) => {
@@ -808,7 +803,6 @@ async fn verify_device_request_with_crl(
                     mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {
                         CloseProximityDisclosureError::ReaderCertificateCrlVerification(error)
                     }
-                    mdoc::Error::MissingReaderAuthentication => CloseProximityDisclosureError::MissingReaderAuth,
                     error => CloseProximityDisclosureError::InvalidDocRequest(error),
                 })
         },
@@ -1466,7 +1460,7 @@ mod tests {
         assert_matches!(
             result,
             Err(DisclosureError::CloseProximityDisclosureSessionError(
-                CloseProximityDisclosureError::MissingReaderAuth
+                CloseProximityDisclosureError::InvalidDocRequest(mdoc::Error::MissingReaderAuthentication)
             ))
         );
         assert!(wallet.session.is_none());
@@ -1760,7 +1754,12 @@ mod tests {
         )
         .await;
 
-        assert_matches!(result, Err(CloseProximityDisclosureError::MissingReaderAuth));
+        assert_matches!(
+            result,
+            Err(CloseProximityDisclosureError::InvalidDocRequest(
+                mdoc::Error::MissingReaderAuthentication
+            ))
+        );
     }
 
     #[tokio::test]

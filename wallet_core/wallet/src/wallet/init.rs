@@ -202,7 +202,7 @@ impl WalletClients<MockAccountProviderClient, MockIssuanceDiscovery, MockDisclos
     }
 }
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(feature = "test")]
 impl<APC>
     WalletClients<
         APC,

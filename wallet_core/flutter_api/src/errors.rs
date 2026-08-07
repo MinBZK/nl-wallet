@@ -653,8 +653,7 @@ impl From<&HttpClientError> for FlutterApiErrorType {
 impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
     fn from(value: &CloseProximityDisclosureError) -> Self {
         match value {
-            CloseProximityDisclosureError::MissingReaderAuth
-            | CloseProximityDisclosureError::InconsistentReaderAuths
+            CloseProximityDisclosureError::InconsistentReaderAuths
             | CloseProximityDisclosureError::InvalidDocRequest(_)
             | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
