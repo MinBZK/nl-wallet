@@ -64,7 +64,7 @@ pub enum CertificateCrlVerificationError {
     Certificate(#[source] CertificateError),
     #[error("certificate revocation verification failed: {0}")]
     Revocation(#[source] CertificateError),
-    #[error("all CRL distribution points failed; first failure: {source}; additional failures: {}", additional_errors.iter().join(", "))]
+    #[error("all CRL distribution points for at least one certificate failed; first failure: {source}; additional failures: {}", additional_errors.iter().join(", "))]
     #[category(pd)]
     CrlRetrieval {
         #[source]
@@ -235,28 +235,39 @@ where
         }))
         .await;
 
-        let failing_urls = urls_by_cert
+        // Record the URLs that failed, then find every certificate for which all distribution points failed. Errors
+        // from a failed alternative are ignored when the same certificate has another working distribution point.
+        let error_urls = results
             .iter()
-            .find(|urls| !results.iter().any(|(url, result)| result.is_ok() && urls.contains(url)))
-            .cloned();
-        if let Some(failing_urls) = failing_urls {
-            let mut errors = results.into_iter().filter_map(|(url, result)| {
-                if failing_urls.contains(&url) {
-                    result.err()
-                } else {
-                    None
-                }
-            });
-            let source = errors
-                .next()
-                .expect("every URL for the certificate should have produced an error");
+            .filter_map(|(url, result)| result.as_ref().err().map(|_| url))
+            .collect::<HashSet<_>>();
+        let failed_urls = urls_by_cert
+            .iter()
+            .filter(|urls| urls.iter().all(|url| error_urls.contains(url)))
+            .flatten()
+            .cloned()
+            .collect::<HashSet<_>>();
+
+        // Preserve the certificate and distribution-point order used above. This keeps both the primary error and the
+        // returned CRLs deterministic, unlike iterating over the sets used only for membership checks.
+        let (mut crls, mut errors) = (Vec::new(), Vec::new());
+        for (url, result) in results {
+            match result {
+                Ok(crl) => crls.push(crl),
+                Err(error) if failed_urls.contains(&url) => errors.push(error),
+                Err(_) => {}
+            }
+        }
+
+        let mut errors = errors.into_iter();
+        if let Some(source) = errors.next() {
             return Err(CertificateCrlVerificationError::CrlRetrieval {
                 source: Box::new(source),
                 additional_errors: errors.collect(),
             });
         }
 
-        Ok(results.into_iter().filter_map(|(_, result)| result.ok()).collect())
+        Ok(crls)
     }
 
     /// Fetch and parse the CRL at `url`, or return the already-parsed, cached CRL if present. A freshly-fetched CRL's
@@ -982,6 +993,55 @@ mod tests {
             .unwrap_err();
 
         assert_eq!(error.category(), error_category::Category::PersonalData);
+        match error {
+            CertificateCrlVerificationError::CrlRetrieval {
+                source,
+                additional_errors,
+            } => {
+                assert!(matches!(
+                    *source,
+                    CrlRetrievalError::Fetch {
+                        url,
+                        source: CrlFetchError::Http(_),
+                    } if url == unavailable_url
+                ));
+                assert!(matches!(
+                    additional_errors.as_slice(),
+                    [CrlRetrievalError::Parsing { url, .. }] if url == &malformed_url
+                ));
+            }
+            error => panic!("unexpected error: {error:?}"),
+        }
+        unavailable_mock.assert_calls_async(1).await;
+        malformed_mock.assert_calls_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn crl_verifier_returns_errors_for_every_certificate_without_working_distribution_point() {
+        let server = MockServer::start_async().await;
+        let unavailable_url: Url = server.url("/unavailable.crl").parse().unwrap();
+        let malformed_url: Url = server.url("/malformed.crl").parse().unwrap();
+        let unavailable_cert = generate_cert_with_cdps(vec![unavailable_url.clone()]);
+        let malformed_cert = generate_cert_with_cdps(vec![malformed_url.clone()]);
+        let unavailable_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/unavailable.crl");
+                then.status(500);
+            })
+            .await;
+        let malformed_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/malformed.crl");
+                then.status(200).body("not a crl");
+            })
+            .await;
+
+        let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+        let error = provider
+            .crls_for_chain(&[unavailable_cert, malformed_cert], &TimeGenerator)
+            .await
+            .unwrap_err();
+
         match error {
             CertificateCrlVerificationError::CrlRetrieval {
                 source,
