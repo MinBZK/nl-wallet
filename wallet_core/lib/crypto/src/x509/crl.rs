@@ -66,7 +66,7 @@ pub enum CertificateCrlVerificationError {
     Certificate(#[source] CertificateError),
     #[error("certificate revocation verification failed: {0}")]
     Revocation(#[source] CertificateError),
-    #[error("all CRL distribution points failed; first failure: {source}; additional failures: {additional_errors:?}")]
+    #[error("all CRL distribution points failed; first failure: {source}; additional failures: {}", additional_errors.iter().join(", "))]
     #[category(pd)]
     CrlRetrieval {
         #[source]
