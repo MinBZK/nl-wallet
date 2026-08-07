@@ -1,5 +1,3 @@
-#[cfg(any(test, feature = "mock"))]
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
@@ -404,6 +402,7 @@ fn ttl_from_next_update(crl: &CertificateRevocationList, time: &impl Generator<D
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use std::collections::HashMap;
     use std::sync::LazyLock;
 
     use super::*;
@@ -459,6 +458,7 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::future::poll_fn;
     use std::sync::atomic::AtomicUsize;
     use std::sync::atomic::Ordering;
