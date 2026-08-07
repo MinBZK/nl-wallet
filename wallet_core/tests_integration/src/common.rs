@@ -1,6 +1,7 @@
 use std::convert::Infallible;
 use std::io;
 use std::net::IpAddr;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process;
 use std::str::FromStr;
@@ -87,6 +88,7 @@ use tracing::Instrument;
 use tracing::info_span;
 use update_policy_server::settings::Settings as UpsSettings;
 use url::Url;
+use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use verification_server::settings::VerifierSettings;
@@ -666,6 +668,7 @@ pub fn static_server_settings() -> (StaticSettings, ReqwestTrustAnchor) {
     let mut settings = StaticSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.port = 0;
+    settings.crl_file = prefix_local_path(Path::new("wrpac.crl.der")).into_owned();
 
     let root_ca = read_file("static.ca.crt.der").try_into().unwrap();
 
