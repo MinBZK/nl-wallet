@@ -787,7 +787,7 @@ where
 }
 
 /// Verify a device request and its reader authentication, requiring a valid CRL for the complete WRPAC chain.
-pub async fn verify_device_request_with_crl(
+async fn verify_device_request_with_crl(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
     time: &impl Generator<DateTime<Utc>>,
