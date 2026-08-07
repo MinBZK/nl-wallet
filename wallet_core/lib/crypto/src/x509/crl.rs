@@ -229,14 +229,20 @@ where
             .filter(|url| seen.insert((*url).clone()))
             .cloned()
             .collect_vec();
+
+        // Exact cache hits avoid another download, but uncached sibling URLs are retried. Since `webpki` does not
+        // report which candidate it selected during an earlier successful verification, a cached sibling alone is not
+        // proof that it was authoritative.
         let results = future::join_all(unique_urls.into_iter().map(|url| async move {
             let result = self.fetch_crl(url.clone(), time).await;
             (url, result)
         }))
         .await;
 
-        // Record the URLs that failed, then find every certificate for which all distribution points failed. Errors
-        // from a failed alternative are ignored when the same certificate has another working distribution point.
+        // A certificate needs one authoritative complete CRL rather than every advertised URL. Successfully fetched
+        // candidates are still validated by `webpki`, which rejects partial CRL forms that would require combining
+        // multiple CRLs. Record the URLs that failed, then find every certificate for which all distribution points
+        // failed; errors from a failed alternative are ignored when the same certificate has another working candidate.
         let error_urls = results
             .iter()
             .filter_map(|(url, result)| result.as_ref().err().map(|_| url))
