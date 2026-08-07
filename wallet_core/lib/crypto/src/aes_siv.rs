@@ -161,7 +161,11 @@ pub trait AesSivBackend {
     ///
     /// Every call has to be a complete MAC in itself: no state may carry over from one call to the
     /// next.
-    async fn aes_cmac(&self, key: &Self::MacKey, input: Vec<u8>) -> Result<[u8; 16], Self::Error>;
+    async fn aes_cmac(
+        &self,
+        key: &Self::MacKey,
+        input: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<[u8; 16], Self::Error>;
 
     /// AES-CTR over `input`, keyed with K2, starting from `counter_block`.
     ///
@@ -177,7 +181,7 @@ pub trait AesSivBackend {
         &self,
         key: &Self::EncryptionKey,
         counter_block: [u8; 16],
-        input: Vec<u8>,
+        input: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<Vec<u8>, Self::Error>;
 }
 
@@ -209,6 +213,9 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
     if plaintext.len() < 16 {
         return Err(AesSivError::PlaintextTooShort);
     }
+
+    // Forget our `plaintext` copy as soon as possible.
+    let plaintext = Zeroizing::new(plaintext);
 
     // V = S2V(K1, AD1, ..., ADn, P), with n = 0.
     // This acts as the integrity tag.
@@ -272,7 +279,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
     // success the `to_vec()` at the end hands the caller an ordinary `Vec` that is theirs to clear.
     let plaintext = Zeroizing::new(
         backend
-            .aes_ctr(&key.encryption_key, q, c.to_vec())
+            .aes_ctr(&key.encryption_key, q, c)
             .await
             .map_err(|e| AesSivError::BackendError(e.into()))?,
     );
@@ -315,7 +322,9 @@ async fn s2v<K: AesSivBackend>(backend: &K, key: &K::MacKey, s1: &[u8]) -> Resul
         .map_err(|e| AesSivError::BackendError(e.into()))?;
 
     // T = Sn xorend D
-    let t = xorend(s1, d)?;
+    // Everything but the last 16 bytes of `t` are the plaintext. We wrap that in `Zeroizing`,
+    // so it is removed from memory after this function even in case of errors.
+    let t = Zeroizing::new(xorend(s1, d)?);
 
     // return V = AES-CMAC(K, T)
     backend
@@ -539,9 +548,13 @@ mod tests {
         type MacKey = [u8; 32];
         type EncryptionKey = [u8; 32];
 
-        async fn aes_cmac(&self, key: &Self::MacKey, value: Vec<u8>) -> Result<[u8; 16], Self::Error> {
+        async fn aes_cmac(
+            &self,
+            key: &Self::MacKey,
+            value: impl AsRef<[u8]> + Send + 'static,
+        ) -> Result<[u8; 16], Self::Error> {
             let mut mac = Cmac::<Aes256>::new(key.into());
-            mac.update(value.as_slice());
+            mac.update(value.as_ref());
             let result = mac.finalize().into_bytes().into();
             Ok(result)
         }
@@ -550,12 +563,13 @@ mod tests {
             &self,
             key: &Self::EncryptionKey,
             counter_block: [u8; 16],
-            input: Vec<u8>,
+            input: impl AsRef<[u8]> + Send + 'static,
         ) -> Result<Vec<u8>, Self::Error> {
             let mut cipher = Ctr128BE::<Aes256>::new(key.into(), &counter_block.into());
+            let input = input.as_ref();
             let mut output = vec![0; input.len()];
             cipher
-                .apply_keystream_b2b(input.as_slice(), output.as_mut_slice())
+                .apply_keystream_b2b(input, output.as_mut_slice())
                 .expect("buffers are the same length");
 
             Ok(output)

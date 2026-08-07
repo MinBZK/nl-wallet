@@ -202,9 +202,13 @@ pub trait Pkcs11Client {
         &self,
         key_handle: &PrivateKeyHandle,
         counter_block: [u8; AES_BLOCK_SIZE],
-        data: Vec<u8>,
+        data: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<Vec<u8>>;
-    async fn cmac(&self, key_handle: &PrivateKeyHandle, data: Vec<u8>) -> Result<[u8; AES_BLOCK_SIZE]>;
+    async fn cmac(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        data: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<[u8; AES_BLOCK_SIZE]>;
     async fn wrap_key(
         &self,
         wrapping_key: &PrivateKeyHandle,
@@ -640,7 +644,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         &self,
         key_handle: &PrivateKeyHandle,
         counter_block: [u8; AES_BLOCK_SIZE],
-        data: Vec<u8>,
+        data: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
         let object_handle = key_handle.to_object_handle();
@@ -662,20 +666,24 @@ impl Pkcs11Client for Pkcs11Hsm {
             let mechanism =
                 Mechanism::VendorDefined(VendorDefinedMechanism::new(MechanismType::AES_CTR, Some(&params)));
 
-            let encrypted_data = session.encrypt(&mechanism, object_handle, &data)?;
+            let encrypted_data = session.encrypt(&mechanism, object_handle, data.as_ref())?;
             Ok(encrypted_data)
         })
         .await
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn cmac(&self, key_handle: &PrivateKeyHandle, data: Vec<u8>) -> Result<[u8; AES_BLOCK_SIZE]> {
+    async fn cmac(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        data: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<[u8; AES_BLOCK_SIZE]> {
         let pool = self.pool.clone();
         let object_handle = key_handle.to_object_handle();
 
         spawn::blocking(move || {
             let session = pool.get()?;
-            let cmac = session.sign(&Mechanism::AesCMac, object_handle, &data)?;
+            let cmac = session.sign(&Mechanism::AesCMac, object_handle, data.as_ref())?;
 
             let cmac = cmac.try_into().map_err(|cmac: Vec<u8>| HsmError::IncorrectCmacLength {
                 expected: AES_BLOCK_SIZE,
@@ -778,11 +786,16 @@ impl AesSivBackend for Pkcs11Hsm {
     type MacKey = PrivateKeyHandle;
     type EncryptionKey = PrivateKeyHandle;
 
-    async fn aes_cmac(&self, key: &Self::MacKey, input: Vec<u8>) -> Result<[u8; 16]> {
+    async fn aes_cmac(&self, key: &Self::MacKey, input: impl AsRef<[u8]> + Send + 'static) -> Result<[u8; 16]> {
         self.cmac(key, input).await
     }
 
-    async fn aes_ctr(&self, key: &Self::EncryptionKey, counter_block: [u8; 16], input: Vec<u8>) -> Result<Vec<u8>> {
+    async fn aes_ctr(
+        &self,
+        key: &Self::EncryptionKey,
+        counter_block: [u8; 16],
+        input: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<Vec<u8>> {
         self.encrypt_ctr(key, counter_block, input).await
     }
 }

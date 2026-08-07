@@ -257,12 +257,16 @@ pub mod mock {
             &self,
             _key_handle: &PrivateKeyHandle,
             _counter_block: [u8; AES_BLOCK_SIZE],
-            _data: Vec<u8>,
+            _data: impl AsRef<[u8]> + Send + 'static,
         ) -> Result<Vec<u8>, HsmError> {
             todo!()
         }
 
-        async fn cmac(&self, _key_handle: &PrivateKeyHandle, _data: Vec<u8>) -> Result<[u8; AES_BLOCK_SIZE], HsmError> {
+        async fn cmac(
+            &self,
+            _key_handle: &PrivateKeyHandle,
+            _data: impl AsRef<[u8]> + Send + 'static,
+        ) -> Result<[u8; AES_BLOCK_SIZE], HsmError> {
             todo!()
         }
 
