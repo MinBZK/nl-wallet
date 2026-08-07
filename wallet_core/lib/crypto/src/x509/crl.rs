@@ -406,6 +406,7 @@ pub mod mock {
     use std::sync::LazyLock;
 
     use super::*;
+    #[cfg(feature = "generate")]
     use crate::server_keys::generate::Ca;
 
     pub static MOCK_CRL_DISTRIBUTION_POINT: LazyLock<Url> =
@@ -422,6 +423,7 @@ pub mod mock {
         }
     }
 
+    #[cfg(feature = "generate")]
     impl CertificateCrlVerifier<MockCrlFetcher> {
         pub fn new_for_ca(ca: &Ca) -> Self {
             let crl = ca.generate_crl(vec![], 1).unwrap().der().to_vec();
