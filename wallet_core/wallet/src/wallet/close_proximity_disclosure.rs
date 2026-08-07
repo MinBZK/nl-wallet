@@ -1130,7 +1130,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
-        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
         let verifier_certificate = key_pair.certificate();
         let organization = Organization::try_from(verifier_certificate).unwrap();
 
@@ -1820,7 +1820,7 @@ mod tests {
     ) -> (BorrowingCertificate, SessionTranscript) {
         let _items_request = pid_given_name_items_request();
 
-        let key_pair = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
+        let key_pair = WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap();
         let verifier_certificate = key_pair.certificate().clone();
 
         let (pid_credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
@@ -1955,7 +1955,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_close_proximity_device_response_includes_expected_poa() {
-        let verifier_certificate = WRPAC_CA.generate_wrpac_verifier_mock().unwrap().certificate().clone();
+        let verifier_certificate = WRPAC_CA
+            .generate_wrpac_verifier_mock_with_crl()
+            .unwrap()
+            .certificate()
+            .clone();
         let session_transcript = qr_session_transcript(None);
 
         let expected_nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
