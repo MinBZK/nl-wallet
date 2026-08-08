@@ -134,7 +134,7 @@ async fn do_registration(
             let registration_message = ChallengeResponse::new_google(
                 &attested_private_key,
                 attested_certificate_chain.try_into().unwrap(),
-                integrity_token,
+                Some(integrity_token),
                 pin_privkey,
                 challenge,
             )

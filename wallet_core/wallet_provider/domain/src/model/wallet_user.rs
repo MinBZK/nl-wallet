@@ -130,7 +130,9 @@ pub enum WalletUserAttestationCreate {
     },
     Android {
         certificate_chain: Vec<Vec<u8>>,
-        integrity_verdict_json: String,
+        /// The verified Play Integrity verdict as a JSON string, or `None` when the device
+        /// registered using hardware key attestation alone (no Google Play services / account).
+        integrity_verdict_json: Option<String>,
         identifiers: AndroidHardwareIdentifiers,
     },
 }

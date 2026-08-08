@@ -93,8 +93,9 @@ class AttestedKeyBridgeInstrumentedTest {
         if (attestationData is AttestationData.Google) {
             // Note that appAttestationToken is encrypted and is not decrypted
             // by the wallet_app, but by the backend (wallet_provider). Hence,
-            // here, we only check that the response is not empty.
-            assert(attestationData.appAttestationToken.isNotEmpty())
+            // here, we only check that the response is not empty. This test runs on a
+            // Google Play enabled emulator, so a token is expected to be present.
+            assert(attestationData.appAttestationToken?.isNotEmpty() == true)
             // Verify that the certificate chain is not empty
             assert(attestationData.certificateChain.size >= 2) {
                 "expected at least the root certificate and the key's certificate"
