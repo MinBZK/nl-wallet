@@ -17,6 +17,8 @@ use crypto::aes_siv::AesSivBackend;
 use crypto::aes_siv::AesSivKey;
 use crypto::aes_siv::aes_siv_decrypt;
 use crypto::aes_siv::aes_siv_encrypt;
+use crypto::aes_siv::test::test_aes_cmac;
+use crypto::aes_siv::test::test_aes_ctr;
 use crypto::aes_siv::test::test_aes_siv_decrypt;
 use crypto::aes_siv::test::test_aes_siv_encrypt;
 use crypto::utils::random_bytes;
@@ -428,7 +430,7 @@ impl TestCase<Pkcs11Hsm> {
 
         self.ensure_keys_can_be_imported(hsm).await;
 
-        test_aes_siv_encrypt(hsm, self.hsm_key_generator(hsm)).await;
+        test_aes_siv_encrypt(hsm, self.hsm_siv_key_generator(hsm)).await;
 
         self
     }
@@ -438,7 +440,27 @@ impl TestCase<Pkcs11Hsm> {
 
         self.ensure_keys_can_be_imported(hsm).await;
 
-        test_aes_siv_decrypt(hsm, self.hsm_key_generator(hsm)).await;
+        test_aes_siv_decrypt(hsm, self.hsm_siv_key_generator(hsm)).await;
+
+        self
+    }
+
+    pub async fn aes_cmac_test_vectors(self: TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm> {
+        let hsm = self.hsm.as_ref().unwrap();
+
+        self.ensure_keys_can_be_imported(hsm).await;
+
+        test_aes_cmac(hsm, self.hsm_key_generator(hsm, AesKeyUsage::Cmac)).await;
+
+        self
+    }
+
+    pub async fn aes_ctr_test_vectors(self: TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm> {
+        let hsm = self.hsm.as_ref().unwrap();
+
+        self.ensure_keys_can_be_imported(hsm).await;
+
+        test_aes_ctr(hsm, self.hsm_key_generator(hsm, AesKeyUsage::Encryption)).await;
 
         self
     }
@@ -461,21 +483,29 @@ impl TestCase<Pkcs11Hsm> {
         }
     }
 
-    fn hsm_key_generator(
+    /// Imports a key for the CMAC and CTR vectors.
+    fn hsm_key_generator(&self, hsm: &Pkcs11Hsm, usage: AesKeyUsage) -> impl AsyncFn([u8; 32]) -> PrivateKeyHandle {
+        async move |key| {
+            hsm.import_aes_key(&self.new_identifier(), usage, key)
+                .await
+                .expect("failed to import AES key")
+        }
+    }
+
+    /// The two-key counterpart of [`Self::hsm_key_generator()`], for the AES-SIV vectors,
+    /// which need a CMAC and a CTR key per case.
+    fn hsm_siv_key_generator(
         &self,
         hsm: &Pkcs11Hsm,
     ) -> impl AsyncFn(([u8; 32], [u8; 32])) -> (PrivateKeyHandle, PrivateKeyHandle) {
-        async |(mac_key, encryption_key)| {
-            let mac_key = hsm
-                .import_aes_key(&self.new_identifier(), AesKeyUsage::Cmac, mac_key)
-                .await
-                .expect("failed to import CMAC key");
-            let encryption_key = hsm
-                .import_aes_key(&self.new_identifier(), AesKeyUsage::Encryption, encryption_key)
-                .await
-                .expect("failed to import CTR key");
+        let cmac_key_generator = self.hsm_key_generator(hsm, AesKeyUsage::Cmac);
+        let ctr_key_generator = self.hsm_key_generator(hsm, AesKeyUsage::Encryption);
 
-            (mac_key, encryption_key)
+        async move |(mac_key, encryption_key)| {
+            (
+                cmac_key_generator(mac_key).await,
+                ctr_key_generator(encryption_key).await,
+            )
         }
     }
 }

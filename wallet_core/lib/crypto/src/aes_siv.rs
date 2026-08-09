@@ -392,6 +392,106 @@ pub mod test {
         (cmac_key, ctr_key)
     }
 
+    /// The AES-256 key that the NIST example documents use throughout, shared by
+    /// [`AES_CMAC_TEST_CASES`] and the AES-CTR vector below.
+    const NIST_KEY: [u8; 32] = hex!("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4");
+
+    /// The four CMAC-AES256 examples from NIST's [CMAC example values]. These used to be appendix D
+    /// of [SP 800-38B], the document defining CMAC; the 2016 revision moved them out to that
+    /// separate file, and appendix D is now a pointer to it.
+    ///
+    /// [CMAC example values]: https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/AES_CMAC.pdf
+    /// [SP 800-38B]: https://doi.org/10.6028/NIST.SP.800-38B
+    const AES_CMAC_TEST_CASES: [(&[u8], [u8; 16]); 4] = [
+        (&hex!(""), hex!("028962f61b7bf89efc6b551f4667d983")),
+        (
+            &hex!("6bc1bee22e409f96e93d7e117393172a"),
+            hex!("28a7023f452e8f82bd4bf28d8c37c35c"),
+        ),
+        (
+            &hex!("6bc1bee22e409f96e93d7e117393172aae2d8a57"),
+            hex!("156727dc0878944a023c1fe03bad6d93"),
+        ),
+        (
+            &hex!(
+                "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51"
+                "30c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710"
+            ),
+            hex!("e1992190549f6ed5696a2c056c315410"),
+        ),
+    ];
+
+    struct AesCtrTestCase {
+        /// The document's "Init. Counter".
+        pub counter_block: [u8; 16],
+        pub plaintext: &'static [u8],
+        pub ciphertext: &'static [u8],
+    }
+
+    /// The CTR-AES256 example from [SP 800-38A], the document defining CTR mode: appendix F.5.5 is
+    /// the encryption direction of the case below, F.5.6 the decryption direction.
+    ///
+    /// [SP 800-38A]: https://doi.org/10.6028/NIST.SP.800-38A
+    const AES_CTR_TEST_CASE: AesCtrTestCase = AesCtrTestCase {
+        counter_block: hex!("f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"),
+        plaintext: &hex!(
+            "6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51"
+            "30c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710"
+        ),
+        ciphertext: &hex!(
+            "601ec313775789a5b7a7f504bbf3d228f443e3ca4d62b59aca84e990cacaf5c5"
+            "2b0930daa23de94ce87017ba2d84988ddfc9c58db67aada613c2dd08457941a6"
+        ),
+    };
+
+    /// Holds a backend's [`aes_cmac()`](AesSivBackend::aes_cmac) to [`AES_CMAC_TEST_CASES`].
+    ///
+    /// AES-SIV is CTR and CMAC with S2V between them, and RFC 5297 has no vectors for the whole
+    /// that apply here, so [`AES_SIV_TEST_CASES`] is cross-checked against another implementation
+    /// rather than against a standard. This function and [`test_aes_ctr`] pin the two primitives to
+    /// their own defining documents instead, leaving only the glue resting on a cross-check.
+    ///
+    /// `key_generator` turns the raw key bytes into whatever the backend uses to refer to keys.
+    pub async fn test_aes_cmac<K, B>(backend: &B, key_generator: impl AsyncFn([u8; 32]) -> K)
+    where
+        B: AesSivBackend<MacKey = K>,
+    {
+        let key = key_generator(NIST_KEY).await;
+
+        for (index, (message, expected)) in AES_CMAC_TEST_CASES.iter().enumerate() {
+            let tag = backend.aes_cmac(&key, message.to_vec()).await.unwrap();
+
+            assert_eq!(tag, *expected, "case {index}");
+        }
+    }
+
+    /// Holds a backend's [`aes_ctr()`](AesSivBackend::aes_ctr) to [`AES_CTR_TEST_CASE`]; see
+    /// [`test_aes_cmac`] for why.
+    pub async fn test_aes_ctr<K, B>(backend: &B, key_generator: impl AsyncFn([u8; 32]) -> K)
+    where
+        B: AesSivBackend<EncryptionKey = K>,
+    {
+        let key = key_generator(NIST_KEY).await;
+
+        let case = AES_CTR_TEST_CASE;
+
+        // F.5.5, encrypting.
+        let ciphertext = backend
+            .aes_ctr(&key, case.counter_block, case.plaintext.to_vec())
+            .await
+            .unwrap();
+        assert_eq!(ciphertext, case.ciphertext);
+
+        // F.5.6, decrypting: the same case read the other way round. This is the same operation as
+        // above, CTR being symmetric, but both directions are worth running because AES-SIV uses
+        // this one function for both.
+        let plaintext = backend
+            .aes_ctr(&key, case.counter_block, case.ciphertext.to_vec())
+            .await
+            .unwrap();
+        assert_eq!(plaintext, case.plaintext);
+    }
+
     struct TestCase {
         pub key: [u8; 64],
         pub plaintext: &'static [u8],
@@ -677,6 +777,14 @@ mod tests {
     }
 
     // In these tests the in-memory backend takes and uses the raw key bytes directly.
+    #[tokio::test]
+    async fn test_aes_cmac() {
+        super::test::test_aes_cmac(&MemoryAesSivBackend, identity).await
+    }
+    #[tokio::test]
+    async fn test_aes_ctr() {
+        super::test::test_aes_ctr(&MemoryAesSivBackend, identity).await
+    }
     #[tokio::test]
     async fn test_aes_siv_encrypt() {
         super::test::test_aes_siv_encrypt(&MemoryAesSivBackend, identity).await

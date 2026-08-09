@@ -15,6 +15,8 @@ use serial_test::serial;
 #[case::encrypt_ctr(TestCase::encrypt_ctr)]
 #[case::cmac(TestCase::cmac)]
 #[case::aes_siv(TestCase::aes_siv)]
+#[case::aes_cmac_test_vectors(TestCase::aes_cmac_test_vectors)]
+#[case::aes_ctr_test_vectors(TestCase::aes_ctr_test_vectors)]
 #[case::aes_siv_encrypt_test_vectors(TestCase::aes_siv_encrypt_test_vectors)]
 #[case::aes_siv_decrypt_test_vectors(TestCase::aes_siv_decrypt_test_vectors)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
