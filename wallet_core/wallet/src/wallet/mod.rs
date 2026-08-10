@@ -57,6 +57,7 @@ pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::Pagination;
 pub use self::history::RecentHistoryCallback;
+use self::init::WalletCertificateCrlVerifier;
 pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::init::WalletRepositories;
@@ -185,6 +186,7 @@ pub struct Wallet<
     issuance_discovery: CID,
     disclosure_client: DCC,
     close_proximity_disclosure: PhantomData<CPC>,
+    crl_verifier: WalletCertificateCrlVerifier,
     status_list_client: Arc<SLC>,
     session: Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>,
     lock: WalletLock,

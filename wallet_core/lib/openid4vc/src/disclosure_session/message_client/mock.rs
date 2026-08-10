@@ -6,6 +6,8 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
 use derive_more::Debug;
@@ -160,6 +162,7 @@ pub struct MockVerifierSession {
     pub response_uri: BaseUrl,
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
     pub key_pair: KeyPair,
+    pub crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
     pub vp_formats_supported: VpFormatsSupported,
 }
 
@@ -174,7 +177,8 @@ impl MockVerifierSession {
         // Generate trust anchors, signing key and certificate.
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
-        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
 
         // Generate some OpenID4VP specific session material.
         let nonce = Nonce::new_random();
@@ -188,6 +192,7 @@ impl MockVerifierSession {
             redirect_uri,
             trust_anchors,
             key_pair,
+            crl_verifier,
             credential_requests,
             nonce,
             state: None,

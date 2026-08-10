@@ -10,9 +10,11 @@ use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::SubjectAltNameUri;
+use crypto::x509::crl::extract_crl_distribution_points;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use p256::pkcs8::DecodePrivateKey;
@@ -27,8 +29,11 @@ use predicates::str::RegexPredicate;
 use predicates::str::StartsWithPredicate;
 use time::Duration;
 use time::OffsetDateTime;
+use url::Url;
 use x509_parser::extensions::GeneralName;
+use x509_parser::num_bigint::BigUint;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
+use x509_parser::parse_x509_crl;
 
 trait RangeCompare<Offset> {
     /// Compare [`self`] to the range of [`other`] +/- the [`offset`].
@@ -67,6 +72,15 @@ fn predicate_successfully_generated_key_pair(crt: &Path, key: &Path) -> Result<R
 fn predicate_successfully_generated_certificate(crt: &Path) -> Result<RegexPredicate> {
     let result = predicate::str::is_match(format!("Certificate stored in '{}'", crt.display(),))?;
     Ok(result)
+}
+
+fn predicate_successfully_generated_crl(pem_crl: &Path) -> Result<RegexPredicate> {
+    let result = predicate::str::is_match(format!("CRL stored in '{}'", pem_crl.display()))?;
+    Ok(result)
+}
+
+fn predicate_invalid_serial_number() -> predicates::str::ContainsPredicate {
+    predicate::str::contains("invalid hex-encoded serial number")
 }
 
 fn predicate_file_already_exists(path: &Path) -> Result<RegexPredicate> {
@@ -173,6 +187,59 @@ fn assert_generated_certificate(
     Ok(())
 }
 
+/// Verify the CRL Distribution Point URIs from a generated certificate's CDP extension against the expected CRL
+/// Distribution Point URIs.
+fn assert_generated_certificate_crl_distribution_points(crt_file: &ChildPath, expected: &[Url]) -> Result<()> {
+    let crt_pem_bytes = std::fs::read(crt_file)?;
+    let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+    let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
+
+    let uris = extract_crl_distribution_points(&cert)?;
+    assert_eq!(uris.as_slice(), expected);
+
+    Ok(())
+}
+
+/// Verify a generated CRL's issuer, validity window, `crlNumber` and revoked serial numbers (as raw bytes, in the
+/// order they appear on the CRL).
+fn assert_generated_crl(
+    pem_crl_file: &ChildPath,
+    expected_issuer_dn: &DistinguishedName,
+    start: OffsetDateTime,
+    end: OffsetDateTime,
+    expected_revoked_serials: &[Vec<u8>],
+) -> Result<()> {
+    // Read CRL and verify PEM label
+    let crl_pem_bytes = std::fs::read(pem_crl_file)?;
+    let (_, crl_pem) = x509_parser::pem::parse_x509_pem(&crl_pem_bytes)?;
+    assert_eq!(crl_pem.label, "X509 CRL");
+    let (_, crl) = parse_x509_crl(&crl_pem.contents)?;
+
+    let issuer_dn = DistinguishedName::try_from(crl.issuer())?;
+    assert_eq!(&issuer_dn, expected_issuer_dn);
+
+    // verify thisUpdate/nextUpdate with minute accuracy
+    let this_update = crl.last_update().to_datetime();
+    assert_eq!(this_update.cmp_range(&start, Duration::minutes(1)), Ordering::Equal);
+    let next_update = crl.next_update().expect("CRL should have a nextUpdate").to_datetime();
+    assert_eq!(next_update.cmp_range(&end, Duration::minutes(1)), Ordering::Equal);
+
+    // The initial crlNumber starts the sequence at thisUpdate. Regeneration tests separately verify that the existing
+    // DER file advances the sequence.
+    let crl_number = crl.crl_number().expect("CRL should have a crlNumber");
+    let expected_crl_number = BigUint::from(u64::try_from(this_update.unix_timestamp())?);
+    assert_eq!(crl_number, &expected_crl_number);
+
+    // verify revoked serial numbers, in order
+    let revoked_serials: Vec<Vec<u8>> = crl
+        .iter_revoked_certificates()
+        .map(|revoked| revoked.raw_serial().to_vec())
+        .collect();
+    assert_eq!(revoked_serials, expected_revoked_serials);
+
+    Ok(())
+}
+
 trait CommandExtension {
     fn generate_ca(&mut self, file_prefix: &Path) -> &mut Self;
     fn generate_issuer_kp(
@@ -194,6 +261,7 @@ trait CommandExtension {
     ) -> &mut Self;
     fn generate_wrpac_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_tsl_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
+    fn generate_crl(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path, days: &str) -> &mut Self;
 
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self;
 
@@ -316,6 +384,18 @@ impl CommandExtension for Command {
             .arg(file_prefix)
     }
 
+    fn generate_crl(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path, days: &str) -> &mut Self {
+        self.arg("crl")
+            .arg("--ca-key-file")
+            .arg(ca_key)
+            .arg("--ca-crt-file")
+            .arg(ca_crt)
+            .arg("--file-prefix")
+            .arg(file_prefix)
+            .arg("--days")
+            .arg(days)
+    }
+
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self {
         self.arg("--organization-name")
             .arg(organization_name)
@@ -345,6 +425,10 @@ fn public_key_path(temp: &TempDir, prefix: &str) -> ChildPath {
     temp.child(format!("{prefix}.pk.pem"))
 }
 
+fn crl_path(temp: &TempDir, prefix: &str) -> ChildPath {
+    temp.child(format!("{prefix}.crl.pem"))
+}
+
 fn generate_public_key(path: &ChildPath) {
     let signing_key = SigningKey::generate();
     let public_key = signing_key.verifying_key();
@@ -358,6 +442,7 @@ fn generate_public_key(path: &ChildPath) {
 }
 
 const DEFAULT_LIFETIME: Duration = Duration::days(365);
+const DEFAULT_CRL_LIFETIME: Duration = Duration::days(90);
 
 #[test]
 fn happy_flow_with_default_lifetime() -> Result<()> {
@@ -780,6 +865,229 @@ fn happy_flow_with_san() -> Result<()> {
     }
 
     // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_with_crl_distribution_points() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    let crl_distribution_points: Vec<Url> = vec![
+        "http://crl1.example.com/wrpac.crl".parse().unwrap(),
+        "http://crl2.example.com/wrpac.crl".parse().unwrap(),
+    ];
+
+    // Generate WRPAC key pair with multiple CDPs
+    {
+        let (rp_auth_prefix, rp_auth_crt, rp_auth_key) = keypair_paths(&temp, "test-wrpac-cdp-kp");
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_wrpac_kp(&ca_crt, &ca_key, &rp_auth_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--crl-distribution-point")
+            .args(crl_distribution_points.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_key_pair(&rp_auth_crt, &rp_auth_key)?);
+
+        assert_generated_key(&rp_auth_key)?;
+        assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &crl_distribution_points)?;
+    }
+
+    // Generate WRPAC certificate with multiple CDPs
+    {
+        let (rp_auth_prefix, rp_auth_crt, _) = keypair_paths(&temp, "test-wrpac-cdp-crt");
+
+        let public_key_path = public_key_path(&temp, "test-wrpac-cdp-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_wrpac_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--crl-distribution-point")
+            .args(crl_distribution_points.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
+
+        assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &crl_distribution_points)?;
+    }
+
+    // Generate a WRPAC certificate without the flag: no CDP extension should be present
+    {
+        let (rp_auth_prefix, rp_auth_crt, _) = keypair_paths(&temp, "test-wrpac-no-cdp-crt");
+
+        let public_key_path = public_key_path(&temp, "test-wrpac-no-cdp-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_wrpac_cert(&public_key_path, &ca_crt, &ca_key, &rp_auth_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
+
+        assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &[])?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_crl_empty() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
+    let crl_prefix = temp.child("test-crl");
+    let crl = crl_path(&temp, "test-crl");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_crl(&ca_crt, &ca_key, &crl_prefix, "7")
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_crl(&crl)?);
+
+    assert_generated_crl(
+        &crl,
+        &ca_dn,
+        OffsetDateTime::now_utc(),
+        OffsetDateTime::now_utc() + Duration::days(7),
+        &[],
+    )?;
+    assert!(!temp.child("test-crl.crl.der").exists());
+
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_crl_with_revoked_certificates() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
+    let crl_prefix = temp.child("test-crl");
+    let crl = crl_path(&temp, "test-crl");
+
+    // Serial numbers are free-form input to the `crl` command (it never looks at an actual
+    // certificate), so cover both accepted formats with literal values: colon-separated hex, as
+    // `openssl x509 -text` prints it, and plain hex, as `-noout -serial` prints it.
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_crl(&ca_crt, &ca_key, &crl_prefix, "90")
+        .arg("--serial-number")
+        .arg("1a:2b:3c:4d")
+        .arg("01020304")
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_crl(&crl)?);
+
+    assert_generated_crl(
+        &crl,
+        &ca_dn,
+        OffsetDateTime::now_utc(),
+        OffsetDateTime::now_utc() + DEFAULT_CRL_LIFETIME,
+        &[vec![0x1a, 0x2b, 0x3c, 0x4d], vec![0x01, 0x02, 0x03, 0x04]],
+    )?;
+
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn crl_generation_with_invalid_serial_number() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success();
+
+    let crl_prefix = temp.child("test-crl");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_crl(&ca_crt, &ca_key, &crl_prefix, "90")
+        .arg("--serial-number")
+        .arg("not-hex")
+        .assert()
+        .failure()
+        .stderr(predicate_invalid_serial_number());
+
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn regenerating_crl() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success();
+
+    let crl_prefix = temp.child("test-crl");
+    let crl = crl_path(&temp, "test-crl");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_crl(&ca_crt, &ca_key, &crl_prefix, "90")
+        .assert()
+        .success();
+    let first_crl_pem_bytes = std::fs::read(&crl)?;
+    let (_, first_crl_pem) = x509_parser::pem::parse_x509_pem(&first_crl_pem_bytes)?;
+    let (_, first_crl) = parse_x509_crl(&first_crl_pem.contents)?;
+    let first_crl_number = first_crl.crl_number().expect("CRL should have a crlNumber").clone();
+
+    // Re-generating the CRL should fail without --force
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_crl(&ca_crt, &ca_key, &crl_prefix, "90")
+        .assert()
+        .failure()
+        .stderr(predicate_file_already_exists(&crl)?);
+
+    // Re-generating the CRL should succeed with --force
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_crl(&ca_crt, &ca_key, &crl_prefix, "90")
+        .arg("--force")
+        .assert()
+        .success();
+    let second_crl_pem_bytes = std::fs::read(&crl)?;
+    let (_, second_crl_pem) = x509_parser::pem::parse_x509_pem(&second_crl_pem_bytes)?;
+    let (_, second_crl) = parse_x509_crl(&second_crl_pem.contents)?;
+    let second_crl_number = second_crl.crl_number().expect("CRL should have a crlNumber");
+
+    assert!(second_crl_number > &first_crl_number);
+
     temp.close()?;
 
     Ok(())

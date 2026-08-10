@@ -27,17 +27,24 @@ use mdoc::NameSpaces;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::create_doc_request;
 use mdoc::utils::serialization::cbor_serialize;
+use rcgen::RevokedCertParams;
+use rcgen::SerialNumber;
+use time::OffsetDateTime;
+use url::Url;
 use utils::built_info::version_string;
 use utils::vec_at_least::VecNonEmpty;
+use wallet_ca::next_crl_number;
 use wallet_ca::read_public_key;
 use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_certificate;
+use wallet_ca::write_crl;
 use wallet_ca::write_key_pair;
 
 /// Generate private keys and certificates
 ///
-/// NOTE: Do NOT use in production environments, as the certificates lifetime is incredibly large, and no revocation is
-/// implemented.
+/// NOTE: Do NOT use in production environments. Certificate lifetimes are large by default, and while `crl` can
+/// generate Certificate Revocation Lists, nothing here operates revocation as a live service (periodically
+/// regenerating and republishing CRLs as certificates get revoked).
 #[derive(Parser)]
 #[command(author, version=version_string(), about, long_about)]
 struct Cli {
@@ -47,9 +54,13 @@ struct Cli {
 
 #[derive(Clone, Copy, ValueEnum)]
 enum CertType {
+    /// Mdoc/mdl issuer certificate; requires --issuer-auth-file
     Issuer,
+    /// Token Status List signing certificate
     Tsl,
+    /// Wallet Issuer Authentication certificate
     Wia,
+    /// Wallet Relying Party Access Certificate (WRPAC)
     Wrpac,
 }
 
@@ -81,6 +92,11 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
+        /// CRL Distribution Point URL(s) to embed in this certificate. Each URL must serve a CRL, signed by the
+        /// given CA, covering this certificate's serial number; see the `crl` subcommand. If omitted, the
+        /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
+        #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
+        crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -132,6 +148,11 @@ enum Command {
         /// Path to the CA certificate file in PEM format
         #[arg(short = 'c', long, value_parser)]
         ca_crt_file: CachedInput,
+        /// CRL Distribution Point URL(s) to embed in this certificate. Each URL must serve a CRL, signed by the
+        /// given CA, covering this certificate's serial number; see the `crl` subcommand. If omitted, the
+        /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
+        #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
+        crl_distribution_points: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -205,6 +226,33 @@ enum Command {
         #[arg(long)]
         session_transcript_hex: String,
     },
+    /// Generate a CRL, signed by the CA
+    ///
+    /// `crlNumber` starts at the generation time and advances from the existing PEM file on regeneration. To actually
+    /// revoke a certificate, regenerate the CRL for its issuing CA with the same file prefix and that certificate's
+    /// serial number added to --serial-number, then re-publish the result at the certificate's CDP URL(s).
+    Crl {
+        /// Path to the CA key file in PEM format
+        #[arg(short = 'k', long, value_parser)]
+        ca_key_file: CachedInput,
+        /// Path to the CA certificate file in PEM format
+        #[arg(short = 'c', long, value_parser)]
+        ca_crt_file: CachedInput,
+        /// Prefix for the generated file: <FILE_PREFIX>.crl.pem. Convert it to DER before publishing it at the URL
+        /// embedded in certificates as a CRL Distribution Point.
+        #[arg(short, long)]
+        file_prefix: String,
+        /// Duration for which the CRL will be valid (used to calculate `nextUpdate`); choose based on how often you
+        /// intend to regenerate and republish it
+        #[arg(short, long)]
+        days: u32,
+        /// Revoked Serial Numbers, hex-encoded (colons optional, as in `openssl x509 -noout -serial`/-text output)
+        #[arg(short, long = "serial-number", num_args(0..))]
+        serial_numbers: Vec<String>,
+        /// Overwrite existing files
+        #[arg(long, default_value = "false")]
+        force: bool,
+    },
 }
 
 impl Command {
@@ -270,6 +318,7 @@ impl Command {
         cert_type: CertType,
         issuer_auth_file: Option<CachedInput>,
         days: u32,
+        crl_distribution_points: Vec<Url>,
     ) -> Result<CertificateConfiguration> {
         let usage = match cert_type {
             CertType::Issuer => Some(CertificateUsage::Mdl),
@@ -285,6 +334,7 @@ impl Command {
         Ok(CertificateConfiguration {
             usage,
             extension,
+            crl_distribution_points,
             ..Self::get_ca_configuration(days)
         })
     }
@@ -310,6 +360,7 @@ impl Command {
             Cert {
                 ca_key_file,
                 ca_crt_file,
+                crl_distribution_points,
                 common_name,
                 country_name,
                 organization_name,
@@ -335,7 +386,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, days)?;
+                let config =
+                    Self::get_certificate_configuration(cert_type, issuer_auth_file, days, crl_distribution_points)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let key_pair = ca.generate_key_pair(distinguished_name, config, san_uris)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
@@ -345,6 +397,7 @@ impl Command {
                 public_key_file,
                 ca_key_file,
                 ca_crt_file,
+                crl_distribution_points,
                 common_name,
                 country_name,
                 organization_name,
@@ -371,7 +424,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, issuer_auth_file, days)?;
+                let config =
+                    Self::get_certificate_configuration(cert_type, issuer_auth_file, days, crl_distribution_points)?;
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let certificate =
                     ca.generate_certificate(public_key.contents(), distinguished_name, config, san_uris)?;
@@ -412,6 +466,38 @@ impl Command {
                 ))?;
 
                 println!("{}", hex::encode(cbor_serialize(&device_request)?));
+                Ok(())
+            }
+            Crl {
+                ca_key_file,
+                ca_crt_file,
+                file_prefix,
+                days,
+                serial_numbers,
+                force,
+            } => {
+                let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
+
+                let this_update = OffsetDateTime::now_utc();
+                let next_update = this_update + time::Duration::days(i64::from(days));
+                let crl_number = next_crl_number(&file_prefix, this_update)?;
+                let revoked_certs = serial_numbers
+                    .into_iter()
+                    .map(|sn| {
+                        let serial_number = hex::decode(sn.replace(':', ""))
+                            .with_context(|| format!("invalid hex-encoded serial number '{sn}'"))?;
+                        Ok(RevokedCertParams {
+                            serial_number: SerialNumber::from(serial_number),
+                            revocation_time: this_update,
+                            reason_code: Some(rcgen::RevocationReason::Unspecified),
+                            invalidity_date: None,
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+
+                let crl = ca.generate_crl_with_validity(revoked_certs, this_update, next_update, crl_number)?;
+
+                write_crl(&file_prefix, &crl, force)?;
                 Ok(())
             }
         }

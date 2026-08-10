@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use axum::Router;
 use axum::extract::State;
@@ -25,7 +26,15 @@ use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port)).await?;
-    serve_with_listener(listener, settings).await
+    let crl_listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.crl_port)).await?;
+    let crl_file = settings.crl_file.clone();
+
+    tokio::try_join!(
+        serve_with_listener(listener, settings),
+        serve_crl_with_listener(crl_listener, crl_file),
+    )?;
+
+    Ok(())
 }
 
 pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> Result<(), Box<dyn Error>> {
@@ -57,6 +66,29 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     Ok(())
 }
 
+pub async fn serve_crl_with_listener(listener: TcpListener, crl_file: PathBuf) -> Result<(), Box<dyn Error>> {
+    info!("listening for CRL requests on {}", listener.local_addr()?);
+
+    let app = Router::new().route("/wrpac.crl.der", get(crl)).with_state(crl_file);
+
+    axum::serve(listener, app.into_make_service()).await?;
+
+    Ok(())
+}
+
+async fn crl(State(crl_file): State<PathBuf>) -> Result<Response, StatusCode> {
+    let bytes = tokio::fs::read(crl_file).await.map_err(|error| match error.kind() {
+        std::io::ErrorKind::NotFound => StatusCode::NOT_FOUND,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    })?;
+
+    Ok((
+        [(header::CONTENT_TYPE, HeaderValue::from_static("application/pkix-crl"))],
+        bytes,
+    )
+        .into_response())
+}
+
 async fn configuration(
     State((config_jwt, config_entity_tag)): State<(VerifiedJwt<WalletConfiguration>, EntityTag)>,
     headers: HeaderMap,
@@ -86,4 +118,45 @@ async fn configuration(
 
     info!("replying with the configuration");
     Ok(resp)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::SystemTime;
+    use std::time::UNIX_EPOCH;
+
+    use axum::body::to_bytes;
+
+    use super::*;
+
+    fn temp_crl_file(name: &str) -> PathBuf {
+        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        std::env::temp_dir().join(format!("static-server-{name}-{unique}.crl.der"))
+    }
+
+    #[tokio::test]
+    async fn serves_crl_with_pkix_content_type() {
+        let crl_file = temp_crl_file("wrpac");
+        let crl_bytes = b"example CRL";
+        tokio::fs::write(&crl_file, crl_bytes).await.unwrap();
+
+        let response = crl(State(crl_file.clone())).await.unwrap();
+
+        assert_eq!(
+            response.headers().get(header::CONTENT_TYPE).unwrap(),
+            HeaderValue::from_static("application/pkix-crl")
+        );
+        assert_eq!(
+            to_bytes(response.into_body(), crl_bytes.len()).await.unwrap(),
+            crl_bytes.as_slice()
+        );
+        tokio::fs::remove_file(crl_file).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn returns_not_found_for_missing_crl() {
+        let error = crl(State(temp_crl_file("missing"))).await.unwrap_err();
+
+        assert_eq!(error, StatusCode::NOT_FOUND);
+    }
 }

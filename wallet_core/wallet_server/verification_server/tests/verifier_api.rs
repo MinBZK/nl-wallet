@@ -24,6 +24,8 @@ use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use dcql::CredentialQuery;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -40,6 +42,7 @@ use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
@@ -118,7 +121,13 @@ async fn wallet_server_settings_and_listener(
     internal_server: ServerAuth,
     // TODO PVW-5866 Unused request should be used to create proper registration certificate
     _request: &StartDisclosureRequest,
-) -> (VerifierSettings, TcpListener, Ca, TrustAnchors) {
+) -> (
+    VerifierSettings,
+    TcpListener,
+    Ca,
+    TrustAnchors,
+    CertificateCrlVerifier<MockCrlFetcher>,
+) {
     // Set up the listener.
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
@@ -136,7 +145,8 @@ async fn wallet_server_settings_and_listener(
     let wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
+    let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&wrpac_ca);
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -187,7 +197,7 @@ async fn wallet_server_settings_and_listener(
         status_list_token_cache_settings: StatusListTokenCacheSettings::default(),
     };
 
-    (settings, listener, issuer_ca, wrpac_trust_anchors)
+    (settings, listener, issuer_ca, wrpac_trust_anchors, crl_verifier)
 }
 
 async fn start_wallet_server<S, C>(
@@ -282,7 +292,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
         }
     };
 
-    let (settings, wallet_listener, issuer_ca, _) =
+    let (settings, wallet_listener, issuer_ca, _, _) =
         wallet_server_settings_and_listener(auth, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let auth = &settings.server_settings.internal_server;
 
@@ -434,7 +444,7 @@ async fn test_http_json_error_body(
 #[tokio::test]
 async fn test_new_session_parameters_error() {
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
-    let (settings, wallet_listener, _, _) =
+    let (settings, wallet_listener, _, _, _) =
         wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     let internal_url = internal_url(&settings);
@@ -482,7 +492,7 @@ async fn test_new_session_parameters_error() {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
-    let (settings, wallet_listener, _, _) =
+    let (settings, wallet_listener, _, _, _) =
         wallet_server_settings_and_listener(internal_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     let internal_url = internal_url(&settings);
@@ -558,12 +568,20 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
 async fn start_disclosure<S>(
     disclosure_sessions: Arc<S>,
     request: &StartDisclosureRequest,
-) -> (VerifierSettings, Client, SessionToken, BaseUrl, Ca, TrustAnchors)
+) -> (
+    VerifierSettings,
+    Client,
+    SessionToken,
+    BaseUrl,
+    Ca,
+    TrustAnchors,
+    CertificateCrlVerifier<MockCrlFetcher>,
+)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let (internal_server, internal_listener) = internal_server_settings_and_listener().await;
-    let (settings, wallet_listener, issuer_ca, rp_trust_anchor) =
+    let (settings, wallet_listener, issuer_ca, rp_trust_anchor, crl_verifier) =
         wallet_server_settings_and_listener(internal_server, request).await;
 
     let internal_url = internal_url(&settings);
@@ -595,12 +613,13 @@ where
         internal_url,
         issuer_ca,
         rp_trust_anchor,
+        crl_verifier,
     )
 }
 
 #[tokio::test]
 async fn test_disclosure_missing_session_type() {
-    let (settings, client, session_token, _, _, _) = start_disclosure(
+    let (settings, client, session_token, _, _, _, _) = start_disclosure(
         Arc::new(MemorySessionStore::default()),
         &EXAMPLE_START_DISCLOSURE_REQUEST,
     )
@@ -617,7 +636,7 @@ async fn test_disclosure_missing_session_type() {
 
 #[tokio::test]
 async fn test_disclosure_cancel() {
-    let (settings, client, session_token, internal_url, _, _) = start_disclosure(
+    let (settings, client, session_token, internal_url, _, _, _) = start_disclosure(
         Arc::new(MemorySessionStore::default()),
         &EXAMPLE_START_DISCLOSURE_REQUEST,
     )
@@ -673,7 +692,7 @@ where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let session_store = Arc::new(session_store);
-    let (settings, client, session_token, internal_url, _, _) =
+    let (settings, client, session_token, internal_url, _, _, _) =
         start_disclosure(session_store.clone(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     // Fetch the status, this should return OK and be in the Created state.
@@ -829,7 +848,7 @@ async fn perform_full_disclosure(
     format: Format,
 ) -> (Client, SessionToken, BaseUrl, Option<Url>) {
     // Start the verification_server and create a disclosure request.
-    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) = start_disclosure(
+    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor, crl_verifier) = start_disclosure(
         Arc::new(MemorySessionStore::default()),
         &pid_start_disclosure_request(format),
     )
@@ -849,8 +868,10 @@ async fn perform_full_disclosure(
         SessionType::SameDevice => DisclosureUriSource::Link,
         SessionType::CrossDevice => DisclosureUriSource::QrCode,
     };
-    let disclosure_client =
-        VpDisclosureClient::new_with_client(HttpClient::try_new(default_reqwest_client_builder()).unwrap());
+    let disclosure_client = VpDisclosureClient::new(
+        HttpVpMessageClient::new(HttpClient::try_new(default_reqwest_client_builder()).unwrap()),
+        crl_verifier,
+    );
     let disclosure_session = disclosure_client
         .start(&request_uri_query, uri_source, &rp_trust_anchor)
         .await
@@ -1024,7 +1045,7 @@ async fn test_disclosed_attributes_with_nonce(#[values(Format::MsoMdoc, Format::
 #[tokio::test]
 async fn test_disclosed_attributes_failed_session() {
     // Start the verification_server and create a disclosure request.
-    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) = start_disclosure(
+    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor, crl_verifier) = start_disclosure(
         Arc::new(MemorySessionStore::default()),
         &EXAMPLE_START_DISCLOSURE_REQUEST,
     )
@@ -1038,8 +1059,10 @@ async fn test_disclosed_attributes_failed_session() {
     };
 
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
-    let disclosure_client =
-        VpDisclosureClient::new_with_client(HttpClient::try_new(default_reqwest_client_builder()).unwrap());
+    let disclosure_client = VpDisclosureClient::new(
+        HttpVpMessageClient::new(HttpClient::try_new(default_reqwest_client_builder()).unwrap()),
+        crl_verifier,
+    );
     let disclosure_session = disclosure_client
         .start(&request_uri_query, DisclosureUriSource::QrCode, &rp_trust_anchor)
         .await

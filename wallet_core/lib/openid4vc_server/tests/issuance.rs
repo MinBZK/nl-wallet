@@ -10,6 +10,8 @@ use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use http::header;
 use http::header::ACCEPT;
 use http::header::CONTENT_TYPE;
@@ -107,6 +109,7 @@ struct AuthCodeFlowServer {
     issuer_identifier: IssuerIdentifier,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
+    crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
 }
 
 /// Bundle returned by `start_pre_authorized_code_flow_server`.
@@ -115,6 +118,7 @@ struct PreAuthCodeFlowServer {
     trust_anchors: TrustAnchors,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
+    crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
 }
 
 async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCodeFlowServer {
@@ -141,13 +145,14 @@ async fn start_auth_code_flow_server_with(
     let sessions = Arc::new(MemorySessionStore::default());
 
     let flow = StaticAuthorizingFlow::new(documents_or_error_code);
-    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_sd_jwt_metadata(
-        issuer_identifier.clone(),
-        type_metadata,
-        sessions,
-        flow,
-        vec_nonempty![REDIRECT_URI.parse().unwrap()],
-    );
+    let (authorizing_issuer, trust_anchors, wia_keypair, crl_verifier) =
+        setup_mock_authorizing_issuer_from_sd_jwt_metadata(
+            issuer_identifier.clone(),
+            type_metadata,
+            sessions,
+            flow,
+            vec_nonempty![REDIRECT_URI.parse().unwrap()],
+        );
     let authorizing_issuer = Arc::new(authorizing_issuer);
     let issuer = Arc::clone(authorizing_issuer.issuer());
 
@@ -169,6 +174,7 @@ async fn start_auth_code_flow_server_with(
         issuer_identifier,
         wia_keypair,
         tls_trust_anchor,
+        crl_verifier,
     }
 }
 
@@ -181,7 +187,8 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let (issuer, trust_anchors, wia_keypair) = setup_mock_issuer(issuer_identifier, attestation_count, sessions);
+    let (issuer, trust_anchors, wia_keypair, crl_verifier) =
+        setup_mock_issuer(issuer_identifier, attestation_count, sessions);
     let issuer = Arc::new(issuer);
 
     // Pre-authorized-code flow mounts the issuance endpoints standalone.
@@ -200,6 +207,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
         trust_anchors,
         wia_keypair,
         tls_trust_anchor,
+        crl_verifier,
     }
 }
 
@@ -247,6 +255,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
             .clone()
             .into_certificate()]))
         .unwrap(),
+        server.crl_verifier.clone(),
     );
 
     // Start authorization code flow — fetches metadata and creates an auth session.
@@ -384,6 +393,7 @@ async fn pre_authorized_code_flow(
         trust_anchors,
         wia_keypair,
         tls_trust_anchor,
+        crl_verifier,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
@@ -393,6 +403,7 @@ async fn pre_authorized_code_flow(
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        crl_verifier,
     );
 
     let flow = discovery
@@ -434,6 +445,7 @@ async fn reject_issuance() {
         trust_anchors,
         tls_trust_anchor,
         wia_keypair,
+        crl_verifier,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
@@ -443,6 +455,7 @@ async fn reject_issuance() {
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        crl_verifier,
     );
 
     let flow = discovery
@@ -475,6 +488,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
         trust_anchors,
         tls_trust_anchor,
         wia_keypair,
+        crl_verifier,
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
@@ -483,6 +497,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        crl_verifier,
     );
 
     // The `client_id` that determines whether the issuer knows the wallet is the WIA's `sub`.

@@ -25,6 +25,7 @@ mock = [
     "attestation_data/generate",
     "attestation_data/mock",
     "crypto/generate",
+    "crypto/mock",
     "dep:mockall",
     "token_status_list/mock",
     "wscd/mock",
@@ -126,7 +127,7 @@ attestation_data = { path = "../attestation_data", features = [
     "test_credential",
 ] }
 attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }
-crypto = { path = "../crypto", features = ["examples"] }
+crypto = { path = "../crypto", features = ["examples", "mock"] }
 dcql = { path = "../dcql", features = ["mock"] }
 http.workspace = true
 http_utils = { path = "../http_utils", features = ["httpmock"] }

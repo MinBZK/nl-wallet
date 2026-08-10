@@ -17,6 +17,8 @@ use cose::KnownCoseAlgorithmIdentifier;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::CrlFetcher;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::disclosure::CredentialValidationError;
@@ -428,18 +430,21 @@ static VP_AUTH_REQUEST_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
 });
 
 impl VpAuthorizationRequest {
-    /// Construct a new Authorization Request by verifying an Authorization Request JWT against
-    /// the specified trust anchors.
-    pub fn try_new(
+    /// Construct and authenticate an Authorization Request, requiring a valid CRL for its WRPAC chain.
+    pub async fn try_new(
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &TrustAnchors,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        let (header, auth_request) = jws.parse_and_verify_against_trust_anchors(
-            trust_anchors,
-            &TimeGenerator,
-            None,
-            VP_AUTH_REQUEST_VALIDATION.clone(),
-        )?;
+        let (header, auth_request) = jws
+            .parse_and_verify_against_trust_anchors_with_crl(
+                trust_anchors,
+                crl_verifier,
+                &TimeGenerator,
+                None,
+                VP_AUTH_REQUEST_VALIDATION.clone(),
+            )
+            .await?;
 
         Ok((auth_request, header.x5c.into_first()))
     }
@@ -1152,6 +1157,9 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::crl::CertificateCrlVerificationError;
+    use crypto::x509::crl::CertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCrlFetcher;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1161,6 +1169,7 @@ mod tests {
     use jwe::algorithm::EncryptionAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;
     use jwt::SignedJwt;
+    use jwt::error::JwtX5cVerifyError;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
@@ -1285,26 +1294,34 @@ mod tests {
         assert_eq!(client_id.id, expected_hash);
     }
 
-    fn setup_mdoc() -> (
-        TrustAnchors,
-        KeyPair,
-        JweEcdhSecretKey,
-        NormalizedVpAuthorizationRequest,
-    ) {
+    fn setup_mdoc() -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest) {
         setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_iso_example())
+    }
+
+    fn setup_mdoc_without_crl_distribution_point() -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest)
+    {
+        setup_with_credential_requests_and_crl_distribution_point(
+            NormalizedCredentialRequests::new_mock_mdoc_iso_example(),
+            false,
+        )
     }
 
     fn setup_with_credential_requests(
         credential_requests: NormalizedCredentialRequests,
-    ) -> (
-        TrustAnchors,
-        KeyPair,
-        JweEcdhSecretKey,
-        NormalizedVpAuthorizationRequest,
-    ) {
+    ) -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest) {
+        setup_with_credential_requests_and_crl_distribution_point(credential_requests, true)
+    }
+
+    fn setup_with_credential_requests_and_crl_distribution_point(
+        credential_requests: NormalizedCredentialRequests,
+        with_crl_distribution_point: bool,
+    ) -> (Ca, KeyPair, JweEcdhSecretKey, NormalizedVpAuthorizationRequest) {
         let ca = Ca::generate_mock();
-        let trust_anchor = TrustAnchors::from(&ca);
-        let rp_keypair = ca.generate_wrpac_verifier_mock().unwrap();
+        let rp_keypair = if with_crl_distribution_point {
+            ca.generate_wrpac_verifier_mock_with_crl().unwrap()
+        } else {
+            ca.generate_wrpac_verifier_mock().unwrap()
+        };
 
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();
@@ -1320,7 +1337,7 @@ mod tests {
             None,
         );
 
-        (trust_anchor, rp_keypair, encryption_secret_key, auth_request)
+        (ca, rp_keypair, encryption_secret_key, auth_request)
     }
 
     #[test]
@@ -1370,20 +1387,44 @@ mod tests {
         assert_eq!(decrypted_document.issuer_signed, encrypted_document.issuer_signed);
     }
 
-    #[test]
-    fn test_authorization_request_jwt() {
-        let (trust_anchor, rp_keypair, _, mut auth_request) = setup_mdoc();
+    #[tokio::test]
+    async fn test_authorization_request_jwt() {
+        let (ca, rp_keypair, _, mut auth_request) = setup_mdoc();
+        let trust_anchor = TrustAnchors::from(&ca);
+        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
         auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
             SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
-                .now_or_never()
-                .unwrap()
+                .await
                 .unwrap();
 
-        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor).unwrap();
+        let (auth_request, cert) =
+            VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor, &crl_verifier)
+                .await
+                .unwrap();
         let (auth_request, _) = auth_request.validate(&cert, None).unwrap();
         assert_eq!(auth_request.state.as_deref(), Some("authorization_state"));
+    }
+
+    #[tokio::test]
+    async fn test_authorization_request_jwt_with_crl_fails_without_distribution_point() {
+        let (ca, rp_keypair, _, auth_request) = setup_mdoc_without_crl_distribution_point();
+        let trust_anchor = TrustAnchors::from(&ca);
+        let auth_request_jwt =
+            SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
+                .await
+                .unwrap();
+
+        let verifier = CertificateCrlVerifier::<MockCrlFetcher>::default();
+        let result = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
+
+        assert_matches!(
+            result,
+            Err(AuthRequestValidationError::JwtVerification(
+                JwtX5cVerifyError::CertificateCrlValidation(CertificateCrlVerificationError::NoCrlDistributionPoint)
+            ))
+        );
     }
 
     #[test]

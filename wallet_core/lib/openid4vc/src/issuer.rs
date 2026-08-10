@@ -1882,7 +1882,7 @@ mod tests {
     #[tokio::test]
     async fn test_signed_metadata() {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
-        let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             "https://example.com/".parse().unwrap(),
             vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
             Arc::new(MemorySessionStore::default()),
@@ -1908,7 +1908,7 @@ mod tests {
     #[tokio::test]
     async fn test_prepared_credential_try_new() {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
-        let (issuer, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             "https://example.com/".parse().unwrap(),
             vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
             Arc::new(MemorySessionStore::default()),
@@ -1953,7 +1953,7 @@ mod tests {
 
     fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchors, IssuerIdentifier, KeyPair) {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
-        let (issuer, trust_anchor, wia_keypair) = setup_mock_issuer(
+        let (issuer, trust_anchor, wia_keypair, _) = setup_mock_issuer(
             issuer_identifier.clone(),
             NonZeroUsize::MIN,
             Arc::new(MemorySessionStore::default()),
@@ -2489,7 +2489,7 @@ mod tests {
         let (sessions, mock_time) = memory_session_store_with_mock_time();
         let sessions = Arc::new(sessions);
 
-        let (issuer, _, _) = setup_mock_issuer(
+        let (issuer, _, _, _) = setup_mock_issuer(
             "https://example.com/".parse().unwrap(),
             NonZeroUsize::MIN,
             sessions.clone(),

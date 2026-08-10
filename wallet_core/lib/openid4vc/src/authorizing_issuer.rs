@@ -496,7 +496,7 @@ mod tests {
     ) {
         let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, wia_keypair) = setup_mock_issuer(
+        let (issuer, _, wia_keypair, _) = setup_mock_issuer(
             issuer_identifier,
             MOCK_ATTESTATION_TYPES.len().try_into().unwrap(),
             Arc::clone(&sessions),

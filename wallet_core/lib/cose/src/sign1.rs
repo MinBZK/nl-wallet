@@ -16,6 +16,9 @@ use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use crypto::x509::crl::CertificateCrlVerificationError;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::CrlFetcher;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
@@ -151,6 +154,28 @@ impl<T> TypedCose<CoseSign1, T> {
         self.verify_against_trust_anchors_with_chain(self.x5chain()?, trust_anchors, time, certificate_usage)
     }
 
+    /// Verify the certificate path with fail-closed CRL checking and the COSE signature, then deserialize the
+    /// authenticated payload.
+    pub async fn verify_against_trust_anchors_with_crl(
+        &self,
+        trust_anchors: &TrustAnchors,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+    ) -> Result<T, CoseError>
+    where
+        T: DeserializeOwned,
+    {
+        self.verify_against_trust_anchors_with_chain_and_crl(
+            self.x5chain()?,
+            trust_anchors,
+            crl_verifier,
+            time,
+            certificate_usage,
+        )
+        .await
+    }
+
     pub(crate) fn verify_against_trust_anchors_with_chain(
         &self,
         x5chain: VecNonEmpty<BorrowingCertificate>,
@@ -168,10 +193,30 @@ impl<T> TypedCose<CoseSign1, T> {
                 &chain.into_iter().collect::<Vec<_>>(),
                 time,
                 trust_anchors,
-                None,
             )
             .map_err(CoseError::Certificate)?;
         self.verify_and_parse(certificate.public_key())
+    }
+
+    async fn verify_against_trust_anchors_with_chain_and_crl(
+        &self,
+        x5chain: VecNonEmpty<BorrowingCertificate>,
+        trust_anchors: &TrustAnchors,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+    ) -> Result<T, CoseError>
+    where
+        T: DeserializeOwned,
+    {
+        crl_verifier
+            .verify_chain(x5chain.as_slice(), trust_anchors, certificate_usage, time)
+            .await
+            .map_err(|error| match error {
+                CertificateCrlVerificationError::Certificate(source) => CoseError::Certificate(source),
+                error => CoseError::CertificateCrl(error),
+            })?;
+        self.verify_and_parse(x5chain.first().public_key())
     }
 }
 

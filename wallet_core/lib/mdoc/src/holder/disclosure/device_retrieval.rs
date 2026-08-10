@@ -3,6 +3,8 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::CrlFetcher;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -11,6 +13,7 @@ use crate::device_retrieval::DeviceRequest;
 use crate::device_retrieval::DocRequest;
 use crate::device_retrieval::ReaderAuthenticationKeyed;
 use crate::engagement::SessionTranscript;
+use crate::errors::Error;
 use crate::errors::Result;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::utils::cose::ClonePayload;
@@ -31,6 +34,7 @@ impl DeviceRequest {
 }
 
 impl DocRequest {
+    #[cfg(test)]
     pub fn verify(
         &self,
         session_transcript: &SessionTranscript,
@@ -54,6 +58,24 @@ impl DocRequest {
                 Ok(cert)
             })
             .transpose()
+    }
+
+    pub async fn verify_with_crl(
+        &self,
+        session_transcript: &SessionTranscript,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &TrustAnchors,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+    ) -> Result<BorrowingCertificate> {
+        let reader_auth = self.reader_auth.as_ref().ok_or(Error::MissingReaderAuthentication)?;
+
+        let reader_auth_payload = ReaderAuthenticationKeyed::new(session_transcript, &self.items_request);
+        let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
+        let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
+
+        cose.verify_against_trust_anchors_with_crl(trust_anchors, crl_verifier, time, None)
+            .await?;
+        Ok(cose.x5chain()?.into_first())
     }
 }
 
@@ -117,6 +139,9 @@ mod tests {
 
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::crl::CertificateCrlVerificationError;
+    use crypto::x509::crl::CertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCrlFetcher;
     use utils::generator::TimeGenerator;
 
     use super::*;
@@ -160,5 +185,60 @@ mod tests {
             .expect("Could not verify DeviceRequest");
 
         assert!(no_certificate.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_doc_request_verify_with_crl() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+        let trust_anchors = TrustAnchors::from(&ca);
+        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let session_transcript = SessionTranscript::new_mock();
+        let items_request = ItemsRequest::new_example();
+        let doc_request = create_doc_request(items_request.clone(), &session_transcript, &key_pair).await;
+
+        let certificate = doc_request
+            .verify_with_crl(&session_transcript, &TimeGenerator, &trust_anchors, &crl_verifier)
+            .await
+            .expect("Could not verify DeviceRequest");
+
+        assert_eq!(certificate, key_pair.into());
+
+        let doc_request = DocRequest {
+            items_request: items_request.into(),
+            reader_auth: None,
+        };
+        let error = doc_request
+            .verify_with_crl(&session_transcript, &TimeGenerator, &trust_anchors, &crl_verifier)
+            .await
+            .expect_err("Verifying DeviceRequest should have resulted in an error");
+
+        assert_matches!(error, Error::MissingReaderAuthentication);
+    }
+
+    #[tokio::test]
+    async fn test_doc_request_verify_with_crl_requires_distribution_point() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let session_transcript = SessionTranscript::new_mock();
+        let doc_request = create_doc_request(ItemsRequest::new_example(), &session_transcript, &key_pair).await;
+
+        let error = doc_request
+            .verify_with_crl(
+                &session_transcript,
+                &TimeGenerator,
+                &TrustAnchors::from(&ca),
+                &crl_verifier,
+            )
+            .await
+            .expect_err("Verifying DeviceRequest should have resulted in an error");
+
+        assert_matches!(
+            error,
+            Error::Cose(cose::CoseError::CertificateCrl(
+                CertificateCrlVerificationError::NoCrlDistributionPoint
+            ))
+        );
     }
 }

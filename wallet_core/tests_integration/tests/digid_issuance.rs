@@ -1,6 +1,7 @@
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use crypto::server_keys::generate::Ca;
+use crypto::x509::crl::CertificateCrlVerifier;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
@@ -60,6 +61,8 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wia_ca = Ca::generate_issuer_mock_ca().unwrap();
     let wia_keypair = wia_ca.generate_wia_mock().unwrap();
     let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url(), Some(&wia_ca));
+    let (static_settings, _) = static_server_settings();
+    start_static_crl_server(&static_settings).await;
 
     let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
     pid_settings.authorizing_issuer_settings.wallet_redirect_uris = vec_nonempty![redirect_uri.clone()];
@@ -122,7 +125,9 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wallet_config = default_wallet_config();
 
     let http_client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
+    let crl_verifier =
+        CertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
+    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client, crl_verifier);
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);
     let wia_client = MockWiaClient::new_with_wia_keypair(wia_keypair.clone());

@@ -1,5 +1,6 @@
 use coset::Label;
 use crypto::x509::CertificateError;
+use crypto::x509::crl::CertificateCrlVerificationError;
 use error_category::ErrorCategory;
 
 use crate::serialization::CborError;
@@ -38,6 +39,8 @@ pub enum CoseError {
     EmptyCertificateChain,
     #[error("certificate error: {0}")]
     Certificate(#[source] CertificateError),
+    #[error("certificate CRL verification error: {0}")]
+    CertificateCrl(#[source] CertificateCrlVerificationError),
     #[error("signing failed: {0}")]
     #[category(pd)]
     Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),

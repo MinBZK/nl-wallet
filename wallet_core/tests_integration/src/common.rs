@@ -1,6 +1,7 @@
 use std::convert::Infallible;
 use std::io;
 use std::net::IpAddr;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process;
 use std::str::FromStr;
@@ -23,6 +24,8 @@ use crypto::PublicKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use ctor::ctor;
 use db_test::DbSetup;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -41,6 +44,7 @@ use http_utils::urls::issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -84,6 +88,7 @@ use tracing::Instrument;
 use tracing::info_span;
 use update_policy_server::settings::Settings as UpsSettings;
 use url::Url;
+use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use verification_server::settings::VerifierSettings;
@@ -168,8 +173,8 @@ pub type WalletWithStorage = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpIssuanceDiscovery,
-    VpDisclosureClient,
+    HttpIssuanceDiscovery<MockCrlFetcher>,
+    VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher>,
 >;
 
 pub async fn setup_wallet_and_default_env(
@@ -500,6 +505,12 @@ pub async fn setup_wallet<F>(
 where
     F: AsyncFnOnce() -> MockHardwareDatabaseStorage,
 {
+    let (static_settings, _) = static_server_settings();
+    let mut crl_distribution_point = wallet_config.static_assets_base_url.as_ref().clone();
+    crl_distribution_point.set_scheme("http").unwrap();
+    crl_distribution_point.set_port(Some(static_settings.crl_port)).unwrap();
+    crl_distribution_point.set_path("/wrpac.crl.der");
+
     let config_repository = HttpConfigurationRepository::new(
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         tempfile::tempdir().unwrap().keep(),
@@ -515,7 +526,12 @@ where
 
     let update_policy_repository = UpdatePolicyRepository::init();
 
-    let wallet_clients = WalletClients::new().unwrap();
+    // Keep the regular integration suite self-contained while still verifying the configured CRL's signature and
+    // revocation status. HTTP retrieval is covered by focused CRL tests.
+    let crl = std::fs::read(static_settings.crl_file).unwrap();
+    let crl_verifier =
+        CertificateCrlVerifier::new_with_fetcher(MockCrlFetcher::new([(crl_distribution_point, crl)]), 1);
+    let wallet_clients = WalletClients::new_with_mock_crl_verifier(crl_verifier).unwrap();
 
     Wallet::init_registration(
         storage_generator().await,
@@ -654,6 +670,7 @@ pub fn static_server_settings() -> (StaticSettings, ReqwestTrustAnchor) {
     let mut settings = StaticSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.port = 0;
+    settings.crl_file = prefix_local_path(Path::new("wrpac.crl.der")).into_owned();
 
     let root_ca = read_file("static.ca.crt.der").try_into().unwrap();
 
@@ -713,6 +730,18 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
     )
     .await;
     port
+}
+
+pub async fn start_static_crl_server(settings: &StaticSettings) {
+    let listener = TcpListener::bind((settings.ip, settings.crl_port)).await.unwrap();
+    let crl_file = settings.crl_file.clone();
+
+    tokio::spawn(async {
+        if let Err(error) = static_server::server::serve_crl_with_listener(listener, crl_file).await {
+            tracing::error!("Could not start static_server CRL endpoint: {error:?}");
+            process::exit(1);
+        }
+    });
 }
 
 pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {

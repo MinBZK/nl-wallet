@@ -171,7 +171,7 @@ mod tests {
     fn mock_issuer() -> Arc<MockIssuer> {
         let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, _) = setup_mock_issuer(
+        let (issuer, _, _, _) = setup_mock_issuer(
             issuer_identifier,
             MOCK_ATTESTATION_TYPES.len().try_into().unwrap(),
             sessions,

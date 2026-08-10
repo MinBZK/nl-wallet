@@ -18,6 +18,9 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use crypto::x509::crl::CertificateCrlVerificationError;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::CrlFetcher;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -252,6 +255,17 @@ where
     H: DeserializeOwned + TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
+    fn parse_and_verify_with_leaf_certificate(
+        &self,
+        leaf_certificate: &BorrowingCertificate,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        let pubkey = PublicKey::from(*leaf_certificate.public_key());
+        let validation = validation.into_validation(&pubkey);
+        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
+            .map_err(JwtX5cVerifyError::JwtVerify)
+    }
+
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
     pub fn parse_and_verify_against_trust_anchors(
@@ -271,15 +285,38 @@ where
 
         let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
         leaf_cert
-            .verify(certificate_usage, &intermediate_certs, time, trust_anchors, None)
+            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-        let pubkey = PublicKey::from(*leaf_cert.public_key());
+        self.parse_and_verify_with_leaf_certificate(leaf_cert, validation)
+    }
 
-        let validation = validation.into_validation(&pubkey);
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
-            .map_err(JwtX5cVerifyError::JwtVerify)
+    /// Verify the X.509 certificate chain, including fail-closed CRL checking, and then verify the JWS.
+    pub async fn parse_and_verify_against_trust_anchors_with_crl(
+        &self,
+        trust_anchors: &TrustAnchors,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        let certificates = self
+            .extract_x5c_certificates()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
+
+        crl_verifier
+            .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
+            .await
+            .map_err(|error| match error {
+                CertificateCrlVerificationError::Certificate(source) => {
+                    JwtX5cVerifyError::CertificateValidation(source)
+                }
+                error => JwtX5cVerifyError::CertificateCrlValidation(error),
+            })?;
+
+        self.parse_and_verify_with_leaf_certificate(certificates.first(), validation)
     }
 
     pub fn into_verified_against_trust_anchors(
@@ -291,6 +328,31 @@ where
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation)?;
+
+        Ok(VerifiedJwt {
+            header,
+            payload,
+            jwt: self,
+        })
+    }
+
+    pub async fn into_verified_against_trust_anchors_with_crl(
+        self,
+        trust_anchors: &TrustAnchors,
+        crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation: JwtValidation,
+    ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
+        let (header, payload) = self
+            .parse_and_verify_against_trust_anchors_with_crl(
+                trust_anchors,
+                crl_verifier,
+                time,
+                certificate_usage,
+                validation,
+            )
+            .await?;
 
         Ok(VerifiedJwt {
             header,
@@ -1184,8 +1246,14 @@ mod tests {
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::DistinguishedName;
+    use crypto::x509::NO_SAN;
+    use crypto::x509::crl::CertificateCrlVerificationError;
+    use crypto::x509::crl::CertificateCrlVerifier;
     use ecdsa::elliptic_curve::Generate;
     use futures::FutureExt;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
+    use httpmock::Method::GET;
+    use httpmock::MockServer;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;
@@ -1539,6 +1607,79 @@ mod tests {
 
         assert_eq!(deserialized, payload);
         assert_eq!(header.x5c.into_first(), *keypair.certificate());
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_cert_and_crl() {
+        let server = MockServer::start_async().await;
+        let crl_url = server.url("/crl.der").parse().unwrap();
+        let ca = Ca::generate_mock();
+        let keypair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("verifier"),
+                CertificateConfiguration {
+                    crl_distribution_points: vec![crl_url],
+                    ..Default::default()
+                },
+                NO_SAN,
+            )
+            .unwrap();
+        let crl_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/crl.der");
+                then.status(200).body(ca.generate_crl(vec![], 1).unwrap().der());
+            })
+            .await;
+        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+
+        let payload = json!({"hello": "world"});
+        let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
+            .await
+            .unwrap()
+            .into_unverified();
+
+        let (header, deserialized) = jwt
+            .parse_and_verify_against_trust_anchors_with_crl(
+                &TrustAnchors::from(&ca),
+                &crl_verifier,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(header.x5c.into_first(), *keypair.certificate());
+        crl_mock.assert_calls_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_cert_and_crl_requires_distribution_point() {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
+        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+
+        let jwt = SignedJwt::sign_with_certificate(&json!({"hello": "world"}), &keypair)
+            .await
+            .unwrap()
+            .into_unverified();
+
+        let error = jwt
+            .parse_and_verify_against_trust_anchors_with_crl(
+                &TrustAnchors::from(&ca),
+                &crl_verifier,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+            .await
+            .expect_err("certificate without a CRL distribution point should be rejected");
+
+        assert_matches!(
+            error,
+            JwtX5cVerifyError::CertificateCrlValidation(CertificateCrlVerificationError::NoCrlDistributionPoint)
+        );
     }
 
     #[tokio::test]

@@ -217,23 +217,25 @@ pub mod generate {
         pub fn generate_crl(
             &self,
             revoked_certs: Vec<RevokedCertParams>,
+            crl_number: u64,
         ) -> Result<CertificateRevocationList, CertificateError> {
             let now = OffsetDateTime::now_utc();
-            self.generate_crl_with_validity(revoked_certs, now, now + Duration::days(7))
+            self.generate_crl_with_validity(revoked_certs, now, now + Duration::days(7), crl_number)
         }
 
-        /// Generate a signed CRL from this CA, revoking the given certificates, with explicit
-        /// `thisUpdate`/`nextUpdate` fields. Used to test CRL expiry handling.
+        /// Generate a signed CRL from this CA with explicit `thisUpdate`, `nextUpdate`, and `crlNumber` fields.
+        /// The caller is responsible for increasing `crl_number` for every CRL issued by this CA.
         pub fn generate_crl_with_validity(
             &self,
             revoked_certs: Vec<RevokedCertParams>,
             this_update: OffsetDateTime,
             next_update: OffsetDateTime,
+            crl_number: u64,
         ) -> Result<CertificateRevocationList, CertificateError> {
             let params = CertificateRevocationListParams {
                 this_update,
                 next_update,
-                crl_number: SerialNumber::from(1u64),
+                crl_number: SerialNumber::from(crl_number),
                 issuing_distribution_point: None,
                 revoked_certs,
                 key_identifier_method: KeyIdMethod::Sha256,
@@ -379,6 +381,7 @@ pub mod generate {
         use super::*;
         use crate::x509::NO_SAN;
         use crate::x509::SubjectAltNameUri;
+        use crate::x509::crl::mock::MOCK_CRL_DISTRIBUTION_POINT;
 
         pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA wrpac"));
@@ -433,8 +436,30 @@ pub mod generate {
                 self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default(), NO_SAN)
             }
 
+            pub fn generate_wrpac_issuer_mock_with_crl(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(
+                    ISSUANCE_CERT_DN.clone(),
+                    CertificateConfiguration {
+                        crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
+                        ..Default::default()
+                    },
+                    NO_SAN,
+                )
+            }
+
             pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(RP_CERT_DN.clone(), Default::default(), NO_SAN)
+            }
+
+            pub fn generate_wrpac_verifier_mock_with_crl(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(
+                    RP_CERT_DN.clone(),
+                    CertificateConfiguration {
+                        crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
+                        ..Default::default()
+                    },
+                    NO_SAN,
+                )
             }
 
             pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateError> {

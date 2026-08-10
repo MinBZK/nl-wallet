@@ -654,7 +654,7 @@ mod tests {
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
         let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, _) = setup_mock_issuer_from_sd_jwt_metadata(
+        let (issuer, _, _, _) = setup_mock_issuer_from_sd_jwt_metadata(
             issuer_identifier,
             vec![mock_type_metadata(ATTESTATION_TYPE)],
             Arc::clone(&sessions),

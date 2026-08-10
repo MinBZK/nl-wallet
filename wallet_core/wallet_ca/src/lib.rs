@@ -10,6 +10,9 @@ use p256::pkcs8::EncodePrivateKey;
 use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;
+use rcgen::CertificateRevocationList;
+use time::OffsetDateTime;
+use x509_parser::parse_x509_crl;
 
 pub fn read_public_key(public_key_file: &CachedInput) -> Result<Pem> {
     let pem = Pem::try_from(public_key_file.get_data())?;
@@ -76,4 +79,70 @@ fn write_signing_key_inner(file_path: &Path, key: &SigningKey) -> Result<()> {
     )?;
     eprintln!("Key stored in '{}'", file_path.display());
     Ok(())
+}
+
+pub fn write_crl(file_prefix: &str, crl: &CertificateRevocationList, force: bool) -> Result<()> {
+    let pem_file = format!("{file_prefix}.crl.pem");
+    let pem_path = Path::new(&pem_file);
+    assert_not_exists(pem_path, force)?;
+
+    fs::write(pem_path, crl.pem()?)?;
+    eprintln!("CRL stored in '{}'", pem_path.display());
+    Ok(())
+}
+
+fn select_crl_number(timestamp_number: u64, previous_number: u64) -> Option<u64> {
+    previous_number
+        .checked_add(1)
+        .map(|incremented_number| timestamp_number.max(incremented_number))
+}
+
+/// Select a `crlNumber` for an output prefix. A new sequence starts at `this_update`'s Unix timestamp. When a PEM CRL
+/// already exists, the result is guaranteed to exceed its number even if the clock has not advanced or moved backwards.
+pub fn next_crl_number(file_prefix: &str, this_update: OffsetDateTime) -> Result<u64> {
+    let timestamp_number = u64::try_from(this_update.unix_timestamp())
+        .map_err(|_| anyhow!("CRL thisUpdate must be on or after the Unix epoch"))?;
+    let pem_file = format!("{file_prefix}.crl.pem");
+    let pem_path = Path::new(&pem_file);
+    if !pem_path.exists() {
+        return Ok(timestamp_number);
+    }
+
+    let pem_bytes = fs::read(pem_path)?;
+    let pem = Pem::try_from(pem_bytes.as_slice())
+        .map_err(|error| anyhow!("Could not parse existing CRL '{}': {error}", pem_path.display()))?;
+    let (_, previous_crl) = parse_x509_crl(pem.contents())
+        .map_err(|error| anyhow!("Could not parse existing CRL '{}': {error}", pem_path.display()))?;
+    let previous_number = previous_crl
+        .crl_number()
+        .ok_or_else(|| anyhow!("Existing CRL '{}' has no crlNumber", pem_path.display()))?;
+    let previous_number = u64::try_from(previous_number).map_err(|_| {
+        anyhow!(
+            "Existing CRL '{}' has a crlNumber that is too large",
+            pem_path.display()
+        )
+    })?;
+    select_crl_number(timestamp_number, previous_number).ok_or_else(|| {
+        anyhow!(
+            "Existing CRL '{}' has the maximum supported crlNumber",
+            pem_path.display()
+        )
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_crl_number;
+
+    #[test]
+    fn crl_number_increases_when_clock_does_not() {
+        assert_eq!(select_crl_number(42, 42), Some(43));
+        assert_eq!(select_crl_number(41, 42), Some(43));
+    }
+
+    #[test]
+    fn crl_number_uses_later_timestamp_and_rejects_overflow() {
+        assert_eq!(select_crl_number(44, 42), Some(44));
+        assert_eq!(select_crl_number(42, u64::MAX), None);
+    }
 }

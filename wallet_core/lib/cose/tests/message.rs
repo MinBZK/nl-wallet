@@ -12,6 +12,9 @@ use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::NO_SAN;
+use crypto::x509::crl::CertificateCrlVerificationError;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use serde::Deserialize;
@@ -142,6 +145,43 @@ async fn signs_and_verifies_with_certificate() {
             .unwrap(),
         ToyMessage::default()
     );
+}
+
+#[tokio::test]
+async fn verifies_certificate_and_crl() {
+    let ca = Ca::generate_mock();
+    let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair, true)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        cose.verify_against_trust_anchors_with_crl(&TrustAnchors::from(&ca), &crl_verifier, &TimeGenerator, None,)
+            .await
+            .unwrap(),
+        ToyMessage::default()
+    );
+}
+
+#[tokio::test]
+async fn crl_verification_requires_distribution_point() {
+    let ca = Ca::generate_mock();
+    let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair, true)
+        .await
+        .unwrap();
+
+    let error = cose
+        .verify_against_trust_anchors_with_crl(&TrustAnchors::from(&ca), &crl_verifier, &TimeGenerator, None)
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        CoseError::CertificateCrl(CertificateCrlVerificationError::NoCrlDistributionPoint)
+    ));
 }
 
 #[tokio::test]

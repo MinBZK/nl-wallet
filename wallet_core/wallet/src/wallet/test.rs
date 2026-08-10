@@ -23,6 +23,8 @@ use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificateExtension;
+use crypto::x509::crl::CertificateCrlVerifier;
+use crypto::x509::crl::mock::MockCrlFetcher;
 use futures::future::FutureExt;
 use itertools::Itertools;
 use jwt::SignedJwt;
@@ -410,7 +412,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients::default(),
+            WalletClients::new_mock(CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA)),
             RegistrationStatus::Unregistered,
             None,
         )
@@ -428,7 +430,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients::default(),
+            WalletClients::new_mock(CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA)),
         )
         .await
     }
@@ -491,7 +493,7 @@ impl TestWalletMockStorage {
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients::default(),
+            WalletClients::new_mock(CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA)),
         )
         .await
     }

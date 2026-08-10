@@ -404,6 +404,20 @@ fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApi
     }
 }
 
+fn close_proximity_can_retry(error: &CloseProximityDisclosureError) -> Option<bool> {
+    match error {
+        // Platform errors are transient and worth retrying.
+        CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => Some(true),
+        CloseProximityDisclosureError::InvalidReaderCertificate(error) => detect_networking_error(error).map(|_| true),
+        CloseProximityDisclosureError::ReaderCertificateCrlVerification(error) => {
+            detect_networking_error(error).map(|_| true)
+        }
+        CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
+        CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
+        _ => Some(false),
+    }
+}
+
 impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
@@ -458,15 +472,7 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => Some(false),
             DisclosureError::UnexpectedAttestationFormat => Some(false),
-            DisclosureError::CloseProximityDisclosureSessionError(inner) => match inner {
-                // Platform errors are transient and worth retrying.
-                CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => {
-                    Some(true)
-                }
-                CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
-                CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
-                _ => Some(false),
-            },
+            DisclosureError::CloseProximityDisclosureSessionError(inner) => close_proximity_can_retry(inner),
             _ => None,
         };
         let organization_name = match self {
@@ -509,13 +515,7 @@ impl FlutterApiErrorFields for CloseProximityDisclosureError {
     }
 
     fn data(&self) -> serde_json::Value {
-        let can_retry = match self {
-            // Platform errors are transient and worth retrying.
-            CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => Some(true),
-            CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
-            CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
-            _ => Some(false),
-        };
+        let can_retry = close_proximity_can_retry(self);
 
         // All close proximity disclosure sessions are cross-device, `return_url` is not
         // applicable to close proximity disclosure, and `revocation_data` always surfaces as
@@ -653,12 +653,17 @@ impl From<&HttpClientError> for FlutterApiErrorType {
 impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
     fn from(value: &CloseProximityDisclosureError) -> Self {
         match value {
-            CloseProximityDisclosureError::MissingReaderAuth
-            | CloseProximityDisclosureError::InconsistentReaderAuths
+            CloseProximityDisclosureError::InconsistentReaderAuths
             | CloseProximityDisclosureError::InvalidDocRequest(_)
             | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,
+            CloseProximityDisclosureError::InvalidReaderCertificate(error) => {
+                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Verifier)
+            }
+            CloseProximityDisclosureError::ReaderCertificateCrlVerification(error) => {
+                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Verifier)
+            }
             CloseProximityDisclosureError::DeviceResponseEncoding(_)
             | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,
             CloseProximityDisclosureError::Disconnected => FlutterApiErrorType::CloseProximityDisconnected,
