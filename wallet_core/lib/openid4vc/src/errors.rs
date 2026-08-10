@@ -624,7 +624,7 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::UseBatchIssuance => CredentialErrorCode::InvalidCredentialRequest,
 
-            Self::InvalidProofJwt(_) | Self::InvalidProofPublicKey(_) => CredentialErrorCode::InvalidProof,
+            Self::InvalidProofJwt(_) => CredentialErrorCode::InvalidProof,
 
             Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
 

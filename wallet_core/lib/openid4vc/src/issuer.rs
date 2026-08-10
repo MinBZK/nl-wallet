@@ -239,9 +239,6 @@ pub enum CredentialRequestError {
     #[error("invalid proof JWT: {0}")]
     InvalidProofJwt(#[source] JwtVerifyError),
 
-    #[error("could not extract holder public key from proof JWT: {0}")]
-    InvalidProofPublicKey(#[source] JwkConversionError),
-
     #[error("nonce is not provided in credential request proof")]
     MissingProofNonce,
 
@@ -1811,13 +1808,9 @@ impl draft::CredentialRequestProof {
         validation.require_iss(accepted_wallet_client_ids);
         validation.require_aud(credential_issuer_identifier);
 
-        let (header, payload) = jwt
+        let (_header, payload, public_key) = jwt
             .parse_and_verify_with_jwk(validation)
             .map_err(CredentialRequestError::InvalidProofJwt)?;
-
-        let public_key = header
-            .public_key()
-            .map_err(CredentialRequestError::InvalidProofPublicKey)?;
 
         let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
 
