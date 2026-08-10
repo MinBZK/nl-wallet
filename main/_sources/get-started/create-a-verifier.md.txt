@@ -146,7 +146,15 @@ cd nl-wallet
 export CA_DIR=target/ca-cert
 export TARGET_DIR=target/vs-config
 export IDENTIFIER=foocorp
+export WRPAC_CRL_URL=https://foocorp.example/wrpac.crl.der
 mkdir -p "${CA_DIR}" "${TARGET_DIR}"
+
+# Create the initial, empty CRL and publish the DER file at WRPAC_CRL_URL.
+cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" crl \
+    --ca-key-file "${CA_DIR}/ca.${IDENTIFIER}.key.pem" \
+    --ca-crt-file "${CA_DIR}/ca.${IDENTIFIER}.crt.pem" \
+    --file-prefix "${TARGET_DIR}/wrpac.${IDENTIFIER}" \
+    --days 7
 
 # Create the WRPAC certificate using wallet_ca.
 cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
@@ -156,6 +164,7 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
     --common-name "wrpac.${IDENTIFIER}" \
     --organization-name "${IDENTIFIER}" \
     --organization-id "NTRNL-00000002" \
+    --crl-distribution-point "${WRPAC_CRL_URL}" \
     --file-prefix "${TARGET_DIR}/wrpac.${IDENTIFIER}"
 
 # Convert certificate PEM to DER.
@@ -168,6 +177,14 @@ openssl pkcs8 -topk8 -nocrypt \
     -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.pem" -inform PEM \
     -out "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der" -outform DER
 ```
+
+Serve `${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der` at `WRPAC_CRL_URL` and
+replace it before its `nextUpdate` (seven days in this example). To revoke a
+certificate, regenerate the CRL with its hex serial number supplied through
+`--serial-number`, then replace the published DER file in a single operation so
+clients receive either the previous or new complete CRL, never a partially
+written file. The wallet rejects a WRPAC when its CRL is unavailable, invalid,
+expired, or lists that certificate.
 
 The used CA public certificate (referenced in the previous `wallet_ca` command)
 needs to be in the list of various so-called trust anchors. Specifically,

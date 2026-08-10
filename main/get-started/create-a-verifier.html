@@ -381,7 +381,15 @@ git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZ
 <span class="nb">export</span><span class="w"> </span><span class="nv">CA_DIR</span><span class="o">=</span>target/ca-cert
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config
 <span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
+<span class="nb">export</span><span class="w"> </span><span class="nv">WRPAC_CRL_URL</span><span class="o">=</span>https://foocorp.example/wrpac.crl.der
 mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Create the initial, empty CRL and publish the DER file at WRPAC_CRL_URL.</span>
+cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>crl<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--days<span class="w"> </span><span class="m">7</span>
 
 <span class="c1"># Create the WRPAC certificate using wallet_ca.</span>
 cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>cert<span class="w"> </span><span class="se">\</span>
@@ -391,6 +399,7 @@ cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span cla
 <span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--organization-name<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--organization-id<span class="w"> </span><span class="s2">&quot;NTRNL-00000002&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--crl-distribution-point<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">WRPAC_CRL_URL</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 
 <span class="c1"># Convert certificate PEM to DER.</span>
@@ -404,6 +413,13 @@ openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w
 <span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
 </pre></div>
 </div>
+<p>Serve <code class="docutils literal notranslate"><span class="pre">${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der</span></code> at <code class="docutils literal notranslate"><span class="pre">WRPAC_CRL_URL</span></code> and
+replace it before its <code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code> (seven days in this example). To revoke a
+certificate, regenerate the CRL with its hex serial number supplied through
+<code class="docutils literal notranslate"><span class="pre">--serial-number</span></code>, then replace the published DER file in a single operation so
+clients receive either the previous or new complete CRL, never a partially
+written file. The wallet rejects a WRPAC when its CRL is unavailable, invalid,
+expired, or lists that certificate.</p>
 <p>The used CA public certificate (referenced in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> command)
 needs to be in the list of various so-called trust anchors. Specifically,
 issuers and verifiers, and the NL Wallet app itself need to know if this CA is
