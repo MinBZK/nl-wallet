@@ -8,11 +8,9 @@ build-images-tag:
   allow_failure: true
   before_script:
     - |
-      if [[ -z CI_MERGE_REQUEST_SOURCE_BRANCH_SHA ]]; then
-        COMMIT_SHORT_SHA="${CI_COMMIT_SHORT_SHA}"
-      else
-        COMMIT_SHORT_SHA="${CI_MERGE_REQUEST_SOURCE_BRANCH_SHA:0:8}"
-      fi
+      SOURCE_SHA="${CI_MERGE_REQUEST_SOURCE_BRANCH_SHA:-$CI_COMMIT_SHA}"
+      [[ -n "$SOURCE_SHA" ]] || { echo "ERROR: Can't determine hash"; exit 1; }
+      COMMIT_SHORT_SHA="${SOURCE_SHA:0:8}"
   script:
     - echo IMAGE_TAG="$(git show -s --format=%cd --date=format:'%y%m%d')-${COMMIT_SHORT_SHA}" | tee build.env
   artifacts:
