@@ -327,10 +327,10 @@ pub struct AccessTokenIssued {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreparedCredential {
+    pub id: Uuid,
     pub credential_configuration_id: CredentialConfigurationId,
     pub format: Format,
     pub credential_payload: PreviewableCredentialPayload,
-    pub batch_id: Uuid,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -528,7 +528,7 @@ impl PreparedCredential {
         let valid_until = now.add(credential_config.valid_days);
 
         let format = issuable_document.credential_kind.format;
-        let (batch_id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(
+        let (id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(
             now,
             valid_until,
             credential_config.issuer_uri.clone(),
@@ -536,10 +536,10 @@ impl PreparedCredential {
         );
 
         let credential = Self {
+            id,
             credential_configuration_id: config_id,
             format,
             credential_payload,
-            batch_id,
         };
 
         Ok(credential)
@@ -1528,11 +1528,7 @@ impl Session<AccessTokenIssued> {
 
         let status_claim = credential_config
             .status_list
-            .obtain_status_claims(
-                credential.batch_id,
-                credential.credential_payload.expires,
-                NonZeroUsize::MIN,
-            )
+            .obtain_status_claims(credential.id, credential.credential_payload.expires, NonZeroUsize::MIN)
             .await
             .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
             .into_first();
@@ -1667,7 +1663,7 @@ impl Session<AccessTokenIssued> {
                 let claims = credential_config
                     .status_list
                     .obtain_status_claims(
-                        credential.batch_id,
+                        credential.id,
                         credential.credential_payload.expires,
                         format_pubkeys.len(),
                     )
