@@ -203,8 +203,6 @@ pub struct CredentialResponseEncryption {
 #[serde(untagged)]
 pub enum CredentialResponse {
     Immediate {
-        // TODO (PVW-5554): Actually transport more than one credential in this field
-        //                  by implementing batch issuance according to OpenID4VCI 1.0.
         credentials: Credentials,
         notification_id: Option<String>,
     },

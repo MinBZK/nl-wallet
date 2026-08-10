@@ -634,6 +634,12 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
 
+            Self::TooManyCopiesRequested(_) => CredentialErrorCode::InvalidCredentialRequest,
+
+            Self::UnknownCredentialIdentifier(_) => CredentialErrorCode::UnknownCredentialIdentifier,
+
+            Self::UnknownCredentialConfiguration(_) => CredentialErrorCode::UnknownCredentialConfiguration,
+
             Self::MissingCredentialConfiguration(_) => CredentialErrorCode::ServerError,
 
             Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims(_) => CredentialErrorCode::ServerError,

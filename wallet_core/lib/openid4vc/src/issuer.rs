@@ -64,6 +64,9 @@ use uuid::Uuid;
 use crate::authorization_details::AuthorizationDetails;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
+use crate::credential::CredentialRequest;
+use crate::credential::CredentialRequestIdentifier;
+use crate::credential::CredentialRequestProofs;
 use crate::credential::CredentialResponse;
 use crate::credential::Credentials;
 use crate::credential::MdocCredential;
@@ -107,6 +110,8 @@ use crate::token::CredentialPreview;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
+
+pub const CREDENTIAL_ENDPOINT_V1_PATH: &str = "credential_v1";
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
@@ -263,7 +268,16 @@ pub enum CredentialRequestError {
     #[error("invalid nonce used in credential request proof")]
     InvalidNonce,
 
-    #[error("missing credential configuration with identifier: {0}")]
+    #[error("too many copies of a credential were requested: {0}")]
+    TooManyCopiesRequested(NonZeroUsize),
+
+    #[error("requested credential identifier is not known: {0}")]
+    UnknownCredentialIdentifier(String),
+
+    #[error("requested credential configuration identifier is not known: {0}")]
+    UnknownCredentialConfiguration(CredentialConfigurationId),
+
+    #[error("issuer does not have credential configuration identifier configured: {0}")]
     MissingCredentialConfiguration(CredentialConfigurationId),
 
     #[error("error obtaining status claim: {0}")]
@@ -413,6 +427,8 @@ pub struct Issuer<K, L, S, N> {
 pub struct IssuerData<K, L> {
     credential_configs: CredentialConfigurations<K, L>,
 
+    batch_size: NonZeroU8,
+
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
     accepted_wallet_client_ids: HashSet<String>,
 
@@ -429,8 +445,10 @@ pub struct IssuerData<K, L> {
 }
 
 impl<K, L> IssuerData<K, L> {
+    #[expect(clippy::too_many_arguments, reason = "Internal constructor")]
     fn new(
         credential_configs: CredentialConfigurations<K, L>,
+        batch_size: NonZeroU8,
         accepted_wallet_client_ids: HashSet<String>,
         server_url: BaseUrl,
         metadata: IssuerMetadata,
@@ -443,6 +461,7 @@ impl<K, L> IssuerData<K, L> {
 
         Self {
             credential_configs,
+            batch_size,
             accepted_wallet_client_ids,
             server_url,
             metadata,
@@ -666,6 +685,7 @@ where
 
         let issuer_data = IssuerData::new(
             credential_configs,
+            batch_size,
             wallet_client_ids,
             // In this implementation, the public server URL is composed of the Credential Issuer Identifier appended
             // with the "/issuance/" path.
@@ -1017,6 +1037,31 @@ where
             .map_err(|error| CredentialRequestError::IssuanceError(IssuanceError::SessionStore(error)))?;
 
         logged_issuance_result(response)
+    }
+
+    pub async fn process_credential_request(
+        &self,
+        access_token: &AccessToken,
+        dpop: Dpop,
+        credential_request: CredentialRequest,
+    ) -> Result<CredentialResponse, CredentialRequestError> {
+        let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
+        let session = self
+            .get_session(code)
+            .await
+            .map_err(CredentialRequestError::IssuanceError)?;
+
+        let response_result = session
+            .process_credential_request(
+                credential_request,
+                access_token,
+                dpop,
+                &self.issuer_data,
+                self.nonce_store.as_ref(),
+            )
+            .await;
+
+        logged_issuance_result(response_result)
     }
 }
 
@@ -1468,6 +1513,7 @@ impl Session<AccessTokenIssued> {
         // Check that the DPoP is valid and its key matches the one from the Token Request
         dpop.verify_expecting_key(
             session_data.dpop_public_key.to_owned(),
+            // TODO: Use credential endpoint from issuer metadata instead.
             &server_url.join(endpoint),
             &Method::POST,
             Some(access_token),
@@ -1714,6 +1760,104 @@ impl Session<AccessTokenIssued> {
 
         Ok(draft::CredentialResponses { credential_responses })
     }
+
+    async fn process_credential_request<K, L, N>(
+        &self,
+        credential_request: CredentialRequest,
+        access_token: &AccessToken,
+        dpop: Dpop,
+        issuer_data: &IssuerData<K, L>,
+        nonce_store: &N,
+    ) -> Result<CredentialResponse, CredentialRequestError>
+    where
+        K: EcdsaKey,
+        L: StatusListService,
+        N: NonceStore,
+    {
+        // First, check that that the request is authorized.
+        self.check_credential_endpoint_access(
+            access_token,
+            dpop,
+            &issuer_data.server_url,
+            CREDENTIAL_ENDPOINT_V1_PATH,
+        )?;
+
+        let session_data = self.session_data();
+
+        // Verify all of the received proofs of posession and collect all of the nonces used in them.
+        let (public_keys, nonces): (VecNonEmpty<_>, VecNonEmpty<_>) = credential_request
+            .verify(issuer_data.jwt_proof_validation.clone())?
+            .into_nonempty_iter()
+            .unzip();
+
+        // Verify that all of the used nonces are valid.
+        let nonce_status = nonce_store
+            .check_nonce_status_and_remove(&nonces)
+            .await
+            .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
+
+        if !matches!(nonce_status, NonceStatus::AllValid) {
+            return Err(CredentialRequestError::InvalidNonce);
+        }
+
+        // If the holder prived more proofs than is allowed according to the `batch_size` value of the issuer metadata,
+        // return an error.
+        if public_keys.len() > issuer_data.batch_size.into() {
+            return Err(CredentialRequestError::TooManyCopiesRequested(public_keys.len()));
+        }
+
+        // Find the credential on offer in the session, based on the identifier in the request.
+        let credential = match credential_request.identifier {
+            CredentialRequestIdentifier::CredentialIdentifier(credential_id) => {
+                // Convert the received ID to a UUID in order to find the matching credential. If this fails, the ID
+                // will never match any of the to be issued credentials.
+                Uuid::parse_str(&credential_id)
+                    .ok()
+                    .and_then(|id| {
+                        session_data
+                            .prepared_credentials
+                            .iter()
+                            .find(|credential| credential.id == id)
+                    })
+                    .ok_or(CredentialRequestError::UnknownCredentialIdentifier(credential_id))?
+            }
+            CredentialRequestIdentifier::CredentialConfigurationId(config_id) => session_data
+                .prepared_credentials
+                .iter()
+                .find(|credential| credential.credential_configuration_id == config_id)
+                .ok_or(CredentialRequestError::UnknownCredentialConfiguration(config_id))?,
+        };
+
+        // Look up the Credential Configuration that the to be issued credential belongs to.
+        let credential_config = issuer_data
+            .get_credential_config_for_prepared_credential(credential)
+            .ok_or_else(|| {
+                CredentialRequestError::MissingCredentialConfiguration(credential.credential_configuration_id.clone())
+            })?;
+
+        // Create a status claim, to be included in the issued credential.
+        let status_claim = credential_config
+            .status_list
+            .obtain_status_claims(credential.id, credential.credential_payload.expires, NonZeroUsize::MIN)
+            .await
+            .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
+            .into_first();
+
+        // Issue the same number of credentials as the amount of received holder public keys.
+        let credentials = Credentials::new(
+            credential.format,
+            credential.credential_payload.clone(),
+            utc_now_truncated_to_days(),
+            public_keys.nonempty_iter().collect(),
+            credential_config.metadata.first_document_integrity().clone(),
+            status_claim,
+            &credential_config.key_pair,
+            credential_config.metadata.normalized(),
+        )
+        .await?;
+
+        Ok(CredentialResponse::new_immediate(credentials))
+    }
 }
 
 impl From<Session<Done>> for SessionState<IssuanceData> {
@@ -1757,6 +1901,27 @@ impl draft::CredentialRequest {
             .verify(jwt_proof_validation)?;
 
         Ok((holder_pubkey, nonce))
+    }
+}
+
+impl CredentialRequest {
+    fn verify(
+        &self,
+        jwt_proof_validation: JwtValidation,
+    ) -> Result<VecNonEmpty<(PublicKey, Nonce)>, CredentialRequestError> {
+        let CredentialRequestProofs::Jwt(jwts) = self
+            .proofs
+            .as_ref()
+            .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?;
+
+        let jwt_count = jwts.len();
+        let public_keys_and_nonces = jwts
+            .into_nonempty_iter()
+            .zip(utils::vec_at_least::repeat_n(jwt_proof_validation, jwt_count))
+            .map(|(jwt, jwt_proof_validation)| verify_jwt_proof(jwt, jwt_proof_validation))
+            .collect::<Result<_, _>>()?;
+
+        Ok(public_keys_and_nonces)
     }
 }
 
