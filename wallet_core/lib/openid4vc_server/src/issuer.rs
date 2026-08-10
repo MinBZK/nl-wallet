@@ -43,10 +43,8 @@ use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::client_auth::AttestationChallenge;
-use openid4vc::credential::CredentialRequest;
-use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
-use openid4vc::credential::CredentialResponses;
+use openid4vc::credential::draft;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
@@ -267,7 +265,7 @@ async fn credential<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Json(credential_request): Json<CredentialRequest>,
+    Json(credential_request): Json<draft::CredentialRequest>,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
     K: EcdsaKeySend,
@@ -293,8 +291,8 @@ async fn batch_credential<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Json(credential_requests): Json<CredentialRequests>,
-) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorCode>>
+    Json(credential_requests): Json<draft::CredentialRequests>,
+) -> Result<Json<draft::CredentialResponses>, ErrorResponse<CredentialErrorCode>>
 where
     K: EcdsaKeySend,
     L: StatusListService,

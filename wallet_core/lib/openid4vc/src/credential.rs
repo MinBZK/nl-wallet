@@ -1,13 +1,7 @@
-use std::fmt;
-use std::fmt::Display;
-use std::fmt::Formatter;
 use std::time::Duration;
 
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
-use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
-use jwt::pop::JwtPopClaims;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -19,84 +13,101 @@ use serde_with::DeserializeAs;
 use serde_with::DurationSeconds;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use utils::spec::SpecOptional;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
-/// Sent JSON-encoded to `POST /batch_credential`.
-#[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CredentialRequests {
-    pub credential_requests: VecNonEmpty<CredentialRequest>,
-}
+pub mod draft {
+    use std::fmt;
+    use std::fmt::Display;
+    use std::fmt::Formatter;
 
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
-/// Sent JSON-encoded to `POST /credential`.
-#[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CredentialRequest {
-    #[serde(flatten)]
-    pub credential_type: SpecOptional<CredentialRequestType>,
-    pub proof: Option<CredentialRequestProof>,
-}
+    use attestation_types::credential_format::Format;
+    use jwt::UnverifiedJwt;
+    use jwt::headers::HeaderWithJwk;
+    use jwt::pop::JwtPopClaims;
+    use serde::Deserialize;
+    use serde::Serialize;
+    use serde_with::skip_serializing_none;
+    use utils::spec::SpecOptional;
+    use utils::vec_at_least::VecNonEmpty;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(tag = "format", rename_all = "snake_case")]
-pub enum CredentialRequestType {
-    MsoMdoc {
-        doctype: String,
-    },
+    use super::CredentialResponse;
 
-    #[serde(rename = "dc+sd-jwt")]
-    SdJwt {
-        vct: String,
-    },
-}
+    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
+    /// Sent JSON-encoded to `POST /batch_credential`.
+    #[skip_serializing_none]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct CredentialRequests {
+        pub credential_requests: VecNonEmpty<CredentialRequest>,
+    }
 
-impl CredentialRequestType {
-    pub fn format(&self) -> Format {
-        match self {
-            CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
-            CredentialRequestType::SdJwt { .. } => Format::SdJwt,
+    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
+    /// Sent JSON-encoded to `POST /credential`.
+    #[skip_serializing_none]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct CredentialRequest {
+        #[serde(flatten)]
+        pub credential_type: SpecOptional<CredentialRequestType>,
+        pub proof: Option<CredentialRequestProof>,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+    #[serde(tag = "format", rename_all = "snake_case")]
+    pub enum CredentialRequestType {
+        MsoMdoc {
+            doctype: String,
+        },
+
+        #[serde(rename = "dc+sd-jwt")]
+        SdJwt {
+            vct: String,
+        },
+    }
+
+    impl CredentialRequestType {
+        pub fn format(&self) -> Format {
+            match self {
+                CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
+                CredentialRequestType::SdJwt { .. } => Format::SdJwt,
+            }
         }
     }
-}
 
-impl Display for CredentialRequestType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            CredentialRequestType::MsoMdoc { doctype } => write!(f, "MsoMdoc({doctype})"),
-            CredentialRequestType::SdJwt { vct } => write!(f, "SdJwt({vct})"),
+    impl Display for CredentialRequestType {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            match self {
+                CredentialRequestType::MsoMdoc { doctype } => write!(f, "MsoMdoc({doctype})"),
+                CredentialRequestType::SdJwt { vct } => write!(f, "SdJwt({vct})"),
+            }
         }
     }
-}
 
-impl CredentialRequestType {
-    pub fn from_format(format: Format, attestation_type: String) -> Self {
-        match format {
-            Format::MsoMdoc => CredentialRequestType::MsoMdoc {
-                doctype: attestation_type,
-            },
-            Format::SdJwt => CredentialRequestType::SdJwt { vct: attestation_type },
+    impl CredentialRequestType {
+        pub fn from_format(format: Format, attestation_type: String) -> Self {
+            match format {
+                Format::MsoMdoc => CredentialRequestType::MsoMdoc {
+                    doctype: attestation_type,
+                },
+                Format::SdJwt => CredentialRequestType::SdJwt { vct: attestation_type },
+            }
         }
     }
-}
 
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-endpoint>
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "proof_type", rename_all = "snake_case")]
-pub enum CredentialRequestProof {
-    Jwt {
-        jwt: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
-    },
-}
+    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-endpoint>
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    #[serde(tag = "proof_type", rename_all = "snake_case")]
+    pub enum CredentialRequestProof {
+        Jwt {
+            jwt: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
+        },
+    }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CredentialResponses {
-    pub credential_responses: Vec<CredentialResponse>,
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct CredentialResponses {
+        pub credential_responses: Vec<CredentialResponse>,
+    }
 }
 
 /// A Credential Response, see: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3>.

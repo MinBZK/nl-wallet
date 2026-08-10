@@ -57,15 +57,11 @@ use super::credential::SdJwtCopy;
 use crate::authorization_details::IssuerAuthorizationDetails;
 use crate::client_auth::ClientAttestationChallengeMechanism;
 use crate::client_auth::fetch_client_auth_challenge;
-use crate::credential::CredentialRequest;
-use crate::credential::CredentialRequestProof;
-use crate::credential::CredentialRequestType;
-use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
-use crate::credential::CredentialResponses;
 use crate::credential::Credentials;
 use crate::credential::MdocCredential;
 use crate::credential::SdJwtCredential;
+use crate::credential::draft;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
@@ -119,7 +115,7 @@ pub trait VcMessageClient {
     async fn request_credential(
         &self,
         url: &Url,
-        credential_request: &CredentialRequest,
+        credential_request: &draft::CredentialRequest,
         dpop_header: &str,
         access_token_header: &str,
     ) -> Result<CredentialResponse, WalletIssuanceError>;
@@ -127,10 +123,10 @@ pub trait VcMessageClient {
     async fn request_credentials(
         &self,
         url: &Url,
-        credential_requests: &CredentialRequests,
+        credential_requests: &draft::CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, WalletIssuanceError>;
+    ) -> Result<draft::CredentialResponses, WalletIssuanceError>;
 
     async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), WalletIssuanceError>;
 }
@@ -260,7 +256,7 @@ impl VcMessageClient for HttpVcMessageClient {
     async fn request_credential(
         &self,
         url: &Url,
-        credential_request: &CredentialRequest,
+        credential_request: &draft::CredentialRequest,
         dpop_header: &str,
         access_token_header: &str,
     ) -> Result<CredentialResponse, WalletIssuanceError> {
@@ -271,10 +267,10 @@ impl VcMessageClient for HttpVcMessageClient {
     async fn request_credentials(
         &self,
         url: &Url,
-        credential_requests: &CredentialRequests,
+        credential_requests: &draft::CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, WalletIssuanceError> {
+    ) -> Result<draft::CredentialResponses, WalletIssuanceError> {
         self.request(url, credential_requests, dpop_header, access_token_header)
             .await
     }
@@ -355,7 +351,7 @@ struct IssuanceState {
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
     credential_previews: VecNonEmpty<CredentialPreview>,
-    credential_request_types: VecNonEmpty<CredentialRequestType>,
+    credential_request_types: VecNonEmpty<draft::CredentialRequestType>,
     type_metadata: HashMap<String, IssuanceTypeMetadata>,
     issuer_registration: IssuerRegistration,
     #[debug(skip)]
@@ -403,7 +399,7 @@ impl OfferedCredentialConfig {
 fn credential_request_types_from_preview(
     credential_previews: &VecNonEmpty<CredentialPreview>,
     batch_size: NonZeroU8,
-) -> VecNonEmpty<CredentialRequestType> {
+) -> VecNonEmpty<draft::CredentialRequestType> {
     // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
     // has no support (yet) for issuance of multiple copies of multiple attestations.
     // We implement this below by simply flattening the relevant nested iterators when communicating with the
@@ -420,8 +416,10 @@ fn credential_request_types_from_preview(
     credential_previews
         .nonempty_iter()
         .flat_map(|preview| {
-            let request_type =
-                CredentialRequestType::from_format(preview.format, preview.credential_payload.attestation_type.clone());
+            let request_type = draft::CredentialRequestType::from_format(
+                preview.format,
+                preview.credential_payload.attestation_type.clone(),
+            );
 
             // Construct a `Vec<CredentialRequestType>`, with one entry per copy for this credential.
             utils::vec_at_least::repeat_n(request_type, batch_size.into())
@@ -819,7 +817,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         let proofs = issuance_data
             .pops
             .into_iter()
-            .map(|jwt| CredentialRequestProof::Jwt { jwt });
+            .map(|jwt| draft::CredentialRequestProof::Jwt { jwt });
 
         // Call the amount of proofs we received N, which equals `key_count`.
         // Combining these with the key identifiers and attestation types, compute N public keys and
@@ -829,7 +827,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 .zip(issuance_data.key_identifiers.into_inner())
                 .zip(self.session_state.credential_request_types.clone())
                 .map(|((proof, id), credential_request_type)| async move {
-                    let CredentialRequestProof::Jwt { jwt } = &proof;
+                    let draft::CredentialRequestProof::Jwt { jwt } = &proof;
 
                     // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
                     let header = jwt
@@ -839,7 +837,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                     let pubkey = header
                         .public_key()
                         .map_err(|e| WalletIssuanceError::VerifyingKeyFromPrivateKey(e.into()))?;
-                    let cred_request = CredentialRequest {
+                    let cred_request = draft::CredentialRequest {
                         credential_type: credential_request_type.into(),
                         proof: Some(proof),
                     };
@@ -1007,7 +1005,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_credential(
         &self,
         url: &Url,
-        credential_request: &CredentialRequest,
+        credential_request: &draft::CredentialRequest,
     ) -> Result<CredentialResponse, WalletIssuanceError> {
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
@@ -1022,7 +1020,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_batch_credentials(
         &self,
         url: &Url,
-        credential_requests: VecNonEmpty<CredentialRequest>,
+        credential_requests: VecNonEmpty<draft::CredentialRequest>,
     ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
@@ -1031,7 +1029,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .message_client
             .request_credentials(
                 url,
-                &CredentialRequests { credential_requests },
+                &draft::CredentialRequests { credential_requests },
                 &dpop_header,
                 &access_token_header,
             )
@@ -2102,9 +2100,9 @@ mod tests {
             (signer, preview, attestation_type, issuance_type_metadata)
         }
 
-        pub fn into_response_from_request(self, request: &CredentialRequest) -> CredentialResponse {
+        pub fn into_response_from_request(self, request: &draft::CredentialRequest) -> CredentialResponse {
             let proof_jwt = match request.proof.as_ref().unwrap() {
-                CredentialRequestProof::Jwt { jwt } => jwt,
+                draft::CredentialRequestProof::Jwt { jwt } => jwt,
             };
             let holder_pubkey = jwk_to_public_key(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
 
@@ -2216,7 +2214,7 @@ mod tests {
                         .map(|(request, signer)| signer.into_response_from_request(request))
                         .collect();
 
-                    Ok(CredentialResponses { credential_responses })
+                    Ok(draft::CredentialResponses { credential_responses })
                 }
             });
         } else {
@@ -2263,7 +2261,7 @@ mod tests {
             |_url, credential_requests, _dpop_header, _access_token_header| {
                 let response = signer.into_response_from_request(credential_requests.credential_requests.first());
                 // Return one credential response.
-                let responses = CredentialResponses {
+                let responses = draft::CredentialResponses {
                     credential_responses: vec![response],
                 };
 
@@ -2341,7 +2339,7 @@ mod tests {
         let previews = if is_batch {
             mock_msg_client.expect_request_credentials().return_once(
                 |_url, credential_requests, _dpop_header, _access_token_header| {
-                    let responses = CredentialResponses {
+                    let responses = draft::CredentialResponses {
                         credential_responses: vec![response; credential_requests.credential_requests.len().get()],
                     };
 

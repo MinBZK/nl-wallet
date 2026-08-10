@@ -61,12 +61,9 @@ use uuid::Uuid;
 use crate::authorization_details::AuthorizationDetails;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
-use crate::credential::CredentialRequest;
-use crate::credential::CredentialRequestProof;
-use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
-use crate::credential::CredentialResponses;
 use crate::credential::Credentials;
+use crate::credential::draft;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurations;
@@ -943,7 +940,7 @@ where
         &self,
         access_token: AccessToken,
         dpop: Dpop,
-        credential_request: CredentialRequest,
+        credential_request: draft::CredentialRequest,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self.get_session(code).await?;
@@ -970,8 +967,8 @@ where
         &self,
         access_token: AccessToken,
         dpop: Dpop,
-        credential_requests: CredentialRequests,
-    ) -> Result<CredentialResponses, CredentialRequestError> {
+        credential_requests: draft::CredentialRequests,
+    ) -> Result<draft::CredentialResponses, CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self.get_session(code).await?;
 
@@ -1394,7 +1391,7 @@ impl TryFrom<SessionState<IssuanceData>> for Session<AccessTokenIssued> {
 impl Session<AccessTokenIssued> {
     async fn process_credential<K, L, N>(
         self,
-        credential_request: CredentialRequest,
+        credential_request: draft::CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
@@ -1451,7 +1448,7 @@ impl Session<AccessTokenIssued> {
 
     async fn process_credential_inner<K, L, N>(
         &self,
-        credential_request: CredentialRequest,
+        credential_request: draft::CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
@@ -1532,12 +1529,15 @@ impl Session<AccessTokenIssued> {
 
     async fn process_batch_credential<K, L, N>(
         self,
-        credential_requests: CredentialRequests,
+        credential_requests: draft::CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &N,
-    ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>)
+    ) -> (
+        Result<draft::CredentialResponses, CredentialRequestError>,
+        Session<Done>,
+    )
     where
         K: EcdsaKey,
         L: StatusListService,
@@ -1562,12 +1562,12 @@ impl Session<AccessTokenIssued> {
 
     async fn process_batch_credential_inner<K, L, N>(
         &self,
-        credential_requests: CredentialRequests,
+        credential_requests: draft::CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &N,
-    ) -> Result<CredentialResponses, CredentialRequestError>
+    ) -> Result<draft::CredentialResponses, CredentialRequestError>
     where
         K: EcdsaKey,
         L: StatusListService,
@@ -1685,7 +1685,7 @@ impl Session<AccessTokenIssued> {
         )
         .await?;
 
-        Ok(CredentialResponses { credential_responses })
+        Ok(draft::CredentialResponses { credential_responses })
     }
 }
 
@@ -1721,7 +1721,7 @@ impl<T: IssuanceState> Session<T> {
     }
 }
 
-impl CredentialRequest {
+impl draft::CredentialRequest {
     fn verify(
         &self,
         accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
@@ -1799,13 +1799,13 @@ impl CredentialResponse {
 static CREDENTIAL_REQUEST_PROOF_VALIDATION: LazyLock<JwtValidation> =
     LazyLock::new(|| JwtValidation::default_with_algorithms([Algorithm::ES256]));
 
-impl CredentialRequestProof {
+impl draft::CredentialRequestProof {
     pub fn verify(
         &self,
         accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
         credential_issuer_identifier: &IssuerIdentifier,
     ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
-        let CredentialRequestProof::Jwt { jwt } = self;
+        let Self::Jwt { jwt } = self;
 
         let mut validation = CREDENTIAL_REQUEST_PROOF_VALIDATION.to_owned();
         validation.require_iss(accepted_wallet_client_ids);
@@ -1850,11 +1850,8 @@ mod tests {
     use crate::cleanup::CLEANUP_INTERVAL;
     use crate::cleanup::start_cleanup_task;
     use crate::client_auth::ClientAttestationChallengeMechanism;
-    use crate::credential::CredentialRequest;
-    use crate::credential::CredentialRequestProof;
-    use crate::credential::CredentialRequests;
     use crate::credential::CredentialResponse;
-    use crate::credential::CredentialResponses;
+    use crate::credential::draft;
     use crate::dpop::Dpop;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
@@ -2006,10 +2003,13 @@ mod tests {
             }
         }
 
-        fn tamper_credential_request(&self, mut credential_request: CredentialRequest) -> CredentialRequest {
+        fn tamper_credential_request(
+            &self,
+            mut credential_request: draft::CredentialRequest,
+        ) -> draft::CredentialRequest {
             if self.invalidate_pop {
                 let invalidated_proof = match credential_request.proof.as_ref().unwrap() {
-                    CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
+                    draft::CredentialRequestProof::Jwt { jwt } => draft::CredentialRequestProof::Jwt {
                         jwt: invalidate_jwt_str(jwt.serialization()).parse().unwrap(),
                     },
                 };
@@ -2019,7 +2019,10 @@ mod tests {
             credential_request
         }
 
-        fn tamper_credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
+        fn tamper_credential_requests(
+            &self,
+            mut credential_requests: draft::CredentialRequests,
+        ) -> draft::CredentialRequests {
             if self.invalidate_pop {
                 let invalidated_request =
                     self.tamper_credential_request(credential_requests.credential_requests.first().clone());
@@ -2091,7 +2094,7 @@ mod tests {
         async fn request_credential(
             &self,
             _url: &Url,
-            credential_request: &CredentialRequest,
+            credential_request: &draft::CredentialRequest,
             dpop_header: &str,
             access_token_header: &str,
         ) -> Result<CredentialResponse, WalletIssuanceError> {
@@ -2112,10 +2115,10 @@ mod tests {
         async fn request_credentials(
             &self,
             _url: &Url,
-            credential_requests: &CredentialRequests,
+            credential_requests: &draft::CredentialRequests,
             dpop_header: &str,
             access_token_header: &str,
-        ) -> Result<CredentialResponses, WalletIssuanceError> {
+        ) -> Result<draft::CredentialResponses, WalletIssuanceError> {
             self.issuer
                 .process_batch_credential(
                     self.access_token(access_token_header),
