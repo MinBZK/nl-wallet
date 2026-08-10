@@ -20,7 +20,6 @@ use serde_with::skip_serializing_none;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
@@ -299,14 +298,6 @@ impl<'de> Deserialize<'de> for Credentials {
 }
 
 impl Credentials {
-    pub fn new_single_mdoc(issuer_signed: IssuerSigned) -> Self {
-        Self::MsoMdoc(vec_nonempty![MdocCredential::new(issuer_signed)])
-    }
-
-    pub fn new_single_sd_jwt(sd_jwt: UnverifiedSdJwt) -> Self {
-        Self::SdJwt(vec_nonempty![SdJwtCredential::new(sd_jwt)])
-    }
-
     pub fn format(&self) -> Format {
         match self {
             Self::MsoMdoc { .. } => Format::MsoMdoc,

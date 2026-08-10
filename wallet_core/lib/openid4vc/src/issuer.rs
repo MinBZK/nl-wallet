@@ -26,6 +26,7 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use derive_more::Constructor;
 use derive_more::Debug;
+use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::join;
 use http_utils::urls::BaseUrl;
@@ -44,9 +45,11 @@ use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
 use reqwest::Method;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
+use ssri::Integrity;
 use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
@@ -55,6 +58,7 @@ use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use uuid::Uuid;
 
 use crate::authorization_details::AuthorizationDetails;
@@ -62,6 +66,8 @@ use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
 use crate::credential::CredentialResponse;
 use crate::credential::Credentials;
+use crate::credential::MdocCredential;
+use crate::credential::SdJwtCredential;
 use crate::credential::UnverifiedJwtProof;
 use crate::credential::draft;
 use crate::credential_configurations::CredentialConfiguration;
@@ -1533,17 +1539,19 @@ impl Session<AccessTokenIssued> {
             .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
             .into_first();
 
-        let credential_response = CredentialResponse::new(
+        let credentials = Credentials::new(
             requested_format,
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
-            &holder_pubkey,
-            credential_config,
+            vec_nonempty![&holder_pubkey],
+            credential_config.metadata.first_document_integrity().clone(),
             status_claim,
+            &credential_config.key_pair,
+            credential_config.metadata.normalized(),
         )
         .await?;
 
-        Ok(credential_response)
+        Ok(CredentialResponse::new_immediate(credentials))
     }
 
     async fn process_batch_credential<K, L, N>(
@@ -1688,14 +1696,17 @@ impl Session<AccessTokenIssued> {
                 .zip_eq(status_claims)
                 .flat_map(|((credential, credential_config, format_pubkeys), claims)| {
                     format_pubkeys.into_iter().zip(claims.into_inner()).map(|(key, claim)| {
-                        CredentialResponse::new(
+                        Credentials::new(
                             credential.format,
                             credential.credential_payload.clone(),
                             issued_at,
-                            key,
-                            credential_config,
+                            vec_nonempty![key],
+                            credential_config.metadata.first_document_integrity().clone(),
                             claim,
+                            &credential_config.key_pair,
+                            credential_config.metadata.normalized(),
                         )
+                        .map_ok(CredentialResponse::new_immediate)
                     })
                 }),
         )
@@ -1770,67 +1781,104 @@ impl draft::CredentialRequestProof {
     }
 }
 
-impl CredentialResponse {
-    async fn new<K, L>(
-        credential_format: Format,
+impl Credentials {
+    #[expect(clippy::too_many_arguments, reason = "Internal constructor")]
+    async fn new<K>(
+        format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
-        holder_pubkey: &PublicKey,
-        credential_config: &CredentialConfiguration<K, L>,
+        holder_public_keys: VecNonEmpty<&PublicKey>,
+        metadata_integrity: Integrity,
         status_claim: StatusClaim,
-    ) -> Result<CredentialResponse, CredentialRequestError>
+        key_pair: &KeyPair<K>,
+        type_metadata: &NormalizedTypeMetadata,
+    ) -> Result<Self, CredentialRequestError>
     where
         K: EcdsaKey,
     {
-        let payload = CredentialPayload::from_previewable_credential_payload(
-            preview_credential_payload,
-            issued_at,
-            holder_pubkey,
-            credential_config.metadata.first_document_integrity().clone(),
-            status_claim,
-        )
-        .map_err(CredentialRequestError::JwkConversion)?;
+        // Create one `CredentialPayload` for each holder public key.
+        let key_count = holder_public_keys.len();
+        let payloads = holder_public_keys
+            .into_nonempty_iter()
+            .zip(utils::vec_at_least::repeat_n(
+                (preview_credential_payload, metadata_integrity, status_claim),
+                key_count,
+            ))
+            .map(
+                |(public_key, (preview_credential_payload, metadata_integrity, status_claim))| {
+                    CredentialPayload::from_previewable_credential_payload(
+                        preview_credential_payload,
+                        issued_at,
+                        public_key,
+                        metadata_integrity,
+                        status_claim,
+                    )
+                    .map_err(CredentialRequestError::JwkConversion)
+                },
+            )
+            .collect::<Result<VecNonEmpty<_>, _>>()?;
 
-        match credential_format {
-            Format::MsoMdoc => Self::new_for_mdoc(payload, credential_config).await,
-            Format::SdJwt => Self::new_for_sd_jwt(payload, credential_config).await,
-        }
+        // Convert all of these `CredentialPayload` values into actual credentials by signing them.
+        let credentials = match format {
+            Format::MsoMdoc => {
+                let mdoc_credentials =
+                    try_join_all(payloads.into_iter().map(|credential_payload| {
+                        MdocCredential::from_credential_payload(credential_payload, key_pair)
+                    }))
+                    .await
+                    .map_err(CredentialRequestError::MdocConversion)?
+                    .try_into()
+                    .expect("source iterator is non-empty");
+
+                Self::MsoMdoc(mdoc_credentials)
+            }
+            Format::SdJwt => {
+                let sd_jwt_credentials = try_join_all(payloads.into_iter().map(|credential_payload| {
+                    SdJwtCredential::from_credential_payload(credential_payload, key_pair, type_metadata)
+                }))
+                .await
+                .map_err(CredentialRequestError::SdJwtConversion)?
+                .try_into()
+                .expect("source iterator is non-empty");
+
+                Self::SdJwt(sd_jwt_credentials)
+            }
+        };
+
+        Ok(credentials)
     }
+}
 
-    async fn new_for_mdoc<K, L>(
+impl MdocCredential {
+    async fn from_credential_payload<K>(
         credential_payload: CredentialPayload,
-        credential_config: &CredentialConfiguration<K, L>,
-    ) -> Result<CredentialResponse, CredentialRequestError>
+        key_pair: &KeyPair<K>,
+    ) -> Result<Self, CredentialPayloadIntoSignedMdocError>
     where
         K: EcdsaKey,
     {
-        // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
-        // and the attestation config by signing it.
-        let (issuer_signed, _) = credential_payload
-            .into_signed_mdoc(&credential_config.key_pair)
-            .await
-            .map_err(CredentialRequestError::MdocConversion)?;
+        let (issuer_signed, _mso) = credential_payload.into_signed_mdoc(key_pair).await?;
 
-        Ok(CredentialResponse::new_immediate(Credentials::new_single_mdoc(
-            issuer_signed,
-        )))
+        Ok(Self {
+            credential: issuer_signed,
+        })
     }
+}
 
-    async fn new_for_sd_jwt<K, L>(
+impl SdJwtCredential {
+    async fn from_credential_payload<K>(
         credential_payload: CredentialPayload,
-        credential_config: &CredentialConfiguration<K, L>,
-    ) -> Result<CredentialResponse, CredentialRequestError>
+        key_pair: &KeyPair<K>,
+        type_metadata: &NormalizedTypeMetadata,
+    ) -> Result<Self, CredentialPayloadIntoSignedSdJwtError>
     where
         K: EcdsaKey,
     {
-        let signed_sd_jwt = credential_payload
-            .into_signed_sd_jwt(credential_config.metadata.normalized(), &credential_config.key_pair)
-            .await
-            .map_err(CredentialRequestError::SdJwtConversion)?;
+        let sd_jwt = credential_payload.into_signed_sd_jwt(type_metadata, key_pair).await?;
 
-        Ok(CredentialResponse::new_immediate(Credentials::new_single_sd_jwt(
-            signed_sd_jwt.into_unverified(),
-        )))
+        Ok(Self {
+            credential: sd_jwt.into_unverified(),
+        })
     }
 }
 

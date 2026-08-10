@@ -2125,7 +2125,11 @@ mod tests {
                 .unwrap()
                 .unwrap();
 
-            CredentialResponse::new_immediate(Credentials::new_single_mdoc(issuer_signed))
+            let credentials = Credentials::MsoMdoc(vec_nonempty![MdocCredential {
+                credential: issuer_signed
+            }]);
+
+            CredentialResponse::new_immediate(credentials)
         }
     }
 
