@@ -618,13 +618,15 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialErrorCode::ServerError,
 
-            Self::Unauthorized | Self::MalformedToken => CredentialErrorCode::InvalidToken,
+            Self::MalformedToken | Self::Unauthorized => CredentialErrorCode::InvalidToken,
 
             Self::CredentialTypeNotOffered(_) => CredentialErrorCode::UnknownCredentialConfiguration,
 
-            Self::UseBatchIssuance => CredentialErrorCode::InvalidCredentialRequest,
+            Self::UseBatchIssuance | Self::WrongNumberOfCredentialRequests | Self::CredentialTypeMismatch { .. } => {
+                CredentialErrorCode::InvalidCredentialRequest
+            }
 
-            Self::InvalidProofJwt(_) => CredentialErrorCode::InvalidProof,
+            Self::MissingCredentialRequestPoP | Self::InvalidProofJwt(_) => CredentialErrorCode::InvalidProof,
 
             Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
 
@@ -632,21 +634,13 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
 
-            Self::Jwt(_) => CredentialErrorCode::InvalidProof,
-
             Self::MissingCredentialConfiguration(_) => CredentialErrorCode::ServerError,
 
-            Self::CredentialTypeMismatch { .. } | Self::WrongNumberOfCredentialRequests => {
-                CredentialErrorCode::InvalidCredentialRequest
-            }
-
-            Self::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
+            Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims(_) => CredentialErrorCode::ServerError,
 
             Self::JwkConversion(_) | Self::MdocConversion(_) | Self::SdJwtConversion(_) => {
                 CredentialErrorCode::ServerError
             }
-
-            Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims(_) => CredentialErrorCode::ServerError,
         }
     }
 }

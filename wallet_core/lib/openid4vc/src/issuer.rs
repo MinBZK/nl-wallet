@@ -221,20 +221,29 @@ pub enum WiaVerificationError {
 /// Errors that can occur during handling of the (batch) credential request.
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialRequestError {
-    #[error("issuance error: {0}")]
-    IssuanceError(#[from] IssuanceError),
-
-    #[error("unauthorized: incorrect access token")]
-    Unauthorized,
+    #[error("{0}")]
+    IssuanceError(#[source] IssuanceError),
 
     #[error("malformed access token")]
     MalformedToken,
+
+    #[error("unauthorized: incorrect access token")]
+    Unauthorized,
 
     #[error("credential type not offered")]
     CredentialTypeNotOffered(String),
 
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
+
+    #[error("wrong number of credential requests")]
+    WrongNumberOfCredentialRequests,
+
+    #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
+    CredentialTypeMismatch { requested: Format, offered: Format },
+
+    #[error("missing credential request proof of possession")]
+    MissingCredentialRequestPoP,
 
     #[error("invalid proof JWT: {0}")]
     InvalidProofJwt(#[source] JwtVerifyError),
@@ -248,35 +257,23 @@ pub enum CredentialRequestError {
     #[error("invalid nonce used in credential request proof")]
     InvalidNonce,
 
-    #[error("JWT error: {0}")]
-    Jwt(#[from] JwtVerifyError),
-
     #[error("missing credential configuration with identifier: {0}")]
     MissingCredentialConfiguration(CredentialConfigurationId),
-
-    #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
-    CredentialTypeMismatch { requested: Format, offered: Format },
-
-    #[error("wrong number of credential requests")]
-    WrongNumberOfCredentialRequests,
-
-    #[error("missing credential request proof of possession")]
-    MissingCredentialRequestPoP,
-
-    #[error("error converting holder VerifyingKey to JWK: {0}")]
-    JwkConversion(#[from] JwkConversionError),
-
-    #[error("error converting CredentialPayload to Mdoc: {0}")]
-    MdocConversion(#[from] CredentialPayloadIntoSignedMdocError),
-
-    #[error("error converting CredentialPayload to SD-JWT: {0}")]
-    SdJwtConversion(#[from] CredentialPayloadIntoSignedSdJwtError),
 
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("incorrect number of status claims for attestation_type: {0}")]
     IncorrectNumberOfStatusClaims(String),
+
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    JwkConversion(#[source] JwkConversionError),
+
+    #[error("error converting CredentialPayload to Mdoc: {0}")]
+    MdocConversion(#[source] CredentialPayloadIntoSignedMdocError),
+
+    #[error("error converting CredentialPayload to SD-JWT: {0}")]
+    SdJwtConversion(#[source] CredentialPayloadIntoSignedSdJwtError),
 }
 
 /// Errors that can occur during handling of the credential preview request.
@@ -796,14 +793,13 @@ where
         Ok(token)
     }
 
-    async fn get_session(&self, code: AuthorizationCode) -> Result<Session<AccessTokenIssued>, CredentialRequestError> {
+    async fn get_session(&self, code: AuthorizationCode) -> Result<Session<AccessTokenIssued>, IssuanceError> {
         self.sessions
             .get(&code.clone().into())
             .await
             .map_err(IssuanceError::SessionStore)?
             .ok_or(IssuanceError::UnknownSession(code))?
             .try_into()
-            .map_err(CredentialRequestError::IssuanceError)
     }
 }
 
@@ -964,7 +960,10 @@ where
         credential_request: draft::CredentialRequest,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self.get_session(code).await?;
+        let session = self
+            .get_session(code)
+            .await
+            .map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
             .process_credential(
@@ -979,7 +978,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(IssuanceError::SessionStore)?;
+            .map_err(|error| CredentialRequestError::IssuanceError(IssuanceError::SessionStore(error)))?;
 
         logged_issuance_result(response)
     }
@@ -991,7 +990,10 @@ where
         credential_requests: draft::CredentialRequests,
     ) -> Result<draft::CredentialResponses, CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self.get_session(code).await?;
+        let session = self
+            .get_session(code)
+            .await
+            .map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
             .process_batch_credential(
@@ -1006,7 +1008,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(IssuanceError::SessionStore)?;
+            .map_err(|error| CredentialRequestError::IssuanceError(IssuanceError::SessionStore(error)))?;
 
         logged_issuance_result(response)
     }
@@ -1023,7 +1025,10 @@ where
         endpoint_name: &str,
     ) -> Result<(), CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self.get_session(code).await?;
+        let session = self
+            .get_session(code)
+            .await
+            .map_err(CredentialRequestError::IssuanceError)?;
 
         // Check authorization of the request
         let session_data = session.session_data();
@@ -1047,7 +1052,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(IssuanceError::SessionStore)?;
+            .map_err(|error| CredentialRequestError::IssuanceError(IssuanceError::SessionStore(error)))?;
 
         Ok(())
     }
@@ -1787,7 +1792,8 @@ impl CredentialResponse {
             holder_pubkey,
             credential_config.metadata.first_document_integrity().clone(),
             status_claim,
-        )?;
+        )
+        .map_err(CredentialRequestError::JwkConversion)?;
 
         match credential_format {
             Format::MsoMdoc => Self::new_for_mdoc(payload, credential_config).await,
@@ -1804,7 +1810,10 @@ impl CredentialResponse {
     {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&credential_config.key_pair).await?;
+        let (issuer_signed, _) = credential_payload
+            .into_signed_mdoc(&credential_config.key_pair)
+            .await
+            .map_err(CredentialRequestError::MdocConversion)?;
 
         Ok(CredentialResponse::new_immediate(Credentials::new_single_mdoc(
             issuer_signed,
@@ -1820,7 +1829,8 @@ impl CredentialResponse {
     {
         let signed_sd_jwt = credential_payload
             .into_signed_sd_jwt(credential_config.metadata.normalized(), &credential_config.key_pair)
-            .await?;
+            .await
+            .map_err(CredentialRequestError::SdJwtConversion)?;
 
         Ok(CredentialResponse::new_immediate(Credentials::new_single_sd_jwt(
             signed_sd_jwt.into_unverified(),
