@@ -46,8 +46,8 @@ test-revocation-portal-js:
   script:
     - set -euxo pipefail
     - cd wallet_core/revocation_portal
-    - npm ci --ignore-scripts
-    - npm run coverage
+    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm run coverage
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/revocation_portal/test-results/junit.xml
       qt/quality-time/junit-results/revocation-portal.xml
