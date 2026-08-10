@@ -32,9 +32,6 @@ pub mod draft {
     use std::fmt::Formatter;
 
     use attestation_types::credential_format::Format;
-    use jwt::UnverifiedJwt;
-    use jwt::headers::HeaderWithJwk;
-    use jwt::pop::JwtPopClaims;
     use serde::Deserialize;
     use serde::Serialize;
     use serde_with::skip_serializing_none;
@@ -42,6 +39,7 @@ pub mod draft {
     use utils::vec_at_least::VecNonEmpty;
 
     use super::CredentialResponse;
+    use super::UnverifiedJwtProof;
 
     /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
     /// Sent JSON-encoded to `POST /batch_credential`.
@@ -107,9 +105,7 @@ pub mod draft {
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(tag = "proof_type", rename_all = "snake_case")]
     pub enum CredentialRequestProof {
-        Jwt {
-            jwt: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
-        },
+        Jwt { jwt: UnverifiedJwtProof },
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -175,11 +171,13 @@ pub enum CredentialRequestIdentifier {
     CredentialConfigurationId(CredentialConfigurationId),
 }
 
+pub type UnverifiedJwtProof = UnverifiedJwt<JwtPopClaims, HeaderWithJwk>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialRequestProofs {
     // TODO (PVW-5548): Implement `attestation` proof type and update `jwt` proof type to OpenID4VCI 1.0.
-    Jwt(VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>),
+    Jwt(VecNonEmpty<UnverifiedJwtProof>),
 }
 
 /// Object containing information for encrypting the Credential Response.

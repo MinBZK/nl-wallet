@@ -5,7 +5,6 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::ops::Add;
 use std::sync::Arc;
-use std::sync::LazyLock;
 use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
@@ -63,6 +62,7 @@ use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
 use crate::credential::CredentialResponse;
 use crate::credential::Credentials;
+use crate::credential::UnverifiedJwtProof;
 use crate::credential::draft;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationParameters;
@@ -421,9 +421,34 @@ pub struct IssuerData<K, L> {
 
     /// Public key of the WIA issuer.
     wia_trust_anchors: TrustAnchors,
+
+    jwt_proof_validation: JwtValidation,
 }
 
 impl<K, L> IssuerData<K, L> {
+    fn new(
+        credential_configs: CredentialConfigurations<K, L>,
+        accepted_wallet_client_ids: HashSet<String>,
+        server_url: BaseUrl,
+        metadata: IssuerMetadata,
+        metadata_keypair: KeyPair<K>,
+        wia_trust_anchors: TrustAnchors,
+    ) -> Self {
+        let mut jwt_proof_validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
+        jwt_proof_validation.require_iss(accepted_wallet_client_ids.clone());
+        jwt_proof_validation.require_aud(metadata.credential_issuer.clone());
+
+        Self {
+            credential_configs,
+            accepted_wallet_client_ids,
+            server_url,
+            metadata,
+            metadata_keypair,
+            wia_trust_anchors,
+            jwt_proof_validation,
+        }
+    }
+
     fn get_checked_credential_config(
         &self,
         config_id: &CredentialConfigurationId,
@@ -597,7 +622,7 @@ where
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn try_new(
         issuer_identifier: IssuerIdentifier,
-        keypair: KeyPair<K>,
+        metadata_keypair: KeyPair<K>,
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
@@ -636,17 +661,16 @@ where
                 .to_credential_configurations_supported(&type_metadata_base_url),
         };
 
-        let issuer_data = IssuerData {
+        let issuer_data = IssuerData::new(
             credential_configs,
-            accepted_wallet_client_ids: wallet_client_ids,
-            wia_trust_anchors,
-
-            // In this implementation, the public server URL is composed of the
-            // Credential Issuer Identifier appended with the "/issuance/" path.
-            server_url: server_url.into_inner(),
+            wallet_client_ids,
+            // In this implementation, the public server URL is composed of the Credential Issuer Identifier appended
+            // with the "/issuance/" path.
+            server_url.into_inner(),
             metadata,
-            metadata_keypair: keypair,
-        };
+            metadata_keypair,
+            wia_trust_anchors,
+        );
 
         let nonce_store = Arc::new(nonce_store);
 
@@ -1480,10 +1504,7 @@ impl Session<AccessTokenIssued> {
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
-        let (holder_pubkey, request_nonce) = credential_request.verify(
-            issuer_data.accepted_wallet_client_ids_vec(),
-            &issuer_data.metadata.credential_issuer,
-        )?;
+        let (holder_pubkey, request_nonce) = credential_request.verify(issuer_data.jwt_proof_validation.clone())?;
 
         let nonce_status = nonce_store
             .check_nonce_status_and_remove([request_nonce].iter())
@@ -1598,10 +1619,7 @@ impl Session<AccessTokenIssued> {
                             });
                         }
 
-                        let (key, nonce) = cred_req.verify(
-                            issuer_data.accepted_wallet_client_ids_vec(),
-                            &issuer_data.metadata.credential_issuer,
-                        )?;
+                        let (key, nonce) = cred_req.verify(issuer_data.jwt_proof_validation.clone())?;
 
                         request_nonces.push(nonce);
 
@@ -1719,18 +1737,35 @@ impl<T: IssuanceState> Session<T> {
 }
 
 impl draft::CredentialRequest {
-    fn verify(
-        &self,
-        accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
-        credential_issuer_identifier: &IssuerIdentifier,
-    ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
+    fn verify(&self, jwt_proof_validation: JwtValidation) -> Result<(PublicKey, Nonce), CredentialRequestError> {
         let (holder_pubkey, nonce) = self
             .proof
             .as_ref()
             .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
-            .verify(accepted_wallet_client_ids, credential_issuer_identifier)?;
+            .verify(jwt_proof_validation)?;
 
         Ok((holder_pubkey, nonce))
+    }
+}
+
+fn verify_jwt_proof(
+    jwt: &UnverifiedJwtProof,
+    validation: JwtValidation,
+) -> Result<(PublicKey, Nonce), CredentialRequestError> {
+    let (_header, payload, public_key) = jwt
+        .parse_and_verify_with_jwk(validation)
+        .map_err(CredentialRequestError::InvalidProofJwt)?;
+
+    let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
+
+    Ok((public_key, nonce))
+}
+
+impl draft::CredentialRequestProof {
+    fn verify(&self, validation: JwtValidation) -> Result<(PublicKey, Nonce), CredentialRequestError> {
+        let Self::Jwt { jwt } = self;
+
+        verify_jwt_proof(jwt, validation)
     }
 }
 
@@ -1790,31 +1825,6 @@ impl CredentialResponse {
         Ok(CredentialResponse::new_immediate(Credentials::new_single_sd_jwt(
             signed_sd_jwt.into_unverified(),
         )))
-    }
-}
-
-static CREDENTIAL_REQUEST_PROOF_VALIDATION: LazyLock<JwtValidation> =
-    LazyLock::new(|| JwtValidation::default_with_algorithms([Algorithm::ES256]));
-
-impl draft::CredentialRequestProof {
-    pub fn verify(
-        &self,
-        accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
-        credential_issuer_identifier: &IssuerIdentifier,
-    ) -> Result<(PublicKey, Nonce), CredentialRequestError> {
-        let Self::Jwt { jwt } = self;
-
-        let mut validation = CREDENTIAL_REQUEST_PROOF_VALIDATION.to_owned();
-        validation.require_iss(accepted_wallet_client_ids);
-        validation.require_aud(credential_issuer_identifier);
-
-        let (_header, payload, public_key) = jwt
-            .parse_and_verify_with_jwk(validation)
-            .map_err(CredentialRequestError::InvalidProofJwt)?;
-
-        let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
-
-        Ok((public_key, nonce))
     }
 }
 
