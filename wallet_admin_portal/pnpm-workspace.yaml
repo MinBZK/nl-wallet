@@ -1,0 +1,5 @@
+minimumReleaseAgeExclude:
+  - postcss@8.5.23
+  - undici@7.29.0
+  - brace-expansion@2.1.4 || 5.0.9
+  - nanoid@3.3.17
