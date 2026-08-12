@@ -1,0 +1,108 @@
+ai-security-scan-fetch-token:
+  extends: .env-k8s
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  rules:
+    - if: ($SCHEDULED == "ai-security-scan-diff" || $SCHEDULED == "ai-security-scan-full") && $CI_PIPELINE_SOURCE == "web"
+  script:
+    - CLAUDE_CODE_OAUTH_TOKEN="$(kubectl get secret nl-wallet-anthropic -o jsonpath='{.data.claude_code_oauth_token}' | base64 --decode)"
+    - echo "CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}" > claude.env
+  artifacts:
+    access: none
+    expire_in: 15 minutes
+    reports:
+      dotenv: claude.env
+
+.ai-security-scan-base:
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  needs:
+    - job: ai-security-scan-fetch-token
+      artifacts: true
+  variables:
+    GIT_DEPTH: 0
+    SCAN_MODEL: "claude-sonnet-4-6"
+    CLAUDE_CODE_MAX_TURNS: "50"
+    # Headless `claude -p` ends the session as soon as the model stops for input,
+    # so a turn that ends with a clarifying question produces no findings. This
+    # system-prompt append forbids that: the agent must run to completion without
+    # ever asking. Passed to every claude invocation via --append-system-prompt.
+    NONINTERACTIVE: >-
+      You are running non-interactively in a CI job with no human present.
+      Never ask questions, never wait for confirmation, and never end your turn
+      with a question. Always proceed and run the requested scan to completion,
+      writing the output file before you finish. If the scope looks large, scan
+      it in full anyway rather than pausing to ask how to narrow it.
+  before_script:
+    - npm i -g @anthropic-ai/claude-code
+    - node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
+    # Headless Claude ignores the project's .claude/settings.json allowlist unless the
+    # workspace is trusted, and CI has no trust dialog. Mark the checkout directory as
+    # trusted in ~/.claude.json so the read-only permission allowlist is loaded.
+    - |
+      node -e "
+        const fs = require('fs');
+        const path = require('path');
+        const configFile = path.join(process.env.HOME, '.claude.json');
+        let config = {};
+        try { config = JSON.parse(fs.readFileSync(configFile, 'utf8')); } catch (e) {}
+        config.projects = config.projects || {};
+        const projectDir = process.env.CI_PROJECT_DIR;
+        config.projects[projectDir] = { ...config.projects[projectDir], hasTrustDialogAccepted: true };
+        fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+        console.error('Trusted ' + projectDir);
+      "
+    - cd deploy/qa-util/ai-security-scan
+  artifacts:
+    name: ai-security-scan
+    when: always
+    expire_in: 30 days
+    paths:
+      - deploy/qa-util/ai-security-scan/VULN-FINDINGS*.json
+      - deploy/qa-util/ai-security-scan/VULN-FINDINGS*.md
+      - deploy/qa-util/ai-security-scan/TRIAGE.json
+      - deploy/qa-util/ai-security-scan/TRIAGE.md
+
+ai-security-scan-diff:
+  extends: .ai-security-scan-base
+  rules:
+    - if: $SCHEDULED == "ai-security-scan-diff" && $CI_PIPELINE_SOURCE == "web"
+  timeout: 2h
+  variables:
+    TRIAGE: "true"
+    SCAN_COMMIT_RANGE: "HEAD~1..HEAD"
+  script:
+    - 'echo "Scanning commit range: ${SCAN_COMMIT_RANGE}"'
+    - claude -p "/vuln-scan-diff ../../.. ${SCAN_COMMIT_RANGE} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+    - mv ../../../VULN-FINDINGS-DIFF.* ./ 2>/dev/null || true
+    - |
+      if [ ! -f VULN-FINDINGS-DIFF.json ]; then
+        echo "No source files in range — nothing to scan. Exiting successfully."
+        exit 0
+      fi
+    - |
+      if [ "${TRIAGE}" = "true" ]; then
+        claude -p "/triage VULN-FINDINGS-DIFF.json --auto --repo ../../.. --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+        test -f TRIAGE.md || { echo "No TRIAGE.md (triage did not complete)"; exit 1; }
+      else
+        echo "Skipping triage (set TRIAGE=true when triggering to verify, dedupe and rank the findings)"
+      fi
+
+ai-security-scan-full:
+  extends: .ai-security-scan-base
+  rules:
+    - if: $SCHEDULED == "ai-security-scan-full" && $CI_PIPELINE_SOURCE == "web"
+  timeout: 4h
+  variables:
+    TRIAGE: "false"
+    SCAN_TARGET: "wallet_core"
+    SCAN_EXCLUDES: "--exclude target --exclude tests_integration --exclude demo --exclude gba_hc_converter --exclude wallet_server/pid_issuer"
+  script:
+    - claude -p "/vuln-scan ../../../${SCAN_TARGET} ${SCAN_EXCLUDES} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+    - mv ../../../${SCAN_TARGET}/VULN-FINDINGS.* ./ 2>/dev/null || true
+    - test -f VULN-FINDINGS.json || { echo "No VULN-FINDINGS.json (scan did not complete)"; exit 1; }
+    - |
+      if [ "${TRIAGE}" = "true" ]; then
+        claude -p "/triage VULN-FINDINGS.json --auto --repo ../../../${SCAN_TARGET} --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+        test -f TRIAGE.md || { echo "No TRIAGE.md (triage did not complete)"; exit 1; }
+      else
+        echo "Skipping triage (set TRIAGE=true when triggering to verify, dedupe and rank the findings)"
+      fi
