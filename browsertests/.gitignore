@@ -1,4 +1,4 @@
 #browsertests
-/node_modules/
+**/node_modules/
 /**/test-results*/
 allure-results/
