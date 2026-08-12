@@ -24,12 +24,12 @@
 .select,
 .search {
   height: 44px;
-  border: 1px solid #e4e6ef;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   background: #fff;
-  padding: 0 14px;
-  font-size: 14px;
-  color: #2a3550;
+  padding: 0 0.875rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
   outline: none;
 }
 
@@ -41,14 +41,14 @@
   height: 44px;
   border: none;
   border-radius: 6px;
-  background: #4b55d6;
+  background: var(--color-primary);
   color: #fff;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 0.875rem;
   cursor: pointer;
 }
 
 .search-btn:hover {
-  background: #404bcc;
+  background: var(--color-primary-hover);
 }
 </style>

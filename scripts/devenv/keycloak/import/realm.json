@@ -104,11 +104,13 @@
       "serviceAccountsEnabled": false,
       "frontchannelLogout": false,
       "redirectUris": [
-        "https://localhost:3000/auth/callback"
+        "https://localhost:3000/auth/callback",
+        "http://localhost:3000/auth/callback"
       ],
       "webOrigins": [],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/"
       }
     }
   ]

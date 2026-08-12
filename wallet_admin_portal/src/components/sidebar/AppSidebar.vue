@@ -2,27 +2,49 @@
   <aside class="sidebar">
     <SidebarBrand />
 
-    <div class="nav-section">
+    <nav class="nav-section">
       <div class="section-label">ALGEMEEN</div>
 
-      <RouterLink to="/tasks" class="nav-item" exact-active-class="active">
+      <RouterLink
+        v-if="rolename === Role.Teamlead || rolename === Role.Operator"
+        to="/tasks"
+        class="nav-item"
+        exact-active-class="active"
+      >
         <img src="@/assets/icons/checklist.svg" alt="" class="icon" />
         <span>Openstaande taken</span>
+      </RouterLink>
+
+      <RouterLink
+        v-if="rolename === Role.Operator"
+        to="/my-tasks"
+        class="nav-item"
+        exact-active-class="active"
+      >
+        <img src="@/assets/icons/account_box.svg" alt="" class="icon" />
+        <span>Mijn open taken</span>
       </RouterLink>
 
       <RouterLink to="/history" class="nav-item" exact-active-class="active">
         <img src="@/assets/icons/history.svg" alt="" class="icon" />
         <span>Taakgeschiedenis</span>
       </RouterLink>
-    </div>
+    </nav>
 
-    <SidebarUserCard name="Joss van Leiden" role="Teamleider" />
+    <SidebarUserCard :name="loggedInUser?.displayName ?? ''" :role="rolename" />
   </aside>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useAuth } from '@/composables/authentication.ts'
+import { Role, roleFromPrivileges } from '@/composables/roles.ts'
 import SidebarBrand from './SidebarBrand.vue'
 import SidebarUserCard from './SidebarUserCard.vue'
+
+const { loggedInUser } = useAuth()
+
+const rolename = computed(() => roleFromPrivileges(loggedInUser.value?.privileges ?? []))
 </script>
 
 <style scoped>
@@ -37,10 +59,10 @@ import SidebarUserCard from './SidebarUserCard.vue'
 }
 
 .section-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #6b7280;
-  margin: 8px 0 10px;
+  color: var(--color-text-muted);
+  margin: 0.5rem 0 0.625rem;
 }
 
 .nav-item {
@@ -49,9 +71,9 @@ import SidebarUserCard from './SidebarUserCard.vue'
   gap: 10px;
   border: 1px solid transparent;
   background: transparent;
-  padding: 14px 8px;
+  padding: 0.875rem 0.5rem;
   border-radius: 8px;
-  color: #23314d;
+  color: var(--color-text-primary);
   font-weight: 600;
   text-align: left;
   text-decoration: none;
@@ -59,13 +81,14 @@ import SidebarUserCard from './SidebarUserCard.vue'
 }
 
 .nav-item.active {
-  border-color: #5f6bf3;
-  background: #f5f7ff;
-  box-shadow: inset 0 0 0 1px rgba(95, 107, 243, 0.12);
+  border-color: var(--color-primary);
+  background: var(--color-surface-tint);
+  box-shadow: inset 0 0 0 1px rgba(56, 62, 222, 0.12);
 }
 
 .icon {
-  width: 24px;
-  height: 24px;
+  width: 1.25em;
+  text-align: center;
+  color: var(--color-primary);
 }
 </style>

@@ -43,20 +43,20 @@
   align-items: center;
   gap: 16px;
   color: var(--color-text-primary);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.4286;
 }
 
 select {
   height: 38px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 0 12px;
+  padding: 0 0.75rem;
   background: #fff;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.4286;
   font-weight: 500;
-  color: #1a0006;
+  color: var(--color-text-primary);
 }
 
 .pages {
@@ -70,8 +70,8 @@ select {
   height: 44px;
   border: none;
   border-radius: 12px;
-  background: #f3f4fb;
-  color: #4b55d6;
+  background: var(--color-surface-tint);
+  color: var(--color-primary);
   font-weight: 700;
   cursor: pointer;
 }
@@ -89,12 +89,12 @@ select {
 }
 
 .page.active {
-  background: #4b55d6;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .ellipsis {
-  color: #6c7285;
-  padding: 0 6px;
+  color: var(--color-text-muted);
+  padding: 0 0.375rem;
 }
 </style>

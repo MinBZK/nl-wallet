@@ -61,7 +61,7 @@ const tasks = [
 .tasks-table {
   width: 100%;
   border-collapse: collapse;
-  box-shadow: 0 1px 0 #e9e9f1;
+  box-shadow: 0 1px 0 var(--color-border);
 }
 
 thead th {
@@ -69,23 +69,23 @@ thead th {
   top: 0;
   z-index: 1;
   text-align: left;
-  padding: 14px 16px;
-  font-size: 12px;
+  padding: 0.875rem 1rem;
+  font-size: 0.75rem;
   letter-spacing: 0.02em;
-  color: #4a5674;
-  background: #f3f4fb;
-  border-bottom: 1px solid #e5e7f0;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-tint);
+  border-bottom: 1px solid var(--color-border);
 }
 
 tbody td {
-  padding: 22px 16px;
-  border-bottom: 1px solid #ececf3;
-  color: #39445f;
-  font-size: 14px;
+  padding: 1.375rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
 }
 
 .details {
-  color: #4b55d6;
+  color: var(--color-primary);
   font-weight: 700;
   text-decoration: none;
 }
