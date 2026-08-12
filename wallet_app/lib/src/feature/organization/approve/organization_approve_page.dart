@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/list_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/list_button.dart';
@@ -127,11 +128,11 @@ class OrganizationApprovePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          OrganizationLogo(image: organization.logo, size: 64, fixedRadius: 12),
-          const SizedBox(height: 24),
+          organization.logo == null ? null : OrganizationLogo(image: organization.logo!, size: 64, fixedRadius: 12),
+          SizedBox(height: organization.logo == null ? 0 : 24),
           TitleText(resolveTitle(context, purpose, organization)),
           _buildHeaderDescriptionSection(context),
-        ],
+        ].nonNullsList,
       ),
     );
   }

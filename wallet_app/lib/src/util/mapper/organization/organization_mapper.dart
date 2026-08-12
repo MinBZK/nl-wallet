@@ -4,7 +4,6 @@ import 'package:wallet_core/core.dart' hide Organization;
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/localized_text.dart';
 import '../../../domain/model/organization.dart';
-import '../../../wallet_assets.dart';
 import '../mapper.dart';
 
 class OrganizationMapper extends Mapper<core.Organization, Organization> {
@@ -18,14 +17,13 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
     id: input.hashCode.toString(),
     legalName: input.legalName,
     displayName: input.displayName,
-    description: _localizedStringMapper.map(input.description),
-    department: input.department == null ? null : _localizedStringMapper.map(input.department!),
-    logo: input.image == null ? const AppAssetImage(WalletAssets.logo_rp_placeholder) : _imageMapper.map(input.image!),
-    category: _localizedStringMapper.map(input.category),
+    description: input.description.isEmpty ? null : _localizedStringMapper.map(input.description),
+    logo: input.image == null ? null : _imageMapper.map(input.image!),
+    type: input.category.isEmpty ? null : _localizedStringMapper.map(input.category),
     organizationId: input.identifier,
     countryCode: input.countryCode,
-    city: input.city == null ? null : _localizedStringMapper.map(input.city!),
-    webUrl: input.webUrl,
-    privacyPolicyUrl: input.privacyPolicyUrl,
+    webUri: input.webUrl,
+    supportUri: null, // TODO(Anyone): PVW-6111
+    privacyPolicyUri: input.privacyPolicyUrl,
   );
 }

@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_request_details_screen.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
-import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
-import '../../mocks/wallet_mocks.mocks.dart';
 import '../../test_util/golden_utils.dart';
 import '../../test_util/test_utils.dart';
 import 'issuance_screen_test.dart';
@@ -30,9 +25,6 @@ void main() {
           cardRequests: [WalletMockData.discloseCardRequestSingleCard],
         ),
       ),
-      providers: [
-        RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (_) => MockContextMapper()),
-      ],
     );
     await screenMatchesGolden('request_details/light');
   });
@@ -50,9 +42,6 @@ void main() {
         ),
       ),
       brightness: Brightness.dark,
-      providers: [
-        RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (_) => MockContextMapper()),
-      ],
     );
     await screenMatchesGolden('request_details/dark');
   });
@@ -70,15 +59,6 @@ void main() {
         ),
       ),
       brightness: Brightness.dark,
-      providers: [
-        RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
-          create: (_) {
-            final mapper = MockContextMapper<OrganizationPolicy, String>();
-            when(mapper.map(any, any)).thenReturn('Sample mapped policy string');
-            return mapper;
-          },
-        ),
-      ],
     );
 
     // Scroll to the bottom of the screen
@@ -103,9 +83,6 @@ void main() {
           error: GenericError('An error occurred', sourceError: CoreGenericError('test')),
         ),
       ),
-      providers: [
-        RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (_) => MockContextMapper()),
-      ],
     );
     await screenMatchesGolden('request_details/error.light');
   });

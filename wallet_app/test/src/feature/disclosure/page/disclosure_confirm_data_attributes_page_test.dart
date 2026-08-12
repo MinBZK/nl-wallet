@@ -1,12 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
-import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_data_attributes_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
-import 'package:wallet/src/util/mapper/context_mapper.dart';
-import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -15,20 +11,17 @@ import '../../../test_util/test_utils.dart';
 void main() {
   testWidgets('ltc15 card titles are shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<OrganizationPolicy, String>>(
-        create: (c) => PolicyBodyTextMapper(),
-        child: DisclosureConfirmDataAttributesPage(
-          onAcceptPressed: () {},
-          onDeclinePressed: () {},
-          onAlternativeCardSelected: (update) {},
-          relyingParty: WalletMockData.organization,
-          cardRequests: [
-            DiscloseCardRequest.fromCard(WalletMockData.card),
-            DiscloseCardRequest.fromCard(WalletMockData.altCard),
-          ],
-          policy: WalletMockData.policy,
-          requestPurpose: 'data purpose'.untranslated,
-        ),
+      DisclosureConfirmDataAttributesPage(
+        onAcceptPressed: () {},
+        onDeclinePressed: () {},
+        onAlternativeCardSelected: (update) {},
+        relyingParty: WalletMockData.organization,
+        cardRequests: [
+          DiscloseCardRequest.fromCard(WalletMockData.card),
+          DiscloseCardRequest.fromCard(WalletMockData.altCard),
+        ],
+        policy: WalletMockData.policy,
+        requestPurpose: 'data purpose'.untranslated,
       ),
     );
 
@@ -42,41 +35,34 @@ void main() {
 
   testWidgets('ltc15 organization title is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<OrganizationPolicy, String>>(
-        create: (c) => PolicyBodyTextMapper(),
-        child: DisclosureConfirmDataAttributesPage(
-          onAcceptPressed: () {},
-          onDeclinePressed: () {},
-          onAlternativeCardSelected: (update) {},
-          relyingParty: WalletMockData.organization,
-          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-          policy: WalletMockData.policy,
-          requestPurpose: 'data purpose'.untranslated,
-        ),
+      DisclosureConfirmDataAttributesPage(
+        onAcceptPressed: () {},
+        onDeclinePressed: () {},
+        onAlternativeCardSelected: (update) {},
+        relyingParty: WalletMockData.organization,
+        cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+        policy: WalletMockData.policy,
+        requestPurpose: 'data purpose'.untranslated,
       ),
     );
 
-    // Organization name should be shown 3 times on this screen:
+    // Organization name should be shown 2 times on this screen:
     // - title
     // - organization detail row
-    // - agreements section
     final orgNameFinder = find.textContaining(WalletMockData.organization.displayName);
-    expect(orgNameFinder, findsNWidgets(3));
+    expect(orgNameFinder, findsNWidgets(2));
   });
 
   testWidgets('ltc15 data purpose is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<OrganizationPolicy, String>>(
-        create: (c) => PolicyBodyTextMapper(),
-        child: DisclosureConfirmDataAttributesPage(
-          onAcceptPressed: () {},
-          onDeclinePressed: () {},
-          onAlternativeCardSelected: (update) {},
-          relyingParty: WalletMockData.organization,
-          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-          policy: WalletMockData.policy,
-          requestPurpose: 'data purpose'.untranslated,
-        ),
+      DisclosureConfirmDataAttributesPage(
+        onAcceptPressed: () {},
+        onDeclinePressed: () {},
+        onAlternativeCardSelected: (update) {},
+        relyingParty: WalletMockData.organization,
+        cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+        policy: WalletMockData.policy,
+        requestPurpose: 'data purpose'.untranslated,
       ),
     );
 
@@ -88,17 +74,14 @@ void main() {
   testWidgets('ltc15 verify decline button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<OrganizationPolicy, String>>(
-        create: (c) => PolicyBodyTextMapper(),
-        child: DisclosureConfirmDataAttributesPage(
-          onAcceptPressed: () {},
-          onDeclinePressed: () => isCalled = true,
-          onAlternativeCardSelected: (update) {},
-          relyingParty: WalletMockData.organization,
-          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-          policy: WalletMockData.policy,
-          requestPurpose: 'data purpose'.untranslated,
-        ),
+      DisclosureConfirmDataAttributesPage(
+        onAcceptPressed: () {},
+        onDeclinePressed: () => isCalled = true,
+        onAlternativeCardSelected: (update) {},
+        relyingParty: WalletMockData.organization,
+        cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+        policy: WalletMockData.policy,
+        requestPurpose: 'data purpose'.untranslated,
       ),
     );
 
@@ -115,17 +98,14 @@ void main() {
   testWidgets('ltc15 verify accept button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<OrganizationPolicy, String>>(
-        create: (c) => PolicyBodyTextMapper(),
-        child: DisclosureConfirmDataAttributesPage(
-          onAcceptPressed: () => isCalled = true,
-          onDeclinePressed: () {},
-          onAlternativeCardSelected: (update) {},
-          relyingParty: WalletMockData.organization,
-          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-          policy: WalletMockData.policy,
-          requestPurpose: 'data purpose'.untranslated,
-        ),
+      DisclosureConfirmDataAttributesPage(
+        onAcceptPressed: () => isCalled = true,
+        onDeclinePressed: () {},
+        onAlternativeCardSelected: (update) {},
+        relyingParty: WalletMockData.organization,
+        cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+        policy: WalletMockData.policy,
+        requestPurpose: 'data purpose'.untranslated,
       ),
     );
 

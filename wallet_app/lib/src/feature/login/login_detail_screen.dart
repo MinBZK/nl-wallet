@@ -1,21 +1,19 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../../domain/model/disclosure/disclose_card_request.dart';
 import '../../domain/model/organization.dart';
-import '../../domain/model/policy/organization_policy.dart';
 import '../../domain/model/policy/policy.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/extension/string_extension.dart';
-import '../../util/mapper/context_mapper.dart';
+import '../../util/formatter/country_code_formatter.dart';
 import '../../wallet_constants.dart';
 import '../check_attributes/check_attributes_screen.dart';
+import '../common/builder/request_detail_common_builders.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
-import '../common/widget/button/link_button.dart';
 import '../common/widget/card/shared_attributes_card.dart';
+import '../common/widget/menu_item.dart';
 import '../common/widget/organization/organization_logo.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
@@ -25,7 +23,6 @@ import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import '../info/info_screen.dart';
 import '../organization/detail/organization_detail_screen.dart';
-import '../policy/policy_screen.dart';
 import 'argument/login_detail_screen_argument.dart';
 
 class LoginDetailScreen extends StatelessWidget {
@@ -90,46 +87,38 @@ class LoginDetailScreen extends StatelessWidget {
           const SliverDivider(),
           _buildAttributesSection(context),
           const SliverDivider(),
-          _buildAgreementSection(context),
+          SliverToBoxAdapter(
+            child: RequestDetailCommonBuilders.buildPolicy(
+              context,
+              organization: organization,
+              policy: policy,
+            ),
+          ),
+          const SliverDivider(),
+          const SliverSizedBox(height: 24),
         ],
       ),
     );
   }
 
   Widget _buildOrganizationSection(BuildContext context) {
+    final countryLabel = CountryCodeFormatter.format(organization.countryCode);
     return SliverToBoxAdapter(
       child: Semantics(
         button: true,
-        child: InkWell(
-          onTap: () => OrganizationDetailScreen.showPreloaded(
+        child: MenuItem(
+          leftIcon: organization.logo == null
+              ? null
+              : OrganizationLogo(image: organization.logo!, size: kMenuItemNormalIconSize),
+          dividerSide: .none,
+          label: Text(
+            context.l10n.requestDetailScreenAboutOrganizationCta(organization.displayName),
+          ),
+          subtitle: countryLabel == null ? null : Text(countryLabel),
+          onPressed: () => OrganizationDetailScreen.showPreloaded(
             context,
             organization,
             sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ExcludeSemantics(
-                  child: OrganizationLogo(image: organization.logo, size: 32, fixedRadius: 8),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text.rich(
-                        organization.displayName.toTextSpan(context),
-                        textAlign: TextAlign.start,
-                        style: context.textTheme.labelLarge,
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded),
-              ],
-            ),
           ),
         ),
       ),
@@ -175,37 +164,6 @@ class LoginDetailScreen extends StatelessWidget {
         slivers: [
           headerSliver,
           attributesSliver,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAgreementSection(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      sliver: SliverList.list(
-        children: [
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Icon(Icons.handshake_outlined),
-          ),
-          const SizedBox(height: 16),
-          TitleText(
-            context.l10n.loginDetailScreenAgreementTitle,
-            style: context.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          BodyText(
-            context.read<ContextMapper<OrganizationPolicy, String>>().map(
-              context,
-              OrganizationPolicy(organization: organization, policy: policy),
-            ),
-          ),
-          const SizedBox(height: 6),
-          LinkButton(
-            text: Text.rich(context.l10n.loginDetailScreenAgreementCta.toTextSpan(context)),
-            onPressed: () => PolicyScreen.show(context, organization, policy),
-          ),
         ],
       ),
     );

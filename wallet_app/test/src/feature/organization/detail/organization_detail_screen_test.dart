@@ -56,11 +56,12 @@ void main() {
         ).withState<OrganizationDetailBloc, OrganizationDetailState>(
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
-            organization: WalletMockData.organization,
+            organization: WalletMockData.organization.copyWith(supportUri: 'mailto:john.doe@example.org'),
             sharedDataWithOrganizationBefore: false,
           ),
         ),
         brightness: Brightness.dark,
+        surfaceSize: const Size(375, 900), // extra tall so button is visible
       );
 
       await screenMatchesGolden('success.dark');
@@ -104,12 +105,14 @@ void main() {
       expect(find.text(title), findsOneWidget);
       expect(find.text(WalletMockData.organization.description!.testValue), findsOneWidget);
       expect(find.text(WalletMockData.organization.legalName), findsOneWidget);
-      expect(find.text(WalletMockData.organization.category!.testValue), findsOneWidget);
-      expect(find.text(WalletMockData.organization.privacyPolicyUrl.toString()), findsOneWidget);
-      final location =
-          '${WalletMockData.organization.city!.testValue}, ${CountryCodeFormatter.format(WalletMockData.organization.countryCode)}';
-      expect(find.text(location), findsOneWidget);
-      expect(find.text(WalletMockData.organization.organizationId.toString()), findsOneWidget);
+      expect(find.text(WalletMockData.organization.type!.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.supportUri!.replaceAll('https://', '')), findsOneWidget);
+      expect(find.text(WalletMockData.organization.privacyPolicyUri!.replaceAll('https://', '')), findsOneWidget);
+      expect(find.text(WalletMockData.organization.organizationId), findsOneWidget);
+      final location = CountryCodeFormatter.format(WalletMockData.organization.countryCode);
+      expect(location, equals('Netherlands'));
+      expect(find.text(location!), findsOneWidget);
+      expect(find.text(WalletMockData.organization.organizationId), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenWebsiteInfo), findsNothing);
     });
 
@@ -125,6 +128,7 @@ void main() {
             sharedDataWithOrganizationBefore: false,
           ),
         ),
+        surfaceSize: const Size(375, 900), // extra tall so button is visible
       );
 
       final l10n = await TestUtils.englishLocalizations;

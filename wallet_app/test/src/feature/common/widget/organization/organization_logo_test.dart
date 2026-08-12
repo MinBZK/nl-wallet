@@ -16,7 +16,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           OrganizationLogo(
-            image: WalletMockData.organization.logo,
+            image: WalletMockData.organization.logo!,
             size: kGoldenSize.height,
           ),
           surfaceSize: kGoldenSize,
@@ -73,14 +73,14 @@ void main() {
     testWidgets('image is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         OrganizationLogo(
-          image: WalletMockData.organization.logo,
+          image: WalletMockData.organization.logo!,
           size: kGoldenSize.height,
         ),
       );
 
       // Validate that the widget exists
       expect(WalletMockData.organization.logo, isA<AppAssetImage>(), reason: 'We rely on an AssetImage for this test');
-      final widgetFinder = find.image(AssetImage((WalletMockData.organization.logo as AppAssetImage).name));
+      final widgetFinder = find.image(AssetImage((WalletMockData.organization.logo! as AppAssetImage).name));
       expect(widgetFinder, findsOneWidget);
     });
   });

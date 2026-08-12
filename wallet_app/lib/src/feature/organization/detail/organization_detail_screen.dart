@@ -7,8 +7,11 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/list_extension.dart';
+import '../../../util/extension/object_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/formatter/country_code_formatter.dart';
+import '../../../util/formatter/uri_display_formatter.dart';
 import '../../../util/launch_util.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
@@ -116,10 +119,9 @@ class OrganizationDetailScreen extends StatelessWidget {
           child: TitleText(_resolveTitle(context)),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
           child: _buildHeaderSection(context, state.organization),
-        ),
-        const SizedBox(height: 24),
+        ).takeIf((_) => state.organization.description != null),
         if (state.sharedDataWithOrganizationBefore) ...[
           const Divider(),
           _buildInteractionRow(context, state),
@@ -143,7 +145,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                 },
               ),
         const SizedBox(height: 24),
-      ],
+      ].nonNullsList,
     );
   }
 
@@ -151,10 +153,10 @@ class OrganizationDetailScreen extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        ExcludeSemantics(
-          child: OrganizationLogo(image: organization.logo, size: 64, fixedRadius: 12),
-        ),
-        const SizedBox(width: 16),
+        organization.logo == null
+            ? null
+            : ExcludeSemantics(child: OrganizationLogo(image: organization.logo!, size: 64, fixedRadius: 12)),
+        SizedBox(width: organization.logo == null ? 0 : 16),
         Expanded(
           child: Text.rich(
             organization.description?.l10nSpan(context) ?? ''.toTextSpan(context),
@@ -162,7 +164,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             style: context.textTheme.bodyLarge,
           ),
         ),
-      ],
+      ].nonNullsList,
     );
   }
 
@@ -170,12 +172,12 @@ class OrganizationDetailScreen extends StatelessWidget {
     final country = CountryCodeFormatter.format(organization.countryCode);
     return [
       _buildLegalNameRow(context, organization),
-      _buildCategoryRow(context, organization),
-      if (organization.department != null) _buildDepartmentRow(context, organization),
-      if (country != null || organization.city != null) _buildLocationRow(context, country, organization),
-      if (organization.webUrl != null) _buildWebUrlRow(context, organization.webUrl!),
-      if (organization.privacyPolicyUrl != null) _buildPrivacyRow(context, organization.privacyPolicyUrl!),
-      if (organization.organizationId != null) _buildOrganizationIdRow(context, organization.organizationId!),
+      if (organization.type != null) _buildTypeRow(context, organization.type!),
+      if (country != null) _buildLocationRow(context, country),
+      if (organization.webUri != null) _buildWebUrlRow(context, organization.webUri!),
+      if (organization.supportUri != null) _buildSupportRow(context, organization.supportUri!),
+      if (organization.privacyPolicyUri != null) _buildPrivacyRow(context, organization.privacyPolicyUri!),
+      _buildOrganizationIdRow(context, organization.organizationId),
     ];
   }
 
@@ -187,47 +189,53 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryRow(BuildContext context, Organization organization) {
+  Widget _buildTypeRow(BuildContext context, LocalizedText type) {
     return ListItem(
       icon: const Icon(Icons.apartment_outlined),
       label: Text.rich(context.l10n.organizationDetailScreenCategoryInfo.toTextSpan(context)),
-      subtitle: Text.rich(organization.category?.l10nSpan(context) ?? ''.toTextSpan(context)),
+      subtitle: Text.rich(type.l10nSpan(context)),
     );
   }
 
-  Widget _buildDepartmentRow(BuildContext context, Organization organization) {
-    return ListItem(
-      icon: const Icon(Icons.meeting_room_outlined),
-      label: Text.rich(context.l10n.organizationDetailScreenDepartmentInfo.toTextSpan(context)),
-      subtitle: Text.rich(organization.department!.l10nSpan(context)),
-    );
-  }
-
-  Widget _buildLocationRow(BuildContext context, String? country, Organization organization) {
+  Widget _buildLocationRow(BuildContext context, String country) {
     return ListItem(
       icon: const Icon(Icons.location_on_outlined),
       label: Text.rich(context.l10n.organizationDetailScreenLocationInfo.toTextSpan(context)),
-      subtitle: Text.rich(_generateLocationLabel(context, country, organization.city).toTextSpan(context)),
+      subtitle: Text.rich(country.toTextSpan(context)),
     );
   }
 
   Widget _buildWebUrlRow(BuildContext context, String webUrl) {
+    final displayUri = UriDisplayFormatter.format(webUrl);
     return _buildInfoRowWithUrl(
       context,
       icon: Icons.language_outlined,
       title: context.l10n.organizationDetailScreenWebsiteInfo,
-      url: webUrl,
+      url: displayUri,
       semanticsLabel: '${context.l10n.organizationDetailScreenWebsiteInfo}\n$webUrl',
       onTap: () => launchUrlStringCatching(webUrl),
     );
   }
 
+  Widget _buildSupportRow(BuildContext context, String supportUri) {
+    final displayUri = UriDisplayFormatter.format(supportUri);
+    return _buildInfoRowWithUrl(
+      context,
+      icon: Icons.headset_mic_outlined,
+      title: context.l10n.organizationDetailScreenSupportInfo,
+      url: displayUri,
+      semanticsLabel: '${context.l10n.organizationDetailScreenSupportInfo}\n$supportUri',
+      onTap: () => launchUrlStringCatching(supportUri),
+    );
+  }
+
   Widget _buildPrivacyRow(BuildContext context, String privacyPolicyUrl) {
+    final displayUri = UriDisplayFormatter.format(privacyPolicyUrl);
     return _buildInfoRowWithUrl(
       context,
       icon: Icons.policy_outlined,
       title: context.l10n.organizationDetailScreenPrivacyInfo,
-      url: privacyPolicyUrl,
+      url: displayUri,
       semanticsLabel: '${context.l10n.organizationDetailScreenPrivacyInfo}\n$privacyPolicyUrl',
       onTap: () => launchUrlStringCatching(privacyPolicyUrl),
     );
@@ -305,14 +313,6 @@ class OrganizationDetailScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _generateLocationLabel(BuildContext context, String? country, LocalizedText? city) {
-    assert(country != null || city != null, 'At least one of [country, city] needs to be provided');
-    final cityLabel = city?.l10nValue(context);
-    if (cityLabel == null) return country!;
-    if (country == null) return cityLabel;
-    return '$cityLabel, $country';
   }
 
   Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
