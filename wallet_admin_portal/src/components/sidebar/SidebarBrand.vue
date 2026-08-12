@@ -29,12 +29,12 @@
 .brand-title {
   color: var(--color-text-primary);
   font-weight: 700;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 1.25rem;
+  line-height: 1.4;
 }
 .brand-subtitle {
   color: var(--color-text-secondary);
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 1rem;
+  line-height: 1.375;
 }
 </style>

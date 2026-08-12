@@ -1,5 +1,8 @@
 <template>
-  <div class="app-shell">
+  <main v-if="isFullscreen">
+    <RouterView />
+  </main>
+  <div v-else class="app-shell">
     <AppSidebar />
     <main class="main-content">
       <RouterView />
@@ -8,8 +11,12 @@
 </template>
 
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import AppSidebar from './components/sidebar/AppSidebar.vue'
+
+const route = useRoute()
+const isFullscreen = computed(() => !!route.meta.fullscreen)
 </script>
 
 <style scoped>
@@ -19,7 +26,6 @@ import AppSidebar from './components/sidebar/AppSidebar.vue'
   height: 100vh;
   overflow: hidden;
   background: var(--color-background);
-  font-family: 'RO Sans', sans-serif;
 }
 
 .main-content {
@@ -28,6 +34,6 @@ import AppSidebar from './components/sidebar/AppSidebar.vue'
   height: 100vh;
   overflow: hidden;
   background: var(--color-background);
-  border-left: 1px solid #e7e7ef;
+  border-left: 1px solid var(--color-border);
 }
 </style>
