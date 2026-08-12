@@ -20,9 +20,6 @@ importers:
       '@allurereport/reader-api':
         specifier: ^3.11.0
         version: 3.11.0
-      '@lavamoat/preinstall-always-fail':
-        specifier: ^2.1.1
-        version: 2.1.1
       '@types/yauzl':
         specifier: ^2.10.3
         version: 2.10.3
@@ -204,10 +201,6 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
-
-  '@lavamoat/preinstall-always-fail@2.1.1':
-    resolution: {integrity: sha512-8eyQm26cQtEek2z1vM+iSVOoKrchkHBEvUQ3VnbDEqQ7hDL5sU/rhHo/FnoMgY8J31r6LSesEzpwYQe4omgqbA==}
-    engines: {node: ^16.20.0 || ^18.0.0 || ^20.0.0 || ^22.0.0 || ^24.0.0}
 
   '@nivo/annotations@0.99.0':
     resolution: {integrity: sha512-jCuuXPbvpaqaz4xF7k5dv0OT2ubn5Nt0gWryuTe/8oVsC/9bzSuK8bM9vBty60m9tfO+X8vUYliuaCDwGksC2g==}
@@ -1621,8 +1614,6 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.4.3': {}
-
-  '@lavamoat/preinstall-always-fail@2.1.1': {}
 
   '@nivo/annotations@0.99.0(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2))':
     dependencies:
