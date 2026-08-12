@@ -7,7 +7,7 @@ build-sbom:
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
 
-    ## NPM
+    ## Pnpm
     - cd wallet_web
     - pnpm sbom --sbom-format cyclonedx --sbom-spec-version 1.5 --lockfile-only > bom.json
     - cd ..
