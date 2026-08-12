@@ -34,6 +34,7 @@ class WalletEventRow extends StatelessWidget {
     final String typeText = WalletEventStatusTextMapper().map(context, event);
     final Color? typeTextColor = WalletEventStatusColorMapper().useErrorColor(event) ? context.colorScheme.error : null;
 
+    final thumbnail = _buildThumbnail(context, event);
     return MenuItem(
       label: Text.rich(titleText.toTextSpan(context)),
       subtitle: Builder(
@@ -47,7 +48,7 @@ class WalletEventRow extends StatelessWidget {
       ),
       underline: Text.rich(formattedTime.toTextSpan(context)),
       largeIcon: true,
-      leftIcon: ExcludeSemantics(child: _buildThumbnail(context, event)),
+      leftIcon: thumbnail == null ? null : ExcludeSemantics(child: thumbnail),
       errorIcon: errorStatusIcon == null ? null : Icon(errorStatusIcon),
       onPressed: onPressed,
     );
@@ -55,7 +56,7 @@ class WalletEventRow extends StatelessWidget {
 
   /// For card related operations (issued/renewed/expired/deleted) show the card as a thumbnail,
   /// otherwise show the organization logo as the thumbnail.
-  Widget _buildThumbnail(BuildContext context, WalletEvent event) {
+  Widget? _buildThumbnail(BuildContext context, WalletEvent event) {
     final card = switch (event) {
       DeletionEvent() => event.card,
       IssuanceEvent() => event.card,
@@ -74,9 +75,7 @@ class WalletEventRow extends StatelessWidget {
       );
     }
 
-    return OrganizationLogo(
-      image: event.relyingPartyOrIssuer.logo,
-      size: _kThumbnailSize,
-    );
+    final logo = event.relyingPartyOrIssuer.logo;
+    return logo == null ? null : OrganizationLogo(image: logo, size: _kThumbnailSize);
   }
 }

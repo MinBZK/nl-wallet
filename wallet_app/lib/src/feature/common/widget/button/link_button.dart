@@ -32,7 +32,7 @@ class LinkButton extends StatelessWidget {
         text: text,
         iconPosition: IconPosition.end,
         icon: icon,
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: mainAxisAlignment,
       ),
     );
   }

@@ -139,10 +139,11 @@ final _kSampleOrganization = Organization(
   id: 'id',
   legalName: 'Organization Legal Name',
   displayName: 'Organization Display Name',
-  category: 'Category'.untranslated,
+  type: 'Category'.untranslated,
   description: 'Organization description'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
   countryCode: 'NL',
+  organizationId: 'NLID-123456',
 );
 
 final _kSampleIssuanceEvent = WalletEvent.issuance(

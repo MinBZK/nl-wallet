@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/common/builder/request_detail_common_builders.dart';
 import 'package:wallet/src/feature/common/widget/app_image.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
@@ -9,8 +8,6 @@ import 'package:wallet/src/feature/common/widget/divider_side.dart';
 import 'package:wallet/src/feature/history/detail/widget/wallet_event_status_header.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
 import 'package:wallet/src/util/extension/wallet_event_extension.dart';
-import 'package:wallet/src/util/mapper/context_mapper.dart';
-import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
@@ -94,12 +91,12 @@ void main() {
           policy: WalletMockData.disclosureEvent.policy,
           side: DividerSide.bottom,
         ),
-      ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+      ),
     );
 
     final l10n = await TestUtils.englishLocalizations;
-    expect(find.text(l10n.historyDetailScreenTermsTitle), findsOneWidget);
-    expect(find.text(l10n.historyDetailScreenTermsCta), findsOneWidget);
+    expect(find.text(l10n.privacySectionTitle), findsOneWidget);
+    expect(find.text(l10n.privacySectionCta), findsOneWidget);
   });
 
   testWidgets('buildAboutOrganization', (WidgetTester tester) async {

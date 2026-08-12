@@ -5,12 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
-import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/common/screen/request_details_screen.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
-import 'package:wallet/src/util/mapper/context_mapper.dart';
-import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -25,7 +22,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           'Title',
           event,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
       );
 
       final allAttributes = event.cards.map((card) => card.attributes).flattened;
@@ -41,7 +38,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           'Title',
           event,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
       );
 
       expect(find.text(event.purpose.testValue), findsOneWidget);
@@ -53,7 +50,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           'Title',
           event,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
       );
 
       final l10n = await TestUtils.englishLocalizations;
@@ -67,7 +64,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           'Title',
           event,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
       );
 
       final l10n = await TestUtils.englishLocalizations;
@@ -82,7 +79,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           l10n.requestDetailScreenTitle,
           WalletMockData.disclosureEvent,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
       );
       await screenMatchesGolden('request_details/light');
     });
@@ -112,7 +109,7 @@ void main() {
                 type: DisclosureType.regular,
               )
               as DisclosureEvent,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
       );
       await screenMatchesGolden('request_details/no_attributes.light');
     });
@@ -123,7 +120,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           l10n.requestDetailScreenTitle,
           WalletMockData.cancelledDisclosureEvent,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
       );
       await screenMatchesGolden('request_details/cancelled.light');
     });
@@ -134,7 +131,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           l10n.requestDetailScreenTitle,
           WalletMockData.cancelledDisclosureEvent,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
         brightness: Brightness.dark,
       );
       await screenMatchesGolden('request_details/cancelled.dark');
@@ -146,7 +143,7 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           l10n.requestDetailScreenTitle,
           WalletMockData.disclosureEvent,
-        ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
       );

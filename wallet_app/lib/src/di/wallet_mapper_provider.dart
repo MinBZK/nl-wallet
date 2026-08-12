@@ -20,7 +20,6 @@ import '../domain/model/notification/app_notification.dart';
 import '../domain/model/organization.dart';
 import '../domain/model/pid/pid_attestation.dart';
 import '../domain/model/pin/pin_validation_error.dart';
-import '../domain/model/policy/organization_policy.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/model/update/version_state.dart';
 import '../domain/model/wallet_state.dart';
@@ -36,7 +35,6 @@ import '../util/mapper/close_proximity/close_proximity_disclosure_update_mapper.
 import '../util/mapper/configuration/flutter_app_configuration_mapper.dart';
 import '../util/mapper/configuration/maintenance_window_mapper.dart';
 import '../util/mapper/configuration/pid_attestation_mapper.dart';
-import '../util/mapper/context_mapper.dart';
 import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
 import '../util/mapper/disclosure/disclosure_type_mapper.dart';
 import '../util/mapper/document/document_mapper.dart';
@@ -49,7 +47,6 @@ import '../util/mapper/notification/notification_display_target_mapper.dart';
 import '../util/mapper/notification/notification_type_mapper.dart';
 import '../util/mapper/organization/organization_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
-import '../util/mapper/policy/policy_body_text_mapper.dart';
 import '../util/mapper/policy/request_policy_mapper.dart';
 import '../util/mapper/version/flutter_version_state_mapper.dart';
 import '../util/mapper/wallet/wallet_state_mapper.dart';
@@ -130,9 +127,6 @@ class WalletMapperProvider extends StatelessWidget {
         /// Policy
         RepositoryProvider<Mapper<core.RequestPolicy, Policy>>(
           create: (context) => RequestPolicyMapper(),
-        ),
-        RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
-          create: (context) => PolicyBodyTextMapper(),
         ),
 
         /// Document

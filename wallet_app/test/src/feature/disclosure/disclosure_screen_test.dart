@@ -8,7 +8,6 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
-import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
@@ -30,8 +29,6 @@ import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/widget/pin_keyboard.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
-import 'package:wallet/src/util/mapper/context_mapper.dart';
-import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
@@ -124,9 +121,6 @@ void main() {
             sessionType: DisclosureSessionType.sameDevice,
           ),
         ),
-        providers: [
-          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
-        ],
       );
       final l10n = await TestUtils.englishLocalizations;
       await tester.scrollUntilVisible(find.text(l10n.disclosureConfirmDataAttributesPageDenyCta), 1000);
@@ -324,9 +318,6 @@ void main() {
           ),
         ),
         brightness: Brightness.dark,
-        providers: [
-          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
-        ],
       );
       await screenMatchesGolden('confirm_data_attributes.dark');
     });
@@ -346,7 +337,6 @@ void main() {
         ),
         brightness: Brightness.light,
         providers: [
-          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
           RepositoryProvider<BannerCubit>(
             create: (c) => BannerCubit(
               MockObserveShowTourBannerUseCase(),
@@ -738,39 +728,19 @@ void main() {
           providers: [
             RepositoryProvider<WalletRepository>(
               create: (_) {
-                // Make sure the 'locked' overlay is not shown after navigating to OrgDetailsScreen.
+                // Make sure the 'locked' overlay is not shown after navigating to LoginDetailScreen.
                 final mockRepo = MockWalletRepository();
                 when(mockRepo.isLockedStream).thenAnswer((_) => Stream.value(false));
                 return mockRepo;
               },
             ),
             RepositoryProvider<PinBloc>(create: (_) => MockPinBloc()),
-            RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
             RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
-            RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+            RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
+            RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
             RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
-            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
           ],
         );
-
-        final l10n = await TestUtils.englishLocalizations;
-        final checkOrgForLoginTitle = l10n.organizationApprovePageLoginTitle(
-          WalletMockData.organization.displayName,
-        );
-        expect(find.textContaining(checkOrgForLoginTitle), findsAtLeast(1));
-
-        // Navigate away
-        expect(find.text(l10n.organizationApprovePageMoreInfoLoginCta), findsOneWidget);
-        await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
-        await tester.pumpAndSettle();
-
-        // DisclosureScreen checkOrgForLoginTitle should no longer be visible
-        expect(find.text(checkOrgForLoginTitle), findsNothing);
-        // Login detail screen checkOrgForLoginTitle should be visible
-        final organizationDetailScreenTitle = l10n.loginDetailScreenTitle(
-          WalletMockData.organization.displayName,
-        );
-        expect(find.text(organizationDetailScreenTitle), findsAtLeast(1));
       },
     );
 
@@ -825,7 +795,6 @@ void main() {
             RepositoryProvider<PinBloc>(create: (_) => MockPinBloc()),
             RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
             RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
-            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
             RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
             RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
           ],
@@ -835,17 +804,9 @@ void main() {
         await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
         await tester.pumpAndSettle();
         expect(find.byType(LoginDetailScreen), findsOneWidget);
-        expect(find.text(WalletMockData.organization.displayName), findsOneWidget);
-        expect(
-          find.text(
-            l10n.disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle(
-              3,
-              WalletMockData.organization.displayName,
-            ),
-          ),
-          findsOneWidget,
-        );
-        expect(find.text(l10n.loginDetailScreenAgreementCta), findsOneWidget);
+        expect(find.textContaining(WalletMockData.organization.displayName), findsWidgets);
+        expect(find.text(l10n.privacySectionTitle), findsOneWidget);
+        expect(find.text(l10n.privacySectionCta), findsOneWidget);
       },
     );
 
@@ -890,9 +851,6 @@ void main() {
               sessionType: DisclosureSessionType.crossDevice,
             ),
           ),
-          providers: [
-            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
-          ],
         );
 
         expect(find.byType(DisclosureConfirmDataAttributesPage), findsOneWidget);
