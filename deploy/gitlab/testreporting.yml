@@ -3,10 +3,10 @@ check-test-reporting:
   rules: !reference [.default-or-merge-request, rules]
   script:
     - cd testreporting
-    - npm ci --ignore-scripts
-    - npm run format-check
-    - npm run lint
-    - npm run type-check
+    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm run format-check
+    - pnpm run lint
+    - pnpm run type-check
 
 build-test-report:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
@@ -47,11 +47,11 @@ build-test-report:
       optional: true
   script:
     - cd testreporting
-    - npm ci --ignore-scripts
-    - npm run fetch-history || true
-    - npm run fetch-results
+    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm run fetch-history || true
+    - pnpm run fetch-results
     - >
-      npm run generate allure-results/browsertest-{wallet-web,fallback-pages,revocation-portal}.zip
+      pnpm run generate allure-results/browsertest-{wallet-web,fallback-pages,revocation-portal}.zip
       allure-results/{e2e,revocation-portal,web}.zip junit-results/{android,flutter,flutter-ui,ios,rust}.xml
     - mv allure-report/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
     - zip -j allure-report.zip allure-report-$CI_COMMIT_SHORT_SHA.html
