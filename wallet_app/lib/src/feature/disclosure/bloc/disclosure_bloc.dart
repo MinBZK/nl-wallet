@@ -89,7 +89,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         this.startDisclosureResult = result; // Cache the result;
         switch (result) {
           case StartDisclosureReadyToDisclose(sessionType: .crossDevice):
-            emit(DisclosureCheckUrl(originUrl: result.originUrl));
+            emit(const DisclosureCheckUrl());
           case StartDisclosureReadyToDisclose(sessionType: .sameDevice):
             _handleReadyToDisclose(result, emit);
           case StartDisclosureReadyToDisclose(sessionType: .closeProximity):
@@ -207,14 +207,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     switch (state) {
       case DisclosureConfirmDataAttributes():
       case DisclosureCheckOrganizationForLogin():
-        if (isCrossDeviceFlow) {
-          emit(
-            DisclosureCheckUrl(
-              originUrl: startDisclosureResult.originUrl,
-              afterBackPressed: true,
-            ),
-          );
-        }
+        if (isCrossDeviceFlow) emit(const DisclosureCheckUrl(afterBackPressed: true));
       case DisclosureConfirmPin():
         assert(
           startDisclosureResult is StartDisclosureReadyToDisclose,

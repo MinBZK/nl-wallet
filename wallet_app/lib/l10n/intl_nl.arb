@@ -575,19 +575,11 @@
     "forgotPinScreenResetCta": "Verwijder Wallet",
     "forgotPinScreenResetDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
     "forgotPinScreenTitle": "Pincode vergeten?",
-    "fraudCheckPageAboutCta": "Meer over deze website-controle",
+    "fraudCheckPageAboutCta": "Hoe controleer je een website?",
     "fraudCheckPageContinueCta": "Ja, verder",
-    "fraudCheckPageDescription": "Controleer de website waar je de QR-code hebt gescand. Ga alleen verder als de web-adressen hetzelfde zijn. Dit helpt om nep-websites te vermijden.",
+    "fraudCheckPageDescription": "Controleer de app of website op het andere apparaat. Zorg ervoor dat de organisatie correct is. Als je een website gebruikt, controleer dan ook het webadres.",
     "fraudCheckPageStopCta": "Stop",
-    "fraudCheckPageTitle": "Begint de website met: {url}?",
-    "@fraudCheckPageTitle": {
-        "placeholders": {
-            "url": {
-                "example": "https:\/\/example.org",
-                "type": "String"
-            }
-        }
-    },
+    "fraudCheckPageTitle": "Ben je dit verzoek op het andere apparaat gestart?",
     "generalAppStoreAndroid": "Play Store",
     "generalAppStoreiOS": "App Store",
     "generalBottomBackCta": "Terug",

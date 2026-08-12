@@ -84,7 +84,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureCheckUrl(originUrl: 'https://origin.org'),
+          const DisclosureCheckUrl(),
         ),
       );
       await screenMatchesGolden('check_url.light');
@@ -179,7 +179,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureCheckUrl(originUrl: 'https://origin.org'),
+          const DisclosureCheckUrl(),
         ),
         surfaceSize: iphoneXSizeLandscape,
       );
@@ -484,7 +484,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(startDisclosureResult: kSampleReadyToDiscloseResult),
-          const DisclosureCheckUrl(originUrl: 'https://origin.org'),
+          const DisclosureCheckUrl(),
         ),
       );
       // Find and press the close button

@@ -30,7 +30,7 @@ void main() {
     });
 
     test('DisclosureCheckUrl has correct FlowProgress', () {
-      const state = DisclosureCheckUrl(originUrl: 'https://example.com');
+      const state = DisclosureCheckUrl();
       expect(
         state.stepperProgress,
         const FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps + kExtraCrossDeviceSteps),
