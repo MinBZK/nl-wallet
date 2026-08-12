@@ -95,9 +95,8 @@ class DisclosureSessionExpired extends DisclosureState implements ErrorState {
   List<Object?> get props => [error, canRetry, isCrossDevice, returnUrl, ...super.props];
 }
 
-/// State where the safety and origin of the request URL are verified for fraud prevention.
+/// State where the user is requested to double check url origin for fraud prevention.
 class DisclosureCheckUrl extends DisclosureState {
-  final String originUrl;
   final bool afterBackPressed;
 
   @override
@@ -108,12 +107,8 @@ class DisclosureCheckUrl extends DisclosureState {
   bool get didGoBack => afterBackPressed;
 
   const DisclosureCheckUrl({
-    required this.originUrl,
     this.afterBackPressed = false,
   });
-
-  @override
-  List<Object?> get props => [originUrl, ...super.props];
 }
 
 /// State prompting the user to approve the organization for a login request.

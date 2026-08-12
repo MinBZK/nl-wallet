@@ -579,19 +579,11 @@
     "forgotPinScreenResetCta": "Delete wallet",
     "forgotPinScreenResetDescription": "When you forget your PIN, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN.",
     "forgotPinScreenTitle": "Forgot PIN?",
-    "fraudCheckPageAboutCta": "About the website check",
+    "fraudCheckPageAboutCta": "How do you check a website?",
     "fraudCheckPageContinueCta": "Yes, continue",
-    "fraudCheckPageDescription": "Check the website where you scanned the QR code. Only continue if the addresses match. This helps you avoid fake websites.",
+    "fraudCheckPageDescription": "Check the app or website on the other device. Make sure the organisation is correct. If you are using a website, also check the website address.",
     "fraudCheckPageStopCta": "Stop",
-    "fraudCheckPageTitle": "Is the website starting with: {url}?",
-    "@fraudCheckPageTitle": {
-        "placeholders": {
-            "url": {
-                "example": "https:\/\/example.org",
-                "type": "String"
-            }
-        }
-    },
+    "fraudCheckPageTitle": "Did you start this request on the other device?",
     "generalAppStoreAndroid": "Play Store",
     "generalAppStoreiOS": "App Store",
     "generalBottomBackCta": "Back",

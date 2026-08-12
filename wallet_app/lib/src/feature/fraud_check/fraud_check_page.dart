@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../util/launch_util.dart';
 import '../../wallet_assets.dart';
-import '../common/screen/placeholder_screen.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/button/primary_button.dart';
@@ -21,13 +22,9 @@ class FraudCheckPage extends StatelessWidget {
   /// Callback that is triggered when the user declines the request
   final VoidCallback onDeclinePressed;
 
-  /// The url from which the user should have opened the flow. Prominently displayed for the user to check
-  final String originUrl;
-
   const FraudCheckPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
-    required this.originUrl,
     super.key,
   });
 
@@ -44,9 +41,9 @@ class FraudCheckPage extends StatelessWidget {
             const SliverSizedBox(height: 32),
             SliverToBoxAdapter(
               child: ListButton(
-                onPressed: () => PlaceholderScreen.showGeneric(context),
+                onPressed: () => launchUrlStringCatching(kSafeBrowsingUrl),
                 text: Text.rich(context.l10n.fraudCheckPageAboutCta.toTextSpan(context)),
-                icon: const Icon(Icons.help_outline_outlined),
+                icon: const Icon(Icons.north_east_outlined),
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -85,7 +82,7 @@ class FraudCheckPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          TitleText(context.l10n.fraudCheckPageTitle(originUrl)),
+          TitleText(context.l10n.fraudCheckPageTitle),
           const SizedBox(height: 8),
           BodyText(context.l10n.fraudCheckPageDescription),
         ],

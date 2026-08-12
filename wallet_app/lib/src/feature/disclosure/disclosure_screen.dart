@@ -156,7 +156,6 @@ class DisclosureScreen extends StatelessWidget {
     return FraudCheckPage(
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.bloc.add(const DisclosureUrlApproved()),
-      originUrl: state.originUrl,
     );
   }
 
@@ -349,7 +348,7 @@ class DisclosureScreen extends StatelessWidget {
       DisclosureInitial() => context.l10n.disclosureLoadingTitle,
       DisclosureError(:final error) => ErrorPage.titleFromError(context, error),
       DisclosureSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
-      DisclosureCheckUrl() => context.l10n.fraudCheckPageTitle(state.originUrl),
+      DisclosureCheckUrl() => context.l10n.fraudCheckPageTitle,
       DisclosureCheckOrganizationForLogin() => OrganizationApprovePage.resolveTitle(
         context,
         ApprovalPurpose.login,
