@@ -343,7 +343,6 @@ impl HttpVcMessageClient {
     }
 }
 
-#[cfg_attr(test, derive(Clone))]
 #[derive(Debug)]
 struct IssuanceState {
     access_token: AccessToken,
@@ -2204,13 +2203,13 @@ mod tests {
 
         // The client must use `request_credentials()` (which uses `/batch_credentials`) iff more than one credential
         // is being issued, and `request_credential()` instead (which uses `/credential`).
+        let dpop_signing_key = session_state.dpop_signing_key.clone();
         if multiple_creds {
             mock_msg_client.expect_request_credentials().times(1).return_once({
-                let session_state = session_state.clone();
                 move |url, credential_requests, dpop_header, access_token_header| {
                     check_credential_endpoint_input(
                         url,
-                        &session_state.dpop_signing_key,
+                        &dpop_signing_key,
                         expected_dpop_nonce,
                         dpop_header,
                         access_token_header,
@@ -2231,11 +2230,10 @@ mod tests {
             });
         } else {
             mock_msg_client.expect_request_credential().times(1).return_once({
-                let session_state = session_state.clone();
                 move |url, credential_request, dpop_header, access_token_header| {
                     check_credential_endpoint_input(
                         url,
-                        &session_state.dpop_signing_key,
+                        &dpop_signing_key,
                         expected_dpop_nonce,
                         dpop_header,
                         access_token_header,
