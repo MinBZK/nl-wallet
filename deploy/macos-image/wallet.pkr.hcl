@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.3.11"
+  default = "tahoe-wallet:0.3.12"
 }
 
 source "tart-cli" "tart" {
@@ -54,7 +54,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "git -C $FLUTTER_HOME fetch origin",
-      "git -C $FLUTTER_HOME switch --detach 3.44.4",
+      "git -C $FLUTTER_HOME switch --detach 3.47.0",
       "dart --disable-analytics",
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",
