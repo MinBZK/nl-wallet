@@ -6219,28 +6219,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro-error-attr2"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
-dependencies = [
- "proc-macro2",
- "quote",
-]
-
-[[package]]
-name = "proc-macro-error2"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
-dependencies = [
- "proc-macro-error-attr2",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7276,12 +7254,11 @@ dependencies = [
 
 [[package]]
 name = "sea-bae"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f694a6ab48f14bc063cfadff30ab551d3c7e46d8f81836c51989d548f44a2a25"
+checksum = "260bbc7148a8d6818ac5032a1b9970da1a68bdd723d45b12d59f7c1bf3565e24"
 dependencies = [
  "heck 0.4.1",
- "proc-macro-error2",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
