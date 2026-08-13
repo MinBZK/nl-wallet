@@ -180,6 +180,15 @@ fn accept_flat_service_description_from_ticket_validation_shape() {
 }
 
 #[test]
+fn accept_annex_b_multi_language_content_field() {
+    let mut json = valid_payload_json();
+    json["srv_description"] = json!([[{"lang": "en-US", "content": "Service"}]]);
+
+    let payload: UncheckedRegistrationCertificate = serde_json::from_value(json).unwrap();
+    assert_eq!(payload.srv_description.0[0][0].value, "Service");
+}
+
+#[test]
 fn validate_natural_person_subject_binding() {
     let mut json = valid_payload_json();
     let object = json.as_object_mut().unwrap();
