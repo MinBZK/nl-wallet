@@ -22,12 +22,3 @@ reason = "`proc-macro-error2` is a transitive dependency that is no longer maint
 id = "RUSTSEC-2026-0235"
 ignoreUntil = 2027-01-01
 reason = "`rkyv` is a transitive dependency that is only used by `lightningcss` through `parcel_sourcemap`. This last crate has not been updated recently. Additionally, `lightningcss` is only ever used as a build dependency."
-
-[[PackageOverrides]]
-name = "brace-expansion"
-version = "2.1.3"
-ecosystem = "npm"
-vulnerability.ignore = true
-effectiveUntil = 2026-11-01
-reason = "GHSA-mh99-v99m-4gvg: contains the backported fix (EXPANSION_MAX_LENGTH), but the advisory only lists 5.0.8 as fixed. Can remove when the advisory marks 2.1.3 as fixed."
-
