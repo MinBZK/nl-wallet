@@ -15,6 +15,6 @@ done < <(find "$BASE_DIR" -name requirements.txt -not -path '*/.venv/*' -print0)
 cd "$BASE_DIR"
 
 # Create MR if on CI and main
-if [[ -n $CI && -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
+if [[ -n ${CI:-} && -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
     exec "$BASE_DIR/deploy/bin/audit-fix-pr.sh" pip-audit-fix "Run pip audit --fix"
 fi

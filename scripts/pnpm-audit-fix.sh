@@ -15,6 +15,6 @@ done < <(find "$BASE_DIR" -name pnpm-lock.yaml -not -path '*/node_modules/*' -pr
 cd "$BASE_DIR"
 
 # Create MR if on CI and main
-if [[ -n $CI && -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
+if [[ -n ${CI:-} && -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
     exec "$BASE_DIR/deploy/bin/audit-fix-pr.sh" pnpm-audit-fix "Run pnpm audit fix"
 fi
