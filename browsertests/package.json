@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@eslint/js": "^9.28.0",
+    "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.60.0",
     "allure-playwright": "^3.4.1",
     "eslint": "^10.1.0",
