@@ -4,15 +4,12 @@ use dcql::ClaimsQuery;
 use dcql::CredentialQueryFormat;
 use serde::Deserialize;
 use serde::Deserializer;
-use serde::Serialize;
-use serde::Serializer;
-use serde_with::skip_serializing_none;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::status::RegistrationCertificateStatus;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MultiLanguageString {
     pub lang: String,
     #[serde(alias = "content")]
@@ -21,7 +18,7 @@ pub struct MultiLanguageString {
 
 pub type MultiLanguageStringSet = VecNonEmpty<MultiLanguageString>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Deserialize)]
 #[serde(untagged)]
 enum ServiceDescriptionsWireFormat {
     Nested(VecNonEmpty<MultiLanguageStringSet>),
@@ -32,17 +29,7 @@ enum ServiceDescriptionsWireFormat {
 ///
 /// ETSI TS 119 475 Annex B models this as an array of arrays, while the validation table in PVW-5867 describes a
 /// single array of objects. Both forms are accepted and normalized to the nested ETSI representation.
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServiceDescriptions(pub VecNonEmpty<MultiLanguageStringSet>);
-
-impl Serialize for ServiceDescriptions {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.0.serialize(serializer)
-    }
-}
 
 impl<'de> Deserialize<'de> for ServiceDescriptions {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -57,16 +44,14 @@ impl<'de> Deserialize<'de> for ServiceDescriptions {
     }
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Credential {
     #[serde(flatten)]
     pub format: CredentialQueryFormat,
     pub claim: Option<Vec<ClaimsQuery>>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct SupervisoryAuthority {
     pub email: Option<String>,
     pub phone: Option<String>,
@@ -74,16 +59,14 @@ pub struct SupervisoryAuthority {
 }
 
 /// Intermediary data is parsed so it is not discarded, but its WRPAC binding is deliberately left to PVW-6062.
-#[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Intermediary {
     pub sub: String,
     #[serde(alias = "name")]
     pub sname: Option<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct UncheckedRegistrationCertificate {
     /// Optional at parse time because the informative Annex C example omits it. Validation always requires it.
     pub id: Option<String>,
@@ -107,11 +90,7 @@ pub struct UncheckedRegistrationCertificate {
     pub public_body: Option<bool>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub iat: DateTime<Utc>,
-    #[serde(
-        default,
-        with = "chrono::serde::ts_seconds_option",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(default, with = "chrono::serde::ts_seconds_option")]
     pub exp: Option<DateTime<Utc>>,
     pub status: RegistrationCertificateStatus,
     pub policy_id: Vec<String>,

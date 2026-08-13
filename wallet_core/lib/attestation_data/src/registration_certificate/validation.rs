@@ -3,19 +3,17 @@ use chrono::Months;
 use chrono::Utc;
 use dcql::CredentialQueryFormat;
 use language_tags::LanguageTag;
-use serde::Serialize;
 use url::Url;
 
 use super::payload::Credential;
 use super::payload::MultiLanguageStringSet;
 use super::payload::UncheckedRegistrationCertificate;
-use super::status::RegistrationCertificateStatus;
 use crate::x509::RelyingParty;
 
-pub const WRPRC_POLICY_IDENTIFIER: &str = "0.4.0.19475.3.1";
-pub const SERVICE_PROVIDER_ENTITLEMENT: &str = "https://uri.etsi.org/19475/Entitlement/Service_Provider";
+const WRPRC_POLICY_IDENTIFIER: &str = "0.4.0.19475.3.1";
+pub(super) const SERVICE_PROVIDER_ENTITLEMENT: &str = "https://uri.etsi.org/19475/Entitlement/Service_Provider";
 
-pub const ANNEX_A_2_ENTITLEMENTS: [&str; 10] = [
+const ANNEX_A_2_ENTITLEMENTS: [&str; 10] = [
     SERVICE_PROVIDER_ENTITLEMENT,
     "https://uri.etsi.org/19475/Entitlement/QEAA_Provider",
     "https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider",
@@ -28,7 +26,7 @@ pub const ANNEX_A_2_ENTITLEMENTS: [&str; 10] = [
     "https://uri.etsi.org/19475/Entitlement/ESig_ESeal_Creation_Provider",
 ];
 
-pub const ANNEX_A_3_1_SUB_ENTITLEMENTS: [&str; 5] = [
+pub(super) const ANNEX_A_3_1_SUB_ENTITLEMENTS: [&str; 5] = [
     "https://uri.etsi.org/19475/SubEntitlement/psp/psp-as",
     "https://uri.etsi.org/19475/SubEntitlement/psp/psp-pi",
     "https://uri.etsi.org/19475/SubEntitlement/psp/psp-ai",
@@ -40,46 +38,15 @@ pub const ANNEX_A_3_1_SUB_ENTITLEMENTS: [&str; 5] = [
 ///
 /// Header and signature validation are handled by PVW-5898 and PVW-5899. Verification of the referenced status list is
 /// a separate asynchronous step; use [`Self::validate_status`] to perform it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(transparent)]
 pub struct StructurallyValidatedRegistrationCertificate(UncheckedRegistrationCertificate);
 
 impl StructurallyValidatedRegistrationCertificate {
     pub fn payload(&self) -> &UncheckedRegistrationCertificate {
         &self.0
     }
-
-    pub fn into_payload(self) -> UncheckedRegistrationCertificate {
-        self.0
-    }
-
-    pub fn id(&self) -> &str {
-        self.0
-            .id
-            .as_deref()
-            .expect("a structurally validated registration certificate always has an id")
-    }
-
-    pub fn subject_type(&self) -> SubjectType {
-        if self.0.sub_ln.is_some() {
-            SubjectType::LegalPerson
-        } else {
-            SubjectType::NaturalPerson
-        }
-    }
-
-    pub fn status(&self) -> &RegistrationCertificateStatus {
-        &self.0.status
-    }
 }
 
-impl AsRef<UncheckedRegistrationCertificate> for StructurallyValidatedRegistrationCertificate {
-    fn as_ref(&self) -> &UncheckedRegistrationCertificate {
-        self.payload()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum SubjectType {
     LegalPerson,
     NaturalPerson,
@@ -170,7 +137,7 @@ pub enum RegistrationCertificateValidationError {
     MissingPolicyIdentifier,
 }
 
-pub fn validate_multi_language_string_set(
+fn validate_multi_language_string_set(
     value: &MultiLanguageStringSet,
 ) -> Result<(), MultiLanguageStringSetValidationError> {
     for (index, localized) in value.iter().enumerate() {
@@ -188,7 +155,7 @@ pub fn validate_multi_language_string_set(
     Ok(())
 }
 
-pub fn validate_credential_set(value: &[Credential]) -> Result<(), CredentialSetValidationError> {
+fn validate_credential_set(value: &[Credential]) -> Result<(), CredentialSetValidationError> {
     for (index, credential) in value.iter().enumerate() {
         match &credential.format {
             CredentialQueryFormat::MsoMdoc { doctype_value } if is_empty(doctype_value) => {
@@ -300,7 +267,7 @@ impl UncheckedRegistrationCertificate {
     fn validate_subject(
         &self,
         access_certificate_subject: &RelyingParty,
-    ) -> Result<SubjectType, RegistrationCertificateValidationError> {
+    ) -> Result<(), RegistrationCertificateValidationError> {
         let subject_type = match (self.sub_ln.as_deref(), self.sub_gn.as_deref(), self.sub_fn.as_deref()) {
             (Some(sub_ln), None, None) => {
                 validate_non_empty("sub_ln", sub_ln)?;
@@ -317,7 +284,7 @@ impl UncheckedRegistrationCertificate {
             _ => return Err(RegistrationCertificateValidationError::UndeterminedSubjectType),
         };
 
-        let (subject_field, access_identifier) = match (subject_type, access_certificate_subject) {
+        let (subject_field, access_identifier) = match (&subject_type, access_certificate_subject) {
             (
                 SubjectType::LegalPerson,
                 RelyingParty::LegalPerson {
@@ -328,14 +295,14 @@ impl UncheckedRegistrationCertificate {
             (SubjectType::NaturalPerson, RelyingParty::NaturalPerson { serial_number, .. }) => {
                 ("serialNumber", serial_number.as_str())
             }
-            (registration, access_certificate_subject) => {
+            (_, access_certificate_subject) => {
                 let access = match access_certificate_subject {
                     RelyingParty::LegalPerson { .. } => SubjectType::LegalPerson,
                     RelyingParty::NaturalPerson { .. } => SubjectType::NaturalPerson,
                 };
                 return Err(
                     RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
-                        registration,
+                        registration: subject_type,
                         access,
                     },
                 );
@@ -354,7 +321,7 @@ impl UncheckedRegistrationCertificate {
             return Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch { field: subject_field });
         }
 
-        Ok(subject_type)
+        Ok(())
     }
 
     fn validate_supervisory_authority(&self) -> Result<(), RegistrationCertificateValidationError> {
@@ -400,10 +367,6 @@ impl UncheckedRegistrationCertificate {
 
         Ok(is_service_provider)
     }
-}
-
-impl jwt::JwtTyp for StructurallyValidatedRegistrationCertificate {
-    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
 }
 
 fn validate_non_empty(field: &'static str, value: &str) -> Result<(), RegistrationCertificateValidationError> {

@@ -12,6 +12,7 @@ use jwt::DEFAULT_VALIDATION;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::jades_b_b::JadesbbHeader;
+use serde::Serialize;
 use serde_json::Value;
 use serde_json::json;
 use utils::generator::mock::MockTimeGenerator;
@@ -19,7 +20,15 @@ use utils::generator::mock::MockTimeGenerator;
 const ANNEX_C_EXAMPLE: &str = include_str!("../examples/spec/registration_certificate_annex_c.json");
 const STATUS_LIST_URI: &str = "https://example.com/statuslists/1";
 
-fn registration_certificate_payload() -> UncheckedRegistrationCertificate {
+#[derive(Serialize)]
+#[serde(transparent)]
+struct RegistrationCertificateFixture(Value);
+
+impl jwt::JwtTyp for RegistrationCertificateFixture {
+    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
+}
+
+fn registration_certificate_payload() -> RegistrationCertificateFixture {
     let mut payload: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
     payload["id"] = json!("wrprc-example-1");
     payload["status"] = json!({
@@ -27,7 +36,7 @@ fn registration_certificate_payload() -> UncheckedRegistrationCertificate {
         "uri": STATUS_LIST_URI,
     });
 
-    serde_json::from_value(payload).unwrap()
+    RegistrationCertificateFixture(payload)
 }
 
 fn access_certificate_subject() -> RelyingParty {
@@ -62,7 +71,7 @@ async fn verify_and_validate_registration_certificate_from_jades_jwt() {
         .validate_structure(&access_certificate_subject(), validation_time())
         .unwrap();
 
-    assert_eq!(certificate.id(), "wrprc-example-1");
+    assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
 }
 
 #[tokio::test]
@@ -84,5 +93,5 @@ async fn verify_and_validate_registration_certificate_from_wrprc_cwt() {
         .validate_structure(&access_certificate_subject(), validation_time())
         .unwrap();
 
-    assert_eq!(certificate.id(), "wrprc-example-1");
+    assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
 }

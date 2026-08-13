@@ -1,8 +1,8 @@
 use std::assert_matches;
+use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
-use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::TimeZone;
 use chrono::Utc;
@@ -25,11 +25,25 @@ use url::Url;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 
+use super::validation::ANNEX_A_3_1_SUB_ENTITLEMENTS;
+use super::validation::SERVICE_PROVIDER_ENTITLEMENT;
 use super::*;
 use crate::x509::RelyingParty;
 
 const ANNEX_C_EXAMPLE: &str = include_str!("../../examples/spec/registration_certificate_annex_c.json");
 const STATUS_LIST_URI: &str = "https://example.com/statuslists/1";
+
+impl fmt::Debug for StructurallyValidatedRegistrationCertificate {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("StructurallyValidatedRegistrationCertificate")
+    }
+}
+
+impl fmt::Debug for StatusValidatedRegistrationCertificate {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("StatusValidatedRegistrationCertificate")
+    }
+}
 
 #[derive(Debug)]
 struct StaticStatusListClient(StatusListToken);
@@ -134,13 +148,11 @@ fn parse_annex_c_example_and_reject_its_missing_normative_id() {
         Some("Intermediary Services Ltd.")
     );
     assert_matches!(
-        payload
-            .clone()
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+        payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
         Err(RegistrationCertificateValidationError::MissingId)
     );
 
-    let mut payload_with_id = payload;
+    let mut payload_with_id: UncheckedRegistrationCertificate = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
     payload_with_id.id = Some("wrprc-example-1".to_string());
     assert_matches!(
         payload_with_id.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
@@ -154,8 +166,7 @@ fn validate_payload_based_on_annex_c_example() {
         .validate_structure(&legal_person_access_certificate_subject(), validation_time())
         .unwrap();
 
-    assert_eq!(certificate.id(), "wrprc-example-1");
-    assert_eq!(certificate.subject_type(), SubjectType::LegalPerson);
+    assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
 }
 
 #[test]
@@ -187,7 +198,7 @@ fn validate_natural_person_subject_binding() {
     .unwrap();
 
     let certificate = payload.validate_structure(&access_subject, validation_time()).unwrap();
-    assert_eq!(certificate.subject_type(), SubjectType::NaturalPerson);
+    assert_eq!(certificate.payload().sub_gn.as_deref(), Some("Jane"));
 }
 
 #[test]
@@ -240,21 +251,21 @@ fn reject_access_certificate_subject_type_mismatch() {
 
 #[test]
 fn service_provider_requires_credentials_and_purpose() {
-    let mut payload = valid_payload();
-    payload.entitlements = vec_nonempty![SERVICE_PROVIDER_ENTITLEMENT.parse().unwrap()];
-    payload.credentials = None;
+    let mut missing_credentials = valid_payload();
+    missing_credentials.entitlements = vec_nonempty![SERVICE_PROVIDER_ENTITLEMENT.parse().unwrap()];
+    missing_credentials.credentials = None;
 
     assert_matches!(
-        payload
-            .clone()
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+        missing_credentials.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
         Err(RegistrationCertificateValidationError::MissingServiceProviderCredentials)
     );
 
-    payload.credentials = Some(Vec::new());
-    payload.purpose = None;
+    let mut missing_purpose = valid_payload();
+    missing_purpose.entitlements = vec_nonempty![SERVICE_PROVIDER_ENTITLEMENT.parse().unwrap()];
+    missing_purpose.credentials = Some(Vec::new());
+    missing_purpose.purpose = None;
     assert_matches!(
-        payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+        missing_purpose.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
         Err(RegistrationCertificateValidationError::MissingServiceProviderPurpose)
     );
 }
@@ -318,53 +329,31 @@ fn reject_unknown_sub_entitlement() {
 
 #[test]
 fn validate_expiration_window() {
-    let mut payload = valid_payload();
-    payload.iat = Utc.with_ymd_and_hms(2024, 2, 29, 12, 0, 0).unwrap();
-    payload.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 0).unwrap());
+    let issued_at = Utc.with_ymd_and_hms(2024, 2, 29, 12, 0, 0).unwrap();
     let now = Utc.with_ymd_and_hms(2025, 2, 28, 11, 59, 59).unwrap();
-    payload
-        .clone()
+
+    let mut valid = valid_payload();
+    valid.iat = issued_at;
+    valid.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 0).unwrap());
+    valid
         .validate_structure(&legal_person_access_certificate_subject(), now)
         .unwrap();
 
-    payload.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 1).unwrap());
+    let mut too_late = valid_payload();
+    too_late.iat = issued_at;
+    too_late.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 1).unwrap());
     assert_matches!(
-        payload
-            .clone()
-            .validate_structure(&legal_person_access_certificate_subject(), now),
+        too_late.validate_structure(&legal_person_access_certificate_subject(), now),
         Err(RegistrationCertificateValidationError::ExpirationTooLate)
     );
 
-    payload.exp = Some(now);
+    let mut expired = valid_payload();
+    expired.iat = issued_at;
+    expired.exp = Some(now);
     assert_matches!(
-        payload.validate_structure(&legal_person_access_certificate_subject(), now),
+        expired.validate_structure(&legal_person_access_certificate_subject(), now),
         Err(RegistrationCertificateValidationError::Expired { .. })
     );
-}
-
-#[test]
-fn parse_compatible_status_shapes_and_serialize_canonical_shape() {
-    let direct: RegistrationCertificateStatus = serde_json::from_value(json!({
-        "idx": "42",
-        "uri": "https://example.com/statuslists/1"
-    }))
-    .unwrap();
-    let oauth: RegistrationCertificateStatus = serde_json::from_value(json!({
-        "status_list": {
-            "idx": 42,
-            "uri": "https://example.com/statuslists/1"
-        }
-    }))
-    .unwrap();
-
-    assert_eq!(direct.status_list_claim(), oauth.status_list_claim());
-    assert_eq!(direct.status_list_claim().idx, 42);
-    let canonical = json!({
-        "idx": "42",
-        "uri": "https://example.com/statuslists/1"
-    });
-    assert_eq!(serde_json::to_value(direct).unwrap(), canonical);
-    assert_eq!(serde_json::to_value(oauth).unwrap(), canonical);
 }
 
 #[test]
@@ -417,47 +406,67 @@ fn validate_multi_language_strings() {
         "i-klingon",
         "x-private",
     ] {
-        let value = vec_nonempty![MultiLanguageString {
+        let mut payload = valid_payload();
+        payload.srv_description.0 = vec_nonempty![vec_nonempty![MultiLanguageString {
             lang: language_tag.to_string(),
             value: "value".to_string(),
-        }];
-        validate_multi_language_string_set(&value).unwrap();
+        }]];
+        payload
+            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+            .unwrap();
     }
 
     for language_tag in ["", "e", "en_US", "en-", "en-US-abc", "en-a", "en-x", "en-ü"] {
-        let value = vec_nonempty![MultiLanguageString {
+        let mut payload = valid_payload();
+        payload.srv_description.0 = vec_nonempty![vec_nonempty![MultiLanguageString {
             lang: language_tag.to_string(),
             value: "value".to_string(),
-        }];
+        }]];
         assert_matches!(
-            validate_multi_language_string_set(&value),
-            Err(MultiLanguageStringSetValidationError::InvalidLanguageTag { .. }),
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidServiceDescription {
+                source: MultiLanguageStringSetValidationError::InvalidLanguageTag { .. },
+                ..
+            }),
             "{language_tag}"
         );
     }
 
-    let empty_value = vec_nonempty![MultiLanguageString {
+    let mut payload = valid_payload();
+    payload.srv_description.0 = vec_nonempty![vec_nonempty![MultiLanguageString {
         lang: "en".to_string(),
         value: "  ".to_string(),
-    }];
+    }]];
     assert_matches!(
-        validate_multi_language_string_set(&empty_value),
-        Err(MultiLanguageStringSetValidationError::EmptyValue { index: 0 })
+        payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+        Err(RegistrationCertificateValidationError::InvalidServiceDescription {
+            source: MultiLanguageStringSetValidationError::EmptyValue { index: 0 },
+            ..
+        })
     );
 }
 
 #[test]
 fn validate_credential_metadata() {
-    validate_credential_set(&[]).unwrap();
+    let mut payload = valid_payload();
+    payload.credentials = Some(Vec::new());
+    payload
+        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        .unwrap();
 
     let empty_doctype: Credential = serde_json::from_value(json!({
         "format": "mso_mdoc",
         "meta": { "doctype_value": " " }
     }))
     .unwrap();
+    let mut payload = valid_payload();
+    payload.credentials = Some(vec![empty_doctype]);
     assert_matches!(
-        validate_credential_set(&[empty_doctype]),
-        Err(CredentialSetValidationError::EmptyDoctype { index: 0 })
+        payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+        Err(RegistrationCertificateValidationError::InvalidCredentialSet {
+            source: CredentialSetValidationError::EmptyDoctype { index: 0 },
+            ..
+        })
     );
 
     let empty_vct: Credential = serde_json::from_value(json!({
@@ -465,11 +474,16 @@ fn validate_credential_metadata() {
         "meta": { "vct_values": ["urn:eudi:pid:1", " "] }
     }))
     .unwrap();
+    let mut payload = valid_payload();
+    payload.credentials = Some(vec![empty_vct]);
     assert_matches!(
-        validate_credential_set(&[empty_vct]),
-        Err(CredentialSetValidationError::EmptyVctValue {
-            index: 0,
-            value_index: 1,
+        payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+        Err(RegistrationCertificateValidationError::InvalidCredentialSet {
+            source: CredentialSetValidationError::EmptyVctValue {
+                index: 0,
+                value_index: 1,
+            },
+            ..
         })
     );
 }
@@ -590,16 +604,6 @@ fn reject_invalid_core_values() {
     );
 }
 
-#[test]
-fn status_converts_to_existing_status_list_claim() {
-    let expected = StatusListClaim {
-        idx: 1,
-        uri: "https://example.com/statuslists/1".parse().unwrap(),
-    };
-    let status = RegistrationCertificateStatus::from(expected.clone());
-    assert_eq!(StatusListClaim::from(status), expected);
-}
-
 #[tokio::test]
 async fn accept_registration_certificate_with_valid_referenced_status() {
     let context = status_validation_context(StatusType::Valid, 8).await;
@@ -615,7 +619,7 @@ async fn accept_registration_certificate_with_valid_referenced_status() {
         .await
         .unwrap();
 
-    assert_eq!(certificate.id(), "wrprc-example-1");
+    assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
 }
 
 #[tokio::test]
@@ -638,12 +642,9 @@ async fn reject_registration_certificate_with_revoked_status() {
 #[tokio::test]
 async fn reject_registration_certificate_with_out_of_bounds_status_index() {
     let context = status_validation_context(StatusType::Valid, 8).await;
-    let mut payload = valid_payload();
-    payload.status = StatusListClaim {
-        idx: 8,
-        uri: STATUS_LIST_URI.parse().unwrap(),
-    }
-    .into();
+    let mut payload = valid_payload_json();
+    payload["status"]["idx"] = json!("8");
+    let payload: UncheckedRegistrationCertificate = serde_json::from_value(payload).unwrap();
     let result = payload
         .validate_structure(&legal_person_access_certificate_subject(), validation_time())
         .unwrap()
@@ -712,27 +713,4 @@ fn registration_certificate_payload_types_use_jades_type() {
         <UncheckedRegistrationCertificate as jwt::JwtTyp>::TYP,
         jwt::jades_b_b::JADES_B_B_JWT_TYP
     );
-    assert_eq!(
-        <StructurallyValidatedRegistrationCertificate as jwt::JwtTyp>::TYP,
-        jwt::jades_b_b::JADES_B_B_JWT_TYP
-    );
-    assert_eq!(
-        <StatusValidatedRegistrationCertificate as jwt::JwtTyp>::TYP,
-        jwt::jades_b_b::JADES_B_B_JWT_TYP
-    );
-}
-
-#[test]
-fn structurally_validated_payload_roundtrips_through_cbor() {
-    let certificate = valid_payload()
-        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
-        .unwrap();
-    let mut encoded = Vec::new();
-    ciborium::into_writer(&certificate, &mut encoded).unwrap();
-
-    let decoded: UncheckedRegistrationCertificate = ciborium::from_reader(encoded.as_slice()).unwrap();
-    let decoded = decoded
-        .validate_structure(&legal_person_access_certificate_subject(), validation_time())
-        .unwrap();
-    assert_eq!(decoded, certificate);
 }
