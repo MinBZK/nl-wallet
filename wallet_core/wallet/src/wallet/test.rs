@@ -215,6 +215,7 @@ pub fn create_preview_from_payload(
     config_id: CredentialConfigurationId,
 ) -> CredentialPreview {
     CredentialPreview {
+        credential_id: "credential_id".to_string(),
         config_id,
         format,
         credential_payload: credential_payload.previewable_payload,

@@ -920,6 +920,7 @@ where
             })?;
 
         let preview = CredentialPreview {
+            credential_id: credential.id.to_string(),
             config_id: credential.credential_configuration_id.clone(),
             format: credential.format,
             credential_payload: credential.credential_payload.clone(),

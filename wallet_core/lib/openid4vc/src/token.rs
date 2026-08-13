@@ -225,6 +225,7 @@ impl TokenResponse {
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialPreview {
+    pub credential_id: String,
     pub config_id: CredentialConfigurationId,
 
     pub format: Format,

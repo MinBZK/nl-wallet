@@ -1265,7 +1265,6 @@ mod tests {
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
     use crypto::trust_anchor::BorrowingTrustAnchor;
-    use crypto::utils::random_string;
     use crypto::x509::CertificateError;
     use derive_more::Debug;
     use futures::FutureExt;
@@ -1442,7 +1441,7 @@ mod tests {
         ca: &Ca,
         trust_anchors: &TrustAnchors,
         issuer_metadata: IssuerMetadata,
-        preview_payloads: Vec<(CredentialConfigurationId, Format, PreviewableCredentialPayload)>,
+        preview_payloads: Vec<(String, CredentialConfigurationId, Format, PreviewableCredentialPayload)>,
         type_metadata: TypeMetadata,
         token_response_fields: TokenResponseFields,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
@@ -1453,7 +1452,7 @@ mod tests {
                 preview_payloads
                     .iter()
                     // Assume that the Credential Configuration's scope is its identifier with a `_scope` suffix.
-                    .map(|(config_id, _, _)| format!("{config_id}_scope").parse().unwrap())
+                    .map(|(_, config_id, _, _)| format!("{config_id}_scope").parse().unwrap())
                     .collect::<HashSet<_>>(),
             ),
             TokenResponseFields::AuthorizationDetails | TokenResponseFields::Neither => None,
@@ -1464,7 +1463,7 @@ mod tests {
                 let credential_ids_and_identifiers = VecNonEmpty::try_from(
                     preview_payloads
                         .iter()
-                        .map(|(config_id, _, _)| (config_id, random_string(16)))
+                        .map(|(credential_id, config_id, _, _)| (config_id, credential_id.clone()))
                         .collect_vec(),
                 )
                 .unwrap();
@@ -1503,12 +1502,15 @@ mod tests {
             .return_once(move |_url, _access_token| {
                 let previews = preview_payloads
                     .into_iter()
-                    .map(|(config_id, format, preview_payload)| CredentialPreview {
-                        config_id,
-                        format,
-                        credential_payload: preview_payload,
-                        issuer_certificate: issuance_key.certificate().clone(),
-                    })
+                    .map(
+                        |(credential_id, config_id, format, preview_payload)| CredentialPreview {
+                            credential_id,
+                            config_id,
+                            format,
+                            credential_payload: preview_payload,
+                            issuer_certificate: issuance_key.certificate().clone(),
+                        },
+                    )
                     .collect_vec()
                     .try_into()
                     .unwrap();
@@ -1572,6 +1574,7 @@ mod tests {
             &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), credential_configs),
             vec![(
+                "credential_id".to_string(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1615,6 +1618,7 @@ mod tests {
                 )],
             ),
             vec![(
+                "credential_id".to_string(),
                 CredentialConfigurationId::from("unknown_config_id".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1669,6 +1673,7 @@ mod tests {
                 )],
             ),
             vec![(
+                "credential_id".to_string(),
                 CredentialConfigurationId::from("unknown_config_id".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1702,6 +1707,7 @@ mod tests {
                 )],
             ),
             vec![(
+                "credential_id".to_string(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default()),
@@ -1735,6 +1741,7 @@ mod tests {
                 )],
             ),
             vec![(
+                "credential_id".to_string(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default()),
@@ -1770,6 +1777,7 @@ mod tests {
             &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
+                "credential_id".to_string(),
                 config_id.clone(),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1812,6 +1820,7 @@ mod tests {
             &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
+                "credential_id".to_string(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1863,11 +1872,13 @@ mod tests {
             issuer_metadata,
             vec![
                 (
+                    "pid_credential_id".to_string(),
                     pid_config_id,
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
+                    "address_credential_id".to_string(),
                     address_config_id,
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
@@ -1911,7 +1922,9 @@ mod tests {
             .unwrap()
         };
 
+        let credential_id_mdoc = "credential_id_mdoc".to_string();
         let config_id_mdoc: CredentialConfigurationId = "config_id_mdoc".to_string().into();
+        let credential_id_sd_jwt = "credential_id_sd_jwt".to_string();
         let config_id_sd_jwt: CredentialConfigurationId = "config_id_sd_jwt".to_string().into();
         let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
         let issuer_metadata = IssuerMetadata::new_mock(
@@ -1930,8 +1943,8 @@ mod tests {
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
 
         let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(vec_nonempty![
-            (&config_id_mdoc, random_string(16)),
-            (&config_id_sd_jwt, random_string(16))
+            (&config_id_mdoc, credential_id_mdoc.clone()),
+            (&config_id_sd_jwt, credential_id_sd_jwt.clone())
         ]);
         let preview_payload =
             PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
@@ -1958,12 +1971,14 @@ mod tests {
 
                 let previews = vec_nonempty![
                     CredentialPreview {
+                        credential_id: credential_id_mdoc,
                         config_id: config_id_mdoc.clone(),
                         format: Format::MsoMdoc,
                         credential_payload: preview_payload.clone(),
                         issuer_certificate: issuance_key.certificate().clone(),
                     },
                     CredentialPreview {
+                        credential_id: credential_id_sd_jwt,
                         config_id: config_id_sd_jwt.clone(),
                         format: Format::SdJwt,
                         credential_payload: preview_payload,
@@ -2094,6 +2109,7 @@ mod tests {
             };
 
             let preview = CredentialPreview {
+                credential_id: "credential_id".to_string(),
                 config_id: "config_id".to_string().into(),
                 format: Format::MsoMdoc,
                 credential_payload: preview_payload,

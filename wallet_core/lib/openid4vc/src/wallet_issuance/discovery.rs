@@ -598,7 +598,6 @@ mod test {
     use chrono::DateTime;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::utils::random_string;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::CertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
@@ -651,6 +650,7 @@ mod test {
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
 
     static CONFIG_ID: LazyLock<CredentialConfigurationId> = LazyLock::new(|| "pid".to_string().into());
+    const CREDENTIAL_ID: &str = "credential_id";
 
     const DEFAULT_GRANT_TYPES_SUPPORTED: &[&str] = &[
         "authorization_code",
@@ -836,6 +836,7 @@ mod test {
         let credential_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let preview = CredentialPreview {
+            credential_id: CREDENTIAL_ID.to_string(),
             config_id: CONFIG_ID.clone(),
             format: Format::MsoMdoc,
             credential_payload,
@@ -849,7 +850,7 @@ mod test {
         let token_response = TokenResponse::new_vci(
             "mock_access_token".to_string().into(),
             Some(AuthorizationDetails::from_credential_ids_and_identifiers(
-                vec_nonempty![(LazyLock::force(&CONFIG_ID), random_string(16))],
+                vec_nonempty![(LazyLock::force(&CONFIG_ID), CREDENTIAL_ID.to_string())],
             )),
         );
 
