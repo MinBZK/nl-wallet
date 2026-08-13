@@ -11,9 +11,6 @@ importers:
       '@eslint/js':
         specifier: ^9.28.0
         version: 9.39.4
-      '@lavamoat/preinstall-always-fail':
-        specifier: ^2.1.1
-        version: 2.1.1
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.60.0
@@ -104,10 +101,6 @@ packages:
   '@humanwhocodes/retry@0.4.2':
     resolution: {integrity: sha512-xeO57FpIu4p1Ri3Jq/EXq4ClRm86dVF2z/+kvFnyqVYRavTZmaFaUBbWCOuuTh0o/g7DSsk6kc2vrS4Vl5oPOQ==}
     engines: {node: '>=18.18'}
-
-  '@lavamoat/preinstall-always-fail@2.1.1':
-    resolution: {integrity: sha512-8eyQm26cQtEek2z1vM+iSVOoKrchkHBEvUQ3VnbDEqQ7hDL5sU/rhHo/FnoMgY8J31r6LSesEzpwYQe4omgqbA==}
-    engines: {node: ^16.20.0 || ^18.0.0 || ^20.0.0 || ^22.0.0 || ^24.0.0}
 
   '@playwright/test@1.60.0':
     resolution: {integrity: sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==}
@@ -453,8 +446,6 @@ snapshots:
   '@humanwhocodes/retry@0.3.1': {}
 
   '@humanwhocodes/retry@0.4.2': {}
-
-  '@lavamoat/preinstall-always-fail@2.1.1': {}
 
   '@playwright/test@1.60.0':
     dependencies:

@@ -3,7 +3,7 @@ check-test-reporting:
   rules: !reference [.default-or-merge-request, rules]
   script:
     - cd testreporting
-    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm install --frozen-lockfile
     - pnpm run format-check
     - pnpm run lint
     - pnpm run type-check
@@ -47,7 +47,7 @@ build-test-report:
       optional: true
   script:
     - cd testreporting
-    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm install --frozen-lockfile
     - pnpm run fetch-history || true
     - pnpm run fetch-results
     - >

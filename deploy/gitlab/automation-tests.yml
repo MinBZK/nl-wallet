@@ -3,7 +3,7 @@ browsertests-format-lint:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - cd browsertests
-    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm install --frozen-lockfile
     - pnpm run format-check
     - pnpm run lint
 
@@ -19,7 +19,7 @@ browsertests-format-lint:
       artifacts: false
   before_script:
     - cd browsertests
-    - pnpm install --frozen-lockfile --ignore-scripts
+    - pnpm install --frozen-lockfile
 
 run-wallet-web-browsertest-test-ont:
   extends: .run-browsertest-common
