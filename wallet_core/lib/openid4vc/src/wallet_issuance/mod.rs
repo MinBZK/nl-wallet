@@ -29,7 +29,6 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
-use utils::single_unique::MultipleItemsFound;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 use wscd::wscd::WiaClient;
@@ -305,7 +304,7 @@ pub enum WalletIssuanceError {
 
     #[error("different issuers found in credential previews")]
     #[category(critical)]
-    DifferentIssuers(#[source] MultipleItemsFound),
+    DifferentIssuers,
 
     #[error("missing query in credential offer URI")]
     #[category(critical)]

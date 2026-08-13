@@ -42,7 +42,6 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 use utils::generator::TimeGenerator;
-use utils::single_unique::SingleUnique;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
@@ -526,11 +525,14 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .map(|preview| preview.issuer_registration())
             .collect::<Result<Vec<_>, _>>()
             .map_err(WalletIssuanceError::PreviewIssuerRegistration)?
-            .iter()
-            .single_unique()
-            .map_err(WalletIssuanceError::DifferentIssuers)?
-            .expect("there are always credential_previews in the preview response")
-            .clone();
+            .into_iter()
+            // Use `dedup()` instead of `unique()`, as `IssuerRegistration` does not implement Hash. The end result is
+            // the same when followed by `.exactly_one()`.
+            .dedup()
+            // Note that this iterator resulting in 0 values will never happen because `credential_previews` is
+            // non-empty, so this error only occurs when there are multiple `IssuerRegistration` values.
+            .exactly_one()
+            .map_err(|_| WalletIssuanceError::DifferentIssuers)?;
 
         // Verify the issuer certificate against the trust anchors.
         for preview in &credential_previews {
@@ -1993,7 +1995,7 @@ mod tests {
         .unwrap()
         .expect_err("starting issuance session should not succeed");
 
-        assert_matches!(error, WalletIssuanceError::DifferentIssuers(_));
+        assert_matches!(error, WalletIssuanceError::DifferentIssuers);
     }
 
     /// Return a new session ready for `accept_issuance()`.
