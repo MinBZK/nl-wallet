@@ -35,7 +35,7 @@ class PinScreen : MobileActions() {
 
     fun setupPinScreenVisible() = elementWithTextVisible(setupSecuritySelectPinPageTitle)
 
-    fun pinScreenVisible() = elementWithTextVisible(pinScreenHeader)
+    fun pinScreenVisible(timeoutInSeconds: Long = 5) = elementWithTextVisible(pinScreenHeader, timeoutInSeconds)
 
     fun confirmPinScreenVisible() = elementWithTextVisible(confirmPinScreen)
 

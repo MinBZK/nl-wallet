@@ -14,6 +14,7 @@ class DashboardScreen : MobileActions() {
     private val actionDrawerScanQrButton = l10n.getString("qrActionSheetScanQrTitle")
     private val actionDrawerShowQrButton = l10n.getString("qrActionSheetShowQrTitle")
     private val activitiesButtonTitle = l10n.getString("activitySummaryToday")
+    private val requestNotificationPermissionSheetNegativeCta = l10n.getString("requestNotificationPermissionSheetNegativeCta")
 
     fun visible() = elementContainingTextVisible(menuButton) && elementContainingTextVisible(actionButton)
 
@@ -64,5 +65,10 @@ class DashboardScreen : MobileActions() {
     fun tapRevocationNotification(cardDisplayName: String) {
         scrollToElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
         clickElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
+    }
+
+    fun dismissNotificationsDrawer() {
+        elementWithTextVisible(requestNotificationPermissionSheetNegativeCta, 15)
+        clickElementContainingText(requestNotificationPermissionSheetNegativeCta)
     }
 }

@@ -47,6 +47,12 @@ open class MobileActions {
     private fun quoteForIos(s: String): String =
         "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
+    // NSPredicate string literals interpret escape sequences, so control characters
+    // must be written as \n/\r/\t rather than embedded raw
+    private fun quoteForIosPredicate(s: String): String =
+        "'" + s.replace("\\", "\\\\").replace("'", "\\'")
+            .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "'"
+
     protected fun isWebElementVisible(element: WebElement): Boolean {
         val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
         wait.until(ExpectedConditions.visibilityOf(element))
@@ -141,16 +147,19 @@ open class MobileActions {
                 )
             }
             Platform.IOS -> {
-                val quotedText = quoteForIos(text)
-                val predicate = "name CONTAINS $quotedText"
+                val locator = By.xpath("//*[contains(@name, ${quoteForIos(text)})]")
 
-                repeat(8) {
-                    val matches = driver.findElements(AppiumBy.iOSNsPredicateString(predicate))
-                    matches.firstOrNull { it.isDisplayed }?.let { return it }
-                    (driver as JavascriptExecutor).executeScript(
-                        "mobile: swipe",
-                        iosSwipeArgs("up")
-                    )
+                // Search toward the bottom first, then back toward the top, so the
+                // element is found regardless of the current scroll position (mirrors
+                // Android's bidirectional UiScrollable.scrollIntoView).
+                for (direction in listOf("up", "down")) {
+                    repeat(8) {
+                        driver.findElements(locator).firstOrNull { it.isDisplayed }?.let { return it }
+                        (driver as JavascriptExecutor).executeScript(
+                            "mobile: swipe",
+                            iosSwipeArgs(direction)
+                        )
+                    }
                 }
                 throw NoSuchElementException("Couldn't bring element containing '$text' into view")
             }
@@ -334,11 +343,14 @@ open class MobileActions {
                     .click()
             }
             Platform.IOS -> {
-                try {
-                    WebDriverWait(driver, Duration.ofMillis(timeoutMillis)).until(ExpectedConditions.alertIsPresent())
-                    driver.switchTo().alert().accept()
-                } catch (_: TimeoutException) {
-
+                val autoAcceptAlerts = EnvironmentUtil.getVar("IOS_ACCEPT_ALERTS").toBooleanStrictOrNull() ?: true
+                if (!autoAcceptAlerts) {
+                    try {
+                        WebDriverWait(driver, Duration.ofMillis(timeoutMillis)).until(ExpectedConditions.alertIsPresent())
+                        driver.switchTo().alert().accept()
+                    } catch (e: TimeoutException) {
+                        throw e
+                    }
                 }
             }
         }
@@ -464,12 +476,38 @@ open class MobileActions {
         }
     }
 
+    fun tapAt(x: Int, y: Int) {
+        val finger = PointerInput(PointerInput.Kind.TOUCH, "finger")
+        val tap = org.openqa.selenium.interactions.Sequence(finger, 1)
+            .addAction(finger.createPointerMove(Duration.ZERO, Origin.viewport(), x, y))
+            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
+            .addAction(finger.createPointerMove(Duration.ofMillis(150), Origin.viewport(), x, y))
+            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()))
+        driver.perform(listOf(tap))
+    }
+
     fun clickElementContainingText(partialText: String) {
-        findElementByPartialText(partialText).click()
+        val maxAttempts = 3
+        for (attempt in 1..maxAttempts) {
+            try {
+                findElementByPartialText(partialText).click()
+                return
+            } catch (e: org.openqa.selenium.StaleElementReferenceException) {
+                if (attempt == maxAttempts) throw e
+            }
+        }
     }
 
     fun clickElementWithText(text: String, timeoutInSeconds: Long = 5) {
-        findElementByText(text, timeoutInSeconds).click()
+        val maxAttempts = 3
+        for (attempt in 1..maxAttempts) {
+            try {
+                findElementByText(text, timeoutInSeconds).click()
+                return
+            } catch (e: org.openqa.selenium.StaleElementReferenceException) {
+                if (attempt == maxAttempts) throw e
+            }
+        }
     }
 
     fun elementContainingTextVisible(partialText: String): Boolean {
@@ -512,15 +550,14 @@ open class MobileActions {
     }
 
     fun getTextFromAllChildElementsFromElementWithText(parentText: String): String {
-        val parentElement = findElementByText(parentText)
-
-        val childElements = parentElement.findElements(By.xpath(".//*"))
-
-        return childElements.joinToString("") { element ->
-            when (platform()) {
-                Platform.ANDROID -> element.getAttribute("contentDescription") ?: ""
-                Platform.IOS -> element.getAttribute("name") ?: ""
-            }
+        return when (platform()) {
+            Platform.ANDROID ->
+                findElementByText(parentText).findElements(By.xpath(".//*"))
+                    .joinToString("") { it.getAttribute("contentDescription") ?: "" }
+            Platform.IOS ->
+                driver.findElements(
+                    By.xpath("//*[@name=${quoteForIos(parentText)}]/following-sibling::XCUIElementTypeStaticText")
+                ).joinToString("") { it.getAttribute("name") ?: "" }
         }
     }
 
@@ -626,7 +663,7 @@ open class MobileActions {
                 )
             }
             Platform.IOS -> {
-                val quotedText = quoteForIos(text)
+                val quotedText = quoteForIosPredicate(text)
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(
                         AppiumBy.iOSNsPredicateString("name == $quotedText")

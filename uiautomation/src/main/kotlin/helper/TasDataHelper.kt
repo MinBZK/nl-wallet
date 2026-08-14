@@ -1,9 +1,9 @@
 package helper
 
+import domain.Platform
 import helper.FileUtils.getProjectFile
 import org.json.JSONArray
 import org.json.JSONObject
-import domain.Platform
 import util.TestInfoHandler.Companion.language
 import util.TestInfoHandler.Companion.locale
 import util.TestInfoHandler.Companion.platform
@@ -165,7 +165,8 @@ class TasDataHelper {
                     }
                 }
                 Platform.IOS -> {
-                    if (display.optString("locale") == locale) {
+                    // The iOS locale capability uses an underscore for English (en_US) while TAS files use a hyphen.
+                    if (display.optString("locale") == locale.replace("_", "-")) {
                         return display
                     }
                 }

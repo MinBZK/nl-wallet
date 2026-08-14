@@ -1,13 +1,14 @@
 package feature.permissions
 
+import data.TestConfigRepository.Companion.testConfig
+import domain.Platform
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
@@ -45,10 +46,11 @@ class CameraPermissionTests : TestBase() {
         assertTrue(qrScanner.grantPermissionButtonVisible(), "grant camera permission button is not visible")
     }
 
-    @Tags(Tag("androidOnly"))
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Camera permission granted once is re-requested after app restart")
     fun verifyCameraPermissionRequestedAgainAfterOnceGrantAndAppRestart(testInfo: TestInfo) {
+        assumeTrue(testConfig.platform == Platform.ANDROID, "Allow one time only permission on iOS is not supported")
+
         setUp(testInfo)
         dashboardScreen.openQRScanner()
         nativePermissionDialog.allowOneTimeOnly()
