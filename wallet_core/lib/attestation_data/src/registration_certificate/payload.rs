@@ -3,7 +3,6 @@ use chrono::Utc;
 use dcql::ClaimsQuery;
 use dcql::CredentialQueryFormat;
 use serde::Deserialize;
-use serde::Deserializer;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -17,32 +16,6 @@ pub struct MultiLanguageString {
 }
 
 pub type MultiLanguageStringSet = VecNonEmpty<MultiLanguageString>;
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum ServiceDescriptionsWireFormat {
-    Nested(VecNonEmpty<MultiLanguageStringSet>),
-    Flat(MultiLanguageStringSet),
-}
-
-/// Localized descriptions of one or more services.
-///
-/// ETSI TS 119 475 Annex B models this as an array of arrays, while the validation table in PVW-5867 describes a
-/// single array of objects. Both forms are accepted and normalized to the nested ETSI representation.
-pub struct ServiceDescriptions(pub VecNonEmpty<MultiLanguageStringSet>);
-
-impl<'de> Deserialize<'de> for ServiceDescriptions {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let descriptions = ServiceDescriptionsWireFormat::deserialize(deserializer)?;
-        Ok(Self(match descriptions {
-            ServiceDescriptionsWireFormat::Nested(descriptions) => descriptions,
-            ServiceDescriptionsWireFormat::Flat(description) => utils::vec_nonempty![description],
-        }))
-    }
-}
 
 #[derive(Deserialize)]
 pub struct Credential {
@@ -80,7 +53,7 @@ pub struct UncheckedRegistrationCertificate {
     pub support_uri: String,
     pub info_uri: Option<Url>,
     pub privacy_policy: Option<Url>,
-    pub srv_description: ServiceDescriptions,
+    pub srv_description: VecNonEmpty<MultiLanguageStringSet>,
     pub supervisory_authority: SupervisoryAuthority,
     pub entitlements: VecNonEmpty<Url>,
     pub credentials: Option<Vec<Credential>>,

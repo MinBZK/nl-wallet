@@ -138,7 +138,7 @@ fn parse_annex_c_example_and_reject_its_missing_normative_id() {
     );
     let payload: UncheckedRegistrationCertificate = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
 
-    assert_eq!(payload.srv_description.0.as_slice().len(), 1);
+    assert_eq!(payload.srv_description.as_slice().len(), 1);
     assert_matches!(
         &payload.credentials.as_ref().unwrap()[0].format,
         CredentialQueryFormat::SdJwt { .. }
@@ -170,13 +170,11 @@ fn validate_payload_based_on_annex_c_example() {
 }
 
 #[test]
-fn accept_flat_service_description_from_ticket_validation_shape() {
+fn reject_flat_service_description() {
     let mut json = valid_payload_json();
     json["srv_description"] = json!([{"lang": "en-US", "value": "Service"}]);
 
-    let payload: UncheckedRegistrationCertificate = serde_json::from_value(json).unwrap();
-    assert_eq!(payload.srv_description.0.as_slice().len(), 1);
-    assert_eq!(payload.srv_description.0[0].as_slice().len(), 1);
+    assert!(serde_json::from_value::<UncheckedRegistrationCertificate>(json).is_err());
 }
 
 #[test]
@@ -185,7 +183,7 @@ fn accept_annex_b_multi_language_content_field() {
     json["srv_description"] = json!([[{"lang": "en-US", "content": "Service"}]]);
 
     let payload: UncheckedRegistrationCertificate = serde_json::from_value(json).unwrap();
-    assert_eq!(payload.srv_description.0[0][0].value, "Service");
+    assert_eq!(payload.srv_description[0][0].value, "Service");
 }
 
 #[test]
@@ -416,7 +414,7 @@ fn validate_multi_language_strings() {
         "x-private",
     ] {
         let mut payload = valid_payload();
-        payload.srv_description.0 = vec_nonempty![vec_nonempty![MultiLanguageString {
+        payload.srv_description = vec_nonempty![vec_nonempty![MultiLanguageString {
             lang: language_tag.to_string(),
             value: "value".to_string(),
         }]];
@@ -427,7 +425,7 @@ fn validate_multi_language_strings() {
 
     for language_tag in ["", "e", "en_US", "en-", "en-US-abc", "en-a", "en-x", "en-ü"] {
         let mut payload = valid_payload();
-        payload.srv_description.0 = vec_nonempty![vec_nonempty![MultiLanguageString {
+        payload.srv_description = vec_nonempty![vec_nonempty![MultiLanguageString {
             lang: language_tag.to_string(),
             value: "value".to_string(),
         }]];
@@ -442,7 +440,7 @@ fn validate_multi_language_strings() {
     }
 
     let mut payload = valid_payload();
-    payload.srv_description.0 = vec_nonempty![vec_nonempty![MultiLanguageString {
+    payload.srv_description = vec_nonempty![vec_nonempty![MultiLanguageString {
         lang: "en".to_string(),
         value: "  ".to_string(),
     }]];

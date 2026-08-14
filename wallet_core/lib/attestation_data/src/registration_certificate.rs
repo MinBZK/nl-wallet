@@ -6,7 +6,6 @@ pub use payload::Credential;
 pub use payload::Intermediary;
 pub use payload::MultiLanguageString;
 pub use payload::MultiLanguageStringSet;
-pub use payload::ServiceDescriptions;
 pub use payload::SupervisoryAuthority;
 pub use payload::UncheckedRegistrationCertificate;
 pub use status::RegistrationCertificateStatus;

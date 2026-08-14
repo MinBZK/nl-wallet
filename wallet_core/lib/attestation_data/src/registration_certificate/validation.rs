@@ -201,7 +201,7 @@ impl UncheckedRegistrationCertificate {
             return Err(RegistrationCertificateValidationError::InvalidSupportUri);
         }
 
-        for (index, description) in self.srv_description.0.iter().enumerate() {
+        for (index, description) in self.srv_description.iter().enumerate() {
             validate_multi_language_string_set(description).map_err(|source| {
                 RegistrationCertificateValidationError::InvalidServiceDescription { index, source }
             })?;
