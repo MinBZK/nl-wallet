@@ -301,6 +301,30 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     DifferentIssuers,
 
+    #[error(
+        "the received credential preview is missing credentials the issuer offered: {}",
+        .0.iter()
+            .map(|(config_id, credential_id)| {
+                format!(
+                    "config id: \"{}\"{}",
+                    config_id,
+                    credential_id.as_ref().map(|id| format!(" credential_id: \"{id}\"")).unwrap_or_default()
+                )
+            })
+            .join(", ")
+    )]
+    #[category(pd)]
+    PreviewMissingCredentials(HashSet<(CredentialConfigurationId, Option<String>)>),
+
+    #[error(
+        "the received credential preview contains more credentials than the issuer offered: {}",
+        .0.iter()
+            .map(|(config_id, credential_id)| format!("config id: \"{config_id}\" credential id: \"{credential_id}\""))
+            .join(", ")
+    )]
+    #[category(pd)]
+    PreviewExcessCredentials(Vec<(CredentialConfigurationId, String)>),
+
     #[error("missing query in credential offer URI")]
     #[category(critical)]
     MissingCredentialOfferQuery,
