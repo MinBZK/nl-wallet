@@ -4,7 +4,7 @@ use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
-use jwt::JwtDecodingKey;
+use jwt::PublicKeyByKid;
 use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
@@ -53,7 +53,7 @@ where
         iat: Utc::now(),
     };
 
-    SignedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
+    SignedJwt::sign_with_sub_and_kid(cert, wallet_certificate_signing_key)
         .await
         .map(Into::into)
         .map_err(WalletCertificateError::JwtSigning)
@@ -61,7 +61,7 @@ where
 
 async fn parse_claims_and_retrieve_wallet_user<T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &JwtDecodingKey,
+    certificate_signing_pubkeys: &impl PublicKeyByKid,
     wallet_user_repository: &R,
     include_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
@@ -72,7 +72,7 @@ where
     debug!("Parsing and verifying the provided certificate");
 
     let (_, claims) = certificate
-        .parse_and_verify_with_sub(certificate_signing_pubkey)
+        .parse_and_verify_with_sub_by_kid(certificate_signing_pubkeys)
         .map_err(WalletCertificateError::Validation)?;
 
     debug!("Starting database transaction");
@@ -159,7 +159,7 @@ where
 /// - Return the [`WalletUser`].
 pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &JwtDecodingKey,
+    certificate_signing_pubkeys: &impl PublicKeyByKid,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
@@ -175,7 +175,7 @@ where
 
     let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
         certificate,
-        certificate_signing_pubkey,
+        certificate_signing_pubkeys,
         pin_checks.allow_for_blocked_users,
         &user_state.repositories,
     )
@@ -201,7 +201,7 @@ where
 /// - Returns a tuple of the [`WalletUser`] and [`WalletCertificateClaims`].
 pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &JwtDecodingKey,
+    certificate_signing_pubkeys: &impl PublicKeyByKid,
     allow_for_blocked_users: bool,
     repositories: &R,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
@@ -213,7 +213,7 @@ where
 
     let (user, claims) = parse_claims_and_retrieve_wallet_user(
         certificate,
-        certificate_signing_pubkey,
+        certificate_signing_pubkeys,
         repositories,
         allow_for_blocked_users,
     )
@@ -273,6 +273,8 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
 
+    pub const CERTIFICATE_KID: &str = "certificate_kid_1";
+
     pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
         "pin_public_disclosure_protection_key_identifier_1";
@@ -329,6 +331,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use crypto::PublicKey;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -336,6 +340,7 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
+    use jwt::KeyWithKid;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
@@ -421,7 +426,10 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -455,7 +463,10 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -507,7 +518,10 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
                 public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
                     .to_string(),
@@ -543,7 +557,10 @@ mod tests {
 
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             false,
             &user_state.repositories,
         )
@@ -577,7 +594,10 @@ mod tests {
 
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             false,
             &user_state.repositories,
         )

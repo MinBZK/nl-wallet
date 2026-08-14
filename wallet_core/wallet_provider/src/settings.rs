@@ -8,10 +8,13 @@ use std::time::Duration;
 use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
+use chrono::DateTime;
+use chrono::Utc;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
@@ -43,7 +46,9 @@ use wallet_provider_persistence::database::ConnectionOptions;
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
+    pub current_certificate_external_kid: String,
     pub certificate_signing_key_identifier: String,
+    pub previous_certificate_keys: Option<HashMap<String, PreviousCertificateKeySettings>>,
     pub instruction_result_signing_key_identifier: String,
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
@@ -176,6 +181,15 @@ pub struct AndroidRootPublicKey(RootPublicKey);
 fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
     let days = u64::deserialize(deserializer)?;
     Ok(Duration::from_hours(days * 24))
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct PreviousCertificateKeySettings {
+    pub exp: DateTime<Utc>,
+    #[serde_as(as = "Base64")]
+    pub certificate_public_key: DerVerifyingKey,
+    pub pin_public_disclosure_protection_key_identifier: String,
 }
 
 impl Settings {

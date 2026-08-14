@@ -30,6 +30,7 @@ use wallet_provider_service::account_server::AccountServerKeys;
 use wallet_provider_service::account_server::AccountServerPinKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
+use wallet_provider_service::account_server::CertificateSigningKeys;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::flags::WalletRepoFlags;
 use wallet_provider_service::instructions::HandleInstruction;
@@ -76,10 +77,10 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         google_crl_client: GRC,
         play_integrity_client: PIC,
     ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
-        let certificate_signing_key = WalletCertificateSigning(HsmEcdsaKey::new(
-            settings.certificate_signing_key_identifier,
-            wallet_user_hsm.clone(),
-        ));
+        let certificate_signing_key = WalletCertificateSigning {
+            kid: settings.current_certificate_external_kid.clone(),
+            hsm: HsmEcdsaKey::new(settings.certificate_signing_key_identifier, wallet_user_hsm.clone()),
+        };
         let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
             settings.instruction_result_signing_key_identifier,
             wallet_user_hsm.clone(),
@@ -118,7 +119,35 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             "account_server".into(),
             settings.instruction_challenge_timeout,
             AccountServerKeys {
-                wallet_certificate_signing_pubkey: PublicKey::from(certificate_signing_pubkey).into(),
+                wallet_certificate_signing_pubkeys: settings
+                    .previous_certificate_keys
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|(kid, key_settings)| {
+                        (
+                            kid,
+                            CertificateSigningKeys {
+                                exp: Some(key_settings.exp),
+                                certificate_public_key: PublicKey::from(
+                                    key_settings.certificate_public_key.into_inner(),
+                                ),
+                                public_disclosure_protection_key_identifier: key_settings
+                                    .pin_public_disclosure_protection_key_identifier,
+                            },
+                        )
+                    })
+                    .chain(std::iter::once((
+                        settings.current_certificate_external_kid.clone(),
+                        CertificateSigningKeys {
+                            exp: None,
+                            certificate_public_key: PublicKey::from(certificate_signing_pubkey),
+                            public_disclosure_protection_key_identifier: settings
+                                .pin_public_disclosure_protection_key_identifier
+                                .clone(),
+                        },
+                    )))
+                    .collect(),
+
                 pin_keys: AccountServerPinKeys {
                     encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
                     public_disclosure_protection_key_identifier: settings

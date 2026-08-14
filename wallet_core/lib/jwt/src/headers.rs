@@ -229,6 +229,15 @@ pub struct HeaderWithKid<H = HeaderWithTyp> {
     pub kid: String,
 }
 
+impl HeaderWithKid {
+    pub fn from_kid(kid: String) -> Self {
+        Self {
+            header: HeaderWithTyp::default(),
+            kid,
+        }
+    }
+}
+
 impl<H> HeaderWithKid<H> {
     pub fn inner(&self) -> &H {
         &self.header

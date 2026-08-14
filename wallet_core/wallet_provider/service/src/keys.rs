@@ -2,24 +2,29 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
+use jwt::KeyWithKid;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
-pub trait WalletCertificateSigningKey: SecureEcdsaKey {}
+pub trait WalletCertificateSigningKey: SecureEcdsaKey + KeyWithKid {}
 pub trait InstructionResultSigningKey: SecureEcdsaKey {}
 
-pub struct WalletCertificateSigning(pub HsmEcdsaKey);
+pub struct WalletCertificateSigning {
+    pub kid: String,
+    pub hsm: HsmEcdsaKey,
+}
+
 pub struct InstructionResultSigning(pub HsmEcdsaKey);
 
 impl EcdsaKey for WalletCertificateSigning {
     type Error = HsmError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        self.0.verifying_key().await
+        self.hsm.verifying_key().await
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        self.0.try_sign(msg).await
+        self.hsm.try_sign(msg).await
     }
 }
 
@@ -36,6 +41,12 @@ impl EcdsaKey for InstructionResultSigning {
 }
 
 impl SecureEcdsaKey for WalletCertificateSigning {}
+
+impl KeyWithKid for WalletCertificateSigning {
+    fn kid(&self) -> &str {
+        &self.kid
+    }
+}
 
 impl SecureEcdsaKey for InstructionResultSigning {}
 

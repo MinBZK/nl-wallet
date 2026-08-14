@@ -1,6 +1,9 @@
 # The commented out lines show optional configuration with their default value.
 # All key material should be replaced with secret values.
 
+# External KID for the current certificate signing key and PIN protection key
+current_certificate_external_kid = "certificate_external_kid"
+
 # Identifier for key used to sign JWT's sent from wallet_provider to wallet
 certificate_signing_key_identifier = "certificate_signing_key"
 

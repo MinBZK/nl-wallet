@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -11,6 +12,7 @@ use db_test::DbSetup;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use itertools::Itertools;
+use jwt::KeyWithKid;
 use jwt::nonce::Nonce;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
@@ -146,12 +148,20 @@ async fn do_registration(
     };
 
     let (certificate, _recovery_code) = account_server
-        .register(certificate_signing_key, registration_message, &user_state)
+        .register(
+            certificate_signing_key,
+            registration_message,
+            &user_state,
+            &MockTimeGenerator::epoch(),
+        )
         .await
         .expect("Could not process registration message at account server");
 
     let (_, cert_data) = certificate
-        .parse_and_verify_with_sub(&PublicKey::from(certificate_signing_key.verifying_key().await.unwrap()).into())
+        .parse_and_verify_with_sub_by_kid(&HashMap::from([(
+            certificate_signing_key.kid().to_owned(),
+            PublicKey::from(certificate_signing_key.verifying_key().await.unwrap()),
+        )]))
         .expect("Could not parse and verify wallet certificate");
 
     (certificate, hw_privkey, cert_data, user_state)
@@ -188,7 +198,11 @@ async fn test_instruction_challenge(
     let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
-    let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
+    let account_server = mock::setup_account_server(
+        certificate_signing_pubkey,
+        certificate_signing_key.kid().to_string(),
+        Default::default(),
+    );
     let pin_privkey = SigningKey::generate();
 
     let attestation_ca = match attestation_type {
@@ -244,7 +258,11 @@ async fn test_wia_status() {
     let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
-    let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
+    let account_server = mock::setup_account_server(
+        certificate_signing_pubkey,
+        certificate_signing_key.kid().to_string(),
+        Default::default(),
+    );
     let pin_privkey = SigningKey::generate();
 
     let (certificate, hw_privkey, cert_data, user_state) = do_registration(
