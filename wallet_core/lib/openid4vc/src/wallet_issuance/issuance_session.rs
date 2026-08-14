@@ -677,6 +677,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         Ok(credential_previews)
     }
 
+    /// Fetch SD-JWT VC Type Metadata for every Credential Configuration. This returns the resulting Type Metadata per
+    /// attestation type, as each of these could occur in multiple Credential Configurations.
     async fn fetch_type_metadata(
         credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &CredentialConfiguration)>,
         credential_issuer: &IssuerIdentifier,
@@ -723,11 +725,11 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             ));
         }
 
-        // Make sure there is only one attestation type per URI, while retaining the config IDs.
+        // Make sure there is only one distinct attestation type per URI, while retaining the config IDs.
         let (attestation_types_and_uris, multi_attestation_type_uris): (Vec<_>, Vec<_>) = attestation_types_per_uri
             .into_iter()
             .partition_map(
-                |(uri, attestation_types)| match attestation_types.into_iter().exactly_one() {
+                |(uri, attestation_types)| match attestation_types.into_iter().unique().exactly_one() {
                     Ok(attestation_type) => Either::Left((attestation_type, uri)),
                     Err(attestation_types_iter) => {
                         let attestation_types = attestation_types_iter.map(str::to_string).collect_vec();
