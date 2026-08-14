@@ -178,12 +178,11 @@ fn reject_flat_service_description() {
 }
 
 #[test]
-fn accept_annex_b_multi_language_content_field() {
+fn reject_registry_content_field_in_wrprc_payload() {
     let mut json = valid_payload_json();
     json["srv_description"] = json!([[{"lang": "en-US", "content": "Service"}]]);
 
-    let payload: UncheckedRegistrationCertificate = serde_json::from_value(json).unwrap();
-    assert_eq!(payload.srv_description[0][0].value, "Service");
+    assert!(serde_json::from_value::<UncheckedRegistrationCertificate>(json).is_err());
 }
 
 #[test]

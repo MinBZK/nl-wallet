@@ -11,7 +11,6 @@ use super::status::RegistrationCertificateStatus;
 #[derive(Deserialize)]
 pub struct MultiLanguageString {
     pub lang: String,
-    #[serde(alias = "content")]
     pub value: String,
 }
 
