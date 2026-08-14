@@ -6,6 +6,7 @@ use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::random_bytes;
 use crypto::utils::sha256;
 use cryptoki::context::CInitializeArgs;
+use cryptoki::context::CInitializeFlags;
 use cryptoki::context::Pkcs11;
 use cryptoki::mechanism::Mechanism;
 use cryptoki::mechanism::aead::GcmParams;
@@ -192,7 +193,7 @@ impl Pkcs11Hsm {
         max_session_lifetime: Duration,
     ) -> Result<Self> {
         let pkcs11_client = Pkcs11::new(library_path)?;
-        pkcs11_client.initialize(CInitializeArgs::OsThreads)?;
+        pkcs11_client.initialize(CInitializeArgs::new(CInitializeFlags::OS_LOCKING_OK))?;
 
         let slot = *pkcs11_client
             .get_slots_with_initialized_token()?
