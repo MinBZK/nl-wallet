@@ -14,6 +14,7 @@ class CardNavigator : MobileActions() {
 
         // Navigate card flow
         val pidDisplayName = cardMetadata.getPidDisplayName()
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         if (screen > CardNavigatorScreen.Dashboard) DashboardScreen().clickCard(pidDisplayName)
         if (screen > CardNavigatorScreen.CardDetail) CardDetailScreen().clickCardDataButton()
     }

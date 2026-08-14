@@ -1,5 +1,7 @@
 package feature.issuance
 
+import data.TestConfigRepository.Companion.testConfig
+import domain.Platform
 import helper.GbaDataHelper
 import helper.GbaDataHelper.Field.CITY
 import helper.GbaDataHelper.Field.FIRST_NAME
@@ -11,6 +13,7 @@ import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
@@ -158,6 +161,9 @@ class PidIssuanceTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC2 Issuance fails")
     fun pidIssuanceFails(testInfo: TestInfo) {
+        // Network toggling is only implemented for Android (via adb). On real iOS
+        // devices it requires the RemoteXPC tunnel / condition inducer.
+        assumeTrue(testConfig.platform == Platform.ANDROID, "Skipping on iOS: network toggling not supported")
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
         digidLoginMockWebPage.switchToWebViewContext()

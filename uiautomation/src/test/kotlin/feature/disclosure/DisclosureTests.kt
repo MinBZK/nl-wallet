@@ -152,7 +152,7 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
 
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewOrganization(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
+        disclosureScreen.viewDisclosureOrganizationDetails()
 
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
@@ -166,10 +166,6 @@ class DisclosureTests : TestBase() {
 
         disclosureScreen.goBack()
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.readTerms()
-        assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
-
-        disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.login()
         pinScreen.enterPin(DEFAULT_PIN)
@@ -191,7 +187,7 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewOrganization(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
+        disclosureScreen.viewDisclosureOrganizationDetails()
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
@@ -202,9 +198,6 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
         disclosureScreen.goBack()
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.readTerms()
-        assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
-        disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.login()
         pinScreen.enterPin(DEFAULT_PIN)
@@ -233,14 +226,11 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data is visible") },
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data is visible") },
             { assertTrue(disclosureScreen.sharingReasonVisible(""), "reason is not visible") },
-            { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
-            { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
+            { assertTrue(disclosureScreen.privacyHeaderVisible(), "Description is not visible") },
+            { assertTrue(disclosureScreen.privacyButtonVisible(), "Try again button is not visible") }
         )
         disclosureScreen.viewSharedData("7", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
-        disclosureScreen.goBack()
-        disclosureScreen.readTerms()
-        assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()

@@ -1,5 +1,6 @@
 package screen.disclosure
 
+import domain.Platform
 import util.MobileActions
 
 class DisclosureApproveOrganizationScreen : MobileActions() {
@@ -9,15 +10,13 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
     private val closeButton = l10n.getString("generalClose")
     private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
-    private val viewDisclosureOrganizationDetailsButton = l10n.getString("organizationButtonLabel")
+    private val viewDisclosureOrganizationDetailsButton = l10n.getString("requestDetailScreenAboutOrganizationCta").replace("{organization}", "")
     private val goBackButton = l10n.getString("generalBottomBackCta")
     private val stopRequestButton = l10n.getString("missingAttributesPageCloseCta")
-    private val readTermsButton = l10n.getString("loginDetailScreenAgreementCta")
-    private val termsSubtitle = l10n.getString("policyScreenSubtitle")
     private val organizationApprovePageDenyCta = l10n.getString("organizationApprovePageDenyCta")
     private val disclosureStopSheetReportIssueCta = l10n.getString("disclosureStopSheetReportIssueCta")
-    private val disclosureConfirmDataAttributesSubtitleTerms = l10n.getString("disclosureConfirmDataAttributesSubtitleTerms")
-    private val disclosureConfirmDataAttributesCheckConditionsCta = l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta")
+    private val privacySectionTitle = l10n.getString("privacySectionTitle")
+    private val privacySectionCta = l10n.getString("privacySectionCta")
     private val reportOptionSuspiciousOrganization = l10n.getString("reportOptionSuspiciousOrganization")
     private val swapCardButton = l10n.getString("sharedAttributesCardChangeCardCta")
     private val stopButton = l10n.getString("organizationApprovePageDenyCta")
@@ -69,15 +68,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun bsnVisible(bsn: String) = elementContainingTextVisible(bsn)
 
-    fun readTerms() {
-        scrollToElementWithText(readTermsButton)
-        clickElementWithText(readTermsButton)
-    }
-
-    fun termsVisible() = elementWithTextVisible(termsSubtitle)
-
-    fun viewOrganization(organization: String) = clickElementWithText(organization)
-
     fun cancel() {
         scrollToElementWithText(organizationApprovePageDenyCta)
         clickElementWithText(organizationApprovePageDenyCta)
@@ -103,19 +93,35 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         return true
     }
 
-    fun conditionsHeaderVisible(): Boolean {
-        scrollToElementWithText(disclosureConfirmDataAttributesSubtitleTerms)
-        return elementWithTextVisible(disclosureConfirmDataAttributesSubtitleTerms)
+    fun privacyHeaderVisible(): Boolean {
+        scrollToElementWithText(privacySectionTitle)
+        return elementWithTextVisible(privacySectionTitle)
     }
 
-    fun conditionsButtonVisible(): Boolean  {
-        scrollToElementWithText(disclosureConfirmDataAttributesCheckConditionsCta)
-        return elementWithTextVisible(disclosureConfirmDataAttributesCheckConditionsCta)
+    fun privacyButtonVisible(): Boolean  {
+        scrollToElementWithText(privacySectionCta)
+        return elementWithTextVisible(privacySectionCta)
     }
 
     fun clickSwapCardButton() {
-        scrollToElementWithText(swapCardButton)
-        clickElementWithText(swapCardButton)
+        val element = scrollToElementWithText(swapCardButton)
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
+        if (platform() == Platform.IOS) {
+            // On iOS the accessibility frame of this button is shifted up relative
+            // to its rendered position, so a tap at the reported center lands on a
+            // non-interactive area. Probe downwards (never up, to avoid hitting the
+            // card above) until the select-card sheet actually opens.
+            val selectCardSheetTitle = l10n.getString("selectCardSheetTitle")
+            val centerX = element.location.x + element.size.width / 2
+            val centerY = element.location.y + element.size.height / 2
+            for (offsetY in listOf(0, 30, 60, 90)) {
+                tapAt(centerX, centerY + offsetY)
+                if (elementWithTextVisible(selectCardSheetTitle, 2)) return
+            }
+            throw AssertionError("Select card sheet did not open after probing taps around '$swapCardButton'")
+        } else {
+            clickElementWithText(swapCardButton)
+        }
     }
 
     fun swapCardTo(cardIdentifier: String) {

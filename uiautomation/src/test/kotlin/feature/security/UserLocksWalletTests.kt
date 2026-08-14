@@ -51,7 +51,7 @@ class UserLocksWalletTests : TestBase() {
     fun verifyAppLocksAfterInactive(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
-        Thread.sleep(122000)
+        Thread.sleep(125000)
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
     }
 
@@ -60,7 +60,7 @@ class UserLocksWalletTests : TestBase() {
     fun verifyAppLocksAfterBackground(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
-        personalizePidPreviewScreen.putAppInBackground(122)
+        personalizePidPreviewScreen.putAppInBackground(125)
         pinScreen.switchToNativeContext()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
         pinScreen.enterPin(DEFAULT_PIN)
