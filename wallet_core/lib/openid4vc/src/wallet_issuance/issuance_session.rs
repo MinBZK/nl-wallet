@@ -1431,11 +1431,14 @@ mod tests {
         assert_eq!(*wia_client.received_challenge.borrow(), Some(expected_challenge));
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone)]
     enum TokenResponseFields {
-        AuthorizationDetails,
-        Scope,
-        Both,
+        // Contains a list of credential config ids, each with a list of credential ids.
+        AuthorizationDetails(Vec<(&'static str, Vec<&'static str>)>),
+        // Contains a list of credential config ids.
+        Scope(Vec<&'static str>),
+        // Contains a combination of the two above variants.
+        Both(Vec<(&'static str, Vec<&'static str>)>, Vec<&'static str>),
         Neither,
     }
 
@@ -1445,36 +1448,38 @@ mod tests {
         issuer_metadata: IssuerMetadata,
         preview_payloads: Vec<(String, CredentialConfigurationId, Format, PreviewableCredentialPayload)>,
         type_metadata: TypeMetadata,
-        token_response_fields: TokenResponseFields,
+        token_response_fields: &TokenResponseFields,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, &IssuerRegistration::new_mock()).unwrap();
 
-        let scope = match token_response_fields {
-            TokenResponseFields::Scope | TokenResponseFields::Both => Some(
-                preview_payloads
+        let authorization_details = match &token_response_fields {
+            TokenResponseFields::AuthorizationDetails(identifiers) | TokenResponseFields::Both(identifiers, _) => {
+                let (config_ids, credential_ids): (Vec<_>, Vec<_>) = identifiers
                     .iter()
-                    // Assume that the Credential Configuration's scope is its identifier with a `_scope` suffix.
-                    .map(|(_, config_id, _, _)| format!("{config_id}_scope").parse().unwrap())
-                    .collect::<HashSet<_>>(),
-            ),
-            TokenResponseFields::AuthorizationDetails | TokenResponseFields::Neither => None,
-        };
-
-        let authorization_details = match token_response_fields {
-            TokenResponseFields::AuthorizationDetails | TokenResponseFields::Both => {
-                let credential_ids_and_identifiers = VecNonEmpty::try_from(
-                    preview_payloads
-                        .iter()
-                        .map(|(credential_id, config_id, _, _)| (config_id, credential_id.clone()))
-                        .collect_vec(),
-                )
-                .unwrap();
+                    .flat_map(|(config_id, credential_ids)| {
+                        credential_ids.iter().map(|credential_id| {
+                            (
+                                CredentialConfigurationId::from(config_id.to_string()),
+                                credential_id.to_string(),
+                            )
+                        })
+                    })
+                    .unzip();
+                let credential_ids_and_identifiers =
+                    VecNonEmpty::try_from(config_ids.iter().zip(credential_ids).collect_vec()).unwrap();
 
                 Some(AuthorizationDetails::from_credential_ids_and_identifiers(
                     credential_ids_and_identifiers,
                 ))
             }
-            TokenResponseFields::Scope | TokenResponseFields::Neither => None,
+            TokenResponseFields::Scope(_) | TokenResponseFields::Neither => None,
+        };
+
+        let scope = match &token_response_fields {
+            TokenResponseFields::Scope(scope) | TokenResponseFields::Both(_, scope) => {
+                Some(scope.iter().map(|value| value.to_string().parse().unwrap()).collect())
+            }
+            TokenResponseFields::AuthorizationDetails(_) | TokenResponseFields::Neither => None,
         };
 
         let mut mock_msg_client = MockVcMessageClient::new();
@@ -1543,12 +1548,28 @@ mod tests {
     }
 
     #[rstest]
-    #[case::authorization_details(TokenResponseFields::AuthorizationDetails, false)]
-    #[case::authorization_details_extra_configs(TokenResponseFields::AuthorizationDetails, true)]
-    #[case::scope(TokenResponseFields::Scope, false)]
-    #[case::scope_extra_configs(TokenResponseFields::Scope, true)]
-    #[case::authorization_details_and_scope(TokenResponseFields::Both, false)]
-    #[case::authorization_details_and_scope_extra_configs(TokenResponseFields::Both, true)]
+    #[case::authorization_details(
+        TokenResponseFields::AuthorizationDetails(vec![("config_id", vec!["credential_id"])]),
+        false
+    )]
+    #[case::authorization_details_extra_configs(
+        TokenResponseFields::AuthorizationDetails(vec![("config_id", vec!["credential_id"])]),
+        true
+    )]
+    #[case::scope(TokenResponseFields::Scope(vec!["config_id_scope"]), false)]
+    #[case::scope_extra_configs(TokenResponseFields::Scope(vec!["config_id_scope"]), true)]
+    #[case::authorization_details_and_scope(
+        TokenResponseFields::Both(vec![("config_id", vec!["credential_id"])], vec!["config_id_scope"]),
+        false
+    )]
+    #[case::authorization_details_and_invalid_scope(
+        TokenResponseFields::Both(vec![("config_id", vec!["credential_id"])], vec!["invalid_scope"]),
+        false
+    )]
+    #[case::authorization_details_and_scope_extra_configs(
+        TokenResponseFields::Both(vec![("config_id", vec!["credential_id"])], vec!["config_id_scope"]),
+        true
+    )]
     #[case::no_authorization_details_or_scope(TokenResponseFields::Neither, false)]
     // Note that the credential configurations cannot be limited if the Token Response contains neither
     // `authorization_details` nor `scope`.
@@ -1582,7 +1603,7 @@ mod tests {
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            token_response_fields,
+            &token_response_fields,
         )
         .expect("starting issuance session should succeed");
 
@@ -1620,12 +1641,12 @@ mod tests {
             ),
             vec![(
                 "credential_id".to_string(),
-                CredentialConfigurationId::from("unknown_config_id".to_string()),
+                CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            TokenResponseFields::AuthorizationDetails,
+            &TokenResponseFields::AuthorizationDetails(vec![("unknown_config_id", vec!["credential_id"])]),
         )
         .expect_err("starting issuance session should fail");
 
@@ -1650,9 +1671,14 @@ mod tests {
                     CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
                 )],
             ),
-            vec![],
+            vec![(
+                "credential_id".to_string(),
+                CredentialConfigurationId::from("config_id".to_string()),
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            )],
             TypeMetadata::pid_example(),
-            TokenResponseFields::Scope,
+            &TokenResponseFields::Scope(vec![]),
         )
         .expect_err("starting issuance session should fail");
 
@@ -1675,12 +1701,12 @@ mod tests {
             ),
             vec![(
                 "credential_id".to_string(),
-                CredentialConfigurationId::from("unknown_config_id".to_string()),
+                CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            TokenResponseFields::Scope,
+            &TokenResponseFields::Scope(vec!["unknown_config_id_scope"]),
         )
         .expect_err("starting issuance session should fail");
 
@@ -1714,7 +1740,7 @@ mod tests {
                 PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            TokenResponseFields::Neither,
+            &TokenResponseFields::Neither,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1748,7 +1774,7 @@ mod tests {
                 PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default()),
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
-            TokenResponseFields::Neither,
+            &TokenResponseFields::Neither,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1784,7 +1810,7 @@ mod tests {
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            TokenResponseFields::Neither,
+            &TokenResponseFields::Neither,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1827,7 +1853,7 @@ mod tests {
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
-            TokenResponseFields::Neither,
+            &TokenResponseFields::Neither,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1886,7 +1912,7 @@ mod tests {
                 ),
             ],
             TypeMetadata::pid_example(),
-            TokenResponseFields::Neither,
+            &TokenResponseFields::Neither,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2023,7 +2049,13 @@ mod tests {
         let credential_request_types = credential_request_types_from_preview(&credential_previews, NonZeroU8::MIN);
         let issuer_identifier = "https://issuer.example.com".parse().unwrap();
 
-        let config_id = credential_previews.first().config_id.clone();
+        let config_id = credential_previews
+            .iter()
+            .map(|preview| &preview.config_id)
+            .unique()
+            .exactly_one()
+            .unwrap()
+            .clone();
         let mut issuer_metadata = IssuerMetadata::new_mock(
             issuer_identifier,
             vec![(
