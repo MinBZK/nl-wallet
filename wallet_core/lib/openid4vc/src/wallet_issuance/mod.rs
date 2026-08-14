@@ -7,7 +7,6 @@ pub mod issuance_session;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use attestation_data::attributes::AttributesError;
@@ -25,6 +24,7 @@ use jwt::error::JwtX5cVerifyError;
 use mdoc::utils::cose::CoseError;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -36,7 +36,6 @@ use wscd::wscd::WiaClient;
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
-use self::issuance_session::IssuanceTypeMetadata;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
 use crate::client_auth::ClientAttestationMetadataError;
@@ -211,10 +210,6 @@ pub enum WalletIssuanceError {
     )]
     #[category(critical)]
     TypeMetadataUriMultipleAttestationTypes(Box<Vec<(IssuerUrl, Vec<String>)>>),
-
-    #[error("type metadata for vct \"{0}\" not found")]
-    #[category(critical)]
-    TypeMetadataNotFound(String),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
@@ -450,9 +445,7 @@ pub trait IssuanceSession {
 
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
-    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
-
-    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
+    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

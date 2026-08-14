@@ -320,8 +320,7 @@ impl FlutterApiErrorFields for IssuanceError {
 
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
-            | IssuanceError::IssuerServer { .. }
-            | IssuanceError::MissingTypeMetadata(_) => FlutterApiErrorType::Issuer,
+            | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
 
             IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {

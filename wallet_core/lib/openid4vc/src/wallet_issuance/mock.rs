@@ -1,14 +1,14 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
+use derive_more::From;
 use jwt::nonce::Nonce;
 use jwt::wia::WiaDisclosure;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-use utils::vec_at_least::VecNonEmpty;
 use wscd::mock_remote::MockWiaClient;
 use wscd::wscd::WiaClient;
 
@@ -16,7 +16,6 @@ use super::AuthorizationSession;
 use super::IssuanceDiscovery;
 use super::IssuanceFlow;
 use super::IssuanceSession;
-use super::IssuanceTypeMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use crate::token::CredentialPreview;
@@ -141,6 +140,10 @@ impl AuthorizationSession for MockAuthorizationSession {
     }
 }
 
+/// Helper type that allows `mockall` to return references from a mocked method.
+#[derive(From)]
+pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, NormalizedTypeMetadata)>);
+
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceSession {
@@ -150,9 +153,7 @@ mockall::mock! {
 
         pub fn reject(&self) -> Result<(), WalletIssuanceError>;
 
-        pub fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
-
-        pub fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
+        pub fn previews_with_metadata(&self) -> &MockIssuanceSessionPreviewsWithMetadata;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
@@ -171,12 +172,10 @@ impl IssuanceSession for MockIssuanceSession {
         self.reject()
     }
 
-    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview> {
-        self.credential_previews()
-    }
+    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {
+        let MockIssuanceSessionPreviewsWithMetadata(inner) = self.previews_with_metadata();
 
-    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata> {
-        self.type_metadata()
+        inner.iter().map(|(preview, metadata)| (preview, metadata))
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {

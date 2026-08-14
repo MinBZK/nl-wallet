@@ -45,11 +45,10 @@ where
     DCC: DisclosureClient,
 {
     pub(super) fn pid_preview<'a>(
-        previews: &'a [CredentialPreview],
+        mut previews: impl Iterator<Item = &'a CredentialPreview>,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<&'a CredentialPreview, RecoveryCodeError> {
         previews
-            .iter()
             .find(|preview| {
                 preview.format == Format::SdJwt
                     && pid_config

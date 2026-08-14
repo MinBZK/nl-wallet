@@ -2,7 +2,6 @@ use std::assert_matches;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroUsize;
-use std::slice::Iter;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -222,9 +221,9 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
     }
 }
 
-fn verify_issued_credentials(
+fn verify_issued_credentials<'a>(
     issued_creds: Vec<CredentialWithMetadata>,
-    credential_previews: Iter<CredentialPreview>,
+    credential_previews: impl Iterator<Item = &'a CredentialPreview>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -349,7 +348,7 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.credential_previews().len(), attestation_count);
+    assert_eq!(session.previews_with_metadata().count(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
@@ -357,7 +356,7 @@ async fn authorization_code_flow(
     let copy_count = 4;
     verify_issued_credentials(
         issued_creds,
-        session.credential_previews().iter(),
+        session.previews_with_metadata().map(|(preview, _)| preview),
         attestation_count.get(),
         copy_count,
     );
@@ -380,9 +379,11 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server).await;
 
-    let previews = session.credential_previews();
-    assert_eq!(previews.len().get(), 1);
-    let attributes = previews[0].credential_payload.attributes.as_ref();
+    let Ok((preview, _)) = session.previews_with_metadata().exactly_one() else {
+        panic!("issuance session should contain exactly one preview");
+    };
+
+    let attributes = preview.credential_payload.attributes.as_ref();
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
@@ -392,7 +393,12 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
-    verify_issued_credentials(issued_creds, session.credential_previews().iter(), 1, 4);
+    verify_issued_credentials(
+        issued_creds,
+        session.previews_with_metadata().map(|(preview, _)| preview),
+        1,
+        4,
+    );
 }
 
 #[rstest]
@@ -443,7 +449,7 @@ async fn pre_authorized_code_flow(
 
     verify_issued_credentials(
         issued_creds,
-        session.credential_previews().iter(),
+        session.previews_with_metadata().map(|(preview, _)| preview),
         attestation_count.get(),
         copy_count,
     );

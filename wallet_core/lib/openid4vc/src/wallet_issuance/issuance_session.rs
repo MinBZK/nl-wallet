@@ -879,15 +879,11 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 let copy_count = usize::from(self.session_state.batch_size.get());
 
                 // Get type metadata of attestation type
-                let Some(type_metadata) = self
+                let type_metadata = self
                     .session_state
                     .type_metadata
                     .get(&preview.credential_payload.attestation_type)
-                else {
-                    Err(WalletIssuanceError::TypeMetadataNotFound(
-                        preview.credential_payload.attestation_type.clone(),
-                    ))?
-                };
+                    .expect("type constructor guarantees that metadata is present for all offered attestation types");
 
                 // Consume the amount of copies from the front of `responses_and_keys`.
                 let copies = match preview.format {
@@ -997,12 +993,16 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(())
     }
 
-    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview> {
-        &self.session_state.credential_previews
-    }
+    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {
+        self.session_state.credential_previews.iter().map(|preview| {
+            let metadata = self
+                .session_state
+                .type_metadata
+                .get(&preview.credential_payload.attestation_type)
+                .expect("type constructor guarantees that metadata is present for all offered attestation types");
 
-    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata> {
-        &self.session_state.type_metadata
+            (preview, &metadata.normalized_metadata)
+        })
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {
@@ -1586,17 +1586,16 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let preview = &session.credential_previews()[0];
-        let type_metadata = session.type_metadata();
+        let Ok((preview, metadata)) = session.previews_with_metadata().exactly_one() else {
+            panic!("issuance session should contain exactly one preview")
+        };
+
         assert_matches!(
                 &preview.credential_payload.attributes.as_ref()["family_name"],
                 Attribute::Single(AttributeValue::Text(v)) if v == "De Bruijn");
 
         assert_eq!(
-            type_metadata
-                .get(&preview.credential_payload.attestation_type)
-                .unwrap()
-                .normalized_metadata,
+            *metadata,
             TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example())
                 .2
                 .into_normalized(&preview.credential_payload.attestation_type)
