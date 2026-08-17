@@ -106,6 +106,11 @@ pub enum AesSivError {
 #[error("AES-SIV keys must be distinct, but were equal")]
 pub struct AesSivKeysEqualError;
 
+const AES_BLOCK_SIZE: usize = 16;
+
+/// The size of an AES-CMAC output. AES-CMAC being based on AES, this equals [`AES_BLOCK_SIZE`].
+const AES_CMAC_SIZE: usize = AES_BLOCK_SIZE;
+
 /// An AES-SIV key, consisting of a key for AES-CMAC and another key for AES-CTR.
 ///
 /// In practice, K1 and K2 are always going to be the same type:
@@ -165,7 +170,7 @@ pub trait AesSivBackend {
         &self,
         key: &Self::MacKey,
         input: impl AsRef<[u8]> + Send + 'static,
-    ) -> Result<[u8; 16], Self::Error>;
+    ) -> Result<[u8; AES_CMAC_SIZE], Self::Error>;
 
     /// AES-CTR over `input`, keyed with K2, starting from `counter_block`.
     ///
@@ -180,7 +185,7 @@ pub trait AesSivBackend {
     async fn aes_ctr(
         &self,
         key: &Self::EncryptionKey,
-        counter_block: [u8; 16],
+        counter_block: [u8; AES_BLOCK_SIZE],
         input: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<Vec<u8>, Self::Error>;
 }
@@ -210,7 +215,7 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
     key: &AesSivKey<K::MacKey, K::EncryptionKey>,
     plaintext: Vec<u8>,
 ) -> Result<Vec<u8>, AesSivError> {
-    if plaintext.len() < 16 {
+    if plaintext.len() < AES_BLOCK_SIZE {
         return Err(AesSivError::PlaintextTooShort);
     }
 
@@ -259,13 +264,13 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
 ) -> Result<Zeroizing<Vec<u8>>, AesSivError> {
     // The ciphertext parameter has to consist of the integrity tag V, and then of at least 16 bytes
     // of actual ciphertext.
-    if ciphertext.len() < 16 * 2 {
+    if ciphertext.len() < AES_CMAC_SIZE + AES_BLOCK_SIZE {
         return Err(AesSivError::CiphertextTooShort);
     }
 
     // Z is V || C, so the leading block is the V that encryption put there.
-    let c = ciphertext.split_off(16);
-    let v: [u8; 16] = ciphertext.try_into().unwrap();
+    let c = ciphertext.split_off(AES_CMAC_SIZE);
+    let v: [u8; AES_CMAC_SIZE] = ciphertext.try_into().unwrap();
 
     // Q = V bitand (1^64 || 0^1 || 1^31 || 0^1 || 1^31)
     // The AES-CTR counter block.
@@ -305,12 +310,12 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
 /// nothing, and what remains is the two AES-CMAC calls below.
 ///
 /// [RFC 5297, section 2.4]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.4
-async fn s2v<K: AesSivBackend>(backend: &K, key: &K::MacKey, s1: &[u8]) -> Result<[u8; 16], AesSivError> {
+async fn s2v<K: AesSivBackend>(backend: &K, key: &K::MacKey, s1: &[u8]) -> Result<[u8; AES_CMAC_SIZE], AesSivError> {
     // D = AES-CMAC(K, <zero>)
     // The all-zero block is on purpose: it is the fixed starting value the RFC specifies for D.
     // With n = 1 the loop over S1..Sn-1 does not run, so D is not doubled and S1 is also Sn.
     let d = backend
-        .aes_cmac(key, vec![0; 16])
+        .aes_cmac(key, vec![0; AES_BLOCK_SIZE])
         .await
         .map_err(|e| AesSivError::BackendError(e.into()))?;
 
@@ -330,7 +335,7 @@ async fn s2v<K: AesSivBackend>(backend: &K, key: &K::MacKey, s1: &[u8]) -> Resul
 /// [RFC 5297, section 2.6]: `Q = V bitand (1^64 || 0^1 || 1^31 || 0^1 || 1^31)`.
 ///
 /// [RFC 5297, section 2.6]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.6
-fn ctr_iv(v: [u8; 16]) -> [u8; 16] {
+fn ctr_iv(v: [u8; AES_CMAC_SIZE]) -> [u8; AES_BLOCK_SIZE] {
     (u128::from_be_bytes(v) & 0xffff_ffff_ffff_ffff_7fff_ffff_7fff_ffff).to_be_bytes()
 }
 
@@ -340,13 +345,18 @@ fn ctr_iv(v: [u8; 16]) -> [u8; 16] {
 /// Only supports the case where len(A) >= 128 bits.
 ///
 /// [RFC 5297, section 2.1]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.1
-fn xorend(value: &[u8], mask: [u8; 16]) -> Result<Vec<u8>, AesSivError> {
-    if value.len() < 16 {
+fn xorend(value: &[u8], mask: [u8; AES_CMAC_SIZE]) -> Result<Vec<u8>, AesSivError> {
+    // Everything below is in terms of len(B), i.e. the length of `mask`, which is the CMAC output
+    // that S2V hands us rather than a block.
+    if value.len() < AES_CMAC_SIZE {
         return Err(AesSivError::PlaintextTooShort);
     }
 
-    let (head, tail) = value.split_at(value.len() - 16);
-    let tail = u128::from_be_bytes(tail.try_into().expect("tail is split off at exactly 16 bytes"));
+    let (head, tail) = value.split_at(value.len() - AES_CMAC_SIZE);
+    let tail = u128::from_be_bytes(
+        tail.try_into()
+            .expect("tail is split off at exactly AES_CMAC_SIZE bytes"),
+    );
 
     let mask = u128::from_be_bytes(mask);
 
@@ -357,6 +367,8 @@ fn xorend(value: &[u8], mask: [u8; 16]) -> Result<Vec<u8>, AesSivError> {
 pub mod test {
     use hex_literal::hex;
 
+    use crate::aes_siv::AES_BLOCK_SIZE;
+    use crate::aes_siv::AES_CMAC_SIZE;
     use crate::aes_siv::AesSivBackend;
     use crate::aes_siv::AesSivKey;
     use crate::aes_siv::aes_siv_decrypt;
@@ -395,7 +407,7 @@ pub mod test {
     ///
     /// [CMAC example values]: https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/AES_CMAC.pdf
     /// [SP 800-38B]: https://doi.org/10.6028/NIST.SP.800-38B
-    const AES_CMAC_TEST_CASES: [(&[u8], [u8; 16]); 4] = [
+    const AES_CMAC_TEST_CASES: [(&[u8], [u8; AES_CMAC_SIZE]); 4] = [
         (&hex!(""), hex!("028962f61b7bf89efc6b551f4667d983")),
         (
             &hex!("6bc1bee22e409f96e93d7e117393172a"),
@@ -416,7 +428,7 @@ pub mod test {
 
     struct AesCtrTestCase {
         /// The document's "Init. Counter".
-        pub counter_block: [u8; 16],
+        pub counter_block: [u8; AES_BLOCK_SIZE],
         pub plaintext: &'static [u8],
         pub ciphertext: &'static [u8],
     }
@@ -577,7 +589,7 @@ pub mod test {
             .unwrap();
 
             assert_eq!(z, case.expected, "case {index}");
-            assert_eq!(z.len(), 16 + case.plaintext.len(), "case {index}");
+            assert_eq!(z.len(), AES_CMAC_SIZE + case.plaintext.len(), "case {index}");
         }
     }
 
@@ -618,6 +630,8 @@ mod tests {
     use hex_literal::hex;
     use rstest::rstest;
 
+    use super::AES_BLOCK_SIZE;
+    use super::AES_CMAC_SIZE;
     use super::AesSivBackend;
     use super::AesSivError;
     use super::AesSivKey;
@@ -645,7 +659,7 @@ mod tests {
             &self,
             key: &Self::MacKey,
             value: impl AsRef<[u8]> + Send + 'static,
-        ) -> Result<[u8; 16], Self::Error> {
+        ) -> Result<[u8; AES_CMAC_SIZE], Self::Error> {
             let mut mac = Cmac::<Aes256>::new(key.into());
             mac.update(value.as_ref());
             let result = mac.finalize().into_bytes().into();
@@ -655,7 +669,7 @@ mod tests {
         async fn aes_ctr(
             &self,
             key: &Self::EncryptionKey,
-            counter_block: [u8; 16],
+            counter_block: [u8; AES_BLOCK_SIZE],
             input: impl AsRef<[u8]> + Send + 'static,
         ) -> Result<Vec<u8>, Self::Error> {
             let mut cipher = Ctr128BE::<Aes256>::new(key.into(), &counter_block.into());
@@ -693,14 +707,14 @@ mod tests {
         hex!("00000000000000000000000000000000"),
         &hex!("112233445566778899aabbccddeeff0011223344")
     )]
-    fn test_xorend(#[case] value: &[u8], #[case] mask: [u8; 16], #[case] expected: &[u8]) {
+    fn test_xorend(#[case] value: &[u8], #[case] mask: [u8; AES_CMAC_SIZE], #[case] expected: &[u8]) {
         assert_eq!(xorend(value, mask).unwrap(), expected);
     }
 
     #[test]
     fn test_xorend_rejects_short_plaintexts() {
         assert!(matches!(
-            xorend(&[1, 2, 3], [0; 16]).unwrap_err(),
+            xorend(&[1, 2, 3], [0; AES_CMAC_SIZE]).unwrap_err(),
             AesSivError::PlaintextTooShort
         ));
     }
@@ -739,7 +753,7 @@ mod tests {
         hex!("cf85b6c330dc2c219a34e95192a87be7")
     )]
     #[tokio::test]
-    async fn test_s2v(#[case] key: [u8; 32], #[case] s1: &[u8], #[case] expected: [u8; 16]) {
+    async fn test_s2v(#[case] key: [u8; 32], #[case] s1: &[u8], #[case] expected: [u8; AES_CMAC_SIZE]) {
         assert_eq!(s2v(&MemoryAesSivBackend, &key, s1).await.unwrap(), expected);
     }
 
@@ -751,14 +765,14 @@ mod tests {
     // Every bit set, so only the two masked bits may change, and nothing set at all.
     #[case(hex!("ffffffffffffffffffffffffffffffff"), hex!("ffffffffffffffff7fffffff7fffffff"))]
     #[case(hex!("00000000000000000000000000000000"), hex!("00000000000000000000000000000000"))]
-    fn test_ctr_iv(#[case] v: [u8; 16], #[case] expected: [u8; 16]) {
+    fn test_ctr_iv(#[case] v: [u8; AES_CMAC_SIZE], #[case] expected: [u8; AES_BLOCK_SIZE]) {
         assert_eq!(ctr_iv(v), expected);
     }
 
     #[rstest]
     #[case(0)]
     #[case(1)]
-    #[case(16 - 1)]
+    #[case(AES_BLOCK_SIZE - 1)]
     #[tokio::test]
     async fn test_aes_siv_rejects_short_plaintext(#[case] len: usize) {
         let error = aes_siv_encrypt(
@@ -796,9 +810,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case(16)]
-    #[case(16 + 3)]
-    #[case(16 * 3)]
+    #[case(AES_BLOCK_SIZE)]
+    #[case(AES_BLOCK_SIZE + 3)]
+    #[case(AES_BLOCK_SIZE * 3)]
     #[tokio::test]
     async fn test_aes_siv_round_trip(#[case] len: usize) {
         let (cmac_key, ctr_key) = split_key(KEY_A);
@@ -821,15 +835,15 @@ mod tests {
     // Flipping any single bit anywhere in Z has to be rejected, whether it lands in V or in C.
     #[rstest]
     #[case(0)]
-    #[case(16 - 1)]
-    #[case(16)]
-    #[case(16 * 3 - 1)]
+    #[case(AES_CMAC_SIZE - 1)]
+    #[case(AES_CMAC_SIZE)]
+    #[case(AES_CMAC_SIZE + AES_BLOCK_SIZE * 2 - 1)]
     #[tokio::test]
     async fn test_aes_siv_decrypt_rejects_tampering(#[case] index: usize) {
         let (cmac_key, ctr_key) = split_key(KEY_A);
         let key = AesSivKey::try_new(cmac_key, ctr_key).unwrap();
 
-        let mut ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &key, vec![0; 16 * 2])
+        let mut ciphertext = aes_siv_encrypt(&MemoryAesSivBackend, &key, vec![0; AES_BLOCK_SIZE * 2])
             .await
             .unwrap();
         ciphertext[index] ^= 1;
@@ -856,7 +870,7 @@ mod tests {
         let ciphertext = aes_siv_encrypt(
             &MemoryAesSivBackend,
             &AesSivKey::try_new(cmac_key, ctr_key).unwrap(),
-            vec![0; 16 * 2],
+            vec![0; AES_BLOCK_SIZE * 2],
         )
         .await
         .unwrap();
@@ -876,8 +890,8 @@ mod tests {
 
     #[rstest]
     #[case(0)]
-    #[case(16)]
-    #[case(16 * 2 - 1)]
+    #[case(AES_CMAC_SIZE)]
+    #[case(AES_CMAC_SIZE + AES_BLOCK_SIZE - 1)]
     #[tokio::test]
     async fn test_aes_siv_decrypt_rejects_short_ciphertext(#[case] len: usize) {
         let error = aes_siv_decrypt(
