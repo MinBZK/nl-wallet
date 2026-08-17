@@ -25,11 +25,11 @@ arbitrary:
   that doesn't need the other layers.
 - The rust, flutter, android layer can be reshuffled and are separated because
   they are pretty big layers.
-- The quality layer is on top as most tooling needs execute commands to get more
-  information (`flutter pub get`, `npm ci`).
+- The quality layer is on top as most tooling needs to execute commands to get
+  more information (`flutter pub get`, `pnpm install`).
 
 Note that small total images is explicitly a non-goal. We would like to have a
 single image because it makes CI life easy. It doesn't really matter how the
 layers are built up in. In Docker there isn't a difference in pulling or storage
-size (only in starting a bit) The only reason we name the layers is that we can
+size (only in starting a bit). The only reason we name the layers is that we can
 use these because SP has problems with pulling a big image.

@@ -14,15 +14,14 @@ abstract class Organization with _$Organization {
     required String id,
     required String legalName,
     required String displayName,
-    @LocalizedTextConverter() required LocalizedText? category,
-    @LocalizedTextConverter() required LocalizedText? description,
-    @AppImageDataConverter() required AppImageData logo,
-    String? webUrl,
-    String? privacyPolicyUrl,
+    @LocalizedTextConverter() LocalizedText? type,
+    @LocalizedTextConverter() LocalizedText? description,
+    @AppImageDataConverter() AppImageData? logo,
+    String? webUri,
+    String? supportUri,
+    String? privacyPolicyUri,
     required String countryCode,
-    @LocalizedTextConverter() LocalizedText? city,
-    @LocalizedTextConverter() LocalizedText? department,
-    String? organizationId,
+    required String organizationId,
   }) = _Organization;
 
   factory Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);

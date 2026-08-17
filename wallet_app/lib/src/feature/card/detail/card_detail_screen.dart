@@ -239,7 +239,7 @@ class CardDetailScreen extends StatelessWidget {
         onPressed: card.attestationId == null ? null : () => _onCardHistoryPressed(context, card.attestationId!),
       ),
       MenuItem(
-        leftIcon: OrganizationLogo(image: card.issuer.logo, size: 24),
+        leftIcon: card.issuer.logo == null ? null : OrganizationLogo(image: card.issuer.logo!, size: 24),
         label: Text.rich(context.l10n.cardDetailScreenIssuerCta.toTextSpan(context)),
         subtitle: Text.rich(card.issuer.displayName.toTextSpan(context)),
         onPressed: () => OrganizationDetailScreen.showPreloaded(

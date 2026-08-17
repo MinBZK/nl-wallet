@@ -158,7 +158,9 @@ void main() {
         /// Note that the icon itself is not scaled, only the container. This should mainly be used for logos.
         await tester.pumpWidgetWithAppWrapper(
           MenuItem(
-            leftIcon: OrganizationLogo(image: WalletMockData.organization.logo, size: kMenuItemNormalIconSize),
+            leftIcon: WalletMockData.organization.logo == null
+                ? null
+                : OrganizationLogo(image: WalletMockData.organization.logo!, size: kMenuItemNormalIconSize),
             label: const Text('Label'),
             subtitle: const Text('Subtitle'),
             onPressed: () {},
@@ -176,7 +178,9 @@ void main() {
         /// Note that the icon itself is not scaled, only the container. This should mainly be used for logos.
         await tester.pumpWidgetWithAppWrapper(
           MenuItem(
-            leftIcon: OrganizationLogo(image: WalletMockData.organization.logo, size: kMenuItemLargeIconSize),
+            leftIcon: WalletMockData.organization.logo == null
+                ? null
+                : OrganizationLogo(image: WalletMockData.organization.logo!, size: kMenuItemLargeIconSize),
             label: const Text('Label'),
             subtitle: const Text('Subtitle'),
             largeIcon: true,

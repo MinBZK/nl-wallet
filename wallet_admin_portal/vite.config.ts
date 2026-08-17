@@ -15,4 +15,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      // Proxy to the WalletBackend mock so the SPA and WalletBackend share one origin
+      '/api': 'http://localhost:3000',
+      '/auth': 'http://localhost:3000',
+    },
+  },
 })

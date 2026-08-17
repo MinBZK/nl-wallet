@@ -1,22 +1,21 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/extension/wallet_event_extension.dart';
-import '../../../util/mapper/context_mapper.dart';
+import '../../../util/formatter/country_code_formatter.dart';
+import '../../../util/launch_util.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
 import '../../info/info_screen.dart';
 import '../../organization/detail/organization_detail_screen.dart';
-import '../../policy/policy_screen.dart';
 import '../screen/placeholder_screen.dart';
 import '../screen/request_details_screen.dart';
 import '../widget/app_image.dart';
@@ -24,6 +23,8 @@ import '../widget/button/link_button.dart';
 import '../widget/button/list_button.dart';
 import '../widget/card/shared_attributes_card.dart';
 import '../widget/list/list_item.dart';
+import '../widget/menu_item.dart';
+import '../widget/organization/organization_logo.dart';
 
 class RequestDetailCommonBuilders {
   RequestDetailCommonBuilders._();
@@ -58,6 +59,29 @@ class RequestDetailCommonBuilders {
         WalletEventStatusHeader(event: event),
         if (side.bottom) const Divider(),
       ],
+    );
+  }
+
+  static Widget buildOrganizationSection(
+    BuildContext context, {
+    required Organization organization,
+    DividerSide side = DividerSide.none,
+  }) {
+    final countryLabel = CountryCodeFormatter.format(organization.countryCode);
+    return MenuItem(
+      leftIcon: organization.logo == null
+          ? null
+          : OrganizationLogo(image: organization.logo!, size: kMenuItemNormalIconSize),
+      dividerSide: side,
+      label: Text(
+        context.l10n.requestDetailScreenAboutOrganizationCta(organization.displayName),
+      ),
+      subtitle: countryLabel == null ? null : Text(countryLabel),
+      onPressed: () => OrganizationDetailScreen.showPreloaded(
+        context,
+        organization,
+        sharedDataWithOrganizationBefore: false,
+      ),
     );
   }
 
@@ -158,18 +182,45 @@ class RequestDetailCommonBuilders {
     required Policy policy,
     DividerSide side = DividerSide.none,
   }) {
-    final OrganizationPolicy orgPolicy = OrganizationPolicy(policy: policy, organization: organization);
-    final policyTextMapper = context.read<ContextMapper<OrganizationPolicy, String>>();
-    return ListItem(
-      label: Text.rich(context.l10n.historyDetailScreenTermsTitle.toTextSpan(context)),
-      subtitle: Text.rich(policyTextMapper.map(context, orgPolicy).toTextSpan(context)),
-      icon: const Icon(Icons.handshake_outlined),
-      button: LinkButton(
-        text: Text.rich(context.l10n.historyDetailScreenTermsCta.toTextSpan(context)),
-        onPressed: () => PolicyScreen.show(context, organization, policy),
-      ),
-      style: ListItemStyle.vertical,
-      dividerSide: side,
+    final privacyPolicyUrl = organization.privacyPolicyUri ?? policy.privacyPolicyUrl;
+    return Column(
+      mainAxisSize: .min,
+      children: [
+        if (side.top) const Divider(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Semantics(
+            explicitChildNodes: true /* make sure column's children are announced separately */,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Align(alignment: Alignment.centerLeft, child: Icon(Icons.handshake_outlined, size: 24)),
+                const SizedBox(height: 16),
+                Semantics(
+                  header: true,
+                  child: DefaultTextStyle(
+                    style: BaseWalletTheme.headlineExtraSmallTextStyle.copyWith(
+                      color: context.textTheme.titleMedium?.color,
+                    ),
+                    child: Text.rich(context.l10n.privacySectionTitle.toTextSpan(context)),
+                  ),
+                ),
+                SizedBox(height: privacyPolicyUrl != null ? 8 : 0),
+                if (privacyPolicyUrl != null)
+                  LinkButton(
+                    text: Text.rich(context.l10n.privacySectionCta.toTextSpan(context)),
+                    onPressed: () => launchUrlStringCatching(privacyPolicyUrl),
+                    icon: const Icon(Icons.north_east_outlined, size: 16),
+                    mainAxisAlignment: .spaceBetween,
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (side.bottom) const Divider(),
+      ],
     );
   }
 
@@ -193,7 +244,7 @@ class RequestDetailCommonBuilders {
         child: SizedBox(
           height: 36,
           width: 36,
-          child: AppImage(asset: organization.logo),
+          child: organization.logo == null ? null : AppImage(asset: organization.logo!),
         ),
       ),
     );

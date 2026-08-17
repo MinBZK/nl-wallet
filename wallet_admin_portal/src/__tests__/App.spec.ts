@@ -1,11 +1,20 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import { mount } from '@vue/test-utils'
 import App from '../App.vue'
 import router from '../router'
+import { mockAuthenticatedUser } from './mockAuth'
+
+beforeEach(() => {
+  mockAuthenticatedUser()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 async function mountAt(path: string) {
-  router.push(path)
+  await router.push(path)
   await router.isReady()
   return mount(App, { global: { plugins: [router] } })
 }

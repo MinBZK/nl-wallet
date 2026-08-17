@@ -16,7 +16,6 @@ import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/model/help/help_category.dart';
 import 'package:wallet/src/domain/model/help/help_subcategory.dart';
 import 'package:wallet/src/domain/model/permission/permission_check_result.dart';
-import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/tour/tour_video.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
@@ -108,17 +107,11 @@ import 'package:wallet/src/feature/tour/video/argument/tour_video_screen_argumen
 import 'package:wallet/src/navigation/wallet_routes.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
-import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 import '../wallet_app_test_widget.dart';
 import 'mocks/wallet_mock_data.dart';
 import 'mocks/wallet_mocks.dart';
-
-class MockOrganizationPolicyMapper extends Mock implements ContextMapper<OrganizationPolicy, String> {
-  @override
-  String map(BuildContext? context, OrganizationPolicy? input) => 'Mocked Agreement Text';
-}
 
 void main() {
   group('WalletRoutes Navigation', () {
@@ -306,7 +299,6 @@ List<SingleChildWidget> _getUseCaseProviders() {
 List<SingleChildWidget> _getOtherProviders() {
   return [
     RepositoryProvider<BannerCubit>(create: _createBannerCubitMock),
-    RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => MockOrganizationPolicyMapper()),
   ];
 }
 

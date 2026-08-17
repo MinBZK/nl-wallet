@@ -1,4 +1,5 @@
 *.lock -merge
+*-lock.yaml -merge
 *.pbxproj -merge
 
 # generated files

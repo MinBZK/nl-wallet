@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/document.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/list_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
@@ -114,8 +115,8 @@ class CheckAgreementPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          AppImage(asset: trustProvider.logo),
-          const SizedBox(width: 16),
+          trustProvider.logo == null ? null : AppImage(asset: trustProvider.logo!),
+          SizedBox(width: trustProvider.logo == null ? 0 : 16),
           Expanded(
             child: Text(
               context.l10n.checkAgreementPageSignProvider(
@@ -125,7 +126,7 @@ class CheckAgreementPage extends StatelessWidget {
               style: context.textTheme.bodyLarge,
             ),
           ),
-        ],
+        ].nonNullsList,
       ),
     );
   }

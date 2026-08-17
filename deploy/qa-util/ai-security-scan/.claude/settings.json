@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Task",
+      "AskUserQuestion",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git remote:*)",
+      "Bash(git -C:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(file:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(jq:*)",
+      "Bash(python3 .claude/skills/_lib/checkpoint.py:*)"
+    ],
+    "defaultMode": "default"
+  }
+}

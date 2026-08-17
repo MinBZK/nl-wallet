@@ -7,12 +7,9 @@
     "coverage": "vitest run --coverage",
     "lint": "eslint . --fix"
   },
-  "dependencies": {
-    "@lavamoat/preinstall-always-fail": "^2.1.1"
-  },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.10",
-    "allure-vitest": "^3.2.0",
-    "vitest": "^4.0.0"
+    "@vitest/coverage-v8": "^4.1.8",
+    "allure-vitest": "^3.5.0",
+    "vitest": "^4.1.8"
   }
 }

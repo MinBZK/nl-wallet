@@ -71,6 +71,7 @@ class RecoverPinTests : TestBase() {
 
         recoverPinSuccesScreen.clickToOverviewButton()
         assertTrue(dashboardScreen.visible(), "dashboard screen is not visible")
+        dashboardScreen.dismissNotificationsDrawer()
 
         dashboardScreen.clickMenuButton()
         menuScreen.clickLogoutButton()

@@ -1,33 +1,19 @@
 [[IgnoredVulns]]
 id = "RUSTSEC-2023-0071"
 ignoreUntil = 2027-01-01
-reason = "The vulnerability pertains to the use of RSA _private_ keys in the `rsa` crate. We only use this crate to evaluate RSA _public_ keys as found in Google CA certificates."
+reason = "The vulnerability pertains to the use of RSA _private_ keys in the `rsa` crate. We only use this crate to evaluate RSA _public_ keys as found in certificates."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0436"
 ignoreUntil = 2027-01-01
-reason = "`paste` is a transitive dependency that is no longer maintained but used by a couple dependencies. Waiting for dependencies to find alternatives."
+reason = "`paste` is a transitive dependency that is no longer maintained but used by `utoipa-axum`. Waiting for `utoipa-axum` to release a new version."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0141"
 ignoreUntil = 2027-01-01
-reason = "`bincode` is a transitive dependency that is no longer maintained but considered complete and used by `http-cache`. Waiting for `http-cache` to find alternatives."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0173"
-ignoreUntil = 2027-01-01
-reason = "`proc-macro-error2` is a transitive dependency that is no longer maintained used by `sea-bae` (`sea-orm-macros`) and `serde_valid_derive` (`serde_valid`). Waiting for those crates to find alternatives."
+reason = "`bincode` is a transitive dependency that is no longer maintained but considered complete and used by `http-cache`. Waiting for `http-cache` to release a new version."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0235"
 ignoreUntil = 2027-01-01
 reason = "`rkyv` is a transitive dependency that is only used by `lightningcss` through `parcel_sourcemap`. This last crate has not been updated recently. Additionally, `lightningcss` is only ever used as a build dependency."
-
-[[PackageOverrides]]
-name = "brace-expansion"
-version = "2.1.3"
-ecosystem = "npm"
-vulnerability.ignore = true
-effectiveUntil = 2026-11-01
-reason = "GHSA-mh99-v99m-4gvg: contains the backported fix (EXPANSION_MAX_LENGTH), but the advisory only lists 5.0.8 as fixed. Can remove when the advisory marks 2.1.3 as fixed."
-

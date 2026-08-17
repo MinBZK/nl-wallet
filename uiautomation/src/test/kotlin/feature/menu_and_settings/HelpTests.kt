@@ -15,6 +15,7 @@ import screen.help.ActivitiesHelpScreen
 import screen.help.ContactScreen
 import screen.help.HelpAndInfoScreen
 import screen.menu.MenuScreen
+import util.MobileActions.Companion.ANIMATION_SETTLE_MILLIS
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.6 Get help")
@@ -55,9 +56,13 @@ class HelpTests : TestBase() {
         assertTrue(contactScreen.visible(), "Contact screen not visible")
 
         contactScreen.clickBottomBackButton()
+        Thread.sleep(ANIMATION_SETTLE_MILLIS)
         activitiesHelpScreen.clickBottomBackButton()
+        Thread.sleep(ANIMATION_SETTLE_MILLIS)
         activitiesHelpScreen.clickBottomBackButton()
+        Thread.sleep(ANIMATION_SETTLE_MILLIS)
         helpAndInfoScreen.clickBottomBackButton()
+        Thread.sleep(ANIMATION_SETTLE_MILLIS)
         helpAndInfoScreen.clickBottomBackButton()
         assertTrue(menuScreen.menuListButtonsVisible(), "Menu screen not visible")
     }

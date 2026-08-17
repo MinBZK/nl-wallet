@@ -51,6 +51,10 @@
   --color-border: #e8eaef;
   --color-text-primary: #152a62;
   --color-text-secondary: #445581;
+  --color-primary: #383ede;
+  --color-primary-hover: #2f35c4;
+  --color-surface-tint: #f3f4fb;
+  --color-text-muted: #6b7280;
   --header-height: 86px;
   --footer-height: 76px;
 

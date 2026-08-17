@@ -1,19 +1,27 @@
 <template>
-  <div class="user-card">
+  <div ref="cardRef" class="user-card">
     <img v-if="avatarUrl" class="avatar avatar-image" :src="avatarUrl" alt="" />
     <div v-else class="avatar avatar-initials" aria-hidden="true">{{ initials }}</div>
     <div class="user-meta">
       <div class="user-name">{{ name }}</div>
       <div class="user-role">{{ role }}</div>
     </div>
-    <div class="chevron">
-      <img src="@/assets/icons/chevron_forward.svg" alt="Open Profile" />
+    <ChevronToggleButton v-model:isOpen="isOpen" ariaLabel="Open profiel" />
+
+    <div v-if="isOpen" class="popover" role="menu">
+      <div class="popover-title">Profiel</div>
+      <button type="button" class="popover-action">
+        <img src="@/assets/icons/account_box.svg" alt="" />
+        <span>Foto aanpassen</span>
+      </button>
+      <button type="button" class="logout-button" @click="logout">Uitloggen</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import ChevronToggleButton from '@/components/ChevronToggleButton.vue'
 
 const props = defineProps<{
   name: string
@@ -29,10 +37,27 @@ const initials = computed(() => {
     .join('')
     .toUpperCase()
 })
+
+const isOpen = ref(false)
+const cardRef = ref<HTMLElement | null>(null)
+
+function handleClickOutside(event: MouseEvent) {
+  if (isOpen.value && cardRef.value && !cardRef.value.contains(event.target as Node)) {
+    isOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
+
+function logout() {
+  window.location.href = '/auth/logout'
+}
 </script>
 
 <style scoped>
 .user-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -59,8 +84,8 @@ const initials = computed(() => {
   align-items: center;
   justify-content: center;
   background: #e8eaf9;
-  color: #383ede;
-  font-size: 13px;
+  color: var(--color-primary);
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -71,21 +96,65 @@ const initials = computed(() => {
 .user-name {
   color: var(--color-text-primary);
   font-weight: 700;
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 1rem;
+  line-height: 1.375;
 }
 
 .user-role {
   font-weight: 400;
   color: var(--color-text-secondary);
-  font-size: 14px;
-  line-height: 20px;
-  margin-top: 2px;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  margin-top: 0.125rem;
 }
 
-.chevron {
+.popover {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(100% + 16px);
   display: flex;
-  width: 24px;
-  height: 24px;
+  flex-direction: column;
+  gap: 14px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(21, 42, 98, 0.14);
+  z-index: 10;
+}
+
+.popover-title {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.popover-action {
+  display: flex;
+  color: var(--color-text-primary);
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.logout-button {
+  padding: 0.75rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #f5f6ff;
 }
 </style>

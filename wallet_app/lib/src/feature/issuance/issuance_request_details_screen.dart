@@ -2,12 +2,9 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/disclosure/disclose_card_request.dart';
-import '../../domain/model/organization.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/extension/object_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_constants.dart';
 import '../check_attributes/check_attributes_screen.dart';
@@ -18,14 +15,11 @@ import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/card/shared_attributes_card.dart';
 import '../common/widget/list/list_item.dart';
-import '../common/widget/menu_item.dart';
-import '../common/widget/organization/organization_logo.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import '../error/error_page.dart';
 import '../info/info_screen.dart';
-import '../organization/detail/organization_detail_screen.dart';
 import 'bloc/issuance_bloc.dart';
 
 class IssuanceRequestDetailsScreen extends StatelessWidget {
@@ -80,10 +74,10 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildOrganization(
+                RequestDetailCommonBuilders.buildOrganizationSection(
                   context,
-                  state.organization,
-                  DividerSide.top,
+                  organization: state.organization,
+                  side: DividerSide.top,
                 ),
                 RequestDetailCommonBuilders.buildPurpose(
                   context,
@@ -105,24 +99,6 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
         ),
         const BottomBackButton(),
       ],
-    );
-  }
-
-  Widget _buildOrganization(BuildContext context, Organization organization, DividerSide side) {
-    return MenuItem(
-      leftIcon: OrganizationLogo(image: organization.logo, size: kMenuItemNormalIconSize),
-      dividerSide: side,
-      label: Text(
-        context.l10n.requestDetailScreenAboutOrganizationCta(
-          organization.displayName,
-        ),
-      ),
-      subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf((_) => organization.category != null),
-      onPressed: () => OrganizationDetailScreen.showPreloaded(
-        context,
-        organization,
-        sharedDataWithOrganizationBefore: false,
-      ),
     );
   }
 

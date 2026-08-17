@@ -25,9 +25,9 @@ defineProps<{
 }
 
 h1 {
-  font-size: 24px;
-  line-height: 34px;
-  color: #1f2a44;
+  font-size: 1.5rem;
+  line-height: 1.4167;
+  color: var(--color-text-primary);
   margin-bottom: 0;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -37,8 +37,8 @@ h1 {
 
 p {
   color: var(--color-text-secondary);
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 1rem;
+  line-height: 1.375;
   margin-top: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;

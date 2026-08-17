@@ -95,7 +95,9 @@ running the tests and reporting the results on the console.
     bundle exec fastlane ios build \
     build_mode:release \
     demo_index_url:https://example.com/ \
-    universal_link_base:app.example.com`.
+    universal_link_base:app.example.com \
+    show_debug_options:true`
+- .
   followed by signing it with:
    `bundle exec fastlane ios sign app_store:false`
 - Provide the built app to the tests with the `test.config.app.path` system

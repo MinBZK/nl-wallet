@@ -14,8 +14,9 @@ const double kDefaultHorizontalPadding = 16;
 const kPinDigits = 6;
 const kMockPin = '123456';
 
-// DigiD
+// External URLs
 const kDigidWebsiteUrl = 'https://www.digid.nl/inlogmethodes/identiteitsbewijs';
+const kSafeBrowsingUrl = 'https://veiliginternetten.nl';
 
 // Mocking
 const kDefaultMockDelay = Duration(milliseconds: 1000);

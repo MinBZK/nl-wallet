@@ -1,9 +1,12 @@
 package feature.security
 
+import data.TestConfigRepository.Companion.testConfig
+import domain.Platform
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
@@ -62,6 +65,9 @@ class UserEntersPinTests : TestBase() {
     @DisplayName("LTC37 Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.")
     @Tags(Tag("a11yBatch2"))
     fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
+        // Network toggling is only implemented for Android (via adb). On real iOS
+        // devices it requires the RemoteXPC tunnel / condition inducer.
+        assumeTrue(testConfig.platform == Platform.ANDROID, "Skipping on iOS: network toggling not supported")
         setUp(testInfo)
         try {
             pinScreen.disableInternetConnection()

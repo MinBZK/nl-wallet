@@ -1,0 +1,19 @@
+# The repository root .gitignore ignores `.claude` everywhere; re-include ours,
+# because the skills in it are the whole point of this component.
+!.claude/
+
+# Skill scratch state (per-run checkpoints, safe to delete)
+.threat-model-state/
+.triage-state/
+
+# Skill outputs — collected as CI artifacts, reviewed, then discarded; not committed.
+# Anchored to this directory so e.g. docs/triage.md is not caught by
+# case-insensitive matching on macOS.
+/VULN-FINDINGS.json
+/VULN-FINDINGS.md
+/VULN-FINDINGS-DIFF.json
+/VULN-FINDINGS-DIFF.md
+/TRIAGE.json
+/TRIAGE.md
+
+.DS_Store

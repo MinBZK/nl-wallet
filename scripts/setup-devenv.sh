@@ -268,7 +268,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     cd "${WALLET_WEB_DIR}"
 
     export VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
-    pnpm install --frozen-lockfile --ignore-scripts && pnpm run build
+    pnpm install --frozen-lockfile && pnpm run build
 
     cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/
 

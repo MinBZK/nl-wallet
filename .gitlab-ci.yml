@@ -10,12 +10,15 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: "260803-7bcc83a9"
+  BUILD_TAG: "260812-a12f3bc9"
   HSM_CLIENT_TAG: "bfca57de"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
   DO_NOT_TRACK: "true"
   PYTHONUNBUFFERED: 1
+  # Override at pipeline trigger time to reuse an existing app build from a different commit when running E2E tests.
+  # Defaults to the current pipeline's commit so normal scheduled runs are unaffected.
+  APP_COMMIT_SHA: $CI_COMMIT_SHA
 
 # Kubernetes is used to deploy, but also to access our secrets for various services.
 # By default it uses the GitLab CI variables, but can be overridden using the variables repo.
@@ -87,6 +90,7 @@ variables:
   rules:
     - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "web"
 
 .on-schedule-trigger-scan:
   rules:
