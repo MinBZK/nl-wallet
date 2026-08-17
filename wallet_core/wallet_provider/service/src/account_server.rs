@@ -428,6 +428,8 @@ impl From<PinPolicyEvaluation> for InstructionError {
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
+    /// Include a newly generated `wallet_id` in the challenge, so that a replayed challenge will result in a
+    /// uniqueness constraint validation when writing the new registration to the database.
     wallet_id: WalletId,
 
     #[serde(with = "ts_seconds")]
@@ -629,6 +631,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Verifying challenge and extracting wallet id");
 
+        // Verify that this Wallet Provider originated the registration challenge, then extract the `wallet_id` that was
+        // generated as part of this challenge. As a form of replay protection, this will cause a uniqueness constraint
+        // violation when writing the registration to the database below, should the Wallet Provider receive any
+        // subsequent registration using the exact same challenge.
         let challenge = &unverified.challenge;
         let wallet_id =
             Self::verify_registration_challenge(&self.keys.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
