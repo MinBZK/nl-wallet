@@ -263,7 +263,7 @@ impl<H> TestCase<H> {
         let (hsm, identifier) = self.test_params();
         let data = random_bytes(32);
 
-        Hsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encryption)
+        Hsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
             .await
             .unwrap();
 
@@ -282,7 +282,7 @@ impl<H> TestCase<H> {
     {
         let (hsm, identifier) = self.test_params();
 
-        Hsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encryption)
+        Hsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
             .await
             .unwrap();
 
@@ -302,10 +302,7 @@ impl<H> TestCase<H> {
     {
         let (hsm, identifier) = self.test_params();
 
-        let key_handle = hsm
-            .generate_aes_key(&identifier, AesKeyUsage::Encryption)
-            .await
-            .unwrap();
+        let key_handle = hsm.generate_aes_key(&identifier, AesKeyUsage::Encrypt).await.unwrap();
 
         let data = random_bytes(32);
         let counter_block: [u8; AES_BLOCK_SIZE] = random_bytes(AES_BLOCK_SIZE).try_into().unwrap();
@@ -357,7 +354,7 @@ impl<H> TestCase<H> {
     {
         let (hsm, identifier) = self.test_params();
 
-        let _ = Pkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Encryption)
+        let _ = Pkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
             .await
             .unwrap();
 
@@ -386,10 +383,7 @@ impl<H> TestCase<H> {
         // Note the usages: CMAC needs CKA_SIGN, CTR needs CKA_ENCRYPT, and the two halves of K
         // must be distinct keys.
         let mac_key = hsm.generate_aes_key(&mac_key_id, AesKeyUsage::Cmac).await.unwrap();
-        let encryption_key = hsm
-            .generate_aes_key(&enc_key_id, AesKeyUsage::Encryption)
-            .await
-            .unwrap();
+        let encryption_key = hsm.generate_aes_key(&enc_key_id, AesKeyUsage::Encrypt).await.unwrap();
 
         let key = AesSivKey::try_new(mac_key, encryption_key).unwrap();
 
@@ -460,7 +454,7 @@ impl TestCase<Pkcs11Hsm> {
 
         self.ensure_keys_can_be_imported(hsm).await;
 
-        test_aes_ctr(hsm, self.hsm_key_generator(hsm, AesKeyUsage::Encryption)).await;
+        test_aes_ctr(hsm, self.hsm_key_generator(hsm, AesKeyUsage::Encrypt)).await;
 
         self
     }
@@ -499,7 +493,7 @@ impl TestCase<Pkcs11Hsm> {
         hsm: &Pkcs11Hsm,
     ) -> impl AsyncFn(([u8; 32], [u8; 32])) -> (PrivateKeyHandle, PrivateKeyHandle) {
         let cmac_key_generator = self.hsm_key_generator(hsm, AesKeyUsage::Cmac);
-        let ctr_key_generator = self.hsm_key_generator(hsm, AesKeyUsage::Encryption);
+        let ctr_key_generator = self.hsm_key_generator(hsm, AesKeyUsage::Encrypt);
 
         async move |(mac_key, encryption_key)| {
             (

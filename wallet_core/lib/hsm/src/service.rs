@@ -146,14 +146,14 @@ pub enum SigningMechanism {
 
 #[derive(Debug, Clone, Copy)]
 pub enum AesKeyUsage {
-    Encryption,
+    Encrypt,
     Cmac,
 }
 
 impl AesKeyUsage {
     fn attribute(self) -> Attribute {
         match self {
-            AesKeyUsage::Encryption => Attribute::Encrypt(true),
+            AesKeyUsage::Encrypt => Attribute::Encrypt(true),
             AesKeyUsage::Cmac => Attribute::Sign(true),
         }
     }
