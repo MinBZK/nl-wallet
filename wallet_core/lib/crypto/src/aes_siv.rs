@@ -94,10 +94,6 @@ pub enum AesSivError {
     CiphertextTooShort,
     #[error("AES-SIV backend error: {0}")]
     BackendError(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    /// Tampering, a wrong CMAC key and a wrong CTR key all end up here, and the message is
-    /// deliberately vague about which: a caller that can tell those apart could learn something
-    /// about the key it is holding.
     #[error("decryption failed")]
     AuthenticationFailed,
 }
