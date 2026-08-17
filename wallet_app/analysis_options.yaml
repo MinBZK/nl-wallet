@@ -82,7 +82,6 @@ linter:
     sort_unnamed_constructors_first: true
     tighten_type_of_initializing_formals: true
     unawaited_futures: true
-    unnecessary_await_in_return: true
     unnecessary_breaks: true
     unnecessary_lambdas: true
     unnecessary_library_directive: true
