@@ -157,7 +157,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         emit(
           DisclosureCheckOrganizationForLogin(
             relyingParty: result.relyingParty,
-            originUrl: result.originUrl,
             sessionType: result.sessionType,
             policy: result.policy,
             cardRequests: result.cardRequests,
@@ -230,7 +229,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           emit(
             DisclosureCheckOrganizationForLogin(
               relyingParty: startDisclosureResult.relyingParty,
-              originUrl: startDisclosureResult.originUrl,
               policy: startDisclosureResult.policy,
               cardRequests: startDisclosureResult.cardRequests,
               sessionType: startDisclosureResult.sessionType,
