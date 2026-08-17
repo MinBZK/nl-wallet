@@ -112,10 +112,20 @@ where
             .await;
 
         match result {
-            Ok(claims) => match claims.status_list.single_unpack(idx.try_into().unwrap()) {
-                StatusType::Valid => RevocationStatus::Valid,
-                _ => RevocationStatus::Revoked,
-            },
+            Ok(claims) => {
+                let Ok(index) = usize::try_from(idx) else {
+                    warn!("status list index {idx} does not fit in usize");
+                    return RevocationStatus::Corrupted;
+                };
+                match claims.status_list.get(index) {
+                    Some(StatusType::Valid) => RevocationStatus::Valid,
+                    Some(_) => RevocationStatus::Revoked,
+                    None => {
+                        warn!("status list index {idx} is out of bounds");
+                        RevocationStatus::Corrupted
+                    }
+                }
+            }
             Err(err) => match err {
                 StatusListVerificationError::Networking(e) => {
                     warn!("Status list token fetching fails: {e}");
@@ -240,6 +250,21 @@ mod test {
             .now_or_never()
             .unwrap();
         assert_eq!(RevocationStatus::Revoked, status);
+
+        // An out-of-bounds index corrupts the reference instead of panicking
+        let status = verifier
+            .verify(
+                &TrustAnchors::from(&ca),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                StatusList(StatusListClaim {
+                    uri: "https://example.com/statuslists/1".parse().unwrap(),
+                    idx: u32::MAX,
+                }),
+                &MockTimeGenerator::default(),
+            )
+            .now_or_never()
+            .unwrap();
+        assert_eq!(RevocationStatus::Corrupted, status);
 
         // Corrupted when the sub claim doesn't match
         let status = verifier

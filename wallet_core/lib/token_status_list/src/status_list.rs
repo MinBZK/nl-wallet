@@ -162,21 +162,17 @@ impl PackedStatusList {
         &self.bits
     }
 
-    pub fn single_unpack(&self, index: usize) -> StatusType {
-        let byte = self.lst[self.bits.packed_index(index)];
+    pub(crate) fn get(&self, index: usize) -> Option<StatusType> {
+        let byte = self.lst.get(self.bits.packed_index(index))?;
         let status = (byte >> self.bits.shift_for_index(index)) & self.bits.mask();
-        StatusType::from(status)
-    }
-
-    pub fn partial_unpack(&self, indices: &[usize]) -> Vec<StatusType> {
-        indices.iter().map(|index| self.single_unpack(*index)).collect()
+        Some(StatusType::from(status))
     }
 
     pub fn unpack(&self) -> StatusList {
         let len = self.bits.unpacked_len(self.lst.len());
         let sparse: SparseStatusVec = (0..len)
             .filter_map(|index| {
-                let status = self.single_unpack(index);
+                let status = self.get(index)?;
                 (status != StatusType::Valid).then_some((index, status))
             })
             .collect();
@@ -494,14 +490,19 @@ pub mod test {
     }
 
     #[rstest]
-    #[case(vec![0, 1993, 35460], vec![StatusType::Invalid, StatusType::Suspended, StatusType::ApplicationSpecific(3)])]
-    #[case(vec![1, 2, 3], vec![StatusType::Valid, StatusType::Valid, StatusType::Valid])]
-    #[case(vec![0, 1], vec![StatusType::Invalid, StatusType::Valid])]
-    #[case(vec![1, 0], vec![StatusType::Valid, StatusType::Invalid])]
-    fn test_partial_unpack(#[case] indices: Vec<usize>, #[case] expected: Vec<StatusType>) {
+    #[case(0, StatusType::Invalid)]
+    #[case(1, StatusType::Valid)]
+    #[case(1993, StatusType::Suspended)]
+    #[case(35460, StatusType::ApplicationSpecific(3))]
+    fn test_get(#[case] index: usize, #[case] expected: StatusType) {
         let packed = FOUR_BIT_STATUS_LIST.to_owned().pack();
-        let unpacked = packed.partial_unpack(&indices);
-        assert_eq!(unpacked, expected);
+        assert_eq!(packed.get(index), Some(expected));
+    }
+
+    #[test]
+    fn test_get_out_of_bounds() {
+        let packed = PackedStatusList::new(8);
+        assert_eq!(packed.get(8), None);
     }
 
     #[test]
