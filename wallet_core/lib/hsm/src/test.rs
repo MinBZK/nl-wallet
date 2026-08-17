@@ -309,6 +309,11 @@ impl<H> TestCase<H> {
         let encrypted = hsm.encrypt_ctr(&key_handle, counter_block, data.clone()).await.unwrap();
         assert_ne!(data, encrypted);
 
+        // When encrypting something with the same key and same counter block, CTR encryption should be
+        // deterministic.
+        let encrypted_again = hsm.encrypt_ctr(&key_handle, counter_block, data.clone()).await.unwrap();
+        assert_eq!(encrypted_again, encrypted);
+
         // CTR turns the block cipher into a stream cipher, so there is no padding and the
         // ciphertext is exactly as long as the plaintext.
         assert_eq!(data.len(), encrypted.len());
