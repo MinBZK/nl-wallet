@@ -270,7 +270,9 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
 
     // Z is V || C, so the leading block is the V that encryption put there.
     let c = ciphertext.split_off(AES_CMAC_SIZE);
-    let v: [u8; AES_CMAC_SIZE] = ciphertext.try_into().unwrap();
+    let v: [u8; AES_CMAC_SIZE] = ciphertext
+        .try_into()
+        .expect("split_off(AES_CMAC_SIZE) leaves exactly 16 bytes");
 
     // Q = V bitand (1^64 || 0^1 || 1^31 || 0^1 || 1^31)
     // The AES-CTR counter block.
