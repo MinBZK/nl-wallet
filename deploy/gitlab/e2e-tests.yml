@@ -345,7 +345,6 @@ run-automation-permissions-tests-android:
   variables:
     TESTS: "suite.PermissionsTestSuite"
     AUTO_GRANT_PERMISSIONS: "false"
-    IOS_DEFAULT_ALERT_ACTION: "dismiss"
 
 run-automation-card-and-history-tests-ios:
   extends: .run-automation-tests-ios-default
@@ -396,7 +395,7 @@ run-automation-permissions-tests-ios:
   extends: .run-automation-tests-ios-default
   variables:
     TEST_SUITE: "suite.PermissionsTestSuite"
-    IOS_DEFAULT_ALERT_ACTION: "dismiss"
+    AUTO_GRANT_PERMISSIONS: "false"
 
 run-automation-english-tests-ios:
   extends: [.automation-tests-macos-devices, .install-ios-signing]

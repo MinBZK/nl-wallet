@@ -20,7 +20,7 @@ import screen.web.demo.issuer.IssuerWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer")
-class GenericIssuance : TestBase() {
+class GenericIssuanceTests : TestBase() {
 
     private lateinit var indexWebPage: DemoIndexWebPage
     private lateinit var issuerWebPage: IssuerWebPage

@@ -28,6 +28,7 @@ import screen.organization.OrganizationDetailScreen
 import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
+import util.MobileActions.Companion.SCREEN_TRANSITION_MILLIS
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC6 Complete & card history overview and history events")
@@ -140,6 +141,7 @@ class HistoryTests : TestBase() {
     @DisplayName("LTC23 View card-specific activity list")
     fun verifyCardHistory(testInfo: TestInfo) {
         setUp(testInfo)
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         cardDetailScreen.clickCardHistoryButton()
         assertTrue(cardHistoryScreen.visible(), "card history screen is not visible")

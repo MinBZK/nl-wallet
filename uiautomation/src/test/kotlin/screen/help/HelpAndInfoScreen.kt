@@ -4,6 +4,7 @@ import util.MobileActions
 
 class HelpAndInfoScreen : MobileActions() {
 
+    private val title = l10n.getString("menuScreenHelpCta")
     private val appTourVideoButton = l10n.getString("menuScreenTourCta")
     private val contactButton = l10n.getString("contactScreenTitle")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
@@ -13,7 +14,7 @@ class HelpAndInfoScreen : MobileActions() {
     fun clickAppTourVideoButton()= clickElementContainingText(appTourVideoButton.substringBefore("'"))
 
     fun visible() =
-        elementContainingTextVisible(appTourVideoButton)
+        elementContainingTextVisible(title)
 
     fun clickContactButton() {
         scrollToElementWithText(contactButton)
