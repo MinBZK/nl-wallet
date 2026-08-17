@@ -219,9 +219,7 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
 
     // V = S2V(K1, AD1, ..., ADn, P), with n = 0.
     // This acts as the integrity tag.
-    let v = s2v(backend, &key.mac_key, &plaintext)
-        .await
-        .map_err(|e| AesSivError::BackendError(e.into()))?;
+    let v = s2v(backend, &key.mac_key, &plaintext).await?;
 
     // Q = V bitand (1^64 || 0^1 || 1^31 || 0^1 || 1^31)
     // The AES-CTR counter block.
@@ -290,11 +288,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
     // comparison has to be constant time: a byte-at-a-time one would let an attacker who can submit
     // ciphertexts and time the rejection forge a V one byte at a time. Hence subtle's ConstantTimeEq
     // below, whereas the natural `t != v` on two [u8; 16] is not constant time.
-    let tag_matches: bool = s2v(backend, &key.mac_key, plaintext.as_slice())
-        .await
-        .map_err(|e| AesSivError::BackendError(e.into()))?
-        .ct_eq(&v)
-        .into();
+    let tag_matches: bool = s2v(backend, &key.mac_key, plaintext.as_slice()).await?.ct_eq(&v).into();
     if !tag_matches {
         return Err(AesSivError::AuthenticationFailed);
     }
