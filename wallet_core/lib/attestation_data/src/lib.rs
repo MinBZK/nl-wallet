@@ -3,6 +3,7 @@ pub mod auth;
 pub mod credential_payload;
 pub mod disclosure;
 pub mod disclosure_type;
+pub mod registration_certificate;
 pub mod validity;
 pub mod x509;
 
