@@ -77,11 +77,13 @@ pub enum HsmError {
 
 #[cfg(feature = "test")]
 impl HsmError {
-    /// Whether this error means the token refuses to accept externally supplied key material at
-    /// all, as opposed to the import having been malformed.
+    /// Returns `true` if this error, as returned by [`Pkcs11Hsm::import_aes_key()`], means that the
+    /// token refuses to accept externally supplied key material at all. It returns `false` for all
+    /// other errors, e.g. when the token does support key import but this particular call was
+    /// malformed.
     ///
     /// Importing a key is only ever done to run known-answer tests, and production HSMs commonly
-    /// forbid it by policy.
+    /// forbid it by policy, so `true` means "skip these tests" rather than "something went wrong".
     pub fn is_key_import_unsupported(&self) -> bool {
         use cryptoki::error::Error;
         use cryptoki::error::RvError;
