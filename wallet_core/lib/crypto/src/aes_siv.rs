@@ -350,15 +350,8 @@ fn ctr_iv(v: [u8; AES_CMAC_SIZE]) -> [u8; AES_BLOCK_SIZE] {
 fn xorend(value: &[u8], mask: [u8; AES_CMAC_SIZE]) -> Result<Vec<u8>, AesSivError> {
     // Everything below is in terms of len(B), i.e. the length of `mask`, which is the CMAC output
     // that S2V hands us rather than a block.
-    if value.len() < AES_CMAC_SIZE {
-        return Err(AesSivError::PlaintextTooShort);
-    }
-
-    let (head, tail) = value.split_at(value.len() - AES_CMAC_SIZE);
-    let tail = u128::from_be_bytes(
-        tail.try_into()
-            .expect("tail is split off at exactly AES_CMAC_SIZE bytes"),
-    );
+    let (head, &tail) = value.split_last_chunk::<16>().ok_or(AesSivError::PlaintextTooShort)?;
+    let tail = u128::from_be_bytes(tail);
 
     let mask = u128::from_be_bytes(mask);
 
