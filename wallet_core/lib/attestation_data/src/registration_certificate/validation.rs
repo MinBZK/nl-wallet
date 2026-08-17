@@ -393,3 +393,378 @@ fn is_phone_number(value: &str) -> bool {
             .chars()
             .all(|character| character.is_ascii_digit() || matches!(character, '-' | ' ' | '(' | ')'))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use chrono::TimeZone;
+    use chrono::Utc;
+    use crypto::x509::DistinguishedName;
+    use serde_json::json;
+    use utils::vec_nonempty;
+
+    use super::super::payload::Credential;
+    use super::super::payload::MultiLanguageString;
+    use super::super::payload::UncheckedRegistrationCertificate;
+    use super::super::test::legal_person_access_certificate_subject;
+    use super::super::test::valid_payload;
+    use super::super::test::valid_payload_json;
+    use super::super::test::validation_time;
+    use super::ANNEX_A_3_1_SUB_ENTITLEMENTS;
+    use super::CredentialSetValidationError;
+    use super::MultiLanguageStringSetValidationError;
+    use super::RegistrationCertificateValidationError;
+    use super::SERVICE_PROVIDER_ENTITLEMENT;
+    use super::SubjectType;
+    use crate::x509::RelyingParty;
+
+    #[test]
+    fn validate_payload_based_on_annex_c_example() {
+        let certificate = valid_payload()
+            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+            .unwrap();
+
+        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+    }
+
+    #[test]
+    fn validate_natural_person_subject_binding() {
+        let mut json = valid_payload_json();
+        let object = json.as_object_mut().unwrap();
+        object.remove("sub_ln");
+        object.insert("sub".to_string(), json!("12345678"));
+        object.insert("sub_gn".to_string(), json!("Jane"));
+        object.insert("sub_fn".to_string(), json!("Doe"));
+        let payload: UncheckedRegistrationCertificate = serde_json::from_value(json).unwrap();
+        let access_subject = RelyingParty::try_from(DistinguishedName::new_natural_person(
+            "Jane Doe".to_string(),
+            "DE".to_string(),
+            "12345678".to_string(),
+            "Doe".to_string(),
+            "Jane".to_string(),
+        ))
+        .unwrap();
+
+        let certificate = payload.validate_structure(&access_subject, validation_time()).unwrap();
+        assert_eq!(certificate.payload().sub_gn.as_deref(), Some("Jane"));
+    }
+
+    #[test]
+    fn reject_ambiguous_subject_type() {
+        let mut payload = valid_payload();
+        payload.sub_gn = Some("Jane".to_string());
+        payload.sub_fn = Some("Doe".to_string());
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::AmbiguousSubjectType)
+        );
+    }
+
+    #[test]
+    fn reject_subject_identifier_mismatch() {
+        let mut payload = valid_payload();
+        payload.sub = "different".to_string();
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch {
+                field: "organizationIdentifier"
+            })
+        );
+    }
+
+    #[test]
+    fn reject_access_certificate_subject_type_mismatch() {
+        let payload = valid_payload();
+        let access_subject = RelyingParty::try_from(DistinguishedName::new_natural_person(
+            "Jane Doe".to_string(),
+            "DE".to_string(),
+            "12345678".to_string(),
+            "Doe".to_string(),
+            "Jane".to_string(),
+        ))
+        .unwrap();
+
+        assert_matches!(
+            payload.validate_structure(&access_subject, validation_time()),
+            Err(
+                RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
+                    registration: SubjectType::LegalPerson,
+                    access: SubjectType::NaturalPerson,
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn service_provider_requires_credentials_and_purpose() {
+        let mut missing_credentials = valid_payload();
+        missing_credentials.entitlements = vec_nonempty![SERVICE_PROVIDER_ENTITLEMENT.parse().unwrap()];
+        missing_credentials.credentials = None;
+
+        assert_matches!(
+            missing_credentials.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::MissingServiceProviderCredentials)
+        );
+
+        let mut missing_purpose = valid_payload();
+        missing_purpose.entitlements = vec_nonempty![SERVICE_PROVIDER_ENTITLEMENT.parse().unwrap()];
+        missing_purpose.credentials = Some(Vec::new());
+        missing_purpose.purpose = None;
+        assert_matches!(
+            missing_purpose.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::MissingServiceProviderPurpose)
+        );
+    }
+
+    #[test]
+    fn reject_unrecognized_entitlement() {
+        let mut payload = valid_payload();
+        payload.entitlements = vec_nonempty!["https://example.com/unknown-entitlement".parse().unwrap()];
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidEntitlement { .. })
+        );
+    }
+
+    #[test]
+    fn reject_sub_entitlement_without_annex_a_2_entitlement() {
+        let mut payload = valid_payload();
+        payload.entitlements = vec_nonempty!["https://uri.etsi.org/19475/SubEntitlement/psp/psp-ai".parse().unwrap(),];
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::MissingAnnexA2Entitlement)
+        );
+    }
+
+    #[test]
+    fn accept_normative_annex_a_3_1_sub_entitlements() {
+        for sub_entitlement in ANNEX_A_3_1_SUB_ENTITLEMENTS {
+            let mut payload = valid_payload();
+            payload.entitlements = vec_nonempty![
+                "https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider"
+                    .parse()
+                    .unwrap(),
+                sub_entitlement.parse().unwrap(),
+            ];
+
+            payload
+                .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn reject_unknown_sub_entitlement() {
+        let mut payload = valid_payload();
+        payload.entitlements = vec_nonempty![
+            "https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider"
+                .parse()
+                .unwrap(),
+            "https://uri.etsi.org/19475/SubEntitlement/psp/not-defined"
+                .parse()
+                .unwrap(),
+        ];
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidEntitlement { index: 1, .. })
+        );
+    }
+
+    #[test]
+    fn validate_expiration_window() {
+        let issued_at = Utc.with_ymd_and_hms(2024, 2, 29, 12, 0, 0).unwrap();
+        let now = Utc.with_ymd_and_hms(2025, 2, 28, 11, 59, 59).unwrap();
+
+        let mut valid = valid_payload();
+        valid.iat = issued_at;
+        valid.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 0).unwrap());
+        valid
+            .validate_structure(&legal_person_access_certificate_subject(), now)
+            .unwrap();
+
+        let mut too_late = valid_payload();
+        too_late.iat = issued_at;
+        too_late.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 1).unwrap());
+        assert_matches!(
+            too_late.validate_structure(&legal_person_access_certificate_subject(), now),
+            Err(RegistrationCertificateValidationError::ExpirationTooLate)
+        );
+
+        let mut expired = valid_payload();
+        expired.iat = issued_at;
+        expired.exp = Some(now);
+        assert_matches!(
+            expired.validate_structure(&legal_person_access_certificate_subject(), now),
+            Err(RegistrationCertificateValidationError::Expired { .. })
+        );
+    }
+
+    #[test]
+    fn validate_multi_language_strings() {
+        for language_tag in [
+            "en",
+            "en-US",
+            "zh-Hant-TW",
+            "de-CH-1901",
+            "sl-rozaj-biske",
+            "en-a-aaa-b-ccc-x-private",
+            "i-klingon",
+            "x-private",
+        ] {
+            let mut payload = valid_payload();
+            payload.srv_description = vec_nonempty![vec_nonempty![MultiLanguageString {
+                lang: language_tag.to_string(),
+                value: "value".to_string(),
+            }]];
+            payload
+                .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+                .unwrap();
+        }
+
+        for language_tag in ["", "e", "en_US", "en-", "en-US-abc", "en-a", "en-x", "en-ü"] {
+            let mut payload = valid_payload();
+            payload.srv_description = vec_nonempty![vec_nonempty![MultiLanguageString {
+                lang: language_tag.to_string(),
+                value: "value".to_string(),
+            }]];
+            assert_matches!(
+                payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+                Err(RegistrationCertificateValidationError::InvalidServiceDescription {
+                    source: MultiLanguageStringSetValidationError::InvalidLanguageTag { .. },
+                    ..
+                }),
+                "{language_tag}"
+            );
+        }
+
+        let mut payload = valid_payload();
+        payload.srv_description = vec_nonempty![vec_nonempty![MultiLanguageString {
+            lang: "en".to_string(),
+            value: "  ".to_string(),
+        }]];
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidServiceDescription {
+                source: MultiLanguageStringSetValidationError::EmptyValue { index: 0 },
+                ..
+            })
+        );
+    }
+
+    #[test]
+    fn validate_credential_metadata() {
+        let mut payload = valid_payload();
+        payload.credentials = Some(Vec::new());
+        payload
+            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+            .unwrap();
+
+        let empty_doctype: Credential = serde_json::from_value(json!({
+            "format": "mso_mdoc",
+            "meta": { "doctype_value": " " }
+        }))
+        .unwrap();
+        let mut payload = valid_payload();
+        payload.credentials = Some(vec![empty_doctype]);
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidCredentialSet {
+                source: CredentialSetValidationError::EmptyDoctype { index: 0 },
+                ..
+            })
+        );
+
+        let empty_vct: Credential = serde_json::from_value(json!({
+            "format": "dc+sd-jwt",
+            "meta": { "vct_values": ["urn:eudi:pid:1", " "] }
+        }))
+        .unwrap();
+        let mut payload = valid_payload();
+        payload.credentials = Some(vec![empty_vct]);
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidCredentialSet {
+                source: CredentialSetValidationError::EmptyVctValue {
+                    index: 0,
+                    value_index: 1,
+                },
+                ..
+            })
+        );
+    }
+
+    #[test]
+    fn reject_invalid_contact_fields() {
+        let mut invalid_support = valid_payload();
+        invalid_support.support_uri = "not a URL or email address".to_string();
+        assert_matches!(
+            invalid_support.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidSupportUri)
+        );
+
+        let mut invalid_email = valid_payload();
+        invalid_email.supervisory_authority.email = Some("supervisory.example.com".to_string());
+        assert_matches!(
+            invalid_email.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidSupervisoryAuthorityEmail)
+        );
+
+        for phone in ["49 123 4567890", "+49 CALL-ME"] {
+            let mut invalid_phone = valid_payload();
+            invalid_phone.supervisory_authority.phone = Some(phone.to_string());
+            assert_matches!(
+                invalid_phone.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+                Err(RegistrationCertificateValidationError::InvalidSupervisoryAuthorityPhone)
+            );
+        }
+    }
+
+    #[test]
+    fn accept_url_schemes_independent_of_application_http_policy() {
+        let mut payload = valid_payload();
+        payload.registry_uri = "ftp://registry.example.com".parse().unwrap();
+        payload.privacy_policy = Some("ftp://example.com/privacy".parse().unwrap());
+        payload.certificate_policy = "ftp://registrar.example.com/certificate-policy".parse().unwrap();
+
+        payload
+            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+            .unwrap();
+    }
+
+    #[test]
+    fn reject_invalid_core_values() {
+        let mut invalid_id = valid_payload();
+        invalid_id.id = Some("  ".to_string());
+        assert_matches!(
+            invalid_id.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::EmptyField { field: "id" })
+        );
+
+        let mut invalid_name = valid_payload();
+        invalid_name.name = Some("  ".to_string());
+        assert_matches!(
+            invalid_name.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::EmptyField { field: "name" })
+        );
+
+        let mut invalid_country = valid_payload();
+        invalid_country.country = "NLD".to_string();
+        assert_matches!(
+            invalid_country.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidCountry)
+        );
+
+        let mut invalid_policy = valid_payload();
+        invalid_policy.policy_id.clear();
+        assert_matches!(
+            invalid_policy.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::MissingPolicyIdentifier)
+        );
+    }
+}
