@@ -88,10 +88,10 @@ use zeroize::Zeroizing;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AesSivError {
-    #[error("plaintext too short: must be at least 16 bytes")]
-    PlaintextTooShort,
-    #[error("ciphertext too short: must be at least 32 bytes")]
-    CiphertextTooShort,
+    #[error("plaintexts shorter than 16 bytes are not supported")]
+    ShortPlaintextsUnsupported,
+    #[error("ciphertext shorter than 32 bytes are not supported")]
+    ShortCiphertextsUnsupported,
     #[error("AES-SIV backend error: {0}")]
     BackendError(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("decryption failed")]
@@ -203,7 +203,7 @@ pub trait AesSivBackend {
 ///
 /// - No associated data is supported.
 /// - The plaintext must be at least 128 bits, i.e. 16 bytes; shorter ones are rejected with
-///   [`AesSivError::PlaintextTooShort`].
+///   [`AesSivError::ShortPlaintextsUnsupported`].
 ///
 /// [RFC 5297, section 2.6]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.6
 pub async fn aes_siv_encrypt<K: AesSivBackend>(
@@ -212,7 +212,7 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
     plaintext: Vec<u8>,
 ) -> Result<Vec<u8>, AesSivError> {
     if plaintext.len() < AES_BLOCK_SIZE {
-        return Err(AesSivError::PlaintextTooShort);
+        return Err(AesSivError::ShortPlaintextsUnsupported);
     }
 
     // Forget our `plaintext` copy as soon as possible.
@@ -250,7 +250,7 @@ pub async fn aes_siv_encrypt<K: AesSivBackend>(
 ///
 /// - no associated data is supported.
 /// - The ciphertext must be at least 32 bytes, i.e. 256 bits. Shorter ciphertexts are rejected with
-///   [`AesSivError::CiphertextTooShort`].
+///   [`AesSivError::ShortCiphertextsUnsupported`].
 ///
 /// [RFC 5297, section 2.7]: https://datatracker.ietf.org/doc/html/rfc5297#section-2.7
 pub async fn aes_siv_decrypt<K: AesSivBackend>(
@@ -261,7 +261,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
     // The ciphertext parameter has to consist of the integrity tag V, and then of at least 16 bytes
     // of actual ciphertext.
     if ciphertext.len() < AES_CMAC_SIZE + AES_BLOCK_SIZE {
-        return Err(AesSivError::CiphertextTooShort);
+        return Err(AesSivError::ShortCiphertextsUnsupported);
     }
 
     // Z is V || C, so the leading block is the V that encryption put there.
@@ -346,7 +346,9 @@ fn ctr_iv(v: [u8; AES_CMAC_SIZE]) -> [u8; AES_BLOCK_SIZE] {
 fn xorend(value: &[u8], mask: [u8; AES_CMAC_SIZE]) -> Result<Vec<u8>, AesSivError> {
     // Everything below is in terms of len(B), i.e. the length of `mask`, which is the CMAC output
     // that S2V hands us rather than a block.
-    let (head, &tail) = value.split_last_chunk::<16>().ok_or(AesSivError::PlaintextTooShort)?;
+    let (head, &tail) = value
+        .split_last_chunk::<16>()
+        .ok_or(AesSivError::ShortPlaintextsUnsupported)?;
     let tail = u128::from_be_bytes(tail);
 
     let mask = u128::from_be_bytes(mask);
@@ -707,7 +709,7 @@ mod tests {
     fn test_xorend_rejects_short_plaintexts() {
         assert!(matches!(
             xorend(&[1, 2, 3], [0; AES_CMAC_SIZE]).unwrap_err(),
-            AesSivError::PlaintextTooShort
+            AesSivError::ShortPlaintextsUnsupported
         ));
     }
 
@@ -775,7 +777,7 @@ mod tests {
         .await
         .unwrap_err();
 
-        assert!(matches!(error, AesSivError::PlaintextTooShort));
+        assert!(matches!(error, AesSivError::ShortPlaintextsUnsupported));
     }
 
     /// Async version of [`std::convert::identity`].
@@ -894,7 +896,7 @@ mod tests {
         .await
         .unwrap_err();
 
-        assert!(matches!(error, AesSivError::CiphertextTooShort));
+        assert!(matches!(error, AesSivError::ShortCiphertextsUnsupported));
     }
 
     #[test]
