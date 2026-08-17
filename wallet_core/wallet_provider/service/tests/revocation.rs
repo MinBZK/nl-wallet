@@ -175,7 +175,8 @@ async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, pub
         .unwrap()
         .1
         .status_list
-        .single_unpack(
+        .unpack()
+        .get(
             claim
                 .idx
                 .try_into()
