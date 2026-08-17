@@ -630,6 +630,8 @@ mod tests {
     use hex_literal::hex;
     use rstest::rstest;
 
+    use crate::utils::random_bytes;
+
     use super::AES_BLOCK_SIZE;
     use super::AES_CMAC_SIZE;
     use super::AesSivBackend;
@@ -907,8 +909,9 @@ mod tests {
 
     #[test]
     fn test_aes_siv_rejects_identical_keys() {
+        let key: [u8; 32] = random_bytes(32).try_into().unwrap();
         assert!(matches!(
-            AesSivKey::try_new([0; 32], [0; 32]).unwrap_err(),
+            AesSivKey::try_new(key, key).unwrap_err(),
             AesSivKeysEqualError
         ));
     }
