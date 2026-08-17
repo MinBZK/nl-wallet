@@ -621,8 +621,6 @@ mod tests {
     use hex_literal::hex;
     use rstest::rstest;
 
-    use crate::utils::random_bytes;
-
     use super::AES_BLOCK_SIZE;
     use super::AES_CMAC_SIZE;
     use super::AesSivBackend;
@@ -637,6 +635,7 @@ mod tests {
     use super::test::KEY_B;
     use super::test::split_key;
     use super::xorend;
+    use crate::utils::random_bytes;
 
     /// An [`AesSivBackend`] that performs both operations in memory, on raw keys handed to it by
     /// the caller, for tests and for local development.
