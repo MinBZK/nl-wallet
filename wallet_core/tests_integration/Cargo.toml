@@ -337,6 +337,7 @@ itertools.workspace = true
 # This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
+# * hsm_test_key_import
 # * db_test
 android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
 hsm = { path = "../lib/hsm", features = ["test"] }

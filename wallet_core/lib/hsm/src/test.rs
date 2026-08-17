@@ -45,6 +45,17 @@ use crate::service::Pkcs11Hsm;
 use crate::service::PrivateKeyHandle;
 use crate::settings;
 
+pub async fn execute_hsm_test<F>(description: String, test: F)
+where
+    F: AsyncFnOnce(TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm>,
+{
+    let hsm_setup = HsmSetup::new();
+    let test_case = TestCase::new(&hsm_setup, "hsm.toml", description);
+    let test_case = test(test_case).await;
+    // Explicitly drop, to capture possible errors.
+    drop(AsyncDropper::new(test_case));
+}
+
 static HSM_SETUP: AtomicBool = AtomicBool::new(false);
 
 #[derive(Default)]
