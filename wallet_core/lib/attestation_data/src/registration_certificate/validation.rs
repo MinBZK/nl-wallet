@@ -451,15 +451,34 @@ mod tests {
         assert_eq!(certificate.payload().sub_gn.as_deref(), Some("Jane"));
     }
 
-    #[test]
-    fn reject_ambiguous_subject_type() {
+    #[rstest]
+    #[case::legal_and_given_name(Some("Jane"), None)]
+    #[case::legal_and_family_name(None, Some("Doe"))]
+    #[case::legal_and_full_natural_name(Some("Jane"), Some("Doe"))]
+    fn reject_ambiguous_subject_type(#[case] sub_gn: Option<&str>, #[case] sub_fn: Option<&str>) {
         let mut payload = valid_payload();
-        payload.sub_gn = Some("Jane".to_string());
-        payload.sub_fn = Some("Doe".to_string());
+        payload.sub_gn = sub_gn.map(str::to_string);
+        payload.sub_fn = sub_fn.map(str::to_string);
 
         assert_matches!(
             payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
             Err(RegistrationCertificateValidationError::AmbiguousSubjectType)
+        );
+    }
+
+    #[rstest]
+    #[case::no_subject_fields(None, None)]
+    #[case::given_name_only(Some("Jane"), None)]
+    #[case::family_name_only(None, Some("Doe"))]
+    fn reject_undetermined_subject_type(#[case] sub_gn: Option<&str>, #[case] sub_fn: Option<&str>) {
+        let mut payload = valid_payload();
+        payload.sub_ln = None;
+        payload.sub_gn = sub_gn.map(str::to_string);
+        payload.sub_fn = sub_fn.map(str::to_string);
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::UndeterminedSubjectType)
         );
     }
 
@@ -517,6 +536,40 @@ mod tests {
         assert_matches!(
             missing_purpose.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
             Err(RegistrationCertificateValidationError::MissingServiceProviderPurpose)
+        );
+    }
+
+    #[test]
+    fn reject_purpose_with_invalid_language_tag() {
+        let mut payload = valid_payload();
+        payload.purpose = Some(vec_nonempty![MultiLanguageString {
+            lang: "invalid_language_tag".to_string(),
+            value: "Purpose".to_string(),
+        }]);
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidMultiLanguageStringSet {
+                field: "purpose",
+                source: MultiLanguageStringSetValidationError::InvalidLanguageTag { index: 0, .. },
+            })
+        );
+    }
+
+    #[test]
+    fn reject_purpose_with_empty_value() {
+        let mut payload = valid_payload();
+        payload.purpose = Some(vec_nonempty![MultiLanguageString {
+            lang: "en".to_string(),
+            value: "  ".to_string(),
+        }]);
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidMultiLanguageStringSet {
+                field: "purpose",
+                source: MultiLanguageStringSetValidationError::EmptyValue { index: 0 },
+            })
         );
     }
 
