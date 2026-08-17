@@ -425,7 +425,7 @@ impl TestCase<Pkcs11Hsm> {
     /// in step with the one `cryptoki` itself uses. Neither has anything else watching it.
     ///
     /// Known answers need keys with known values, so this imports its keys instead of generating
-    /// them. SoftHSM supports this, but a production HSM will not. If these tests woud be run
+    /// them. SoftHSM supports this, but a production HSM will not. If these tests would be run
     /// against an actual HSM, these tests will fail and will have to be disabled.
     pub async fn aes_siv_encrypt_test_vectors(self: TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm> {
         let hsm = self.hsm.as_ref().unwrap();
