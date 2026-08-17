@@ -403,7 +403,10 @@ impl<H> TestCase<H> {
             let ciphertext_again = aes_siv_encrypt(hsm, &key, plaintext.clone()).await.unwrap();
             assert_eq!(ciphertext, ciphertext_again);
 
-            assert_eq!(aes_siv_decrypt(hsm, &key, ciphertext).await.unwrap(), plaintext);
+            assert_eq!(
+                aes_siv_decrypt(hsm, &key, ciphertext).await.unwrap().as_slice(),
+                plaintext.as_slice()
+            );
         }
 
         self

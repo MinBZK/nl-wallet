@@ -256,7 +256,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
     backend: &K,
     key: &AesSivKey<K::MacKey, K::EncryptionKey>,
     mut ciphertext: Vec<u8>,
-) -> Result<Vec<u8>, AesSivError> {
+) -> Result<Zeroizing<Vec<u8>>, AesSivError> {
     // The ciphertext parameter has to consist of the integrity tag V, and then of at least 16 bytes
     // of actual ciphertext.
     if ciphertext.len() < 16 * 2 {
@@ -273,8 +273,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
 
     // P = CTR(K2, Q, C)
     // Use `Zeroizing` for `plaintext`, so if the MAC check below fails, we don't leave the plaintext
-    // around in memory. Note that this covers only this buffer and only the failure path: on
-    // success the `to_vec()` at the end hands the caller an ordinary `Vec` that is theirs to clear.
+    // around in memory.
     let plaintext = Zeroizing::new(
         backend
             .aes_ctr(&key.encryption_key, q, c)
@@ -293,7 +292,7 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
         return Err(AesSivError::AuthenticationFailed);
     }
 
-    Ok(plaintext.to_vec())
+    Ok(plaintext)
 }
 
 /// S2V from [RFC 5297, section 2.4], over a single input string: derives the 128-bit `V` that is
@@ -601,7 +600,7 @@ pub mod test {
             .await
             .unwrap();
 
-            assert_eq!(plaintext, case.plaintext, "case {index}");
+            assert_eq!(plaintext.as_slice(), case.plaintext, "case {index}");
         }
     }
 }
@@ -803,7 +802,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            aes_siv_decrypt(&MemoryAesSivBackend, &key, ciphertext).await.unwrap(),
+            aes_siv_decrypt(&MemoryAesSivBackend, &key, ciphertext)
+                .await
+                .unwrap()
+                .as_slice(),
             plaintext
         );
     }
