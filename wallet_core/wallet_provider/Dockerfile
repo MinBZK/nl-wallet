@@ -7,7 +7,7 @@ ARG GCR_IO_PROXY=gcr.io
 FROM ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-hsm-pkcs11-client:${HSM_CLIENT_TAG} AS hsm-client
 
 ### Bundle Stage ###
-FROM ${GCR_IO_PROXY}/distroless/cc-debian12:nonroot
+FROM ${GCR_IO_PROXY}/distroless/cc-debian13:nonroot
 
 COPY --from=hsm-client /opt/utimaco/Crypto_APIs/PKCS11_R3/lib/libcs_pkcs11_R3.so .
 
