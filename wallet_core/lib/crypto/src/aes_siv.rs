@@ -104,7 +104,7 @@ pub enum AesSivError {
 
 #[derive(Debug, thiserror::Error)]
 #[error("AES-SIV keys must be distinct, but were equal")]
-pub struct AesSivKeyErrorKeysEqual;
+pub struct AesSivKeysEqualError;
 
 /// An AES-SIV key, consisting of a key for AES-CMAC and another key for AES-CTR.
 ///
@@ -128,9 +128,9 @@ impl<K: Eq> AesSivKey<K, K> {
     /// identical keys would break security. This equality check is however no more than a best effort,
     /// because in the case of a HSM, one can always construct two unequal references to a single key.
     /// This cannot be prevented here. It is the callers responsibility to not do this!
-    pub fn try_new(mac_key: K, encryption_key: K) -> Result<Self, AesSivKeyErrorKeysEqual> {
+    pub fn try_new(mac_key: K, encryption_key: K) -> Result<Self, AesSivKeysEqualError> {
         if mac_key == encryption_key {
-            return Err(AesSivKeyErrorKeysEqual);
+            return Err(AesSivKeysEqualError);
         }
 
         Ok(Self {
@@ -622,7 +622,7 @@ mod tests {
     use super::AesSivBackend;
     use super::AesSivError;
     use super::AesSivKey;
-    use super::AesSivKeyErrorKeysEqual;
+    use super::AesSivKeysEqualError;
     use super::aes_siv_decrypt;
     use super::aes_siv_encrypt;
     use super::ctr_iv;
@@ -885,7 +885,7 @@ mod tests {
     fn test_aes_siv_rejects_identical_keys() {
         assert!(matches!(
             AesSivKey::try_new([0; 32], [0; 32]).unwrap_err(),
-            AesSivKeyErrorKeysEqual
+            AesSivKeysEqualError
         ));
     }
 }
