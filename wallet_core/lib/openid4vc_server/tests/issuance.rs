@@ -1678,7 +1678,7 @@ async fn pre_authorized_code_flow_credential_request() {
         credential_url.clone(),
         &Method::POST,
         Some(&token_response.access_token),
-        Some(dpop_nonce.clone()),
+        Some(dpop_nonce.parse().unwrap()),
     )
     .unwrap()
     .to_string();
@@ -1734,7 +1734,7 @@ async fn pre_authorized_code_flow_credential_request() {
         credential_url.clone(),
         &Method::POST,
         Some(&token_response.access_token),
-        Some(dpop_nonce),
+        Some(dpop_nonce.parse().unwrap()),
     )
     .unwrap()
     .to_string();

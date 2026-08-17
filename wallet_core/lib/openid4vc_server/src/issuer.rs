@@ -276,7 +276,7 @@ where
 
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
-        HeaderValue::from_str(&dpop_nonce).unwrap(),
+        HeaderValue::from_str(dpop_nonce.as_ref()).unwrap(),
     )]);
     Ok((headers, Json(response)))
 }

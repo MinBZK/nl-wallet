@@ -22,7 +22,6 @@ use crypto::EcdsaKeySend;
 use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::utils::random_string;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -80,6 +79,7 @@ use crate::credential_configurations::CredentialConfigurationsError;
 use crate::credential_offer::CredentialOffer;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::dpop::DpopNonce;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::jose::JwsAlgorithm;
@@ -354,7 +354,7 @@ pub struct AccessTokenIssued {
     pub access_token: AccessToken,
     pub prepared_credentials: VecNonEmpty<PreparedCredential>,
     pub dpop_public_key: PublicKey,
-    pub dpop_nonce: String,
+    pub dpop_nonce: DpopNonce,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -946,7 +946,7 @@ where
         token_request: TokenRequest,
         dpop: Dpop,
         wia_disclosure: WiaDisclosure,
-    ) -> Result<(TokenResponse, String), TokenRequestError> {
+    ) -> Result<(TokenResponse, DpopNonce), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
         let session = self
@@ -1206,7 +1206,7 @@ fn utc_now_truncated_to_days() -> DateTime<Utc> {
 /// the `openid4vc` layer should persist in its place. The `Err` variant is boxed to keep the size of
 /// the `Result` reasonable.
 type ProcessTokenRequest =
-    Result<(TokenResponse, String, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
+    Result<(TokenResponse, DpopNonce, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
 
 impl Grant {
     /// Verify that the `grant_type` of the token request matches the grant captured for this session.
@@ -1362,7 +1362,7 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &impl NonceStore,
-    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
+    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, DpopNonce), TokenRequestError> {
         let wia_claims = verify_wia_and_consume_nonce(
             issuer_data,
             nonce_store,
@@ -1402,7 +1402,7 @@ impl Session<AuthCodeIssued> {
     /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
     fn finalize_token_response(
         self,
-        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError>,
+        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, DpopNonce), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
             Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
@@ -1431,7 +1431,7 @@ fn build_token_response<K, L>(
     server_url: &BaseUrl,
     credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
     issuer_data: &IssuerData<K, L>,
-) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
+) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, DpopNonce), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -1454,7 +1454,7 @@ fn build_token_response<K, L>(
         })
         .collect::<Result<_, _>>()?;
 
-    let dpop_nonce = random_string(32);
+    let dpop_nonce = DpopNonce::new_random();
 
     // Note that, in the Authorization Code flow, we assume that the implementer of `AuthorizationCodeFlow` provides all
     // of the credentials that are identified by the scopes that the wallet includes in the Authorization Request.
@@ -2107,6 +2107,7 @@ mod tests {
     use chrono::Timelike;
     use crypto::server_keys::KeyPair;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::utils::random_string;
     use derive_more::Debug;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
@@ -2343,7 +2344,7 @@ mod tests {
             token_request: &TokenRequest,
             dpop_header: &Dpop,
             wia: &WiaDisclosure,
-        ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+        ) -> Result<(TokenResponse, Option<DpopNonce>), WalletIssuanceError> {
             let wia = self.wia_override.as_ref().unwrap_or(wia);
             let (token_response, dpop_nonce) = self
                 .issuer
@@ -2381,7 +2382,7 @@ mod tests {
             Ok(self.issuer.type_metadata(&id).unwrap())
         }
 
-        async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
+        async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<DpopNonce>), WalletIssuanceError> {
             let c_nonce = self.issuer.generate_nonce().await.unwrap();
             Ok((NonceResponse { c_nonce }, None))
         }
@@ -2810,10 +2811,10 @@ mod tests {
 
         let dpop_private_key = SigningKey::generate();
         let dpop_public_key = (*dpop_private_key.verifying_key()).into();
-        let dpop_nonce = random_string(16);
+        let dpop_nonce = DpopNonce::new_random();
 
         let request_dpop_nonce = if failure == CredentialRequestFailure::WrongDpopNonce {
-            random_string(16)
+            DpopNonce::new_random()
         } else {
             dpop_nonce.clone()
         };

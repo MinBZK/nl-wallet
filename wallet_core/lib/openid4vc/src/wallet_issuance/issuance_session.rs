@@ -32,7 +32,6 @@ use p256::elliptic_curve::Generate;
 use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
-use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -66,6 +65,7 @@ use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::dpop::DpopNonce;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::RemoteErrorCode;
@@ -99,7 +99,7 @@ pub trait VcMessageClient {
         token_request: &TokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
-    ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError>;
+    ) -> Result<(TokenResponse, Option<DpopNonce>), WalletIssuanceError>;
 
     async fn request_challenge(&self, url: Url) -> Result<Nonce, WalletIssuanceError>;
 
@@ -111,7 +111,7 @@ pub trait VcMessageClient {
 
     async fn request_type_metadata(&self, url: Url) -> Result<TypeMetadataDocuments, WalletIssuanceError>;
 
-    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError>;
+    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<DpopNonce>), WalletIssuanceError>;
 
     async fn request_credential(
         &self,
@@ -143,13 +143,20 @@ impl HttpVcMessageClient {
         Self { http_client }
     }
 
-    fn dpop_nonce(response: &Response) -> Result<Option<String>, ToStrError> {
+    fn dpop_nonce(response: &Response) -> Result<Option<DpopNonce>, WalletIssuanceError> {
         let dpop_nonce = response
             .headers()
             .get(DPOP_NONCE_HEADER_NAME)
-            .map(|val| val.to_str())
-            .transpose()?
-            .map(str::to_string);
+            .map(|header| -> Result<_, WalletIssuanceError> {
+                let dpop_nonce = header
+                    .to_str()
+                    .map_err(WalletIssuanceError::DpopNonceHeader)?
+                    .parse()
+                    .map_err(WalletIssuanceError::DpopNonce)?;
+
+                Ok(dpop_nonce)
+            })
+            .transpose()?;
 
         Ok(dpop_nonce)
     }
@@ -162,7 +169,7 @@ impl VcMessageClient for HttpVcMessageClient {
         token_request: &TokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
-    ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+    ) -> Result<(TokenResponse, Option<DpopNonce>), WalletIssuanceError> {
         self.http_client
             .post(url, |builder| {
                 builder
@@ -240,7 +247,7 @@ impl VcMessageClient for HttpVcMessageClient {
             .map_err(WalletIssuanceError::TypeMetadataHttp)
     }
 
-    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
+    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<DpopNonce>), WalletIssuanceError> {
         let response = self
             .http_client
             .post(url, identity)
@@ -371,7 +378,7 @@ struct IssuanceState {
     issuer_registration: IssuerRegistration,
     #[debug(skip)]
     dpop_signing_key: SigningKey,
-    dpop_nonce: Option<String>,
+    dpop_nonce: Option<DpopNonce>,
 }
 
 #[derive(Debug)]
@@ -2260,7 +2267,7 @@ mod tests {
             type_metadata: [(attestation_type.to_string(), issuance_type_metadata)].into(),
             issuer_registration: IssuerRegistration::new_mock(),
             dpop_signing_key: SigningKey::generate(),
-            dpop_nonce: Some("dpop_nonce".to_string()),
+            dpop_nonce: Some("dpop_nonce".parse().unwrap()),
         }
     }
 
@@ -2276,7 +2283,7 @@ mod tests {
                     NonceResponse {
                         c_nonce: Nonce::from("c_nonce".to_string()),
                     },
-                    has_dpop_nonce.then(|| "new_dpop_nonce".to_string()),
+                    has_dpop_nonce.then(|| "new_dpop_nonce".parse().unwrap()),
                 ))
             });
 
@@ -2375,7 +2382,7 @@ mod tests {
     fn check_credential_endpoint_input(
         url: &Url,
         dpop_signing_key: &SigningKey,
-        dpop_nonce: &str,
+        dpop_nonce: &DpopNonce,
         dpop_header: Dpop,
         access_token: &AccessToken,
     ) {
@@ -2414,9 +2421,17 @@ mod tests {
         let wscd = MockRemoteWscd::default();
 
         let (mut mock_msg_client, has_nonce_endpoint, expected_dpop_nonce) = match nonce_endpoint {
-            TestNonceEndpoint::Absent => (MockVcMessageClient::new(), false, "dpop_nonce"),
-            TestNonceEndpoint::Present => (mock_openid_message_client_nonce(false), true, "dpop_nonce"),
-            TestNonceEndpoint::PresentWithDpopNonce => (mock_openid_message_client_nonce(true), true, "new_dpop_nonce"),
+            TestNonceEndpoint::Absent => (MockVcMessageClient::new(), false, "dpop_nonce".parse().unwrap()),
+            TestNonceEndpoint::Present => (
+                mock_openid_message_client_nonce(false),
+                true,
+                "dpop_nonce".parse().unwrap(),
+            ),
+            TestNonceEndpoint::PresentWithDpopNonce => (
+                mock_openid_message_client_nonce(true),
+                true,
+                "new_dpop_nonce".parse().unwrap(),
+            ),
         };
 
         let session_state = new_session_state(
@@ -2442,7 +2457,7 @@ mod tests {
                     check_credential_endpoint_input(
                         &url,
                         &dpop_signing_key,
-                        expected_dpop_nonce,
+                        &expected_dpop_nonce,
                         dpop_header.clone(),
                         access_token_header,
                     );
@@ -2466,7 +2481,7 @@ mod tests {
                     check_credential_endpoint_input(
                         &url,
                         &dpop_signing_key,
-                        expected_dpop_nonce,
+                        &expected_dpop_nonce,
                         dpop_header.clone(),
                         access_token_header,
                     );

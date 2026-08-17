@@ -41,6 +41,7 @@ use crate::client_auth::ClientAttestationChallengeMechanismError;
 use crate::client_auth::ClientAttestationMetadataError;
 use crate::credential::Credentials;
 use crate::dpop::DpopError;
+use crate::dpop::DpopNonceInvalid;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::RemoteErrorResponse;
@@ -174,9 +175,13 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     UnexpectedCredentialResponseType { expected: Format, actual: Credentials },
 
-    #[error("error reading HTTP error: {0}")]
+    #[error("could not read DPoP nonce from header: {0}")]
     #[category(pd)]
-    HeaderToStr(#[from] ToStrError),
+    DpopNonceHeader(#[source] ToStrError),
+
+    #[error("DPoP nonce header is not valid: {0}")]
+    #[category(pd)]
+    DpopNonce(#[source] DpopNonceInvalid),
 
     #[error("unknown Credential Configuration ID(s) received in Token Response: {}", .0.iter().join(", "))]
     #[category(critical)]
