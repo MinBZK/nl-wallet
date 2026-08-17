@@ -95,7 +95,7 @@ pub enum RegistrationCertificateValidationError {
     },
     #[error("registration certificate `sub` does not match access certificate `{field}`")]
     SubjectIdentifierMismatch { field: &'static str },
-    #[error("country must contain exactly two characters")]
+    #[error("country must contain exactly two ASCII alphabetic characters")]
     InvalidCountry,
     #[error("support URI must be a URL or an email address")]
     InvalidSupportUri,
@@ -194,7 +194,7 @@ impl UncheckedRegistrationCertificate {
 
         self.validate_subject(access_certificate_subject)?;
 
-        if self.country.chars().count() != 2 {
+        if self.country.len() != 2 || !self.country.bytes().all(|byte| byte.is_ascii_alphabetic()) {
             return Err(RegistrationCertificateValidationError::InvalidCountry);
         }
         if Url::parse(&self.support_uri).is_err() && !is_email_address(&self.support_uri) {
@@ -401,6 +401,7 @@ mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::x509::DistinguishedName;
+    use rstest::rstest;
     use serde_json::json;
     use utils::vec_nonempty;
 
@@ -737,6 +738,21 @@ mod tests {
             .unwrap();
     }
 
+    #[rstest]
+    #[case("N")]
+    #[case("NLD")]
+    #[case("N1")]
+    #[case("日本")]
+    fn reject_invalid_country(#[case] country: &str) {
+        let mut payload = valid_payload();
+        payload.country = country.to_string();
+
+        assert_matches!(
+            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            Err(RegistrationCertificateValidationError::InvalidCountry)
+        );
+    }
+
     #[test]
     fn reject_invalid_core_values() {
         let mut invalid_id = valid_payload();
@@ -751,13 +767,6 @@ mod tests {
         assert_matches!(
             invalid_name.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
             Err(RegistrationCertificateValidationError::EmptyField { field: "name" })
-        );
-
-        let mut invalid_country = valid_payload();
-        invalid_country.country = "NLD".to_string();
-        assert_matches!(
-            invalid_country.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
-            Err(RegistrationCertificateValidationError::InvalidCountry)
         );
 
         let mut invalid_policy = valid_payload();
