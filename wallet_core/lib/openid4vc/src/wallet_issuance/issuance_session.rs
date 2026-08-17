@@ -65,6 +65,7 @@ use crate::credential::draft;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
+use crate::dpop::DpopError;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::RemoteErrorCode;
@@ -94,7 +95,7 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
 pub trait VcMessageClient {
     async fn request_token(
         &self,
-        url: &Url,
+        url: Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
@@ -104,7 +105,7 @@ pub trait VcMessageClient {
 
     async fn request_credential_preview(
         &self,
-        url: &Url,
+        url: Url,
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, WalletIssuanceError>;
 
@@ -114,21 +115,22 @@ pub trait VcMessageClient {
 
     async fn request_credential(
         &self,
-        url: &Url,
+        url: Url,
         credential_request: &draft::CredentialRequest,
-        dpop_header: &str,
-        access_token_header: &str,
+        dpop_header: &Dpop,
+        access_token: &AccessToken,
     ) -> Result<CredentialResponse, WalletIssuanceError>;
 
     async fn request_credentials(
         &self,
-        url: &Url,
+        url: Url,
         credential_requests: &draft::CredentialRequests,
-        dpop_header: &str,
-        access_token_header: &str,
+        dpop_header: &Dpop,
+        access_token: &AccessToken,
     ) -> Result<draft::CredentialResponses, WalletIssuanceError>;
 
-    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), WalletIssuanceError>;
+    async fn reject(&self, url: Url, dpop_header: &Dpop, access_token: &AccessToken)
+    -> Result<(), WalletIssuanceError>;
 }
 
 #[derive(Debug)]
@@ -156,17 +158,17 @@ impl HttpVcMessageClient {
 impl VcMessageClient for HttpVcMessageClient {
     async fn request_token(
         &self,
-        url: &Url,
+        url: Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
     ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
         self.http_client
-            .post(url.as_ref(), |builder| {
+            .post(url, |builder| {
                 builder
                     .header(DPOP_HEADER_NAME, dpop_header.to_string())
-                    .header(WIA_HEADER_NAME, wia.wia().serialization())
-                    .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+                    .header(WIA_HEADER_NAME, wia.wia().to_string())
+                    .header(WIA_POP_HEADER_NAME, wia.wia_pop().to_string())
                     .form(token_request)
             })
             .map_err(WalletIssuanceError::TokenRequestHttp)
@@ -202,11 +204,11 @@ impl VcMessageClient for HttpVcMessageClient {
 
     async fn request_credential_preview(
         &self,
-        url: &Url,
+        url: Url,
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, WalletIssuanceError> {
         self.http_client
-            .post(url.as_ref(), |builder| builder.bearer_auth(access_token.as_ref()))
+            .post(url, |builder| builder.bearer_auth(access_token.as_ref()))
             .map_err(WalletIssuanceError::CredentialPreviewHttp)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -255,32 +257,35 @@ impl VcMessageClient for HttpVcMessageClient {
 
     async fn request_credential(
         &self,
-        url: &Url,
+        url: Url,
         credential_request: &draft::CredentialRequest,
-        dpop_header: &str,
-        access_token_header: &str,
+        dpop_header: &Dpop,
+        access_token: &AccessToken,
     ) -> Result<CredentialResponse, WalletIssuanceError> {
-        self.request(url, credential_request, dpop_header, access_token_header)
-            .await
+        self.request(url, credential_request, dpop_header, access_token).await
     }
 
     async fn request_credentials(
         &self,
-        url: &Url,
+        url: Url,
         credential_requests: &draft::CredentialRequests,
-        dpop_header: &str,
-        access_token_header: &str,
+        dpop_header: &Dpop,
+        access_token: &AccessToken,
     ) -> Result<draft::CredentialResponses, WalletIssuanceError> {
-        self.request(url, credential_requests, dpop_header, access_token_header)
-            .await
+        self.request(url, credential_requests, dpop_header, access_token).await
     }
 
-    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), WalletIssuanceError> {
+    async fn reject(
+        &self,
+        url: Url,
+        dpop_header: &Dpop,
+        access_token: &AccessToken,
+    ) -> Result<(), WalletIssuanceError> {
         self.http_client
-            .delete(url.as_ref(), |builder| {
+            .delete(url, |builder| {
                 builder
-                    .header(DPOP_HEADER_NAME, dpop_header)
-                    .header(AUTHORIZATION, access_token_header)
+                    .header(DPOP_HEADER_NAME, dpop_header.to_string())
+                    .header(AUTHORIZATION, Self::dpop_auth_header(access_token))
             })
             .map_err(WalletIssuanceError::CredentialRejectionHttp)
             .and_then(|response| async {
@@ -304,18 +309,22 @@ impl VcMessageClient for HttpVcMessageClient {
 }
 
 impl HttpVcMessageClient {
+    fn dpop_auth_header(access_token: &AccessToken) -> String {
+        format!("DPoP {}", access_token.as_ref())
+    }
+
     async fn request<T: Serialize, S: DeserializeOwned>(
         &self,
-        url: &Url,
+        url: Url,
         request: &T,
-        dpop_header: &str,
-        access_token_header: &str,
+        dpop_header: &Dpop,
+        access_token: &AccessToken,
     ) -> Result<S, WalletIssuanceError> {
         self.http_client
-            .post(url.as_ref(), |builder| {
+            .post(url, |builder| {
                 builder
-                    .header(DPOP_HEADER_NAME, dpop_header)
-                    .header(AUTHORIZATION, access_token_header)
+                    .header(DPOP_HEADER_NAME, dpop_header.to_string())
+                    .header(AUTHORIZATION, Self::dpop_auth_header(access_token))
                     .json(request)
             })
             .map_err(WalletIssuanceError::CredentialRequestHttp)
@@ -457,7 +466,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
         batch_size: NonZeroU8,
-        token_endpoint: &Url,
+        token_endpoint: Url,
         client_auth_challenge: ClientAttestationChallengeMechanism,
         token_request: TokenRequest,
         wia_client: &impl WiaClient,
@@ -500,7 +509,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let (type_metadata, credential_previews) = try_join!(
             Self::fetch_type_metadata(&offered_credential_configs, &credential_issuer, &message_client),
             Self::request_previews(
-                credential_preview_endpoint.as_url(),
+                credential_preview_endpoint.as_url().clone(),
                 &token_response.access_token,
                 trust_anchors,
                 &message_client
@@ -633,7 +642,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     }
 
     async fn request_previews(
-        preview_endpoint: &Url,
+        preview_endpoint: Url,
         access_token: &AccessToken,
         trust_anchors: &TrustAnchors,
         message_client: &H,
@@ -920,13 +929,13 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             1 => {
                 let credential_request = credential_requests.pop().unwrap();
                 vec![
-                    self.request_credential(credential_endpoint_url, &credential_request)
+                    self.request_credential(credential_endpoint_url.clone(), &credential_request)
                         .await?,
                 ]
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
-                self.request_batch_credentials(credential_endpoint_url, credential_requests)
+                self.request_batch_credentials(credential_endpoint_url.clone(), credential_requests)
                     .await?
             }
         };
@@ -1042,14 +1051,14 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .session_state
             .issuer_endpoints
             .batch_credential_endpoint
-            .as_ref()
+            .clone()
             .ok_or(WalletIssuanceError::NoBatchCredentialEndpoint)?
-            .as_url();
+            .into_url();
 
-        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::DELETE)?;
+        let dpop_header = self.session_state.dpop_header(url.clone(), &Method::DELETE)?;
 
         self.message_client
-            .reject(url, &dpop_header, &access_token_header)
+            .reject(url, &dpop_header, &self.session_state.access_token)
             .await?;
 
         Ok(())
@@ -1078,14 +1087,14 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_credential(
         &self,
-        url: &Url,
+        url: Url,
         credential_request: &draft::CredentialRequest,
     ) -> Result<CredentialResponse, WalletIssuanceError> {
-        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
+        let dpop_header = self.session_state.dpop_header(url.clone(), &Method::POST)?;
 
         let response = self
             .message_client
-            .request_credential(url, credential_request, &dpop_header, &access_token_header)
+            .request_credential(url, credential_request, &dpop_header, &self.session_state.access_token)
             .await?;
 
         Ok(response)
@@ -1093,10 +1102,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     async fn request_batch_credentials(
         &self,
-        url: &Url,
+        url: Url,
         credential_requests: VecNonEmpty<draft::CredentialRequest>,
     ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
-        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
+        let dpop_header = self.session_state.dpop_header(url.clone(), &Method::POST)?;
 
         let expected_response_count = credential_requests.len().get();
         let responses = self
@@ -1105,7 +1114,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 url,
                 &draft::CredentialRequests { credential_requests },
                 &dpop_header,
-                &access_token_header,
+                &self.session_state.access_token,
             )
             .await?;
 
@@ -1291,7 +1300,7 @@ impl Credentials {
 }
 
 impl IssuanceState {
-    fn auth_headers(&self, url: Url, method: &Method) -> Result<(String, String), WalletIssuanceError> {
+    fn dpop_header(&self, url: Url, method: &Method) -> Result<Dpop, DpopError> {
         let dpop_header = Dpop::new(
             &self.dpop_signing_key,
             url,
@@ -1300,9 +1309,7 @@ impl IssuanceState {
             self.dpop_nonce.clone(),
         )?;
 
-        let access_token_header = "DPoP ".to_string() + self.access_token.as_ref();
-
-        Ok((dpop_header.to_string(), access_token_header))
+        Ok(dpop_header)
     }
 }
 
@@ -1479,7 +1486,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
+            oauth_metadata.token_endpoint,
             mechanism,
             TokenRequest::new_mock(),
             &wia_client,
@@ -1603,7 +1610,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
+            oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
@@ -2195,7 +2202,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
+            oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
@@ -2369,14 +2376,12 @@ mod tests {
         url: &Url,
         dpop_signing_key: &SigningKey,
         dpop_nonce: &str,
-        dpop_header: &str,
-        access_token_header: &str,
+        dpop_header: Dpop,
+        access_token: &AccessToken,
     ) {
-        assert_eq!(access_token_header, "DPoP access_token".to_string());
+        assert_eq!(access_token.as_ref(), "access_token");
 
         dpop_header
-            .parse::<Dpop>()
-            .unwrap()
             .verify_expecting_key(
                 PublicKey::from(*dpop_signing_key.verifying_key()),
                 url,
@@ -2435,10 +2440,10 @@ mod tests {
             mock_msg_client.expect_request_credentials().times(1).return_once({
                 move |url, credential_requests, dpop_header, access_token_header| {
                     check_credential_endpoint_input(
-                        url,
+                        &url,
                         &dpop_signing_key,
                         expected_dpop_nonce,
-                        dpop_header,
+                        dpop_header.clone(),
                         access_token_header,
                     );
 
@@ -2459,10 +2464,10 @@ mod tests {
             mock_msg_client.expect_request_credential().times(1).return_once({
                 move |url, credential_request, dpop_header, access_token_header| {
                     check_credential_endpoint_input(
-                        url,
+                        &url,
                         &dpop_signing_key,
                         expected_dpop_nonce,
-                        dpop_header,
+                        dpop_header.clone(),
                         access_token_header,
                     );
 

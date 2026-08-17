@@ -2281,20 +2281,20 @@ mod tests {
             }
         }
 
-        fn access_token(&self, access_token_header: &str) -> AccessToken {
+        fn access_token(&self, access_token: &AccessToken) -> AccessToken {
             if self.wrong_access_token {
-                let code = &access_token_header[32 + 5..]; // Strip "DPoP "
+                let code = &access_token.as_ref()[32..];
                 AccessToken::from("0".repeat(32) + code)
             } else {
-                AccessToken::from(access_token_header[5..].to_string())
+                access_token.clone()
             }
         }
 
-        fn dpop_header(&self, dpop_header: &str) -> Dpop {
+        fn dpop_header(&self, dpop_header: &Dpop) -> Dpop {
             if self.invalidate_dpop {
-                invalidate_jwt_str(dpop_header).as_str().parse().unwrap()
+                invalidate_jwt_str(&dpop_header.to_string()).as_str().parse().unwrap()
             } else {
-                dpop_header.parse().unwrap()
+                dpop_header.clone()
             }
         }
 
@@ -2339,7 +2339,7 @@ mod tests {
     impl VcMessageClient for VcMessageClientStub {
         async fn request_token(
             &self,
-            _url: &Url,
+            _url: Url,
             token_request: &TokenRequest,
             dpop_header: &Dpop,
             wia: &WiaDisclosure,
@@ -2363,7 +2363,7 @@ mod tests {
 
         async fn request_credential_preview(
             &self,
-            _url: &Url,
+            _url: Url,
             access_token: &AccessToken,
         ) -> Result<CredentialPreviewResponse, WalletIssuanceError> {
             self.issuer
@@ -2388,14 +2388,14 @@ mod tests {
 
         async fn request_credential(
             &self,
-            _url: &Url,
+            _url: Url,
             credential_request: &draft::CredentialRequest,
-            dpop_header: &str,
-            access_token_header: &str,
+            dpop_header: &Dpop,
+            access_token: &AccessToken,
         ) -> Result<CredentialResponse, WalletIssuanceError> {
             self.issuer
                 .process_credential(
-                    self.access_token(access_token_header),
+                    self.access_token(access_token),
                     self.dpop_header(dpop_header),
                     self.tamper_credential_request(credential_request.clone()),
                 )
@@ -2409,14 +2409,14 @@ mod tests {
 
         async fn request_credentials(
             &self,
-            _url: &Url,
+            _url: Url,
             credential_requests: &draft::CredentialRequests,
-            dpop_header: &str,
-            access_token_header: &str,
+            dpop_header: &Dpop,
+            access_token: &AccessToken,
         ) -> Result<draft::CredentialResponses, WalletIssuanceError> {
             self.issuer
                 .process_batch_credential(
-                    self.access_token(access_token_header),
+                    self.access_token(access_token),
                     self.dpop_header(dpop_header),
                     self.tamper_credential_requests(credential_requests.clone()),
                 )
@@ -2430,13 +2430,13 @@ mod tests {
 
         async fn reject(
             &self,
-            _url: &Url,
-            dpop_header: &str,
-            access_token_header: &str,
+            _url: Url,
+            dpop_header: &Dpop,
+            access_token: &AccessToken,
         ) -> Result<(), WalletIssuanceError> {
             self.issuer
                 .process_reject_issuance(
-                    self.access_token(access_token_header),
+                    self.access_token(access_token),
                     self.dpop_header(dpop_header),
                     "batch_credential",
                 )
@@ -2491,7 +2491,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
+            oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
             TokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
@@ -2548,7 +2548,7 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
+            oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
             TokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
