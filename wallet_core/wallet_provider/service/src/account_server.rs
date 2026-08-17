@@ -570,8 +570,10 @@ pub struct UserState<R, F, H, K, S> {
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
-    // Only used for registration. When a registered user sends an instruction, we should store
-    // the challenge per user, instead globally.
+    /// Generate challenge bytes that the wallet must include in the registration `ChallengeResponse` and are fully
+    /// opaque to the wallet. The Wallet Provider can statelessly validate this challenge by decoding it as a JWT and
+    /// verifying it using the Wallet Provider's certificate signing public key. This prevents it from having to write
+    /// challenge nonces to its database as a result of calls to an unauthenticated endpoint.
     pub async fn registration_challenge<T, R, F, H, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
