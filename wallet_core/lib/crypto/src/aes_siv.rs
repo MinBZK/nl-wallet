@@ -697,6 +697,14 @@ mod tests {
         assert_eq!(xorend(value, mask).unwrap(), expected);
     }
 
+    #[test]
+    fn test_xorend_rejects_short_plaintexts() {
+        assert!(matches!(
+            xorend(&[1, 2, 3], [0; 16]).unwrap_err(),
+            AesSivError::PlaintextTooShort
+        ));
+    }
+
     // For S2V, RFC 5297 contains no test vectors that apply. Both worked examples in appendix A use a
     // 256-bit key, i.e. AES-SIV-CMAC-256 over AES-128 CMAC rather than the AES-256 CMAC used here,
     // and both call S2V with more than one string (2 in A.1, 4 in A.2), so neither reaches this
