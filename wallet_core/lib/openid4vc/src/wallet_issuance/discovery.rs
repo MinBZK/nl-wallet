@@ -38,8 +38,7 @@ use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-use crate::metadata::well_known;
-use crate::metadata::well_known::WellKnownPath;
+use crate::metadata::well_known::WellKnownMetadata;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
@@ -405,7 +404,7 @@ where
     ) -> Result<(IssuerMetadata, AuthorizationServerMetadata), WalletIssuanceError> {
         let issuer_metadata_jwt: UnverifiedJwt<SignedIssuerMetadataPayload, HeaderWithX5c> = self
             .http_client
-            .get_jwt(WellKnownPath::CredentialIssuer.url(&credential_offer.credential_issuer))
+            .get_jwt(IssuerMetadata::well_known_url(&credential_offer.credential_issuer))
             .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataHttp)?
             .parse()?;
@@ -457,13 +456,10 @@ where
             }
         };
 
-        let oauth_metadata: AuthorizationServerMetadata = well_known::fetch_well_known(
-            &self.http_client,
-            authorization_server,
-            WellKnownPath::OauthAuthorizationServer,
-        )
-        .await
-        .map_err(WalletIssuanceError::OauthDiscovery)?;
+        let oauth_metadata =
+            AuthorizationServerMetadata::fetch_well_known_json(&self.http_client, authorization_server)
+                .await
+                .map_err(WalletIssuanceError::OauthDiscovery)?;
 
         Ok((issuer_metadata, oauth_metadata))
     }

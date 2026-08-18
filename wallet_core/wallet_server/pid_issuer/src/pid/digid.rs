@@ -14,9 +14,8 @@ use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
-use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
-use openid4vc::metadata::well_known::WellKnownPath;
+use openid4vc::metadata::well_known::WellKnownMetadata;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::scope::Scope;
 use openid4vc::token::AuthorizationCode;
@@ -69,12 +68,7 @@ impl DigidMetadataClient {
     }
 
     pub async fn metadata(&self) -> Result<OidcProviderMetadata, WellKnownError> {
-        well_known::fetch_well_known::<OidcProviderMetadata>(
-            &self.http_client,
-            &self.oidc_identifier,
-            WellKnownPath::OpenidConfiguration,
-        )
-        .await
+        OidcProviderMetadata::fetch_well_known_json(&self.http_client, &self.oidc_identifier).await
     }
 
     pub fn http_client(&self) -> &HttpClient {

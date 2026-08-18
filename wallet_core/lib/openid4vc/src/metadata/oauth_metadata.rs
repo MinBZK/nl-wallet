@@ -4,6 +4,7 @@ use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::From;
 use derive_more::Into;
+use http_utils::reqwest::HttpClient;
 use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
@@ -13,6 +14,7 @@ use url::Url;
 use super::well_known::WellKnownMetadata;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::jose::JwsAlgorithm;
+use crate::metadata::well_known::WellKnownError;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
 /// published at `.well-known/oauth-authorization-server`.
@@ -194,12 +196,16 @@ impl AuthorizationServerMetadata {
 pub struct OidcProviderMetadata(AuthorizationServerMetadata);
 
 impl WellKnownMetadata for AuthorizationServerMetadata {
+    const PATH: &'static str = "oauth-authorization-server";
+
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         &self.issuer
     }
 }
 
 impl WellKnownMetadata for OidcProviderMetadata {
+    const PATH: &'static str = "openid-configuration";
+
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         self.0.issuer_identifier()
     }
@@ -220,8 +226,7 @@ pub mod tests {
 
     use super::AuthorizationServerMetadata;
     use crate::issuer_identifier::IssuerIdentifier;
-    use crate::metadata::well_known::WellKnownPath;
-    use crate::metadata::well_known::fetch_well_known;
+    use crate::metadata::well_known::WellKnownMetadata;
 
     #[tokio::test]
     async fn test_discovery() {
@@ -246,13 +251,9 @@ pub mod tests {
             .await;
 
         let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
-        let metadata = fetch_well_known::<AuthorizationServerMetadata>(
-            &client,
-            &issuer_identifier,
-            WellKnownPath::OauthAuthorizationServer,
-        )
-        .await
-        .unwrap();
+        let metadata = AuthorizationServerMetadata::fetch_well_known_json(&client, &issuer_identifier)
+            .await
+            .unwrap();
 
         assert_eq!(metadata.issuer, issuer_identifier);
         mock.assert_async().await;

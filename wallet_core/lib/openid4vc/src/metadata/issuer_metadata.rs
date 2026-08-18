@@ -153,6 +153,8 @@ pub struct IssuerEndpoints {
 }
 
 impl WellKnownMetadata for IssuerMetadata {
+    const PATH: &'static str = "openid-credential-issuer";
+
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         &self.credential_issuer
     }
