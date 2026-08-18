@@ -688,6 +688,7 @@ dependencies = [
  "indexmap 2.12.1",
  "itertools 0.14.0",
  "jwt",
+ "language-tags",
  "mdoc",
  "p256 0.14.0",
  "rand_core 0.9.5",
@@ -4486,6 +4487,12 @@ dependencies = [
  "quote",
  "syn 2.0.117",
 ]
+
+[[package]]
+name = "language-tags"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4345964bb142484797b161f473a503a434de77149dd8c7427788c6e13379388"
 
 [[package]]
 name = "lazy_static"

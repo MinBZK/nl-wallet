@@ -167,6 +167,7 @@ jni = "0.21.1"
 josekit = "0.10.3"
 jsonwebtoken = { version = "10.4.0", default-features = false, features = ["rust_crypto"] }
 jwk-simple = "0.2.0"
+language-tags = "0.3.2"
 libc = "0.2.178"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }

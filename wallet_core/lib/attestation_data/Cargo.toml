@@ -31,6 +31,7 @@ coset.workspace = true
 derive_more = { workspace = true, features = ["debug", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
+language-tags.workspace = true
 p256.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -56,7 +57,7 @@ jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
-token_status_list.path = "../token_status_list"
+token_status_list = { path = "../token_status_list", features = ["verification"] }
 utils.path = "../utils"
 
 [dev-dependencies]

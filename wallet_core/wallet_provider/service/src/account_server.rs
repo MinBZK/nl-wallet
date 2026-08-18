@@ -428,6 +428,8 @@ impl From<PinPolicyEvaluation> for InstructionError {
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
+    /// Include a newly generated `wallet_id` in the challenge, so that a replayed challenge will result in a
+    /// uniqueness constraint validation when writing the new registration to the database.
     wallet_id: WalletId,
 
     #[serde(with = "ts_seconds")]
@@ -568,8 +570,10 @@ pub struct UserState<R, F, H, K, S> {
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
-    // Only used for registration. When a registered user sends an instruction, we should store
-    // the challenge per user, instead globally.
+    /// Generate challenge bytes that the wallet must include in the registration `ChallengeResponse` and are fully
+    /// opaque to the wallet. The Wallet Provider can statelessly validate this challenge by decoding it as a JWT and
+    /// verifying it using the Wallet Provider's certificate signing public key. This prevents it from having to write
+    /// challenge nonces to its database as a result of calls to an unauthenticated endpoint.
     pub async fn registration_challenge<T, R, F, H, S>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
@@ -629,6 +633,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Verifying challenge and extracting wallet id");
 
+        // Verify that this Wallet Provider originated the registration challenge, then extract the `wallet_id` that was
+        // generated as part of this challenge. As a form of replay protection, this will cause a uniqueness constraint
+        // violation when writing the registration to the database below, should the Wallet Provider receive any
+        // subsequent registration using the exact same challenge.
         let challenge = &unverified.challenge;
         let wallet_id =
             Self::verify_registration_challenge(&self.keys.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
