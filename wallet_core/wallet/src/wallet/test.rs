@@ -28,7 +28,6 @@ use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use futures::future::FutureExt;
 use jwt::SignedJwt;
-use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use mockall::predicate::eq;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
@@ -64,6 +63,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use uuid::Uuid;
 use wallet_account::RevocationCode;
+use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
@@ -546,7 +546,7 @@ where
     }
 }
 
-pub fn create_wp_result<T>(result: T) -> UnverifiedJwt<InstructionResultClaims<T>>
+pub fn create_wp_result<T>(result: T) -> InstructionResult<T>
 where
     T: Serialize + DeserializeOwned,
 {
@@ -555,7 +555,7 @@ where
         iss: "wallet_unit_test".to_string(),
         iat: Utc::now(),
     };
-    SignedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+    SignedJwt::sign_with_sub_and_kid(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
         .now_or_never()
         .unwrap()
         .expect("could not sign instruction result")

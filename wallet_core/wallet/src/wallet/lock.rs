@@ -646,7 +646,7 @@ mod tests {
             iat: Utc::now(),
         };
         let other_key = SigningKey::generate();
-        let result = SignedJwt::sign_with_sub(result_claims, &other_key)
+        let result = SignedJwt::sign_with_sub_and_kid(result_claims, &other_key)
             .await
             .unwrap()
             .into();

@@ -48,6 +48,7 @@ use wallet_provider_service::keys::Kid;
 pub struct Settings {
     pub current_certificate_kid: Kid,
     pub previous_certificate_kids: Option<HashMap<Kid, DateTime<Utc>>>,
+    pub current_instruction_result_external_kid: String,
     pub instruction_result_signing_key_identifier: String,
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,

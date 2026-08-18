@@ -117,10 +117,13 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             kid: settings.current_certificate_kid.clone(),
             key: HsmEcdsaKey::new(wc_signing_key_identifier, wallet_user_hsm.clone()),
         };
-        let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
-            settings.instruction_result_signing_key_identifier,
-            wallet_user_hsm.clone(),
-        ));
+        let instruction_result_signing_key = InstructionResultSigning {
+            kid: settings.current_instruction_result_external_kid.clone(),
+            hsm: HsmEcdsaKey::new(
+                settings.instruction_result_signing_key_identifier,
+                wallet_user_hsm.clone(),
+            ),
+        };
 
         let certificate_public_key = certificate_signing_key.verifying_key().await?.into();
 
