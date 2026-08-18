@@ -39,7 +39,6 @@ use self::credential::CredentialWithMetadata;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
 use crate::client_auth::ClientAttestationMetadataError;
-use crate::credential::Credentials;
 use crate::dpop::DpopError;
 use crate::dpop::DpopNonceInvalid;
 use crate::errors::CredentialErrorCode;
@@ -171,9 +170,9 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     DeferredIssuanceUnsupported,
 
-    #[error("received credential response: {actual:?}, expected type {expected}")]
+    #[error("received credential response: {actual}, expected type {expected}")]
     #[category(pd)]
-    UnexpectedCredentialResponseType { expected: Format, actual: Credentials },
+    UnexpectedCredentialResponseType { expected: Format, actual: Format },
 
     #[error("could not read DPoP nonce from header: {0}")]
     #[category(pd)]

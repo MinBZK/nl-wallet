@@ -42,8 +42,10 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wscd::wscd::IssuanceWscd;
 use wscd::wscd::WiaClient;
 
@@ -973,13 +975,14 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                                     .into_immediate_credentials()
                                     .ok_or(WalletIssuanceError::DeferredIssuanceUnsupported)?;
 
-                                credentials.into_single_issued_mdoc(
-                                    key_id,
-                                    &pubkey,
-                                    preview,
-                                    &type_metadata.normalized_metadata,
-                                    trust_anchors,
-                                )
+                                credentials
+                                    .into_issued_mdocs(
+                                        vec_nonempty![(key_id, pubkey)],
+                                        &type_metadata.normalized_metadata,
+                                        preview,
+                                        trust_anchors,
+                                    )
+                                    .map(VecNonEmpty::into_first)
                             })
                             .collect::<Result<Vec<_>, _>>()?
                             .try_into()
@@ -993,13 +996,14 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                                     .into_immediate_credentials()
                                     .ok_or(WalletIssuanceError::DeferredIssuanceUnsupported)?;
 
-                                credentials.into_single_issued_sd_jwt(
-                                    key_id,
-                                    &pubkey,
-                                    preview,
-                                    &type_metadata.normalized_metadata,
-                                    trust_anchors,
-                                )
+                                credentials
+                                    .into_issued_sd_jwts(
+                                        vec_nonempty![(key_id, pubkey)],
+                                        &type_metadata.normalized_metadata,
+                                        preview,
+                                        trust_anchors,
+                                    )
+                                    .map(VecNonEmpty::into_first)
                             })
                             .collect::<Result<Vec<_>, _>>()?
                             .try_into()
@@ -1062,7 +1066,9 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .ok_or(WalletIssuanceError::NoBatchCredentialEndpoint)?
             .into_url();
 
-        let dpop_header = self.session_state.dpop_header(url.clone(), &Method::DELETE)?;
+        let dpop_header =
+            self.session_state
+                .dpop_header(url.clone(), &Method::DELETE, self.session_state.dpop_nonce.clone())?;
 
         self.message_client
             .reject(url, &dpop_header, &self.session_state.access_token)
@@ -1097,7 +1103,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         url: Url,
         credential_request: &draft::CredentialRequest,
     ) -> Result<CredentialResponse, WalletIssuanceError> {
-        let dpop_header = self.session_state.dpop_header(url.clone(), &Method::POST)?;
+        let dpop_header =
+            self.session_state
+                .dpop_header(url.clone(), &Method::POST, self.session_state.dpop_nonce.clone())?;
 
         let response = self
             .message_client
@@ -1112,7 +1120,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         url: Url,
         credential_requests: VecNonEmpty<draft::CredentialRequest>,
     ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
-        let dpop_header = self.session_state.dpop_header(url.clone(), &Method::POST)?;
+        let dpop_header =
+            self.session_state
+                .dpop_header(url.clone(), &Method::POST, self.session_state.dpop_nonce.clone())?;
 
         let expected_response_count = credential_requests.len().get();
         let responses = self
@@ -1139,31 +1149,41 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 }
 
 impl Credentials {
-    /// Create an mdoc out of the credential response. Also verifies the credential.
-    fn into_single_issued_mdoc(
+    /// Create a set of mdoc credentials out of the credential response. This also verifies the credentials.
+    fn into_issued_mdocs(
         self,
-        key_identifier: String,
-        public_key: &PublicKey,
-        preview: &CredentialPreview,
+        key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         normalized_type_metadata: &NormalizedTypeMetadata,
+        preview: &CredentialPreview,
         trust_anchors: &TrustAnchors,
-    ) -> Result<MdocCopy, WalletIssuanceError> {
-        match self {
-            Self::MsoMdoc(mdoc_credentials) => {
+    ) -> Result<VecNonEmpty<MdocCopy>, WalletIssuanceError> {
+        let Self::MsoMdoc(mdoc_credentials) = self else {
+            return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
+                expected: Format::MsoMdoc,
+                actual: self.format(),
+            });
+        };
+
+        let mdocs = mdoc_credentials
+            .into_nonempty_iter()
+            .zip(key_identifiers_and_public_keys)
+            .map(|(mdoc_credential, (key_identifier, public_key))| {
                 let MdocCredential {
                     credential: issuer_signed,
-                } = mdoc_credentials.into_first();
+                } = mdoc_credential;
 
-                // Calculate the minimum of all the lengths of the random bytes
-                // included in the attributes of `IssuerSigned`. If this value
-                // is too low, we should not accept the attributes.
-                if let Some(min) = issuer_signed.name_spaces.as_ref().and_then(|namespaces| {
+                // Calculate the minimum of all the lengths of the random bytes included in the attributes of
+                // `IssuerSigned`. If this value is too low, we should not accept the attributes.
+                let min_random_len = issuer_signed.name_spaces.as_ref().and_then(|namespaces| {
                     namespaces
                         .as_ref()
                         .values()
                         .flat_map(|attributes| attributes.as_ref().iter().map(|TaggedBytes(item)| item.random.len()))
                         .min()
-                }) && min < ATTR_RANDOM_LENGTH
+                });
+
+                if let Some(min) = min_random_len
+                    && min < ATTR_RANDOM_LENGTH
                 {
                     return Err(WalletIssuanceError::AttributeRandomLength(min, ATTR_RANDOM_LENGTH));
                 }
@@ -1178,48 +1198,55 @@ impl Credentials {
                 let mdoc = Mdoc::new(issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(WalletIssuanceError::MdocVerification)?;
 
-                let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), normalized_type_metadata)?;
+                let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), normalized_type_metadata)
+                    .map_err(WalletIssuanceError::MdocCredentialPayload)?;
 
                 Self::validate_credential(
                     preview,
-                    public_key,
+                    &public_key,
                     issued_credential_payload,
                     &credential_issuer_certificate,
                 )?;
 
                 Ok(MdocCopy { key_identifier, mdoc })
-            }
-            Self::SdJwt(_) => Err(WalletIssuanceError::UnexpectedCredentialResponseType {
-                expected: preview.format,
-                actual: self,
-            }),
-        }
+            })
+            .collect::<Result<_, _>>()?;
+
+        Ok(mdocs)
     }
 
-    /// Create a credential out of the credential response. Also verifies the credential.
-    fn into_single_issued_sd_jwt(
+    /// Create a set of SD-JWT credentials out of the credential response. This also verifies the credentials.
+    fn into_issued_sd_jwts(
         self,
-        key_identifier: String,
-        holder_pubkey: &PublicKey,
-        preview: &CredentialPreview,
+        key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         normalized_type_metadata: &NormalizedTypeMetadata,
+        preview: &CredentialPreview,
         trust_anchors: &TrustAnchors,
-    ) -> Result<SdJwtCopy, WalletIssuanceError> {
-        match self {
-            Self::MsoMdoc(_) => Err(WalletIssuanceError::UnexpectedCredentialResponseType {
-                expected: preview.format,
-                actual: self,
-            }),
-            Self::SdJwt(sd_jwt_credentials) => {
+    ) -> Result<VecNonEmpty<SdJwtCopy>, WalletIssuanceError> {
+        let Self::SdJwt(sd_jwt_credentials) = self else {
+            return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
+                expected: Format::SdJwt,
+                actual: self.format(),
+            });
+        };
+
+        let sd_jwts = sd_jwt_credentials
+            .into_nonempty_iter()
+            .zip(key_identifiers_and_public_keys)
+            .map(|(sd_jwt_credential, (key_identifier, public_key))| {
                 let SdJwtCredential {
                     credential: unverified_sd_jwt,
-                } = sd_jwt_credentials.into_first();
+                } = sd_jwt_credential;
 
-                let sd_jwt = unverified_sd_jwt.into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)?;
-                let issued_credential_payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())?;
+                let sd_jwt = unverified_sd_jwt
+                    .into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)
+                    .map_err(WalletIssuanceError::SdJwtVerification)?;
 
-                // Store claim paths to later use in validation of selective disclosability of claims.
-                // This prevents cloning `issued_credential_payload`.
+                let issued_credential_payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())
+                    .map_err(WalletIssuanceError::SdJwtCredentialPayloadError)?;
+
+                // Store claim paths to later use in validation of selective disclosability of claims. This prevents
+                // cloning `issued_credential_payload`.
                 let issued_claims = issued_credential_payload
                     .previewable_payload
                     .attributes
@@ -1227,18 +1254,20 @@ impl Credentials {
 
                 Self::validate_credential(
                     preview,
-                    holder_pubkey,
+                    &public_key,
                     issued_credential_payload,
                     sd_jwt.issuer_leaf_certificate(),
                 )?;
 
-                // Verify whether each claims selective disclosability matches the metadata.
-                // This validation is SD-JWT specific, and therefore cannot be part of `validate_credential`.
+                // Verify whether each claims selective disclosability matches the metadata. This validation is SD-JWT
+                // specific, and therefore cannot be part of `validate_credential`.
                 Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized_type_metadata.clone())?;
 
                 Ok(SdJwtCopy { key_identifier, sd_jwt })
-            }
-        }
+            })
+            .collect::<Result<_, WalletIssuanceError>>()?;
+
+        Ok(sd_jwts)
     }
 
     fn validate_credential(
@@ -1307,13 +1336,13 @@ impl Credentials {
 }
 
 impl IssuanceState {
-    fn dpop_header(&self, url: Url, method: &Method) -> Result<Dpop, DpopError> {
+    fn dpop_header(&self, url: Url, method: &Method, dpop_nonce: Option<DpopNonce>) -> Result<Dpop, DpopError> {
         let dpop_header = Dpop::new(
             &self.dpop_signing_key,
             url,
             method,
             Some(&self.access_token),
-            self.dpop_nonce.clone(),
+            dpop_nonce,
         )?;
 
         Ok(dpop_header)
@@ -2661,11 +2690,10 @@ mod tests {
             mock_credential_response_credential();
 
         let _issued_credential = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview_data,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview_data,
                 &trust_anchor,
             )
             .expect("should be able to convert CredentialResponse into Mdoc");
@@ -2679,11 +2707,10 @@ mod tests {
         // public key than the one contained within the response should fail.
         let other_public_key = PublicKey::from(*SigningKey::generate().verifying_key());
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &other_public_key,
-                &preview_data,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), other_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview_data,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2725,11 +2752,10 @@ mod tests {
         };
 
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview_data,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview_data,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2753,11 +2779,10 @@ mod tests {
         };
 
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview_data,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview_data,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2772,11 +2797,10 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview,
                 &TrustAnchors::empty(),
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2803,11 +2827,10 @@ mod tests {
         preview.credential_payload.attributes = attributes;
 
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2825,11 +2848,10 @@ mod tests {
         preview.credential_payload.issuer = "https://other-issuer.example.com".parse().unwrap();
 
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2847,11 +2869,10 @@ mod tests {
         preview.credential_payload.attestation_type = String::from("other.attestation_type");
 
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2870,11 +2891,10 @@ mod tests {
         preview.credential_payload.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
 
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -2892,11 +2912,10 @@ mod tests {
         preview.credential_payload.attestation_qualification = AttestationQualification::PubEAA;
 
         let error = credentials
-            .into_single_issued_mdoc(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview,
+            .into_issued_mdocs(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
                 &type_metadata.normalized_metadata,
+                &preview,
                 &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
