@@ -15,6 +15,8 @@ use jwt::error::JwtParseError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
+use oauth::jwks::HttpJwksClient;
+use oauth::jwks::JwksError;
 use oauth::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::errors::RemoteErrorResponse;
 use openid4vc::errors::TokenErrorCode;
@@ -25,9 +27,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use strum::EnumString;
-
-use super::jwks::HttpJwksClient;
-use super::jwks::JwksError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum UserInfoError {

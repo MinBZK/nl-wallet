@@ -24,6 +24,7 @@ tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 http_utils = { path = "../http_utils", features = ["client"] }
+jwt.path = "../jwt"
 
 [features]
 allow_insecure_url = ["http_utils/allow_insecure_url"]

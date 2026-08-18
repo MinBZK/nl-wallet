@@ -3,7 +3,6 @@ pub mod brp;
 pub mod constants;
 pub mod digid;
 pub mod digid_mock;
-pub mod jwks;
 pub mod userinfo;
 
 #[cfg(any(test, feature = "mock"))]
