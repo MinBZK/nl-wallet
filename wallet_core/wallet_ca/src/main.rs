@@ -4,13 +4,19 @@ use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
+use attestation_data::x509::RelyingParty;
 use attestation_types::claim_path::ClaimPath;
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use chrono::Utc;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
 use clio::CachedInput;
+use cose::wrprc_cwt::SignedWrprcCwt;
+use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateConfiguration;
@@ -20,6 +26,8 @@ use crypto::x509::NO_SAN;
 use crypto::x509::SubjectAltNameUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use jwt::SignedJwt;
+use jwt::jades_b_b::JadesbbHeader;
 use mdoc::DataElements;
 use mdoc::DeviceRequest;
 use mdoc::ItemsRequest;
@@ -29,11 +37,16 @@ use mdoc::holder::disclosure::create_doc_request;
 use mdoc::utils::serialization::cbor_serialize;
 use rcgen::RevokedCertParams;
 use rcgen::SerialNumber;
+use serde::Serialize;
+use serde_json::Value;
 use time::OffsetDateTime;
 use url::Url;
 use utils::built_info::version_string;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_ca::next_crl_number;
+use wallet_ca::read_certificate;
+use wallet_ca::read_key_pair;
 use wallet_ca::read_public_key;
 use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_certificate;
@@ -62,6 +75,16 @@ enum CertType {
     Wia,
     /// Wallet Relying Party Access Certificate (WRPAC)
     Wrpac,
+    /// Wallet Relying Party Registration Certificate (WRPRC) signing certificate
+    Wrprc,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum RegistrationCertificateFormat {
+    /// JAdES B-B JWT serialization
+    Jwt,
+    /// COSE-signed WRPRC CWT serialization
+    Cwt,
 }
 
 #[derive(Subcommand)]
@@ -78,7 +101,7 @@ enum Command {
         #[arg(short, long)]
         file_prefix: String,
         /// Duration for which the certificate will be valid
-        #[arg(short, long, default_value = "365")]
+        #[arg(short, long, default_value = "3650")]
         days: u32,
         /// Overwrite existing files
         #[arg(long, default_value = "false")]
@@ -192,6 +215,24 @@ enum Command {
         /// Overwrite existing files
         #[arg(long, default_value = "false")]
         force: bool,
+    },
+    /// Sign a WRPRC payload and print its unpadded base64url serialization
+    RegistrationCertificate {
+        /// Path to the WRPRC signing key file in PEM format
+        #[arg(long, value_parser)]
+        wrprc_key_file: CachedInput,
+        /// Path to the WRPRC signing certificate file in PEM format
+        #[arg(long, value_parser)]
+        wrprc_crt_file: CachedInput,
+        /// Path to the WRPAC whose subject must match the WRPRC payload in PEM format
+        #[arg(long, value_parser)]
+        wrpac_crt_file: CachedInput,
+        /// Path to the unsigned WRPRC payload in JSON format
+        #[arg(long, value_parser)]
+        payload_file: CachedInput,
+        /// WRPRC envelope format
+        #[arg(long, value_enum)]
+        format: RegistrationCertificateFormat,
     },
     /// Generate a signed mdoc DeviceRequest for close-proximity disclosure
     ReaderDeviceRequest {
@@ -324,7 +365,7 @@ impl Command {
             CertType::Issuer => Some(CertificateUsage::Mdl),
             CertType::Tsl => Some(CertificateUsage::OAuthStatusSigning),
             CertType::Wia => Some(CertificateUsage::Wia),
-            CertType::Wrpac => None,
+            CertType::Wrpac | CertType::Wrprc => None,
         };
 
         let extension = issuer_auth_file
@@ -432,6 +473,34 @@ impl Command {
                 write_certificate(&certificate, &file_prefix, force)?;
                 Ok(())
             }
+            RegistrationCertificate {
+                wrprc_key_file,
+                wrprc_crt_file,
+                wrpac_crt_file,
+                payload_file,
+                format,
+            } => {
+                let signing_key_pair = read_key_pair(&wrprc_crt_file, &wrprc_key_file)?;
+                if signing_key_pair.certificate().x509_certificate().is_ca() {
+                    anyhow::bail!("WRPRC signing certificate must be an end-entity certificate");
+                }
+
+                let access_certificate = read_certificate(&wrpac_crt_file)?;
+                let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
+                let payload: Value = serde_json::from_reader(payload_file)?;
+                serde_json::from_value::<UncheckedRegistrationCertificate>(payload.clone())?
+                    .validate_structure(&access_subject, Utc::now())?;
+
+                let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+                let serialized = runtime.block_on(sign_registration_certificate(
+                    RegistrationCertificatePayload(payload),
+                    &signing_key_pair,
+                    format,
+                ))?;
+
+                println!("{}", BASE64_URL_SAFE_NO_PAD.encode(serialized));
+                Ok(())
+            }
             ReaderDeviceRequest {
                 ca_key_file,
                 ca_crt_file,
@@ -500,6 +569,38 @@ impl Command {
                 write_crl(&file_prefix, &crl, force)?;
                 Ok(())
             }
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(transparent)]
+struct RegistrationCertificatePayload(Value);
+
+impl jwt::JwtTyp for RegistrationCertificatePayload {
+    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
+}
+
+async fn sign_registration_certificate(
+    payload: RegistrationCertificatePayload,
+    signing_key_pair: &KeyPair,
+    format: RegistrationCertificateFormat,
+) -> Result<Vec<u8>> {
+    match format {
+        RegistrationCertificateFormat::Jwt => {
+            Ok(
+                SignedJwt::<_, JadesbbHeader>::sign_with_iat(&payload, signing_key_pair, &TimeGenerator)
+                    .await?
+                    .to_string()
+                    .into_bytes(),
+            )
+        }
+        RegistrationCertificateFormat::Cwt => {
+            Ok(
+                SignedWrprcCwt::sign_with_certificate(&payload, signing_key_pair, &TimeGenerator)
+                    .await?
+                    .to_vec()?,
+            )
         }
     }
 }

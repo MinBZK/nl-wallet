@@ -12,12 +12,14 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
+base64.workspace = true
 chrono = { workspace = true, features = ["now"] }
 clap = { workspace = true, features = ["derive", "string"] }
 clio = { workspace = true, features = ["clap-parse"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
+serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["rt"] }
 p256 = { workspace = true, features = ["pem"] }
 pem.workspace = true
@@ -30,6 +32,8 @@ x509-parser.workspace = true
 crypto = { path = "../lib/crypto", features = ["generate"] }
 attestation_data = { path = "../lib/attestation_data", features = ["generate"] }
 attestation_types.path = "../lib/attestation_types"
+cose.path = "../lib/cose"
+jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", features = ["test"] }
 utils.path = "../lib/utils"
 http_utils.path = "../lib/http_utils"

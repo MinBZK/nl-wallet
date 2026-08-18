@@ -10,11 +10,19 @@ use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use cose::wrprc_cwt::UnverifiedWrprcCwt;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::SubjectAltNameUri;
 use crypto::x509::crl::extract_crl_distribution_points;
+use jwt::DEFAULT_VALIDATION;
+use jwt::UnverifiedJwt;
+use jwt::jades_b_b::JadesbbHeader;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use p256::pkcs8::DecodePrivateKey;
@@ -27,9 +35,12 @@ use pem::Pem;
 use predicates::prelude::*;
 use predicates::str::RegexPredicate;
 use predicates::str::StartsWithPredicate;
+use serde_json::Value;
+use serde_json::json;
 use time::Duration;
 use time::OffsetDateTime;
 use url::Url;
+use utils::generator::TimeGenerator;
 use x509_parser::extensions::GeneralName;
 use x509_parser::num_bigint::BigUint;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
@@ -250,6 +261,7 @@ trait CommandExtension {
         file_prefix: &Path,
     ) -> &mut Self;
     fn generate_wrpac_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
+    fn generate_wrprc_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_tsl_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_issuer_cert(
         &mut self,
@@ -262,6 +274,14 @@ trait CommandExtension {
     fn generate_wrpac_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_tsl_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_crl(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path, days: &str) -> &mut Self;
+    fn generate_registration_certificate(
+        &mut self,
+        wrprc_crt: &Path,
+        wrprc_key: &Path,
+        wrpac_crt: &Path,
+        payload: &Path,
+        format: &str,
+    ) -> &mut Self;
 
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self;
 
@@ -309,6 +329,20 @@ impl CommandExtension for Command {
             .arg(ca_crt)
             .arg("--common-name")
             .arg("Test WRPAC")
+            .arg("--file-prefix")
+            .arg(file_prefix)
+    }
+
+    fn generate_wrprc_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
+        self.arg("cert")
+            .arg("--type")
+            .arg("wrprc")
+            .arg("--ca-key-file")
+            .arg(ca_key)
+            .arg("--ca-crt-file")
+            .arg(ca_crt)
+            .arg("--common-name")
+            .arg("Test WRPRC signer")
             .arg("--file-prefix")
             .arg(file_prefix)
     }
@@ -396,6 +430,27 @@ impl CommandExtension for Command {
             .arg(days)
     }
 
+    fn generate_registration_certificate(
+        &mut self,
+        wrprc_crt: &Path,
+        wrprc_key: &Path,
+        wrpac_crt: &Path,
+        payload: &Path,
+        format: &str,
+    ) -> &mut Self {
+        self.arg("registration-certificate")
+            .arg("--wrprc-crt-file")
+            .arg(wrprc_crt)
+            .arg("--wrprc-key-file")
+            .arg(wrprc_key)
+            .arg("--wrpac-crt-file")
+            .arg(wrpac_crt)
+            .arg("--payload-file")
+            .arg(payload)
+            .arg("--format")
+            .arg(format)
+    }
+
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self {
         self.arg("--organization-name")
             .arg(organization_name)
@@ -441,8 +496,142 @@ fn generate_public_key(path: &ChildPath) {
     .unwrap();
 }
 
-const DEFAULT_LIFETIME: Duration = Duration::days(365);
+const DEFAULT_CA_LIFETIME: Duration = Duration::days(3650);
+const DEFAULT_CERTIFICATE_LIFETIME: Duration = Duration::days(365);
 const DEFAULT_CRL_LIFETIME: Duration = Duration::days(90);
+
+fn registration_certificate_payload(subject: &str) -> Value {
+    json!({
+        "id": "test-registration-certificate",
+        "name": "Test Relying Party",
+        "sub": subject,
+        "sub_ln": "Test Relying Party B.V.",
+        "country": "NL",
+        "registry_uri": "https://registry.example.com",
+        "support_uri": "https://support.example.com",
+        "srv_description": [[{
+            "lang": "en",
+            "value": "Test disclosure service"
+        }]],
+        "supervisory_authority": {},
+        "entitlements": ["https://uri.etsi.org/19475/Entitlement/Service_Provider"],
+        "credentials": [{
+            "format": "mso_mdoc",
+            "meta": {
+                "doctype_value": "eu.europa.ec.eudi.pid.1"
+            },
+            "claim": [{
+                "path": ["eu.europa.ec.eudi.pid.1", "age_over_18"]
+            }]
+        }],
+        "purpose": [{
+            "lang": "en",
+            "value": "Verify that the holder is over 18"
+        }],
+        "iat": chrono::Utc::now().timestamp(),
+        "status": {
+            "idx": "0",
+            "uri": "https://status.example.com/1"
+        },
+        "policy_id": ["0.4.0.19475.3.1"],
+        "certificate_policy": "https://registry.example.com/certificate-policy"
+    })
+}
+
+fn trust_anchors_from_pem(path: &Path) -> Result<TrustAnchors> {
+    let bytes = std::fs::read(path)?;
+    let pem = Pem::try_from(bytes.as_slice())?;
+    Ok(TrustAnchors::try_from(vec![pem.contents().to_vec()])?)
+}
+
+fn generate_registration_certificate(
+    wrprc_crt: &Path,
+    wrprc_key: &Path,
+    wrpac_crt: &Path,
+    payload: &Path,
+    format: &str,
+) -> Result<Vec<u8>> {
+    let output = Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_registration_certificate(wrprc_crt, wrprc_key, wrpac_crt, payload, format)
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let encoded = std::str::from_utf8(&output)?.trim();
+
+    Ok(BASE64_URL_SAFE_NO_PAD.decode(encoded)?)
+}
+
+#[test]
+fn generate_and_validate_registration_certificate() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (wrpac_ca_prefix, wrpac_ca_crt, wrpac_ca_key) = keypair_paths(&temp, "wrpac-ca");
+    let (wrprc_ca_prefix, wrprc_ca_crt, wrprc_ca_key) = keypair_paths(&temp, "wrprc-ca");
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&wrpac_ca_prefix)
+        .assert()
+        .success();
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&wrprc_ca_prefix)
+        .assert()
+        .success();
+
+    let (wrpac_prefix, wrpac_crt, _) = keypair_paths(&temp, "relying-party-wrpac");
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_wrpac_kp(&wrpac_ca_crt, &wrpac_ca_key, &wrpac_prefix)
+        .generate_for_legal_person("Test Relying Party B.V.", "NTRNL-00000002")
+        .assert()
+        .success();
+
+    let (wrprc_prefix, wrprc_crt, wrprc_key) = keypair_paths(&temp, "registrar-wrprc");
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_wrprc_kp(&wrprc_ca_crt, &wrprc_ca_key, &wrprc_prefix)
+        .generate_for_legal_person("Test Registrar B.V.", "NTRNL-00000001")
+        .assert()
+        .success();
+
+    let payload_file = temp.child("registration-certificate.json");
+    payload_file.write_str(&serde_json::to_string_pretty(&registration_certificate_payload(
+        "NTRNL-00000002",
+    ))?)?;
+    let trust_anchors = trust_anchors_from_pem(&wrprc_ca_crt)?;
+
+    let jwt = generate_registration_certificate(&wrprc_crt, &wrprc_key, &wrpac_crt, &payload_file, "jwt")?;
+    let jwt = String::from_utf8(jwt)?;
+    let jwt: UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader> = jwt.parse()?;
+    let (_, jwt_payload) = jwt.parse_and_verify_against_trust_anchors(
+        &trust_anchors,
+        &TimeGenerator,
+        None,
+        DEFAULT_VALIDATION.to_owned(),
+    )?;
+    assert_eq!(jwt_payload.sub, "NTRNL-00000002");
+
+    let cwt = generate_registration_certificate(&wrprc_crt, &wrprc_key, &wrpac_crt, &payload_file, "cwt")?;
+    let cwt = UnverifiedWrprcCwt::<UncheckedRegistrationCertificate>::from_slice(&cwt)?;
+    let cwt_payload = cwt
+        .into_verified_against_trust_anchors(&trust_anchors, &TimeGenerator, None)?
+        .into_payload();
+    assert_eq!(cwt_payload.sub, "NTRNL-00000002");
+
+    payload_file.write_str(&serde_json::to_string_pretty(&registration_certificate_payload(
+        "NTRNL-DIFFERENT",
+    ))?)?;
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_registration_certificate(&wrprc_crt, &wrprc_key, &wrpac_crt, &payload_file, "jwt")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "registration certificate `sub` does not match access certificate `organizationIdentifier`",
+        ));
+
+    temp.close()?;
+
+    Ok(())
+}
 
 #[test]
 fn happy_flow_with_default_lifetime() -> Result<()> {
@@ -465,7 +654,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         &ca_dn,
         None,
         OffsetDateTime::now_utc(),
-        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+        OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
         None,
     )?;
 
@@ -499,7 +688,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             ),
             None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::Mdl),
         )?;
     }
@@ -535,7 +724,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             ),
             None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::Mdl),
         )?;
     }
@@ -566,7 +755,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             ),
             None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             None,
         )?;
     }
@@ -598,7 +787,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             ),
             None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             None,
         )?;
     }
@@ -629,7 +818,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             ),
             None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
@@ -663,7 +852,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             ),
             None,
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
@@ -794,7 +983,7 @@ fn happy_flow_with_san() -> Result<()> {
         &ca_dn,
         None,
         OffsetDateTime::now_utc(),
-        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+        OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
         None,
     )?;
 
@@ -825,7 +1014,7 @@ fn happy_flow_with_san() -> Result<()> {
             ),
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
@@ -859,7 +1048,7 @@ fn happy_flow_with_san() -> Result<()> {
             ),
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
-            OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+            OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::OAuthStatusSigning),
         )?;
     }
@@ -1114,7 +1303,7 @@ fn not_a_natural_or_legal_person() -> Result<()> {
         &ca_dn,
         None,
         OffsetDateTime::now_utc(),
-        OffsetDateTime::now_utc() + DEFAULT_LIFETIME,
+        OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
         None,
     )?;
 

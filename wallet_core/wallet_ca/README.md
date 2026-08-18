@@ -12,6 +12,44 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- --help
 cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert --help
 ```
 
+## Registration certificates
+
+A Wallet Relying Party Registration Certificate (WRPRC) is signed under the
+WRPRC PKI, but its subject is bound to a separate Wallet Relying Party Access
+Certificate (WRPAC). First create an end-entity signing key pair under the
+WRPRC CA:
+
+```shell
+cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
+    --type wrprc \
+    --ca-key-file target/ca.wrprc.key.pem \
+    --ca-crt-file target/ca.wrprc.crt.pem \
+    --common-name "Development WRPRC signer" \
+    --organization-name "Development Registrar B.V." \
+    --organization-id NTRNL-00000001 \
+    --file-prefix target/wrprc-signer
+```
+
+Then sign an authored JSON payload. The command validates the payload and
+checks that its `sub` matches the subject identifier in the supplied WRPAC
+before signing it:
+
+```shell
+cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- \
+    registration-certificate \
+    --wrprc-key-file target/wrprc-signer.key.pem \
+    --wrprc-crt-file target/wrprc-signer.crt.pem \
+    --wrpac-crt-file target/example-wrpac.crt.pem \
+    --payload-file registration-certificate.json \
+    --format cwt
+```
+
+Both `jwt` and `cwt` formats are supported. The command prints one unpadded
+base64url string containing the serialized WRPRC, ready for a
+`registration_certificate` configuration value or OpenID4VP
+`verifier_info.data`. It does not create the payload, its referenced status
+list, or deployment configuration.
+
 ## CRL distribution points
 
 WRPAC consumers in the wallet require revocation checking. Generate a signed
