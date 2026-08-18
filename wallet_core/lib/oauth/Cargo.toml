@@ -1,0 +1,43 @@
+[package]
+name = "oauth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+derive_more = { workspace = true, features = [
+    "as_ref",
+    "constructor",
+    "display",
+    "eq",
+    "from",
+    "into",
+] }
+indexmap = { workspace = true, features = ["serde"] }
+reqwest.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+serde_with = { workspace = true, features = ["json", "chrono"] }
+strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+tracing.workspace = true
+url = { workspace = true, features = ["serde"] }
+
+http_utils = { path = "../http_utils", features = ["client"] }
+
+[features]
+allow_insecure_url = ["http_utils/allow_insecure_url"]
+# Include mock implementations for testing
+mock = []
+
+[dev-dependencies]
+http.workspace = true
+httpmock.workspace = true
+mime.workspace = true
+rstest.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+
+http_utils = { path = "../http_utils", features = ["httpmock"] }
+
+[lints]
+workspace = true

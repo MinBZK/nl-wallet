@@ -401,6 +401,7 @@ mod tests {
     use futures::FutureExt;
     use jwt::nonce::Nonce;
     use jwt::wia::WiaDisclosure;
+    use oauth::issuer_identifier::IssuerIdentifier;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
@@ -427,7 +428,6 @@ mod tests {
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
     use crate::issuer::WiaVerificationError;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::nonce::memory_store::MemoryNonceStore;
     use crate::par::PAR_TTL;

@@ -52,6 +52,7 @@ use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
+use oauth::jose::JwsAlgorithm;
 use sd_jwt::key_binding_jwt::KbVerificationOptions;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use serde::Deserialize;
@@ -82,7 +83,6 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
-use crate::jose::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
@@ -1176,6 +1176,7 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
+    use oauth::jose::JwsAlgorithm;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::examples::WITH_KB_SD_JWT;
@@ -1205,7 +1206,6 @@ mod tests {
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
-    use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;

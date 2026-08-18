@@ -550,6 +550,7 @@ mod tests {
     use indexmap::IndexMap;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
     use itertools::Itertools;
+    use oauth::issuer_identifier::IssuerIdentifier;
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -558,7 +559,6 @@ mod tests {
     use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
-    use openid4vc::issuer_identifier::IssuerIdentifier;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::par::PAR_TTL;

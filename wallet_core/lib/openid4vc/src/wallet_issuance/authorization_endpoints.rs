@@ -1,7 +1,6 @@
 use error_category::ErrorCategory;
+use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
 use url::Url;
-
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(critical)]
@@ -50,9 +49,10 @@ impl TryFrom<AuthorizationServerMetadata> for AuthorizationEndpoints {
 mod test {
     use std::assert_matches;
 
+    use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
+
     use super::AuthorizationEndpoints;
     use super::AuthorizationEndpointsError;
-    use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 
     const ISSUER_URL: &str = "https://example.com";
 

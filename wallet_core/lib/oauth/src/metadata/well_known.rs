@@ -47,26 +47,11 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::metadata::oauth_metadata::OidcProviderMetadata;
 
     fn issuer(s: &str) -> IssuerIdentifier {
         s.parse().unwrap()
-    }
-
-    #[rstest]
-    #[case("https://example.com/", "")]
-    #[case("https://example.com/tenant", "/tenant")]
-    #[case("https://example.com/tenant/", "/tenant")]
-    #[case("https://example.com/tenant/sub-tenant", "/tenant/sub-tenant")]
-    fn test_well_known_url_credential_issuer(#[case] issuer_url: &str, #[case] path_suffix: &str) {
-        let issuer = issuer(issuer_url);
-        let url = IssuerMetadata::well_known_url(&issuer);
-        assert_eq!(
-            url.as_str(),
-            format!("https://example.com/.well-known/openid-credential-issuer{path_suffix}")
-        );
     }
 
     #[rstest]

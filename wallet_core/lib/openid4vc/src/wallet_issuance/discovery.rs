@@ -12,6 +12,9 @@ use itertools::Itertools;
 use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
+use oauth::metadata::well_known::WellKnownMetadata;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -31,14 +34,11 @@ use crate::client_auth::check_client_attestation_metadata;
 use crate::credential_offer::CredentialOffer;
 use crate::credential_offer::CredentialOfferContainer;
 use crate::credential_offer::Grants;
-use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-use crate::metadata::well_known::WellKnownMetadata;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
@@ -611,6 +611,7 @@ mod test {
     use jwt::error::JwtVerifyError;
     use jwt::error::JwtX5cVerifyError;
     use jwt::wia::WIA_CLIENT_AUTH_METHOD;
+    use oauth::issuer_identifier::IssuerIdentifier;
     use rstest::rstest;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -630,7 +631,6 @@ mod test {
     use crate::credential_offer::GrantPreAuthorizedCode;
     use crate::credential_offer::Grants;
     use crate::credential_offer::PreAuthTransactionCode;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
@@ -722,7 +722,7 @@ mod test {
                     "type_metadata_uri": issuer_identifier
                                             .as_issuer_url()
                                             .join_issuer_url("/issuance/type_metadata")
-                                            .join_config_id(&CONFIG_ID),
+                                            .join_config_id(CONFIG_ID.as_ref()),
                 }
             },
         });

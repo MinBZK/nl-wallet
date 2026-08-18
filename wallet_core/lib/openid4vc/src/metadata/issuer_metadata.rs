@@ -18,6 +18,10 @@ use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
 use jwt::JwtTyp;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::issuer_identifier::IssuerUrl;
+use oauth::jose::JwsAlgorithm;
+use oauth::metadata::well_known::WellKnownMetadata;
 use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
@@ -34,12 +38,8 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_identifier::IssuerUrl;
-use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
-use crate::metadata::well_known::WellKnownMetadata;
 use crate::scope::Scope;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
@@ -759,6 +759,7 @@ mod tests {
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
     use jwt::VerifiedJwt;
+    use oauth::issuer_identifier::IssuerIdentifier;
     use serde_json::json;
 
     use super::CoseAlgorithmIdentifier;
@@ -769,7 +770,6 @@ mod tests {
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
     use super::SignedIssuerMetadataPayload;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::jwe::JweCompressionAlgorithm;
 
     #[test]

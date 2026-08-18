@@ -10,6 +10,7 @@ use derive_more::Debug;
 use http_utils::urls::HttpsUri;
 use itertools::Either;
 use itertools::Itertools;
+use oauth::issuer_identifier::IssuerUrl;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -17,7 +18,6 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::vec_at_least::VecNonEmptyUnique;
 
-use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
@@ -248,7 +248,7 @@ impl<K, L> CredentialConfigurations<K, L> {
                 let proof_types = vec![ProofType::Jwt];
                 let display = config.metadata.normalized.display().to_vec();
                 let claims = config.metadata.normalized.claims().to_vec();
-                let type_metadata_uri = type_metadata_base_url.join_config_id(config_id);
+                let type_metadata_uri = type_metadata_base_url.join_config_id(config_id.as_ref());
 
                 let credential_configuration = match config.credential_kind.format {
                     Format::MsoMdoc => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(

@@ -28,6 +28,7 @@ dependencies = [
  "indexmap 2.12.1",
  "issuer_common",
  "itertools 0.14.0",
+ "oauth",
  "openid4vc",
  "openid4vc_server",
  "p256 0.14.0",
@@ -2165,6 +2166,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
+ "oauth",
  "openid4vc",
  "pacf_issuance_server",
  "rand 0.8.6",
@@ -4229,6 +4231,7 @@ dependencies = [
  "http_utils",
  "itertools 0.14.0",
  "jwt",
+ "oauth",
  "openid4vc",
  "sd_jwt_vc_metadata",
  "sea-orm",
@@ -5106,6 +5109,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "oauth"
+version = "0.6.0-dev"
+dependencies = [
+ "derive_more",
+ "http",
+ "http_utils",
+ "httpmock",
+ "indexmap 2.12.1",
+ "mime",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.28.0",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "objc2"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5340,6 +5365,7 @@ dependencies = [
  "mime",
  "mockall",
  "nutype",
+ "oauth",
  "p256 0.14.0",
  "parking_lot",
  "rand_core 0.9.5",
@@ -5389,6 +5415,7 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "mediatype",
+ "oauth",
  "openid4vc",
  "p256 0.14.0",
  "rand_core 0.9.5",
@@ -5931,6 +5958,7 @@ dependencies = [
  "jwe",
  "jwk-simple",
  "jwt",
+ "oauth",
  "openid4vc",
  "openid4vc_server",
  "p256 0.14.0",
@@ -8763,6 +8791,7 @@ dependencies = [
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
+ "oauth",
  "openid4vc",
  "openid4vc_server",
  "p256 0.14.0",

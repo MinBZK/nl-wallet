@@ -147,12 +147,12 @@ mod tests {
 
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
+    use oauth::issuer_identifier::IssuerIdentifier;
 
     use super::InvalidAuthorizationRequest;
     use super::WalletAuthorizationContext;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::VciAuthorizationRequest;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::pkce::PkcePair;
     use crate::pkce::S256PkcePair;
     use crate::scope::Scope;

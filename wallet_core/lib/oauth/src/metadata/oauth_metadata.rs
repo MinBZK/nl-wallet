@@ -195,6 +195,45 @@ impl AuthorizationServerMetadata {
 #[serde(transparent)]
 pub struct OidcProviderMetadata(AuthorizationServerMetadata);
 
+impl OidcProviderMetadata {
+    pub fn legacy_well_known_url(issuer: &IssuerIdentifier) -> Url {
+        let url = issuer.as_base_url().as_ref();
+        url.join(&format!(".well-known/{}.json", Self::PATH))
+            .expect("both paths are already safe url encoded")
+    }
+
+    pub async fn fetch_well_known_with_fallback(
+        client: &HttpClient,
+        issuer: &IssuerIdentifier,
+    ) -> Result<Self, WellKnownError> {
+        match Self::fetch_well_known_json(client, issuer).await {
+            Ok(result) => Ok(result),
+            Err(error) => {
+                tracing::debug!(
+                    "Failed fetching .well-known configuration: {}. Trying fallback...",
+                    error
+                );
+                Self::fetch_well_known_fallback(client, issuer).await
+            }
+        }
+    }
+
+    pub async fn fetch_well_known_fallback(
+        client: &HttpClient,
+        issuer: &IssuerIdentifier,
+    ) -> Result<Self, WellKnownError> {
+        let url = Self::legacy_well_known_url(issuer);
+        let metadata: Self = client.get_json(url).await?;
+        if metadata.issuer_identifier() != issuer {
+            return Err(WellKnownError::IssuerIdentifierMismatch {
+                expected: Box::new(issuer.clone()),
+                received: Box::new(metadata.issuer_identifier().clone()),
+            });
+        }
+        Ok(metadata)
+    }
+}
+
 impl WellKnownMetadata for AuthorizationServerMetadata {
     const PATH: &'static str = "oauth-authorization-server";
 
