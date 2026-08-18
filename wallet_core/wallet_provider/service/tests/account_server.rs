@@ -5,6 +5,7 @@ use std::time::Duration;
 use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
 use base64::prelude::*;
+use chrono::Utc;
 use crypto::PublicKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -39,6 +40,7 @@ use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wia;
+use wallet_provider_service::account_server::CertificateSigningKeys;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
@@ -340,4 +342,104 @@ async fn test_wia_status() {
             .status,
         StatusClaim::StatusList(_)
     ));
+}
+
+// Rollover the server's signing key map
+fn rollover_signing_keys(server: &mut MockAccountServer, keys: HashMap<String, CertificateSigningKeys>) {
+    server.keys.wallet_certificate_signing_pubkeys = keys;
+}
+
+/// Tests that a wallet certificate issued with a previous certificate signing key can still be
+/// used during a key rollover, and is rejected once the old key has expired or is removed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_certificate_signing_key_rollover() {
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
+    let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+    let certificate_signing_key = SigningKey::generate();
+    let kid = certificate_signing_key.kid();
+    let mut account_server = mock::setup_account_server(
+        certificate_signing_key.verifying_key(),
+        kid.to_owned(),
+        Default::default(),
+    );
+
+    // Register with the current certificate signing key, before rollover
+    let pin_privkey = SigningKey::generate();
+    let (certificate, hw_privkey, cert_data, user_state) = do_registration(
+        &account_server,
+        &certificate_signing_key,
+        &pin_privkey,
+        db,
+        AttestationCa::Apple(&MOCK_APPLE_CA),
+        wrapping_key_identifier,
+    )
+    .await;
+
+    // The new current keys that the WP is rolling over to
+    let new_current_key = (
+        "new_current_kid".to_string(),
+        CertificateSigningKeys {
+            exp: None,
+            certificate_public_key: PublicKey::from(*SigningKey::generate().verifying_key()),
+            public_disclosure_protection_key_identifier:
+                wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+        },
+    );
+
+    let now = Utc::now();
+
+    // Set up old key with an expiry in one hour
+    let exp = now + Duration::from_hours(1);
+    rollover_signing_keys(
+        &mut account_server,
+        HashMap::from([
+            new_current_key.clone(),
+            (
+                kid.to_owned(),
+                CertificateSigningKeys {
+                    exp: Some(exp),
+                    certificate_public_key: PublicKey::from(*certificate_signing_key.verifying_key()),
+                    public_disclosure_protection_key_identifier: "new_public_disclosure_protection_key_identifier"
+                        .to_owned(),
+                },
+            ),
+        ]),
+    );
+    account_server
+        .instruction_challenge(
+            hw_privkey
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 1, certificate.clone())
+                .await,
+            &MockTimeGenerator::new(now),
+            &user_state,
+        )
+        .await
+        .expect("certificate with non-expired old kid should be accepted");
+
+    // Use a future time to test that the old kid is now expired
+    account_server
+        .instruction_challenge(
+            hw_privkey
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 2, certificate.clone())
+                .await,
+            &MockTimeGenerator::new(now + Duration::from_hours(2)),
+            &user_state,
+        )
+        .await
+        .expect_err("certificate with expired old kid should be rejected");
+
+    // Remove old kid from the key map
+    rollover_signing_keys(&mut account_server, HashMap::from([new_current_key]));
+    account_server
+        .instruction_challenge(
+            hw_privkey
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 2, certificate)
+                .await,
+            &MockTimeGenerator::new(now),
+            &user_state,
+        )
+        .await
+        .expect_err("certificate with unknown kid should be rejected");
 }
