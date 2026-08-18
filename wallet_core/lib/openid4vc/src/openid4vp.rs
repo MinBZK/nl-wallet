@@ -92,6 +92,8 @@ const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
     &[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
 
+pub const REGISTRATION_CERTIFICATE_FORMAT: &str = "registration_cert";
+
 /// OpenID4VP request uri.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct VpRequestUri {
@@ -159,8 +161,26 @@ pub struct VpAuthorizationRequest {
 
     pub wallet_nonce: Option<String>,
 
+    /// Information about the verifier as specified by ETSI TS 119 472-2.
+    pub verifier_info: Option<VecNonEmpty<VerifierInfo>>,
+
     #[serde_as(as = "Option<Vec<JsonBase64>>")]
     pub transaction_data: Option<VecNonEmpty<serde_json::Map<String, serde_json::Value>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VerifierInfo {
+    pub format: String,
+    pub data: String,
+}
+
+impl VerifierInfo {
+    pub fn registration_certificate(data: String) -> Self {
+        Self {
+            format: REGISTRATION_CERTIFICATE_FORMAT.to_string(),
+            data,
+        }
+    }
 }
 
 impl JwtTyp for VpAuthorizationRequest {
@@ -694,6 +714,7 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
             client_metadata: Some(value.client_metadata),
             response_uri: Some(value.response_uri),
             wallet_nonce: value.wallet_nonce,
+            verifier_info: None,
             transaction_data: None,
         }
     }
@@ -1201,6 +1222,7 @@ mod tests {
     use super::JsonBase64;
     use super::NormalizedVpAuthorizationRequest;
     use super::VerifiablePresentation;
+    use super::VerifierInfo;
     use super::VpAuthorizationRequest;
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
@@ -2099,6 +2121,21 @@ mod tests {
         let json_array_error =
             serde_json::from_value::<TransactionDataEntries>(json!([encoded_json_array])).unwrap_err();
         assert!(json_array_error.to_string().contains("error parsing entry as JSON"));
+    }
+
+    #[test]
+    fn registration_certificate_verifier_info_should_roundtrip_data_as_string() {
+        let verifier_info = VerifierInfo::registration_certificate("-_8A".to_string());
+        let json = serde_json::to_value(&verifier_info).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "format": "registration_cert",
+                "data": "-_8A",
+            })
+        );
+        assert_eq!(serde_json::from_value::<VerifierInfo>(json).unwrap(), verifier_info);
     }
 
     #[test]
