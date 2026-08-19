@@ -248,7 +248,7 @@ impl MockVerifierSession {
 
     /// Generate the first protocol message of the verifier.
     fn signed_auth_request(&self, wallet_request: WalletRequest) -> SignedJwt<VpAuthorizationRequest, HeaderWithX5c> {
-        let request = create_vp_authorization_request(self.normalized_auth_request(wallet_request.wallet_nonce));
+        let request = create_vp_authorization_request(self.normalized_auth_request(wallet_request.wallet_nonce), None);
 
         SignedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()

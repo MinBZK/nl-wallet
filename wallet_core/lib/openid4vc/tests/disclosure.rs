@@ -169,7 +169,7 @@ async fn disclosure_direct() {
         response_uri,
         None,
     );
-    let auth_request = create_vp_authorization_request(iso_auth_request.clone());
+    let auth_request = create_vp_authorization_request(iso_auth_request.clone(), None);
     let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .await
         .unwrap();
@@ -382,7 +382,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let auth_request = create_vp_authorization_request(self.auth_request.clone());
+        let auth_request = create_vp_authorization_request(self.auth_request.clone(), None);
         let jws = SignedJwt::sign_with_certificate(&auth_request, &self.auth_keypair)
             .await
             .unwrap()

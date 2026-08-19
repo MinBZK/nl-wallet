@@ -8,6 +8,8 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use attestation_data::disclosure::DisclosedAttestations;
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
@@ -68,6 +70,7 @@ use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::RESPONSE_ENCRYPTION_ALGORITHMS;
 use crate::openid4vp::SdJwtAlgValues;
+use crate::openid4vp::VerifierInfo;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationRequestAudience;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -497,6 +500,7 @@ pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
     pub client_id: ClientId,
     pub session_type_return_url: SessionTypeReturnUrl,
+    registration_certificate: Option<Vec<u8>>,
 }
 
 impl<K> UseCaseData<K> {
@@ -507,7 +511,13 @@ impl<K> UseCaseData<K> {
             key_pair,
             client_id,
             session_type_return_url,
+            registration_certificate: None,
         }
+    }
+
+    pub fn with_registration_certificate(mut self, registration_certificate: Vec<u8>) -> Self {
+        self.registration_certificate = Some(registration_certificate);
+        self
     }
 }
 
@@ -581,7 +591,10 @@ pub fn create_normalized_vp_authorization_request(
 }
 
 /// Constructs the wire-format Authorization Request sent by a verifier.
-pub fn create_vp_authorization_request(value: NormalizedVpAuthorizationRequest) -> VpAuthorizationRequest {
+pub fn create_vp_authorization_request(
+    value: NormalizedVpAuthorizationRequest,
+    registration_certificate: Option<&[u8]>,
+) -> VpAuthorizationRequest {
     VpAuthorizationRequest {
         aud: VpAuthorizationRequestAudience::SelfIssued,
         oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
@@ -591,7 +604,11 @@ pub fn create_vp_authorization_request(value: NormalizedVpAuthorizationRequest) 
         client_metadata: Some(value.client_metadata),
         response_uri: Some(value.response_uri),
         wallet_nonce: value.wallet_nonce,
-        verifier_info: None,
+        verifier_info: registration_certificate.map(|certificate| {
+            vec_nonempty![VerifierInfo::registration_certificate(
+                BASE64_URL_SAFE_NO_PAD.encode(certificate),
+            )]
+        }),
         transaction_data: None,
     }
 }
@@ -843,6 +860,7 @@ impl<K> WalletInitiatedUseCase<K> {
                 key_pair,
                 client_id,
                 session_type_return_url,
+                registration_certificate: None,
             },
             credential_requests,
             return_url_template,
@@ -1442,7 +1460,8 @@ impl Session<Created> {
             wallet_nonce,
         );
 
-        let vp_auth_request = create_vp_authorization_request(auth_request.clone());
+        let vp_auth_request =
+            create_vp_authorization_request(auth_request.clone(), usecase.registration_certificate.as_deref());
         let jws = SignedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
             .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
@@ -1652,6 +1671,8 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::validity::IssuanceValidity;
     use attestation_types::qualification::AttestationQualification;
+    use base64::Engine;
+    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
@@ -1708,6 +1729,7 @@ mod tests {
     use crate::errors::RemoteAuthorizationErrorResponse;
     use crate::errors::RemoteErrorCode;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::openid4vp::VerifierInfo;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
@@ -1717,6 +1739,7 @@ mod tests {
 
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
+    const REGISTRATION_CERTIFICATE: &[u8] = b"registration certificate";
 
     type TestVerifier<G> = Verifier<
         MemorySessionStore<DisclosureData, G>,
@@ -1752,7 +1775,8 @@ mod tests {
             (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::new(
-                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url),
+                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url)
+                        .with_registration_certificate(REGISTRATION_CERTIFICATE.to_vec()),
                     None,
                     None,
                     None,
@@ -1762,7 +1786,8 @@ mod tests {
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::new(
-                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url),
+                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url)
+                        .with_registration_certificate(REGISTRATION_CERTIFICATE.to_vec()),
                     None,
                     None,
                     None,
@@ -1875,7 +1900,7 @@ mod tests {
         .await;
 
         // Getting the Authorization Request should succeed
-        verifier
+        let authorization_request = verifier
             .process_get_request(
                 session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
@@ -1884,6 +1909,17 @@ mod tests {
             )
             .await
             .unwrap();
+
+        let (_, authorization_request) = authorization_request
+            .into_unverified()
+            .dangerous_parse_unverified()
+            .unwrap();
+        assert_eq!(
+            authorization_request.verifier_info.unwrap().as_slice(),
+            &[VerifierInfo::registration_certificate(
+                BASE64_URL_SAFE_NO_PAD.encode(REGISTRATION_CERTIFICATE)
+            )]
+        );
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
         let end_session_message = WalletAuthResponse::Error(VpAuthorizationErrorCode::AccessDenied.into());
@@ -2218,6 +2254,7 @@ mod tests {
                     key_pair: ca.generate_wrpac_verifier_mock().unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".into(),
+                    registration_certificate: None,
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
