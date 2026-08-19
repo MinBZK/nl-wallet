@@ -265,6 +265,8 @@ pub async fn aes_siv_decrypt<K: AesSivBackend>(
     }
 
     // Z is V || C, so the leading block is the V that encryption put there.
+    // (`split_off` panics if its operand is smaller than the provided parameter, but the length check above
+    // prevents that case from happening.)
     let c = ciphertext.split_off(AES_CMAC_SIZE);
     let v: [u8; AES_CMAC_SIZE] = ciphertext
         .try_into()
