@@ -13,7 +13,6 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use cose::CoseAlgorithmIdentifier;
-use cose::KnownCoseAlgorithmIdentifier;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -75,7 +74,6 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
@@ -89,7 +87,7 @@ use crate::jwe::JweEncryptionAlgorithm;
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
 const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
-const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
+pub(crate) const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
     &[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
 
 pub const REGISTRATION_CERTIFICATE_FORMAT: &str = "registration_cert";
@@ -536,58 +534,6 @@ pub struct NormalizedVpAuthorizationRequest {
 }
 
 impl NormalizedVpAuthorizationRequest {
-    /// Construct an Authorization Request to be sent by this verifier.
-    pub fn new_for_verifier(
-        credential_requests: NormalizedCredentialRequests,
-        client_id: ClientId,
-        nonce: Nonce,
-        encryption_pubkey: JwePublicKey,
-        response_uri: BaseUrl,
-        wallet_nonce: Option<String>,
-    ) -> Self {
-        let jwk = encryption_pubkey.clone().into();
-
-        Self {
-            client_id,
-            nonce,
-            encryption_pubkey,
-            response_uri,
-            credential_requests,
-            client_metadata: VpClientMetadata {
-                jwks: VpJwks {
-                    keys: vec_nonempty![jwk],
-                },
-                vp_formats_supported: VpFormatsSupported {
-                    mso_mdoc: Some(MsoMdocAlgValues {
-                        issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
-                        deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
-                    }),
-                    sd_jwt: Some(SdJwtAlgValues {
-                        sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
-                        kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
-                    }),
-                },
-                // HAIP requires verifiers to list both A128GCM and A256GCM in
-                // `encrypted_response_enc_values_supported`:
-                // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
-                // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM
-                // and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
-                encrypted_response_enc_values_supported: Some(
-                    RESPONSE_ENCRYPTION_ALGORITHMS
-                        .iter()
-                        .copied()
-                        .map(JweEncryptionAlgorithm::from)
-                        .collect_vec()
-                        .try_into()
-                        // The RESPONSE_ENCRYPTION_ALGORITHMS constant is guaranteed to contain more than one algorithm.
-                        .unwrap(),
-                ),
-            },
-            state: None,
-            wallet_nonce,
-        }
-    }
-
     fn select_encryption_algorithm(
         client_metadata: &VpClientMetadata,
     ) -> Result<EncryptionAlgorithm, AuthRequestValidationError> {
@@ -700,23 +646,6 @@ impl NormalizedVpAuthorizationRequest {
             ))),
             &self.response_uri,
         )
-    }
-}
-
-impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
-    fn from(value: NormalizedVpAuthorizationRequest) -> Self {
-        Self {
-            aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
-            nonce: Some(value.nonce),
-            response_mode: Some(ResponseMode::DirectPostJwt),
-            dcql_query: value.credential_requests.into(),
-            client_metadata: Some(value.client_metadata),
-            response_uri: Some(value.response_uri),
-            wallet_nonce: value.wallet_nonce,
-            verifier_info: None,
-            transaction_data: None,
-        }
     }
 }
 
@@ -1130,33 +1059,6 @@ pub struct VpResponse {
     pub redirect_uri: Option<Url>,
 }
 
-#[cfg(any(test, feature = "test"))]
-pub mod test {
-    use super::*;
-
-    impl NormalizedVpAuthorizationRequest {
-        pub fn new_from_certificate(
-            credential_requests: NormalizedCredentialRequests,
-            rp_certificate: &BorrowingCertificate,
-            nonce: Nonce,
-            encryption_pubkey: JwePublicKey,
-            response_uri: BaseUrl,
-            wallet_nonce: Option<String>,
-        ) -> Self {
-            let client_id = ClientId::x509_hash_from_certificate(rp_certificate);
-
-            Self::new_for_verifier(
-                credential_requests,
-                client_id,
-                nonce,
-                encryption_pubkey,
-                response_uri,
-                wallet_nonce,
-            )
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -1217,13 +1119,16 @@ mod tests {
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
+    use super::AuthorizationRequestBase;
     use super::ClientId;
     use super::ClientIdScheme;
     use super::JsonBase64;
     use super::NormalizedVpAuthorizationRequest;
+    use super::ResponseMode;
     use super::VerifiablePresentation;
     use super::VerifierInfo;
     use super::VpAuthorizationRequest;
+    use super::VpAuthorizationRequestAudience;
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
@@ -1235,6 +1140,7 @@ mod tests {
     use crate::openid4vp::MsoMdocAlgValues;
     use crate::openid4vp::SdJwtAlgValues;
     use crate::openid4vp::VpFormatsSupported;
+    use crate::verifier::create_normalized_vp_authorization_request;
 
     #[serde_as]
     #[derive(Debug, Deserialize)]
@@ -1244,6 +1150,21 @@ mod tests {
     );
 
     const EXAMPLE_X509_HASH_CLIENT_ID: &str = "x509_hash:ZXhhbXBsZS1jbGllbnQtaWQtaGFzaA";
+
+    fn authorization_request_from_normalized(value: NormalizedVpAuthorizationRequest) -> VpAuthorizationRequest {
+        VpAuthorizationRequest {
+            aud: VpAuthorizationRequestAudience::SelfIssued,
+            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
+            nonce: Some(value.nonce),
+            response_mode: Some(ResponseMode::DirectPostJwt),
+            dcql_query: value.credential_requests.into(),
+            client_metadata: Some(value.client_metadata),
+            response_uri: Some(value.response_uri),
+            wallet_nonce: value.wallet_nonce,
+            verifier_info: None,
+            transaction_data: None,
+        }
+    }
 
     #[test]
     fn test_normalized_vp_authorization_request_sha256_thumbprint_bytes() {
@@ -1351,9 +1272,9 @@ mod tests {
 
         let response_uri = "https://cert.rp.example.com/response_uri".parse().unwrap();
 
-        let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
+        let auth_request = create_normalized_vp_authorization_request(
             credential_requests,
-            rp_keypair.certificate(),
+            ClientId::x509_hash_from_certificate(rp_keypair.certificate()),
             Nonce::from("nonce".to_string()),
             encryption_public_key,
             response_uri,
@@ -1418,7 +1339,7 @@ mod tests {
         auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
-            SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
+            SignedJwt::sign_with_certificate(&authorization_request_from_normalized(auth_request), &rp_keypair)
                 .await
                 .unwrap();
 
@@ -1435,7 +1356,7 @@ mod tests {
         let (ca, rp_keypair, _, auth_request) = setup_mdoc_without_crl_distribution_point();
         let trust_anchor = TrustAnchors::from(&ca);
         let auth_request_jwt =
-            SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
+            SignedJwt::sign_with_certificate(&authorization_request_from_normalized(auth_request), &rp_keypair)
                 .await
                 .unwrap();
 
@@ -1453,7 +1374,7 @@ mod tests {
     #[test]
     fn test_authorization_request_validate_unauthorized_x509_hash_client_id() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         let expected_hash = ClientId::x509_hash_value(rp_keypair.certificate());
 
         auth_request.oauth_request.client_id = "x509_hash:wrong-hash".to_string();
@@ -1469,7 +1390,7 @@ mod tests {
     #[test]
     fn test_authorization_request_validate_unsupported_client_id_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         let certificate_hash = ClientId::x509_hash_value(rp_keypair.certificate());
         auth_request.oauth_request.client_id = format!("redirect_uri:{certificate_hash}");
 
@@ -1485,7 +1406,7 @@ mod tests {
     #[test]
     fn test_authorization_request_validate_unsupported_client_id_without_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         auth_request.oauth_request.client_id = ClientId::x509_hash_value(rp_keypair.certificate());
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
@@ -1700,7 +1621,7 @@ mod tests {
     #[test]
     fn validate_should_return_selected_encryption_algorithm() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         auth_request
             .client_metadata
             .as_mut()
@@ -1777,7 +1698,7 @@ mod tests {
     #[test]
     fn validate_should_error_when_no_supported_encryption_algorithm_is_advertised() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
 
         let enc_values = vec_nonempty![JweEncryptionAlgorithm::Unknown("A512GCM".to_string())];
         auth_request

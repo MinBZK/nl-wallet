@@ -11,6 +11,7 @@ use attestation_data::disclosure::DisclosedAttestations;
 use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
+use cose::KnownCoseAlgorithmIdentifier;
 use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -26,6 +27,7 @@ use derive_more::Debug;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::decryption::JweEcdhSecretKey;
+use jwe::encryption::JwePublicKey;
 use jwt::SignedJwt;
 use jwt::error::JwtSignError;
 use jwt::headers::HeaderWithX5c;
@@ -49,17 +51,29 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::spawn::start_recurring_task;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
+use crate::authorization::AuthorizationRequestBase;
+use crate::authorization::ResponseMode;
 use crate::errors::BoxedErrorWithCode;
 use crate::errors::PostAuthResponseErrorCode;
 use crate::errors::RemoteAuthorizationErrorResponse;
 use crate::errors::RemoteErrorCode;
 use crate::errors::VpAuthorizationErrorCode;
+use crate::jose::JwsAlgorithm;
+use crate::jwe::JweEncryptionAlgorithm;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::ClientId;
+use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
+use crate::openid4vp::RESPONSE_ENCRYPTION_ALGORITHMS;
+use crate::openid4vp::SdJwtAlgValues;
 use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpAuthorizationRequestAudience;
 use crate::openid4vp::VpAuthorizationResponse;
+use crate::openid4vp::VpClientMetadata;
+use crate::openid4vp::VpFormatsSupported;
+use crate::openid4vp::VpJwks;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
@@ -511,6 +525,74 @@ pub trait UseCase {
 
     fn disclosure_base_deep_link(&self) -> Option<&BaseUrl> {
         None
+    }
+}
+
+/// Constructs the normalized Authorization Request retained by a verifier.
+pub fn create_normalized_vp_authorization_request(
+    credential_requests: NormalizedCredentialRequests,
+    client_id: ClientId,
+    nonce: Nonce,
+    encryption_pubkey: JwePublicKey,
+    response_uri: BaseUrl,
+    wallet_nonce: Option<String>,
+) -> NormalizedVpAuthorizationRequest {
+    let jwk = encryption_pubkey.clone().into();
+
+    NormalizedVpAuthorizationRequest {
+        client_id,
+        nonce,
+        encryption_pubkey,
+        response_uri,
+        credential_requests,
+        client_metadata: VpClientMetadata {
+            jwks: VpJwks {
+                keys: vec_nonempty![jwk],
+            },
+            vp_formats_supported: VpFormatsSupported {
+                mso_mdoc: Some(MsoMdocAlgValues {
+                    issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                    deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                }),
+                sd_jwt: Some(SdJwtAlgValues {
+                    sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                    kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                }),
+            },
+            // HAIP requires verifiers to list both A128GCM and A256GCM in
+            // `encrypted_response_enc_values_supported`:
+            // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
+            // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM
+            // and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
+            encrypted_response_enc_values_supported: Some(
+                RESPONSE_ENCRYPTION_ALGORITHMS
+                    .iter()
+                    .copied()
+                    .map(JweEncryptionAlgorithm::from)
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    // The RESPONSE_ENCRYPTION_ALGORITHMS constant is guaranteed to contain more than one algorithm.
+                    .unwrap(),
+            ),
+        },
+        state: None,
+        wallet_nonce,
+    }
+}
+
+/// Constructs the wire-format Authorization Request sent by a verifier.
+pub fn create_vp_authorization_request(value: NormalizedVpAuthorizationRequest) -> VpAuthorizationRequest {
+    VpAuthorizationRequest {
+        aud: VpAuthorizationRequestAudience::SelfIssued,
+        oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
+        nonce: Some(value.nonce),
+        response_mode: Some(ResponseMode::DirectPostJwt),
+        dcql_query: value.credential_requests.into(),
+        client_metadata: Some(value.client_metadata),
+        response_uri: Some(value.response_uri),
+        wallet_nonce: value.wallet_nonce,
+        verifier_info: None,
+        transaction_data: None,
     }
 }
 
@@ -1351,7 +1433,7 @@ impl Session<Created> {
             JweEcdhSecretKey::new_random(Some(session_token.clone().into()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();
 
-        let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
+        let auth_request = create_normalized_vp_authorization_request(
             self.state.data.credential_requests.clone(),
             self.state.data.client_id.clone(),
             nonce.clone(),
@@ -1360,7 +1442,7 @@ impl Session<Created> {
             wallet_nonce,
         );
 
-        let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
+        let vp_auth_request = create_vp_authorization_request(auth_request.clone());
         let jws = SignedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
             .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;

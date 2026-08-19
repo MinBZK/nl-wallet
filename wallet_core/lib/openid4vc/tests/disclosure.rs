@@ -95,6 +95,8 @@ use openid4vc::verifier::VpToken;
 use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
+use openid4vc::verifier::create_normalized_vp_authorization_request;
+use openid4vc::verifier::create_vp_authorization_request;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
@@ -159,15 +161,15 @@ async fn disclosure_direct() {
     let nonce = Nonce::from("nonce".to_string());
     let response_uri: BaseUrl = "https://cert.rp.example.com/response_uri".parse().unwrap();
     let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
-    let iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
+    let iso_auth_request = create_normalized_vp_authorization_request(
         NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
-        auth_keypair.certificate(),
+        ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
         nonce.clone(),
         encryption_secret_key.to_jwe_public_key(),
         response_uri,
         None,
     );
-    let auth_request = iso_auth_request.clone().into();
+    let auth_request = create_vp_authorization_request(iso_auth_request.clone());
     let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .await
         .unwrap();
@@ -338,9 +340,9 @@ impl DirectMockVpMessageClient {
         let response_uri: BaseUrl = "https://cert.rp.example.com/response_uri".parse().unwrap();
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
 
-        let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
+        let auth_request = create_normalized_vp_authorization_request(
             test_credentials.to_normalized_credential_requests(formats.iter().copied()),
-            auth_keypair.certificate(),
+            ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
             Nonce::from("nonce".to_string()),
             encryption_secret_key.to_jwe_public_key(),
             response_uri.clone(),
@@ -380,7 +382,8 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let jws = SignedJwt::sign_with_certificate(&self.auth_request.clone().into(), &self.auth_keypair)
+        let auth_request = create_vp_authorization_request(self.auth_request.clone());
+        let jws = SignedJwt::sign_with_certificate(&auth_request, &self.auth_keypair)
             .await
             .unwrap()
             .into();

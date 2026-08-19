@@ -42,6 +42,8 @@ use crate::openid4vp::WalletRequest;
 use crate::verifier::EphemeralIdParameters;
 use crate::verifier::SessionType;
 use crate::verifier::VerifierUrlParameters;
+use crate::verifier::create_normalized_vp_authorization_request;
+use crate::verifier::create_vp_authorization_request;
 
 /// Message that the wallet sends to the verifier through one of the mock [`VpMessageClient`] implementations.
 #[derive(Debug, Clone)]
@@ -227,9 +229,9 @@ impl MockVerifierSession {
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
-        let mut auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
+        let mut auth_request = create_normalized_vp_authorization_request(
             self.credential_requests.clone(),
-            self.key_pair.certificate(),
+            ClientId::x509_hash_from_certificate(self.key_pair.certificate()),
             self.nonce.clone(),
             self.encryption_secret_key.to_jwe_public_key(),
             self.response_uri.clone(),
@@ -246,7 +248,7 @@ impl MockVerifierSession {
 
     /// Generate the first protocol message of the verifier.
     fn signed_auth_request(&self, wallet_request: WalletRequest) -> SignedJwt<VpAuthorizationRequest, HeaderWithX5c> {
-        let request = self.normalized_auth_request(wallet_request.wallet_nonce).into();
+        let request = create_vp_authorization_request(self.normalized_auth_request(wallet_request.wallet_nonce));
 
         SignedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
