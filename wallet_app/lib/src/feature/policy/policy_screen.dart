@@ -140,6 +140,7 @@ class PolicyScreen extends StatelessWidget {
         ListItem.horizontal(
           label: Semantics(
             header: true,
+            headingLevel: 1,
             child: Text.rich(context.l10n.policyScreenPolicySectionTitle.toTextSpan(context)),
           ),
           subtitle: Semantics(
