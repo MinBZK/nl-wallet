@@ -1,4 +1,7 @@
 use std::collections::HashSet;
+use std::num::NonZeroU32;
+use std::num::NonZeroU64;
+use std::time::Duration as StdDuration;
 
 use anyhow::Context;
 use anyhow::Result;
@@ -40,6 +43,9 @@ use rcgen::SerialNumber;
 use serde::Serialize;
 use serde_json::Value;
 use time::OffsetDateTime;
+use token_status_list::status_list::StatusList as TokenStatusList;
+use token_status_list::status_list::StatusType;
+use token_status_list::status_list_token::StatusListToken;
 use url::Url;
 use utils::built_info::version_string;
 use utils::generator::TimeGenerator;
@@ -85,6 +91,26 @@ enum RegistrationCertificateFormat {
     Jwt,
     /// COSE-signed WRPRC CWT serialization
     Cwt,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum StatusListEntry {
+    /// The referenced token is valid
+    Valid,
+    /// The referenced token is revoked
+    Revoked,
+    /// The referenced token is temporarily invalid
+    Suspended,
+}
+
+impl From<StatusListEntry> for StatusType {
+    fn from(value: StatusListEntry) -> Self {
+        match value {
+            StatusListEntry::Valid => StatusType::Valid,
+            StatusListEntry::Revoked => StatusType::Invalid,
+            StatusListEntry::Suspended => StatusType::Suspended,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -233,6 +259,27 @@ enum Command {
         /// WRPRC envelope format
         #[arg(long, value_enum)]
         format: RegistrationCertificateFormat,
+    },
+    /// Sign an OAuth Status List Token and print its compact JWT serialization
+    StatusList {
+        /// Path to the Token Status List signing key file in PEM format
+        #[arg(long, value_parser)]
+        tsl_key_file: CachedInput,
+        /// Path to the Token Status List signing certificate file in PEM format
+        #[arg(long, value_parser)]
+        tsl_crt_file: CachedInput,
+        /// Public URI from which this exact Status List Token will be served
+        #[arg(long)]
+        uri: Url,
+        /// Status of each referenced token, in index order
+        #[arg(long = "status", value_enum, required = true, num_args = 1..)]
+        statuses: Vec<StatusListEntry>,
+        /// Number of days after issuance at which the token expires; omit for no explicit expiration
+        #[arg(long)]
+        valid_for_days: Option<NonZeroU32>,
+        /// Maximum number of seconds for which a consumer should cache the token; omit to leave out the TTL claim
+        #[arg(long)]
+        ttl_seconds: Option<NonZeroU64>,
     },
     /// Generate a signed mdoc DeviceRequest for close-proximity disclosure
     ReaderDeviceRequest {
@@ -499,6 +546,52 @@ impl Command {
                 ))?;
 
                 println!("{}", BASE64_URL_SAFE_NO_PAD.encode(serialized));
+                Ok(())
+            }
+            StatusList {
+                tsl_key_file,
+                tsl_crt_file,
+                uri,
+                statuses,
+                valid_for_days,
+                ttl_seconds,
+            } => {
+                let signing_key_pair = read_key_pair(&tsl_crt_file, &tsl_key_file)?;
+                if signing_key_pair.certificate().x509_certificate().is_ca() {
+                    anyhow::bail!("status list signing certificate must be an end-entity certificate");
+                }
+                let usage = CertificateUsage::from_certificate(signing_key_pair.certificate().x509_certificate())
+                    .context("status list signing certificate must have OAuth Status Signing usage")?;
+                if usage != CertificateUsage::OAuthStatusSigning {
+                    anyhow::bail!("status list signing certificate must have OAuth Status Signing usage");
+                }
+
+                let mut status_list = TokenStatusList::new(statuses.len());
+                for (index, status) in statuses.into_iter().enumerate() {
+                    let status = StatusType::from(status);
+                    if status != StatusType::Valid {
+                        status_list.insert(index, status);
+                    }
+                }
+
+                let expiration = valid_for_days
+                    .map(|days| {
+                        Utc::now()
+                            .checked_add_signed(Duration::days(i64::from(days.get())))
+                            .context("status list token validity overflows the supported date range")
+                    })
+                    .transpose()?;
+                let ttl = ttl_seconds.map(|seconds| StdDuration::from_secs(seconds.get()));
+
+                let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+                let token = runtime.block_on(
+                    StatusListToken::builder(uri, status_list.pack())
+                        .exp(expiration)
+                        .ttl(ttl)
+                        .sign(&signing_key_pair),
+                )?;
+
+                println!("{}", token.as_ref().serialization());
                 Ok(())
             }
             ReaderDeviceRequest {

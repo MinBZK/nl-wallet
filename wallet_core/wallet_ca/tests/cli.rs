@@ -3,6 +3,7 @@ use std::ops::Add;
 use std::ops::Sub;
 use std::path::Path;
 use std::process::Command;
+use std::time::Duration as StdDuration;
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
@@ -13,6 +14,8 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use chrono::Duration as ChronoDuration;
+use chrono::Utc;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -39,6 +42,8 @@ use serde_json::Value;
 use serde_json::json;
 use time::Duration;
 use time::OffsetDateTime;
+use token_status_list::status_list::StatusType;
+use token_status_list::status_list_token::StatusListToken;
 use url::Url;
 use utils::generator::TimeGenerator;
 use x509_parser::extensions::GeneralName;
@@ -282,6 +287,7 @@ trait CommandExtension {
         payload: &Path,
         format: &str,
     ) -> &mut Self;
+    fn generate_status_list(&mut self, tsl_crt: &Path, tsl_key: &Path, uri: &str, statuses: &[&str]) -> &mut Self;
 
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self;
 
@@ -451,6 +457,18 @@ impl CommandExtension for Command {
             .arg(format)
     }
 
+    fn generate_status_list(&mut self, tsl_crt: &Path, tsl_key: &Path, uri: &str, statuses: &[&str]) -> &mut Self {
+        self.arg("status-list")
+            .arg("--tsl-crt-file")
+            .arg(tsl_crt)
+            .arg("--tsl-key-file")
+            .arg(tsl_key)
+            .arg("--uri")
+            .arg(uri)
+            .arg("--status")
+            .args(statuses)
+    }
+
     fn generate_for_legal_person(&mut self, organization_name: &str, organization_identifer: &str) -> &mut Self {
         self.arg("--organization-name")
             .arg(organization_name)
@@ -544,6 +562,11 @@ fn trust_anchors_from_pem(path: &Path) -> Result<TrustAnchors> {
     Ok(TrustAnchors::try_from(vec![pem.contents().to_vec()])?)
 }
 
+fn certificate_from_pem(path: &Path) -> Result<BorrowingCertificate> {
+    let bytes = std::fs::read(path)?;
+    Ok(BorrowingCertificate::from_pem(bytes)?)
+}
+
 fn generate_registration_certificate(
     wrprc_crt: &Path,
     wrprc_key: &Path,
@@ -630,6 +653,88 @@ fn generate_and_validate_registration_certificate() -> Result<()> {
 
     temp.close()?;
 
+    Ok(())
+}
+
+#[test]
+fn generate_and_validate_status_list_token() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "wrprc-ca");
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success();
+
+    let (tsl_prefix, tsl_crt, tsl_key) = keypair_paths(&temp, "wrprc-tsl");
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+        .generate_for_legal_person("Test Registrar B.V.", "NTRNL-00000001")
+        .assert()
+        .success();
+
+    let uri: Url = "https://status.example.com/wrprc/1".parse()?;
+    let before = Utc::now();
+    let output = Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_status_list(&tsl_crt, &tsl_key, uri.as_ref(), &["valid", "revoked", "suspended"])
+        .arg("--valid-for-days")
+        .arg("2")
+        .arg("--ttl-seconds")
+        .arg("3600")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let after = Utc::now();
+
+    let token: StatusListToken = std::str::from_utf8(&output)?.trim().parse()?;
+    let trust_anchors = trust_anchors_from_pem(&ca_crt)?;
+    let signing_certificate_dn = certificate_from_pem(&tsl_crt)?.to_canonical_distinguished_name()?;
+    let claims = token.parse_and_verify(&trust_anchors, signing_certificate_dn, &uri, &TimeGenerator)?;
+
+    assert!(claims.iat.timestamp() >= before.timestamp() && claims.iat.timestamp() <= after.timestamp());
+    let expiration = claims.exp.expect("token should have an expiration");
+    assert!(
+        expiration.timestamp() >= (before + ChronoDuration::days(2)).timestamp()
+            && expiration.timestamp() <= (after + ChronoDuration::days(2)).timestamp()
+    );
+    assert_eq!(claims.ttl, Some(StdDuration::from_secs(3600)));
+    assert_eq!(claims.sub, uri);
+
+    let statuses = claims.status_list.unpack();
+    assert_eq!(statuses.get(0), StatusType::Valid);
+    assert_eq!(statuses.get(1), StatusType::Invalid);
+    assert_eq!(statuses.get(2), StatusType::Suspended);
+
+    temp.close()?;
+    Ok(())
+}
+
+#[test]
+fn status_list_token_requires_status_signing_certificate() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "wrprc-ca");
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success();
+
+    let (wrprc_prefix, wrprc_crt, wrprc_key) = keypair_paths(&temp, "wrprc-signer");
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_wrprc_kp(&ca_crt, &ca_key, &wrprc_prefix)
+        .generate_for_legal_person("Test Registrar B.V.", "NTRNL-00000001")
+        .assert()
+        .success();
+
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_status_list(&wrprc_crt, &wrprc_key, "https://status.example.com/wrprc/1", &["valid"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "status list signing certificate must have OAuth Status Signing usage",
+        ));
+
+    temp.close()?;
     Ok(())
 }
 
