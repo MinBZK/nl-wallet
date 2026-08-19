@@ -189,7 +189,6 @@ class IssuanceScreen extends StatelessWidget {
     }
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopIssuance(context),
-      originUrl: 'http://issue.origin.org',
       onAcceptPressed: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
