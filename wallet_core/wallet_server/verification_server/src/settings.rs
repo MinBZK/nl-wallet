@@ -1,11 +1,18 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::str;
 use std::sync::Arc;
 
+use anyhow::Context;
+use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
+use attestation_data::x509::RelyingParty;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use cose::wrprc_cwt::UnverifiedWrprcCwt;
+use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::BorrowingCertificate;
 use dcql::Query;
 use derive_more::AsRef;
 use derive_more::From;
@@ -15,6 +22,9 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use jwt::DEFAULT_VALIDATION;
+use jwt::UnverifiedJwt;
+use jwt::jades_b_b::JadesbbHeader;
 use nutype::nutype;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionStore;
@@ -26,6 +36,9 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCaseData;
 use ring::hmac;
 use serde::Deserialize;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeyVariant;
@@ -36,6 +49,7 @@ use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
+use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -79,12 +93,17 @@ pub struct UseCasesSettings(HashMap<String, UseCaseSettings>);
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
 pub struct EphemeralIdSecret(Vec<u8>);
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct UseCaseSettings {
     #[serde(default)]
     pub session_type_return_url: SessionTypeReturnUrl,
     #[serde(flatten)]
     pub key_pair: KeyPair,
+
+    /// Base64url-encoded Wallet Relying Party Registration Certificate (WRPRC).
+    #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
+    pub registration_certificate: Option<Vec<u8>>,
 
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
@@ -121,8 +140,12 @@ impl UseCasesSettings {
 
 impl UseCaseSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
+        let registration_certificate = self
+            .registration_certificate
+            .context("registration certificate should have been validated at startup")?;
         let use_case = RpInitiatedUseCase::new(
-            UseCaseData::new(self.key_pair.parse(hsm).await?, self.session_type_return_url),
+            UseCaseData::new(self.key_pair.parse(hsm).await?, self.session_type_return_url)
+                .with_registration_certificate(registration_certificate),
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
             self.disclosure_base_deep_link,
@@ -133,6 +156,50 @@ impl UseCaseSettings {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum VerifierSettingsValidationError {
+    #[error("{0}")]
+    Certificate(#[source] CertificateVerificationError),
+    #[error("missing registration certificate for use case `{usecase_id}`")]
+    MissingRegistrationCertificate { usecase_id: String },
+    #[error("invalid registration certificate for use case `{usecase_id}`: {source}")]
+    InvalidRegistrationCertificate {
+        usecase_id: String,
+        #[source]
+        source: anyhow::Error,
+    },
+}
+
+fn validate_registration_certificate(
+    registration_certificate: &[u8],
+    access_certificate: &BorrowingCertificate,
+    trust_anchors: &TrustAnchors,
+    time: TimeGenerator,
+) -> Result<(), anyhow::Error> {
+    let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
+
+    let payload = match str::from_utf8(registration_certificate) {
+        Ok(compact_jwt) if compact_jwt.split('.').count() == 3 => {
+            let unverified: UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader> = compact_jwt.parse()?;
+            let (_, payload) = unverified.parse_and_verify_against_trust_anchors(
+                trust_anchors,
+                &time,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )?;
+            payload
+        }
+        _ => UnverifiedWrprcCwt::<UncheckedRegistrationCertificate>::from_slice(registration_certificate)?
+            .into_verified_against_trust_anchors(trust_anchors, &time, None)?
+            .into_payload(),
+    };
+
+    payload
+        .validate_structure(&access_subject, time.generate())
+        .map(|_| ())
+        .map_err(anyhow::Error::from)
+}
+
 impl From<&EphemeralIdSecret> for hmac::Key {
     fn from(value: &EphemeralIdSecret) -> Self {
         hmac::Key::new(hmac::HMAC_SHA256, value.as_ref())
@@ -140,7 +207,7 @@ impl From<&EphemeralIdSecret> for hmac::Key {
 }
 
 impl ServerSettings for VerifierSettings {
-    type ValidationError = CertificateVerificationError;
+    type ValidationError = VerifierSettingsValidationError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
@@ -192,7 +259,7 @@ impl ServerSettings for VerifierSettings {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<(), CertificateVerificationError> {
+    fn validate(&self) -> Result<(), VerifierSettingsValidationError> {
         tracing::debug!("verifying verifier.usecases certificates");
 
         let time = TimeGenerator;
@@ -204,7 +271,29 @@ impl ServerSettings for VerifierSettings {
             .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
             .collect();
 
-        verify_key_pairs(&key_pairs, &self.server_settings.wrpac_trust_anchors, None, &time)?;
+        verify_key_pairs(&key_pairs, &self.server_settings.wrpac_trust_anchors, None, &time)
+            .map_err(VerifierSettingsValidationError::Certificate)?;
+
+        for (usecase_id, usecase) in self.usecases.as_ref() {
+            let registration_certificate = usecase.registration_certificate.as_deref().ok_or_else(|| {
+                VerifierSettingsValidationError::MissingRegistrationCertificate {
+                    usecase_id: usecase_id.clone(),
+                }
+            })?;
+
+            validate_registration_certificate(
+                registration_certificate,
+                &usecase.key_pair.certificate,
+                &self.server_settings.wrprc_trust_anchors,
+                time,
+            )
+            .map_err(
+                |source| VerifierSettingsValidationError::InvalidRegistrationCertificate {
+                    usecase_id: usecase_id.clone(),
+                    source,
+                },
+            )?;
+        }
 
         Ok(())
     }

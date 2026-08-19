@@ -152,6 +152,7 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
+            registration_certificate: Some(b"registration certificate".to_vec()),
             dcql_query: None,
             return_url_template: None,
             disclosure_base_deep_link: None,
