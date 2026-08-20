@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use chrono::Duration;
 use jwt::nonce::Nonce;
+use oauth::scope::Scope;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
@@ -20,8 +21,6 @@ use utils::spec::SpecOptional;
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
 use crate::pkce::PkcePair;
-use crate::scope::Scope;
-
 /// The shared [OAuth2 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
 /// authorization request — whether for OpenID4VCI issuance or OpenID4VP presentation — must carry.
 ///

@@ -14,6 +14,7 @@ use std::collections::HashSet;
 
 use attestation_types::credential_kind::CredentialKind;
 use itertools::Itertools;
+use oauth::scope::Scope;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -26,8 +27,6 @@ use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorWithCode;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthRequestValues;
-use crate::scope::Scope;
-
 /// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an
 /// [`AuthorizationCodeFlow`] must retain to complete the authorization later: the wallet's
 /// `redirect_uri` and `state` (to build the wallet-facing redirect), the `scope` values and its PKCE `code_challenge`
@@ -148,6 +147,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::scope::Scope;
 
     use super::InvalidAuthorizationRequest;
     use super::WalletAuthorizationContext;
@@ -155,7 +155,6 @@ mod tests {
     use crate::authorization::VciAuthorizationRequest;
     use crate::pkce::PkcePair;
     use crate::pkce::S256PkcePair;
-    use crate::scope::Scope;
     use crate::server_state::MemorySessionStore;
     use crate::test::MOCK_ATTESTATION_TYPES;
     use crate::test::MockIssuer;

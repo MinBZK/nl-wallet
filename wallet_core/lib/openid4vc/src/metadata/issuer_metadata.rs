@@ -22,6 +22,7 @@ use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
 use oauth::jose::JwsAlgorithm;
 use oauth::metadata::well_known::WellKnownMetadata;
+use oauth::scope::Scope;
 use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
@@ -40,8 +41,6 @@ use utils::vec_nonempty;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
-use crate::scope::Scope;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
 #[as_ref(str)]
 pub struct CredentialConfigurationId(String);

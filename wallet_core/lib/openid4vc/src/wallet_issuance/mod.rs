@@ -25,6 +25,7 @@ use mdoc::utils::cose::CoseError;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
 use oauth::metadata::well_known::WellKnownError;
+use oauth::scope::Scope;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -50,7 +51,6 @@ use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::RemoteErrorResponse;
 use crate::errors::TokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::scope::Scope;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 

@@ -19,7 +19,7 @@ use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
-use openid4vc::scope::Scope;
+use oauth::scope::Scope;
 use reqwest::StatusCode;
 use reqwest::header;
 use reqwest::redirect::Policy;

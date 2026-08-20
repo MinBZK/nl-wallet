@@ -16,6 +16,7 @@ use derive_more::Debug;
 use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
+use oauth::scope::Scope;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -35,7 +36,6 @@ use crate::authorization_details::IssuerAuthorizationDetailsEntries;
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::scope::Scope;
 use crate::server_state::SessionToken;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]

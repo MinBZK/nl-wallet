@@ -562,7 +562,7 @@ mod tests {
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::par::PAR_TTL;
-    use openid4vc::scope::Scope;
+    use oauth::scope::Scope;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionToken;

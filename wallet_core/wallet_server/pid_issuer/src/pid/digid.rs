@@ -17,7 +17,7 @@ use oauth::metadata::well_known::WellKnownMetadata;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::pkce::S256PkcePair;
-use openid4vc::scope::Scope;
+use oauth::scope::Scope;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
 use url::Url;
