@@ -15,6 +15,6 @@ async fn hsm_mock_tests<F>(#[context] ctx: Context, #[case] test: F)
 where
     F: AsyncFnOnce(TestCase<MockPkcs11Client<HsmError>>) -> TestCase<MockPkcs11Client<HsmError>>,
 {
-    let test_case = TestCase::mock(ctx.description.unwrap());
+    let test_case = TestCase::mock(ctx.description.unwrap().to_string());
     test(test_case).await;
 }

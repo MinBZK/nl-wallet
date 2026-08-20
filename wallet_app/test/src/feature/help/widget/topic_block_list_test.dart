@@ -13,9 +13,14 @@ void main() {
         const TopicBlockList(blocks: [TopicHeadingBlock('What must you do?')]),
       );
       expect(find.text('What must you do?'), findsOneWidget);
+      final headingSemantics = tester.getSemantics(find.text('What must you do?'));
+      expect(headingSemantics, matchesSemantics(isHeader: true, label: 'What must you do?'));
       expect(
-        tester.getSemantics(find.text('What must you do?')),
-        matchesSemantics(isHeader: true, label: 'What must you do?'),
+        headingSemantics.getSemanticsData().headingLevel,
+        1,
+        reason:
+            'header alone is a platform no-op since Flutter 3.47; '
+            'VoiceOver/TalkBack only announce headings via headingLevel > 0',
       );
     });
 

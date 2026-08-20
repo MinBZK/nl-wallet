@@ -2,6 +2,7 @@ use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crypto::aes_siv::AesSivBackend;
 use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::random_bytes;
 use crypto::utils::sha256;
@@ -9,13 +10,16 @@ use cryptoki::context::CInitializeArgs;
 use cryptoki::context::CInitializeFlags;
 use cryptoki::context::Pkcs11;
 use cryptoki::mechanism::Mechanism;
+use cryptoki::mechanism::MechanismType;
 use cryptoki::mechanism::aead::GcmParams;
+use cryptoki::mechanism::vendor_defined::VendorDefinedMechanism;
 use cryptoki::object::Attribute;
 use cryptoki::object::AttributeType;
 use cryptoki::object::KeyType;
 use cryptoki::object::ObjectClass;
 use cryptoki::object::ObjectHandle;
 use cryptoki::types::AuthPin;
+use cryptoki_sys::CK_AES_CTR_PARAMS;
 use derive_more::AsRef;
 use futures::future;
 use measure::measure;
@@ -63,9 +67,38 @@ pub enum HsmError {
     #[error("key not found: '{0}'")]
     KeyNotFound(String),
 
+    #[error("CMAC has wrong length: expected {expected}, got {actual}")]
+    IncorrectCmacLength { expected: usize, actual: usize },
+
     #[cfg(feature = "mock")]
     #[error("hmac error: {0}")]
     Hmac(#[from] hmac::digest::MacError),
+}
+
+#[cfg(feature = "test")]
+impl HsmError {
+    /// Returns `true` if this error, as returned by [`Pkcs11Hsm::import_aes_key()`], means that the
+    /// token refuses to accept externally supplied key material at all. It returns `false` for all
+    /// other errors, e.g. when the token does support key import but this particular call was
+    /// malformed.
+    ///
+    /// Importing a key is only ever done to run known-answer tests, and production HSMs commonly
+    /// forbid it by policy, so `true` means "skip these tests" rather than "something went wrong".
+    pub fn is_key_import_unsupported(&self) -> bool {
+        use cryptoki::error::Error;
+        use cryptoki::error::RvError;
+
+        matches!(
+            self,
+            HsmError::Pkcs11(Error::Pkcs11(
+                RvError::ActionProhibited
+                    | RvError::AttributeReadOnly
+                    | RvError::FunctionNotSupported
+                    | RvError::TemplateInconsistent,
+                _,
+            ))
+        )
+    }
 }
 
 type Result<T> = std::result::Result<T, HsmError>;
@@ -74,6 +107,7 @@ type Result<T> = std::result::Result<T, HsmError>;
 ///
 /// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
 /// leverage the type system to detect when handles are destroyed.
+#[derive(PartialEq, Eq)]
 pub struct PrivateKeyHandle(ObjectHandle);
 
 /// PublicKeyHandle that wraps ObjectHandle for public keys
@@ -99,6 +133,8 @@ impl KeyHandle for PublicKeyHandle {
 }
 
 const AES_AUTHENTICATION_TAG_BITS: u64 = 128;
+pub const AES_BLOCK_SIZE: usize = 16;
+const AES_CTR_COUNTER_BITS: u64 = (AES_BLOCK_SIZE * 8) as u64;
 
 enum HandleType {
     Public,
@@ -110,8 +146,23 @@ pub enum SigningMechanism {
     Sha256Hmac,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AesKeyUsage {
+    Encrypt,
+    Cmac,
+}
+
+impl AesKeyUsage {
+    fn attribute(self) -> Attribute {
+        match self {
+            AesKeyUsage::Encrypt => Attribute::Encrypt(true),
+            AesKeyUsage::Cmac => Attribute::Sign(true),
+        }
+    }
+}
+
 pub trait Pkcs11Client {
-    async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<PrivateKeyHandle>;
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
@@ -145,6 +196,22 @@ pub trait Pkcs11Client {
         iv: InitializationVector,
         encrypted_data: Vec<u8>,
     ) -> Result<Vec<u8>>;
+    /// AES-CTR-256, starting from `counter_block`. Note that AES-CTR is symmetric, so this one function serves
+    /// for both encryption and decryption.
+    // The counter block is the caller's to choose, and implementations must use it exactly as given: one that
+    // generates its own, or otherwise doesn't use `counter_block` exactly as given, is not interchangeable with
+    // the others, and could lead to silent interoperability failures with other implementations.
+    async fn encrypt_ctr(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        counter_block: [u8; AES_BLOCK_SIZE],
+        data: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<Vec<u8>>;
+    async fn cmac(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        data: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<[u8; AES_BLOCK_SIZE]>;
     async fn wrap_key(
         &self,
         wrapping_key: &PrivateKeyHandle,
@@ -254,8 +321,8 @@ impl Hsm for Pkcs11Hsm {
             .map(|_| ())
     }
 
-    async fn generate_aes_encryption_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_aes_encryption_key(self, identifier)
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> std::result::Result<(), Self::Error> {
+        Pkcs11Client::generate_aes_key(self, identifier, usage)
             .await
             .map(|_| ())
     }
@@ -340,7 +407,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
 
@@ -348,10 +415,11 @@ impl Pkcs11Client for Pkcs11Hsm {
             let session = pool.get()?;
 
             let priv_key_template = &[
+                usage.attribute(),
                 Attribute::Token(true),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
-                Attribute::Encrypt(true),
+                Attribute::Extractable(false),
                 Attribute::Class(ObjectClass::SECRET_KEY),
                 Attribute::KeyType(KeyType::AES),
                 Attribute::ValueLen(32.into()),
@@ -576,6 +644,62 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
+    async fn encrypt_ctr(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        counter_block: [u8; AES_BLOCK_SIZE],
+        data: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<Vec<u8>> {
+        let pool = self.pool.clone();
+        let object_handle = key_handle.to_object_handle();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            let params = CK_AES_CTR_PARAMS {
+                ulCounterBits: AES_CTR_COUNTER_BITS,
+                cb: counter_block, // the initial counter block
+            };
+
+            // `cryptoki` has no `Mechanism` variant for AES-CTR, so the parameters are passed
+            // through `VendorDefinedMechanism`. Despite its name it pairs any mechanism type with
+            // any parameter struct, by passing a raw pointer to `params`.
+            //
+            // This is essentially an untyped escape hatch, passing a struct from the `cryptoki_sys` package to
+            // a `cryptoki` API.
+            let mechanism =
+                Mechanism::VendorDefined(VendorDefinedMechanism::new(MechanismType::AES_CTR, Some(&params)));
+
+            let encrypted_data = session.encrypt(&mechanism, object_handle, data.as_ref())?;
+            Ok(encrypted_data)
+        })
+        .await
+    }
+
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
+    async fn cmac(
+        &self,
+        key_handle: &PrivateKeyHandle,
+        data: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<[u8; AES_BLOCK_SIZE]> {
+        let pool = self.pool.clone();
+        let object_handle = key_handle.to_object_handle();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+            let cmac = session.sign(&Mechanism::AesCMac, object_handle, data.as_ref())?;
+
+            let cmac = cmac.try_into().map_err(|cmac: Vec<u8>| HsmError::IncorrectCmacLength {
+                expected: AES_BLOCK_SIZE,
+                actual: cmac.len(),
+            })?;
+
+            Ok(cmac)
+        })
+        .await
+    }
+
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn wrap_key(
         &self,
         wrapping_key: &PrivateKeyHandle,
@@ -657,6 +781,68 @@ impl Pkcs11Client for Pkcs11Hsm {
         let result = Pkcs11Client::sign(self, &private_handle, SigningMechanism::Ecdsa256, data).await;
         self.clone().delete_private_key_in_background(private_handle);
         result.and_then(|signature| Signature::from_slice(&signature).map_err(HsmError::from))
+    }
+}
+
+impl AesSivBackend for Pkcs11Hsm {
+    type Error = HsmError;
+
+    type MacKey = PrivateKeyHandle;
+    type EncryptionKey = PrivateKeyHandle;
+
+    async fn aes_cmac(&self, key: &Self::MacKey, input: impl AsRef<[u8]> + Send + 'static) -> Result<[u8; 16]> {
+        self.cmac(key, input).await
+    }
+
+    async fn aes_ctr(
+        &self,
+        key: &Self::EncryptionKey,
+        counter_block: [u8; 16],
+        input: impl AsRef<[u8]> + Send + 'static,
+    ) -> Result<Vec<u8>> {
+        self.encrypt_ctr(key, counter_block, input).await
+    }
+}
+
+#[cfg(feature = "test")]
+impl Pkcs11Hsm {
+    /// Imports an AES-256 key with a caller-chosen value, so that known-answer tests have a key
+    /// whose value is known on both sides. There is no production use for this: every other key in
+    /// this module is generated by the token and never leaves it.
+    ///
+    /// Not all tokens allow this, and those that refuse do so by policy rather than because the
+    /// call was wrong; see [`HsmError::is_key_import_unsupported()`].
+    pub async fn import_aes_key(
+        &self,
+        identifier: &str,
+        usage: AesKeyUsage,
+        key: [u8; 32],
+    ) -> Result<PrivateKeyHandle> {
+        let pool = self.pool.clone();
+        let identifier = String::from(identifier);
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            // The same template as `generate_aes_key()`, except that the key's value is supplied
+            // rather than only its length.
+            let template = &[
+                usage.attribute(),
+                Attribute::Token(true),
+                Attribute::Private(true),
+                Attribute::Sensitive(true),
+                Attribute::Extractable(false),
+                Attribute::Class(ObjectClass::SECRET_KEY),
+                Attribute::KeyType(KeyType::AES),
+                Attribute::Value(key.to_vec()),
+                Attribute::Label(identifier.clone().into()),
+            ];
+
+            let handle = session.create_object(template)?;
+
+            Ok(PrivateKeyHandle(handle))
+        })
+        .await
     }
 }
 

@@ -10,3 +10,10 @@ analyzer:
     - "lib/src/api/**"
     - "lib/src/models/**"
     - "lib/src/frb_generated*"
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**

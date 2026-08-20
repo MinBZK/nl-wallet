@@ -116,9 +116,6 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   /// The organization requesting attributes for the login session.
   final Organization relyingParty;
 
-  /// The URL origin of the login request.
-  final String originUrl;
-
   /// List of card requests for the user to choose which card to disclose.
   final List<DiscloseCardRequest> cardRequests;
 
@@ -147,7 +144,6 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
 
   const DisclosureCheckOrganizationForLogin({
     required this.relyingParty,
-    required this.originUrl,
     required this.sessionType,
     required this.policy,
     required this.cardRequests,
@@ -158,7 +154,6 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   @override
   List<Object?> get props => [
     relyingParty,
-    originUrl,
     sessionType,
     policy,
     cardRequests,

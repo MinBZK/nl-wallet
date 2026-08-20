@@ -16,7 +16,7 @@
   align-items: center;
   gap: 16px;
   box-sizing: border-box;
-  height: var(--header-height);
+  grid-row: 1;
   border-bottom: 2px solid var(--color-border);
   padding: 16px;
 }

@@ -1,5 +1,4 @@
 <template>
-  <TopHeader title="Taakgeschiedenis" description="Deze pagina is nog in ontwikkeling." />
   <TasksTable
     :columns="columns"
     :tasks="tasks"
@@ -9,8 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import TopHeader from '../components/TopHeader.vue'
-import TasksTable, { type Task } from '../components/TasksTable.vue'
+import TasksTable, { type Task } from '../components/tasks/TasksTable.vue'
 
 const columns = [
   { label: 'TAAK-ID' },

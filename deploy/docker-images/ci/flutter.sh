@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-wget --no-hsts -q -O flutter.tar.xz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.44.4-stable.tar.xz
-echo "c853cda0312a162854c481fe6a1bc286d84fbb74bfab7037c39750061dc9b466  flutter.tar.xz" | sha256sum -c
+wget --no-hsts -q -O flutter.tar.xz https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.0-stable.tar.xz
+echo "26cd99d3d94b1367e6b50535a18aeef0282c10a535bbe3ec493534dcdab75296  flutter.tar.xz" | sha256sum -c
 
 tar -xf flutter.tar.xz
 rm flutter.tar.xz

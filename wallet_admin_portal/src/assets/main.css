@@ -55,8 +55,8 @@
   --color-primary-hover: #2f35c4;
   --color-surface-tint: #f3f4fb;
   --color-text-muted: #6b7280;
-  --header-height: 86px;
-  --footer-height: 76px;
+  --color-error: #ab0065;
+  --sidebar-width: 15.6875em;
 
   font-family: 'RO Sans', sans-serif;
   /* Only the faces above are bundled, so let the browser pick a real face

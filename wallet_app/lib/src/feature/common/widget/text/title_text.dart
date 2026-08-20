@@ -15,6 +15,7 @@ class TitleText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       header: true,
+      headingLevel: 1,
       container: true /* make sure it's always an individual semantics node */,
       child: SizedBox(
         width: double.infinity,

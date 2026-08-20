@@ -21,6 +21,7 @@ class HistorySectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Semantics(
               header: true,
+              headingLevel: 1,
               child: Text.rich(
                 DateFormat(
                   DateFormat.YEAR_MONTH,

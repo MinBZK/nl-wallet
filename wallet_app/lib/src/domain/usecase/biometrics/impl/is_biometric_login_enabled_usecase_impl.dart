@@ -18,7 +18,7 @@ class IsBiometricLoginEnabledUseCaseImpl extends IsBiometricLoginEnabledUseCase 
     try {
       /// Wallet needs to be registered before [isBiometricLoginEnabled] can be checked.
       if (await _walletRepository.isRegistered()) {
-        return _biometricRepository.isBiometricLoginEnabled();
+        return await _biometricRepository.isBiometricLoginEnabled();
       }
       return false;
     } catch (ex) {
