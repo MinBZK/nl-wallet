@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -27,6 +28,7 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use futures::future::FutureExt;
+use jwt::KeyWithKid;
 use jwt::SignedJwt;
 use mdoc::holder::Mdoc;
 use mockall::predicate::eq;
@@ -323,7 +325,10 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
     let mut config = test_wallet_config();
 
     config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
-    config.account_server.instruction_result_public_key = (*keys.instruction_result_signing_key.verifying_key()).into();
+    config.account_server.instruction_result_public_keys = HashMap::from([(
+        keys.instruction_result_signing_key.kid().to_owned(),
+        DerVerifyingKey::from(*keys.instruction_result_signing_key.verifying_key()),
+    )]);
 
     config.issuer_trust_anchors = TrustAnchors::try_from(vec![ISSUER_KEY.trust_anchor.clone()]).unwrap();
     config.wrpac_trust_anchors = TrustAnchors::from(&*WRPAC_CA);

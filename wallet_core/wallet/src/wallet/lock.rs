@@ -167,8 +167,12 @@ where
             .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
+        let instruction_result_public_keys = config
+            .account_server
+            .instruction_result_public_keys
+            .iter()
+            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
+            .collect();
 
         let remote_instruction = self
             .new_instruction_client(
@@ -179,7 +183,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    instruction_result_public_key,
+                    instruction_result_public_keys,
                 ),
             )
             .await?;

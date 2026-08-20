@@ -294,8 +294,12 @@ where
         CR: Repository<Arc<WalletConfiguration>>,
         APC: AccountProviderClient,
     {
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
+        let instruction_result_public_keys = config
+            .account_server
+            .instruction_result_public_keys
+            .iter()
+            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
+            .collect();
 
         self.new_instruction_client(
             pin,
@@ -305,7 +309,7 @@ where
                 registration_data.pin_salt,
                 registration_data.wallet_certificate,
                 config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                instruction_result_public_keys,
             ),
         )
         .await

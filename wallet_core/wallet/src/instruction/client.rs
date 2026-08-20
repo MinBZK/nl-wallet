@@ -1,10 +1,11 @@
+use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
 
+use crypto::PublicKey;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use http_utils::client::TlsPinningConfig;
-use jwt::JwtDecodingKey;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
@@ -42,7 +43,7 @@ pub struct InstructionClientParameters {
     pin_salt: KeyBytes,
     wallet_certificate: WalletCertificate,
     client_config: TlsPinningConfig,
-    instruction_result_public_key: JwtDecodingKey,
+    instruction_result_public_keys: HashMap<String, PublicKey>,
 }
 
 // Manually implement clone in order to prevent Clone trait bounds on the generics.
@@ -173,7 +174,7 @@ where
             .map_err(InstructionError::from)?;
 
         let result = signed_result
-            .parse_and_verify_with_sub(&self.parameters.instruction_result_public_key)
+            .parse_and_verify_with_sub_by_kid(&self.parameters.instruction_result_public_keys)
             .map_err(InstructionError::InstructionResultValidation)?
             .1
             .result;
@@ -240,11 +241,11 @@ where
             .map_err(InstructionError::from)?;
 
         let result = signed_result
-            .parse_and_verify_with_sub(
+            .parse_and_verify_with_sub_by_kid(
                 &self
                     .hw_signed_instruction_client
                     .parameters
-                    .instruction_result_public_key,
+                    .instruction_result_public_keys,
             )
             .map_err(InstructionError::InstructionResultValidation)?
             .1

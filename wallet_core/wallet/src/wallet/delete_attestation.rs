@@ -124,6 +124,12 @@ where
         // No attestation is ever stored without corresponding private keys.
         let key_identifiers: VecNonEmpty<_> = key_identifiers.try_into().unwrap();
 
+        let instruction_result_public_keys = config
+            .account_server
+            .instruction_result_public_keys
+            .iter()
+            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
+            .collect();
         let instruction_client = self
             .new_instruction_client(
                 pin,
@@ -133,7 +139,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
+                    instruction_result_public_keys,
                 ),
             )
             .await?;

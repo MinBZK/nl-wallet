@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -426,6 +427,14 @@ impl PublicKeyByKid for JwkSet {
 
     fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
         self.find(kid).map(jwk_to_public_key).transpose()
+    }
+}
+
+impl PublicKeyByKid for HashMap<String, PublicKey> {
+    type Error = Infallible;
+
+    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
+        Ok(self.get(kid).cloned())
     }
 }
 
@@ -1298,8 +1307,6 @@ mod axum {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
-    use std::convert::Infallible;
-
     use p256::ecdsa::SigningKey;
 
     use super::*;
@@ -1307,14 +1314,6 @@ mod test {
     impl KeyWithKid for SigningKey {
         fn kid(&self) -> &'static str {
             "0"
-        }
-    }
-
-    impl PublicKeyByKid for HashMap<String, PublicKey> {
-        type Error = Infallible;
-
-        fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
-            Ok(self.get(kid).cloned())
         }
     }
 }
