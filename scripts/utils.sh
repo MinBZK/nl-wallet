@@ -125,6 +125,18 @@ function render_template {
     envsubst < "$1" > "$2"
 }
 
+# Print the expiry to use for generated wallet configurations, as a Unix timestamp.
+#
+# This is deliberately computed relative to "now" instead of being a fixed date in the template, so that a
+# development environment does not stop working on some hardcoded day.
+function wallet_config_exp {
+    if is_macos; then
+        date -v +10y "+%s"
+    else
+        date --date="+10 years" "+%s"
+    fi
+}
+
 # Generate n random bytes.
 #
 # $1 n: how many random bytes to generate

@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "exp": ${WALLET_CONFIG_EXP},
   "environment": "dev",
   "lock_timeouts": {
     "warning_timeout": 240,
