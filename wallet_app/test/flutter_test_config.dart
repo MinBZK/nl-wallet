@@ -86,7 +86,6 @@ void _setupMockitoDummies() {
   provideDummy<StartDisclosureResult>(
     StartDisclosureReadyToDisclose(
       relyingParty: WalletMockData.organization,
-      originUrl: 'http://origin.org',
       requestPurpose: 'requestPurpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       type: DisclosureType.regular,
@@ -186,7 +185,6 @@ void _setupMockitoDummies() {
     Result.success(
       StartDisclosureReadyToDisclose(
         relyingParty: WalletMockData.organization,
-        originUrl: 'http://origin.org',
         requestPurpose: 'requestPurpose'.untranslated,
         sessionType: DisclosureSessionType.crossDevice,
         type: DisclosureType.login,
