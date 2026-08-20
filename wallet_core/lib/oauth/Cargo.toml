@@ -27,6 +27,7 @@ url = { workspace = true, features = ["serde"] }
 crypto.path = "../crypto"
 http_utils = { path = "../http_utils", features = ["client"] }
 jwt.path = "../jwt"
+utils.path = "../utils"
 
 mockall = { workspace = true, optional = true }
 

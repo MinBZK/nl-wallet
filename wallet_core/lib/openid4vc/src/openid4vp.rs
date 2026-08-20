@@ -687,7 +687,11 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
     fn from(value: NormalizedVpAuthorizationRequest) -> Self {
         Self {
             aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
+            oauth_request: AuthorizationRequestBase::new(
+                HashSet::from([ResponseType::VpToken]),
+                value.client_id.to_string(),
+                value.state,
+            ),
             nonce: Some(value.nonce),
             response_mode: Some(ResponseMode::DirectPostJwt),
             dcql_query: value.credential_requests.into(),

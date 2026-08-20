@@ -17,41 +17,16 @@ use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
-use utils::spec::SpecForbidden;
 use utils::spec::SpecOptional;
 
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
 
-/// The shared [OAuth2 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
-/// authorization request — whether for OpenID4VCI issuance or OpenID4VP presentation — must carry.
+/// The shared OAuth 2.0 fields that any authorization request — whether for OpenID4VCI issuance or OpenID4VP
+/// presentation — must carry.
 ///
 /// Flow-specific variants embed this with `#[serde(flatten)]` and add their own fields.
-#[serde_as]
-#[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AuthorizationRequestBase {
-    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, ResponseType>")]
-    pub response_type: HashSet<ResponseType>,
-
-    pub client_id: String,
-    pub state: Option<String>,
-
-    // Should not be present for PAR and openid4vp.
-    #[serde(default, skip_serializing, rename = "request_uri")]
-    _request_uri: SpecForbidden,
-}
-
-impl AuthorizationRequestBase {
-    pub fn for_vp(client_id: String, state: Option<String>) -> Self {
-        Self {
-            response_type: HashSet::from([ResponseType::VpToken]),
-            client_id,
-            state,
-            _request_uri: SpecForbidden,
-        }
-    }
-}
+pub type AuthorizationRequestBase = oauth::authorization::AuthorizationRequestBase<ResponseType>;
 
 /// An OpenID4VCI authorization request, posted in URL-encoded form to the `/par` endpoint
 /// (RFC 9126) and later referenced from `/authorize` via [`PushedAuthorizationRequest`].
@@ -95,12 +70,7 @@ impl VciAuthorizationRequest {
         pkce_pair: &P,
     ) -> Self {
         Self {
-            oauth_request: AuthorizationRequestBase {
-                response_type: HashSet::from([ResponseType::Code]),
-                client_id,
-                state: Some(state),
-                _request_uri: SpecForbidden,
-            },
+            oauth_request: AuthorizationRequestBase::new(HashSet::from([ResponseType::Code]), client_id, Some(state)),
             redirect_uri: redirect_uri.into(),
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: String::from(pkce_pair.code_challenge()),
@@ -204,7 +174,6 @@ mod tests {
     use jwt::nonce::Nonce;
     use serde_qs;
     use url::Url;
-    use utils::spec::SpecForbidden;
 
     use super::AuthorizationRequestBase;
     use super::PkceCodeChallenge;
@@ -215,12 +184,11 @@ mod tests {
         let scope = HashSet::from(["openid".parse().unwrap(), "profile".parse().unwrap()]);
 
         VciAuthorizationRequest {
-            oauth_request: AuthorizationRequestBase {
-                response_type: HashSet::from([ResponseType::Code]),
-                client_id: "client-123".to_string(),
-                state: Some("state-abc".to_string()),
-                _request_uri: SpecForbidden,
-            },
+            oauth_request: AuthorizationRequestBase::new(
+                HashSet::from([ResponseType::Code]),
+                "client-123".to_string(),
+                Some("state-abc".to_string()),
+            ),
             redirect_uri: Url::parse("https://example.com/callback").unwrap().into(),
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: "challenge-xyz".to_string(),
