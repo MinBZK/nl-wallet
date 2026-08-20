@@ -5,7 +5,6 @@ use std::sync::Arc;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
@@ -374,12 +373,6 @@ where
         };
 
         let config = self.config_repository.get();
-        let instruction_result_public_keys = config
-            .account_server
-            .instruction_result_public_keys
-            .iter()
-            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
-            .collect();
         let instruction_client = self
             .new_instruction_client(
                 new_pin.clone(),
@@ -389,7 +382,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    instruction_result_public_keys,
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await
@@ -456,12 +449,6 @@ where
         // Finish PIN recovery by sending the second WP instruction.
 
         // Use a new instruction client that uses our new WP certificate
-        let instruction_result_public_keys = config
-            .account_server
-            .instruction_result_public_keys
-            .iter()
-            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
-            .collect();
         let result = InstructionClient::new(
             new_pin,
             Arc::clone(&self.storage),
@@ -472,7 +459,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
-                instruction_result_public_keys,
+                config.account_server.instruction_result_public_keys.clone(),
             )),
         )
         .send(DiscloseRecoveryCodePinRecovery {

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crypto::PublicKey;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKey;
@@ -76,12 +75,6 @@ where
         registration_data: &RegistrationData,
         config: &WalletConfiguration,
     ) -> RemoteWiaClient<S, AKH::AppleKey, AKH::GoogleKey, APC> {
-        let instruction_result_public_keys = config
-            .account_server
-            .instruction_result_public_keys
-            .iter()
-            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
-            .collect();
         RemoteWiaClient::new(self.new_hw_signed_instruction_client(
             attested_key,
             InstructionClientParameters::new(
@@ -89,7 +82,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
-                instruction_result_public_keys,
+                config.account_server.instruction_result_public_keys.clone(),
             ),
         ))
     }

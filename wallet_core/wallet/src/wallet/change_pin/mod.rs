@@ -67,11 +67,6 @@ where
         }
 
         let config = &self.config_repository.get().account_server;
-        let instruction_result_public_keys = config
-            .instruction_result_public_keys
-            .iter()
-            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
-            .collect();
         let certificate_public_key = config.certificate_public_key.as_inner();
 
         // Extract the public key belonging to the hardware attested key from the current certificate.
@@ -92,7 +87,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.http_config.clone(),
-                instruction_result_public_keys,
+                config.instruction_result_public_keys.clone(),
             ),
         );
 
@@ -136,12 +131,6 @@ where
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
         let config = &self.config_repository.get().account_server;
-        let instruction_result_public_keys = config
-            .instruction_result_public_keys
-            .iter()
-            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
-            .collect();
-
         let instruction_client = InstructionClientFactory::new(
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
@@ -151,7 +140,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.http_config.clone(),
-                instruction_result_public_keys,
+                config.instruction_result_public_keys.clone(),
             ),
         );
 

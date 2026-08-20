@@ -430,11 +430,14 @@ impl PublicKeyByKid for JwkSet {
     }
 }
 
-impl PublicKeyByKid for HashMap<String, PublicKey> {
+impl<K> PublicKeyByKid for HashMap<String, K>
+where
+    K: Into<PublicKey> + Clone,
+{
     type Error = Infallible;
 
     fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
-        Ok(self.get(kid).cloned())
+        Ok(self.get(kid).cloned().map(|k| k.into()))
     }
 }
 

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -124,12 +123,6 @@ where
         // No attestation is ever stored without corresponding private keys.
         let key_identifiers: VecNonEmpty<_> = key_identifiers.try_into().unwrap();
 
-        let instruction_result_public_keys = config
-            .account_server
-            .instruction_result_public_keys
-            .iter()
-            .map(|(index, key)| (index.clone(), PublicKey::from(*key.as_inner())))
-            .collect();
         let instruction_client = self
             .new_instruction_client(
                 pin,
@@ -139,7 +132,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    instruction_result_public_keys,
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await?;

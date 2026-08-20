@@ -17,6 +17,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::de;
 
+use crate::p256_der::DerVerifyingKey;
 use crate::utils;
 
 const AES_GCM_IV_BYTES_SIZE: usize = 12;
@@ -64,6 +65,12 @@ impl Hash for PublicKey {
 impl From<p256::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p256::ecdsa::VerifyingKey) -> Self {
         Self::ESP256(key)
+    }
+}
+
+impl From<DerVerifyingKey> for PublicKey {
+    fn from(key: DerVerifyingKey) -> Self {
+        Self::ESP256(key.into_inner())
     }
 }
 

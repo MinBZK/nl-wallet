@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
 
-use crypto::PublicKey;
+use crypto::p256_der::DerVerifyingKey;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use http_utils::client::TlsPinningConfig;
@@ -43,7 +43,7 @@ pub struct InstructionClientParameters {
     pin_salt: KeyBytes,
     wallet_certificate: WalletCertificate,
     client_config: TlsPinningConfig,
-    instruction_result_public_keys: HashMap<String, PublicKey>,
+    instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
 }
 
 // Manually implement clone in order to prevent Clone trait bounds on the generics.
