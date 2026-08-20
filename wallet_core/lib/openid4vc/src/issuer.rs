@@ -1786,7 +1786,7 @@ impl Session<AccessTokenIssued> {
 
         // Verify all of the received proofs of possession and collect all of the nonces used in them.
         let (public_keys, nonces): (VecNonEmpty<_>, VecNonEmpty<_>) = credential_request
-            .verify(issuer_data.jwt_proof_validation.clone())?
+            .verify(issuer_data.jwt_proof_validation.clone(), issuer_data.batch_size)?
             .into_nonempty_iter()
             .unzip();
 
@@ -1798,12 +1798,6 @@ impl Session<AccessTokenIssued> {
 
         if !matches!(nonce_status, NonceStatus::AllValid) {
             return Err(CredentialRequestError::InvalidNonce);
-        }
-
-        // If the holder provided more proofs than is allowed according to the `batch_size` value of the issuer
-        // metadata, return an error.
-        if public_keys.len() > issuer_data.batch_size.into() {
-            return Err(CredentialRequestError::TooManyCopiesRequested(public_keys.len()));
         }
 
         // Find the credential on offer in the session, based on the identifier in the request.
@@ -1908,11 +1902,19 @@ impl CredentialRequest {
     fn verify(
         &self,
         jwt_proof_validation: JwtValidation,
+        batch_size: NonZeroU8,
     ) -> Result<VecNonEmpty<(PublicKey, Nonce)>, CredentialRequestError> {
+        // The issuer requires key binding proofs, as is indicated in the Issuer Metadata.
         let CredentialRequestProofs::Jwt(jwts) = self
             .proofs
             .as_ref()
             .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?;
+
+        // If the holder povided more proofs than the `batch_size` indicated in the Issuer Metadata, it is requesting
+        // more credentials than the issuer allows, so return an error.
+        if jwts.len() > batch_size.into() {
+            return Err(CredentialRequestError::TooManyCopiesRequested(jwts.len()));
+        }
 
         let jwt_count = jwts.len();
         let public_keys_and_nonces = jwts
