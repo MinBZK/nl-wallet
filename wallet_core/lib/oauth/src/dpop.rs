@@ -60,7 +60,6 @@ use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithJwk;
 use jwt::jwk::jwk_to_public_key;
-use oauth::token::AccessToken;
 use p256::ecdsa::SigningKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -71,6 +70,9 @@ use serde_with::formats::Unpadded;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
+
+use crate::token::AccessToken;
+
 pub const DPOP_HEADER_NAME: &str = "DPoP";
 pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 
@@ -131,10 +133,10 @@ pub struct DpopPayload {
     iat: DateTime<Utc>,
 }
 
-pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
+pub const DPOP_JWT_TYPE: &str = "dpop+jwt";
 
 impl JwtTyp for DpopPayload {
-    const TYP: &'static str = OPENID4VCI_DPOP_JWT_TYPE;
+    const TYP: &'static str = DPOP_JWT_TYPE;
 }
 
 #[derive(Clone, AsRef, FromStr, Display)]
@@ -236,7 +238,6 @@ mod tests {
     use base64::prelude::*;
     use crypto::PublicKey;
     use jwt::Header;
-    use oauth::token::AccessToken;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use reqwest::Method;
@@ -244,9 +245,11 @@ mod tests {
     use serde::de::DeserializeOwned;
     use url::Url;
 
+    use super::DPOP_JWT_TYPE;
     use super::Dpop;
-    use crate::dpop::DpopPayload;
-    use crate::dpop::OPENID4VCI_DPOP_JWT_TYPE;
+    use super::DpopPayload;
+    use crate::token::AccessToken;
+
     #[rstest]
     #[case(None, Some("123".to_string().into()))]
     #[case(Some("123".to_string().into()), None)]
@@ -261,7 +264,7 @@ mod tests {
 
         // Check the `typ` of the Header
         let header: Header = part(0, dpop.0.serialization());
-        assert_eq!(header.typ, Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()));
+        assert_eq!(header.typ, Some(DPOP_JWT_TYPE.to_string()));
 
         // Examine some fields in the claims
         let claims: DpopPayload = part(1, dpop.0.serialization());

@@ -13,9 +13,12 @@ derive_more = { workspace = true, features = [
     "display",
     "eq",
     "from",
+    "from_str",
     "into",
 ] }
+futures = { workspace = true, features = ["async-await"] }
 indexmap = { workspace = true, features = ["serde"] }
+p256 = { workspace = true, features = ["serde"] }
 reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -26,6 +29,7 @@ tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 crypto.path = "../crypto"
+error_category.path = "../error_category"
 http_utils = { path = "../http_utils", features = ["client"] }
 jwt.path = "../jwt"
 utils.path = "../utils"

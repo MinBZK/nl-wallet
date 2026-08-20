@@ -8,7 +8,6 @@ pub mod par;
 pub mod token;
 
 // Cryptographic tools.
-pub mod dpop;
 pub mod jwe;
 
 // Issuance code for the server and client.
