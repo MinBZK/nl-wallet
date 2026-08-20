@@ -399,6 +399,10 @@ generate_wia_tsl_key_pair
 WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
 export WIA_TSL_CRT
 
+# Generate pid issuer recovery code key
+RECOVERY_CODE_SECRET_KEY=$(openssl rand 32 | xxd -p -c64)
+export RECOVERY_CODE_SECRET_KEY
+
 # Generate pid issuer key and cert for issuance, TSL and WRPAC
 generate_pid_issuer_hsm_key_pair
 generate_pid_issuer_key_pair tsl issuer

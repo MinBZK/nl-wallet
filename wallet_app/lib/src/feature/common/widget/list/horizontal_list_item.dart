@@ -32,6 +32,7 @@ class HorizontalListItem extends StatelessWidget {
                 children: [
                   Semantics(
                     header: true,
+                    headingLevel: 1,
                     child: DefaultTextStyle(style: context.textTheme.titleMedium!, child: label),
                   ),
                   const SizedBox(height: 8),

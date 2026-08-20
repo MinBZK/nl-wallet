@@ -44,7 +44,7 @@ class PolicyRowBuilder {
     required IconData icon,
   }) {
     return ListItem.horizontal(
-      label: Semantics(header: true, child: Text(title)),
+      label: Semantics(header: true, headingLevel: 1, child: Text(title)),
       subtitle: Text(description),
       icon: Icon(icon),
     );

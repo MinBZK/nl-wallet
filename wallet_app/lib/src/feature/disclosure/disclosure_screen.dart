@@ -179,11 +179,8 @@ class DisclosureScreen extends StatelessWidget {
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedCardsApproved()),
       organization: state.relyingParty,
-      originUrl: state.originUrl,
-      sessionType: state.sessionType,
       purpose: ApprovalPurpose.login,
       description: description,
-      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context, state)),
       onShowDetailsPressed: () {
         LoginDetailScreen.show(
           context,

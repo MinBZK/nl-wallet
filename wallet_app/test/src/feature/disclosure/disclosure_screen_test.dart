@@ -93,7 +93,6 @@ void main() {
           MockDisclosureBloc(startDisclosureResult: kSampleReadyToDiscloseResult),
           DisclosureCheckOrganizationForLogin(
             relyingParty: WalletMockData.organization,
-            originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
             policy: WalletMockData.policy,
@@ -136,7 +135,6 @@ void main() {
           MockDisclosureBloc(),
           DisclosureCheckOrganizationForLogin(
             relyingParty: WalletMockData.organization,
-            originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
             cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
@@ -154,7 +152,6 @@ void main() {
           MockDisclosureBloc(),
           DisclosureCheckOrganizationForLogin(
             relyingParty: WalletMockData.organization,
-            originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
             cardRequests: [
@@ -719,7 +716,6 @@ void main() {
             DisclosureCheckOrganizationForLogin(
               relyingParty: WalletMockData.organization,
               sharedDataWithOrganizationBefore: false,
-              originUrl: '',
               sessionType: DisclosureSessionType.sameDevice,
               policy: WalletMockData.policy,
               cardRequests: [],
@@ -752,7 +748,6 @@ void main() {
             MockDisclosureBloc(),
             DisclosureCheckOrganizationForLogin(
               relyingParty: WalletMockData.organization,
-              originUrl: 'originUrl',
               sessionType: DisclosureSessionType.crossDevice,
               policy: WalletMockData.policy,
               cardRequests: [],
@@ -776,7 +771,6 @@ void main() {
             MockDisclosureBloc(),
             DisclosureCheckOrganizationForLogin(
               relyingParty: WalletMockData.organization,
-              originUrl: 'originUrl',
               sessionType: DisclosureSessionType.crossDevice,
               policy: WalletMockData.policy,
               cardRequests: [],

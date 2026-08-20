@@ -110,7 +110,6 @@ class SignScreen extends StatelessWidget {
       onDeclinePressed: () => _stopSigning(context),
       onAcceptPressed: () => context.read<SignBloc>().add(const SignOrganizationApproved()),
       organization: state.relyingParty,
-      originUrl: 'http://sign.origin.org',
       purpose: ApprovalPurpose.sign,
       onShowDetailsPressed: () {
         OrganizationDetailScreen.showPreloaded(
