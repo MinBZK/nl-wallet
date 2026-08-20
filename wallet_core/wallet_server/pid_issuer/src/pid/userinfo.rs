@@ -87,13 +87,13 @@ async fn request_userinfo_jwt(
 ) -> Result<String, UserInfoError> {
     // Get userinfo endpoint from discovery, throw an error otherwise.
     let endpoint = config
-        .as_ref()
+        .oidc_metadata_extension
         .userinfo_endpoint
         .clone()
         .ok_or(UserInfoError::NoUserinfoUrl)?;
 
     let response = http_client
-        .post(config.as_ref().token_endpoint.clone(), |request| {
+        .post(config.oauth_metadata.token_endpoint.clone(), |request| {
             request.form(&token_request)
         })
         .await?;
@@ -142,7 +142,7 @@ where
     C: DeserializeOwned + JwtTyp,
 {
     let jwks_client = HttpJwksClient::new(http_client.clone());
-    let jwks_uri = config.as_ref().jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
+    let jwks_uri = config.oauth_metadata.jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
 
     let (jwe, jwks) = try_join!(
         request_userinfo_jwt(http_client, config, token_request),
@@ -205,6 +205,7 @@ mod tests {
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
     use oauth::metadata::oauth_metadata::OidcProviderMetadata;
+    use oauth::metadata::oauth_metadata::OpenIdMetadataExtension;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::TokenErrorCode;
     use openid4vc::token::AccessToken;
@@ -229,7 +230,7 @@ mod tests {
 
     fn create_metadata(server: &MockServer) -> OidcProviderMetadata {
         let issuer_identifier: IssuerIdentifier = server.base_url().parse().unwrap();
-        OidcProviderMetadata::new(AuthorizationServerMetadata::new_mock(issuer_identifier))
+        OidcProviderMetadata::new_mock(issuer_identifier)
     }
 
     #[tokio::test]
@@ -327,7 +328,10 @@ mod tests {
         let server = MockServer::start_async().await;
         let issuer_identifier: IssuerIdentifier = server.base_url().parse().unwrap();
         let token_endpoint = issuer_identifier.as_base_url().as_ref().join("/token").unwrap();
-        let metadata = OidcProviderMetadata::new(AuthorizationServerMetadata::new(issuer_identifier, token_endpoint));
+        let metadata = OidcProviderMetadata::new(
+            AuthorizationServerMetadata::new(issuer_identifier, token_endpoint),
+            OpenIdMetadataExtension::default(),
+        );
 
         let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let result = request_userinfo_jwt(&http_client, &metadata, create_token_request()).await;

@@ -1264,7 +1264,6 @@ mod tests {
     use mockall::predicate::eq;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::issuer_identifier::IssuerUrl;
-    use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
     use oauth::metadata::well_known::WellKnownMetadata;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
@@ -1287,6 +1286,7 @@ mod tests {
     use crate::errors::RemoteErrorCode;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::IssuerMetadata;
+    use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
     use crate::token::CredentialPreviewError;
@@ -1372,7 +1372,7 @@ mod tests {
                 CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
             )],
         );
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
+        let oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
         let batch_size = issuer_metadata.batch_size().try_into().unwrap();
 
         let mut mock_msg_client = MockVcMessageClient::new();
@@ -1401,11 +1401,11 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
+            &oauth_metadata.oauth_metadata.token_endpoint,
             mechanism,
             TokenRequest::new_mock(),
             &wia_client,
-            &oauth_metadata.issuer,
+            &oauth_metadata.oauth_metadata.issuer,
             &trust_anchors,
         )
         .now_or_never()
@@ -1506,7 +1506,7 @@ mod tests {
                 })
             });
 
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
+        let oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
 
         let batch_size = issuer_metadata.batch_size().try_into().unwrap();
         HttpIssuanceSession::create(
@@ -1515,11 +1515,16 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
-            ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
+            &oauth_metadata.oauth_metadata.token_endpoint,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                oauth_metadata
+                    .client_attestation_metadata_extension
+                    .challenge_endpoint
+                    .unwrap(),
+            ),
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
-            &oauth_metadata.issuer,
+            &oauth_metadata.oauth_metadata.issuer,
             trust_anchors,
         )
         .now_or_never()
@@ -1915,7 +1920,7 @@ mod tests {
                 ),
             ],
         );
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+        let oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(issuer_identifier);
 
         let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(vec_nonempty![
             (&config_id_mdoc, random_string(16)),
@@ -1971,11 +1976,16 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
-            ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
+            &oauth_metadata.oauth_metadata.token_endpoint,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                oauth_metadata
+                    .client_attestation_metadata_extension
+                    .challenge_endpoint
+                    .unwrap(),
+            ),
             TokenRequest::new_mock(),
             &MockWiaClient::new(),
-            &oauth_metadata.issuer,
+            &oauth_metadata.oauth_metadata.issuer,
             &TrustAnchors::from(&ca),
         )
         .now_or_never()

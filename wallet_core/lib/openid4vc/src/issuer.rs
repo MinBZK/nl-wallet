@@ -47,6 +47,8 @@ use jwt::wia::WiaError;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::jose::JwsAlgorithm;
 use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
+use oauth::metadata::oauth_metadata::ClientAttestationMetadataExtension;
+use oauth::metadata::oauth_metadata::ParMetadataExtension;
 use reqwest::Method;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
@@ -87,6 +89,7 @@ use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
+use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 use crate::pkce::S256PkcePair;
 use crate::preview::CredentialPreviewResponse;
 use crate::scope::Scope;
@@ -803,21 +806,27 @@ where
 }
 
 impl<K, L, S, N> Issuer<K, L, S, N> {
-    pub fn oauth_metadata(&self) -> AuthorizationServerMetadata {
+    pub fn oauth_metadata(&self) -> IssuerAuthorizationServerMetadata {
         let issuer_url = self.issuer_data.metadata.credential_issuer.as_base_url();
 
-        AuthorizationServerMetadata {
-            authorization_endpoint: Some(issuer_url.join("/issuance/authorize")),
-            pushed_authorization_request_endpoint: Some(issuer_url.join("/issuance/par")),
-            require_pushed_authorization_requests: true,
-            challenge_endpoint: Some(issuer_url.join("/issuance/client_auth_challenge")),
-            token_endpoint_auth_methods_supported: Some(IndexSet::from([WIA_CLIENT_AUTH_METHOD.to_string()])),
-            client_attestation_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
-            client_attestation_pop_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
-            ..AuthorizationServerMetadata::new(
-                self.issuer_data.metadata.credential_issuer.clone(),
-                issuer_url.join("issuance/token"),
-            )
+        IssuerAuthorizationServerMetadata {
+            oauth_metadata: AuthorizationServerMetadata {
+                authorization_endpoint: Some(issuer_url.join("/issuance/authorize")),
+                token_endpoint_auth_methods_supported: Some(IndexSet::from([WIA_CLIENT_AUTH_METHOD.to_string()])),
+                ..AuthorizationServerMetadata::new(
+                    self.issuer_data.metadata.credential_issuer.clone(),
+                    issuer_url.join("issuance/token"),
+                )
+            },
+            par_metadata_extension: ParMetadataExtension {
+                pushed_authorization_request_endpoint: Some(issuer_url.join("/issuance/par")),
+                require_pushed_authorization_requests: true,
+            },
+            client_attestation_metadata_extension: ClientAttestationMetadataExtension {
+                challenge_endpoint: Some(issuer_url.join("/issuance/client_auth_challenge")),
+                client_attestation_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
+                client_attestation_pop_signing_alg_values_supported: Some(IndexSet::from([JwsAlgorithm::ES256])),
+            },
         }
     }
 }
@@ -1834,7 +1843,6 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
     use oauth::issuer_identifier::IssuerIdentifier;
-    use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -2162,7 +2170,7 @@ mod tests {
             .unwrap();
 
         let issuer_metadata = message_client.issuer.metadata().clone();
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+        let oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(issuer_identifier);
 
         let credential_configs = credential_offer
             .credential_configuration_ids
@@ -2191,11 +2199,16 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
-            ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
+            &oauth_metadata.oauth_metadata.token_endpoint,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                oauth_metadata
+                    .client_attestation_metadata_extension
+                    .challenge_endpoint
+                    .unwrap(),
+            ),
             TokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
-            &oauth_metadata.issuer,
+            &oauth_metadata.oauth_metadata.issuer,
             &trust_anchors,
         )
         .await
@@ -2226,7 +2239,7 @@ mod tests {
             .pre_authorized_code;
 
         let issuer_metadata = message_client.issuer.metadata().clone();
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+        let oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(issuer_identifier);
 
         let credential_configs = message_client
             .issuer
@@ -2248,11 +2261,16 @@ mod tests {
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
             batch_size,
-            &oauth_metadata.token_endpoint,
-            ClientAttestationChallengeMechanism::ChallengeEndpoint(oauth_metadata.challenge_endpoint.unwrap()),
+            &oauth_metadata.oauth_metadata.token_endpoint,
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(
+                oauth_metadata
+                    .client_attestation_metadata_extension
+                    .challenge_endpoint
+                    .unwrap(),
+            ),
             TokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
-            &oauth_metadata.issuer,
+            &oauth_metadata.oauth_metadata.issuer,
             &trust_anchors,
         )
         .await

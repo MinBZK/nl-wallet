@@ -1,6 +1,7 @@
 use error_category::ErrorCategory;
-use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
 use url::Url;
+
+use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(critical)]
@@ -22,23 +23,25 @@ pub struct AuthorizationEndpoints {
     pub challenge_endpoint: Option<Url>,
 }
 
-impl TryFrom<AuthorizationServerMetadata> for AuthorizationEndpoints {
+impl TryFrom<IssuerAuthorizationServerMetadata> for AuthorizationEndpoints {
     type Error = AuthorizationEndpointsError;
 
-    fn try_from(value: AuthorizationServerMetadata) -> Result<Self, Self::Error> {
+    fn try_from(value: IssuerAuthorizationServerMetadata) -> Result<Self, Self::Error> {
         let authorization_endpoint = value
+            .oauth_metadata
             .authorization_endpoint
             .ok_or(AuthorizationEndpointsError::NoAuthorizationEndpoint)?;
 
         let pushed_authorization_request_endpoint = value
+            .par_metadata_extension
             .pushed_authorization_request_endpoint
             .ok_or(AuthorizationEndpointsError::NoPushedAuthorizationEndpoint)?;
 
         let endpoints = Self {
             authorization_endpoint,
             par_endpoint: pushed_authorization_request_endpoint,
-            token_endpoint: value.token_endpoint,
-            challenge_endpoint: value.challenge_endpoint,
+            token_endpoint: value.oauth_metadata.token_endpoint,
+            challenge_endpoint: value.client_attestation_metadata_extension.challenge_endpoint,
         };
 
         Ok(endpoints)
@@ -49,16 +52,15 @@ impl TryFrom<AuthorizationServerMetadata> for AuthorizationEndpoints {
 mod test {
     use std::assert_matches;
 
-    use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
-
     use super::AuthorizationEndpoints;
     use super::AuthorizationEndpointsError;
+    use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 
     const ISSUER_URL: &str = "https://example.com";
 
     #[test]
     fn authorization_endpoints_try_from_authorization_server_metadata_ok() {
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap());
+        let oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap());
 
         let _endpoints = AuthorizationEndpoints::try_from(oauth_metadata)
             .expect("extract authorization enpoints from OAuth metadata should succeed");
@@ -66,8 +68,8 @@ mod test {
 
     #[test]
     fn authorization_endpoints_try_from_authorization_server_metadata_error_no_authorization_endpoint() {
-        let mut oauth_metadata = AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap());
-        oauth_metadata.authorization_endpoint = None;
+        let mut oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap());
+        oauth_metadata.oauth_metadata.authorization_endpoint = None;
 
         let error = AuthorizationEndpoints::try_from(oauth_metadata)
             .expect_err("extract authorization enpoints from OAuth metadata should fail");
@@ -77,8 +79,10 @@ mod test {
 
     #[test]
     fn authorization_endpoints_try_from_authorization_server_metadata_error_no_par_endpoint() {
-        let mut oauth_metadata = AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap());
-        oauth_metadata.pushed_authorization_request_endpoint = None;
+        let mut oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap());
+        oauth_metadata
+            .par_metadata_extension
+            .pushed_authorization_request_endpoint = None;
 
         let error = AuthorizationEndpoints::try_from(oauth_metadata)
             .expect_err("extract authorization enpoints from OAuth metadata should fail");

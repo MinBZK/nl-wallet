@@ -7,11 +7,12 @@ use jwt::nonce::Nonce;
 use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
 use oauth::jose::JwsAlgorithm;
-use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
 use reqwest::Response;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+
+use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ClientAttestationMetadataError {
@@ -36,9 +37,10 @@ pub enum ClientAttestationMetadataError {
 
 /// Verify that the Authorization Server metadata advertises support for Attestation-Based Client Authentication.
 pub fn check_client_attestation_metadata(
-    oauth_metadata: &AuthorizationServerMetadata,
+    oauth_metadata: &IssuerAuthorizationServerMetadata,
 ) -> Result<(), ClientAttestationMetadataError> {
     if !oauth_metadata
+        .oauth_metadata
         .token_endpoint_auth_methods_supported
         .as_ref()
         .is_some_and(|auth_methods| auth_methods.contains(WIA_CLIENT_AUTH_METHOD))
@@ -47,16 +49,21 @@ pub fn check_client_attestation_metadata(
     }
 
     if !oauth_metadata
+        .client_attestation_metadata_extension
         .client_attestation_signing_alg_values_supported
         .as_ref()
         .is_some_and(|algs| algs.contains(&JwsAlgorithm::ES256))
     {
         return Err(ClientAttestationMetadataError::ClientAttestationSigningAlgNotSupported(
-            oauth_metadata.client_attestation_signing_alg_values_supported.clone(),
+            oauth_metadata
+                .client_attestation_metadata_extension
+                .client_attestation_signing_alg_values_supported
+                .clone(),
         ));
     }
 
     if !oauth_metadata
+        .client_attestation_metadata_extension
         .client_attestation_pop_signing_alg_values_supported
         .as_ref()
         .is_some_and(|algs| algs.contains(&JwsAlgorithm::ES256))
@@ -64,6 +71,7 @@ pub fn check_client_attestation_metadata(
         return Err(
             ClientAttestationMetadataError::ClientAttestationPopSigningAlgNotSupported(
                 oauth_metadata
+                    .client_attestation_metadata_extension
                     .client_attestation_pop_signing_alg_values_supported
                     .clone(),
             ),
@@ -188,6 +196,7 @@ mod tests {
     use super::ClientAttestationChallengeMechanism;
     use super::ClientAttestationChallengeMechanismError;
     use super::ClientAttestationMetadataError;
+    use super::IssuerAuthorizationServerMetadata;
     use super::JwsAlgorithm;
     use super::check_client_attestation_metadata;
 
@@ -277,15 +286,24 @@ mod tests {
         );
     }
 
-    /// Returns [`AuthorizationServerMetadata`] that fully supports Attestation-Based Client Authentication.
-    fn oauth_metadata_with_client_attestation_support() -> AuthorizationServerMetadata {
-        let mut metadata = AuthorizationServerMetadata::new(
-            "https://issuer.example.com".parse().unwrap(),
-            "https://issuer.example.com/token".parse().unwrap(),
-        );
-        metadata.token_endpoint_auth_methods_supported = Some([WIA_CLIENT_AUTH_METHOD.to_string()].into());
-        metadata.client_attestation_signing_alg_values_supported = Some([JwsAlgorithm::ES256].into());
-        metadata.client_attestation_pop_signing_alg_values_supported = Some([JwsAlgorithm::ES256].into());
+    /// Returns [`IssuerAuthorizationServerMetadata`] that fully supports Attestation-Based Client Authentication.
+    fn oauth_metadata_with_client_attestation_support() -> IssuerAuthorizationServerMetadata {
+        let mut metadata = IssuerAuthorizationServerMetadata {
+            oauth_metadata: AuthorizationServerMetadata::new(
+                "https://issuer.example.com".parse().unwrap(),
+                "https://issuer.example.com/token".parse().unwrap(),
+            ),
+            par_metadata_extension: Default::default(),
+            client_attestation_metadata_extension: Default::default(),
+        };
+        metadata.oauth_metadata.token_endpoint_auth_methods_supported =
+            Some([WIA_CLIENT_AUTH_METHOD.to_string()].into());
+        metadata
+            .client_attestation_metadata_extension
+            .client_attestation_signing_alg_values_supported = Some([JwsAlgorithm::ES256].into());
+        metadata
+            .client_attestation_metadata_extension
+            .client_attestation_pop_signing_alg_values_supported = Some([JwsAlgorithm::ES256].into());
 
         metadata
     }
@@ -300,7 +318,7 @@ mod tests {
     #[test]
     fn check_client_attestation_metadata_no_token_endpoint_auth_methods() {
         let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.token_endpoint_auth_methods_supported = None;
+        metadata.oauth_metadata.token_endpoint_auth_methods_supported = None;
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
@@ -311,7 +329,8 @@ mod tests {
     #[test]
     fn check_client_attestation_metadata_wia_auth_method_not_supported() {
         let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.token_endpoint_auth_methods_supported = Some(["client_secret_basic".to_string()].into());
+        metadata.oauth_metadata.token_endpoint_auth_methods_supported =
+            Some(["client_secret_basic".to_string()].into());
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
@@ -322,7 +341,9 @@ mod tests {
     #[test]
     fn check_client_attestation_metadata_no_signing_alg_values() {
         let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_signing_alg_values_supported = None;
+        metadata
+            .client_attestation_metadata_extension
+            .client_attestation_signing_alg_values_supported = None;
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
@@ -335,8 +356,9 @@ mod tests {
     #[test]
     fn check_client_attestation_metadata_es256_signing_alg_not_supported() {
         let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_signing_alg_values_supported =
-            Some([JwsAlgorithm::Other("RS256".to_string())].into());
+        metadata
+            .client_attestation_metadata_extension
+            .client_attestation_signing_alg_values_supported = Some([JwsAlgorithm::Other("RS256".to_string())].into());
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
@@ -348,7 +370,9 @@ mod tests {
     #[test]
     fn check_client_attestation_metadata_no_pop_signing_alg_values() {
         let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_pop_signing_alg_values_supported = None;
+        metadata
+            .client_attestation_metadata_extension
+            .client_attestation_pop_signing_alg_values_supported = None;
 
         assert_matches!(
             check_client_attestation_metadata(&metadata),
@@ -359,7 +383,9 @@ mod tests {
     #[test]
     fn check_client_attestation_metadata_es256_pop_signing_alg_not_supported() {
         let mut metadata = oauth_metadata_with_client_attestation_support();
-        metadata.client_attestation_pop_signing_alg_values_supported =
+        metadata
+            .client_attestation_metadata_extension
+            .client_attestation_pop_signing_alg_values_supported =
             Some([JwsAlgorithm::Other("RS256".to_string())].into());
 
         assert_matches!(

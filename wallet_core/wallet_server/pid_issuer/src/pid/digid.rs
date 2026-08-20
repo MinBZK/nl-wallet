@@ -121,7 +121,7 @@ impl HttpDigidClient {
         let metadata = self.metadata_client.metadata().await.map_err(Error::WellKnown)?;
 
         let authorization_endpoint = metadata
-            .as_ref()
+            .oauth_metadata
             .authorization_endpoint
             .clone()
             .ok_or(Error::NoUpstreamAuthorizationEndpoint)?;
@@ -213,7 +213,6 @@ mod tests {
     use httpmock::MockServer;
     use jwk_simple::Key;
     use oauth::issuer_identifier::IssuerIdentifier;
-    use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
     use oauth::metadata::oauth_metadata::OidcProviderMetadata;
     use openid4vc::pkce::PkcePair;
     use openid4vc::pkce::S256PkcePair;
@@ -235,7 +234,7 @@ mod tests {
     async fn authorization_request_builds_upstream_redirect_url() {
         let server = MockServer::start_async().await;
         let issuer_identifier: IssuerIdentifier = server.base_url().parse().unwrap();
-        let metadata = OidcProviderMetadata::new(AuthorizationServerMetadata::new_mock(issuer_identifier.clone()));
+        let metadata = OidcProviderMetadata::new_mock(issuer_identifier.clone());
 
         let _mock = server
             .mock_async(|when, then| {

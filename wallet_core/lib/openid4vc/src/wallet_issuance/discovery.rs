@@ -13,7 +13,6 @@ use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use oauth::issuer_identifier::IssuerIdentifier;
-use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
 use oauth::metadata::well_known::WellKnownMetadata;
 use url::Url;
 use utils::generator::TimeGenerator;
@@ -39,6 +38,7 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
+use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
@@ -303,11 +303,11 @@ impl CredentialOfferFlow {
     /// OAuth metadata, while extracting the relevant portions of that metadata.
     fn try_from_offer_grant(
         offer_grant: CredentialOfferGrant,
-        oauth_metadata: AuthorizationServerMetadata,
+        oauth_metadata: IssuerAuthorizationServerMetadata,
     ) -> Result<Self, WalletIssuanceError> {
         let flow = match offer_grant {
             CredentialOfferGrant::AuthorizationCode { issuer_state } => {
-                let authorization_server = oauth_metadata.issuer.clone();
+                let authorization_server = oauth_metadata.oauth_metadata.issuer.clone();
 
                 let auth_endpoints = oauth_metadata
                     .try_into()
@@ -321,9 +321,9 @@ impl CredentialOfferFlow {
             }
             CredentialOfferGrant::PreAuthorizedCode { pre_authorized_code } => Self::PreAuthorizedCode {
                 pre_authorized_code,
-                authorization_server: oauth_metadata.issuer,
-                token_endpoint: oauth_metadata.token_endpoint,
-                challenge_endpoint: oauth_metadata.challenge_endpoint,
+                authorization_server: oauth_metadata.oauth_metadata.issuer,
+                token_endpoint: oauth_metadata.oauth_metadata.token_endpoint,
+                challenge_endpoint: oauth_metadata.client_attestation_metadata_extension.challenge_endpoint,
             },
             CredentialOfferGrant::NoKnownGrant => {
                 // According to the OpenID4VCI 1.0 specification:
@@ -335,6 +335,7 @@ impl CredentialOfferFlow {
                 // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
                 // for the Authorization Code grant type here and use that if the Authorization Server supports it.
                 if !oauth_metadata
+                    .oauth_metadata
                     .grant_types_supported
                     .as_ref()
                     .map(|grant_types| grant_types.contains("authorization_code"))
@@ -347,7 +348,7 @@ impl CredentialOfferFlow {
                     return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
                 }
 
-                let authorization_server = oauth_metadata.issuer.clone();
+                let authorization_server = oauth_metadata.oauth_metadata.issuer.clone();
 
                 let auth_endpoints = oauth_metadata
                     .try_into()
@@ -401,7 +402,7 @@ where
         &self,
         credential_offer: &NormalizedCredentialOffer,
         wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<(IssuerMetadata, AuthorizationServerMetadata), WalletIssuanceError> {
+    ) -> Result<(IssuerMetadata, IssuerAuthorizationServerMetadata), WalletIssuanceError> {
         let issuer_metadata_jwt: UnverifiedJwt<SignedIssuerMetadataPayload, HeaderWithX5c> = self
             .http_client
             .get_jwt(IssuerMetadata::well_known_url(&credential_offer.credential_issuer))
@@ -457,7 +458,7 @@ where
         };
 
         let oauth_metadata =
-            AuthorizationServerMetadata::fetch_well_known_json(&self.http_client, authorization_server)
+            IssuerAuthorizationServerMetadata::fetch_well_known_json(&self.http_client, authorization_server)
                 .await
                 .map_err(WalletIssuanceError::OauthDiscovery)?;
 
