@@ -1774,7 +1774,7 @@ impl Session<AccessTokenIssued> {
         L: StatusListService,
         N: NonceStore,
     {
-        // First, check that that the request is authorized.
+        // First, check that the request is authorized.
         self.check_credential_endpoint_access(
             access_token,
             dpop,
@@ -1784,7 +1784,7 @@ impl Session<AccessTokenIssued> {
 
         let session_data = self.session_data();
 
-        // Verify all of the received proofs of posession and collect all of the nonces used in them.
+        // Verify all of the received proofs of possession and collect all of the nonces used in them.
         let (public_keys, nonces): (VecNonEmpty<_>, VecNonEmpty<_>) = credential_request
             .verify(issuer_data.jwt_proof_validation.clone())?
             .into_nonempty_iter()
@@ -1800,8 +1800,8 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::InvalidNonce);
         }
 
-        // If the holder prived more proofs than is allowed according to the `batch_size` value of the issuer metadata,
-        // return an error.
+        // If the holder provided more proofs than is allowed according to the `batch_size` value of the issuer
+        // metadata, return an error.
         if public_keys.len() > issuer_data.batch_size.into() {
             return Err(CredentialRequestError::TooManyCopiesRequested(public_keys.len()));
         }
