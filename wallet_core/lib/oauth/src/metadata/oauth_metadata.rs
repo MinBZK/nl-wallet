@@ -105,6 +105,18 @@ pub struct AuthorizationServerMetadata {
     pub op_policy_uri: Option<Url>,
     #[serde(default)]
     pub op_tos_uri: Option<Url>,
+    #[serde(default)]
+    pub revocation_endpoint: Option<Url>,
+    #[serde(default)]
+    pub revocation_endpoint_auth_methods_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub revocation_endpoint_auth_signing_alg_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub introspection_endpoint: Option<Url>,
+    #[serde(default)]
+    pub introspection_endpoint_auth_methods_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub introspection_endpoint_auth_signing_alg_values_supported: Option<IndexSet<String>>,
     // This is a NONSTANDARD extension Google uses that is a part of the Oauth discovery draft
     #[serde(default)]
     pub code_challenge_methods_supported: Option<IndexSet<String>>,
@@ -177,6 +189,12 @@ impl AuthorizationServerMetadata {
             require_request_uri_registration: false,
             op_policy_uri: None,
             op_tos_uri: None,
+            revocation_endpoint: None,
+            revocation_endpoint_auth_methods_supported: None,
+            revocation_endpoint_auth_signing_alg_values_supported: None,
+            introspection_endpoint: None,
+            introspection_endpoint_auth_methods_supported: None,
+            introspection_endpoint_auth_signing_alg_values_supported: None,
             code_challenge_methods_supported: None,
             pushed_authorization_request_endpoint: None,
             require_pushed_authorization_requests: false,
