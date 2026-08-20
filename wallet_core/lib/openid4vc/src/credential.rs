@@ -237,13 +237,13 @@ pub enum Credentials {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize, Constructor)]
+#[derive(Debug, Clone, Serialize, Constructor)]
 pub struct MdocCredential {
     #[serde_as(as = "CborBase64")]
     pub credential: IssuerSigned,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Constructor)]
+#[derive(Debug, Clone, Serialize, Constructor)]
 pub struct SdJwtCredential {
     pub credential: UnverifiedSdJwt,
 }
