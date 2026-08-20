@@ -124,10 +124,7 @@ void _setupMockitoDummies() {
       policy: WalletMockData.policy,
       sessionType: DisclosureSessionType.sameDevice,
       cardRequests: [],
-      originUrl: '',
       requestPurpose: {},
-      type: DisclosureType.regular,
-      sharedDataWithOrganizationBefore: false,
     ),
   );
   provideDummy<core.PidIssuanceResult>(const core.PidIssuanceResult.ok(transferAvailable: true));
@@ -201,10 +198,7 @@ void _setupMockitoDummies() {
         policy: WalletMockData.policy,
         sessionType: DisclosureSessionType.sameDevice,
         cardRequests: [],
-        originUrl: '',
         requestPurpose: {},
-        type: DisclosureType.regular,
-        sharedDataWithOrganizationBefore: false,
       ),
     ),
   );
