@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import EmptyState from './EmptyState.vue'
+import EmptyState from '../ui/EmptyState.vue'
 import TasksTableHeader from './TasksTableHeader.vue'
 
 export interface Task {

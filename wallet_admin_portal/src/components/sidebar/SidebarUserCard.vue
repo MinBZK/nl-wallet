@@ -14,14 +14,15 @@
         <img src="@/assets/icons/account_box.svg" alt="" />
         <span>Foto aanpassen</span>
       </button>
-      <button type="button" class="logout-button" @click="logout">Uitloggen</button>
+      <AppButton variant="secondary" @click="logout">Uitloggen</AppButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import ChevronToggleButton from '@/components/ChevronToggleButton.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import ChevronToggleButton from '@/components/ui/ChevronToggleButton.vue'
 
 const props = defineProps<{
   name: string
@@ -61,9 +62,8 @@ function logout() {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-top: auto;
   box-sizing: border-box;
-  height: var(--footer-height);
+  grid-row: 3;
   border-top: 2px solid var(--color-border);
   padding: 16px;
 }
@@ -141,20 +141,5 @@ function logout() {
   font-size: 0.875rem;
   cursor: pointer;
   text-align: left;
-}
-
-.logout-button {
-  padding: 0.75rem;
-  border: 1px solid var(--color-primary);
-  border-radius: 6px;
-  background: #fff;
-  color: var(--color-primary);
-  font-weight: 700;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.logout-button:hover {
-  background: #f5f6ff;
 }
 </style>

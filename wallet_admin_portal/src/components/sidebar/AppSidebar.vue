@@ -6,7 +6,9 @@
       <div class="section-label">ALGEMEEN</div>
 
       <RouterLink
-        v-if="rolename === Role.Teamlead || rolename === Role.Operator"
+        v-if="
+          loggedInUser?.canCreateTask || loggedInUser?.privileges?.includes(Privilege.ShowAllTasks)
+        "
         to="/tasks"
         class="nav-item"
         exact-active-class="active"
@@ -16,7 +18,7 @@
       </RouterLink>
 
       <RouterLink
-        v-if="rolename === Role.Operator"
+        v-if="loggedInUser?.canCreateTask"
         to="/my-tasks"
         class="nav-item"
         exact-active-class="active"
@@ -31,31 +33,33 @@
       </RouterLink>
     </nav>
 
-    <SidebarUserCard :name="loggedInUser?.displayName ?? ''" :role="rolename" />
+    <SidebarUserCard
+      :name="loggedInUser?.displayName ?? ''"
+      :role="loggedInUser?.role ?? Role.Unknown"
+    />
   </aside>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useAuth } from '@/composables/authentication.ts'
-import { Role, roleFromPrivileges } from '@/composables/roles.ts'
+import { Role } from '@/types/roles.ts'
+import { Privilege } from '@/types/privilege.ts'
 import SidebarBrand from './SidebarBrand.vue'
 import SidebarUserCard from './SidebarUserCard.vue'
 
 const { loggedInUser } = useAuth()
-
-const rolename = computed(() => roleFromPrivileges(loggedInUser.value?.privileges ?? []))
 </script>
 
 <style scoped>
 .sidebar {
-  display: flex;
-  flex-direction: column;
   border-right: 2px solid var(--color-border);
 }
 
 .nav-section {
+  grid-row: 2;
+  min-height: 0;
   padding: 16px;
+  overflow-y: auto;
 }
 
 .section-label {
