@@ -603,7 +603,6 @@ impl ErrorWithCode for CredentialRequestError {
     type ErrorCode = CredentialErrorCode;
 
     fn error_code(&self) -> Self::ErrorCode {
-        // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
         // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
         match self {
             // The session backing the access token is gone (cleaned up) or in a terminal/wrong state:
