@@ -111,6 +111,7 @@ class RevokeCardTests : TestBase() {
         revocationHelper.revokeAllNonRevokedEeaCards()
         dashboardScreen.openApp()
         pinScreen.enterPin(DEFAULT_PIN)
+        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.cardRevocationVisible(tasData.getDiplomaDisplayName()))
 
         dashboardScreen.clickCard(tasData.getDiplomaDisplayName())

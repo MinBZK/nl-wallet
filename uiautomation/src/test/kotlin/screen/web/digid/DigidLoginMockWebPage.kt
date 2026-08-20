@@ -15,6 +15,7 @@ class DigidLoginMockWebPage : MobileActions() {
 
     fun enterBsn(bsn: String) {
         isWebElementVisible(findWebElement(bsnInput))
+        findWebElement(bsnInput).clear()
         findWebElement(bsnInput).sendKeys(bsn)
     }
 
