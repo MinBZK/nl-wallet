@@ -14,11 +14,11 @@ use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::metadata::oauth_metadata::OidcProviderMetadata;
 use oauth::metadata::well_known::WellKnownError;
 use oauth::metadata::well_known::WellKnownMetadata;
-use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::VciAuthorizationRequest;
 use oauth::pkce::S256PkcePair;
 use oauth::scope::Scope;
 use oauth::token::AuthorizationCode;
+use openid4vc::authorization::OidcAuthorizationRequest;
+use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::token::TokenRequest;
 use url::Url;
 

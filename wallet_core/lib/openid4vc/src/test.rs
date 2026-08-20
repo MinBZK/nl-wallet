@@ -22,6 +22,7 @@ use crypto::x509::crl::mock::MockCrlFetcher;
 use derive_more::Constructor;
 use indexmap::IndexMap;
 use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::par::PAR_TTL;
 use p256::ecdsa::SigningKey;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
@@ -50,7 +51,6 @@ use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
-use crate::par::PAR_TTL;
 use crate::server_state::MemorySessionStore;
 use crate::store::MemoryStore;
 

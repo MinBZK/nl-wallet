@@ -4,8 +4,10 @@ use std::fmt::Display;
 use std::hash::Hash;
 use std::str::FromStr;
 
+use chrono::Duration;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DurationSeconds;
 use serde_with::StringWithSeparator;
 use serde_with::formats::SpaceSeparator;
 use serde_with::serde_as;
@@ -49,4 +51,35 @@ where
             _request_uri: SpecForbidden,
         }
     }
+}
+
+/// The OAuth 2.0 Authorization Response, which is URL-encoded and provided as query parameters added to the
+/// `redirect_uri` that was passed in the Authorization Request.
+///
+/// See: <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2>.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthorizationResponse {
+    pub code: String,
+    pub state: Option<String>,
+}
+
+/// Represents the response from the `/par` endpoint containing a `request_uri` that can be used to retrieve the
+/// pushed authorization request later at the `/authorize` endpoint, as defined by
+/// [RFC 9126](https://www.rfc-editor.org/rfc/rfc9126.html#section-2.2).
+#[serde_as]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PushedAuthorizationResponse {
+    pub request_uri: String,
+
+    #[serde_as(as = "DurationSeconds<i64>")]
+    pub expires_in: Duration,
+}
+
+/// Represents the parameters that are passed in the query string of the `/authorize` endpoint where the
+/// `request_uri` refers to a pushed authorization request sent earlier, as defined by
+/// [RFC 9126](https://www.rfc-editor.org/rfc/rfc9126.html#section-4).
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PushedAuthorizationRequest {
+    pub client_id: String,
+    pub request_uri: String,
 }

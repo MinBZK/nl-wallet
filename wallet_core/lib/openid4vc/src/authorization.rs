@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use chrono::Duration;
 use jwt::nonce::Nonce;
 use oauth::pkce::PkceCodeChallenge;
 use oauth::pkce::PkcePair;
@@ -8,7 +7,6 @@ use oauth::scope::Scope;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
-use serde_with::DurationSeconds;
 use serde_with::SerializeDisplay;
 use serde_with::StringWithSeparator;
 use serde_with::TryFromInto;
@@ -93,26 +91,6 @@ pub struct OidcAuthorizationRequest {
     pub nonce: Option<Nonce>,
 }
 
-/// Represents the response from the /par endpoint containing a `request_uri` that can be used to retrieve the pushed
-/// [`VciAuthorizationRequest`] later at the /authorize endpoint. Note: this is not a response to the
-/// [`PushedAuthorizationRequest`] defined below.
-#[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PushedAuthorizationResponse {
-    pub request_uri: String,
-
-    #[serde_as(as = "DurationSeconds<i64>")]
-    pub expires_in: Duration,
-}
-
-/// Represents the parameters that are passed in the query string of the /authorize endpoint where the `request_uri`
-/// refers to a pushed [`VciAuthorizationRequest`] sent earlier.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PushedAuthorizationRequest {
-    pub client_id: String,
-    pub request_uri: String,
-}
-
 /// Defined in https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -151,19 +129,6 @@ pub enum ResponseType {
 
     /// SIOPv2 (not supported (yet))
     IdToken,
-}
-
-/// The OAuth 2.0 Authorization Response, which is URL-encoded and provided as query parameters added to the
-/// `redirect_uri` that was passed in the [`VciAuthorizationRequest`]. Contains the token that may be exchanged for an
-/// access token.
-///
-/// See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.2> and
-/// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2>.
-/// [`VciAuthorizationRequest`].
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthorizationResponse {
-    pub code: String,
-    pub state: Option<String>,
 }
 
 #[cfg(test)]

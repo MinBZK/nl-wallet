@@ -15,13 +15,15 @@ use derive_more::Constructor;
 use futures::join;
 use itertools::Itertools;
 use jwt::wia::WiaDisclosure;
+use oauth::authorization::PushedAuthorizationResponse;
+use oauth::par::PAR_TTL;
+use oauth::par::generate_request_uri;
 use oauth::token::AuthorizationCode;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
@@ -42,8 +44,6 @@ use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::issuer::WiaVerificationError;
 use crate::nonce::store::NonceStore;
-use crate::par;
-use crate::par::PAR_TTL;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::store::Store;
@@ -204,7 +204,7 @@ where
             return Err(ParError::InvalidRedirectUri(request.redirect_uri.into_inner()));
         }
 
-        let request_uri = par::generate_request_uri();
+        let request_uri = generate_request_uri();
 
         self.par_store
             .store(request_uri.clone(), request)
@@ -401,6 +401,7 @@ mod tests {
     use jwt::nonce::Nonce;
     use jwt::wia::WiaDisclosure;
     use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::par::PAR_TTL;
     use oauth::pkce::PkcePair;
     use oauth::pkce::S256PkcePair;
     use oauth::token::AuthorizationCode;
@@ -432,7 +433,6 @@ mod tests {
     use crate::issuer::WiaVerificationError;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::nonce::memory_store::MemoryNonceStore;
-    use crate::par::PAR_TTL;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;

@@ -206,10 +206,10 @@ mod tests {
     use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
     use oauth::metadata::oauth_metadata::OidcProviderMetadata;
     use oauth::metadata::oauth_metadata::OpenIdMetadataExtension;
-    use openid4vc::errors::ErrorResponse;
-    use openid4vc::errors::TokenErrorCode;
     use oauth::token::AccessToken;
     use oauth::token::AuthorizationCode;
+    use openid4vc::errors::ErrorResponse;
+    use openid4vc::errors::TokenErrorCode;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenResponse;
     use rsa::RsaKeyPair;
