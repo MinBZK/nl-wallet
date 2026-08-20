@@ -10,7 +10,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
     private val closeButton = l10n.getString("generalClose")
     private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
-    private val viewDisclosureOrganizationDetailsButton = l10n.getString("requestDetailScreenAboutOrganizationCta").replace("{organization}", "")
+    private val viewDisclosureOrganizationDetailsButton = l10n.getString("requestDetailScreenAboutOrganizationCta")
     private val goBackButton = l10n.getString("generalBottomBackCta")
     private val stopRequestButton = l10n.getString("missingAttributesPageCloseCta")
     private val organizationApprovePageDenyCta = l10n.getString("organizationApprovePageDenyCta")
@@ -51,7 +51,10 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         return elementWithTextVisible(selectorText);
     }
 
-    fun viewDisclosureOrganizationDetails() = clickElementContainingText(viewDisclosureOrganizationDetailsButton)
+    fun viewDisclosureOrganizationDetails(organization: String) {
+        clickElementWithText(viewDisclosureOrganizationDetailsButton.replace("{organization}", organization))
+    }
+
 
     fun viewLoginDisclosureDetails() = clickElementContainingText(viewLoginDisclosureDetailsButton)
 

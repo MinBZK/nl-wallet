@@ -25,7 +25,10 @@ class DashboardScreen : MobileActions() {
 
     // Sometimes the display name of a card is present in the activities button there for it is needed to
     // click an element that does not contain the activities button title
-    fun clickCard(displayName: String) = findElementByPartialTextExcludingText(displayName, activitiesButtonTitle).click()
+    fun clickCard(displayName: String) {
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
+        findElementByPartialTextExcludingText(displayName, activitiesButtonTitle).click()
+    }
 
     fun appTourBannerVisible() = elementContainingTextVisible(appTourBannerTitle.substringBefore("'"))
 
