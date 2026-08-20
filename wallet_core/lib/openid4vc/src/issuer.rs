@@ -1513,7 +1513,7 @@ impl Session<AccessTokenIssued> {
         // Check that the DPoP is valid and its key matches the one from the Token Request
         dpop.verify_expecting_key(
             session_data.dpop_public_key.to_owned(),
-            // TODO: Use credential endpoint from issuer metadata instead.
+            // TODO (PVW-6197): Use credential endpoint from issuer metadata instead.
             &server_url.join(endpoint),
             &Method::POST,
             Some(access_token),
