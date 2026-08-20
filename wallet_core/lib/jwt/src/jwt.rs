@@ -1240,6 +1240,7 @@ mod tests {
     use std::fmt::Debug;
 
     use ::axum::response::IntoResponse;
+    use chrono::TimeDelta;
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
@@ -1259,6 +1260,7 @@ mod tests {
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;
+    use jsonwebtoken::errors::ErrorKind;
     use jsonwebtoken::jwk::JwkSet;
     use p256::ecdsa::SigningKey;
     use p384::pkcs8::EncodePrivateKey;
@@ -1267,6 +1269,7 @@ mod tests {
     use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
     use serde_json::json;
+    use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::TimeGenerator;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_nonempty;
@@ -1406,6 +1409,55 @@ mod tests {
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
         assert_matches!(parsed, JwtVerifyError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
+    }
+
+    /// A payload carrying an RFC 7519 `exp` claim, in order to establish how the validations
+    /// in this crate treat that claim when it is present in the payload.
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    struct ExpiringMessage {
+        #[serde(rename = "exp")]
+        expires: DateTimeSeconds,
+    }
+
+    impl JwtTyp for ExpiringMessage {}
+
+    async fn expiring_jwt(private_key: &SigningKey, expires_in: TimeDelta) -> UnverifiedJwt<ExpiringMessage> {
+        let message = ExpiringMessage {
+            expires: (Utc::now() + expires_in).into(),
+        };
+
+        SignedJwt::sign(&message, private_key).await.unwrap().into_unverified()
+    }
+
+    #[tokio::test]
+    async fn test_esp256_only_validation_validates_exp_when_present() {
+        let private_key = SigningKey::generate();
+        let decoding_key = || JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key()));
+
+        // A payload without an `exp` claim at all is accepted, since `exp` is not a required claim.
+        SignedJwt::sign(&ToyMessage::default(), &private_key)
+            .await
+            .unwrap()
+            .into_unverified()
+            .parse_and_verify(decoding_key(), &*ESP256_ONLY_VALIDATION)
+            .expect("JWT without an `exp` claim should be accepted");
+
+        // A payload with an `exp` claim in the future is accepted.
+        expiring_jwt(&private_key, TimeDelta::hours(1))
+            .await
+            .parse_and_verify(decoding_key(), &*ESP256_ONLY_VALIDATION)
+            .expect("JWT with an `exp` claim in the future should be accepted");
+
+        // A payload with an `exp` claim in the past is rejected.
+        let error = expiring_jwt(&private_key, -TimeDelta::hours(1))
+            .await
+            .parse_and_verify(decoding_key(), &*ESP256_ONLY_VALIDATION)
+            .expect_err("JWT with an `exp` claim in the past should be rejected");
+
+        assert_matches!(
+            error,
+            JwtVerifyError::Validation(error) if *error.kind() == ErrorKind::ExpiredSignature
+        );
     }
 
     #[tokio::test]
