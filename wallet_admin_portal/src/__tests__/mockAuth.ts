@@ -1,13 +1,10 @@
 import { vi } from 'vitest'
+import { Privilege } from '@/types/privilege.ts'
+import type { UserProfileResponse } from '@/composables/authentication'
 
-export interface UserProfile {
-  displayName: string
-  privileges: string[]
-}
-
-const defaultProfile: UserProfile = {
+const defaultProfile: UserProfileResponse = {
   displayName: 'Test User',
-  privileges: ['show_all_tasks'],
+  privileges: [Privilege.ShowAllTasks],
 }
 
 function stubApiMe(response: { status: number; json: () => Promise<unknown> }) {
@@ -22,7 +19,7 @@ function stubApiMe(response: { status: number; json: () => Promise<unknown> }) {
 }
 
 /** Stubs global fetch so `/api/me` resolves as an authenticated session */
-export function mockAuthenticatedUser(profile: UserProfile = defaultProfile) {
+export function mockAuthenticatedUser(profile: UserProfileResponse = defaultProfile) {
   stubApiMe({ status: 200, json: async () => profile })
 }
 

@@ -1,8 +1,4 @@
 <template>
-  <TopHeader
-    title="Openstaande taken"
-    description="Je ziet alleen taken die passen bij jouw rol en rechten. Dit zijn de taken waarvoor jij nu iets moet doen."
-  />
   <TasksFilters />
   <TasksTable
     :columns="columns"
@@ -10,14 +6,16 @@
     empty-title="Geen openstaande taken gevonden"
     empty-description="Controleer je zoekcriteria. Pas je filters aan en probeer het opnieuw."
   />
-  <PaginationBar />
+
+  <Teleport defer to="#page-footer-target">
+    <PaginationBar />
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import TopHeader from '../components/TopHeader.vue'
-import TasksFilters from '../components/TasksFilters.vue'
-import TasksTable from '../components/TasksTable.vue'
-import PaginationBar from '../components/PaginationBar.vue'
+import TasksFilters from '../components/tasks/TasksFilters.vue'
+import TasksTable from '../components/tasks/TasksTable.vue'
+import PaginationBar from '@/components/ui/PaginationBar.vue'
 
 const columns = [
   { label: 'TAAK-ID' },

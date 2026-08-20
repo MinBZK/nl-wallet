@@ -1,3 +1,5 @@
+import { Privilege } from '@/types/privilege.ts'
+
 export enum Role {
   Superuser = 'Superuser',
   Teamlead = 'Teamleider',
@@ -12,15 +14,15 @@ export enum Role {
  * as a starting point for the frontend to display a role.
  */
 export function roleFromPrivileges(privileges: string[]): Role {
-  const isExactMatch = (required: string[]) =>
+  const isExactMatch = (required: Privilege[]) =>
     privileges.length === required.length &&
     required.every((privilege) => privileges.includes(privilege))
 
-  if (isExactMatch(['revoke_solution'])) {
+  if (isExactMatch([Privilege.RevokeSolution])) {
     return Role.Superuser
-  } else if (isExactMatch(['revoke_wallet', 'block_user', 'unblock_user'])) {
+  } else if (isExactMatch([Privilege.RevokeWallet, Privilege.BlockUser, Privilege.UnblockUser])) {
     return Role.Operator
-  } else if (isExactMatch(['show_all_tasks'])) {
+  } else if (isExactMatch([Privilege.ShowAllTasks])) {
     return Role.Teamlead
   }
   return Role.Unknown
