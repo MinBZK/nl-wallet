@@ -16,7 +16,7 @@ use oauth::metadata::well_known::WellKnownError;
 use oauth::metadata::well_known::WellKnownMetadata;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::pkce::S256PkcePair;
+use oauth::pkce::S256PkcePair;
 use oauth::scope::Scope;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
@@ -214,8 +214,8 @@ mod tests {
     use jwk_simple::Key;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::metadata::oauth_metadata::OidcProviderMetadata;
-    use openid4vc::pkce::PkcePair;
-    use openid4vc::pkce::S256PkcePair;
+    use oauth::pkce::PkcePair;
+    use oauth::pkce::S256PkcePair;
     use url::Url;
 
     use super::DigidClient;

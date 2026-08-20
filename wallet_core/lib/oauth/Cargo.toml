@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+base64.workspace = true
 derive_more = { workspace = true, features = [
     "as_ref",
     "constructor",
@@ -23,18 +24,22 @@ thiserror.workspace = true
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
+crypto.path = "../crypto"
 http_utils = { path = "../http_utils", features = ["client"] }
 jwt.path = "../jwt"
+
+mockall = { workspace = true, optional = true }
 
 [features]
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
-mock = []
+mock = ["dep:mockall"]
 
 [dev-dependencies]
 http.workspace = true
 httpmock.workspace = true
 mime.workspace = true
+mockall.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 

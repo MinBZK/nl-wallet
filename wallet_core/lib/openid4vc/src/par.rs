@@ -21,9 +21,10 @@ pub fn generate_request_uri() -> String {
 pub mod test {
     use std::collections::HashSet;
 
+    use oauth::pkce::PkcePair;
+    use oauth::pkce::S256PkcePair;
+
     use crate::authorization::VciAuthorizationRequest;
-    use crate::pkce::PkcePair;
-    use crate::pkce::S256PkcePair;
     use crate::store::Store;
 
     fn example_request() -> VciAuthorizationRequest {

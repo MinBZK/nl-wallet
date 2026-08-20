@@ -2,6 +2,8 @@ use std::collections::HashSet;
 
 use chrono::Duration;
 use jwt::nonce::Nonce;
+use oauth::pkce::PkceCodeChallenge;
+use oauth::pkce::PkcePair;
 use oauth::scope::Scope;
 use serde::Deserialize;
 use serde::Serialize;
@@ -20,7 +22,7 @@ use utils::spec::SpecOptional;
 
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
-use crate::pkce::PkcePair;
+
 /// The shared [OAuth2 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
 /// authorization request — whether for OpenID4VCI issuance or OpenID4VP presentation — must carry.
 ///
@@ -153,18 +155,6 @@ pub enum ResponseMode {
     DirectPost,
     #[serde(rename = "direct_post.jwt")]
     DirectPostJwt,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "code_challenge_method")]
-pub enum PkceCodeChallenge {
-    S256 {
-        code_challenge: String,
-    },
-    #[serde(rename = "plain")]
-    Plain {
-        code_challenge: String,
-    },
 }
 
 #[derive(

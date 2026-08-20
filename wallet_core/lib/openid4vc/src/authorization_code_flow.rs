@@ -14,13 +14,13 @@ use std::collections::HashSet;
 
 use attestation_types::credential_kind::CredentialKind;
 use itertools::Itertools;
+use oauth::pkce::PkceCodeChallenge;
 use oauth::scope::Scope;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::errors::AuthorizationErrorCode;
@@ -147,14 +147,14 @@ mod tests {
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::pkce::PkceCodeChallenge;
+    use oauth::pkce::PkcePair;
+    use oauth::pkce::S256PkcePair;
     use oauth::scope::Scope;
 
     use super::InvalidAuthorizationRequest;
     use super::WalletAuthorizationContext;
-    use crate::authorization::PkceCodeChallenge;
     use crate::authorization::VciAuthorizationRequest;
-    use crate::pkce::PkcePair;
-    use crate::pkce::S256PkcePair;
     use crate::server_state::MemorySessionStore;
     use crate::test::MOCK_ATTESTATION_TYPES;
     use crate::test::MockIssuer;

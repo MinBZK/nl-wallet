@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use crypto::utils::random_string;
-use openid4vc::pkce::S256PkcePair;
+use oauth::pkce::S256PkcePair;
 use openid4vc::token::AuthorizationCode;
 use serde::Serialize;
 use url::Url;

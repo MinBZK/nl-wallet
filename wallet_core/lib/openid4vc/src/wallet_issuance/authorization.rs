@@ -11,6 +11,8 @@ use itertools::Itertools;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::pkce::PkcePair;
+use oauth::pkce::S256PkcePair;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -33,8 +35,6 @@ use crate::errors::RemoteErrorResponse;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
-use crate::pkce::PkcePair;
-use crate::pkce::S256PkcePair;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
@@ -357,6 +357,8 @@ mod tests {
     use jwt::nonce::Nonce;
     use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
     use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::pkce::MockPkcePair;
+    use oauth::pkce::S256PkcePair;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -375,8 +377,6 @@ mod tests {
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::pkce::MockPkcePair;
-    use crate::pkce::S256PkcePair;
     use crate::wallet_issuance::authorization_endpoints::AuthorizationEndpoints;
     use crate::wallet_issuance::mock::RecordingWiaClient;
 

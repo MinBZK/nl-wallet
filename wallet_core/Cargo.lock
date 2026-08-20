@@ -5112,6 +5112,8 @@ dependencies = [
 name = "oauth"
 version = "0.6.0-dev"
 dependencies = [
+ "base64 0.22.1",
+ "crypto",
  "derive_more",
  "http",
  "http_utils",
@@ -5119,6 +5121,7 @@ dependencies = [
  "indexmap 2.12.1",
  "jwt",
  "mime",
+ "mockall",
  "reqwest",
  "rstest",
  "serde",

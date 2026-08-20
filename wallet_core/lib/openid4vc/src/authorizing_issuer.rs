@@ -402,6 +402,8 @@ mod tests {
     use jwt::nonce::Nonce;
     use jwt::wia::WiaDisclosure;
     use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::pkce::PkcePair;
+    use oauth::pkce::S256PkcePair;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
@@ -431,8 +433,6 @@ mod tests {
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::nonce::memory_store::MemoryNonceStore;
     use crate::par::PAR_TTL;
-    use crate::pkce::PkcePair;
-    use crate::pkce::S256PkcePair;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
