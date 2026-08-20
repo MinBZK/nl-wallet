@@ -1101,8 +1101,6 @@
     "organizationApprovePageMoreInfoCta": "See details",
     "organizationApprovePageMoreInfoIssuanceCta": "See what data you are sharing",
     "organizationApprovePageMoreInfoLoginCta": "Check all details",
-    "organizationApprovePageShareWithApproveCta": "Yes, continue",
-    "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationDetailScreenCategoryInfo": "Organization type",
     "organizationDetailScreenLegalNameInfo": "Legal name",
     "organizationDetailScreenLocationInfo": "Location",

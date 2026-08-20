@@ -98,7 +98,6 @@ class OrganizationApprovePage extends StatelessWidget {
   IconData _primaryIcon() {
     return switch (purpose) {
       ApprovalPurpose.issuance => CupertinoIcons.arrow_turn_up_right,
-      ApprovalPurpose.disclosure => Icons.arrow_forward,
       ApprovalPurpose.sign => Icons.arrow_forward,
       ApprovalPurpose.login => Icons.key_outlined,
     };
@@ -123,9 +122,6 @@ class OrganizationApprovePage extends StatelessWidget {
   static String resolveTitle(BuildContext context, ApprovalPurpose purpose, Organization organization) {
     return switch (purpose) {
       ApprovalPurpose.issuance => context.l10n.organizationApprovePageIssuanceTitle(
-        organization.displayName,
-      ),
-      ApprovalPurpose.disclosure => context.l10n.organizationApprovePageGenericTitle(
         organization.displayName,
       ),
       ApprovalPurpose.sign => context.l10n.organizationApprovePageGenericTitle(
@@ -153,7 +149,7 @@ class OrganizationApprovePage extends StatelessWidget {
         return context.l10n.organizationApprovePageMoreInfoIssuanceCta;
       case ApprovalPurpose.login:
         return context.l10n.organizationApprovePageMoreInfoLoginCta;
-      default:
+      case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageMoreInfoCta;
     }
   }
@@ -162,8 +158,6 @@ class OrganizationApprovePage extends StatelessWidget {
     switch (purpose) {
       case ApprovalPurpose.issuance:
         return context.l10n.organizationApprovePageApproveCta;
-      case ApprovalPurpose.disclosure:
-        return context.l10n.organizationApprovePageShareWithApproveCta;
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageApproveCta;
       case ApprovalPurpose.login:
@@ -175,8 +169,6 @@ class OrganizationApprovePage extends StatelessWidget {
     switch (purpose) {
       case ApprovalPurpose.issuance:
         return context.l10n.organizationApprovePageDenyCta;
-      case ApprovalPurpose.disclosure:
-        return context.l10n.organizationApprovePageShareWithDenyCta;
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageDenyCta;
       case ApprovalPurpose.login:
@@ -185,4 +177,4 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 }
 
-enum ApprovalPurpose { issuance, disclosure, sign, login }
+enum ApprovalPurpose { issuance, sign, login }
