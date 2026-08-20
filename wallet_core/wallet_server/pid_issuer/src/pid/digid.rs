@@ -18,7 +18,7 @@ use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
 use oauth::pkce::S256PkcePair;
 use oauth::scope::Scope;
-use openid4vc::token::AuthorizationCode;
+use oauth::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
 use url::Url;
 

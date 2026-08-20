@@ -60,6 +60,7 @@ use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithJwk;
 use jwt::jwk::jwk_to_public_key;
+use oauth::token::AccessToken;
 use p256::ecdsa::SigningKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -70,9 +71,6 @@ use serde_with::formats::Unpadded;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
-
-use crate::token::AccessToken;
-
 pub const DPOP_HEADER_NAME: &str = "DPoP";
 pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 
@@ -238,6 +236,7 @@ mod tests {
     use base64::prelude::*;
     use crypto::PublicKey;
     use jwt::Header;
+    use oauth::token::AccessToken;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use reqwest::Method;
@@ -248,8 +247,6 @@ mod tests {
     use super::Dpop;
     use crate::dpop::DpopPayload;
     use crate::dpop::OPENID4VCI_DPOP_JWT_TYPE;
-    use crate::token::AccessToken;
-
     #[rstest]
     #[case(None, Some("123".to_string().into()))]
     #[case(Some("123".to_string().into()), None)]

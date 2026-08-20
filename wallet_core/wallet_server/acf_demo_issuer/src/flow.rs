@@ -52,7 +52,7 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Consumed;
 use openid4vc::store::Store;
-use openid4vc::token::AuthorizationCode;
+use oauth::token::AuthorizationCode;
 use rand::RngCore;
 use rand::rngs::OsRng;
 use serde::Deserialize;

@@ -13,6 +13,7 @@ use jwt::wia::WIA_POP_HEADER_NAME;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::pkce::PkcePair;
 use oauth::pkce::S256PkcePair;
+use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -35,7 +36,6 @@ use crate::errors::RemoteErrorResponse;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
-use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

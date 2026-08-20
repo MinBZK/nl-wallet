@@ -7,16 +7,16 @@ use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
 use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::utils::random_string;
-use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::Debug;
-use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use oauth::scope::Scope;
+use oauth::token::AccessToken;
+use oauth::token::AuthorizationCode;
+use oauth::token::TokenType;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -36,47 +36,6 @@ use crate::authorization_details::IssuerAuthorizationDetailsEntries;
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::server_state::SessionToken;
-
-#[derive(Serialize, Deserialize, Debug, Clone, From)]
-pub struct AuthorizationCode(String);
-
-impl AsRef<str> for AuthorizationCode {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, From)]
-pub struct AccessToken(String);
-
-impl AsRef<str> for AccessToken {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl From<AuthorizationCode> for SessionToken {
-    fn from(value: AuthorizationCode) -> Self {
-        SessionToken::from(value.0)
-    }
-}
-
-impl AccessToken {
-    /// Construct a new random access token, with the specified authorization code appended to it.
-    pub(crate) fn new(code: &AuthorizationCode) -> Self {
-        Self(random_string(32) + code.as_ref())
-    }
-
-    /// Returns the authorization code appended to this access token.
-    pub(crate) fn code(&self) -> Option<AuthorizationCode> {
-        self.as_ref().get(32..).map(|code| AuthorizationCode(code.to_string()))
-    }
-
-    pub(crate) fn sha256(&self) -> Vec<u8> {
-        sha256(self.as_ref().as_bytes())
-    }
-}
 
 /// An OAuth 2.0 Token Request as defined by RFC 6749.
 ///
@@ -284,13 +243,6 @@ pub enum CredentialPreviewError {
     #[error("issuer URI {0} not found in SAN {1:?}")]
     #[category(pd)]
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TokenType {
-    #[default]
-    Bearer,
-    DPoP,
 }
 
 #[cfg(test)]

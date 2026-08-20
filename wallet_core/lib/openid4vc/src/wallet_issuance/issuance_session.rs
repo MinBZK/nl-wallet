@@ -28,6 +28,7 @@ use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::scope::Scope;
+use oauth::token::AccessToken;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use reqwest::Method;
@@ -79,7 +80,6 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
 use crate::preview::CredentialPreviewResponse;
-use crate::token::AccessToken;
 use crate::token::CredentialPreview;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
@@ -1265,6 +1265,7 @@ mod tests {
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::issuer_identifier::IssuerUrl;
     use oauth::metadata::well_known::WellKnownMetadata;
+    use oauth::token::TokenType;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::claims::ClaimName;
@@ -1291,7 +1292,6 @@ mod tests {
     use crate::token::CredentialPreview;
     use crate::token::CredentialPreviewError;
     use crate::token::TokenResponse;
-    use crate::token::TokenType;
     use crate::wallet_issuance::TypeMetadataChainError;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::mock::RecordingWiaClient;
@@ -1312,8 +1312,7 @@ mod tests {
 
     #[test]
     fn map_pre_authorized_token_error_translates_only_pre_authorized_invalid_grant() {
-        use crate::token::AuthorizationCode;
-
+        use oauth::token::AuthorizationCode;
         let pre_authorized = TokenRequest::new_pre_authorized(AuthorizationCode::from("the-code".to_string()));
         let authorization_code = TokenRequest::new_authorization_code(
             AuthorizationCode::from("the-code".to_string()),

@@ -14,6 +14,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::metadata::well_known::WellKnownMetadata;
+use oauth::token::AuthorizationCode;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -39,7 +40,6 @@ use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
-use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
 const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;

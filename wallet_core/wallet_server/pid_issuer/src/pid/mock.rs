@@ -5,7 +5,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use crypto::utils::random_string;
 use oauth::pkce::S256PkcePair;
-use openid4vc::token::AuthorizationCode;
+use oauth::token::AuthorizationCode;
 use serde::Serialize;
 use url::Url;
 use utils::path::prefix_local_path;

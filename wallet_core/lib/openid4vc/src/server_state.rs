@@ -9,13 +9,11 @@ use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
+use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
-
-use crate::token::AuthorizationCode;
-
 pub trait SessionDataType {
     const TYPE: &'static str;
 }
@@ -208,6 +206,12 @@ impl SessionToken {
 impl From<SessionToken> for AuthorizationCode {
     fn from(value: SessionToken) -> Self {
         AuthorizationCode::from(value.0)
+    }
+}
+
+impl From<AuthorizationCode> for SessionToken {
+    fn from(value: AuthorizationCode) -> Self {
+        SessionToken::from(value.as_ref().to_string())
     }
 }
 

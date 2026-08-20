@@ -15,6 +15,7 @@ use derive_more::Constructor;
 use futures::join;
 use itertools::Itertools;
 use jwt::wia::WiaDisclosure;
+use oauth::token::AuthorizationCode;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -46,8 +47,6 @@ use crate::par::PAR_TTL;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::store::Store;
-use crate::token::AuthorizationCode;
-
 /// Errors that can occur during processing of a Pushed Authorization Request.
 #[derive(Debug, thiserror::Error)]
 pub enum ParError {
@@ -404,6 +403,7 @@ mod tests {
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::pkce::PkcePair;
     use oauth::pkce::S256PkcePair;
+    use oauth::token::AuthorizationCode;
     use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
@@ -442,8 +442,6 @@ mod tests {
     use crate::test::MockIssuer;
     use crate::test::mock_issuable_documents;
     use crate::test::setup_mock_issuer;
-    use crate::token::AuthorizationCode;
-
     const OTHER_CLIENT_ID: &str = "definitely-not-the-wallet";
     const REQUEST_URI: &str = "urn:ietf:params:oauth:request_uri:test";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";

@@ -40,7 +40,7 @@ use oauth::pkce::S256PkcePair;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Consumed;
 use openid4vc::store::Store;
-use openid4vc::token::AuthorizationCode;
+use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use server_utils::keys::SecretKeyVariant;
@@ -569,7 +569,7 @@ mod tests {
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
     use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
-    use openid4vc::token::AuthorizationCode;
+    use oauth::token::AuthorizationCode;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;

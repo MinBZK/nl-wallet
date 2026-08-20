@@ -67,7 +67,7 @@ use openid4vc::nonce::store::NonceStore;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
-use openid4vc::token::AccessToken;
+use oauth::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;

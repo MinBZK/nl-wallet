@@ -4,6 +4,7 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use dcql::disclosure::ExtendingVctRetriever;
 use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::token::AuthorizationCode;
 pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
@@ -14,7 +15,6 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
-use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 
 pub struct ExtendingVctRetrieverStub;

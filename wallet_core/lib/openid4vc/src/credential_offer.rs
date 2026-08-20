@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
+use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::IgnoredAny;
@@ -16,8 +17,6 @@ use url::Url;
 use utils::vec_at_least::VecNonEmptyUnique;
 
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::token::AuthorizationCode;
-
 pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offer";
 
 /// OpenID4VCI protocol message containing the credential offer. The Credential Offer contains a single URI query
