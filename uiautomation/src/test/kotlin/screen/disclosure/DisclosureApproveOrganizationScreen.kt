@@ -52,7 +52,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     }
 
     fun viewDisclosureOrganizationDetails(organization: String) {
-        clickElementWithText(viewDisclosureOrganizationDetailsButton.replace("{organization}", organization))
+        clickElementContainingText(viewDisclosureOrganizationDetailsButton.replace("{organization}", organization))
     }
 
 
