@@ -81,6 +81,9 @@ use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
+use token_status_list::status_list_token::StatusListToken;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::client::StatusListClientError;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::net::TcpListener;
 use tokio::time;
@@ -167,6 +170,15 @@ pub enum WalletDeviceVendor {
     Google,
 }
 
+#[derive(Clone, Debug)]
+pub struct StaticStatusListClient(StatusListToken);
+
+impl StatusListClient for StaticStatusListClient {
+    async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
+        Ok(self.0.clone())
+    }
+}
+
 pub type WalletWithStorage = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
@@ -174,7 +186,7 @@ pub type WalletWithStorage = Wallet<
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpIssuanceDiscovery<MockCrlFetcher>,
-    VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher>,
+    VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher, StaticStatusListClient>,
 >;
 
 pub async fn setup_wallet_and_default_env(
@@ -531,7 +543,16 @@ where
     let crl = std::fs::read(static_settings.crl_file).unwrap();
     let crl_verifier =
         CertificateCrlVerifier::new_with_fetcher(MockCrlFetcher::new([(crl_distribution_point, crl)]), 1);
-    let wallet_clients = WalletClients::new_with_mock_crl_verifier(crl_verifier).unwrap();
+    let registration_certificate_status_list =
+        std::fs::read_to_string(static_settings.wrprc_publish_dir.as_ref().join("1.jwt"))
+            .unwrap()
+            .parse()
+            .unwrap();
+    let wallet_clients = WalletClients::new_with_mock_crl_verifier_and_registration_certificate_status_list_client(
+        crl_verifier,
+        StaticStatusListClient(registration_certificate_status_list),
+    )
+    .unwrap();
 
     Wallet::init_registration(
         storage_generator().await,
