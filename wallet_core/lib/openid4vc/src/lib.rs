@@ -27,6 +27,7 @@ pub mod wallet_issuance;
 // Verification code for the server and client.
 pub mod disclosure_session;
 pub mod openid4vp;
+pub mod registration_certificate;
 pub mod return_url;
 pub mod verifier;
 

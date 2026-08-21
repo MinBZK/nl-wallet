@@ -23,6 +23,9 @@ pub use validation::RegistrationCertificateValidationError;
 pub use validation::StructurallyValidatedRegistrationCertificate;
 pub use validation::SubjectType;
 
+#[cfg(any(test, feature = "mock"))]
+pub mod mock;
+
 #[cfg(test)]
 mod test {
     use std::fmt;
