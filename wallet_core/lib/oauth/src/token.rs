@@ -117,3 +117,12 @@ impl TokenResponse {
         }
     }
 }
+
+/// The `authorization_code` grant type, as defined by
+/// [RFC 6749 §4.1.3](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3).
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize, strum::Display)]
+#[serde(tag = "grant_type", rename_all = "snake_case")]
+pub enum AuthorizationCodeGrantType {
+    AuthorizationCode { code: AuthorizationCode },
+}

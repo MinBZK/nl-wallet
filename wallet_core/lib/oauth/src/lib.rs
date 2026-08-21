@@ -9,6 +9,7 @@ pub mod par;
 pub mod pkce;
 pub mod scope;
 pub mod token;
+pub mod userinfo;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;

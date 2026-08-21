@@ -9,6 +9,8 @@ use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
+use jwt::JwtTyp;
+use jwt::error::JwtVerifyError;
 use jwt::nonce::Nonce;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::metadata::oauth_metadata::OidcProviderMetadata;
@@ -17,20 +19,39 @@ use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::pkce::S256PkcePair;
 use oauth::scope::Scope;
 use oauth::token::AuthorizationCode;
+use oauth::token::AuthorizationCodeGrantType;
+use oauth::token::TokenRequest;
+use oauth::token::TokenResponse;
+use oauth::userinfo::UserInfoDecryption;
+use oauth::userinfo::request_token;
+use oauth::userinfo::request_userinfo;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::token::VciTokenRequest;
+use openid4vc::errors::TokenErrorCode;
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
-use crate::pid::userinfo;
-use crate::pid::userinfo::UserInfo;
-use crate::pid::userinfo::UserInfoError;
 use crate::settings::DigidClientSettings;
 
 const EXPECTED_JWE_RSA_ALGORITHM: RsaAlgorithm = RsaAlgorithm::RsaOaep;
 const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A128CbcHs256;
 
 static OPENID_SCOPE: LazyLock<Scope> = LazyLock::new(|| "openid".parse().expect("\"openid\" is a valid scope"));
+
+pub type UserInfoError = oauth::userinfo::UserInfoError<TokenErrorCode>;
+
+#[derive(Serialize, Deserialize)]
+pub struct DigidUserInfo {
+    pub bsn: String,
+}
+
+impl JwtTyp for DigidUserInfo {
+    fn is_valid_typ(_header_typ: Option<&str>) -> Result<(), JwtVerifyError> {
+        // no `typ` field is set for JWTs provided by RDO-MAX
+        Ok(())
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -163,20 +184,29 @@ impl DigidClient for HttpDigidClient {
     async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error> {
         let metadata = self.metadata_client.metadata().await.map_err(Error::WellKnown)?;
 
-        let token_request = VciTokenRequest::new_authorization_code_with_client_id(
-            code,
-            redirect_uri,
-            code_verifier,
-            Some(self.client_id.clone()),
-        );
+        let token_request = TokenRequest {
+            grant_type: AuthorizationCodeGrantType::AuthorizationCode { code },
+            client_id: Some(self.client_id.clone()),
+            redirect_uri: Some(redirect_uri),
+            scope: None,
+            code_verifier: Some(code_verifier),
+        };
 
-        let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
+        let token_response: TokenResponse = request_token(self.metadata_client.http_client(), &metadata, token_request)
+            .await
+            .map_err(Error::UserInfo)?;
+
+        let decryption = UserInfoDecryption {
+            decrypter: &self.decrypter,
+            expected_enc_algs: &[EXPECTED_JWE_ENC_ALGORITHM],
+        };
+
+        let userinfo_claims: DigidUserInfo = request_userinfo(
             self.metadata_client.http_client(),
             &metadata,
-            token_request,
+            &token_response.access_token,
             &self.client_id,
-            &self.decrypter,
-            EXPECTED_JWE_ENC_ALGORITHM,
+            Some(decryption),
         )
         .await
         .map_err(Error::UserInfo)?;
@@ -199,9 +229,6 @@ pub(crate) const TEST_RSA_JWK_JSON: &str = r#"{
   "dq": "mxRTU3QDyR2EnCv0Nl0TCF90oliJGAHR9HJmBe__EjuCBbwHfcT8OG3hWOv8vpzokQPRl5cQt3NckzX3fs6xlJN4Ai2Hh2zduKFVQ2p-AF2p6Yfahscjtq-GY9cB85NxLy2IXCC0PF--Sq9LOrTE9QV988SJy_yUrAjcZ5MmECk",
   "qi": "ldHXIrEmMZVaNwGzDF9WG8sHj2mOZmQpw9yrjLK9hAsmsNr5LTyqWAqJIYZSwPTYWhY4nu2O0EY9G9uYiqewXfCKw_UngrJt8Xwfq1Zruz0YY869zPN4GiE9-9rzdZB33RBw8kIOquY3MK74FMwCihYx_LiU2YTHkaoJ3ncvtvg"
 }"#;
-
-#[cfg(test)]
-pub(crate) const TEST_RSA_KEY_ID: &str = "cc34c0a0-bd5a-4a3c-a50d-a2a7db7643df";
 
 #[cfg(test)]
 mod tests {
