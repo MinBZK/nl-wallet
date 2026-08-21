@@ -20,6 +20,8 @@ derive_more = { workspace = true, features = [
 futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
+itertools.workspace = true
+mime.workspace = true
 p256 = { workspace = true, features = ["serde"] }
 reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -53,7 +55,6 @@ httpmock.workspace = true
 josekit.workspace = true
 jsonwebtoken.workspace = true
 jwk-simple.workspace = true
-mime.workspace = true
 mockall.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["test-util"] }

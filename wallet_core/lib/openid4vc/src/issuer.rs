@@ -1844,6 +1844,7 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
+    use oauth::client_auth::ClientAttestationChallengeMechanism;
     use oauth::dpop::Dpop;
     use oauth::errors::ErrorResponse;
     use oauth::errors::RemoteErrorCode;
@@ -1863,7 +1864,6 @@ mod tests {
     use super::*;
     use crate::cleanup::CLEANUP_INTERVAL;
     use crate::cleanup::start_cleanup_task;
-    use crate::client_auth::ClientAttestationChallengeMechanism;
     use crate::credential::CredentialRequest;
     use crate::credential::CredentialRequestProof;
     use crate::credential::CredentialRequests;

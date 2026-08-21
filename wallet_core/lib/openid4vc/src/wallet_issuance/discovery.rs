@@ -12,6 +12,8 @@ use itertools::Itertools;
 use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use oauth::client_auth::ClientAttestationChallengeMechanism;
+use oauth::client_auth::check_client_attestation_metadata;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::token::AuthorizationCode;
@@ -29,8 +31,6 @@ use super::authorization::HttpAuthorizationSession;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
-use crate::client_auth::ClientAttestationChallengeMechanism;
-use crate::client_auth::check_client_attestation_metadata;
 use crate::credential_offer::CredentialOffer;
 use crate::credential_offer::CredentialOfferContainer;
 use crate::credential_offer::Grants;
@@ -484,7 +484,11 @@ where
 
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer, wrpac_trust_anchors).await?;
 
-        check_client_attestation_metadata(&oauth_metadata).map_err(WalletIssuanceError::ClientAttestationMetadata)?;
+        check_client_attestation_metadata(
+            &oauth_metadata.oauth_metadata,
+            &oauth_metadata.client_attestation_metadata_extension,
+        )
+        .map_err(WalletIssuanceError::ClientAttestationMetadata)?;
 
         // Limit credential copy count to a sane maximum, even if the issuer indicates it can provide more copies.
         let batch_size = std::cmp::min(issuer_metadata.batch_size(), BATCH_SIZE_MAX.into())
@@ -612,6 +616,7 @@ mod test {
     use jwt::error::JwtVerifyError;
     use jwt::error::JwtX5cVerifyError;
     use jwt::wia::WIA_CLIENT_AUTH_METHOD;
+    use oauth::client_auth::ClientAttestationMetadataError;
     use oauth::issuer_identifier::IssuerIdentifier;
     use rstest::rstest;
     use sd_jwt_vc_metadata::TypeMetadata;
@@ -626,7 +631,6 @@ mod test {
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
     use crate::authorization_details::AuthorizationDetails;
-    use crate::client_auth::ClientAttestationMetadataError;
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
     use crate::credential_offer::GrantPreAuthorizedCode;

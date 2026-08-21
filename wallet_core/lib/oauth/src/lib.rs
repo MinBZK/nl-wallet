@@ -1,4 +1,5 @@
 pub mod authorization;
+pub mod client_auth;
 pub mod dpop;
 pub mod errors;
 pub mod issuer_identifier;
