@@ -31,7 +31,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/workmanager_apple/ios"
 
 SPEC CHECKSUMS:
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   IOSSecuritySuite: e764318117aabd1f894cbdfc5ac013a59352953d
   root_jailbreak_sniffer: ddaf19e879b5042d74ea446cac763feb35925204
   store_redirect: 55fd455802ceab09803b2df6e68f19a58815266a
