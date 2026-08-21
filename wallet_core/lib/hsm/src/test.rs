@@ -42,7 +42,7 @@ use crate::service::AesKeyUsage;
 use crate::service::HsmError;
 use crate::service::Pkcs11Client;
 use crate::service::Pkcs11Hsm;
-use crate::service::PrivateKeyHandle;
+use crate::service::SecretKeyHandle;
 use crate::settings;
 
 pub async fn execute_hsm_test<F>(description: String, test: F)
@@ -389,7 +389,7 @@ impl<H> TestCase<H> {
 
     pub async fn aes_siv(self: TestCase<H>) -> TestCase<H>
     where
-        H: Pkcs11Client + AesSivBackend<MacKey = PrivateKeyHandle, EncryptionKey = PrivateKeyHandle>,
+        H: Pkcs11Client + AesSivBackend<MacKey = SecretKeyHandle, EncryptionKey = SecretKeyHandle>,
     {
         let mac_key_id = self.new_identifier();
         let enc_key_id = self.new_identifier();
@@ -497,7 +497,7 @@ impl TestCase<Pkcs11Hsm> {
     }
 
     /// Imports a key for the CMAC and CTR vectors.
-    fn hsm_key_generator(&self, hsm: &Pkcs11Hsm, usage: AesKeyUsage) -> impl AsyncFn([u8; 32]) -> PrivateKeyHandle {
+    fn hsm_key_generator(&self, hsm: &Pkcs11Hsm, usage: AesKeyUsage) -> impl AsyncFn([u8; 32]) -> SecretKeyHandle {
         async move |key| {
             hsm.import_aes_key(&self.new_identifier(), usage, key)
                 .await
@@ -510,7 +510,7 @@ impl TestCase<Pkcs11Hsm> {
     fn hsm_siv_key_generator(
         &self,
         hsm: &Pkcs11Hsm,
-    ) -> impl AsyncFn(([u8; 32], [u8; 32])) -> (PrivateKeyHandle, PrivateKeyHandle) {
+    ) -> impl AsyncFn(([u8; 32], [u8; 32])) -> (SecretKeyHandle, SecretKeyHandle) {
         let cmac_key_generator = self.hsm_key_generator(hsm, AesKeyUsage::Cmac);
         let ctr_key_generator = self.hsm_key_generator(hsm, AesKeyUsage::Encrypt);
 
