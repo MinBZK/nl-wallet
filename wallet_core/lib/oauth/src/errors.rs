@@ -413,7 +413,7 @@ mod axum {
                 }
 
                 if let Some(error_uri) = self.auth_error_response.error_response.error_uri.as_ref() {
-                    query_pairs.append_pair("error_description", error_uri.as_str());
+                    query_pairs.append_pair("error_uri", error_uri.as_str());
                 }
 
                 if let Some(state) = self.auth_error_response.state.as_deref() {
@@ -486,7 +486,9 @@ mod axum {
             let state = "wallet_state".to_string();
 
             let redirect_error = RedirectError::new(example_error, redirect_uri, Some(state));
-            let error_response = RedirectErrorResponse::<ExampleErrorCode>::from(redirect_error);
+            let mut error_response = RedirectErrorResponse::<ExampleErrorCode>::from(redirect_error);
+            error_response.auth_error_response.error_response.error_uri =
+                Some("https://example.com/error-info".parse().unwrap());
 
             let response = error_response.into_response();
 
@@ -505,7 +507,7 @@ mod axum {
                 url.query(),
                 Some(
                     "foo=bar&error=something_happened&error_description=Something+happened+%E7%8C%AB&\
-                     state=wallet_state"
+                     error_uri=https%3A%2F%2Fexample.com%2Ferror-info&state=wallet_state"
                 )
             );
         }
