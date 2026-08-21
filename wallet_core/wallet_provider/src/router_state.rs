@@ -79,7 +79,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
     ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
         let certificate_signing_key = WalletCertificateSigning {
             kid: settings.current_certificate_external_kid.clone(),
-            hsm: HsmEcdsaKey::new(settings.certificate_signing_key_identifier, wallet_user_hsm.clone()),
+            key: HsmEcdsaKey::new(settings.certificate_signing_key_identifier, wallet_user_hsm.clone()),
         };
         let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
             settings.instruction_result_signing_key_identifier,
