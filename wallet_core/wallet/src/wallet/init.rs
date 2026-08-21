@@ -221,7 +221,7 @@ where
         let credential_issuer_discovery =
             HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
-        let disclosure_client = VpDisclosureClient::new(
+        let disclosure_client = VpDisclosureClient::new_with_registration_certificate_status_list_client(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
             crl_verifier.clone(),
             registration_certificate_status_list_client,

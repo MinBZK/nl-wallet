@@ -7,6 +7,7 @@ use crypto::x509::crl::HttpCrlFetcher;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
+use token_status_list::verification::client::StatusListClient;
 use tracing::info;
 use tracing::warn;
 use utils::single_unique::NonEmptySingleUnique;
@@ -34,16 +35,40 @@ use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::SessionType;
 
 #[derive(Debug)]
-pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher> {
+pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher, C = ()> {
     client: H,
     crl_verifier: CertificateCrlVerifier<F>,
+    _registration_certificate_status_list_client: C,
 }
 
 impl<H, F> VpDisclosureClient<H, F> {
     pub fn new(client: H, crl_verifier: CertificateCrlVerifier<F>) -> Self {
-        Self { client, crl_verifier }
+        Self {
+            client,
+            crl_verifier,
+            _registration_certificate_status_list_client: (),
+        }
     }
+}
 
+impl<H, F, C> VpDisclosureClient<H, F, C>
+where
+    C: StatusListClient,
+{
+    pub fn new_with_registration_certificate_status_list_client(
+        client: H,
+        crl_verifier: CertificateCrlVerifier<F>,
+        registration_certificate_status_list_client: C,
+    ) -> Self {
+        Self {
+            client,
+            crl_verifier,
+            _registration_certificate_status_list_client: registration_certificate_status_list_client,
+        }
+    }
+}
+
+impl<H, F, C> VpDisclosureClient<H, F, C> {
     /// Report an error back to the RP.
     async fn report_error_back(&self, url: BaseUrl, state: Option<String>, error: VpVerifierError) -> VpVerifierError
     where
@@ -90,7 +115,7 @@ impl<H, F> VpDisclosureClient<H, F> {
     }
 }
 
-impl<H, F> DisclosureClient for VpDisclosureClient<H, F>
+impl<H, F, C> DisclosureClient for VpDisclosureClient<H, F, C>
 where
     H: VpMessageClient + Clone,
     F: CrlFetcher,

@@ -37,7 +37,7 @@ async fn test_wrprc_status_list() {
     let response = tls_reqwest_client_builder([static_root_ca.into_certificate()])
         .build()
         .unwrap()
-        .get(local_https_base_url(port).join("wrprc/1").unwrap())
+        .get(local_https_base_url(port).join("wrprc/1"))
         .header(header::ACCEPT, "application/statuslist+jwt")
         .send()
         .await
