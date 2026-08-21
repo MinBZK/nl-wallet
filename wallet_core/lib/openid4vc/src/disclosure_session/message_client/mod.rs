@@ -17,8 +17,6 @@ mod http;
 #[cfg(test)]
 pub mod mock;
 
-pub const APPLICATION_OAUTH_AUTHZ_REQ_JWT: &str = "application/oauth-authz-req+jwt";
-
 /// Contract for sending OpenID4VP protocol messages.
 pub trait VpMessageClient {
     async fn get_authorization_request(

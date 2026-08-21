@@ -14,6 +14,10 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use utils::spec::SpecForbidden;
 
+/// Media type for a JWT-Secured Authorization Request (JAR), as defined by
+/// [RFC 9101](https://www.rfc-editor.org/rfc/rfc9101.html#section-4).
+pub const APPLICATION_OAUTH_AUTHZ_REQ_JWT: &str = "application/oauth-authz-req+jwt";
+
 /// The shared [OAuth 2.0 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
 /// authorization request must carry. Generic over the `response_type` value, since supported response types vary
 /// per profile (e.g. plain OAuth `code`, OpenID4VP's `vp_token`, SIOPv2's `id_token`).
