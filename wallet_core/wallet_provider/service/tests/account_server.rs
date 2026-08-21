@@ -52,6 +52,7 @@ use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
+use wallet_provider_service::wallet_certificate::pin_hmac_key_identifier;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 
 async fn do_registration(
@@ -378,13 +379,12 @@ async fn test_certificate_signing_key_rollover() {
     .await;
 
     // The new current keys that the WP is rolling over to
-    let new_current_key = (
-        "new_current_kid".to_string(),
+    let new_current_keys = (
+        "1".to_string(),
         CertificateSigningKeys {
             exp: None,
             certificate_public_key: PublicKey::from(*SigningKey::generate().verifying_key()),
-            public_disclosure_protection_key_identifier:
-                wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+            pin_hmac_key_identifier: pin_hmac_key_identifier("1"),
         },
     );
 
@@ -395,14 +395,13 @@ async fn test_certificate_signing_key_rollover() {
     rollover_signing_keys(
         &mut account_server,
         HashMap::from([
-            new_current_key.clone(),
+            new_current_keys.clone(),
             (
                 kid.to_owned(),
                 CertificateSigningKeys {
                     exp: Some(exp),
                     certificate_public_key: PublicKey::from(*certificate_signing_key.verifying_key()),
-                    public_disclosure_protection_key_identifier: "new_public_disclosure_protection_key_identifier"
-                        .to_owned(),
+                    pin_hmac_key_identifier: pin_hmac_key_identifier(kid),
                 },
             ),
         ]),
@@ -431,7 +430,7 @@ async fn test_certificate_signing_key_rollover() {
         .expect_err("certificate with expired old kid should be rejected");
 
     // Remove old kid from the key map
-    rollover_signing_keys(&mut account_server, HashMap::from([new_current_key]));
+    rollover_signing_keys(&mut account_server, HashMap::from([new_current_keys]));
     account_server
         .instruction_challenge(
             hw_privkey

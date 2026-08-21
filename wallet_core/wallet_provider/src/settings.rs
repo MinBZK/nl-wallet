@@ -14,7 +14,6 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
@@ -46,13 +45,11 @@ use wallet_provider_persistence::database::ConnectionOptions;
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
-    pub current_certificate_external_kid: String,
-    pub certificate_signing_key_identifier: String,
-    pub previous_certificate_keys: Option<HashMap<String, PreviousCertificateKeySettings>>,
+    pub current_certificate_kid: String,
+    pub previous_certificate_kids: Option<HashMap<String, DateTime<Utc>>>,
     pub instruction_result_signing_key_identifier: String,
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
-    pub pin_public_disclosure_protection_key_identifier: String,
     pub revocation_code_key_identifier: String,
     pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
     pub database: DatabaseSettings,
@@ -183,29 +180,15 @@ fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Resu
     Ok(Duration::from_hours(days * 24))
 }
 
-#[serde_as]
-#[derive(Clone, Deserialize)]
-pub struct PreviousCertificateKeySettings {
-    pub exp: DateTime<Utc>,
-    #[serde_as(as = "Base64")]
-    pub certificate_public_key: DerVerifyingKey,
-    pub pin_public_disclosure_protection_key_identifier: String,
-}
-
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
-            .set_default("certificate_signing_key_identifier", "certificate_signing_key")?
             .set_default(
                 "instruction_result_signing_key_identifier",
                 "instruction_result_signing_key",
             )?
             .set_default("attestation_wrapping_key_identifier", "attestation_wrapping_key")?
             .set_default("pin_pubkey_encryption_key_identifier", "pin_pubkey_encryption_key")?
-            .set_default(
-                "pin_public_disclosure_protection_key_identifier",
-                "pin_public_disclosure_protection_key",
-            )?
             .set_default("revocation_code_key_identifier", "revocation_code_key")?
             .set_default("wia_status_list.list_size", 100_000)?
             .set_default("wia_status_list.create_threshold_ratio", 0.01)?

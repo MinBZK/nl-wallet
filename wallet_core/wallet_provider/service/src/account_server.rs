@@ -550,12 +550,12 @@ impl<'a> PublicKeyByKid for CertificateSigningKeysByKid<'a> {
 pub struct CertificateSigningKeys {
     pub exp: Option<DateTime<Utc>>,
     pub certificate_public_key: PublicKey,
-    pub public_disclosure_protection_key_identifier: String,
+    pub pin_hmac_key_identifier: String,
 }
 
 pub struct AccountServerPinKeys {
     pub encryption_key_identifier: String,
-    pub public_disclosure_protection_key_identifier: String,
+    pub hmac_key_identifier: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, From)]
@@ -898,7 +898,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.public_disclosure_protection_key_identifier,
+            &self.keys.pin_keys.hmac_key_identifier,
             certificate_signing_key,
             wallet_id,
             hw_pubkey,
@@ -1212,7 +1212,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.public_disclosure_protection_key_identifier,
+            &self.keys.pin_keys.hmac_key_identifier,
             signing_keys.1,
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
@@ -1375,7 +1375,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.public_disclosure_protection_key_identifier,
+            &self.keys.pin_keys.hmac_key_identifier,
             certificate_signing_key,
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
@@ -1797,6 +1797,7 @@ pub mod mock {
     use super::*;
     use crate::flags::mock::StubWalletFlags;
     use crate::wallet_certificate;
+    use crate::wallet_certificate::pin_hmac_key_identifier;
     use crate::wia_issuer::mock::MockWiaIssuer;
 
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
@@ -1845,7 +1846,7 @@ pub mod mock {
 
     pub fn setup_account_server(
         certificate_signing_pubkey: &VerifyingKey,
-        certificate_external_kid: String,
+        certificate_signing_kid: String,
         crl: RevocationStatusList,
     ) -> MockAccountServer {
         let integrity_client = MockPlayIntegrityClient::new(
@@ -1853,23 +1854,23 @@ pub mod mock {
             HashSet::from([crypto::utils::random_bytes(16)]),
         );
 
+        let hmac_key_identifier = pin_hmac_key_identifier(&certificate_signing_kid);
+
         AccountServer::new(
             "mock_account_server".into(),
             Duration::from_millis(15000),
             AccountServerKeys {
                 wallet_certificate_signing_pubkeys: HashMap::from([(
-                    certificate_external_kid,
+                    certificate_signing_kid,
                     CertificateSigningKeys {
                         exp: None,
                         certificate_public_key: PublicKey::from(*certificate_signing_pubkey),
-                        public_disclosure_protection_key_identifier:
-                            wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                        pin_hmac_key_identifier: hmac_key_identifier.clone(),
                     },
                 )]),
                 pin_keys: AccountServerPinKeys {
                     encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
-                    public_disclosure_protection_key_identifier:
-                        wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                    hmac_key_identifier,
                 },
                 revocation_code_key_identifier: wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER.to_string(),
             },
@@ -2157,6 +2158,7 @@ mod tests {
     use crate::wallet_certificate;
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
+    use crate::wallet_certificate::pin_hmac_key_identifier;
     use crate::wallet_certificate::verify_wallet_certificate;
     use crate::wia_issuer::mock::MockWiaIssuer;
 
@@ -2586,8 +2588,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3216,8 +3217,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3236,8 +3236,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3634,8 +3633,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),

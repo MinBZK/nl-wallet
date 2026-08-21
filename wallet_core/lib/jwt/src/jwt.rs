@@ -1306,7 +1306,7 @@ mod test {
 
     impl KeyWithKid for SigningKey {
         fn kid(&self) -> &'static str {
-            "test_kid"
+            "0"
         }
     }
 

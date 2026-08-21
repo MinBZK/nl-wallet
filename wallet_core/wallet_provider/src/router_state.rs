@@ -2,11 +2,16 @@ use std::error::Error;
 
 use android_attest::root_public_key::RootPublicKey;
 use audit_log::model::PostgresAuditLog;
+use chrono::DateTime;
 use chrono::Duration;
+use chrono::Utc;
 use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
+use futures::future::try_join_all;
 use hsm::keys::HsmEcdsaKey;
+use hsm::model::Hsm;
+use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
 use jwt::wia::WiaWalletInfo;
 use serde::Serialize;
@@ -39,6 +44,8 @@ use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::pin_policy::PinPolicy;
+use wallet_provider_service::wallet_certificate::certificate_signing_key_identifier;
+use wallet_provider_service::wallet_certificate::pin_hmac_key_identifier;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 use wallet_provider_service::wia_issuer::WiaIssuer;
 
@@ -70,6 +77,31 @@ impl<GRC, PIC> Drop for RouterState<GRC, PIC> {
     }
 }
 
+async fn get_verifying_key(kid: &str, wallet_user_hsm: &Pkcs11Hsm) -> Result<PublicKey, HsmError> {
+    wallet_user_hsm
+        .get_verifying_key(&certificate_signing_key_identifier(kid))
+        .await
+        .map(|k| k.into())
+}
+
+async fn kid_and_certificate_signing_keys(
+    kid: String,
+    exp: Option<DateTime<Utc>>,
+    wallet_user_hsm: &Pkcs11Hsm,
+) -> Result<(String, CertificateSigningKeys), HsmError> {
+    let certificate_public_key = get_verifying_key(&kid, wallet_user_hsm).await?;
+    let pin_hmac_key_identifier = pin_hmac_key_identifier(&kid);
+
+    Ok((
+        kid,
+        CertificateSigningKeys {
+            exp,
+            certificate_public_key,
+            pin_hmac_key_identifier,
+        },
+    ))
+}
+
 impl<GRC, PIC> RouterState<GRC, PIC> {
     pub async fn new_from_settings(
         settings: Settings,
@@ -77,16 +109,19 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         google_crl_client: GRC,
         play_integrity_client: PIC,
     ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
+        let wc_signing_key_identifier = certificate_signing_key_identifier(&settings.current_certificate_kid);
+        let hmac_key_identifier = pin_hmac_key_identifier(&settings.current_certificate_kid);
+
         let certificate_signing_key = WalletCertificateSigning {
-            kid: settings.current_certificate_external_kid.clone(),
-            key: HsmEcdsaKey::new(settings.certificate_signing_key_identifier, wallet_user_hsm.clone()),
+            kid: settings.current_certificate_kid.clone(),
+            key: HsmEcdsaKey::new(wc_signing_key_identifier, wallet_user_hsm.clone()),
         };
         let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
             settings.instruction_result_signing_key_identifier,
             wallet_user_hsm.clone(),
         ));
 
-        let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
+        let certificate_public_key = certificate_signing_key.verifying_key().await?.into();
 
         let apple_trust_anchors = settings
             .ios
@@ -115,43 +150,32 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             certificate_hashes: settings.android.play_store_certificate_hashes,
         };
 
+        let wallet_certificate_signing_pubkeys =
+            try_join_all(settings.previous_certificate_kids.unwrap_or_default().into_iter().map(
+                async |(kid, expiration)| {
+                    kid_and_certificate_signing_keys(kid, Some(expiration), &wallet_user_hsm).await
+                },
+            ))
+            .await?
+            .into_iter()
+            .chain(std::iter::once((
+                settings.current_certificate_kid.clone(),
+                CertificateSigningKeys {
+                    exp: None,
+                    certificate_public_key,
+                    pin_hmac_key_identifier: hmac_key_identifier.clone(),
+                },
+            )))
+            .collect();
+
         let account_server = AccountServer::new(
             "account_server".into(),
             settings.instruction_challenge_timeout,
             AccountServerKeys {
-                wallet_certificate_signing_pubkeys: settings
-                    .previous_certificate_keys
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|(kid, key_settings)| {
-                        (
-                            kid,
-                            CertificateSigningKeys {
-                                exp: Some(key_settings.exp),
-                                certificate_public_key: PublicKey::from(
-                                    key_settings.certificate_public_key.into_inner(),
-                                ),
-                                public_disclosure_protection_key_identifier: key_settings
-                                    .pin_public_disclosure_protection_key_identifier,
-                            },
-                        )
-                    })
-                    .chain(std::iter::once((
-                        settings.current_certificate_external_kid.clone(),
-                        CertificateSigningKeys {
-                            exp: None,
-                            certificate_public_key: PublicKey::from(certificate_signing_pubkey),
-                            public_disclosure_protection_key_identifier: settings
-                                .pin_public_disclosure_protection_key_identifier
-                                .clone(),
-                        },
-                    )))
-                    .collect(),
-
+                wallet_certificate_signing_pubkeys,
                 pin_keys: AccountServerPinKeys {
                     encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
-                    public_disclosure_protection_key_identifier: settings
-                        .pin_public_disclosure_protection_key_identifier,
+                    hmac_key_identifier,
                 },
                 revocation_code_key_identifier: settings.revocation_code_key_identifier,
             },
