@@ -444,7 +444,7 @@ where
         let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
         let pubkey = keys
             .find(&kid)
-            .map_err(|e| JwtVerifyError::ParseKeyError(Box::new(e)))?
+            .map_err(|e| JwtVerifyError::PublicKeyByKid(Box::new(e)))?
             .ok_or(JwtVerifyError::KeyNotFound(kid))?;
 
         let validation = validation.into_validation(&pubkey);

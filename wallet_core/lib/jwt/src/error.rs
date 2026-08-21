@@ -102,9 +102,9 @@ pub enum JwtVerifyError {
     #[category(critical)]
     MultipleAlgorithms(#[from] InvalidNumberOfAlgorithmFamiliesError),
 
-    #[error("error parsing key: {0}")]
+    #[error("error retrieving key by kid: {0}")]
     #[category(critical)]
-    ParseKeyError(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    PublicKeyByKid(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
