@@ -345,6 +345,17 @@ fi
 WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
 export WRPRC_CA_CRT
 
+# Generate the end-entity certificate used to sign the demo relying parties' WRPRCs.
+cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+    --bin wallet_ca cert --type wrprc \
+    --ca-key-file "${TARGET_DIR}/ca.wrprc.key.pem" \
+    --ca-crt-file "${TARGET_DIR}/ca.wrprc.crt.pem" \
+    --common-name "Development WRPRC signer" \
+    --organization-name "Development Registrar B.V." \
+    --organization-id "NTRNL-00000001" \
+    --file-prefix "${TARGET_DIR}/wrprc_signer" \
+    --force
+
 # Generate root CA for issuer
 if [[ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]]; then
     generate_root_ca issuer
@@ -429,6 +440,9 @@ DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn
 export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
+generate_demo_relying_party_registration_certificate mijn_amsterdam 0
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MIJN_AMSTERDAM
 
 # Generate relying party key and cert.
 generate_demo_relying_party_key_pair online_marketplace
@@ -436,6 +450,9 @@ DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/
 export DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE
 DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
+generate_demo_relying_party_registration_certificate online_marketplace 1
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_ONLINE_MARKETPLACE
 
 # Generate relying party key and cert.
 generate_demo_relying_party_key_pair xyz_bank
@@ -443,6 +460,9 @@ DEMO_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.k
 export DEMO_RELYING_PARTY_KEY_XYZ_BANK
 DEMO_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_XYZ_BANK
+generate_demo_relying_party_registration_certificate xyz_bank 2
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK
 
 # Generate relying party key and cert.
 generate_demo_relying_party_key_pair monkey_bike
@@ -450,6 +470,9 @@ DEMO_RELYING_PARTY_KEY_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_
 export DEMO_RELYING_PARTY_KEY_MONKEY_BIKE
 DEMO_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MONKEY_BIKE
+generate_demo_relying_party_registration_certificate monkey_bike 3
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MONKEY_BIKE
 
 # Generate relying party key and cert.
 generate_demo_relying_party_key_pair job_finder
@@ -457,6 +480,9 @@ DEMO_RELYING_PARTY_KEY_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_find
 export DEMO_RELYING_PARTY_KEY_JOB_FINDER
 DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
+generate_demo_relying_party_registration_certificate job_finder 4
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER
 
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
 ISSUER_CA_AKI=$(openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)

@@ -516,6 +516,66 @@ function generate_demo_relying_party_key_pair {
         -out "${TARGET_DIR}/demo_relying_party/$1.key.der" -nocrypt
 }
 
+# Generate a WRPRC bound to a demo relying party's WRPAC.
+#
+# $1 - Short name of the Relying Party
+# $2 - Index in the WRPRC status list
+function generate_demo_relying_party_registration_certificate {
+    local relying_party="$1"
+    local status_list_index="$2"
+    local subject
+
+    if [[ -z ${access_certificates[($relying_party,serial_number)]:-} ]]; then
+        subject=$(jq -n \
+            --arg sub "${access_certificates[($relying_party,oid)]}" \
+            --arg sub_ln "${access_certificates[($relying_party,legal_name)]}" \
+            '{ sub: $sub, sub_ln: $sub_ln }')
+    else
+        subject=$(jq -n \
+            --arg sub "${access_certificates[($relying_party,serial_number)]}" \
+            --arg sub_gn "${access_certificates[($relying_party,given_name)]}" \
+            --arg sub_fn "${access_certificates[($relying_party,surname)]}" \
+            '{ sub: $sub, sub_gn: $sub_gn, sub_fn: $sub_fn }')
+    fi
+
+    jq -n \
+        --arg relying_party "$relying_party" \
+        --arg name "${access_certificates[($relying_party,name)]}" \
+        --arg status_list_index "$status_list_index" \
+        --arg status_list_uri "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wrprc/1" \
+        --argjson iat "$(date +%s)" \
+        --argjson subject "$subject" \
+        --slurpfile credential_sets "${DEVENV}/demo_rp_registration_certificate_credentials.json" \
+        '$subject + {
+            id: ("demo-" + $relying_party),
+            name: $name,
+            country: "NL",
+            registry_uri: "https://register.example.com",
+            support_uri: "support@example.com",
+            srv_description: [[{
+                lang: "en",
+                value: ("Development disclosure service for " + $name)
+            }]],
+            supervisory_authority: {},
+            entitlements: ["https://uri.etsi.org/19475/Entitlement/Service_Provider"],
+            credentials: $credential_sets[0][$relying_party],
+            purpose: [{ lang: "en", value: "Testing wallet disclosure" }],
+            iat: $iat,
+            status: { idx: $status_list_index, uri: $status_list_uri },
+            policy_id: ["0.4.0.19475.3.1"],
+            certificate_policy: "https://register.example.com/certificate-policy"
+        }' > "${TARGET_DIR}/demo_relying_party/$relying_party.wrprc.json"
+
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca registration-certificate \
+        --wrprc-key-file "${TARGET_DIR}/wrprc_signer.key.pem" \
+        --wrprc-crt-file "${TARGET_DIR}/wrprc_signer.crt.pem" \
+        --wrpac-crt-file "${TARGET_DIR}/demo_relying_party/$relying_party.crt.pem" \
+        --payload-file "${TARGET_DIR}/demo_relying_party/$relying_party.wrprc.json" \
+        --format cwt \
+        > "${TARGET_DIR}/demo_relying_party/$relying_party.wrprc"
+}
+
 function encrypt_gba_v_responses {
     mkdir -p "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
     for file in "${GBA_HC_CONVERTER_DIR}"/resources/gba-v-responses/*; do
