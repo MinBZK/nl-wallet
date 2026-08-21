@@ -1,7 +1,11 @@
+mod envelope;
 mod payload;
 mod status;
 mod validation;
 
+pub use envelope::RegistrationCertificateEnvelopeError;
+pub use envelope::VerifiedRegistrationCertificateEnvelope;
+pub use envelope::verify_registration_certificate_envelope;
 pub use payload::Credential;
 pub use payload::Intermediary;
 pub use payload::MultiLanguageString;

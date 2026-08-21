@@ -1,16 +1,13 @@
-use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
+use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use chrono::DateTime;
 use chrono::TimeZone;
 use chrono::Utc;
 use cose::wrprc_cwt::SignedWrprcCwt;
-use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::DistinguishedName;
-use jwt::DEFAULT_VALIDATION;
 use jwt::SignedJwt;
-use jwt::UnverifiedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use serde::Serialize;
 use serde_json::Value;
@@ -63,10 +60,9 @@ async fn verify_and_validate_registration_certificate_from_jades_jwt() {
         .unwrap();
 
     let encoded = signed.to_string();
-    let unverified: UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader> = encoded.parse().unwrap();
-    let (_, payload) = unverified
-        .parse_and_verify_against_trust_anchors(&TrustAnchors::from(&ca), &time, None, DEFAULT_VALIDATION.to_owned())
-        .unwrap();
+    let payload = verify_registration_certificate_envelope(encoded.as_bytes(), &TrustAnchors::from(&ca), &time)
+        .unwrap()
+        .into_payload();
     let certificate = payload
         .validate_structure(&access_certificate_subject(), validation_time())
         .unwrap();
@@ -84,9 +80,7 @@ async fn verify_and_validate_registration_certificate_from_wrprc_cwt() {
         .unwrap();
 
     let encoded = signed.to_vec().unwrap();
-    let unverified = UnverifiedWrprcCwt::<UncheckedRegistrationCertificate>::from_slice(&encoded).unwrap();
-    let payload = unverified
-        .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &time, None)
+    let payload = verify_registration_certificate_envelope(&encoded, &TrustAnchors::from(&ca), &time)
         .unwrap()
         .into_payload();
     let certificate = payload
