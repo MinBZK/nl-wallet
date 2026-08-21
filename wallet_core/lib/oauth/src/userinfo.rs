@@ -69,16 +69,15 @@ where
 }
 
 /// Source: <https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1>
+///
+/// This type should be used wrapped in [`crate::errors::RemoteErrorCode`] (possibly via [`RemoteErrorResponse`]), which
+/// provides a fallback for error codes the holder is not aware of.
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum AuthBearerErrorCode {
     InvalidRequest,
     InvalidToken,
     InsufficientScope,
-
-    // Catch-all variant, in case the server sends an error code that the holder is not aware of.
-    #[strum(default)]
-    Other(String),
 }
 
 /// Configuration needed to decrypt an encrypted UserInfo Response. Not every OpenID Provider encrypts (or even
