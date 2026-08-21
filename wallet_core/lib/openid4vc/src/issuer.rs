@@ -1848,6 +1848,7 @@ mod tests {
     use oauth::dpop::Dpop;
     use oauth::errors::ErrorResponse;
     use oauth::errors::RemoteErrorCode;
+    use oauth::errors::TokenErrorCode;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::token::AccessToken;
     use p256::ecdsa::SigningKey;
@@ -1871,7 +1872,6 @@ mod tests {
     use crate::credential::CredentialResponses;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
-    use crate::errors::TokenErrorCode;
     use crate::issuable_document::IssuableDocument;
     use crate::nonce::response::NonceResponse;
     use crate::preview::CredentialPreviewResponse;

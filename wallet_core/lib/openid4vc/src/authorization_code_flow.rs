@@ -14,6 +14,7 @@ use std::collections::HashSet;
 
 use attestation_types::credential_kind::CredentialKind;
 use itertools::Itertools;
+use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::ErrorWithCode;
 use oauth::pkce::PkceCodeChallenge;
 use oauth::scope::Scope;
@@ -24,7 +25,6 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::VciAuthorizationRequest;
 use crate::credential_configurations::CredentialConfigurations;
-use crate::errors::AuthorizationErrorCode;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthRequestValues;
 /// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an

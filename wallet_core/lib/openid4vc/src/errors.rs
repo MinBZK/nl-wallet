@@ -5,11 +5,14 @@ use http::StatusCode;
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use jwt::wia::WiaError;
+use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::BodyOrRedirectErrorResponse;
 use oauth::errors::DisclosureErrorResponse;
 use oauth::errors::ErrorResponse;
 use oauth::errors::ErrorStatusCode;
 use oauth::errors::ErrorWithCode;
+use oauth::errors::ParErrorCode;
+use oauth::errors::TokenErrorCode;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -48,21 +51,6 @@ where
 }
 
 // OpenID4VCI Error Codes
-
-/// The list of error codes that can result from an Authorization Request. Note that this is also used by OpenID4VP.
-///
-/// See: <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1>
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum AuthorizationErrorCode {
-    InvalidRequest,
-    UnauthorizedClient,
-    AccessDenied,
-    UnsupportedResponseType,
-    InvalidScope,
-    ServerError,
-    TemporarilyUnavailable,
-}
 
 impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode> {
     fn from(value: AuthorizeError) -> Self {
@@ -112,47 +100,6 @@ impl ErrorWithCode for CompleteAuthorizationError {
     }
 }
 
-/// The list of error codes that can result from the PAR POST request.
-///
-/// According to <https://datatracker.ietf.org/doc/html/rfc9126#section-2.3>, these can be taken either from
-/// <https://datatracker.ietf.org/doc/html/rfc6749#section-5.2> or
-/// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1>, i.e. the token endpoint error codes or the
-/// authorization endpoint error codes.
-///
-/// This type represents a selection among these error codes, containing only those that the issuer returns.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum ParErrorCode {
-    // Token error code.
-    InvalidClient,
-    // Both token and authorization error code.
-    InvalidRequest,
-    // Authorization error code.
-    ServerError,
-
-    /// Invalid Client Attestation / WIA.
-    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
-    InvalidClientAttestation,
-
-    /// Client Attestation / WIA is valid but not fresh enough.
-    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
-    UseFreshAttestation,
-}
-
-impl ErrorStatusCode for ParErrorCode {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
-
-            Self::InvalidRequest => StatusCode::BAD_REQUEST,
-
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-
-            Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
-        }
-    }
-}
-
 impl ErrorWithCode for ParError {
     type ErrorCode = ParErrorCode;
 
@@ -171,50 +118,6 @@ impl ErrorWithCode for ParError {
             Self::AuthorizationDetailsUnsupported | Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
 
             Self::Store(_) => ParErrorCode::ServerError,
-        }
-    }
-}
-
-/// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.3>
-/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum TokenErrorCode {
-    InvalidRequest,
-    InvalidClient,
-    InvalidGrant,
-    UnauthorizedClient,
-    UnsupportedGrantType,
-    InvalidScope,
-
-    /// Invalid Client Attestation / WIA.
-    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
-    InvalidClientAttestation,
-
-    /// Client Attestation / WIA is valid but not fresh enough.
-    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
-    UseFreshAttestation,
-
-    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
-    /// This error type is not defined in the specs, but then again the entire HTTP response in case
-    /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
-    ServerError,
-}
-
-impl ErrorStatusCode for TokenErrorCode {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::InvalidRequest => StatusCode::BAD_REQUEST,
-
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
-
-            Self::InvalidGrant | Self::UnauthorizedClient | Self::UnsupportedGrantType | Self::InvalidScope => {
-                StatusCode::BAD_REQUEST
-            }
-
-            Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
-
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

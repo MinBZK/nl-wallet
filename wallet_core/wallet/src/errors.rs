@@ -4,6 +4,7 @@ pub mod reqwest {
 }
 
 pub mod openid4vc {
+    pub use oauth::errors::AuthorizationErrorCode;
     pub use oauth::errors::DisclosureErrorResponse;
     pub use oauth::errors::ErrorResponse;
     pub use oauth::errors::RemoteErrorCode;
@@ -11,7 +12,6 @@ pub mod openid4vc {
     pub use openid4vc::disclosure_session::VpMessageClientError;
     pub use openid4vc::disclosure_session::VpMessageClientErrorType;
     pub use openid4vc::disclosure_session::VpVerifierError;
-    pub use openid4vc::errors::AuthorizationErrorCode;
     pub use openid4vc::errors::CredentialErrorCode;
     pub use openid4vc::errors::PostAuthResponseErrorCode;
     pub use openid4vc::wallet_issuance::WalletIssuanceError;
