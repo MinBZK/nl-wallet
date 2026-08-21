@@ -1,8 +1,10 @@
+mod authorization;
 mod envelope;
 mod payload;
 mod status;
 mod validation;
 
+pub use authorization::RegistrationCertificateAuthorizationError;
 pub use envelope::RegistrationCertificateEnvelopeError;
 pub use envelope::VerifiedRegistrationCertificateEnvelope;
 pub use envelope::verify_registration_certificate_envelope;
