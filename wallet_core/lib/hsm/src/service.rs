@@ -182,12 +182,14 @@ impl HandleType {
     }
 }
 
+#[cfg(feature = "test")]
 #[derive(Debug, Clone, Copy)]
 pub enum AesKeyUsage {
     Encrypt,
     Cmac,
 }
 
+#[cfg(feature = "test")]
 impl AesKeyUsage {
     fn attribute(self) -> Attribute {
         match self {
@@ -198,10 +200,7 @@ impl AesKeyUsage {
 }
 
 pub trait Pkcs11Client {
-    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle>;
-    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<SecretKeyHandle>;
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
-    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn get_secret_key_handle(&self, identifier: &str) -> Result<SecretKeyHandle>;
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle>;
@@ -287,6 +286,13 @@ impl Drop for Pkcs11FinalizeGuard {
     }
 }
 
+#[cfg(feature = "test")]
+pub trait TestPkcs11Client: Pkcs11Client {
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle>;
+    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<SecretKeyHandle>;
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
+}
+
 #[derive(Clone, AsRef)]
 pub struct Pkcs11Hsm {
     #[as_ref]
@@ -364,33 +370,9 @@ impl Pkcs11Hsm {
 impl Hsm for Pkcs11Hsm {
     type Error = HsmError;
 
-    async fn generate_generic_secret_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_generic_secret_key(self, identifier)
-            .await
-            .map(|_| ())
-    }
-
-    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_aes_key(self, identifier, usage)
-            .await
-            .map(|_| ())
-    }
-
-    async fn generate_signing_key_pair(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_signing_key_pair(self, identifier)
-            .await
-            .map(|_| ())
-    }
-
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
         let handle = self.get_public_key_handle(identifier).await?;
         Pkcs11Client::get_verifying_key(self, &handle).await
-    }
-
-    async fn delete_key(&self, identifier: &str) -> Result<()> {
-        let handle = self.get_private_key_handle(identifier).await?;
-        Pkcs11Client::delete_key(self, handle).await?;
-        Ok(())
     }
 
     async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> std::result::Result<Signature, Self::Error> {
@@ -428,8 +410,29 @@ impl Hsm for Pkcs11Hsm {
     }
 }
 
-impl Pkcs11Client for Pkcs11Hsm {
-    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
+#[cfg(feature = "test")]
+impl crate::model::TestHsm for Pkcs11Hsm {
+    async fn generate_generic_secret_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        TestPkcs11Client::generate_generic_secret_key(self, identifier)
+            .await
+            .map(|_| ())
+    }
+
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> std::result::Result<(), Self::Error> {
+        TestPkcs11Client::generate_aes_key(self, identifier, usage)
+            .await
+            .map(|_| ())
+    }
+
+    async fn generate_signing_key_pair(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        TestPkcs11Client::generate_signing_key_pair(self, identifier)
+            .await
+            .map(|_| ())
+    }
+}
+
+#[cfg(feature = "test")]
+impl TestPkcs11Client for Pkcs11Hsm {
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<SecretKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
@@ -437,8 +440,8 @@ impl Pkcs11Client for Pkcs11Hsm {
         spawn::blocking(move || {
             let session = pool.get()?;
 
-            let priv_key_template = &[
-                Attribute::Token(true),
+            let key_template = &[
+                Attribute::Token(false),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
                 Attribute::Sign(true),
@@ -447,14 +450,13 @@ impl Pkcs11Client for Pkcs11Hsm {
                 Attribute::Label(identifier.clone().into()),
             ];
 
-            let object_handle = session.generate_key(&Mechanism::GenericSecretKeyGen, priv_key_template)?;
+            let object_handle = session.generate_key(&Mechanism::GenericSecretKeyGen, key_template)?;
 
             Ok(SecretKeyHandle(object_handle))
         })
         .await
     }
 
-    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
@@ -462,9 +464,9 @@ impl Pkcs11Client for Pkcs11Hsm {
         spawn::blocking(move || {
             let session = pool.get()?;
 
-            let priv_key_template = &[
+            let key_template = &[
                 usage.attribute(),
-                Attribute::Token(true),
+                Attribute::Token(false),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
                 Attribute::Extractable(false),
@@ -473,13 +475,51 @@ impl Pkcs11Client for Pkcs11Hsm {
                 Attribute::Label(identifier.clone().into()),
             ];
 
-            let object_handle = session.generate_key(&Mechanism::AesKeyGen, priv_key_template)?;
+            let object_handle = session.generate_key(&Mechanism::AesKeyGen, key_template)?;
 
             Ok(SecretKeyHandle(object_handle))
         })
         .await
     }
 
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
+        let pool = self.pool.clone();
+        let identifier = String::from(identifier);
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            let mut ec_params = vec![];
+            EcParameters::NamedCurve(NistP256::OID)
+                .encode_to_vec(&mut ec_params)
+                .map_err(|error| HsmError::Sec1(Box::new(error)))?;
+
+            let pub_key_template = &[
+                Attribute::EcParams(ec_params),
+                Attribute::Token(false),
+                Attribute::Private(true),
+                Attribute::Label(identifier.clone().into()),
+            ];
+            let priv_key_template = &[
+                Attribute::Token(false),
+                Attribute::Private(true),
+                Attribute::Sensitive(true),
+                Attribute::Extractable(false),
+                Attribute::Derive(false),
+                Attribute::Sign(true),
+                Attribute::Label(identifier.into()),
+            ];
+
+            let (public_handle, private_handle) =
+                session.generate_key_pair(&Mechanism::EccKeyPairGen, pub_key_template, priv_key_template)?;
+
+            Ok((PublicKeyHandle(public_handle), PrivateKeyHandle(private_handle)))
+        })
+        .await
+    }
+}
+
+impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
         let pool = self.pool.clone();
@@ -503,43 +543,6 @@ impl Pkcs11Client for Pkcs11Hsm {
                 Attribute::Extractable(true),
                 Attribute::Derive(false),
                 Attribute::Sign(false),
-            ];
-
-            let (public_handle, private_handle) =
-                session.generate_key_pair(&Mechanism::EccKeyPairGen, pub_key_template, priv_key_template)?;
-
-            Ok((PublicKeyHandle(public_handle), PrivateKeyHandle(private_handle)))
-        })
-        .await
-    }
-
-    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
-        let pool = self.pool.clone();
-        let identifier = String::from(identifier);
-
-        spawn::blocking(move || {
-            let session = pool.get()?;
-
-            let mut ec_params = vec![];
-            EcParameters::NamedCurve(NistP256::OID)
-                .encode_to_vec(&mut ec_params)
-                .map_err(|error| HsmError::Sec1(Box::new(error)))?;
-
-            let pub_key_template = &[
-                Attribute::EcParams(ec_params),
-                Attribute::Token(true),
-                Attribute::Private(true),
-                Attribute::Label(identifier.clone().into()),
-            ];
-            let priv_key_template = &[
-                Attribute::Token(true),
-                Attribute::Private(true),
-                Attribute::Sensitive(true),
-                Attribute::Extractable(false),
-                Attribute::Derive(false),
-                Attribute::Sign(true),
-                Attribute::Label(identifier.into()),
             ];
 
             let (public_handle, private_handle) =
@@ -856,7 +859,7 @@ impl Pkcs11Hsm {
             // rather than only its length.
             let template = &[
                 usage.attribute(),
-                Attribute::Token(true),
+                Attribute::Token(false),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
                 Attribute::Extractable(false),
