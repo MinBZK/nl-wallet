@@ -1,5 +1,6 @@
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use crypto::aes_siv::AesSivBackend;
@@ -247,9 +248,30 @@ pub trait Pkcs11Client {
     ) -> Result<Signature>;
 }
 
+// Since `cryptoki` 0.12.0, `Pkcs11` no longer finalizes itself on `Drop`, so it has to be finalized explicitly here
+// instead. This must happen only once when every session has been closed. If `C_Finalize` is never called, or is called
+// while sessions are still open, some HSMs (e.g. SoftHSM linked against Botan) may crash during process exit while
+// tearing down state they believe is still in use.
+struct Pkcs11FinalizeGuard(Pkcs11);
+
+impl Drop for Pkcs11FinalizeGuard {
+    fn drop(&mut self) {
+        if let Err(error) = self.0.clone().finalize() {
+            tracing::warn!("failed to finalize PKCS#11 context: {error}");
+        }
+    }
+}
+
 #[derive(Clone, AsRef)]
 pub struct Pkcs11Hsm {
+    #[as_ref]
     pool: Pool,
+
+    // Keep a handle to `Pkcs11FinalizeGuard` to finalize the PKCS#11 context once the last clone of `Pkcs11Hsm`
+    // disappears. Declared after `pool` so that all pooled sessions are closed (via `Pool`'s drop mechanism)
+    // before the PKCS#11 context is finalized.
+    #[expect(dead_code, reason = "only ever dropped, never read")]
+    finalize_handle: Arc<Pkcs11FinalizeGuard>,
 }
 
 impl Pkcs11Hsm {
@@ -261,6 +283,8 @@ impl Pkcs11Hsm {
     ) -> Result<Self> {
         let pkcs11_client = Pkcs11::new(library_path)?;
         pkcs11_client.initialize(CInitializeArgs::new(CInitializeFlags::OS_LOCKING_OK))?;
+
+        let finalize_handle = Arc::new(Pkcs11FinalizeGuard(pkcs11_client.clone()));
 
         let slot = *pkcs11_client
             .get_slots_with_initialized_token()?
@@ -280,7 +304,7 @@ impl Pkcs11Hsm {
             .error_handler(Box::new(LoggingErrorHandler))
             .build(manager)?;
 
-        Ok(Self { pool })
+        Ok(Self { pool, finalize_handle })
     }
 
     pub fn from_settings(settings: settings::Hsm) -> Result<Self> {
