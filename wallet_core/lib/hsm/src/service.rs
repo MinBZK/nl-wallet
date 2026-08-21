@@ -284,12 +284,12 @@ impl Pkcs11Hsm {
         let pkcs11_client = Pkcs11::new(library_path)?;
         pkcs11_client.initialize(CInitializeArgs::new(CInitializeFlags::OS_LOCKING_OK))?;
 
+        let finalize_handle = Arc::new(Pkcs11FinalizeGuard(pkcs11_client.clone()));
+
         let slot = *pkcs11_client
             .get_slots_with_initialized_token()?
             .first()
             .ok_or(HsmError::NoInitializedSlotAvailable)?;
-
-        let finalize_handle = Arc::new(Pkcs11FinalizeGuard(pkcs11_client.clone()));
 
         let session_auth = SessionAuth::RwUser(AuthPin::from(user_pin));
         let manager = SessionManager::new(pkcs11_client, slot, &session_auth);
