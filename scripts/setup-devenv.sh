@@ -344,6 +344,8 @@ else
 fi
 WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
 export WRPRC_CA_CRT
+WRPRC_STATUS_LIST_URI="https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wrprc/1"
+export WRPRC_STATUS_LIST_URI
 
 # Generate the end-entity certificate used to sign the demo relying parties' WRPRCs.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
@@ -354,6 +356,17 @@ cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
     --organization-name "Development Registrar B.V." \
     --organization-id "NTRNL-00000001" \
     --file-prefix "${TARGET_DIR}/wrprc_signer" \
+    --force
+
+# Generate the WRPRC status-list signing certificate with the same subject as the WRPRC signer.
+cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+    --bin wallet_ca cert --type tsl \
+    --ca-key-file "${TARGET_DIR}/ca.wrprc.key.pem" \
+    --ca-crt-file "${TARGET_DIR}/ca.wrprc.crt.pem" \
+    --common-name "Development WRPRC signer" \
+    --organization-name "Development Registrar B.V." \
+    --organization-id "NTRNL-00000001" \
+    --file-prefix "${TARGET_DIR}/wrprc_tsl" \
     --force
 
 # Generate root CA for issuer
@@ -617,6 +630,16 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
+
+# All five demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
+    --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
+    --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
+    --uri "${WRPRC_STATUS_LIST_URI}" \
+    --status valid valid valid valid valid \
+    --ttl-seconds 3600 \
+    > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

@@ -542,7 +542,7 @@ function generate_demo_relying_party_registration_certificate {
         --arg relying_party "$relying_party" \
         --arg name "${access_certificates[($relying_party,name)]}" \
         --arg status_list_index "$status_list_index" \
-        --arg status_list_uri "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wrprc/1" \
+        --arg status_list_uri "${WRPRC_STATUS_LIST_URI}" \
         --argjson iat "$(date +%s)" \
         --argjson subject "$subject" \
         --slurpfile credential_sets "${DEVENV}/demo_rp_registration_certificate_credentials.json" \

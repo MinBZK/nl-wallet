@@ -2,6 +2,7 @@ use std::assert_matches;
 
 use crypto::PublicKey;
 use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::tls_reqwest_client_builder;
 use jwt::SignedJwt;
 use jwt::error::JwtVerifyError;
 use p256::ecdsa::SigningKey;
@@ -9,6 +10,7 @@ use p256::elliptic_curve::Generate;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
 use regex::regex;
+use reqwest::header;
 use reqwest::header::HeaderValue;
 use tests_integration::common::*;
 use tokio::fs;
@@ -23,6 +25,31 @@ use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_provider::settings::Settings as WpSettings;
+
+#[tokio::test]
+async fn test_wrprc_status_list() {
+    let (static_settings, static_root_ca) = static_server_settings();
+    let expected = fs::read_to_string(static_settings.wrprc_publish_dir.as_ref().join("1.jwt"))
+        .await
+        .unwrap();
+    let port = start_static_server(static_settings, static_root_ca.clone()).await;
+
+    let response = tls_reqwest_client_builder([static_root_ca.into_certificate()])
+        .build()
+        .unwrap()
+        .get(local_https_base_url(port).join("wrprc/1").unwrap())
+        .header(header::ACCEPT, "application/statuslist+jwt")
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    assert_eq!(
+        response.headers().get(header::CONTENT_TYPE).unwrap(),
+        "application/statuslist+jwt"
+    );
+    assert_eq!(response.text().await.unwrap(), expected);
+}
 
 #[tokio::test]
 async fn test_wallet_config() {
