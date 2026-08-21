@@ -4187,6 +4187,7 @@ dependencies = [
  "indexmap 2.12.1",
  "issuer_common",
  "itertools 0.14.0",
+ "oauth",
  "openid4vc",
  "openid4vc_server",
  "p256 0.14.0",
@@ -5112,6 +5113,7 @@ dependencies = [
 name = "oauth"
 version = "0.6.0-dev"
 dependencies = [
+ "axum",
  "base64 0.22.1",
  "chrono",
  "crypto",
@@ -9977,6 +9979,7 @@ dependencies = [
  "mime",
  "mockall",
  "nutype",
+ "oauth",
  "openid4vc",
  "p256 0.14.0",
  "parking_lot",

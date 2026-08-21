@@ -42,6 +42,8 @@ use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
 use oauth::dpop::Dpop;
+use oauth::errors::BodyOrRedirectErrorResponse;
+use oauth::errors::ErrorResponse;
 use oauth::token::AccessToken;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
@@ -53,10 +55,8 @@ use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::CredentialResponses;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::errors::AuthorizationErrorCode;
-use openid4vc::errors::BodyOrRedirectErrorResponse;
 use openid4vc::errors::CredentialErrorCode;
 use openid4vc::errors::CredentialPreviewErrorCode;
-use openid4vc::errors::ErrorResponse;
 use openid4vc::errors::ParErrorCode;
 use openid4vc::errors::TokenErrorCode;
 use openid4vc::issuer::IssuanceData;
@@ -68,8 +68,8 @@ use openid4vc::nonce::store::NonceStore;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
-use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenResponse;
+use openid4vc::token::VciTokenRequest;
+use openid4vc::token::VciTokenResponse;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
@@ -347,8 +347,8 @@ async fn token<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     wia_headers: WiaHeaders<TokenErrorCode>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Form(token_request): Form<TokenRequest>,
-) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
+    Form(token_request): Form<VciTokenRequest>,
+) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<TokenErrorCode>>
 where
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,

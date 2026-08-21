@@ -15,13 +15,13 @@ use jwt::error::JwtParseError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
+use oauth::errors::RemoteErrorResponse;
 use oauth::jwks::HttpJwksClient;
 use oauth::jwks::JwksError;
 use oauth::metadata::oauth_metadata::OidcProviderMetadata;
-use openid4vc::errors::RemoteErrorResponse;
 use openid4vc::errors::TokenErrorCode;
-use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenResponse;
+use openid4vc::token::VciTokenRequest;
+use openid4vc::token::VciTokenResponse;
 use reqwest::header;
 use serde::Deserialize;
 use serde::Serialize;
@@ -83,7 +83,7 @@ impl JwtTyp for UserInfo {
 async fn request_userinfo_jwt(
     http_client: &HttpClient,
     config: &OidcProviderMetadata,
-    token_request: TokenRequest,
+    token_request: VciTokenRequest,
 ) -> Result<String, UserInfoError> {
     // Get userinfo endpoint from discovery, throw an error otherwise.
     let endpoint = config
@@ -104,7 +104,7 @@ async fn request_userinfo_jwt(
             let error = response.json::<RemoteErrorResponse<TokenErrorCode>>().await?;
             return Err(UserInfoError::RequestingAccessToken(error.into()));
         } else {
-            response.json::<TokenResponse>().await?
+            response.json::<VciTokenResponse>().await?
         }
     };
 
@@ -113,7 +113,7 @@ async fn request_userinfo_jwt(
         .post(endpoint, |request| {
             request
                 .header(header::ACCEPT, APPLICATION_JWT)
-                .bearer_auth(token_response.access_token.as_ref())
+                .bearer_auth(token_response.oauth_response.access_token.as_ref())
         })
         .await?;
 
@@ -133,7 +133,7 @@ async fn request_userinfo_jwt(
 pub async fn request_userinfo<C>(
     http_client: &HttpClient,
     config: &OidcProviderMetadata,
-    token_request: TokenRequest,
+    token_request: VciTokenRequest,
     client_id: &str,
     decrypter: &JweDecrypter,
     expected_enc_alg: EncryptionAlgorithm,
@@ -202,16 +202,16 @@ mod tests {
     use jwt::error::JwtVerifyError;
     use jwt::jwk::Jwk;
     use jwt::jwk::JwkSet;
+    use oauth::errors::ErrorResponse;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
     use oauth::metadata::oauth_metadata::OidcProviderMetadata;
     use oauth::metadata::oauth_metadata::OpenIdMetadataExtension;
     use oauth::token::AccessToken;
     use oauth::token::AuthorizationCode;
-    use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::TokenErrorCode;
-    use openid4vc::token::TokenRequest;
-    use openid4vc::token::TokenResponse;
+    use openid4vc::token::VciTokenRequest;
+    use openid4vc::token::VciTokenResponse;
     use rsa::RsaKeyPair;
     use rstest::rstest;
     use serde_json::json;
@@ -220,8 +220,8 @@ mod tests {
     use super::AuthBearerErrorCode;
     use super::*;
 
-    fn create_token_request() -> TokenRequest {
-        TokenRequest::new_authorization_code(
+    fn create_token_request() -> VciTokenRequest {
+        VciTokenRequest::new_authorization_code(
             AuthorizationCode::from("test-code".to_string()),
             "https://example.com/callback".parse::<Url>().unwrap(),
             "test-verifier".to_string(),
@@ -237,7 +237,7 @@ mod tests {
     async fn request_userinfo_jwt_happy_path() {
         let server = MockServer::start_async().await;
         let metadata = create_metadata(&server);
-        let token_response = TokenResponse::new(AccessToken::from("test-access-token".to_string()));
+        let token_response = VciTokenResponse::new(AccessToken::from("test-access-token".to_string()));
 
         let _token_mock = server
             .mock_async(|when, then| {
@@ -292,7 +292,7 @@ mod tests {
     async fn request_userinfo_jwt_userinfo_endpoint_error() {
         let server = MockServer::start_async().await;
         let metadata = create_metadata(&server);
-        let token_response = TokenResponse::new(AccessToken::from("test-access-token".to_string()));
+        let token_response = VciTokenResponse::new(AccessToken::from("test-access-token".to_string()));
         let error_response = ErrorResponse {
             error: AuthBearerErrorCode::InvalidToken,
             error_description: Some("token expired".to_string()),
@@ -519,7 +519,7 @@ mod tests {
         let metadata = create_metadata(&server);
         let (jws, jwks) = create_jws(true, Algorithm::RS256);
         let jwe = create_test_jwe(&jws);
-        let token_response = TokenResponse::new(AccessToken::from("test-access-token".to_string()));
+        let token_response = VciTokenResponse::new(AccessToken::from("test-access-token".to_string()));
 
         let _token_mock = server
             .mock_async(|when, then| {

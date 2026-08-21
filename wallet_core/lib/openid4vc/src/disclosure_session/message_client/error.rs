@@ -1,11 +1,10 @@
 use error_category::ErrorCategory;
+use oauth::errors::RemoteDisclosureErrorResponse;
+use oauth::errors::RemoteErrorCode;
 use url::Url;
 
 use crate::errors::GetAuthRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
-use crate::errors::RemoteDisclosureErrorResponse;
-use crate::errors::RemoteErrorCode;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VpMessageClientErrorType {
     Expired { can_retry: bool },

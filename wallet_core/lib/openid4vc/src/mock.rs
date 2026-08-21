@@ -15,7 +15,7 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
-use crate::token::TokenRequest;
+use crate::token::VciTokenRequest;
 
 pub struct ExtendingVctRetrieverStub;
 impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
@@ -88,12 +88,12 @@ impl IssuerMetadata {
     }
 }
 
-impl TokenRequest {
+impl VciTokenRequest {
     pub fn new_mock() -> Self {
         Self::new_mock_with_pre_authorized_code("123".to_string().into())
     }
 
     pub fn new_mock_with_pre_authorized_code(pre_authorized_code: AuthorizationCode) -> Self {
-        TokenRequest::new_pre_authorized(pre_authorized_code)
+        VciTokenRequest::new_pre_authorized(pre_authorized_code)
     }
 }

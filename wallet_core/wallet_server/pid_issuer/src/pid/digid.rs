@@ -19,7 +19,7 @@ use oauth::scope::Scope;
 use oauth::token::AuthorizationCode;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::token::TokenRequest;
+use openid4vc::token::VciTokenRequest;
 use url::Url;
 
 use crate::pid::userinfo;
@@ -163,7 +163,7 @@ impl DigidClient for HttpDigidClient {
     async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error> {
         let metadata = self.metadata_client.metadata().await.map_err(Error::WellKnown)?;
 
-        let token_request = TokenRequest::new_authorization_code_with_client_id(
+        let token_request = VciTokenRequest::new_authorization_code_with_client_id(
             code,
             redirect_uri,
             code_verifier,

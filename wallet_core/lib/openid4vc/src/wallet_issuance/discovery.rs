@@ -40,7 +40,7 @@ use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
-use crate::token::TokenRequest;
+use crate::token::VciTokenRequest;
 
 const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
 
@@ -556,7 +556,7 @@ where
     ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
 
-        let token_request = TokenRequest::new_pre_authorized(pre_authorized_code);
+        let token_request = VciTokenRequest::new_pre_authorized(pre_authorized_code);
 
         // In the pre-authorized code flow, no PAR request was sent whose response might have included a
         // challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
@@ -638,7 +638,7 @@ mod test {
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
-    use crate::token::TokenResponse;
+    use crate::token::VciTokenResponse;
     use crate::wallet_issuance::AuthorizationSession;
     use crate::wallet_issuance::IssuanceFlow;
     use crate::wallet_issuance::IssuanceSession;
@@ -843,7 +843,7 @@ mod test {
             credential_previews: vec_nonempty![preview],
         };
 
-        let token_response = TokenResponse::new_vci(
+        let token_response = VciTokenResponse::new_vci(
             "mock_access_token".to_string().into(),
             Some(AuthorizationDetails::from_credential_ids_and_identifiers(
                 vec_nonempty![(LazyLock::force(&CONFIG_ID), random_string(16))],

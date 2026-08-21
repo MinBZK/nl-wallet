@@ -311,7 +311,7 @@ impl FlutterApiErrorFields for IssuanceError {
                 FlutterApiErrorType::ExpiredSession
             }
 
-            IssuanceError::IssuanceSession(WalletIssuanceError::TokenRequest(_))
+            IssuanceError::IssuanceSession(WalletIssuanceError::VciTokenRequest(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialPreview(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRejection(_)) => {

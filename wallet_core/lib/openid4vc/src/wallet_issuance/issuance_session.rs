@@ -29,6 +29,8 @@ use mdoc::utils::serialization::TaggedBytes;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
 use oauth::dpop::Dpop;
+use oauth::errors::RemoteErrorCode;
+use oauth::errors::RemoteErrorResponse;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::scope::Scope;
 use oauth::token::AccessToken;
@@ -72,8 +74,6 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
-use crate::errors::RemoteErrorCode;
-use crate::errors::RemoteErrorResponse;
 use crate::errors::TokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -81,9 +81,9 @@ use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
 use crate::preview::CredentialPreviewResponse;
 use crate::token::CredentialPreview;
-use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
-use crate::token::TokenResponse;
+use crate::token::VciTokenRequest;
+use crate::token::VciTokenResponse;
 
 #[derive(Debug)]
 pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
@@ -97,10 +97,10 @@ pub trait VcMessageClient {
     async fn request_token(
         &self,
         url: &Url,
-        token_request: &TokenRequest,
+        token_request: &VciTokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
-    ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError>;
+    ) -> Result<(VciTokenResponse, Option<String>), WalletIssuanceError>;
 
     async fn request_challenge(&self, url: Url) -> Result<Nonce, WalletIssuanceError>;
 
@@ -159,10 +159,10 @@ impl VcMessageClient for HttpVcMessageClient {
     async fn request_token(
         &self,
         url: &Url,
-        token_request: &TokenRequest,
+        token_request: &VciTokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
-    ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+    ) -> Result<(VciTokenResponse, Option<String>), WalletIssuanceError> {
         self.http_client
             .post(url.as_ref(), |builder| {
                 builder
@@ -182,11 +182,11 @@ impl VcMessageClient for HttpVcMessageClient {
                         .await
                         .map_err(WalletIssuanceError::TokenRequestHttp)?;
 
-                    Err(WalletIssuanceError::TokenRequest(Box::new(error)))
+                    Err(WalletIssuanceError::VciTokenRequest(Box::new(error)))
                 } else {
                     let dpop_nonce = Self::dpop_nonce(&response)?;
                     let deserialized = response
-                        .json::<TokenResponse>()
+                        .json::<VciTokenResponse>()
                         .await
                         .map_err(WalletIssuanceError::TokenRequestHttp)?;
 
@@ -440,14 +440,14 @@ fn credential_request_types_from_preview(
 /// valid" signal. And the genuine "no longer valid" case — the session expiring or being consumed between the
 /// authorization callback and the subsequent token request — is practically unreachable in the current implementation.
 /// So the generic error handling is used.
-fn map_pre_authorized_token_error(error: WalletIssuanceError, token_request: &TokenRequest) -> WalletIssuanceError {
+fn map_pre_authorized_token_error(error: WalletIssuanceError, token_request: &VciTokenRequest) -> WalletIssuanceError {
     let is_pre_authorized = matches!(
-        token_request.grant_type,
+        token_request.oauth_request.grant_type,
         TokenRequestGrantType::PreAuthorizedCode { .. }
     );
 
     match &error {
-        WalletIssuanceError::TokenRequest(response)
+        WalletIssuanceError::VciTokenRequest(response)
             if is_pre_authorized && response.error == RemoteErrorCode::Known(TokenErrorCode::InvalidGrant) =>
         {
             WalletIssuanceError::PreAuthorizedCodeExpired
@@ -466,7 +466,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         batch_size: NonZeroU8,
         token_endpoint: &Url,
         client_auth_challenge: ClientAttestationChallengeMechanism,
-        token_request: TokenRequest,
+        token_request: VciTokenRequest,
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
         trust_anchors: &TrustAnchors,
@@ -499,7 +499,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let offered_credential_configs = Self::filter_offered_credential_configs(
             credential_configurations,
-            token_response.scope.as_ref(),
+            token_response.oauth_response.scope.as_ref(),
             token_response.authorization_details,
         )?;
 
@@ -515,7 +515,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             Self::fetch_type_metadata(credential_config_iter, &credential_issuer, &message_client),
             Self::request_previews(
                 credential_preview_endpoint.as_url(),
-                &token_response.access_token,
+                &token_response.oauth_response.access_token,
                 &message_client
             )
         )?;
@@ -541,7 +541,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let credential_request_types = credential_request_types_from_preview(&credential_previews, batch_size);
 
         let session_state = IssuanceState {
-            access_token: token_response.access_token,
+            access_token: token_response.oauth_response.access_token,
             credential_issuer,
             issuer_endpoints,
             batch_size,
@@ -1262,6 +1262,8 @@ mod tests {
     use jwt::nonce::Nonce;
     use mdoc::utils::serialization::TaggedBytes;
     use mockall::predicate::eq;
+    use oauth::errors::ErrorResponse;
+    use oauth::errors::RemoteErrorCode;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::issuer_identifier::IssuerUrl;
     use oauth::metadata::well_known::WellKnownMetadata;
@@ -1283,15 +1285,13 @@ mod tests {
 
     use super::*;
     use crate::authorization_details::AuthorizationDetails;
-    use crate::errors::ErrorResponse;
-    use crate::errors::RemoteErrorCode;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
     use crate::token::CredentialPreviewError;
-    use crate::token::TokenResponse;
+    use crate::token::VciTokenResponse;
     use crate::wallet_issuance::TypeMetadataChainError;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::mock::RecordingWiaClient;
@@ -1303,7 +1303,7 @@ mod tests {
     }
 
     fn invalid_grant_error() -> WalletIssuanceError {
-        WalletIssuanceError::TokenRequest(Box::new(ErrorResponse {
+        WalletIssuanceError::VciTokenRequest(Box::new(ErrorResponse {
             error: RemoteErrorCode::Known(TokenErrorCode::InvalidGrant),
             error_description: None,
             error_uri: None,
@@ -1313,8 +1313,8 @@ mod tests {
     #[test]
     fn map_pre_authorized_token_error_translates_only_pre_authorized_invalid_grant() {
         use oauth::token::AuthorizationCode;
-        let pre_authorized = TokenRequest::new_pre_authorized(AuthorizationCode::from("the-code".to_string()));
-        let authorization_code = TokenRequest::new_authorization_code(
+        let pre_authorized = VciTokenRequest::new_pre_authorized(AuthorizationCode::from("the-code".to_string()));
+        let authorization_code = VciTokenRequest::new_authorization_code(
             AuthorizationCode::from("the-code".to_string()),
             "https://example.com/redirect".parse().unwrap(),
             "code-verifier".to_string(),
@@ -1330,18 +1330,18 @@ mod tests {
         // not be translated.
         assert_matches!(
             map_pre_authorized_token_error(invalid_grant_error(), &authorization_code),
-            WalletIssuanceError::TokenRequest(_)
+            WalletIssuanceError::VciTokenRequest(_)
         );
 
         // Any other error code in the pre-authorized flow is left untouched.
-        let other = WalletIssuanceError::TokenRequest(Box::new(ErrorResponse {
+        let other = WalletIssuanceError::VciTokenRequest(Box::new(ErrorResponse {
             error: RemoteErrorCode::Known(TokenErrorCode::InvalidRequest),
             error_description: None,
             error_uri: None,
         }));
         assert_matches!(
             map_pre_authorized_token_error(other, &pre_authorized),
-            WalletIssuanceError::TokenRequest(_)
+            WalletIssuanceError::VciTokenRequest(_)
         );
     }
 
@@ -1402,7 +1402,7 @@ mod tests {
             batch_size,
             &oauth_metadata.oauth_metadata.token_endpoint,
             mechanism,
-            TokenRequest::new_mock(),
+            VciTokenRequest::new_mock(),
             &wia_client,
             &oauth_metadata.oauth_metadata.issuer,
             &trust_anchors,
@@ -1466,12 +1466,14 @@ mod tests {
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client.expect_request_token().return_once(
             move |_url, _token_request, _dpop_header, _wia_disclosure| {
-                let token_response = TokenResponse {
-                    access_token: "access_token".to_string().into(),
-                    token_type: TokenType::DPoP,
-                    expires_in: None,
-                    refresh_token: None,
-                    scope,
+                let token_response = VciTokenResponse {
+                    oauth_response: oauth::token::TokenResponse {
+                        access_token: "access_token".to_string().into(),
+                        token_type: TokenType::DPoP,
+                        expires_in: None,
+                        refresh_token: None,
+                        scope,
+                    },
                     authorization_details,
                 };
 
@@ -1521,7 +1523,7 @@ mod tests {
                     .challenge_endpoint
                     .unwrap(),
             ),
-            TokenRequest::new_mock(),
+            VciTokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.oauth_metadata.issuer,
             trust_anchors,
@@ -1932,7 +1934,7 @@ mod tests {
         mock_msg_client.expect_request_token().return_once(
             move |_url, _token_request, _dpop_header, _wia_disclosure| {
                 let token_response =
-                    TokenResponse::new_vci("access_token".to_string().into(), Some(authorization_details));
+                    VciTokenResponse::new_vci("access_token".to_string().into(), Some(authorization_details));
 
                 Ok((token_response, None))
             },
@@ -1982,7 +1984,7 @@ mod tests {
                     .challenge_endpoint
                     .unwrap(),
             ),
-            TokenRequest::new_mock(),
+            VciTokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.oauth_metadata.issuer,
             &TrustAnchors::from(&ca),

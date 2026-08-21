@@ -19,6 +19,7 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
+use oauth::errors::AuthorizationErrorResponse;
 use oauth::jose::JwsAlgorithm;
 use parking_lot::Mutex;
 use url::Url;
@@ -26,7 +27,6 @@ use utils::vec_nonempty;
 
 use super::VpMessageClient;
 use super::VpMessageClientError;
-use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::ClientId;
 use crate::openid4vp::MsoMdocAlgValues;

@@ -104,9 +104,9 @@ use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
 use crate::token::CredentialPreview;
-use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
-use crate::token::TokenResponse;
+use crate::token::VciTokenRequest;
+use crate::token::VciTokenResponse;
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
@@ -899,10 +899,10 @@ where
     /// flow (wallet PKCE is then verified by the `openid4vc` layer at `/token`).
     pub async fn process_token_request(
         &self,
-        token_request: TokenRequest,
+        token_request: VciTokenRequest,
         dpop: Dpop,
         wia_disclosure: WiaDisclosure,
-    ) -> Result<(TokenResponse, String), TokenRequestError> {
+    ) -> Result<(VciTokenResponse, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
         let session = self
@@ -1111,17 +1111,17 @@ fn utc_now_truncated_to_days() -> DateTime<Utc> {
 /// the `openid4vc` layer should persist in its place. The `Err` variant is boxed to keep the size of
 /// the `Result` reasonable.
 type ProcessTokenRequest =
-    Result<(TokenResponse, String, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
+    Result<(VciTokenResponse, String, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
 
 impl Grant {
     /// Verify that the `grant_type` of the token request matches the grant captured for this session.
-    fn verify_grant_type(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
-        match (self, &token_request.grant_type) {
+    fn verify_grant_type(&self, token_request: &VciTokenRequest) -> Result<(), TokenRequestError> {
+        match (self, &token_request.oauth_request.grant_type) {
             (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. }) => Ok(()),
             (Grant::AuthorizationCode(_), TokenRequestGrantType::AuthorizationCode { .. }) => Ok(()),
             _ => Err(TokenRequestError::UnexpectedGrantType {
                 expected: self.to_string(),
-                actual: token_request.grant_type.to_string(),
+                actual: token_request.oauth_request.grant_type.to_string(),
             }),
         }
     }
@@ -1129,13 +1129,13 @@ impl Grant {
     /// Verify the wallet's PKCE `code_verifier` (RFC 7636). `PreAuthorizedCode` carries no PKCE and
     /// passes unconditionally; `AuthorizationCode` requires a `code_verifier` whose S256 challenge
     /// matches the one captured at `/authorize`.
-    fn verify_pkce(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+    fn verify_pkce(&self, token_request: &VciTokenRequest) -> Result<(), TokenRequestError> {
         let Grant::AuthorizationCode(AuthRequestValues { code_challenge, .. }) = self else {
             // Pre-authorized-code grant: no PKCE to verify.
             return Ok(());
         };
 
-        match token_request.code_verifier.as_deref() {
+        match token_request.oauth_request.code_verifier.as_deref() {
             None => Err(TokenRequestError::MissingCodeVerifier),
             Some(verifier) if S256PkcePair::challenge_for(verifier) == *code_challenge => Ok(()),
             Some(_) => Err(TokenRequestError::PkceVerificationFailed),
@@ -1174,8 +1174,8 @@ impl Grant {
         Ok(())
     }
 
-    /// Verify the `scope` of the [`TokenRequest`], if it is present.
-    fn verify_scope(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+    /// Verify the `scope` of the [`VciTokenRequest`], if it is present.
+    fn verify_scope(&self, token_request: &VciTokenRequest) -> Result<(), TokenRequestError> {
         match self {
             Grant::AuthorizationCode(AuthRequestValues {
                 scope: request_scope, ..
@@ -1184,7 +1184,7 @@ impl Grant {
                 // Request in the Token Request. We choose not to have the issuer support this restriction, so instead
                 // we check that the scope in the Token Request is exactly the same as what was included in the
                 // Authorization Request.
-                if let Some(scope) = token_request.scope.as_ref()
+                if let Some(scope) = token_request.oauth_request.scope.as_ref()
                     && scope != request_scope
                 {
                     return Err(TokenRequestError::ScopeMismatch {
@@ -1197,7 +1197,7 @@ impl Grant {
             Grant::PreAuthorizedCode => {
                 // If the Token Request was Pre-Authorized, we choose not to support scope values at all.
                 // TODO (PVW-6161): Support scope values for the Pre-Authorized Code flow.
-                if let Some(scope) = token_request.scope.as_ref() {
+                if let Some(scope) = token_request.oauth_request.scope.as_ref() {
                     return Err(TokenRequestError::PreAuthorizedScopeUnsupported(scope.clone()));
                 }
             }
@@ -1206,14 +1206,15 @@ impl Grant {
         Ok(())
     }
 
-    /// Verify the `redirect_uri` of the [`TokenRequest`] when in the Authorization Code flow.
-    fn verify_redirect_uri(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+    /// Verify the `redirect_uri` of the [`VciTokenRequest`] when in the Authorization Code flow.
+    fn verify_redirect_uri(&self, token_request: &VciTokenRequest) -> Result<(), TokenRequestError> {
         if let Grant::AuthorizationCode(AuthRequestValues {
             redirect_uri: request_redirect_uri,
             ..
         }) = self
         {
             let redirect_uri = token_request
+                .oauth_request
                 .redirect_uri
                 .as_ref()
                 .ok_or(TokenRequestError::MissingRedirectUri)?;
@@ -1237,7 +1238,7 @@ impl Session<AuthCodeIssued> {
     )]
     async fn process_token_request<K, L>(
         self,
-        token_request: &TokenRequest,
+        token_request: &VciTokenRequest,
         dpop: Dpop,
         wia_disclosure: &WiaDisclosure,
         server_url: &BaseUrl,
@@ -1261,18 +1262,18 @@ impl Session<AuthCodeIssued> {
     #[expect(clippy::too_many_arguments, reason = "no natural grouping of these parameters")]
     async fn validate_and_build_token_response<K, L>(
         &self,
-        token_request: &TokenRequest,
+        token_request: &VciTokenRequest,
         dpop: Dpop,
         wia_disclosure: &WiaDisclosure,
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &impl NonceStore,
-    ) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
+    ) -> Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
         let wia_claims = verify_wia_and_consume_nonce(
             issuer_data,
             nonce_store,
             wia_disclosure,
-            token_request.client_id.as_deref(),
+            token_request.oauth_request.client_id.as_deref(),
         )
         .await
         .map_err(TokenRequestError::Wia)?;
@@ -1307,12 +1308,12 @@ impl Session<AuthCodeIssued> {
     /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
     fn finalize_token_response(
         self,
-        result: Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError>,
+        result: Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
             Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(AccessTokenIssued {
-                    access_token: token_response.access_token.clone(),
+                    access_token: token_response.oauth_response.access_token.clone(),
                     prepared_credentials,
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
@@ -1336,7 +1337,7 @@ fn build_token_response<K, L>(
     server_url: &BaseUrl,
     credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
     issuer_data: &IssuerData<K, L>,
-) -> Result<(TokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
+) -> Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, String), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -1368,7 +1369,8 @@ fn build_token_response<K, L>(
     //
     // In the the Pre-Authorized Code flow we do not allow `scope` values from the wallet, so any scope restriction does
     // not apply.
-    let token_response = TokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
+    let token_response =
+        VciTokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
 
     Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))
 }
@@ -1843,6 +1845,8 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
     use oauth::dpop::Dpop;
+    use oauth::errors::ErrorResponse;
+    use oauth::errors::RemoteErrorCode;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::token::AccessToken;
     use p256::ecdsa::SigningKey;
@@ -1867,8 +1871,6 @@ mod tests {
     use crate::credential::CredentialResponses;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
-    use crate::errors::ErrorResponse;
-    use crate::errors::RemoteErrorCode;
     use crate::errors::TokenErrorCode;
     use crate::issuable_document::IssuableDocument;
     use crate::nonce::response::NonceResponse;
@@ -1880,8 +1882,8 @@ mod tests {
     use crate::test::mock_issuable_documents;
     use crate::test::setup_mock_issuer;
     use crate::test::setup_mock_issuer_attestation_types_and_metadata;
-    use crate::token::TokenRequest;
-    use crate::token::TokenResponse;
+    use crate::token::VciTokenRequest;
+    use crate::token::VciTokenResponse;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
@@ -2048,10 +2050,10 @@ mod tests {
         async fn request_token(
             &self,
             _url: &Url,
-            token_request: &TokenRequest,
+            token_request: &VciTokenRequest,
             dpop_header: &Dpop,
             wia: &WiaDisclosure,
-        ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+        ) -> Result<(VciTokenResponse, Option<String>), WalletIssuanceError> {
             let wia = self.wia_override.as_ref().unwrap_or(wia);
             let (token_response, dpop_nonce) = self
                 .issuer
@@ -2060,7 +2062,7 @@ mod tests {
                 .map_err(|error| {
                     let error_response = ErrorResponse::<TokenErrorCode>::from(error);
 
-                    WalletIssuanceError::TokenRequest(Box::new(error_response.into()))
+                    WalletIssuanceError::VciTokenRequest(Box::new(error_response.into()))
                 })?;
             Ok((token_response, Some(dpop_nonce)))
         }
@@ -2206,7 +2208,7 @@ mod tests {
                     .challenge_endpoint
                     .unwrap(),
             ),
-            TokenRequest::new_mock_with_pre_authorized_code(code),
+            VciTokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &oauth_metadata.oauth_metadata.issuer,
             &trust_anchors,
@@ -2268,7 +2270,7 @@ mod tests {
                     .challenge_endpoint
                     .unwrap(),
             ),
-            TokenRequest::new_mock_with_pre_authorized_code(session_token),
+            VciTokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
             &oauth_metadata.oauth_metadata.issuer,
             &trust_anchors,
@@ -2297,7 +2299,7 @@ mod tests {
             start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
         assert_matches!(
             error,
-            WalletIssuanceError::TokenRequest(err)
+            WalletIssuanceError::VciTokenRequest(err)
                 if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
         );
     }
@@ -2321,7 +2323,7 @@ mod tests {
             start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
         assert_matches!(
             error,
-            WalletIssuanceError::TokenRequest(err)
+            WalletIssuanceError::VciTokenRequest(err)
                 if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
         );
     }
@@ -2346,14 +2348,14 @@ mod tests {
             start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
         assert_matches!(
             error,
-            WalletIssuanceError::TokenRequest(err)
+            WalletIssuanceError::VciTokenRequest(err)
                 if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
         );
     }
 
-    /// Builds a `TokenRequest` for a fresh pre-authorized session on `issuer`, along with a `Dpop`
+    /// Builds a `VciTokenRequest` for a fresh pre-authorized session on `issuer`, along with a `Dpop`
     /// proof that verifies against the issuer's token endpoint
-    async fn mock_token_request_and_dpop(issuer: &MockIssuer) -> (TokenRequest, Dpop) {
+    async fn mock_token_request_and_dpop(issuer: &MockIssuer) -> (VciTokenRequest, Dpop) {
         let code = issuer
             .new_preauthorized_session(mock_issuable_documents(NonZeroUsize::MIN))
             .await
@@ -2364,7 +2366,7 @@ mod tests {
             .unwrap()
             .pre_authorized_code;
 
-        let token_request = TokenRequest::new_mock_with_pre_authorized_code(code);
+        let token_request = VciTokenRequest::new_mock_with_pre_authorized_code(code);
         let dpop = Dpop::new(
             &SigningKey::generate(),
             issuer.issuer_data.server_url.join("token"),

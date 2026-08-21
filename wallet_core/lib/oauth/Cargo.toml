@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+axum = { workspace = true, optional = true }
 base64.workspace = true
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = [
@@ -17,6 +18,7 @@ derive_more = { workspace = true, features = [
     "into",
 ] }
 futures = { workspace = true, features = ["async-await"] }
+http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["serde"] }
 reqwest.workspace = true
@@ -37,12 +39,15 @@ utils.path = "../utils"
 mockall = { workspace = true, optional = true }
 
 [features]
+# Include implementations of the axum IntoResponse trait.
+axum = ["dep:axum", "axum/json"]
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["dep:mockall"]
+# Include miscellaneous test utilities
+test = []
 
 [dev-dependencies]
-http.workspace = true
 httpmock.workspace = true
 mime.workspace = true
 mockall.workspace = true
