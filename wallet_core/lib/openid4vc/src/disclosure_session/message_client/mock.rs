@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use chrono::Utc;
 use cose::KnownCoseAlgorithmIdentifier;
 use crypto::server_keys::KeyPair;
@@ -8,6 +9,7 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
+use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
 use derive_more::Debug;
@@ -165,6 +167,7 @@ pub struct MockVerifierSession {
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
     pub key_pair: KeyPair,
     pub crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    pub registration_certificate: Option<MockRegistrationCertificate>,
     pub vp_formats_supported: VpFormatsSupported,
 }
 
@@ -182,6 +185,9 @@ impl MockVerifierSession {
         let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
         let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
 
+        let registration_certificate =
+            MockRegistrationCertificate::new(key_pair.certificate(), Query::from(credential_requests.clone()));
+
         // Generate some OpenID4VP specific session material.
         let nonce = Nonce::new_random();
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
@@ -195,6 +201,7 @@ impl MockVerifierSession {
             trust_anchors,
             key_pair,
             crl_verifier,
+            registration_certificate: Some(registration_certificate),
             credential_requests,
             nonce,
             state: None,
@@ -248,7 +255,12 @@ impl MockVerifierSession {
 
     /// Generate the first protocol message of the verifier.
     fn signed_auth_request(&self, wallet_request: WalletRequest) -> SignedJwt<VpAuthorizationRequest, HeaderWithX5c> {
-        let request = create_vp_authorization_request(self.normalized_auth_request(wallet_request.wallet_nonce), None);
+        let request = create_vp_authorization_request(
+            self.normalized_auth_request(wallet_request.wallet_nonce),
+            self.registration_certificate
+                .as_ref()
+                .map(|certificate| certificate.certificate.as_slice()),
+        );
 
         SignedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()

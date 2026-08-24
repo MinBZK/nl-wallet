@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
+use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_data::test_credential::TestCredentials;
 use attestation_data::test_credential::nl_pid_address_credentials_all;
 use attestation_data::test_credential::nl_pid_address_minimal_address;
@@ -284,6 +285,7 @@ async fn disclosure_using_message_client(
         issuer_ca.generate_pid_issuer_status_list_mock().unwrap(),
     );
     let request_uri = message_client.start_session();
+    let registration_certificate_trust_anchors = message_client.registration_certificate.trust_anchors.clone();
 
     // Perform the first part, which creates the disclosure session.
     let client = VpDisclosureClient::new(
@@ -295,7 +297,7 @@ async fn disclosure_using_message_client(
             &request_uri,
             DisclosureUriSource::Link,
             &TrustAnchors::from(&ca),
-            &TrustAnchors::empty(),
+            &registration_certificate_trust_anchors,
         )
         .await
         .unwrap();
@@ -320,6 +322,7 @@ struct DirectMockVpMessageClient {
     response_uri: BaseUrl,
     trust_anchors: TrustAnchors,
     status_list_keypair: KeyPair,
+    registration_certificate: MockRegistrationCertificate,
 }
 
 impl DirectMockVpMessageClient {
@@ -353,6 +356,10 @@ impl DirectMockVpMessageClient {
             response_uri.clone(),
             None,
         );
+        let registration_certificate = MockRegistrationCertificate::new(
+            auth_keypair.certificate(),
+            Query::from(auth_request.credential_requests.clone()),
+        );
 
         Self {
             test_credentials,
@@ -364,6 +371,7 @@ impl DirectMockVpMessageClient {
             response_uri,
             trust_anchors,
             status_list_keypair,
+            registration_certificate,
         }
     }
 
@@ -387,7 +395,10 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let auth_request = create_vp_authorization_request(self.auth_request.clone(), None);
+        let auth_request = create_vp_authorization_request(
+            self.auth_request.clone(),
+            Some(&self.registration_certificate.certificate),
+        );
         let jws = SignedJwt::sign_with_certificate(&auth_request, &self.auth_keypair)
             .await
             .unwrap()

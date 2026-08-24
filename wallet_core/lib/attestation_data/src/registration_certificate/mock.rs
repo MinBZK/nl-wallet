@@ -111,13 +111,43 @@ fn registration_certificate_payload(
     RegistrationCertificateFixture(payload)
 }
 
+#[derive(Debug, Clone)]
+pub struct MockRegistrationCertificate {
+    pub certificate: Vec<u8>,
+    pub trust_anchors: TrustAnchors,
+    pub status_list_client: StaticStatusListClient,
+}
+
+impl MockRegistrationCertificate {
+    pub fn new(access_certificate: &BorrowingCertificate, query: Query) -> Self {
+        let authority = MockRegistrationCertificateAuthority::new();
+        let certificate = authority.issue(access_certificate, query);
+
+        Self {
+            certificate,
+            trust_anchors: authority.trust_anchors,
+            status_list_client: authority.status_list_client,
+        }
+    }
+}
+
 pub struct MockRegistrationCertificateAuthority {
     ca: Ca,
     pub trust_anchors: TrustAnchors,
     pub status_list_client: StaticStatusListClient,
 }
 
+impl Default for MockRegistrationCertificateAuthority {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockRegistrationCertificateAuthority {
+    pub fn new() -> Self {
+        Self::new_with_status(StatusType::Valid)
+    }
+
     pub fn new_with_status(status: StatusType) -> Self {
         let ca = Ca::generate_mock();
         let trust_anchors = TrustAnchors::from(&ca);
