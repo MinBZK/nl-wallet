@@ -24,10 +24,10 @@ pub enum VpMessageClientError {
     Json(#[from] serde_json::Error),
 
     #[error("auth request server error response: {0:?}")]
-    AuthGetResponse(Box<RemoteDisclosureErrorResponse<GetAuthRequestErrorCode>>),
+    AuthGetResponse(RemoteDisclosureErrorResponse<GetAuthRequestErrorCode>),
 
     #[error("auth request server error response: {0:?}")]
-    AuthPostResponse(Box<RemoteDisclosureErrorResponse<PostAuthResponseErrorCode>>),
+    AuthPostResponse(RemoteDisclosureErrorResponse<PostAuthResponseErrorCode>),
 
     #[error("JWT error: {0}")]
     InvalidJwt(#[from] jwt::error::JwtParseError),
@@ -66,8 +66,8 @@ impl VpMessageClientError {
 
     pub fn redirect_uri(&self) -> Option<&Url> {
         match self {
-            Self::AuthGetResponse(response) => response.redirect_uri.as_ref(),
-            Self::AuthPostResponse(response) => response.redirect_uri.as_ref(),
+            Self::AuthGetResponse(response) => response.redirect_uri.as_deref(),
+            Self::AuthPostResponse(response) => response.redirect_uri.as_deref(),
             _ => None,
         }
     }
@@ -75,12 +75,12 @@ impl VpMessageClientError {
 
 impl From<RemoteDisclosureErrorResponse<GetAuthRequestErrorCode>> for VpMessageClientError {
     fn from(value: RemoteDisclosureErrorResponse<GetAuthRequestErrorCode>) -> Self {
-        Self::AuthGetResponse(value.into())
+        Self::AuthGetResponse(value)
     }
 }
 
 impl From<RemoteDisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClientError {
     fn from(value: RemoteDisclosureErrorResponse<PostAuthResponseErrorCode>) -> Self {
-        Self::AuthPostResponse(value.into())
+        Self::AuthPostResponse(value)
     }
 }

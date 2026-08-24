@@ -428,7 +428,7 @@ where
                 state, request_values, ..
             } = entry.context;
 
-            return Err(RedirectError::new(Error::ExpiredState, request_values.redirect_uri, state).into());
+            return Err(RedirectError::new(Error::ExpiredState, Box::new(request_values.redirect_uri), state).into());
         }
         Ok(Consumed::Absent) => {
             warn!("digid callback: unknown bridge key");
@@ -472,7 +472,7 @@ where
 
             // Return any error from completing the callback as a 303 redirect to the `redirect_uri`, including the
             // `state` if it was present in the Authorization Request.
-            return Err(RedirectError::new(error, redirect_uri, state).into());
+            return Err(RedirectError::new(error, Box::new(redirect_uri), state).into());
         }
     };
 

@@ -445,9 +445,12 @@ where
         Ok(Consumed::Expired(context)) => {
             info!("consent submit: flow state expired; redirecting to wallet with error");
 
-            return Err(
-                RedirectError::new(Error::ExpiredState, context.request_values.redirect_uri, context.state).into(),
-            );
+            return Err(RedirectError::new(
+                Error::ExpiredState,
+                Box::new(context.request_values.redirect_uri),
+                context.state,
+            )
+            .into());
         }
         Ok(Consumed::Absent) => {
             warn!("consent submit: unknown flow state");
@@ -484,7 +487,7 @@ where
 
             // Return any error from completing consent as a 303 redirect to the `redirect_uri`, including the `state`
             // if it was present in the Authorization Request.
-            return Err(RedirectError::new(error, redirect_uri, state).into());
+            return Err(RedirectError::new(error, Box::new(redirect_uri), state).into());
         }
     };
 

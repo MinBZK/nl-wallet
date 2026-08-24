@@ -1205,6 +1205,7 @@ mod tests {
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
+    use crate::disclosure_session::VpClientError;
     use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
@@ -2777,7 +2778,7 @@ mod tests {
     fn test_authorization_request_unrecognized() {
         let query = "foo=bar";
         let result = serde_qs::from_str::<VpRequestUri>(query)
-            .map_err(crate::disclosure_session::VpClientError::RequestUri)
+            .map_err(VpClientError::RequestUri)
             .expect_err("unrecognized request object should fail to parse as VpRequestUri");
 
         assert_matches!(result, crate::disclosure_session::VpClientError::RequestUri(_));

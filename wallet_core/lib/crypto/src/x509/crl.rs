@@ -37,7 +37,7 @@ pub enum CrlFetchError {
     TooLarge,
     #[cfg(any(test, feature = "mock"))]
     #[error("no mock CRL configured for URL: {0}")]
-    MockCrlNotFound(Url),
+    MockCrlNotFound(Box<Url>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -45,13 +45,13 @@ pub enum CrlFetchError {
 pub enum CrlRetrievalError {
     #[error("failed to fetch CRL from {url}: {source}")]
     Fetch {
-        url: Url,
+        url: Box<Url>,
         #[source]
         source: CrlFetchError,
     },
     #[error("failed to parse CRL from {url}: {source}")]
     Parsing {
-        url: Url,
+        url: Box<Url>,
         #[source]
         source: webpki::Error,
     },
@@ -68,7 +68,7 @@ pub enum CertificateCrlVerificationError {
     #[category(pd)]
     CrlRetrieval {
         #[source]
-        source: Box<CrlRetrievalError>,
+        source: CrlRetrievalError,
         additional_errors: Vec<CrlRetrievalError>,
     },
     #[error("invalid CRL distribution point URL: {0}")]
@@ -270,7 +270,7 @@ where
         let mut errors = errors.into_iter();
         if let Some(source) = errors.next() {
             return Err(CertificateCrlVerificationError::CrlRetrieval {
-                source: Box::new(source),
+                source,
                 additional_errors: errors.collect(),
             });
         }
@@ -290,7 +290,7 @@ where
             .fetch(&url)
             .await
             .map_err(|source| CrlRetrievalError::Fetch {
-                url: url.clone(),
+                url: Box::new(url.clone()),
                 source,
             })?;
 
@@ -307,7 +307,7 @@ where
             .min(MAX_TTL);
 
         let crl = parse_crl_der(&bytes).map_err(|source| CrlRetrievalError::Parsing {
-            url: url.clone(),
+            url: Box::new(url.clone()),
             source,
         })?;
         let fetched = Arc::new(ParsedCrl { crl, ttl });
@@ -457,7 +457,7 @@ pub mod mock {
             self.crls
                 .get(url)
                 .cloned()
-                .ok_or_else(|| CrlFetchError::MockCrlNotFound(url.clone()))
+                .ok_or_else(|| CrlFetchError::MockCrlNotFound(Box::new(url.clone())))
         }
     }
 
@@ -549,7 +549,7 @@ mod tests {
             self.crls
                 .get(url)
                 .cloned()
-                .ok_or_else(|| CrlFetchError::MockCrlNotFound(url.clone()))
+                .ok_or_else(|| CrlFetchError::MockCrlNotFound(Box::new(url.clone())))
         }
     }
 
@@ -860,7 +860,7 @@ mod tests {
             CertificateCrlVerificationError::CrlRetrieval {
                 source,
                 additional_errors,
-            } if matches!(*source, CrlRetrievalError::Fetch {
+            } if matches!(source, CrlRetrievalError::Fetch {
                 source: CrlFetchError::Http(_),
                 ..
             }) && additional_errors.is_empty()
@@ -1007,15 +1007,15 @@ mod tests {
                 additional_errors,
             } => {
                 assert!(matches!(
-                    *source,
+                    source,
                     CrlRetrievalError::Fetch {
                         url,
                         source: CrlFetchError::Http(_),
-                    } if url == unavailable_url
+                    } if *url == unavailable_url
                 ));
                 assert!(matches!(
                     additional_errors.as_slice(),
-                    [CrlRetrievalError::Parsing { url, .. }] if url == &malformed_url
+                    [CrlRetrievalError::Parsing { url, .. }] if url.as_ref() == &malformed_url
                 ));
             }
             error => panic!("unexpected error: {error:?}"),
@@ -1056,15 +1056,15 @@ mod tests {
                 additional_errors,
             } => {
                 assert!(matches!(
-                    *source,
+                    source,
                     CrlRetrievalError::Fetch {
                         url,
                         source: CrlFetchError::Http(_),
-                    } if url == unavailable_url
+                    } if *url == unavailable_url
                 ));
                 assert!(matches!(
                     additional_errors.as_slice(),
-                    [CrlRetrievalError::Parsing { url, .. }] if url == &malformed_url
+                    [CrlRetrievalError::Parsing { url, .. }] if url.as_ref() == &malformed_url
                 ));
             }
             error => panic!("unexpected error: {error:?}"),
@@ -1097,7 +1097,7 @@ mod tests {
             CertificateCrlVerificationError::CrlRetrieval {
                 source,
                 additional_errors,
-            } if matches!(*source, CrlRetrievalError::Parsing { .. }) && additional_errors.is_empty()
+            } if matches!(source, CrlRetrievalError::Parsing { .. }) && additional_errors.is_empty()
         ));
         mock.assert_calls_async(1).await;
     }
@@ -1126,7 +1126,7 @@ mod tests {
             CertificateCrlVerificationError::CrlRetrieval {
                 source,
                 additional_errors,
-            } if matches!(*source, CrlRetrievalError::Fetch {
+            } if matches!(source, CrlRetrievalError::Fetch {
                 source: CrlFetchError::TooLarge,
                 ..
             }) && additional_errors.is_empty()
