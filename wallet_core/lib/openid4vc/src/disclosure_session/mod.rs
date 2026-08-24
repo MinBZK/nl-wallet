@@ -48,7 +48,8 @@ pub trait DisclosureClient {
         &self,
         request_uri_query: &str,
         uri_source: DisclosureUriSource,
-        trust_anchors: &TrustAnchors,
+        wrpac_trust_anchors: &TrustAnchors,
+        wrprc_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Session, VpSessionError>;
 }
 

@@ -126,7 +126,8 @@ where
         &self,
         uri_query: &str,
         uri_source: DisclosureUriSource,
-        trust_anchors: &TrustAnchors,
+        wrpac_trust_anchors: &TrustAnchors,
+        _wrprc_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
@@ -196,7 +197,7 @@ where
             .await?;
 
         let (vp_auth_request, certificate) =
-            VpAuthorizationRequest::try_new(&jws, trust_anchors, &self.crl_verifier).await?;
+            VpAuthorizationRequest::try_new(&jws, wrpac_trust_anchors, &self.crl_verifier).await?;
         let response_uri = vp_auth_request.response_uri.clone();
         let state = vp_auth_request.oauth_request.state.clone();
 
@@ -385,6 +386,7 @@ mod tests {
                 &verifier_session.request_uri_query(),
                 uri_source,
                 &verifier_session.trust_anchors,
+                &TrustAnchors::empty(),
             )
             .now_or_never()
             .unwrap();
@@ -615,7 +617,12 @@ mod tests {
         );
 
         let error = client
-            .start("", DisclosureUriSource::Link, &TrustAnchors::empty())
+            .start(
+                "",
+                DisclosureUriSource::Link,
+                &TrustAnchors::empty(),
+                &TrustAnchors::empty(),
+            )
             .now_or_never()
             .unwrap()
             .expect_err("starting a new disclosure session with an invalid request URI object should not succeed");
@@ -639,7 +646,12 @@ mod tests {
         .unwrap();
 
         let error = client
-            .start(&query, DisclosureUriSource::Link, &TrustAnchors::empty())
+            .start(
+                &query,
+                DisclosureUriSource::Link,
+                &TrustAnchors::empty(),
+                &TrustAnchors::empty(),
+            )
             .now_or_never()
             .unwrap()
             .expect_err(
@@ -671,7 +683,12 @@ mod tests {
         .unwrap();
 
         let error = client
-            .start(&query, DisclosureUriSource::Link, &TrustAnchors::empty())
+            .start(
+                &query,
+                DisclosureUriSource::Link,
+                &TrustAnchors::empty(),
+                &TrustAnchors::empty(),
+            )
             .now_or_never()
             .unwrap()
             .expect_err(
@@ -811,7 +828,12 @@ mod tests {
 
         let client = VpDisclosureClient::new(error_client, CertificateCrlVerifier::<MockCrlFetcher>::default());
         let error = client
-            .start(&request_query, DisclosureUriSource::Link, &TrustAnchors::empty())
+            .start(
+                &request_query,
+                DisclosureUriSource::Link,
+                &TrustAnchors::empty(),
+                &TrustAnchors::empty(),
+            )
             .now_or_never()
             .unwrap()
             .expect_err("starting a new disclosure session which encounters an http error should not succeed");

@@ -30,7 +30,8 @@ mockall::mock! {
             &self,
             request_uri_query: &str,
             uri_source: DisclosureUriSource,
-            trust_anchors: &TrustAnchors,
+            wrpac_trust_anchors: &TrustAnchors,
+            wrprc_trust_anchors: &TrustAnchors,
         ) -> Result<MockDisclosureSession, VpSessionError>;
     }
 }

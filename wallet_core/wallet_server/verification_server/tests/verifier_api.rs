@@ -874,7 +874,7 @@ async fn perform_full_disclosure(
         crl_verifier,
     );
     let disclosure_session = disclosure_client
-        .start(&request_uri_query, uri_source, &rp_trust_anchor)
+        .start(&request_uri_query, uri_source, &rp_trust_anchor, &TrustAnchors::empty())
         .await
         .expect("disclosure session should start at client side");
 
@@ -1065,7 +1065,12 @@ async fn test_disclosed_attributes_failed_session() {
         crl_verifier,
     );
     let disclosure_session = disclosure_client
-        .start(&request_uri_query, DisclosureUriSource::QrCode, &rp_trust_anchor)
+        .start(
+            &request_uri_query,
+            DisclosureUriSource::QrCode,
+            &rp_trust_anchor,
+            &TrustAnchors::empty(),
+        )
         .await
         .expect("disclosure session should start at client side");
 

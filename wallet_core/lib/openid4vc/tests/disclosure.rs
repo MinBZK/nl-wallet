@@ -291,7 +291,12 @@ async fn disclosure_using_message_client(
         CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca),
     );
     let session = client
-        .start(&request_uri, DisclosureUriSource::Link, &TrustAnchors::from(&ca))
+        .start(
+            &request_uri,
+            DisclosureUriSource::Link,
+            &TrustAnchors::from(&ca),
+            &TrustAnchors::empty(),
+        )
         .await
         .unwrap();
 
@@ -1200,7 +1205,9 @@ where
     let client = VpDisclosureClient::new(VerifierMockVpMessageClient::new(verifier), crl_verifier);
 
     // Start session in the wallet
-    client.start(request_uri, uri_source, &trust_anchor).await
+    client
+        .start(request_uri, uri_source, &trust_anchor, &TrustAnchors::empty())
+        .await
 }
 
 async fn request_uri_from_status_endpoint(
