@@ -1096,8 +1096,10 @@ where
     let test_credentials = nl_pid_credentials_full_name();
     let dcql_query = test_credentials.to_dcql_query([Format::SdJwt]);
     let use_case = WalletInitiatedUseCase::new(
-        wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap(),
-        SessionTypeReturnUrl::SameDevice,
+        UseCaseData::new(
+            wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap(),
+            SessionTypeReturnUrl::SameDevice,
+        ),
         dcql_query.try_into().unwrap(),
         "https://example.com/redirect_uri".parse().unwrap(),
     );

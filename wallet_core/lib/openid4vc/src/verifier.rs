@@ -848,20 +848,12 @@ pub struct WalletInitiatedUseCases<K> {
 
 impl<K> WalletInitiatedUseCase<K> {
     pub fn new(
-        key_pair: KeyPair<K>,
-        session_type_return_url: SessionTypeReturnUrl,
+        data: UseCaseData<K>,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Self {
-        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
-
         Self {
-            data: UseCaseData {
-                key_pair,
-                client_id,
-                session_type_return_url,
-                registration_certificate: None,
-            },
+            data,
             credential_requests,
             return_url_template,
         }

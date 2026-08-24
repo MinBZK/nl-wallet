@@ -24,6 +24,7 @@ use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::UseCaseData;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::verifier::VerifierFactory;
@@ -225,8 +226,7 @@ impl VerifierSettings {
                         .map_err(VerifierSettingsError::PrivateKey)?;
 
                     let use_case = WalletInitiatedUseCase::new(
-                        key_pair,
-                        SessionTypeReturnUrl::Both,
+                        UseCaseData::new(key_pair, SessionTypeReturnUrl::Both),
                         attestation.dcql_query.try_into().map_err(VerifierSettingsError::Dcql)?,
                         format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
                     );
