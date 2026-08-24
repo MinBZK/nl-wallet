@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::str;
 use std::sync::Arc;
 
 use anyhow::Context;
-use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
+use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use dcql::Query;
@@ -22,9 +20,6 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use jwt::DEFAULT_VALIDATION;
-use jwt::UnverifiedJwt;
-use jwt::jades_b_b::JadesbbHeader;
 use nutype::nutype;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionStore;
@@ -178,21 +173,8 @@ fn validate_registration_certificate(
 ) -> Result<(), anyhow::Error> {
     let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
 
-    let payload = match str::from_utf8(registration_certificate) {
-        Ok(compact_jwt) if compact_jwt.split('.').count() == 3 => {
-            let unverified: UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader> = compact_jwt.parse()?;
-            let (_, payload) = unverified.parse_and_verify_against_trust_anchors(
-                trust_anchors,
-                &time,
-                None,
-                DEFAULT_VALIDATION.to_owned(),
-            )?;
-            payload
-        }
-        _ => UnverifiedWrprcCwt::<UncheckedRegistrationCertificate>::from_slice(registration_certificate)?
-            .into_verified_against_trust_anchors(trust_anchors, &time, None)?
-            .into_payload(),
-    };
+    let payload =
+        verify_registration_certificate_envelope(registration_certificate, trust_anchors, &time)?.into_payload();
 
     payload
         .validate_structure(&access_subject, time.generate())
