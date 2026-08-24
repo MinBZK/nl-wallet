@@ -179,16 +179,20 @@ open class MobileActions {
                 ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
             }
             Platform.IOS -> {
-                val predicate = partialTexts.joinToString(" AND ") { partialText ->
-                    val quotedText = quoteForIos(partialText)
-                    "name CONTAINS $quotedText"
+                // iOS renders a card's title and its status badge (e.g. the revoked label) as
+                // separate elements, so no single element's name contains all the texts. Instead
+                // scroll until every text is simultaneously on screen
+                val locators = partialTexts.map { By.xpath("//*[contains(@name, ${quoteForIos(it)})]") }
+                for (direction in listOf("up", "down")) {
+                    repeat(8) {
+                        if (locators.all { loc -> driver.findElements(loc).any { it.isDisplayed } }) return
+                        (driver as JavascriptExecutor).executeScript(
+                            "mobile: swipe",
+                            iosSwipeArgs(direction)
+                        )
+                    }
                 }
-                val scrollArgs = mutableMapOf<String, Any>("predicateString" to predicate, "toVisible" to true)
-                findIosScrollView()?.let { scrollArgs["element"] = it.id }
-                (driver as JavascriptExecutor).executeScript(
-                    "mobile: scroll",
-                    scrollArgs
-                ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
+                throw NoSuchElementException("Couldn't bring element containing all of $partialTexts into view")
             }
         }
     }
@@ -599,9 +603,12 @@ open class MobileActions {
                 )
             }
             Platform.IOS -> {
+                // The texts live in separate descendant elements of the card (e.g. title + status
+                // badge), so match a common ancestor that contains one descendant per text rather
+                // than a single element whose name contains them all.
                 val xpathConditions = partialTexts.joinToString(" and ") { partialText ->
                     val quotedText = quoteForIos(partialText)
-                    "contains(@name, $quotedText)"
+                    ".//*[contains(@name, $quotedText)]"
                 }
                 wait.until(
                     ExpectedConditions.presenceOfElementLocated(

@@ -8,6 +8,7 @@ import helper.LocalizationHelper
 import helper.OrganizationMetadataHelper
 import helper.OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM
 import helper.OrganizationMetadataHelper.Organization.ONLINE_MARKETPLACE
+import helper.OrganizationMetadataHelper.Organization.UNIVERSITY
 import helper.OrganizationMetadataHelper.Organization.XYZ_BANK
 import helper.TasDataHelper
 import helper.TestBase
@@ -98,7 +99,7 @@ class DisclosureTests : TestBase() {
         xyzBankWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
 
-        disclosureScreen.viewDisclosureOrganizationDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK))
         // PVW-6101 Check for organization details
 
         disclosureScreen.goBack()
@@ -124,7 +125,7 @@ class DisclosureTests : TestBase() {
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
-        disclosureScreen.viewDisclosureOrganizationDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK))
         // PVW-6101 Check for organization details
         disclosureScreen.goBack()
         disclosureScreen.cancel()
@@ -152,7 +153,7 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
 
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewDisclosureOrganizationDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
 
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
@@ -186,16 +187,20 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
+
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewDisclosureOrganizationDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
+
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
+
         disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
         assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
+
         disclosureScreen.goBack()
         disclosureScreen.viewLoginDisclosureDetails()
         disclosureScreen.goBack()
@@ -216,7 +221,7 @@ class DisclosureTests : TestBase() {
         marketPlaceWebPage.openSameDeviceWalletFlow()
         marketPlaceWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(ONLINE_MARKETPLACE)))
-        disclosureScreen.viewDisclosureOrganizationDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(ONLINE_MARKETPLACE))
         // PVW-6101 Check for organization details
         disclosureScreen.goBack()
         assertAll(
@@ -283,7 +288,7 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickJobFinderButton()
         jobFinderWebPage.openSameDeviceWalletFlow()
         jobFinderWebPage.switchToNativeContext()
-        disclosureScreen.viewDisclosureOrganizationDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY))
         // PVW-6101 Check for organization details
         disclosureScreen.goBack()
         disclosureScreen.clickSwapCardButton()

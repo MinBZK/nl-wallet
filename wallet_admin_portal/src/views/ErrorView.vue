@@ -9,11 +9,13 @@
       </div>
     </div>
 
-    <button type="button" class="close-button" @click="restart">Probeer opnieuw</button>
+    <AppButton @click="restart">Probeer opnieuw</AppButton>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppButton from '@/components/ui/AppButton.vue'
+
 function restart() {
   window.location.href = '/'
 }
@@ -59,21 +61,5 @@ p {
 .illustration {
   width: 300px;
   height: 214px;
-}
-
-.close-button {
-  border-radius: 6px;
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  font-size: 1rem;
-  line-height: 1.375;
-  padding: 0.75rem 1.5rem;
-  cursor: pointer;
-}
-
-.close-button:hover {
-  background: var(--color-primary-hover);
 }
 </style>

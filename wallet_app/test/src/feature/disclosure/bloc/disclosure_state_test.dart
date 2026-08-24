@@ -41,7 +41,6 @@ void main() {
       test('is correct for same device flow', () {
         final state = DisclosureCheckOrganizationForLogin(
           relyingParty: mockOrganization,
-          originUrl: 'https://example.com',
           sessionType: DisclosureSessionType.sameDevice,
           policy: mockPolicy,
           cardRequests: mockCardRequests,
@@ -53,7 +52,6 @@ void main() {
       test('is correct for cross device flow', () {
         final state = DisclosureCheckOrganizationForLogin(
           relyingParty: mockOrganization,
-          originUrl: 'https://example.com',
           sessionType: DisclosureSessionType.crossDevice,
           policy: mockPolicy,
           cardRequests: mockCardRequests,

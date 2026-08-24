@@ -27,6 +27,7 @@
             gnutls
             xxd
             nodejs
+            pnpm
             nodePackages.prettier
           ];
         };

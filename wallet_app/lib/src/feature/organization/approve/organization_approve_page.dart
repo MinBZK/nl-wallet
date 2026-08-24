@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/list_extension.dart';
@@ -26,28 +25,16 @@ class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user declines the request
   final VoidCallback onDeclinePressed;
 
-  /// Callback that is triggered when the user wants to report an issue
-  final VoidCallback? onReportIssuePressed;
-
   /// Callback that is triggered when the user presses the button to view the organization details
   final VoidCallback onShowDetailsPressed;
 
   /// The organization that user is interacting with
   final Organization organization;
 
-  /// The url from which the user should have opened the flow. Prominently displayed for the user to check
-  final String originUrl;
-
   /// Tells the Page in which flow it's currently used, used to select the correct string/icon resources
   final ApprovalPurpose purpose;
 
-  /// If true, the 'first interaction' banner will be shown
-  final bool sharedDataWithOrganizationBefore;
-
-  /// If `crossDevice`, the 'fraud warning' (including `originUrl`) will be shown
-  final DisclosureSessionType? sessionType;
-
-  /// Optional description, rendered between the title and (optional) fraud text.
+  /// Optional description, rendered below the title
   final String? description;
 
   const OrganizationApprovePage({
@@ -55,12 +42,8 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.onAcceptPressed,
     required this.onShowDetailsPressed,
     required this.organization,
-    required this.originUrl,
     required this.purpose,
     this.description,
-    this.onReportIssuePressed,
-    this.sharedDataWithOrganizationBefore = false,
-    this.sessionType,
     super.key,
   });
 

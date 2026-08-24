@@ -200,6 +200,7 @@ class RequestDetailCommonBuilders {
                 const SizedBox(height: 16),
                 Semantics(
                   header: true,
+                  headingLevel: 1,
                   child: DefaultTextStyle(
                     style: BaseWalletTheme.headlineExtraSmallTextStyle.copyWith(
                       color: context.textTheme.titleMedium?.color,

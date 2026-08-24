@@ -1284,7 +1284,7 @@ where
             .map_err(|error| {
                 let error_response = DisclosureErrorResponse::<GetAuthRequestErrorCode>::from(error);
 
-                VpMessageClientError::AuthGetResponse(Box::new(error_response.into()))
+                VpMessageClientError::AuthGetResponse(error_response.into())
             })?;
 
         Ok(jws.into())
@@ -1309,7 +1309,7 @@ where
             .map_err(|error| {
                 let error_response = DisclosureErrorResponse::<PostAuthResponseErrorCode>::from(error);
 
-                VpMessageClientError::AuthPostResponse(Box::new(error_response.into()))
+                VpMessageClientError::AuthPostResponse(error_response.into())
             })?;
 
         Ok(response.redirect_uri)
@@ -1330,7 +1330,7 @@ where
             .map_err(|error| {
                 let error_response = DisclosureErrorResponse::<PostAuthResponseErrorCode>::from(error);
 
-                VpMessageClientError::AuthPostResponse(Box::new(error_response.into()))
+                VpMessageClientError::AuthPostResponse(error_response.into())
             })?;
 
         Ok(response.redirect_uri)

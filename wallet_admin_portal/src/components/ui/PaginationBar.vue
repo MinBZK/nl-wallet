@@ -1,5 +1,5 @@
 <template>
-  <footer class="pagination">
+  <div class="pagination">
     <div class="summary">
       <span>Pagina 1 van 12</span>
       <span>Resultaten per pagina</span>
@@ -23,7 +23,7 @@
         <img src="@/assets/icons/chevron_forward.svg" alt="Next page" />
       </button>
     </div>
-  </footer>
+  </div>
 </template>
 
 <style scoped>
@@ -32,10 +32,8 @@
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
-  height: var(--footer-height);
   padding: 14px 24px 18px;
   border-top: 2px solid var(--color-border);
-  margin-top: auto;
 }
 
 .summary {

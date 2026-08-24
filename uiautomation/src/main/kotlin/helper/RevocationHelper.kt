@@ -2,15 +2,47 @@ package helper
 
 import io.restassured.RestAssured
 import io.restassured.http.ContentType
+import io.restassured.specification.ProxySpecification
+import io.restassured.specification.RequestSpecification
 import org.json.JSONArray
 import org.json.JSONObject
 import util.EnvironmentUtil
+import java.net.URI
 
 class RevocationHelper {
 
     private val pidIssuerBaseUrl: String = EnvironmentUtil.getVar("INTERNAL_PID_ISSUER_URL")
     private val issuanceServerBaseUrl: String = EnvironmentUtil.getVar("INTERNAL_ISSUANCE_SERVER_URL")
     private val walletProviderBaseUrl: String = EnvironmentUtil.getVar("INTERNAL_WALLET_PROVIDER_URL")
+
+    // The INTERNAL_* endpoints live on the cluster-internal network. On the mac mini
+    // iOS runner (which is outside the cluster) they are only reachable through the forward proxy.
+    // RestAssured/Apache HttpClient does NOT honour the https_proxy env variable automatically.
+    private val proxy: ProxySpecification? = proxyFromEnv()
+    private val noProxyHosts: List<String> = noProxyFromEnv()
+
+    private fun request(baseUrl: String): RequestSpecification {
+        val spec = RestAssured.given().baseUri(baseUrl)
+        return if (proxy != null && !isProxyExempt(baseUrl)) spec.proxy(proxy) else spec
+    }
+
+    private fun proxyFromEnv(): ProxySpecification? {
+        val raw = EnvironmentUtil.getVar("https_proxy")
+        if (raw.isBlank()) return null
+
+        val uri = URI(raw)
+        return ProxySpecification.host(uri.host).withPort(uri.port).withScheme(uri.scheme)
+    }
+
+    private fun noProxyFromEnv(): List<String> =
+        EnvironmentUtil.getVar("no_proxy")
+            .split(",")
+            .map { it.trim().lowercase() }
+
+    private fun isProxyExempt(baseUrl: String): Boolean {
+        val host = (URI(baseUrl).host ?: return false).lowercase()
+        return host in noProxyHosts
+    }
 
     fun revokeAllNonRevokedPids() {
         revokeAllNonRevoked(pidIssuerBaseUrl)
@@ -22,8 +54,7 @@ class RevocationHelper {
 
     private fun revokeAllNonRevoked(baseUrl: String) {
 
-        val response = RestAssured.given()
-            .baseUri(baseUrl)
+        val response = request(baseUrl)
             .contentType(ContentType.JSON)
             .accept(ContentType.JSON)
             .`when`()
@@ -46,8 +77,7 @@ class RevocationHelper {
             }
         }
 
-        RestAssured.given()
-            .baseUri(baseUrl)
+        request(baseUrl)
             .contentType(ContentType.JSON)
             .accept(ContentType.JSON)
             .body(JSONArray(nonRevokedBatchIds).toString())
@@ -58,8 +88,7 @@ class RevocationHelper {
     }
 
     fun revokeAllActiveWallets() {
-        val response = RestAssured.given()
-            .baseUri(walletProviderBaseUrl)
+        val response = request(walletProviderBaseUrl)
             .accept(ContentType.JSON)
             .`when`()
             .get("/internal/wallet/")
@@ -76,8 +105,7 @@ class RevocationHelper {
 
         if (activeWalletIds.isEmpty()) return
 
-        RestAssured.given()
-            .baseUri(walletProviderBaseUrl)
+        request(walletProviderBaseUrl)
             .contentType(ContentType.JSON)
             .accept(ContentType.JSON)
             .body(JSONArray(activeWalletIds).toString())
@@ -88,8 +116,7 @@ class RevocationHelper {
     }
 
     fun revokeWalletSolution() {
-        RestAssured.given()
-            .baseUri(walletProviderBaseUrl)
+        request(walletProviderBaseUrl)
             .`when`()
             .post("/internal/revoke-solution/")
             .then()
@@ -97,8 +124,7 @@ class RevocationHelper {
     }
 
     fun restoreWalletSolution() {
-        RestAssured.given()
-            .baseUri(walletProviderBaseUrl)
+        request(walletProviderBaseUrl)
             .`when`()
             .post("/internal/restore-solution/")
             .then()
@@ -106,8 +132,7 @@ class RevocationHelper {
     }
 
     fun revokeWalletByRecoveryCode(recoveryCode: String) {
-        RestAssured.given()
-            .baseUri(walletProviderBaseUrl)
+        request(walletProviderBaseUrl)
             .contentType(ContentType.JSON)
             .accept(ContentType.JSON)
             .body(JSONObject.quote(recoveryCode))
@@ -118,8 +143,7 @@ class RevocationHelper {
     }
 
     fun deleteFromDenyList(recoveryCode: String) {
-        RestAssured.given()
-            .baseUri(walletProviderBaseUrl)
+        request(walletProviderBaseUrl)
             .`when`()
             .delete("/internal/deny-list/$recoveryCode")
             .then()

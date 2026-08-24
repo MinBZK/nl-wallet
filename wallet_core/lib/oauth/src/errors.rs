@@ -90,7 +90,7 @@ pub struct ErrorResponse<T> {
     #[serde(bound(serialize = "T: Display", deserialize = "T: FromStr, T::Err: Display"))]
     pub error: T,
     pub error_description: Option<String>,
-    pub error_uri: Option<Url>,
+    pub error_uri: Option<Box<Url>>,
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -160,7 +160,7 @@ impl<T> From<AuthorizationErrorResponse<T>> for AuthorizationErrorResponse<Remot
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RedirectErrorResponse<T> {
     pub auth_error_response: AuthorizationErrorResponse<T>,
-    pub redirect_uri: Url,
+    pub redirect_uri: Box<Url>,
 }
 
 /// Wraps an [`Error`] type that can be returned in a HTTP(S) redirect.
@@ -172,7 +172,7 @@ where
 {
     #[source]
     pub error: E,
-    pub redirect_uri: Url,
+    pub redirect_uri: Box<Url>,
     pub state: Option<String>,
 }
 
@@ -236,7 +236,7 @@ pub struct DisclosureErrorResponse<T> {
         bound(serialize = "T: Display", deserialize = "T: FromStr, T::Err: Display")
     )]
     pub error_response: ErrorResponse<T>,
-    pub redirect_uri: Option<Url>,
+    pub redirect_uri: Option<Box<Url>>,
 }
 
 impl<T> DisclosureErrorResponse<T> {
@@ -485,10 +485,10 @@ mod axum {
             let redirect_uri = "http://example.com/redirect?foo=bar".parse().unwrap();
             let state = "wallet_state".to_string();
 
-            let redirect_error = RedirectError::new(example_error, redirect_uri, Some(state));
+            let redirect_error = RedirectError::new(example_error, Box::new(redirect_uri), Some(state));
             let mut error_response = RedirectErrorResponse::<ExampleErrorCode>::from(redirect_error);
             error_response.auth_error_response.error_response.error_uri =
-                Some("https://example.com/error-info".parse().unwrap());
+                Some(Box::new("https://example.com/error-info".parse().unwrap()));
 
             let response = error_response.into_response();
 

@@ -133,7 +133,6 @@ class HistoryTests : TestBase() {
             { assertTrue(historyDetailScreen.disclosureOrganizationVisible(organizationAuthData.getDisplayNameOfOrganization(MIJN_AMSTERDAM)), "organization not visible") },
             { assertTrue(historyDetailScreen.titleCorrectForLogin(organizationAuthData.getDisplayNameOfOrganization(MIJN_AMSTERDAM)), "title not visible") },
             { assertTrue(historyDetailScreen.reportProblemButtonVisible(), "report problem button not visible") },
-            { assertTrue(historyDetailScreen.termsVisible(), "terms not visible") }
         )
     }
 

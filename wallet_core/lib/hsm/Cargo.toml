@@ -14,14 +14,22 @@ doctest = false
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
 # Include TestCase type
-test = ["mock", "async-dropper/simple", "dep:async-trait", "config/toml", "dep:rand_core","dep:regex", "dep:tempfile"]
+test = ["mock", "config/toml", "crypto/test", "dep:rand_core","dep:regex", "dep:tempfile"]
 # Integration test feature
 hsm_test = ["test"]
+# Include the known answer tests, which need to import key material with known values. Only HSMs
+# that support key import, such as SoftHSM, can run these.
+hsm_test_key_import = ["hsm_test"]
 
 [[test]]
 name = "hsm"
 path = "tests/hsm.rs"
 required-features = ["hsm_test"]
+
+[[test]]
+name = "hsm_test_key_import"
+path = "tests/hsm_test_key_import.rs"
+required-features = ["hsm_test_key_import"]
 
 [[test]]
 name = "mock"
@@ -30,6 +38,7 @@ required-features = ["test"]
 
 [dependencies]
 cryptoki.workspace = true
+cryptoki-sys.workspace = true
 der.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
@@ -44,8 +53,6 @@ thiserror.workspace = true
 tracing.workspace = true
 tokio.workspace = true
 
-async-dropper = { workspace = true, optional = true }
-async-trait = { workspace = true, optional = true }
 config = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true }

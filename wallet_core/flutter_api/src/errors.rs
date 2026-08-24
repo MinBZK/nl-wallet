@@ -979,16 +979,14 @@ mod tests {
     )]
     #[case::disclosure_returnurl(
         DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(
-            Box::new(
-                DisclosureErrorResponse {
-                    error_response: ErrorResponse {
-                        error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
-                        error_description: None,
-                        error_uri: None
-                    },
-                    redirect_uri: Some("http://example.com/redirect_uri".parse().unwrap())
-                }
-            )
+            DisclosureErrorResponse {
+                error_response: ErrorResponse {
+                    error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
+                    error_description: None,
+                    error_uri: None
+                },
+                redirect_uri: Some(Box::new("http://example.com/redirect_uri".parse().unwrap()))
+            }
         ))),
         FlutterApiErrorType::CancelledSession,
         json!({ "return_url": "http://example.com/redirect_uri" })
@@ -1001,16 +999,14 @@ mod tests {
     #[case::cancel_disclosure(
         CancelSessionError::Disclosure(
             DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(
-                Box::new(
-                    DisclosureErrorResponse {
-                        error_response: ErrorResponse {
-                            error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
-                            error_description: None,
-                            error_uri: None
-                        },
-                        redirect_uri: Some("http://example.com/redirect_uri".parse().unwrap())
-                    }
-                )
+                DisclosureErrorResponse {
+                    error_response: ErrorResponse {
+                        error: RemoteErrorCode::Known(PostAuthResponseErrorCode::CancelledSession),
+                        error_description: None,
+                        error_uri: None
+                    },
+                    redirect_uri: Some(Box::new("http://example.com/redirect_uri".parse().unwrap()))
+                }
             )))
         ),
         FlutterApiErrorType::CancelledSession,

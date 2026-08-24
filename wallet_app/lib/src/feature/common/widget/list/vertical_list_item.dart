@@ -33,6 +33,7 @@ class VerticalListItem extends StatelessWidget {
             SizedBox(height: icon == null ? 0 : 16),
             Semantics(
               header: true,
+              headingLevel: 1,
               child: DefaultTextStyle(
                 style: BaseWalletTheme.headlineExtraSmallTextStyle.copyWith(
                   color: context.textTheme.titleMedium?.color,

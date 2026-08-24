@@ -176,7 +176,7 @@ pub struct UserError(Box<RemoteAuthorizationErrorResponse<VpAuthorizationErrorCo
 pub struct WithRedirectUri<T: Error> {
     #[source]
     pub error: T,
-    pub redirect_uri: Option<Url>,
+    pub redirect_uri: Option<Box<Url>>,
 }
 
 impl<T: Error> Display for WithRedirectUri<T> {
@@ -192,7 +192,7 @@ impl<T: Error> From<T> for WithRedirectUri<T> {
 }
 
 impl<T: Error> WithRedirectUri<T> {
-    fn new(error: T, redirect_uri: Option<Url>) -> Self {
+    fn new(error: T, redirect_uri: Option<Box<Url>>) -> Self {
         Self { error, redirect_uri }
     }
 }
@@ -973,12 +973,12 @@ where
         {
             Ok((jws, next)) => (
                 Ok(jws),
-                next.state().redirect_uri.as_ref().map(|u| u.uri.clone()),
+                next.state().redirect_uri.as_ref().map(|u| Box::new(u.uri.clone())),
                 next.into(),
             ),
             Err((err, next)) => {
                 let redirect_uri = err.redirect_uri.clone();
-                (Err(err), redirect_uri, next.into())
+                (Err(err), redirect_uri, (*next).into())
             }
         };
 
@@ -1016,7 +1016,7 @@ where
             WithRedirectUri::new(
                 SessionError::SessionStore(err).into(),
                 match &result {
-                    Ok(response) => response.redirect_uri.clone(),
+                    Ok(response) => response.redirect_uri.clone().map(Box::new),
                     Err(err) => err.redirect_uri.clone(),
                 },
             )
@@ -1267,7 +1267,7 @@ impl Session<Created> {
             SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             Session<WaitingForResponse>,
         ),
-        (WithRedirectUri<GetAuthRequestError>, Session<Done>),
+        (WithRedirectUri<GetAuthRequestError>, Box<Session<Done>>),
     >
     where
         K: EcdsaKey,
@@ -1296,7 +1296,7 @@ impl Session<Created> {
                     self.state.token
                 );
                 let next = self.transition_fail(&err.error);
-                Err((err, next))
+                Err((err, Box::new(next)))
             }
         }?;
 
@@ -1404,7 +1404,7 @@ fn error_with_redirect_uri(
         err.into(),
         redirect_uri
             .as_ref()
-            .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
+            .and_then(|u| u.share_on_error.then_some(Box::new(u.uri.clone()))),
     )
 }
 
@@ -1511,7 +1511,7 @@ impl Session<WaitingForResponse> {
             .state()
             .redirect_uri
             .as_ref()
-            .and_then(|u| u.share_on_error.then_some(u.uri.clone()));
+            .and_then(|u| u.share_on_error.then_some(Box::new(u.uri.clone())));
         let next = self.transition_fail(&err);
         (Err(WithRedirectUri::new(err, redirect_uri)), next)
     }

@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.3.11"
+  default = "tahoe-wallet:0.3.13"
 }
 
 source "tart-cli" "tart" {
@@ -54,7 +54,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "git -C $FLUTTER_HOME fetch origin",
-      "git -C $FLUTTER_HOME switch --detach 3.44.4",
+      "git -C $FLUTTER_HOME switch --detach 3.47.0",
       "dart --disable-analytics",
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",
@@ -78,9 +78,9 @@ build {
     inline = [
       "source ~/.zprofile",
       "set -eux",
-      "rustup toolchain install 1.97.1 --profile minimal --component clippy",
-      "rustup default 1.97.1",
-      "cargo install cargo-expand --locked --version 1.0.123",
+      "rustup toolchain install 1.98.0 --profile minimal --component clippy",
+      "rustup default 1.98.0",
+      "cargo install cargo-expand --locked --version 1.0.124",
       "cargo install lcov2xml --locked --version 1.0.9",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
     ]

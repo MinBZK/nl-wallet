@@ -29,6 +29,7 @@ class TopicReferences extends StatelessWidget {
             children: [
               Semantics(
                 header: true,
+                headingLevel: 1,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

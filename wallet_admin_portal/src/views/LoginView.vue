@@ -8,15 +8,17 @@
 
       <h1>Log in met jouw account</h1>
 
-      <button type="button" class="login-button" @click="login">
+      <AppButton size="lg" @click="login">
         <img src="@/assets/icons/arrow_forward.svg" alt="" class="icon" />
         <span>Inloggen</span>
-      </button>
+      </AppButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppButton from '@/components/ui/AppButton.vue'
+
 function login() {
   window.location.href = '/auth/login'
 }
@@ -70,26 +72,8 @@ h1 {
   margin: 0 0 2.5rem;
 }
 
-.login-button {
-  display: flex;
-  height: 48px;
-  align-items: center;
-  gap: 12px;
-  border-radius: 6px;
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 700;
-  border: none;
-  font-size: 1.125rem;
-  padding: 0.75rem 1.5rem;
-  cursor: pointer;
-}
-
-.login-button:hover {
-  background: var(--color-primary-hover);
-}
-
 .icon {
-  width: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 </style>

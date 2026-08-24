@@ -15,6 +15,7 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.history.HistoryOverviewScreen
 import screen.menu.MenuScreen
 import screen.settings.SettingsScreen
+import util.MobileActions.Companion.SCREEN_TRANSITION_MILLIS
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.1 Show app menu")
@@ -41,19 +42,24 @@ class MenuTests : TestBase() {
         assertTrue(menuScreen.menuListButtonsVisible(), "menu screen is not visible")
 
         menuScreen.clickHelpAndInfoButton()
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         menuScreen.clickBottomBackButton()
         menuScreen.clickHistoryButton()
 
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         historyOverviewScreen.clickBottomBackButton()
         menuScreen.clickSettingsButton()
         assertTrue(settingsScreen.settingsButtonsVisible(), "settings buttons are not visible")
 
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         menuScreen.clickBottomBackButton()
-
         menuScreen.clickFeedbackButton()
+
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         menuScreen.clickBottomBackButton()
 
         menuScreen.clickAboutButton()
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         menuScreen.clickBottomBackButton()
 
         assertAll(

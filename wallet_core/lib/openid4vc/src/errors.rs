@@ -63,7 +63,9 @@ impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode
             AuthorizeError::MismatchedClient { .. } => StatusCode::UNAUTHORIZED,
 
             // Once the `redirect_uri` is known, convert the error to a 303 redirect instead.
-            AuthorizeError::AuthorizationRequest(redirect_error) => return Self::new_redirect(redirect_error.into()),
+            AuthorizeError::AuthorizationRequest(redirect_error) => {
+                return Self::new_redirect((redirect_error).into());
+            }
         };
 
         Self::new_body(status_code, value.to_string())

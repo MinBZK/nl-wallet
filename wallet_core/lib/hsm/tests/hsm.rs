@@ -1,7 +1,6 @@
-use async_dropper::AsyncDropper;
 use hsm::service::Pkcs11Hsm;
-use hsm::test::HsmSetup;
 use hsm::test::TestCase;
+use hsm::test::execute_hsm_test;
 use rstest::Context;
 use rstest::rstest;
 use serial_test::serial;
@@ -12,15 +11,14 @@ use serial_test::serial;
 #[case::encrypt_decrypt(TestCase::encrypt_decrypt)]
 #[case::encrypt_decrypt_verifying_key(TestCase::encrypt_decrypt_verifying_key)]
 #[case::wrap_key_and_sign(TestCase::wrap_key_and_sign)]
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[case::encrypt_ctr(TestCase::encrypt_ctr)]
+#[case::cmac(TestCase::cmac)]
+#[case::aes_siv(TestCase::aes_siv)]
+#[tokio::test]
 #[serial(hsm)]
 async fn hsm_tests<F>(#[context] ctx: Context, #[case] test: F)
 where
-    F: AsyncFnOnce(TestCase<Pkcs11Hsm>) -> TestCase<Pkcs11Hsm>,
+    F: AsyncFnOnce(TestCase<Pkcs11Hsm>),
 {
-    let hsm_setup = HsmSetup::new();
-    let test_case = TestCase::new(&hsm_setup, "hsm.toml", ctx.description.unwrap());
-    let test_case = test(test_case).await;
-    // Explicitly drop, to capture possible errors.
-    drop(AsyncDropper::new(test_case));
+    execute_hsm_test(ctx.description.unwrap().to_string(), test).await
 }

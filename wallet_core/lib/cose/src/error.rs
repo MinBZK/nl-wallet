@@ -52,7 +52,6 @@ pub enum CoseError {
 #[cfg(test)]
 mod tests {
     use error_category::Category;
-    use error_category::ErrorCategory as _;
 
     use super::*;
 
