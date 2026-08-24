@@ -264,6 +264,9 @@ pub enum CredentialRequestError {
     #[error("nonce is not provided in credential request proof")]
     MissingProofNonce,
 
+    #[error("provided proof public keys contain duplicate values")]
+    ProofKeysNotDistinct,
+
     #[error("could not check proof nonce against nonce storage: {0}")]
     ProofNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
@@ -1902,12 +1905,23 @@ impl CredentialRequest {
             return Err(CredentialRequestError::TooManyCopiesRequested(jwts.len()));
         }
 
+        // Verify all of the provided JWKs and extract the nonce values from their payloads.
         let jwt_count = jwts.len();
         let public_keys_and_nonces = jwts
             .into_nonempty_iter()
             .zip(utils::vec_at_least::repeat_n(jwt_proof_validation, jwt_count))
             .map(|(jwt, jwt_proof_validation)| verify_jwt_proof(jwt, jwt_proof_validation))
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<VecNonEmpty<_>, _>>()?;
+
+        // Check that each of the JWKs contained a public key distinct from all of the others.
+        let unique_public_keys = public_keys_and_nonces
+            .iter()
+            .map(|(public_key, _nonce)| public_key)
+            .collect::<HashSet<_>>();
+
+        if unique_public_keys.len() != jwt_count.get() {
+            return Err(CredentialRequestError::ProofKeysNotDistinct);
+        }
 
         Ok(public_keys_and_nonces)
     }
@@ -2745,6 +2759,7 @@ mod tests {
         WrongDpopNonce,
         IncorrectPreparedCredentialFormat,
         WrongProofAud,
+        SingleProofKey,
         MissingProofNonce,
         UnknownProofNonce,
         CredentialConfigurationId,
@@ -2798,6 +2813,9 @@ mod tests {
         } else {
             issuer_identifier.to_string()
         };
+
+        let single_proof_key = (failure == CredentialRequestFailure::SingleProofKey).then(SigningKey::generate);
+
         let proofs = utils::vec_at_least::repeat_n(aud, copy_count)
             .map(|aud| {
                 let nonce = if failure == CredentialRequestFailure::MissingProofNonce {
@@ -2815,9 +2833,12 @@ mod tests {
                     &MockTimeGenerator::default(),
                 );
 
-                let holder_private_key = SigningKey::generate();
+                let holder_private_key = match single_proof_key.as_ref() {
+                    Some(key) => key,
+                    None => &SigningKey::generate(),
+                };
 
-                SignedJwt::sign_with_jwk(&claims, &holder_private_key)
+                SignedJwt::sign_with_jwk(&claims, holder_private_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap()
@@ -3055,6 +3076,25 @@ mod tests {
             .expect_err("processing CredentialRequest should fail");
 
         assert_matches!(error, CredentialRequestError::MissingProofNonce);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_process_credential_request_error_proof_keys_not_distinct() {
+        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
+            Format::SdJwt,
+            3.try_into().unwrap(),
+            CredentialRequestFailure::SingleProofKey,
+        );
+
+        // Processing a Credential Request with multiple proof JWTs that all contain the same public key should result
+        // in an error.
+        let error = issuer
+            .process_credential_request(&access_token, dpop, credential_request)
+            .await
+            .expect_err("processing CredentialRequest should fail");
+
+        assert_matches!(error, CredentialRequestError::ProofKeysNotDistinct);
     }
 
     #[rstest]

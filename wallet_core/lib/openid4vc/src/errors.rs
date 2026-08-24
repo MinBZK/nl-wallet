@@ -635,6 +635,8 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
 
+            Self::ProofKeysNotDistinct => CredentialErrorCode::InvalidProof,
+
             Self::ProofNonceStore(_) => CredentialErrorCode::ServerError,
 
             Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
