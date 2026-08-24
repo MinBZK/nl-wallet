@@ -256,6 +256,9 @@ pub enum CredentialRequestError {
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 
+    #[error("too many copies of a credential were requested: {0}")]
+    TooManyCopiesRequested(NonZeroUsize),
+
     #[error("invalid proof JWT: {0}")]
     InvalidProofJwt(#[source] JwtVerifyError),
 
@@ -267,9 +270,6 @@ pub enum CredentialRequestError {
 
     #[error("invalid nonce used in credential request proof")]
     InvalidNonce,
-
-    #[error("too many copies of a credential were requested: {0}")]
-    TooManyCopiesRequested(NonZeroUsize),
 
     #[error("requested credential identifier is not known: {0}")]
     UnknownCredentialIdentifier(String),

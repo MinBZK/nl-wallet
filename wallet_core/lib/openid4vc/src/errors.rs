@@ -627,15 +627,17 @@ impl ErrorWithCode for CredentialRequestError {
                 CredentialErrorCode::InvalidCredentialRequest
             }
 
-            Self::MissingCredentialRequestPoP | Self::InvalidProofJwt(_) => CredentialErrorCode::InvalidProof,
+            Self::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
+
+            Self::TooManyCopiesRequested(_) => CredentialErrorCode::InvalidCredentialRequest,
+
+            Self::InvalidProofJwt(_) => CredentialErrorCode::InvalidProof,
 
             Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
 
             Self::ProofNonceStore(_) => CredentialErrorCode::ServerError,
 
             Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
-
-            Self::TooManyCopiesRequested(_) => CredentialErrorCode::InvalidCredentialRequest,
 
             Self::UnknownCredentialIdentifier(_) => CredentialErrorCode::UnknownCredentialIdentifier,
 
