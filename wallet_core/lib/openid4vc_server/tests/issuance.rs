@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_types::credential_format::Format;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -361,6 +362,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     let type_metadata = mock_type_metadata_with_required_attr(MOCK_ATTESTATION_TYPES[0], required_attr);
     // The document carries only the required attribute; the optional one is absent.
     let documents = vec_nonempty![mock_issuable_document_with_attrs(
+        Format::SdJwt,
         MOCK_ATTESTATION_TYPES[0],
         &[MOCK_ATTRS[1]]
     )];

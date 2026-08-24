@@ -109,9 +109,13 @@ pub fn mock_type_metadata_with_required_attr(vct: &str, required_attr: &str) -> 
 
 /// A single mock document for `attestation_type` carrying exactly the given attributes
 /// (typically a subset of [`MOCK_ATTRS`]).
-pub fn mock_issuable_document_with_attrs(attestation_type: &str, attrs: &[(&str, &str)]) -> IssuableDocument {
+pub fn mock_issuable_document_with_attrs(
+    format: Format,
+    attestation_type: &str,
+    attrs: &[(&str, &str)],
+) -> IssuableDocument {
     IssuableDocument::try_new_with_random_id(
-        CredentialKind::new(Format::SdJwt, attestation_type.to_string()),
+        CredentialKind::new(format, attestation_type.to_string()),
         IndexMap::from_iter(attrs.iter().map(|(key, val)| {
             (
                 key.to_string(),
@@ -125,7 +129,7 @@ pub fn mock_issuable_document_with_attrs(attestation_type: &str, attrs: &[(&str,
 
 pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<IssuableDocument> {
     (0..document_count.get())
-        .map(|i| mock_issuable_document_with_attrs(MOCK_ATTESTATION_TYPES[i], &MOCK_ATTRS))
+        .map(|i| mock_issuable_document_with_attrs(Format::SdJwt, MOCK_ATTESTATION_TYPES[i], &MOCK_ATTRS))
         .collect::<Vec<_>>()
         .try_into()
         .unwrap()

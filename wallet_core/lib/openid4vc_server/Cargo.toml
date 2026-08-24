@@ -59,6 +59,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["test-util", "macros", "net"] }
 url = { workspace = true, features = ["serde"] }
 
+attestation_types.path = "../attestation_types"
 http_utils = { path = "../http_utils", features = ["client"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
