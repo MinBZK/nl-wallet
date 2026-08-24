@@ -61,6 +61,10 @@ enum FlutterApiErrorType {
     /// This version of the app is blocked.
     VersionBlocked,
 
+    /// The wallet configuration has expired and no fresh one could be fetched. The app is unusable until a valid
+    /// configuration has been received, which requires a working internet connection.
+    ConfigExpired,
+
     /// A network connection has timed-out, was unable to connect or something else went wrong during the request.
     Networking,
 
@@ -201,6 +205,7 @@ impl FlutterApiErrorFields for WalletRegistrationError {
 
         match self {
             WalletRegistrationError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            WalletRegistrationError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
@@ -230,6 +235,7 @@ impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             WalletUnlockError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            WalletUnlockError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             WalletUnlockError::NotRegistered
             | WalletUnlockError::NotLocked
             | WalletUnlockError::Locked
@@ -285,6 +291,9 @@ impl FlutterApiErrorFields for IssuanceError {
         match self {
             IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked) => {
                 FlutterApiErrorType::VersionBlocked
+            }
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::ConfigExpired) => {
+                FlutterApiErrorType::ConfigExpired
             }
 
             IssuanceError::CheckPreconditions(_) | IssuanceError::SessionState => FlutterApiErrorType::WalletState,
@@ -423,6 +432,9 @@ impl FlutterApiErrorFields for DisclosureError {
         match self {
             DisclosureError::CheckPreconditions(CheckPreconditionsError::VersionBlocked) => {
                 FlutterApiErrorType::VersionBlocked
+            }
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::ConfigExpired) => {
+                FlutterApiErrorType::ConfigExpired
             }
             DisclosureError::CheckPreconditions(_) | DisclosureError::SessionState => FlutterApiErrorType::WalletState,
             DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
@@ -565,6 +577,7 @@ impl FlutterApiErrorFields for CheckPreconditionsError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             CheckPreconditionsError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            CheckPreconditionsError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             CheckPreconditionsError::NotRegistered | CheckPreconditionsError::Locked => {
                 FlutterApiErrorType::WalletState
             }
@@ -695,6 +708,7 @@ impl FlutterApiErrorFields for ChangePinError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            Self::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             Self::NotRegistered | Self::Locked | Self::ChangePinAlreadyInProgress | Self::NoChangePinInProgress => {
                 FlutterApiErrorType::WalletState
             }
@@ -726,6 +740,7 @@ impl FlutterApiErrorFields for PinRecoveryError {
 
         match self {
             PinRecoveryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            PinRecoveryError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
             PinRecoveryError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
@@ -759,6 +774,7 @@ impl FlutterApiErrorFields for TransferError {
 
         match self {
             TransferError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            TransferError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             TransferError::NotRegistered | TransferError::IllegalWalletState => FlutterApiErrorType::WalletState,
             TransferError::Instruction(e) => FlutterApiErrorType::from(e),
             TransferError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
@@ -781,6 +797,7 @@ impl FlutterApiErrorFields for RevocationCodeError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            Self::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             Self::NotRegistered | Self::PidPresent => FlutterApiErrorType::WalletState,
             Self::PidRetrieval(_) => FlutterApiErrorType::Generic,
             Self::Unlock(error) => error.typ(),
@@ -801,6 +818,7 @@ impl FlutterApiErrorFields for DeleteAttestationError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            Self::ConfigExpired => FlutterApiErrorType::ConfigExpired,
             Self::NotRegistered | Self::Locked => FlutterApiErrorType::WalletState,
             Self::Instruction(e) => FlutterApiErrorType::from(e),
             Self::UpdatePolicy(e) => FlutterApiErrorType::from(e),

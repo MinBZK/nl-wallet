@@ -50,6 +50,9 @@ pub enum WalletRegistrationError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+    #[category(expected)]
+    #[error("wallet configuration is expired")]
+    ConfigExpired,
     #[error("wallet is already registered")]
     #[category(expected)]
     AlreadyRegistered,
@@ -172,6 +175,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(WalletRegistrationError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(WalletRegistrationError::ConfigExpired);
         }
 
         info!("Checking if already registered");

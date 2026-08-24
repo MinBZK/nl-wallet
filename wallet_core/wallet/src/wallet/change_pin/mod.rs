@@ -55,6 +55,11 @@ where
             return Err(ChangePinError::VersionBlocked);
         }
 
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(ChangePinError::ConfigExpired);
+        }
+
         info!("Checking if registered");
         let (attested_key, registration_data) = match &mut self.registration {
             WalletRegistration::Registered { attested_key, data } => (attested_key, data),
@@ -125,6 +130,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(ChangePinError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(ChangePinError::ConfigExpired);
         }
 
         info!("Checking if registered");

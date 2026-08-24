@@ -37,6 +37,9 @@ pub enum WalletUnlockError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+    #[category(expected)]
+    #[error("wallet configuration is expired")]
+    ConfigExpired,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -105,6 +108,7 @@ where
     #[instrument(skip_all)]
     pub async fn set_unlock_method(&mut self, method: UnlockMethod) -> Result<(), WalletUnlockError>
     where
+        CR: Repository<Arc<WalletConfiguration>>,
         UR: Repository<VersionState>,
         S: Storage,
     {
@@ -113,6 +117,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(WalletUnlockError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(WalletUnlockError::ConfigExpired);
         }
 
         info!("Checking if locked");
@@ -164,6 +173,11 @@ where
             return Err(WalletUnlockError::VersionBlocked);
         }
 
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(WalletUnlockError::ConfigExpired);
+        }
+
         info!("Checking if registered");
         let (attested_key, registration_data) = self
             .registration
@@ -211,6 +225,11 @@ where
             return Err(WalletUnlockError::VersionBlocked);
         }
 
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(WalletUnlockError::ConfigExpired);
+        }
+
         info!("Checking if locked");
         if !self.lock.is_locked() {
             return Err(WalletUnlockError::NotLocked);
@@ -238,6 +257,11 @@ where
             return Err(WalletUnlockError::VersionBlocked);
         }
 
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(WalletUnlockError::ConfigExpired);
+        }
+
         info!("Checking pin");
         self.send_check_pin_instruction(pin).await
     }
@@ -253,6 +277,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(WalletUnlockError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(WalletUnlockError::ConfigExpired);
         }
 
         info!("Checking if locked");

@@ -31,6 +31,10 @@ pub enum RevocationCodeError {
     #[category(expected)]
     VersionBlocked,
 
+    #[error("wallet configuration is expired")]
+    #[category(expected)]
+    ConfigExpired,
+
     #[error("wallet is not registered, no revocation code present")]
     #[category(expected)]
     NotRegistered,
@@ -72,6 +76,11 @@ where
             return Err(RevocationCodeError::VersionBlocked);
         }
 
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(RevocationCodeError::ConfigExpired);
+        }
+
         info!("Checking if registered");
         let revocation_code = self.revocation_code().ok_or(RevocationCodeError::NotRegistered)?;
 
@@ -103,6 +112,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(RevocationCodeError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(RevocationCodeError::ConfigExpired);
         }
 
         self.send_check_pin_instruction(pin).await?;

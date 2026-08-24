@@ -51,6 +51,10 @@ pub enum CheckPreconditionsError {
     #[error("app version is blocked")]
     VersionBlocked,
 
+    #[error("wallet configuration is expired")]
+    #[category(expected)]
+    ConfigExpired,
+
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -213,10 +217,18 @@ where
 
     /// Checks the common preconditions for session (issuance/disclosure)-related operations: version not blocked,
     /// wallet registered, and wallet not locked.
-    pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError> {
+    pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+    {
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(CheckPreconditionsError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(CheckPreconditionsError::ConfigExpired);
         }
 
         info!("Checking if registered");
@@ -249,6 +261,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(CheckPreconditionsError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(CheckPreconditionsError::ConfigExpired);
         }
 
         info!("Checking if registered");

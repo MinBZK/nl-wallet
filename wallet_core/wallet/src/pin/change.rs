@@ -67,6 +67,9 @@ pub enum ChangePinError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+    #[category(expected)]
+    #[error("wallet configuration is expired")]
+    ConfigExpired,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,

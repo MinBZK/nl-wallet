@@ -9,6 +9,8 @@ mod updating_repository;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use chrono::DateTime;
+use chrono::Utc;
 use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use jwt::Algorithm;
@@ -45,6 +47,17 @@ pub static WALLET_CONFIG_VALIDATION: LazyLock<ValidationWrapper> = LazyLock::new
         .expect("should succeed because only one algorithm family is used to create this validation")
 });
 
+/// Checks whether the given configuration is expired at `now`, using the same leeway as [`WALLET_CONFIG_VALIDATION`].
+///
+/// Note that this necessarily trusts the wall clock of the device, which the user controls. It therefore protects a
+/// wallet that is honestly offline from continuing to trust retired key material, but is not a defence against a user
+/// who deliberately sets back the clock of their own device.
+pub fn is_expired(config: &WalletConfiguration, now: DateTime<Utc>) -> bool {
+    let expires: DateTime<Utc> = config.expires.into();
+
+    expires + CONFIG_EXPIRY_LEEWAY < now
+}
+
 pub type WalletConfigurationRepository =
     UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>>>;
 
@@ -66,12 +79,44 @@ pub enum ConfigurationError {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use chrono::TimeDelta;
+    use chrono::Timelike;
+    use chrono::Utc;
+    use rstest::rstest;
     use wallet_configuration::wallet_config::WalletConfiguration;
+
+    use super::CONFIG_EXPIRY_LEEWAY;
+    use super::is_expired;
 
     const TEST_WALLET_CONFIG_JSON: &str = include_str!("../../test-wallet-config.json");
 
     pub fn test_wallet_config() -> WalletConfiguration {
         // The JSON has already been parsed in build.rs, so unwrap is safe here
         serde_json::from_str(TEST_WALLET_CONFIG_JSON).unwrap()
+    }
+
+    fn leeway() -> TimeDelta {
+        TimeDelta::from_std(CONFIG_EXPIRY_LEEWAY).unwrap()
+    }
+
+    #[rstest]
+    #[case(TimeDelta::hours(1), false)]
+    #[case(TimeDelta::seconds(1), false)]
+    // Expiry within the leeway should not yet be considered expired, matching what JWT verification accepts.
+    #[case(TimeDelta::zero(), false)]
+    #[case(-leeway(), false)]
+    // Beyond the leeway the configuration is expired.
+    #[case(-leeway() - TimeDelta::seconds(1), true)]
+    #[case(-TimeDelta::hours(1), true)]
+    fn test_is_expired(#[case] expires_in: TimeDelta, #[case] expected_expired: bool) {
+        // `exp` has seconds precision, so use a whole-second `now`.
+        let now = Utc::now().with_nanosecond(0).unwrap();
+
+        let config = WalletConfiguration {
+            expires: (now + expires_in).into(),
+            ..test_wallet_config()
+        };
+
+        assert_eq!(is_expired(&config, now), expected_expired);
     }
 }

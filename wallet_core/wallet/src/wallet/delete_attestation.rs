@@ -36,6 +36,9 @@ pub enum DeleteAttestationError {
     #[error("app version is blocked")]
     #[category(expected)]
     VersionBlocked,
+    #[error("wallet configuration is expired")]
+    #[category(expected)]
+    ConfigExpired,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -96,6 +99,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(DeleteAttestationError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(DeleteAttestationError::ConfigExpired);
         }
 
         info!("Checking if registered");

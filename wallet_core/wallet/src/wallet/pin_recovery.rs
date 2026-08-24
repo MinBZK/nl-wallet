@@ -58,6 +58,9 @@ pub enum PinRecoveryError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+    #[category(expected)]
+    #[error("wallet configuration is expired")]
+    ConfigExpired,
 
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -136,6 +139,11 @@ where
             return Err(PinRecoveryError::VersionBlocked);
         }
 
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(PinRecoveryError::ConfigExpired);
+        }
+
         info!("Checking if registered");
         if !self.registration.is_registered() {
             return Err(PinRecoveryError::NotRegistered);
@@ -204,6 +212,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(PinRecoveryError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(PinRecoveryError::ConfigExpired);
         }
 
         info!("Checking if registered");
@@ -305,6 +318,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(PinRecoveryError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(PinRecoveryError::ConfigExpired);
         }
 
         info!("Checking if registered");

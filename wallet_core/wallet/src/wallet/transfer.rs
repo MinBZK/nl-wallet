@@ -55,6 +55,9 @@ pub enum TransferError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+    #[category(expected)]
+    #[error("wallet configuration is expired")]
+    ConfigExpired,
 
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -386,6 +389,11 @@ where
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(TransferError::VersionBlocked);
+        }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(TransferError::ConfigExpired);
         }
 
         info!("Checking if registered");
