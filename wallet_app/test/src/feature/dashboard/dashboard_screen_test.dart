@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
@@ -208,6 +209,50 @@ void main() {
       expect(altCardTitleFinder, findsOneWidget);
     });
   });
+
+  group('onDashboardShown', () {
+    late MockAppEventCoordinator appEventCoordinator;
+    late MockObserveWalletLockedUseCase observeWalletLockedUseCase;
+    late BehaviorSubject<bool> isLockedStream;
+
+    setUp(() {
+      appEventCoordinator = MockAppEventCoordinator();
+      isLockedStream = BehaviorSubject.seeded(false);
+      observeWalletLockedUseCase = MockObserveWalletLockedUseCase();
+      when(observeWalletLockedUseCase.invoke()).thenAnswer((_) => isLockedStream);
+    });
+
+    tearDown(() => isLockedStream.close());
+
+    Future<void> pumpDashboard(WidgetTester tester) => _pumpSuccessWithVersionState(
+      tester,
+      state: VersionStateOk(),
+      appEventCoordinator: appEventCoordinator,
+      observeWalletLockedUseCase: observeWalletLockedUseCase,
+    );
+
+    testWidgets('should not notify the coordinator again when the layout changes while visible', (tester) async {
+      await pumpDashboard(tester);
+
+      // A layout change (e.g. a banner appearing) makes the VisibilityDetector report again, even
+      // though the dashboard was fully visible the whole time.
+      await tester.binding.setSurfaceSize(iphoneXSizeLandscape);
+      tester.view.physicalSize = iphoneXSizeLandscape;
+      await tester.pumpAndSettle();
+
+      verify(appEventCoordinator.onDashboardShown()).called(1);
+    });
+
+    testWidgets('should notify the coordinator again when the dashboard is shown after a lock', (tester) async {
+      await pumpDashboard(tester);
+
+      isLockedStream.add(true);
+      isLockedStream.add(false);
+      await tester.pumpAndSettle();
+
+      verify(appEventCoordinator.onDashboardShown()).called(2);
+    });
+  });
 }
 
 /// Helper method that pumps the dashboard with the DashboardLoadSuccess state and the provided VersionState
@@ -217,6 +262,8 @@ Future<void> _pumpSuccessWithVersionState(
   Brightness brightness = Brightness.light,
   double textScaleSize = 1,
   Size surfaceSize = iphoneXSize,
+  AppEventCoordinator? appEventCoordinator,
+  ObserveWalletLockedUseCase? observeWalletLockedUseCase,
 }) async {
   await tester.pumpWidgetWithAppWrapper(
     const DashboardScreen().withState<DashboardBloc, DashboardState>(
@@ -227,8 +274,10 @@ Future<void> _pumpSuccessWithVersionState(
     textScaleSize: textScaleSize,
     surfaceSize: surfaceSize,
     providers: [
-      RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
-      RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
+      RepositoryProvider<AppEventCoordinator>(create: (c) => appEventCoordinator ?? MockAppEventCoordinator()),
+      RepositoryProvider<ObserveWalletLockedUseCase>(
+        create: (c) => observeWalletLockedUseCase ?? MockObserveWalletLockedUseCase(),
+      ),
       RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
       RepositoryProvider<ObserveVersionStateUsecase>(
         create: (c) {
