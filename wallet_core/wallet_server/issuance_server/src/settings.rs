@@ -2,12 +2,15 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::verify_registration_certificate_envelope;
+use attestation_data::x509::RelyingParty;
 use axum::Router;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::BorrowingCertificate;
 use dcql::Query;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use derive_more::Debug;
@@ -29,8 +32,12 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::verifier::VerifierFactory;
 use serde::Deserialize;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
+use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
@@ -40,6 +47,7 @@ use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings
 use server_utils::store::SessionStoreVariant;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -76,11 +84,18 @@ pub struct VerifierSettings {
     pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct AttestationSettings {
     #[serde(flatten)]
     #[debug(skip)]
     pub key_pair: KeyPair,
+
+    /// Base64url-encoded Wallet Relying Party Registration Certificate (WRPRC).
+    #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
+    #[debug(skip)]
+    pub registration_certificate: Option<Vec<u8>>,
+
     pub dcql_query: Query,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
@@ -105,7 +120,7 @@ impl IssuanceServerSettings {
 }
 
 impl ServerSettings for IssuanceServerSettings {
-    type ValidationError = IssuerSettingsValidationError;
+    type ValidationError = IssuanceServerSettingsValidationError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
@@ -163,10 +178,14 @@ impl ServerSettings for IssuanceServerSettings {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
-        self.issuer_settings.validate()?;
+    fn validate(&self) -> Result<(), IssuanceServerSettingsValidationError> {
+        self.issuer_settings
+            .validate()
+            .map_err(IssuanceServerSettingsValidationError::Issuer)?;
 
-        self.verifier_settings.validate()?;
+        self.verifier_settings
+            .validate(&self.issuer_settings.server_settings.wrprc_trust_anchors)
+            .map_err(IssuanceServerSettingsValidationError::Verifier)?;
 
         Ok(())
     }
@@ -174,6 +193,31 @@ impl ServerSettings for IssuanceServerSettings {
     fn server_settings(&self) -> &Settings {
         &self.issuer_settings.server_settings
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum IssuanceServerSettingsValidationError {
+    #[error("{0}")]
+    Issuer(#[source] IssuerSettingsValidationError),
+
+    #[error("{0}")]
+    Verifier(#[source] VerifierSettingsValidationError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum VerifierSettingsValidationError {
+    #[error("{0}")]
+    Certificate(#[source] CertificateVerificationError),
+
+    #[error("missing registration certificate for disclosure setting `{use_case_id}`")]
+    MissingRegistrationCertificate { use_case_id: String },
+
+    #[error("invalid registration certificate for disclosure setting `{use_case_id}`: {source}")]
+    InvalidRegistrationCertificate {
+        use_case_id: String,
+        #[source]
+        source: anyhow::Error,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -186,10 +230,13 @@ pub enum VerifierSettingsError {
 
     #[error("could not initialize attributes fetcher: {0}")]
     AttributesFetcher(#[source] reqwest::Error),
+
+    #[error("missing registration certificate for disclosure setting `{use_case_id}`")]
+    MissingRegistrationCertificate { use_case_id: String },
 }
 
 impl VerifierSettings {
-    fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
+    fn validate(&self, wrprc_trust_anchors: &TrustAnchors) -> Result<(), VerifierSettingsValidationError> {
         let time = TimeGenerator;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
@@ -198,7 +245,29 @@ impl VerifierSettings {
             .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
             .collect();
 
-        verify_key_pairs(&key_pairs, &self.wrpac_trust_anchors, None, &time)?;
+        verify_key_pairs(&key_pairs, &self.wrpac_trust_anchors, None, &time)
+            .map_err(VerifierSettingsValidationError::Certificate)?;
+
+        for (use_case_id, settings) in &self.disclosure_settings {
+            let registration_certificate = settings.registration_certificate.as_deref().ok_or_else(|| {
+                VerifierSettingsValidationError::MissingRegistrationCertificate {
+                    use_case_id: use_case_id.clone(),
+                }
+            })?;
+
+            validate_registration_certificate(
+                registration_certificate,
+                &settings.key_pair.certificate,
+                wrprc_trust_anchors,
+                time,
+            )
+            .map_err(
+                |source| VerifierSettingsValidationError::InvalidRegistrationCertificate {
+                    use_case_id: use_case_id.clone(),
+                    source,
+                },
+            )?;
+        }
 
         Ok(())
     }
@@ -219,6 +288,11 @@ impl VerifierSettings {
             .map(|((id, attestation), hsm)| {
                 let use_case_id = id.clone();
                 let use_case_future = async {
+                    let registration_certificate = attestation.registration_certificate.ok_or_else(|| {
+                        VerifierSettingsError::MissingRegistrationCertificate {
+                            use_case_id: use_case_id.clone(),
+                        }
+                    })?;
                     let key_pair = attestation
                         .key_pair
                         .parse(hsm)
@@ -226,7 +300,8 @@ impl VerifierSettings {
                         .map_err(VerifierSettingsError::PrivateKey)?;
 
                     let use_case = WalletInitiatedUseCase::new(
-                        UseCaseData::new(key_pair, SessionTypeReturnUrl::Both),
+                        UseCaseData::new(key_pair, SessionTypeReturnUrl::Both)
+                            .with_registration_certificate(registration_certificate),
                         attestation.dcql_query.try_into().map_err(VerifierSettingsError::Dcql)?,
                         format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
                     );
@@ -269,4 +344,21 @@ impl VerifierSettings {
 
         Ok(router)
     }
+}
+
+fn validate_registration_certificate(
+    registration_certificate: &[u8],
+    access_certificate: &BorrowingCertificate,
+    trust_anchors: &TrustAnchors,
+    time: TimeGenerator,
+) -> Result<(), anyhow::Error> {
+    let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
+
+    let payload =
+        verify_registration_certificate_envelope(registration_certificate, trust_anchors, &time)?.into_payload();
+
+    payload
+        .validate_structure(&access_subject, time.generate())
+        .map(|_| ())
+        .map_err(anyhow::Error::from)
 }

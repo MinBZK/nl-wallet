@@ -518,6 +518,9 @@ DEMO_ISSUER_KEY_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac
 export DEMO_ISSUER_KEY_UNIVERSITY_WRPAC
 DEMO_ISSUER_CRT_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_WRPAC
+generate_demo_issuer_registration_certificate university 5
+DEMO_ISSUER_REGISTRATION_CERTIFICATE_UNIVERSITY=$(< "${TARGET_DIR}/demo_issuer/university.wrprc")
+export DEMO_ISSUER_REGISTRATION_CERTIFICATE_UNIVERSITY
 DEMO_ISSUER_CLIENT_ID_UNIVERSITY="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" | base64_url_encode)"
 export DEMO_ISSUER_CLIENT_ID_UNIVERSITY
 
@@ -549,6 +552,9 @@ DEMO_ISSUER_KEY_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.key.d
 export DEMO_ISSUER_KEY_HOUSING_WRPAC
 DEMO_ISSUER_CRT_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_HOUSING_WRPAC
+generate_demo_issuer_registration_certificate housing 6
+DEMO_ISSUER_REGISTRATION_CERTIFICATE_HOUSING=$(< "${TARGET_DIR}/demo_issuer/housing.wrprc")
+export DEMO_ISSUER_REGISTRATION_CERTIFICATE_HOUSING
 DEMO_ISSUER_CLIENT_ID_HOUSING="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" | base64_url_encode)"
 export DEMO_ISSUER_CLIENT_ID_HOUSING
 
@@ -632,12 +638,12 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
-# All five demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+# All seven demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
     --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
     --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
     --uri "${WRPRC_STATUS_LIST_URI}" \
-    --status valid valid valid valid valid \
+    --status valid valid valid valid valid valid valid \
     --ttl-seconds 3600 \
     > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 
