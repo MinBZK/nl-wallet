@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils as crypto_utils;
@@ -8,8 +11,11 @@ use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::reqwest::HttpStatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
 use tracing::info;
 use tracing::warn;
+use utils::generator::TimeGenerator;
 use utils::single_unique::NonEmptySingleUnique;
 use utils::vec_at_least::NonEmptyIterator;
 
@@ -32,43 +38,38 @@ use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
+use crate::registration_certificate::validate_registration_certificate;
 use crate::verifier::SessionType;
 
+const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
+const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(180);
+const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(10);
+
 #[derive(Debug)]
-pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher, C = ()> {
+pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher, C = HttpStatusListClient> {
     client: H,
     crl_verifier: CertificateCrlVerifier<F>,
-    _registration_certificate_status_list_client: C,
-}
-
-impl<H, F> VpDisclosureClient<H, F> {
-    pub fn new(client: H, crl_verifier: CertificateCrlVerifier<F>) -> Self {
-        Self {
-            client,
-            crl_verifier,
-            _registration_certificate_status_list_client: (),
-        }
-    }
+    registration_certificate_revocation_verifier: RevocationVerifier<C>,
 }
 
 impl<H, F, C> VpDisclosureClient<H, F, C>
 where
     C: StatusListClient,
 {
-    pub fn new_with_registration_certificate_status_list_client(
-        client: H,
-        crl_verifier: CertificateCrlVerifier<F>,
-        registration_certificate_status_list_client: C,
-    ) -> Self {
+    pub fn new(client: H, crl_verifier: CertificateCrlVerifier<F>, status_list_client: C) -> Self {
         Self {
             client,
             crl_verifier,
-            _registration_certificate_status_list_client: registration_certificate_status_list_client,
+            registration_certificate_revocation_verifier: RevocationVerifier::new(
+                Arc::new(status_list_client),
+                STATUS_LIST_TOKEN_CACHE_CAPACITY,
+                STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
+                STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
+                TimeGenerator,
+            ),
         }
     }
-}
 
-impl<H, F, C> VpDisclosureClient<H, F, C> {
     /// Report an error back to the RP.
     async fn report_error_back(&self, url: BaseUrl, state: Option<String>, error: VpVerifierError) -> VpVerifierError
     where
@@ -119,6 +120,7 @@ impl<H, F, C> DisclosureClient for VpDisclosureClient<H, F, C>
 where
     H: VpMessageClient + Clone,
     F: CrlFetcher,
+    C: StatusListClient,
 {
     type Session = VpDisclosureSession<H>;
 
@@ -127,7 +129,7 @@ where
         uri_query: &str,
         uri_source: DisclosureUriSource,
         wrpac_trust_anchors: &TrustAnchors,
-        _wrprc_trust_anchors: &TrustAnchors,
+        wrprc_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
@@ -217,9 +219,24 @@ where
             return Err(VpSessionError::Verifier(error));
         }
 
-        let auth_request_result = vp_auth_request
-            .validate(&certificate, request_nonce.as_deref())
-            .map_err(VpVerifierError::AuthRequestValidation);
+        let verifier_info = vp_auth_request.verifier_info.clone();
+        let dcql_query = vp_auth_request.dcql_query.clone();
+        let auth_request_result = vp_auth_request.validate(&certificate, request_nonce.as_deref());
+        let auth_request_result = match auth_request_result {
+            Ok(auth_request) => validate_registration_certificate(
+                verifier_info.as_ref().map(|info| info.as_slice()),
+                &dcql_query,
+                &certificate,
+                wrprc_trust_anchors,
+                &self.registration_certificate_revocation_verifier,
+                &TimeGenerator,
+            )
+            .await
+            .map(|_| auth_request)
+            .map_err(|error| AuthRequestValidationError::RegistrationCertificate(Box::new(error))),
+            Err(error) => Err(error),
+        }
+        .map_err(VpVerifierError::AuthRequestValidation);
         let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
                 return Err(VpSessionError::Verifier(
@@ -228,8 +245,6 @@ where
             }
             (result, _) => result.map_err(VpSessionError::Verifier)?,
         };
-
-        // TODO PVW-5866 check if auth request matches `credentials` of registration certificate
 
         // TODO (PVW-4955): Signing of disclosures using a mix of formats is currently unsupported, because of how we
         //                  use the `DisclosureWscd` trait. If the credential request contains this, simply terminate
@@ -291,6 +306,7 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -311,6 +327,7 @@ mod tests {
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use serde::de::Error;
+    use token_status_list::verification::client::StatusListClient;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
     use url::Url;
@@ -344,6 +361,7 @@ mod tests {
     use crate::openid4vp::VpRequestUriMethod;
     use crate::openid4vp::VpRequestUriObject;
     use crate::openid4vp::WalletRequest;
+    use crate::registration_certificate::RegistrationCertificateError;
     use crate::verifier::SessionType;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://cert.rp.example.com/disclosure".parse().unwrap());
@@ -355,6 +373,11 @@ mod tests {
         ),
         (Box<VpSessionError>, Arc<MockVerifierSession>),
     >;
+
+    fn status_list_client() -> impl StatusListClient {
+        let ca = Ca::generate_mock();
+        StatusListClientStub::new(ca.generate_issuer_status_list_mock().unwrap())
+    }
 
     fn start_disclosure_session<SF>(
         session_type: SessionType,
@@ -375,18 +398,25 @@ mod tests {
             redirect_uri,
             credential_requests,
         );
+        let registration_certificate = verifier_session.registration_certificate.as_ref().unwrap();
+        let registration_certificate_trust_anchors = registration_certificate.trust_anchors.clone();
+        let registration_certificate_status_list_client = registration_certificate.status_list_client.clone();
         let verifier_session = Arc::new(transform_verifier_session(verifier_session));
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
 
         // Create a new `VpDisclosureClient` and start a disclosure session.
-        let client = VpDisclosureClient::new(mock_client, verifier_session.crl_verifier.clone());
+        let client = VpDisclosureClient::new(
+            mock_client,
+            verifier_session.crl_verifier.clone(),
+            registration_certificate_status_list_client,
+        );
 
         let disclosure_session_result = client
             .start(
                 &verifier_session.request_uri_query(),
                 uri_source,
                 &verifier_session.trust_anchors,
-                &TrustAnchors::empty(),
+                &registration_certificate_trust_anchors,
             )
             .now_or_never()
             .unwrap();
@@ -609,11 +639,71 @@ mod tests {
     }
 
     #[test]
+    fn test_vp_disclosure_client_rejects_missing_registration_certificate() {
+        let (error, verifier_session) = start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::GET,
+            None,
+            Format::MsoMdoc,
+            |mut verifier_session| {
+                verifier_session.registration_certificate = None;
+                verifier_session
+            },
+        )
+        .expect_err("starting a disclosure session without a registration certificate should fail");
+
+        assert_matches!(
+            *error,
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::RegistrationCertificate(ref registration_error)
+            )) if matches!(registration_error.as_ref(), RegistrationCertificateError::Missing)
+        );
+        assert_matches!(
+            verifier_session.wallet_messages.lock().last(),
+            Some(WalletMessage::Error(_))
+        );
+    }
+
+    #[test]
+    fn test_vp_disclosure_client_rejects_query_not_authorized_by_registration_certificate() {
+        let (error, verifier_session) = start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::GET,
+            None,
+            Format::MsoMdoc,
+            |mut verifier_session| {
+                verifier_session.credential_requests = NormalizedCredentialRequests::new_mock_sd_jwt_pid_example();
+                verifier_session
+            },
+        )
+        .expect_err("starting a disclosure session with an unauthorized query should fail");
+
+        assert_matches!(
+            *error,
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::RegistrationCertificate(ref registration_error)
+            )) if matches!(
+                registration_error.as_ref(),
+                RegistrationCertificateError::Authorization(
+                    RegistrationCertificateAuthorizationError::UnauthorizedCredential(_)
+                )
+            )
+        );
+        assert_matches!(
+            verifier_session.wallet_messages.lock().last(),
+            Some(WalletMessage::Error(_))
+        );
+    }
+
+    #[test]
     fn test_vp_disclosure_client_start_error_request_uri() {
         // Calling `VpDisclosureClient::start()` with an invalid request URI object should result in an error.
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
             CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            status_list_client(),
         );
 
         let error = client
@@ -635,6 +725,7 @@ mod tests {
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
             CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            status_list_client(),
         );
 
         let query = serde_qs::to_string(&VpRequestUri {
@@ -671,6 +762,7 @@ mod tests {
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
             CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            status_list_client(),
         );
 
         let query = serde_qs::to_string(&VpRequestUri {
@@ -826,7 +918,11 @@ mod tests {
         ))
         .unwrap();
 
-        let client = VpDisclosureClient::new(error_client, CertificateCrlVerifier::<MockCrlFetcher>::default());
+        let client = VpDisclosureClient::new(
+            error_client,
+            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            status_list_client(),
+        );
         let error = client
             .start(
                 &request_query,

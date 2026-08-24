@@ -221,7 +221,7 @@ where
         let credential_issuer_discovery =
             HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
-        let disclosure_client = VpDisclosureClient::new_with_registration_certificate_status_list_client(
+        let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
             crl_verifier.clone(),
             registration_certificate_status_list_client,
@@ -254,12 +254,13 @@ where
         let crl_verifier = CertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build()?);
         let credential_issuer_discovery =
             HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
+        // Note that HTTP is explicitly allowed for the retrieval of status lists.
+        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
             crl_verifier.clone(),
+            status_list_client.clone(),
         );
-        // Note that HTTP is explicitly allowed for the retrieval of status lists.
-        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
         let clients = Self {
             account_provider_client: APC::default(),

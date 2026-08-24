@@ -82,6 +82,7 @@ use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 use crate::jose::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::registration_certificate::RegistrationCertificateError;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
@@ -436,6 +437,9 @@ pub enum AuthRequestValidationError {
     },
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtX5cVerifyError),
+    #[error("invalid registration certificate: {0}")]
+    #[category(critical)]
+    RegistrationCertificate(#[source] Box<RegistrationCertificateError>),
     #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
     #[category(critical)]
     WalletNonceMismatch,
