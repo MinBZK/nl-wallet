@@ -641,7 +641,7 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::UnknownCredentialIdentifier(_) => CredentialErrorCode::UnknownCredentialIdentifier,
 
-            Self::UnknownCredentialConfiguration(_) => CredentialErrorCode::UnknownCredentialConfiguration,
+            Self::CredentialConfigurationIdNotAllowed => CredentialErrorCode::InvalidCredentialRequest,
 
             Self::MissingCredentialConfiguration(_) => CredentialErrorCode::ServerError,
 
