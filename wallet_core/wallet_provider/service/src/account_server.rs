@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::convert::Infallible;
 use std::error::Error;
 use std::time::Duration;
 
@@ -515,33 +514,35 @@ pub struct AccountServerKeys {
 }
 
 /// View of certificate signing keys by KID, with expired keys filtered out.
-pub struct CertificateSigningKeysByKid<'a>(HashMap<&'a str, &'a PublicKey>);
+pub struct CertificateSigningKeysByKid<'a> {
+    keys: &'a HashMap<Kid, CertificateSigningKeys>,
+    now: DateTime<Utc>,
+}
 
 impl<'a> CertificateSigningKeysByKid<'a> {
     pub fn new(keys: &'a HashMap<Kid, CertificateSigningKeys>, time: &impl Generator<DateTime<Utc>>) -> Self {
         let now = time.generate();
-        Self(
-            keys.iter()
-                .filter_map(|(kid, keys)| {
-                    // Filter out expired keys
-                    if keys.exp.is_none_or(|exp| exp > now) {
-                        Some((kid.as_ref(), &keys.certificate_public_key))
-                    } else {
-                        None
-                    }
-                })
-                .collect(),
-        )
+        Self { keys, now }
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("public key expired: {0}")]
+pub struct KeyExpired(DateTime<Utc>);
+
 impl<'a> PublicKeyByKid for CertificateSigningKeysByKid<'a> {
-    type Error = Infallible;
+    type Error = KeyExpired;
 
     fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
-        let key = self.0.get(kid);
+        let kid = match Kid::try_from(kid) {
+            Ok(kid) => kid,
+            Err(_) => return Ok(None),
+        };
+
+        let key = self.keys.get(&kid);
         match key {
-            Some(&key) => Ok(Some(key.to_owned())),
+            Some(key) if key.exp.is_none_or(|e| e > self.now) => Ok(Some(key.certificate_public_key.clone())),
+            Some(_) => Err(KeyExpired(self.now)),
             None => Ok(None),
         }
     }
