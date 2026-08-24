@@ -264,7 +264,7 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use hsm::model::Hsm;
+    use hsm::model::TestHsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;

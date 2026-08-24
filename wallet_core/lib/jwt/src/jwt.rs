@@ -1240,7 +1240,6 @@ mod tests {
     use std::fmt::Debug;
 
     use ::axum::response::IntoResponse;
-    use base64::prelude::*;
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;

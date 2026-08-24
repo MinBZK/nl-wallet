@@ -6,21 +6,23 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
 use crate::model::encrypted::Encrypted;
-use crate::service::AesKeyUsage;
 
 pub trait Hsm {
     type Error: std::error::Error + Send + Sync;
 
-    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error>;
-    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<(), Self::Error>;
-    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(), Self::Error>;
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error>;
-    async fn delete_key(&self, identifier: &str) -> Result<(), Self::Error>;
     async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error>;
     async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> Result<Vec<u8>, Self::Error>;
     async fn verify_hmac(&self, identifier: &str, data: &[u8], signature: Vec<u8>) -> Result<(), Self::Error>;
     async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>, Self::Error>;
     async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error>;
+}
+
+#[cfg(any(feature = "test", feature = "mock"))]
+pub trait TestHsm: Hsm {
+    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error>;
+    async fn generate_aes_key(&self, identifier: &str, usage: crate::service::AesKeyUsage) -> Result<(), Self::Error>;
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(), Self::Error>;
 }
 
 #[cfg(feature = "mock")]
@@ -53,7 +55,8 @@ pub mod mock {
     use crate::service::Pkcs11Client;
     use crate::service::PrivateKeyHandle;
     use crate::service::PublicKeyHandle;
-    use crate::service::SigningMechanism;
+    use crate::service::SecretKeyHandle;
+    use crate::service::SignVerifyKeyHandle;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -107,9 +110,7 @@ pub mod mock {
         }
     }
 
-    impl<E: Error + Send + Sync + From<MacError>> Hsm for MockPkcs11Client<E> {
-        type Error = E;
-
+    impl<E: Error + Send + Sync + From<MacError>> crate::model::TestHsm for MockPkcs11Client<E> {
         async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error> {
             self.1.insert(String::from(identifier), random_bytes(32));
             Ok(())
@@ -125,17 +126,16 @@ pub mod mock {
             self.0.insert(String::from(identifier), key);
             Ok(())
         }
+    }
+
+    impl<E: Error + Send + Sync + From<MacError>> Hsm for MockPkcs11Client<E> {
+        type Error = E;
 
         async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error> {
             let entry = self.0.get(identifier).unwrap();
             let key = entry.value();
             let verifying_key = key.verifying_key();
             Ok(*verifying_key)
-        }
-
-        async fn delete_key(&self, identifier: &str) -> Result<(), Self::Error> {
-            self.0.remove(identifier).unwrap();
-            Ok(())
         }
 
         async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error> {
@@ -181,22 +181,10 @@ pub mod mock {
     }
 
     impl<E> Pkcs11Client for MockPkcs11Client<E> {
-        async fn generate_aes_key(&self, _identifier: &str, _usage: AesKeyUsage) -> Result<PrivateKeyHandle, HsmError> {
-            todo!()
-        }
-
-        async fn generate_generic_secret_key(&self, _identifier: &str) -> Result<PrivateKeyHandle, HsmError> {
-            todo!()
-        }
-
         async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle), HsmError> {
             todo!()
         }
-
-        async fn generate_signing_key_pair(
-            &self,
-            _identifier: &str,
-        ) -> Result<(PublicKeyHandle, PrivateKeyHandle), HsmError> {
+        async fn get_secret_key_handle(&self, _identifier: &str) -> Result<SecretKeyHandle, HsmError> {
             todo!()
         }
 
@@ -216,19 +204,13 @@ pub mod mock {
             todo!()
         }
 
-        async fn sign(
-            &self,
-            _private_key_handle: &PrivateKeyHandle,
-            _mechanism: SigningMechanism,
-            _data: &[u8],
-        ) -> Result<Vec<u8>, HsmError> {
+        async fn sign<KH: SignVerifyKeyHandle>(&self, _key_handle: &KH, _data: &[u8]) -> Result<Vec<u8>, HsmError> {
             todo!()
         }
 
-        async fn verify(
+        async fn verify<KH: SignVerifyKeyHandle>(
             &self,
-            _private_key_handle: &PrivateKeyHandle,
-            _mechanism: SigningMechanism,
+            _key_handle: &KH,
             _data: &[u8],
             _signature: Vec<u8>,
         ) -> Result<(), HsmError> {
@@ -237,7 +219,7 @@ pub mod mock {
 
         async fn encrypt(
             &self,
-            _key_handle: &PrivateKeyHandle,
+            _key_handle: &SecretKeyHandle,
             _iv: InitializationVector,
             _data: Vec<u8>,
         ) -> Result<(Vec<u8>, InitializationVector), HsmError> {
@@ -246,7 +228,7 @@ pub mod mock {
 
         async fn decrypt(
             &self,
-            _key_handle: &PrivateKeyHandle,
+            _key_handle: &SecretKeyHandle,
             _iv: InitializationVector,
             _encrypted_data: Vec<u8>,
         ) -> Result<Vec<u8>, HsmError> {
@@ -255,7 +237,7 @@ pub mod mock {
 
         async fn encrypt_ctr(
             &self,
-            _key_handle: &PrivateKeyHandle,
+            _key_handle: &SecretKeyHandle,
             _counter_block: [u8; AES_BLOCK_SIZE],
             _data: impl AsRef<[u8]> + Send + 'static,
         ) -> Result<Vec<u8>, HsmError> {
@@ -264,7 +246,7 @@ pub mod mock {
 
         async fn cmac(
             &self,
-            _key_handle: &PrivateKeyHandle,
+            _key_handle: &SecretKeyHandle,
             _data: impl AsRef<[u8]> + Send + 'static,
         ) -> Result<[u8; AES_BLOCK_SIZE], HsmError> {
             todo!()
@@ -272,7 +254,7 @@ pub mod mock {
 
         async fn wrap_key(
             &self,
-            _wrapping_key: &PrivateKeyHandle,
+            _wrapping_key: &SecretKeyHandle,
             _key: &PrivateKeyHandle,
             _public_key: VerifyingKey,
         ) -> Result<WrappedKey, HsmError> {
@@ -281,7 +263,7 @@ pub mod mock {
 
         async fn unwrap_signing_key(
             &self,
-            _unwrapping_key: &PrivateKeyHandle,
+            _unwrapping_key: &SecretKeyHandle,
             _wrapped_key: WrappedKey,
         ) -> Result<PrivateKeyHandle, HsmError> {
             todo!()

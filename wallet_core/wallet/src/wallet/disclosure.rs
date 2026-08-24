@@ -1747,7 +1747,7 @@ mod tests {
                         error_description: None,
                         error_uri: None,
                     },
-                    redirect_uri: Some(start_return_url),
+                    redirect_uri: Some(Box::new(start_return_url)),
                 }
                 .into(),
             )))
@@ -2308,7 +2308,7 @@ mod tests {
                         error_description: None,
                         error_uri: None,
                     },
-                    redirect_uri: Some(terminate_return_url),
+                    redirect_uri: Some(Box::new(terminate_return_url)),
                 }
                 .into(),
             )))
@@ -2692,7 +2692,7 @@ mod tests {
                 error_description: None,
                 error_uri: None,
             },
-            redirect_uri: Some(RETURN_URL.clone()),
+            redirect_uri: Some(Box::new(RETURN_URL.to_owned())),
         },
         ClientErrorType::VpClient,
         true,

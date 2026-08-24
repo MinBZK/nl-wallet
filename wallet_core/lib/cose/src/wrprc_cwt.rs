@@ -366,7 +366,6 @@ mod tests {
     use chrono::TimeZone;
     use crypto::server_keys::generate::Ca;
     use error_category::Category;
-    use error_category::ErrorCategory as _;
     use serde::Deserialize;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
