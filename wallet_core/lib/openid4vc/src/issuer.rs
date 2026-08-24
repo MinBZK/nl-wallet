@@ -2721,14 +2721,15 @@ mod tests {
         CredentialConfigurationIdentifier,
     }
 
-    #[derive(Debug, Clone, Copy, Default)]
-    struct CredentialRequestFailures {
-        has_wrong_dpop_nonce: bool,
-        has_wrong_proof_aud: bool,
-        has_missing_proof_nonce: bool,
-        has_unknown_proof_nonce: bool,
-        has_unknown_identifier: bool,
-        has_incorrect_prepared_credential_format: bool,
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum CredentialRequestFailure {
+        None,
+        WrongDpopNonce,
+        IncorrectPreparedCredentialFormat,
+        WrongProofAud,
+        MissingProofNonce,
+        UnknownProofNonce,
+        UnknownIdentifier,
     }
 
     /// Create a mock `Issuer`, set it up with a fixture of a credential that is ready to be issued and populate a
@@ -2736,7 +2737,7 @@ mod tests {
     fn setup_mock_issuer_and_credential_request(
         request_identifier: RequestIdentifier,
         copy_count: NonZeroUsize,
-        failures: CredentialRequestFailures,
+        failure: CredentialRequestFailure,
     ) -> (MockIssuer, AccessToken, Dpop, CredentialRequest) {
         let (issuer, _trust_anchor, issuer_identifier, _wia_issuer_privkey) = setup_simple_mock_issuer();
 
@@ -2748,7 +2749,7 @@ mod tests {
         let dpop_public_key = (*dpop_private_key.verifying_key()).into();
         let dpop_nonce = random_string(16);
 
-        let request_dpop_nonce = if failures.has_wrong_dpop_nonce {
+        let request_dpop_nonce = if failure == CredentialRequestFailure::WrongDpopNonce {
             random_string(16)
         } else {
             dpop_nonce.clone()
@@ -2768,21 +2769,21 @@ mod tests {
         let config_id = format!("{}_{}", credential_kind.attestation_type, credential_kind.format).into();
         let mut prepared_credential = PreparedCredential::try_new(config_id, document, &issuer.issuer_data).unwrap();
 
-        if failures.has_incorrect_prepared_credential_format {
+        if failure == CredentialRequestFailure::IncorrectPreparedCredentialFormat {
             prepared_credential.format = Format::MsoMdoc;
         }
 
         // Sign `copy_count` number of JWT proofs.
-        let aud = if failures.has_wrong_proof_aud {
+        let aud = if failure == CredentialRequestFailure::WrongProofAud {
             "wrong_aud".to_string()
         } else {
             issuer_identifier.to_string()
         };
         let proofs = utils::vec_at_least::repeat_n(aud, copy_count)
             .map(|aud| {
-                let nonce = if failures.has_missing_proof_nonce {
+                let nonce = if failure == CredentialRequestFailure::MissingProofNonce {
                     None
-                } else if failures.has_unknown_proof_nonce {
+                } else if failure == CredentialRequestFailure::UnknownProofNonce {
                     Some("unknown_nonce".to_string().into())
                 } else {
                     Some(issuer.generate_nonce().now_or_never().unwrap().unwrap())
@@ -2809,7 +2810,7 @@ mod tests {
         // `RequestIdentifier` enum.
         let credential_request = match request_identifier {
             RequestIdentifier::CredentialIdentifier => {
-                let identifier = if failures.has_unknown_identifier {
+                let identifier = if failure == CredentialRequestFailure::UnknownIdentifier {
                     "unknown_credential_id".to_string()
                 } else {
                     prepared_credential.id.to_string()
@@ -2818,7 +2819,7 @@ mod tests {
                 CredentialRequest::new_credential_id(identifier, proofs)
             }
             RequestIdentifier::CredentialConfigurationIdentifier => {
-                let identifier = if failures.has_unknown_identifier {
+                let identifier = if failure == CredentialRequestFailure::UnknownIdentifier {
                     "unknown_config_id".to_string().into()
                 } else {
                     prepared_credential.credential_configuration_id.clone()
@@ -2858,7 +2859,7 @@ mod tests {
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             request_identifier,
             copy_count.try_into().unwrap(),
-            CredentialRequestFailures::default(),
+            CredentialRequestFailure::None,
         );
 
         let response = issuer
@@ -2879,7 +2880,7 @@ mod tests {
         let (issuer, _access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            CredentialRequestFailures::default(),
+            CredentialRequestFailure::None,
         );
 
         // Processing a Credential Request with an Access Token that is too short to contain an appended Session Token
@@ -2898,7 +2899,7 @@ mod tests {
         let (issuer, _access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            CredentialRequestFailures::default(),
+            CredentialRequestFailure::None,
         );
 
         // Processing a Credential Request with an unknown Session Token should result in an error.
@@ -2919,7 +2920,7 @@ mod tests {
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            CredentialRequestFailures::default(),
+            CredentialRequestFailure::None,
         );
 
         let access_token = AccessToken::new(&access_token.code().unwrap());
@@ -2936,14 +2937,10 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_dpop_invalid() {
-        let failures = CredentialRequestFailures {
-            has_wrong_dpop_nonce: true,
-            ..CredentialRequestFailures::default()
-        };
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            failures,
+            CredentialRequestFailure::WrongDpopNonce,
         );
 
         // Processing a Credential Request with an incorrect DPoP should result in an error.
@@ -2961,14 +2958,10 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_proof_jwt() {
-        let failures = CredentialRequestFailures {
-            has_wrong_proof_aud: true,
-            ..CredentialRequestFailures::default()
-        };
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            failures,
+            CredentialRequestFailure::WrongProofAud,
         );
 
         // Processing a Credential Request with an invalid proof JWT should result in an error.
@@ -2983,14 +2976,10 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_proof_nonce() {
-        let failures = CredentialRequestFailures {
-            has_missing_proof_nonce: true,
-            ..CredentialRequestFailures::default()
-        };
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            failures,
+            CredentialRequestFailure::MissingProofNonce,
         );
 
         // Processing a Credential Request with a proof JWT that does not contain a nonce should result in an error.
@@ -3005,14 +2994,10 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_nonce() {
-        let failures = CredentialRequestFailures {
-            has_unknown_proof_nonce: true,
-            ..CredentialRequestFailures::default()
-        };
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            failures,
+            CredentialRequestFailure::UnknownProofNonce,
         );
 
         // Processing a Credential Request with a proof JWT that contains an unknown nonce should result in an error.
@@ -3030,7 +3015,7 @@ mod tests {
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             5.try_into().unwrap(),
-            CredentialRequestFailures::default(),
+            CredentialRequestFailure::None,
         );
 
         // Processing a Credential Request with too many proof JWT should result in an error.
@@ -3045,14 +3030,10 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_credential_id() {
-        let failures = CredentialRequestFailures {
-            has_unknown_identifier: true,
-            ..CredentialRequestFailures::default()
-        };
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialIdentifier,
             NonZeroUsize::MIN,
-            failures,
+            CredentialRequestFailure::UnknownIdentifier,
         );
 
         // Processing a Credential Request with an unknown Credential ID should result in an error.
@@ -3067,14 +3048,10 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_credential_config_id() {
-        let failures = CredentialRequestFailures {
-            has_unknown_identifier: true,
-            ..CredentialRequestFailures::default()
-        };
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialConfigurationIdentifier,
             NonZeroUsize::MIN,
-            failures,
+            CredentialRequestFailure::UnknownIdentifier,
         );
 
         // Processing a Credential Request with an unknown Credential Configuration ID should result in an error.
@@ -3089,14 +3066,10 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_credential_configuration() {
-        let failures = CredentialRequestFailures {
-            has_incorrect_prepared_credential_format: true,
-            ..CredentialRequestFailures::default()
-        };
         let (issuer, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             RequestIdentifier::CredentialConfigurationIdentifier,
             NonZeroUsize::MIN,
-            failures,
+            CredentialRequestFailure::IncorrectPreparedCredentialFormat,
         );
 
         // Processing a Credential Request when the issuer has an inconsistent `PreparedCredential` in its session state
