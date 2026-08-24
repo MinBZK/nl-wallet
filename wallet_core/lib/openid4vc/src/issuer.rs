@@ -14,7 +14,6 @@ use attestation_data::credential_payload::CredentialPayloadIntoSignedSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::DurationRound;
 use chrono::Utc;
@@ -26,11 +25,11 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use derive_more::Constructor;
 use derive_more::Debug;
-use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::join;
 use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
+use itertools::Either;
 use itertools::Itertools;
 use jwt::Algorithm;
 use jwt::JwtValidation;
@@ -286,8 +285,11 @@ pub enum CredentialRequestError {
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("incorrect number of status claims for attestation_type: {0}")]
-    IncorrectNumberOfStatusClaims(String),
+    #[error("incorrect number of status claims, expected {expected}, but received {received}")]
+    IncorrectNumberOfStatusClaims {
+        expected: NonZeroUsize,
+        received: NonZeroUsize,
+    },
 
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     JwkConversion(#[source] JwkConversionError),
@@ -1581,22 +1583,16 @@ impl Session<AccessTokenIssued> {
                 CredentialRequestError::MissingCredentialConfiguration(credential.credential_configuration_id.clone())
             })?;
 
-        let status_claim = credential_config
-            .status_list
-            .obtain_status_claims(credential.id, credential.credential_payload.expires, NonZeroUsize::MIN)
-            .await
-            .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
-            .into_first();
-
-        let credentials = Credentials::new(
+        let credentials = Credentials::sign_batch(
+            credential.id,
             requested_format,
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             vec_nonempty![&holder_pubkey],
             credential_config.metadata.first_document_integrity().clone(),
-            status_claim,
-            &credential_config.key_pair,
             credential_config.metadata.normalized(),
+            &credential_config.key_pair,
+            &credential_config.status_list,
         )
         .await?;
 
@@ -1714,52 +1710,45 @@ impl Session<AccessTokenIssued> {
             return Err(CredentialRequestError::InvalidNonce);
         }
 
-        // Obtain a status claim for every attestation copy, linked to a single batch id per credential
-        let status_claims = try_join_all(credentials_and_holder_pubkeys.iter().map(
-            |(credential, credential_config, format_pubkeys)| async move {
-                let claims = credential_config
-                    .status_list
-                    .obtain_status_claims(
-                        credential.id,
-                        credential.credential_payload.expires,
-                        format_pubkeys.len(),
-                    )
-                    .await
-                    .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?;
-                if claims.len() != format_pubkeys.len() {
-                    return Err(CredentialRequestError::IncorrectNumberOfStatusClaims(
-                        credential.credential_payload.attestation_type.clone(),
-                    ));
-                }
-                Ok(claims)
+        // Make sure all credentials are issued with the same `issued_at` timestamp
+        let issued_at = utc_now_truncated_to_days();
+
+        // Sign all credentials and create `Credentials` type per batch of credentials.
+        let credentials = try_join_all(credentials_and_holder_pubkeys.iter().map(
+            |(credential, credential_config, format_pubkeys)| {
+                Credentials::sign_batch(
+                    credential.id,
+                    credential.format,
+                    credential.credential_payload.clone(),
+                    issued_at,
+                    format_pubkeys.nonempty_iter().collect(),
+                    credential_config.metadata.first_document_integrity().clone(),
+                    credential_config.metadata.normalized(),
+                    &credential_config.key_pair,
+                    &credential_config.status_list,
+                )
             },
         ))
         .await?;
 
-        // Make sure all credentials are issued with the same `issued_at` timestamp
-        let issued_at = utc_now_truncated_to_days();
-        let credential_responses = try_join_all(
-            credentials_and_holder_pubkeys
-                .iter()
-                // The claims size is explicitly checked to be equal to the number of copies
-                .zip_eq(status_claims)
-                .flat_map(|((credential, credential_config, format_pubkeys), claims)| {
-                    format_pubkeys.into_iter().zip(claims.into_inner()).map(|(key, claim)| {
-                        Credentials::new(
-                            credential.format,
-                            credential.credential_payload.clone(),
-                            issued_at,
-                            vec_nonempty![key],
-                            credential_config.metadata.first_document_integrity().clone(),
-                            claim,
-                            &credential_config.key_pair,
-                            credential_config.metadata.normalized(),
-                        )
-                        .map_ok(CredentialResponse::new_immediate)
-                    })
-                }),
-        )
-        .await?;
+        // Unpick each created `Credentials` into one or more `Credentials` that contain only one credential copy of the
+        // relevant format, then wrap each of these in a `CredentialResponse`.
+        let credential_responses = credentials
+            .into_iter()
+            .flat_map(|credentials| match credentials {
+                Credentials::MsoMdoc(mdoc_credentials) => Either::Left(
+                    mdoc_credentials
+                        .into_iter()
+                        .map(|mdoc_credential| Credentials::MsoMdoc(vec_nonempty![mdoc_credential])),
+                ),
+                Credentials::SdJwt(sd_jwt_credentials) => Either::Right(
+                    sd_jwt_credentials
+                        .into_iter()
+                        .map(|sd_jwt_credential| Credentials::SdJwt(vec_nonempty![sd_jwt_credential])),
+                ),
+            })
+            .map(CredentialResponse::new_immediate)
+            .collect();
 
         Ok(draft::CredentialResponses { credential_responses })
     }
@@ -1833,24 +1822,17 @@ impl Session<AccessTokenIssued> {
                 CredentialRequestError::MissingCredentialConfiguration(credential.credential_configuration_id.clone())
             })?;
 
-        // Create a status claim, to be included in the issued credential.
-        let status_claim = credential_config
-            .status_list
-            .obtain_status_claims(credential.id, credential.credential_payload.expires, NonZeroUsize::MIN)
-            .await
-            .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
-            .into_first();
-
         // Issue the same number of credentials as the amount of received holder public keys.
-        let credentials = Credentials::new(
+        let credentials = Credentials::sign_batch(
+            credential.id,
             credential.format,
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             public_keys.nonempty_iter().collect(),
             credential_config.metadata.first_document_integrity().clone(),
-            status_claim,
-            &credential_config.key_pair,
             credential_config.metadata.normalized(),
+            &credential_config.key_pair,
+            &credential_config.status_list,
         )
         .await?;
 
@@ -1953,30 +1935,50 @@ impl draft::CredentialRequestProof {
 }
 
 impl Credentials {
+    /// Sign a batch of credentials by constructing a `CredentialPayload` a `PreviewableCredentialPayload` and signing N
+    /// copies in the requested format, where N is based on the number of provided holder public keys. This also
+    /// includes obtaining N status claims for the batch as a whole.
     #[expect(clippy::too_many_arguments, reason = "Internal constructor")]
-    async fn new<K>(
+    async fn sign_batch<K, L>(
+        batch_id: Uuid,
         format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_public_keys: VecNonEmpty<&PublicKey>,
         metadata_integrity: Integrity,
-        status_claim: StatusClaim,
-        key_pair: &KeyPair<K>,
         type_metadata: &NormalizedTypeMetadata,
+        key_pair: &KeyPair<K>,
+        status_list: &L,
     ) -> Result<Self, CredentialRequestError>
     where
         K: EcdsaKey,
+        L: StatusListService,
     {
-        // Create one `CredentialPayload` for each holder public key.
-        let key_count = holder_public_keys.len();
+        let copy_count = holder_public_keys.len();
+
+        // Obtain a status claim for each holder public key, i.e. for each credential copy.
+        let status_claims = status_list
+            .obtain_status_claims(batch_id, preview_credential_payload.expires, copy_count)
+            .await
+            .map_err(|error| CredentialRequestError::ObtainStatusClaim(Box::new(error)))?;
+
+        if status_claims.len() != copy_count {
+            return Err(CredentialRequestError::IncorrectNumberOfStatusClaims {
+                expected: copy_count,
+                received: status_claims.len(),
+            });
+        }
+
+        // Clone a `CredentialPayload` for each holder public key, i.e. for each credential copy.
         let payloads = holder_public_keys
             .into_nonempty_iter()
             .zip(utils::vec_at_least::repeat_n(
-                (preview_credential_payload, metadata_integrity, status_claim),
-                key_count,
+                (preview_credential_payload, metadata_integrity),
+                copy_count,
             ))
+            .zip(status_claims)
             .map(
-                |(public_key, (preview_credential_payload, metadata_integrity, status_claim))| {
+                |((public_key, (preview_credential_payload, metadata_integrity)), status_claim)| {
                     CredentialPayload::from_previewable_credential_payload(
                         preview_credential_payload,
                         issued_at,
@@ -2881,57 +2883,66 @@ mod tests {
 
         let time = MockTimeGenerator::default();
 
-        // Verify all issued credentials and extract the "issued_at" timestamps, the metadata integrity values and the
-        // holder public keys from them.
-        let (issued_ats, vct_integrities, issued_public_keys): (HashSet<_>, HashSet<_>, Vec<_>) =
-            match (format, response.into_immediate_credentials()) {
-                (Format::SdJwt, Some(Credentials::SdJwt(sd_jwt_credentials))) => sd_jwt_credentials
-                    .into_iter()
-                    .map(|sd_jwt| {
-                        let sd_jwt_claims = sd_jwt
-                            .credential
-                            .into_verified_against_trust_anchors(&trust_anchors, &time)
-                            .expect("issued SD-JWT should verify correctly")
-                            .into_claims();
+        // Verify all issued credentials and extract the "issued_at" timestamps, the metadata integrity values, the
+        // status claims and the holder public keys from them.
+        let (issued_ats, vct_integrities, status_claims, issued_public_keys): (
+            HashSet<_>,
+            HashSet<_>,
+            HashSet<_>,
+            Vec<_>,
+        ) = match (format, response.into_immediate_credentials()) {
+            (Format::SdJwt, Some(Credentials::SdJwt(sd_jwt_credentials))) => sd_jwt_credentials
+                .into_iter()
+                .map(|sd_jwt| {
+                    let sd_jwt_claims = sd_jwt
+                        .credential
+                        .into_verified_against_trust_anchors(&trust_anchors, &time)
+                        .expect("issued SD-JWT should verify correctly")
+                        .into_claims();
 
-                        let issued_at = DateTime::<Utc>::from(sd_jwt_claims.iat);
-                        let vct_integrity = sd_jwt_claims
-                            .vct_integrity
-                            .expect("issued SD-JWT should contain vct#integrity");
-                        let public_key = sd_jwt_claims.cnf.try_to_public_key().unwrap();
+                    let issued_at = DateTime::<Utc>::from(sd_jwt_claims.iat);
+                    let vct_integrity = sd_jwt_claims
+                        .vct_integrity
+                        .expect("issued SD-JWT should contain vct#integrity");
+                    let status_claim = sd_jwt_claims.status.expect("issued SD-JWT should contain status claim");
+                    let public_key = sd_jwt_claims.cnf.try_to_public_key().unwrap();
 
-                        (issued_at, vct_integrity, public_key)
-                    })
-                    .collect_vec(),
-                (Format::MsoMdoc, Some(Credentials::MsoMdoc(mdoc_credentials))) => mdoc_credentials
-                    .into_iter()
-                    .map(|mdoc_credential| {
-                        let IssuerSignedVerificationResult { mso, .. } = mdoc_credential
-                            .credential
-                            .verify(ValidityRequirement::AllowNotYetValid, &time, &trust_anchors)
-                            .expect("issued mdoc should verify correctly");
+                    (issued_at, vct_integrity, status_claim, public_key)
+                })
+                .collect_vec(),
+            (Format::MsoMdoc, Some(Credentials::MsoMdoc(mdoc_credentials))) => mdoc_credentials
+                .into_iter()
+                .map(|mdoc_credential| {
+                    let IssuerSignedVerificationResult { mso, .. } = mdoc_credential
+                        .credential
+                        .verify(ValidityRequirement::AllowNotYetValid, &time, &trust_anchors)
+                        .expect("issued mdoc should verify correctly");
 
-                        let issued_at = DateTime::<Utc>::try_from(&mso.validity_info.signed).unwrap();
-                        let vct_integrity = mso
-                            .type_metadata_integrity
-                            .expect("issued mdoc should contain type_metadata_integrity");
-                        let public_key = VerifyingKey::try_from(mso.device_key_info).unwrap().into();
+                    let issued_at = DateTime::<Utc>::try_from(&mso.validity_info.signed).unwrap();
+                    let vct_integrity = mso
+                        .type_metadata_integrity
+                        .expect("issued mdoc should contain type_metadata_integrity");
+                    let status_claim = mso.status.expect("issued mdoc should contain status claim");
+                    let public_key = VerifyingKey::try_from(mso.device_key_info).unwrap().into();
 
-                        (issued_at, vct_integrity, public_key)
-                    })
-                    .collect_vec(),
-                _ => panic!(
-                    "processing CredentialRequest should result in an immediate CredentialResponse with the requested \
-                     format"
-                ),
-            }
-            .into_iter()
-            .multiunzip();
+                    (issued_at, vct_integrity, status_claim, public_key)
+                })
+                .collect_vec(),
+            _ => panic!(
+                "processing CredentialRequest should result in an immediate CredentialResponse with the requested \
+                 format"
+            ),
+        }
+        .into_iter()
+        .multiunzip();
 
         // Check that all the "issued_at" timestamps and type metadata integrity values are the same across the
         // credential copies.
         assert_eq!(issued_ats.len(), 1);
         assert_eq!(vct_integrities.len(), 1);
+
+        // Check that each issued credential has a distinct status claim.
+        assert_eq!(status_claims.len(), copy_count);
 
         // Check that the holder public keys are exactly the same as the provided input of the credential endpoint.
         assert_eq!(issued_public_keys.len(), copy_count);
