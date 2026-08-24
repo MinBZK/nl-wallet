@@ -87,3 +87,20 @@ pub struct PushedAuthorizationRequest {
     pub client_id: String,
     pub request_uri: String,
 }
+
+impl PushedAuthorizationRequest {
+    pub fn from_par_response(client_id: String, response: &PushedAuthorizationResponse) -> Self {
+        Self {
+            client_id,
+            request_uri: response.request_uri.clone(),
+        }
+    }
+
+    pub fn into_authorization_url(self, mut endpoint: url::Url) -> url::Url {
+        endpoint
+            .query_pairs_mut()
+            .append_pair("client_id", &self.client_id)
+            .append_pair("request_uri", &self.request_uri);
+        endpoint
+    }
+}

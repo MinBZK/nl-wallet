@@ -11,6 +11,7 @@ use itertools::Itertools;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use oauth::authorization::AuthorizationResponse;
+use oauth::authorization::PushedAuthorizationRequest;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::client_auth::ClientAttestationChallengeMechanism;
 use oauth::client_auth::fetch_client_auth_challenge;
@@ -198,11 +199,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
         };
 
-        let mut auth_url = auth_endpoints.authorization_endpoint;
-        auth_url
-            .query_pairs_mut()
-            .append_pair("client_id", &client_id)
-            .append_pair("request_uri", &par_response.request_uri);
+        let auth_url = PushedAuthorizationRequest::from_par_response(client_id, &par_response)
+            .into_authorization_url(auth_endpoints.authorization_endpoint);
 
         Ok(Self {
             credential_configurations,
