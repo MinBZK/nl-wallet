@@ -28,7 +28,10 @@
             xxd
             nodejs
             pnpm
-            nodePackages.prettier
+            prettier
+
+            flutter
+            android-tools
           ];
         };
       });
