@@ -279,7 +279,7 @@ where
                 Err(error) => {
                     return Err(RedirectError::new(
                         AuthorizationRequestError::InvalidAuthorizationRequest(error),
-                        redirect_uri,
+                        Box::new(redirect_uri),
                         state,
                     ));
                 }
@@ -290,7 +290,7 @@ where
             Err(error) => {
                 return Err(RedirectError::new(
                     AuthorizationRequestError::AuthorizationCodeFlow(BoxedErrorWithCode::new(error)),
-                    redirect_uri,
+                    Box::new(redirect_uri),
                     state,
                 ));
             }
@@ -308,7 +308,7 @@ where
                     Err(error) => {
                         return Err(RedirectError::new(
                             AuthorizationRequestError::CompleteAuthorization(error),
-                            redirect_uri,
+                            Box::new(redirect_uri),
                             state,
                         ));
                     }
