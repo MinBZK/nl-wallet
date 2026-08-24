@@ -36,8 +36,8 @@ pub(super) const ANNEX_A_3_1_SUB_ENTITLEMENTS: [&str; 5] = [
 
 /// A registration-certificate payload that passed all synchronous structural and direct-WRPAC-binding checks.
 ///
-/// Header and signature validation are handled by PVW-5898 and PVW-5899. Verification of the referenced status list is
-/// a separate asynchronous step; use [`Self::validate_status`] to perform it.
+/// Header and signature validation are performed by [`super::verify_registration_certificate_envelope`]. Verification
+/// of the referenced status list is a separate asynchronous step; use [`Self::validate_status`] to perform it.
 pub struct StructurallyValidatedRegistrationCertificate(UncheckedRegistrationCertificate);
 
 impl StructurallyValidatedRegistrationCertificate {

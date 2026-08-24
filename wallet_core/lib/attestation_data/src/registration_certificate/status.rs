@@ -145,7 +145,8 @@ impl StructurallyValidatedRegistrationCertificate {
 
 /// A structurally validated registration-certificate payload whose referenced status-list entry is valid.
 ///
-/// Registration-certificate header and signature validation remain the responsibility of PVW-5898 and PVW-5899.
+/// Registration-certificate header and signature validation are performed by
+/// [`super::verify_registration_certificate_envelope`].
 pub struct StatusValidatedRegistrationCertificate(StructurallyValidatedRegistrationCertificate);
 
 impl StatusValidatedRegistrationCertificate {
