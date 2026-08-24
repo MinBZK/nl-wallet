@@ -3,14 +3,32 @@ use crypto::keys::SecureEcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use jwt::KeyWithKid;
+use nutype::nutype;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
+
+const WALLET_CERTIFICATE_SIGNING_KEY_PREFIX: &str = "wallet_certificate_signing_";
+const PIN_HMAC_KEY_PREFIX: &str = "pin_hmac_";
+
+#[nutype(
+    derive(Debug, Clone, TryFrom, AsRef, Hash, PartialEq, Eq, Deserialize),
+    validate(regex = r"^[\w-]+$")
+)]
+pub struct Kid(String);
+
+pub fn certificate_signing_key_identifier(kid: &Kid) -> String {
+    format!("{}{}", WALLET_CERTIFICATE_SIGNING_KEY_PREFIX, kid.as_ref())
+}
+
+pub fn pin_hmac_key_identifier(kid: &Kid) -> String {
+    format!("{}{}", PIN_HMAC_KEY_PREFIX, kid.as_ref())
+}
 
 pub trait WalletCertificateSigningKey: SecureEcdsaKey + KeyWithKid {}
 pub trait InstructionResultSigningKey: SecureEcdsaKey {}
 
 pub struct WalletCertificateSigning {
-    pub kid: String,
+    pub kid: Kid,
     pub key: HsmEcdsaKey,
 }
 
@@ -44,7 +62,7 @@ impl SecureEcdsaKey for WalletCertificateSigning {}
 
 impl KeyWithKid for WalletCertificateSigning {
     fn kid(&self) -> &str {
-        &self.kid
+        self.kid.as_ref()
     }
 }
 

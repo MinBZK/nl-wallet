@@ -41,12 +41,13 @@ use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_provider_persistence::database::ConnectionOptions;
+use wallet_provider_service::keys::Kid;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
-    pub current_certificate_kid: String,
-    pub previous_certificate_kids: Option<HashMap<String, DateTime<Utc>>>,
+    pub current_certificate_kid: Kid,
+    pub previous_certificate_kids: Option<HashMap<Kid, DateTime<Utc>>>,
     pub instruction_result_signing_key_identifier: String,
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,

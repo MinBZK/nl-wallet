@@ -129,6 +129,7 @@ use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
+use crate::keys::Kid;
 use crate::keys::WalletCertificateSigningKey;
 use crate::pin_policy::PinRecoveryPinPolicy;
 use crate::revocation::RevocationError;
@@ -508,7 +509,7 @@ pub struct AndroidAttestationConfiguration {
 }
 
 pub struct AccountServerKeys {
-    pub wallet_certificate_signing_pubkeys: HashMap<String, CertificateSigningKeys>,
+    pub wallet_certificate_signing_pubkeys: HashMap<Kid, CertificateSigningKeys>,
     pub pin_keys: AccountServerPinKeys,
     pub revocation_code_key_identifier: String,
 }
@@ -517,14 +518,14 @@ pub struct AccountServerKeys {
 pub struct CertificateSigningKeysByKid<'a>(HashMap<&'a str, &'a PublicKey>);
 
 impl<'a> CertificateSigningKeysByKid<'a> {
-    pub fn new(keys: &'a HashMap<String, CertificateSigningKeys>, time: &impl Generator<DateTime<Utc>>) -> Self {
+    pub fn new(keys: &'a HashMap<Kid, CertificateSigningKeys>, time: &impl Generator<DateTime<Utc>>) -> Self {
         let now = time.generate();
         Self(
             keys.iter()
                 .filter_map(|(kid, keys)| {
                     // Filter out expired keys
                     if keys.exp.is_none_or(|exp| exp > now) {
-                        Some((kid.as_str(), &keys.certificate_public_key))
+                        Some((kid.as_ref(), &keys.certificate_public_key))
                     } else {
                         None
                     }
@@ -1796,8 +1797,9 @@ pub mod mock {
     use super::mock_play_integrity::MockPlayIntegrityClient;
     use super::*;
     use crate::flags::mock::StubWalletFlags;
+    use crate::keys::Kid;
+    use crate::keys::pin_hmac_key_identifier;
     use crate::wallet_certificate;
-    use crate::wallet_certificate::pin_hmac_key_identifier;
     use crate::wia_issuer::mock::MockWiaIssuer;
 
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
@@ -1846,7 +1848,7 @@ pub mod mock {
 
     pub fn setup_account_server(
         certificate_signing_pubkey: &VerifyingKey,
-        certificate_signing_kid: String,
+        certificate_signing_kid: Kid,
         crl: RevocationStatusList,
     ) -> MockAccountServer {
         let integrity_client = MockPlayIntegrityClient::new(
@@ -2154,11 +2156,12 @@ mod tests {
     use crate::flags::WalletFlags;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
+    use crate::keys::Kid;
     use crate::keys::WalletCertificateSigningKey;
+    use crate::keys::pin_hmac_key_identifier;
     use crate::wallet_certificate;
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
-    use crate::wallet_certificate::pin_hmac_key_identifier;
     use crate::wallet_certificate::verify_wallet_certificate;
     use crate::wia_issuer::mock::MockWiaIssuer;
 
@@ -2346,7 +2349,7 @@ mod tests {
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
             &setup.signing_pubkey,
-            setup.pin_privkey.kid().to_string(),
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
             Default::default(),
         );
 
@@ -2588,7 +2591,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -2617,7 +2620,7 @@ mod tests {
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
             &setup.signing_pubkey,
-            setup.pin_privkey.kid().to_string(),
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
             Default::default(),
         );
 
@@ -2646,7 +2649,7 @@ mod tests {
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
             &setup.signing_pubkey,
-            setup.pin_privkey.kid().to_string(),
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
             Default::default(),
         );
 
@@ -2675,7 +2678,7 @@ mod tests {
         let setup = WalletCertificateSetup::new().await;
         let mut account_server = mock::setup_account_server(
             &setup.signing_pubkey,
-            setup.pin_privkey.kid().to_string(),
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
             Default::default(),
         );
 
@@ -2707,7 +2710,7 @@ mod tests {
         let setup = WalletCertificateSetup::new().await;
         let mut account_server = mock::setup_account_server(
             &setup.signing_pubkey,
-            setup.pin_privkey.kid().to_string(),
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
             Default::default(),
         );
 
@@ -3217,7 +3220,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3236,7 +3239,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3633,7 +3636,7 @@ mod tests {
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(wallet_certificate::mock::CERTIFICATE_KID),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3857,7 +3860,7 @@ mod tests {
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
             &setup.signing_pubkey,
-            setup.pin_privkey.kid().to_string(),
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
             Default::default(),
         );
 

@@ -42,10 +42,11 @@ use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
+use wallet_provider_service::keys::Kid;
 use wallet_provider_service::keys::WalletCertificateSigning;
+use wallet_provider_service::keys::certificate_signing_key_identifier;
+use wallet_provider_service::keys::pin_hmac_key_identifier;
 use wallet_provider_service::pin_policy::PinPolicy;
-use wallet_provider_service::wallet_certificate::certificate_signing_key_identifier;
-use wallet_provider_service::wallet_certificate::pin_hmac_key_identifier;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 use wallet_provider_service::wia_issuer::WiaIssuer;
 
@@ -77,7 +78,7 @@ impl<GRC, PIC> Drop for RouterState<GRC, PIC> {
     }
 }
 
-async fn get_verifying_key(kid: &str, wallet_user_hsm: &Pkcs11Hsm) -> Result<PublicKey, HsmError> {
+async fn get_certificate_public_key(kid: &Kid, wallet_user_hsm: &Pkcs11Hsm) -> Result<PublicKey, HsmError> {
     wallet_user_hsm
         .get_verifying_key(&certificate_signing_key_identifier(kid))
         .await
@@ -85,11 +86,11 @@ async fn get_verifying_key(kid: &str, wallet_user_hsm: &Pkcs11Hsm) -> Result<Pub
 }
 
 async fn kid_and_certificate_signing_keys(
-    kid: String,
+    kid: Kid,
     exp: Option<DateTime<Utc>>,
     wallet_user_hsm: &Pkcs11Hsm,
-) -> Result<(String, CertificateSigningKeys), HsmError> {
-    let certificate_public_key = get_verifying_key(&kid, wallet_user_hsm).await?;
+) -> Result<(Kid, CertificateSigningKeys), HsmError> {
+    let certificate_public_key = get_certificate_public_key(&kid, wallet_user_hsm).await?;
     let pin_hmac_key_identifier = pin_hmac_key_identifier(&kid);
 
     Ok((

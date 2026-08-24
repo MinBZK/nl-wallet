@@ -50,9 +50,10 @@ use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
 use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::flags::mock::StubWalletFlags;
+use wallet_provider_service::keys::Kid;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
+use wallet_provider_service::keys::pin_hmac_key_identifier;
 use wallet_provider_service::wallet_certificate;
-use wallet_provider_service::wallet_certificate::pin_hmac_key_identifier;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 
 async fn do_registration(
@@ -203,7 +204,7 @@ async fn test_instruction_challenge(
 
     let account_server = mock::setup_account_server(
         certificate_signing_pubkey,
-        certificate_signing_key.kid().to_string(),
+        Kid::try_from(certificate_signing_key.kid()).unwrap(),
         Default::default(),
     );
     let pin_privkey = SigningKey::generate();
@@ -263,7 +264,7 @@ async fn test_wia_status() {
 
     let account_server = mock::setup_account_server(
         certificate_signing_pubkey,
-        certificate_signing_key.kid().to_string(),
+        Kid::try_from(certificate_signing_key.kid()).unwrap(),
         Default::default(),
     );
     let pin_privkey = SigningKey::generate();
@@ -346,7 +347,7 @@ async fn test_wia_status() {
 }
 
 // Rollover the server's signing key map
-fn rollover_signing_keys(server: &mut MockAccountServer, keys: HashMap<String, CertificateSigningKeys>) {
+fn rollover_signing_keys(server: &mut MockAccountServer, keys: HashMap<Kid, CertificateSigningKeys>) {
     server.keys.wallet_certificate_signing_pubkeys = keys;
 }
 
@@ -359,12 +360,9 @@ async fn test_certificate_signing_key_rollover() {
     let wrapping_key_identifier = "my-wrapping-key-identifier";
 
     let certificate_signing_key = SigningKey::generate();
-    let kid = certificate_signing_key.kid();
-    let mut account_server = mock::setup_account_server(
-        certificate_signing_key.verifying_key(),
-        kid.to_owned(),
-        Default::default(),
-    );
+    let kid = Kid::try_from(certificate_signing_key.kid()).unwrap();
+    let mut account_server =
+        mock::setup_account_server(certificate_signing_key.verifying_key(), kid.clone(), Default::default());
 
     // Register with the current certificate signing key, before rollover
     let pin_privkey = SigningKey::generate();
@@ -380,28 +378,28 @@ async fn test_certificate_signing_key_rollover() {
 
     // The new current keys that the WP is rolling over to
     let new_current_keys = (
-        "1".to_string(),
+        Kid::try_from("1").unwrap(),
         CertificateSigningKeys {
             exp: None,
             certificate_public_key: PublicKey::from(*SigningKey::generate().verifying_key()),
-            pin_hmac_key_identifier: pin_hmac_key_identifier("1"),
+            pin_hmac_key_identifier: pin_hmac_key_identifier(&Kid::try_from("1").unwrap()),
         },
     );
 
     let now = Utc::now();
 
     // Set up old key with an expiry in one hour
-    let exp = now + Duration::from_hours(1);
+    let old_pin_hmac_key_identifier = pin_hmac_key_identifier(&kid);
     rollover_signing_keys(
         &mut account_server,
         HashMap::from([
             new_current_keys.clone(),
             (
-                kid.to_owned(),
+                kid,
                 CertificateSigningKeys {
-                    exp: Some(exp),
+                    exp: Some(now + Duration::from_hours(1)),
                     certificate_public_key: PublicKey::from(*certificate_signing_key.verifying_key()),
-                    pin_hmac_key_identifier: pin_hmac_key_identifier(kid),
+                    pin_hmac_key_identifier: old_pin_hmac_key_identifier,
                 },
             ),
         ]),
