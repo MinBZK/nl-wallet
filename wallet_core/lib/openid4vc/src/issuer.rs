@@ -1069,6 +1069,17 @@ where
             )
             .await;
 
+        // Note that as of now, a successful Credential Request does not advance the session state machine, meaning that
+        // a wallet could request the same credential multiple times. For a production-grade issuer, a limitation should
+        // be implemented where a wallet can only request each offered credential once in a single session. Then, once
+        // the last credential has been issued, the session would move to the "Done" state.
+        //
+        // This would involve persisting which credentials have been issued in a session within its state. However,
+        // since it is allowed and even desirable for a wallet to send multiple Credential Requests in parallel and
+        // because the state is written as a JSON blob that is opaque to PostgreSQL, this would require some sort of
+        // locking mechanism to guarantee atomicity of the state. For now, because of the complexity this entails, this
+        // non-trival functionality is beyond what is needed from the issuer implementation.
+
         logged_issuance_result(response_result)
     }
 }
