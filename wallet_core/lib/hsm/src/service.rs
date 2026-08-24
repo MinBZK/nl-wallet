@@ -104,6 +104,13 @@ impl HsmError {
 
 type Result<T> = std::result::Result<T, HsmError>;
 
+/// SecretKeyHandle that wraps ObjectHandle for secret keys
+///
+/// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
+/// leverage the type system to detect when handles are destroyed.
+#[derive(PartialEq, Eq)]
+pub struct SecretKeyHandle(ObjectHandle);
+
 /// PrivateKeyHandle that wraps ObjectHandle for private keys
 ///
 /// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
@@ -121,6 +128,12 @@ pub trait KeyHandle: Send + 'static {
     fn to_object_handle(&self) -> ObjectHandle;
 }
 
+impl KeyHandle for SecretKeyHandle {
+    fn to_object_handle(&self) -> ObjectHandle {
+        self.0
+    }
+}
+
 impl KeyHandle for PrivateKeyHandle {
     fn to_object_handle(&self) -> ObjectHandle {
         self.0
@@ -133,26 +146,50 @@ impl KeyHandle for PublicKeyHandle {
     }
 }
 
+pub trait SignVerifyKeyHandle: KeyHandle {
+    fn mechanism() -> Mechanism<'static>;
+}
+
+impl SignVerifyKeyHandle for SecretKeyHandle {
+    fn mechanism() -> Mechanism<'static> {
+        Mechanism::Sha256Hmac
+    }
+}
+
+impl SignVerifyKeyHandle for PrivateKeyHandle {
+    fn mechanism() -> Mechanism<'static> {
+        Mechanism::Ecdsa
+    }
+}
+
 const AES_AUTHENTICATION_TAG_BITS: u64 = 128;
 pub const AES_BLOCK_SIZE: usize = 16;
 const AES_CTR_COUNTER_BITS: u64 = (AES_BLOCK_SIZE * 8) as u64;
 
 enum HandleType {
+    Secret,
     Public,
     Private,
 }
 
-pub enum SigningMechanism {
-    Ecdsa256,
-    Sha256Hmac,
+impl HandleType {
+    fn to_object_class(&self) -> ObjectClass {
+        match self {
+            HandleType::Secret => ObjectClass::SECRET_KEY,
+            HandleType::Public => ObjectClass::PUBLIC_KEY,
+            HandleType::Private => ObjectClass::PRIVATE_KEY,
+        }
+    }
 }
 
+#[cfg(feature = "test")]
 #[derive(Debug, Clone, Copy)]
 pub enum AesKeyUsage {
     Encrypt,
     Cmac,
 }
 
+#[cfg(feature = "test")]
 impl AesKeyUsage {
     fn attribute(self) -> Attribute {
         match self {
@@ -163,37 +200,24 @@ impl AesKeyUsage {
 }
 
 pub trait Pkcs11Client {
-    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<PrivateKeyHandle>;
-    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
-    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
+    async fn get_secret_key_handle(&self, identifier: &str) -> Result<SecretKeyHandle>;
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle>;
     async fn get_verifying_key(&self, public_key_handle: &PublicKeyHandle) -> Result<VerifyingKey>;
     /// Delete key (takes ownership since the handle is invalid after deletion)
     async fn delete_key(&self, key_handle: impl KeyHandle) -> Result<()>;
-    async fn sign(
-        &self,
-        private_key_handle: &PrivateKeyHandle,
-        mechanism: SigningMechanism,
-        data: &[u8],
-    ) -> Result<Vec<u8>>;
-    async fn verify(
-        &self,
-        private_key_handle: &PrivateKeyHandle,
-        mechanism: SigningMechanism,
-        data: &[u8],
-        signature: Vec<u8>,
-    ) -> Result<()>;
+    async fn sign<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8]) -> Result<Vec<u8>>;
+    async fn verify<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8], signature: Vec<u8>) -> Result<()>;
     async fn encrypt(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         iv: InitializationVector,
         data: Vec<u8>,
     ) -> Result<(Vec<u8>, InitializationVector)>;
     async fn decrypt(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         iv: InitializationVector,
         encrypted_data: Vec<u8>,
     ) -> Result<Vec<u8>>;
@@ -204,24 +228,24 @@ pub trait Pkcs11Client {
     // the others, and could lead to silent interoperability failures with other implementations.
     async fn encrypt_ctr(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         counter_block: [u8; AES_BLOCK_SIZE],
         data: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<Vec<u8>>;
     async fn cmac(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         data: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<[u8; AES_BLOCK_SIZE]>;
     async fn wrap_key(
         &self,
-        wrapping_key: &PrivateKeyHandle,
+        wrapping_key: &SecretKeyHandle,
         key: &PrivateKeyHandle,
         public_key: VerifyingKey,
     ) -> Result<WrappedKey>;
     async fn unwrap_signing_key(
         &self,
-        unwrapping_key: &PrivateKeyHandle,
+        unwrapping_key: &SecretKeyHandle,
         wrapped_key: WrappedKey,
     ) -> Result<PrivateKeyHandle>;
     async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey>;
@@ -260,6 +284,13 @@ impl Drop for Pkcs11FinalizeGuard {
             tracing::warn!("failed to finalize PKCS#11 context: {error}");
         }
     }
+}
+
+#[cfg(feature = "test")]
+pub trait TestPkcs11Client: Pkcs11Client {
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle>;
+    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<SecretKeyHandle>;
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
 }
 
 #[derive(Clone, AsRef)]
@@ -323,7 +354,7 @@ impl Pkcs11Hsm {
         spawn::blocking(move || {
             let session = pool.get()?;
             let object_handles = session.find_objects(&[
-                Attribute::Private(matches!(handle_type, HandleType::Private)),
+                Attribute::Class(handle_type.to_object_class()),
                 Attribute::Label(identifier.clone().into()),
             ])?;
             let object_handle = object_handles
@@ -339,44 +370,20 @@ impl Pkcs11Hsm {
 impl Hsm for Pkcs11Hsm {
     type Error = HsmError;
 
-    async fn generate_generic_secret_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_generic_secret_key(self, identifier)
-            .await
-            .map(|_| ())
-    }
-
-    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_aes_key(self, identifier, usage)
-            .await
-            .map(|_| ())
-    }
-
-    async fn generate_signing_key_pair(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
-        Pkcs11Client::generate_signing_key_pair(self, identifier)
-            .await
-            .map(|_| ())
-    }
-
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
         let handle = self.get_public_key_handle(identifier).await?;
         Pkcs11Client::get_verifying_key(self, &handle).await
     }
 
-    async fn delete_key(&self, identifier: &str) -> Result<()> {
-        let handle = self.get_private_key_handle(identifier).await?;
-        Pkcs11Client::delete_key(self, handle).await?;
-        Ok(())
-    }
-
     async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> std::result::Result<Signature, Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
-        let signature = Pkcs11Client::sign(self, &handle, SigningMechanism::Ecdsa256, data).await?;
+        let signature = Pkcs11Client::sign(self, &handle, data).await?;
         Ok(Signature::from_slice(&signature)?)
     }
 
     async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> std::result::Result<Vec<u8>, Self::Error> {
-        let handle = self.get_private_key_handle(identifier).await?;
-        Pkcs11Client::sign(self, &handle, SigningMechanism::Sha256Hmac, data).await
+        let handle = self.get_secret_key_handle(identifier).await?;
+        Pkcs11Client::sign(self, &handle, data).await
     }
 
     async fn verify_hmac(
@@ -385,78 +392,134 @@ impl Hsm for Pkcs11Hsm {
         data: &[u8],
         signature: Vec<u8>,
     ) -> std::result::Result<(), Self::Error> {
-        let handle = self.get_private_key_handle(identifier).await?;
-        Pkcs11Client::verify(self, &handle, SigningMechanism::Sha256Hmac, data, signature).await
+        let handle = self.get_secret_key_handle(identifier).await?;
+        Pkcs11Client::verify(self, &handle, data, signature).await
     }
 
     async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>> {
         let iv = random_bytes(32);
-        let handle = self.get_private_key_handle(identifier).await?;
+        let handle = self.get_secret_key_handle(identifier).await?;
         let (encrypted_data, initialization_vector) =
             Pkcs11Client::encrypt(self, &handle, InitializationVector(iv), data).await?;
         Ok(Encrypted::new(encrypted_data, initialization_vector))
     }
 
     async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
-        let handle = self.get_private_key_handle(identifier).await?;
+        let handle = self.get_secret_key_handle(identifier).await?;
         Pkcs11Client::decrypt(self, &handle, encrypted.iv, encrypted.data).await
     }
 }
 
-impl Pkcs11Client for Pkcs11Hsm {
-    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
+#[cfg(feature = "test")]
+impl crate::model::TestHsm for Pkcs11Hsm {
+    async fn generate_generic_secret_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        TestPkcs11Client::generate_generic_secret_key(self, identifier)
+            .await
+            .map(|_| ())
+    }
+
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> std::result::Result<(), Self::Error> {
+        TestPkcs11Client::generate_aes_key(self, identifier, usage)
+            .await
+            .map(|_| ())
+    }
+
+    async fn generate_signing_key_pair(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        TestPkcs11Client::generate_signing_key_pair(self, identifier)
+            .await
+            .map(|_| ())
+    }
+}
+
+#[cfg(feature = "test")]
+impl TestPkcs11Client for Pkcs11Hsm {
+    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<SecretKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
 
         spawn::blocking(move || {
             let session = pool.get()?;
 
-            let priv_key_template = &[
-                Attribute::Token(true),
+            let key_template = &[
+                Attribute::Token(false),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
                 Attribute::Sign(true),
-                Attribute::Class(ObjectClass::SECRET_KEY),
                 Attribute::KeyType(KeyType::GENERIC_SECRET),
                 Attribute::ValueLen(32.into()),
                 Attribute::Label(identifier.clone().into()),
             ];
 
-            let private_handle = session.generate_key(&Mechanism::GenericSecretKeyGen, priv_key_template)?;
+            let object_handle = session.generate_key(&Mechanism::GenericSecretKeyGen, key_template)?;
 
-            Ok(PrivateKeyHandle(private_handle))
+            Ok(SecretKeyHandle(object_handle))
         })
         .await
     }
 
-    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<PrivateKeyHandle> {
+    async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
 
         spawn::blocking(move || {
             let session = pool.get()?;
 
-            let priv_key_template = &[
+            let key_template = &[
                 usage.attribute(),
-                Attribute::Token(true),
+                Attribute::Token(false),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
                 Attribute::Extractable(false),
-                Attribute::Class(ObjectClass::SECRET_KEY),
                 Attribute::KeyType(KeyType::AES),
                 Attribute::ValueLen(32.into()),
                 Attribute::Label(identifier.clone().into()),
             ];
 
-            let private_handle = session.generate_key(&Mechanism::AesKeyGen, priv_key_template)?;
+            let object_handle = session.generate_key(&Mechanism::AesKeyGen, key_template)?;
 
-            Ok(PrivateKeyHandle(private_handle))
+            Ok(SecretKeyHandle(object_handle))
         })
         .await
     }
 
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
+        let pool = self.pool.clone();
+        let identifier = String::from(identifier);
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            let mut ec_params = vec![];
+            EcParameters::NamedCurve(NistP256::OID)
+                .encode_to_vec(&mut ec_params)
+                .map_err(|error| HsmError::Sec1(Box::new(error)))?;
+
+            let pub_key_template = &[
+                Attribute::EcParams(ec_params),
+                Attribute::Token(false),
+                Attribute::Private(true),
+                Attribute::Label(identifier.clone().into()),
+            ];
+            let priv_key_template = &[
+                Attribute::Token(false),
+                Attribute::Private(true),
+                Attribute::Sensitive(true),
+                Attribute::Extractable(false),
+                Attribute::Derive(false),
+                Attribute::Sign(true),
+                Attribute::Label(identifier.into()),
+            ];
+
+            let (public_handle, private_handle) =
+                session.generate_key_pair(&Mechanism::EccKeyPairGen, pub_key_template, priv_key_template)?;
+
+            Ok((PublicKeyHandle(public_handle), PrivateKeyHandle(private_handle)))
+        })
+        .await
+    }
+}
+
+impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
         let pool = self.pool.clone();
@@ -472,7 +535,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             let pub_key_template = &[
                 Attribute::EcParams(ec_params),
                 Attribute::Token(false),
-                Attribute::Private(false),
+                Attribute::Private(true),
             ];
             let priv_key_template = &[
                 Attribute::Token(false),
@@ -491,40 +554,10 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
-        let pool = self.pool.clone();
-        let identifier = String::from(identifier);
-
-        spawn::blocking(move || {
-            let session = pool.get()?;
-
-            let mut ec_params = vec![];
-            EcParameters::NamedCurve(NistP256::OID)
-                .encode_to_vec(&mut ec_params)
-                .map_err(|error| HsmError::Sec1(Box::new(error)))?;
-
-            let pub_key_template = &[
-                Attribute::EcParams(ec_params),
-                Attribute::Token(true),
-                Attribute::Private(false),
-                Attribute::Label(identifier.clone().into()),
-            ];
-            let priv_key_template = &[
-                Attribute::Token(true),
-                Attribute::Private(true),
-                Attribute::Sensitive(true),
-                Attribute::Extractable(false),
-                Attribute::Derive(false),
-                Attribute::Sign(true),
-                Attribute::Label(identifier.into()),
-            ];
-
-            let (public_handle, private_handle) =
-                session.generate_key_pair(&Mechanism::EccKeyPairGen, pub_key_template, priv_key_template)?;
-
-            Ok((PublicKeyHandle(public_handle), PrivateKeyHandle(private_handle)))
-        })
-        .await
+    async fn get_secret_key_handle(&self, identifier: &str) -> Result<SecretKeyHandle> {
+        self.get_key_handle(identifier, HandleType::Secret)
+            .await
+            .map(SecretKeyHandle)
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
@@ -580,22 +613,13 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn sign(
-        &self,
-        private_key_handle: &PrivateKeyHandle,
-        mechanism: SigningMechanism,
-        data: &[u8],
-    ) -> Result<Vec<u8>> {
+    async fn sign<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8]) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
         let data_hash = sha256(data);
-        let object_handle = private_key_handle.to_object_handle();
+        let object_handle = key_handle.to_object_handle();
 
         spawn::blocking(move || {
-            let mechanism = match mechanism {
-                SigningMechanism::Ecdsa256 => Mechanism::Ecdsa,
-                SigningMechanism::Sha256Hmac => Mechanism::Sha256Hmac,
-            };
-
+            let mechanism = KH::mechanism();
             let session = pool.get()?;
             let signature = session.sign(&mechanism, object_handle, &data_hash)?;
             Ok(signature)
@@ -604,23 +628,13 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn verify(
-        &self,
-        private_key_handle: &PrivateKeyHandle,
-        mechanism: SigningMechanism,
-        data: &[u8],
-        signature: Vec<u8>,
-    ) -> Result<()> {
+    async fn verify<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8], signature: Vec<u8>) -> Result<()> {
         let pool = self.pool.clone();
         let data_hash = sha256(data);
-        let object_handle = private_key_handle.to_object_handle();
+        let object_handle = key_handle.to_object_handle();
 
         spawn::blocking(move || {
-            let mechanism = match mechanism {
-                SigningMechanism::Ecdsa256 => Mechanism::Ecdsa,
-                SigningMechanism::Sha256Hmac => Mechanism::Sha256Hmac,
-            };
-
+            let mechanism = KH::mechanism();
             let session = pool.get()?;
             session.verify(&mechanism, object_handle, &data_hash, &signature)?;
 
@@ -632,7 +646,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn encrypt(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         mut iv: InitializationVector,
         data: Vec<u8>,
     ) -> Result<(Vec<u8>, InitializationVector)> {
@@ -651,7 +665,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn decrypt(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         mut iv: InitializationVector,
         encrypted_data: Vec<u8>,
     ) -> Result<Vec<u8>> {
@@ -670,7 +684,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn encrypt_ctr(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         counter_block: [u8; AES_BLOCK_SIZE],
         data: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<Vec<u8>> {
@@ -703,7 +717,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn cmac(
         &self,
-        key_handle: &PrivateKeyHandle,
+        key_handle: &SecretKeyHandle,
         data: impl AsRef<[u8]> + Send + 'static,
     ) -> Result<[u8; AES_BLOCK_SIZE]> {
         let pool = self.pool.clone();
@@ -726,7 +740,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn wrap_key(
         &self,
-        wrapping_key: &PrivateKeyHandle,
+        wrapping_key: &SecretKeyHandle,
         key: &PrivateKeyHandle,
         public_key: VerifyingKey,
     ) -> Result<WrappedKey> {
@@ -745,7 +759,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn unwrap_signing_key(
         &self,
-        unwrapping_key: &PrivateKeyHandle,
+        unwrapping_key: &SecretKeyHandle,
         wrapped_key: WrappedKey,
     ) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
@@ -776,13 +790,11 @@ impl Pkcs11Client for Pkcs11Hsm {
         // TODO: PVW-5862 handles can be used in different sessions that are
         // either connected to a different PKCS11 device or the session can be
         // closed by the pool which will cause the deletion of session objects.
-        let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
+        let wrapping_handle = self.get_secret_key_handle(wrapping_key_identifier).await?;
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
         let verifying_key = Pkcs11Client::get_verifying_key(self, &public_handle).await?;
 
-        let result = self
-            .wrap_key(&private_wrapping_handle, &private_handle, verifying_key)
-            .await;
+        let result = self.wrap_key(&wrapping_handle, &private_handle, verifying_key).await;
 
         self.clone().delete_keypair_in_background(private_handle, public_handle);
 
@@ -800,9 +812,9 @@ impl Pkcs11Client for Pkcs11Hsm {
         // either connected to a different PKCS11 device or the session can be
         // closed by the pool which will cause the deletion of session objects.
 
-        let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
-        let private_handle = self.unwrap_signing_key(&private_wrapping_handle, wrapped_key).await?;
-        let result = Pkcs11Client::sign(self, &private_handle, SigningMechanism::Ecdsa256, data).await;
+        let wrapping_handle = self.get_secret_key_handle(wrapping_key_identifier).await?;
+        let private_handle = self.unwrap_signing_key(&wrapping_handle, wrapped_key).await?;
+        let result = Pkcs11Client::sign(self, &private_handle, data).await;
         self.clone().delete_private_key_in_background(private_handle);
         result.and_then(|signature| Signature::from_slice(&signature).map_err(HsmError::from))
     }
@@ -811,8 +823,8 @@ impl Pkcs11Client for Pkcs11Hsm {
 impl AesSivBackend for Pkcs11Hsm {
     type Error = HsmError;
 
-    type MacKey = PrivateKeyHandle;
-    type EncryptionKey = PrivateKeyHandle;
+    type MacKey = SecretKeyHandle;
+    type EncryptionKey = SecretKeyHandle;
 
     async fn aes_cmac(&self, key: &Self::MacKey, input: impl AsRef<[u8]> + Send + 'static) -> Result<[u8; 16]> {
         self.cmac(key, input).await
@@ -836,12 +848,7 @@ impl Pkcs11Hsm {
     ///
     /// Not all tokens allow this, and those that refuse do so by policy rather than because the
     /// call was wrong; see [`HsmError::is_key_import_unsupported()`].
-    pub async fn import_aes_key(
-        &self,
-        identifier: &str,
-        usage: AesKeyUsage,
-        key: [u8; 32],
-    ) -> Result<PrivateKeyHandle> {
+    pub async fn import_aes_key(&self, identifier: &str, usage: AesKeyUsage, key: [u8; 32]) -> Result<SecretKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
 
@@ -852,7 +859,7 @@ impl Pkcs11Hsm {
             // rather than only its length.
             let template = &[
                 usage.attribute(),
-                Attribute::Token(true),
+                Attribute::Token(false),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
                 Attribute::Extractable(false),
@@ -864,7 +871,7 @@ impl Pkcs11Hsm {
 
             let handle = session.create_object(template)?;
 
-            Ok(PrivateKeyHandle(handle))
+            Ok(SecretKeyHandle(handle))
         })
         .await
     }

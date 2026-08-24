@@ -3593,8 +3593,6 @@ dependencies = [
 name = "hsm"
 version = "0.6.0-dev"
 dependencies = [
- "async-dropper",
- "async-trait",
  "config",
  "crypto",
  "cryptoki",
