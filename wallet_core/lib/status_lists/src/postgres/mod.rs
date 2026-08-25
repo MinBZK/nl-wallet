@@ -44,7 +44,6 @@ use sea_orm::sqlx::types::chrono::NaiveDate;
 use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::StatusListTokenBuilder;
@@ -63,6 +62,7 @@ use crate::entity::attestation_group;
 use crate::entity::status_list;
 use crate::entity::status_list_item;
 use crate::publish::LockVersion;
+use crate::publish::PublishDirError;
 use crate::publish::PublishLockError;
 use crate::refresh::RefreshControl;
 
@@ -173,6 +173,9 @@ pub enum StatusListServiceError {
 
     #[error("too many claims requested: {0}")]
     TooManyClaimsRequested(usize),
+
+    #[error("could not write to publication directory: {0}")]
+    PublishDir(#[source] PublishDirError),
 }
 
 struct Publisher<'a, K, R> {
@@ -228,20 +231,20 @@ where
     }
 
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn republish_all(&self, force: bool) -> Result<(), RevocationError> {
+    async fn republish_all(&self, force: bool) -> Result<(), Self::Error> {
         if force {
             tracing::warn!("Resetting published status lists locks");
             self.config
                 .publish_dir
                 .clear_locks()
                 .await
-                .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+                .map_err(StatusListServiceError::PublishDir)?;
         }
 
         let publisher = self
             .to_publisher()
             .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+            .map_err(|error| StatusListServiceError::RevokeAll(Box::new(error)))?;
 
         let mut stream = status_list::Entity::find()
             .select_only()
@@ -252,13 +255,10 @@ where
             .into_tuple::<(i64, String, i32)>()
             .stream(&self.connection)
             .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?
+            .map_err(StatusListServiceError::Db)?
             .map(async |result| match result {
-                Ok((list_id, external_id, size)) => publisher
-                    .publish(list_id, &external_id, size as usize)
-                    .await
-                    .map_err(|e| RevocationError::InternalError(Box::new(e))),
-                Err(err) => Err(RevocationError::InternalError(Box::new(err))),
+                Ok((list_id, external_id, size)) => publisher.publish(list_id, &external_id, size as usize).await,
+                Err(error) => Err(StatusListServiceError::Db(error)),
             })
             .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
 
@@ -273,7 +273,7 @@ where
     }
 
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
+    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), Self::Error> {
         // Find batches and status_lists for this service by batch_ids
         let batches: Vec<(i64, i64, String, i32)> = attestation_batch::Entity::find()
             .select_only()
@@ -290,7 +290,7 @@ where
             .into_tuple()
             .all(&self.connection)
             .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+            .map_err(StatusListServiceError::Db)?;
 
         let (attestation_batch_ids, status_list_info): (Vec<_>, Vec<_>) = batches
             .into_iter()
@@ -303,21 +303,20 @@ where
             .filter(attestation_batch::Column::Id.is_in(attestation_batch_ids))
             .exec(&self.connection)
             .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+            .map_err(StatusListServiceError::Db)?;
 
         // Publish new status list
         let publisher = self
             .to_publisher()
             .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+            .map_err(|error| StatusListServiceError::RevokeAll(Box::new(error)))?;
         try_join_all(status_list_info.into_iter().unique_by(|(id, _, _)| *id).map(
             |(list_id, external_id, size)| async move {
                 let size = size.try_into().expect("size should be non-zero");
                 publisher.publish(list_id, external_id.as_str(), size).await
             },
         ))
-        .await
-        .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
+        .await?;
 
         Ok(())
     }

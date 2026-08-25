@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::fmt::Debug;
 use std::num::NonZeroUsize;
 
 use attestation_types::status_claim::StatusClaim;
@@ -8,7 +10,7 @@ use uuid::Uuid;
 
 #[trait_variant::make(Send)]
 pub trait StatusListService {
-    type Error: std::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(
         &self,
@@ -19,29 +21,32 @@ pub trait StatusListService {
 
     fn start_refresh_job(&self) -> AbortHandle;
 
-    async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
-    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
+    async fn republish_all(&self, force: bool) -> Result<(), Self::Error>;
+    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RevocationError {
+pub enum RevocationError<E> {
     #[error("batch ID not found: {0}")]
     BatchIdNotFound(Uuid),
 
-    #[error("internal error occurred: {0}")]
-    InternalError(Box<dyn std::error::Error + Send + Sync>),
+    #[error(transparent)]
+    InternalError(E),
 }
 
 #[cfg(feature = "axum")]
-impl axum::response::IntoResponse for RevocationError {
+impl<E> axum::response::IntoResponse for RevocationError<E>
+where
+    E: Debug,
+{
     fn into_response(self) -> axum::response::Response {
         match self {
-            RevocationError::BatchIdNotFound(batch_id) => {
+            Self::BatchIdNotFound(batch_id) => {
                 tracing::info!("revocation batch ID not found: {}", batch_id);
                 (axum::http::StatusCode::NOT_FOUND, axum::Json(batch_id)).into_response()
             }
-            _ => {
-                tracing::error!("revocation error: {:?}", self);
+            Self::InternalError(error) => {
+                tracing::error!("revocation error: {:?}", error);
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }
@@ -88,8 +93,8 @@ pub mod mock {
 
             fn start_refresh_job(&self) -> AbortHandle;
 
-            async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
-            async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
+            async fn republish_all(&self, force: bool) -> Result<(), Infallible>;
+            async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), Infallible>;
         }
     }
 }
