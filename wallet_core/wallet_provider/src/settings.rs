@@ -48,8 +48,7 @@ use wallet_provider_service::keys::Kid;
 pub struct Settings {
     pub current_certificate_kid: Kid,
     pub previous_certificate_kids: Option<HashMap<Kid, DateTime<Utc>>>,
-    pub current_instruction_result_external_kid: String,
-    pub instruction_result_signing_key_identifier: String,
+    pub current_instruction_result_kid: Kid,
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
     pub revocation_code_key_identifier: String,
@@ -185,10 +184,6 @@ fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Resu
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
-            .set_default(
-                "instruction_result_signing_key_identifier",
-                "instruction_result_signing_key",
-            )?
             .set_default("attestation_wrapping_key_identifier", "attestation_wrapping_key")?
             .set_default("pin_pubkey_encryption_key_identifier", "pin_pubkey_encryption_key")?
             .set_default("revocation_code_key_identifier", "revocation_code_key")?

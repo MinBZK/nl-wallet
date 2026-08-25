@@ -33,7 +33,7 @@ pub struct WalletCertificateSigning {
 }
 
 pub struct InstructionResultSigning {
-    pub kid: String,
+    pub kid: Kid,
     pub hsm: HsmEcdsaKey,
 }
 
@@ -73,7 +73,7 @@ impl SecureEcdsaKey for InstructionResultSigning {}
 
 impl KeyWithKid for InstructionResultSigning {
     fn kid(&self) -> &str {
-        &self.kid
+        self.kid.as_ref()
     }
 }
 
