@@ -46,7 +46,6 @@ class MockDisclosureBloc extends MockBloc<DisclosureEvent, DisclosureState> impl
 
 final kSampleReadyToDiscloseResult = StartDisclosureReadyToDisclose(
   relyingParty: WalletMockData.organization,
-  originUrl: 'originUrl',
   requestPurpose: ''.untranslated,
   sessionType: .sameDevice,
   type: .login,
