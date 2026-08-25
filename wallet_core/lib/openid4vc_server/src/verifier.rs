@@ -28,7 +28,7 @@ use http_utils::urls::CorsOrigin;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use oauth::authorization::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
-use oauth::errors::DisclosureErrorResponse;
+use openid4vc::errors::DisclosureErrorResponse;
 use openid4vc::errors::GetAuthRequestErrorCode;
 use openid4vc::errors::PostAuthResponseErrorCode;
 use openid4vc::errors::VerificationErrorCode;

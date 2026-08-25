@@ -224,42 +224,6 @@ where
     }
 }
 
-pub type RemoteDisclosureErrorResponse<T> = DisclosureErrorResponse<RemoteErrorCode<T>>;
-
-/// Wrapper of [`ErrorResponse`] that has an optional redirect URI
-/// and is as an error response for disclosure endpoints.
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DisclosureErrorResponse<T> {
-    #[serde(
-        flatten,
-        bound(serialize = "T: Display", deserialize = "T: FromStr, T::Err: Display")
-    )]
-    pub error_response: ErrorResponse<T>,
-    pub redirect_uri: Option<Box<Url>>,
-}
-
-impl<T> DisclosureErrorResponse<T> {
-    pub fn error(&self) -> &T {
-        &self.error_response.error
-    }
-}
-
-#[cfg(any(test, feature = "test"))]
-impl<T> From<DisclosureErrorResponse<T>> for DisclosureErrorResponse<RemoteErrorCode<T>> {
-    fn from(value: DisclosureErrorResponse<T>) -> Self {
-        let DisclosureErrorResponse {
-            error_response,
-            redirect_uri,
-        } = value;
-
-        Self {
-            error_response: error_response.into(),
-            redirect_uri,
-        }
-    }
-}
-
 pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
 }
@@ -378,7 +342,6 @@ mod axum {
     use tracing::warn;
 
     use super::BodyOrRedirectErrorResponse;
-    use super::DisclosureErrorResponse;
     use super::ErrorResponse;
     use super::ErrorStatusCode;
     use super::RedirectErrorResponse;
@@ -441,17 +404,6 @@ mod axum {
         }
     }
 
-    impl<T> IntoResponse for DisclosureErrorResponse<T>
-    where
-        T: ErrorStatusCode + Display + Debug,
-    {
-        fn into_response(self) -> Response {
-            warn!("Responding with error body: {:?}", &self);
-
-            (self.error_response.error.status_code(), Json(self)).into_response()
-        }
-    }
-
     #[cfg(test)]
     mod tests {
         use axum::response::IntoResponse;
@@ -506,8 +458,8 @@ mod axum {
             assert_eq!(
                 url.query(),
                 Some(
-                    "foo=bar&error=something_happened&error_description=Something+happened+%E7%8C%AB&\
-                     error_uri=https%3A%2F%2Fexample.com%2Ferror-info&state=wallet_state"
+                    "foo=bar&error=something_happened&error_description=Something+happened+%E7%8C%AB&error_uri=https%\
+                     3A%2F%2Fexample.com%2Ferror-info&state=wallet_state"
                 )
             );
         }

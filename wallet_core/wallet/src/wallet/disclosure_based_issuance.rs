@@ -179,7 +179,6 @@ mod tests {
     use oauth::errors::BoxedErrorWithCode;
     use oauth::errors::ErrorResponse;
     use oauth::errors::ErrorWithCode;
-    use oauth::errors::RemoteDisclosureErrorResponse;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
     use openid4vc::disclosure_session;
@@ -188,6 +187,7 @@ mod tests {
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::errors::PostAuthResponseErrorCode;
+    use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;

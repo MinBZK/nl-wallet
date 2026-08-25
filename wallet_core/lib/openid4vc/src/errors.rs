@@ -1,5 +1,7 @@
 use std::error::Error;
 use std::fmt::Debug;
+use std::fmt::Display;
+use std::str::FromStr;
 
 use http::StatusCode;
 use http_utils::error::HttpJsonError;
@@ -7,16 +9,53 @@ use http_utils::error::HttpJsonErrorType;
 use jwt::wia::WiaError;
 use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::BodyOrRedirectErrorResponse;
-use oauth::errors::DisclosureErrorResponse;
 use oauth::errors::ErrorResponse;
 use oauth::errors::ErrorStatusCode;
 use oauth::errors::ErrorWithCode;
 use oauth::errors::ParErrorCode;
+use oauth::errors::RemoteErrorCode;
 use oauth::errors::TokenErrorCode;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
+use url::Url;
+
+pub type RemoteDisclosureErrorResponse<T> = DisclosureErrorResponse<RemoteErrorCode<T>>;
+
+/// Wrapper of [`ErrorResponse`] that has an optional redirect URI
+/// and is as an error response for disclosure endpoints.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DisclosureErrorResponse<T> {
+    #[serde(
+        flatten,
+        bound(serialize = "T: Display", deserialize = "T: FromStr, T::Err: Display")
+    )]
+    pub error_response: ErrorResponse<T>,
+    pub redirect_uri: Option<Box<Url>>,
+}
+
+impl<T> DisclosureErrorResponse<T> {
+    pub fn error(&self) -> &T {
+        &self.error_response.error
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<T> From<DisclosureErrorResponse<T>> for DisclosureErrorResponse<RemoteErrorCode<T>> {
+    fn from(value: DisclosureErrorResponse<T>) -> Self {
+        let DisclosureErrorResponse {
+            error_response,
+            redirect_uri,
+        } = value;
+
+        Self {
+            error_response: error_response.into(),
+            redirect_uri,
+        }
+    }
+}
 
 use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorizing_issuer::AuthorizationRequestError;
@@ -591,6 +630,31 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
         };
 
         Self::new(r#type, detail, data)
+    }
+}
+
+#[cfg(feature = "axum")]
+mod axum {
+    use std::fmt::Debug;
+    use std::fmt::Display;
+
+    use axum::Json;
+    use axum::response::IntoResponse;
+    use axum::response::Response;
+    use tracing::warn;
+
+    use super::DisclosureErrorResponse;
+    use super::ErrorStatusCode;
+
+    impl<T> IntoResponse for DisclosureErrorResponse<T>
+    where
+        T: ErrorStatusCode + Display + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error body: {:?}", &self);
+
+            (self.error_response.error.status_code(), Json(self)).into_response()
+        }
     }
 }
 
