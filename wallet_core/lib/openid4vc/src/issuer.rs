@@ -1824,7 +1824,7 @@ impl Session<AccessTokenIssued> {
             CredentialRequestIdentifier::CredentialConfigurationId(_) => {
                 // As the issuer always sends a Token Response containing `authorization_details`, the wallet must
                 // respond with `credential_identifier` in its Credential Request. Use of `credential_configuration_id`
-                // is therefor not allowed.
+                // is therefore not allowed.
                 return Err(CredentialRequestError::CredentialConfigurationIdNotAllowed);
             }
         };
