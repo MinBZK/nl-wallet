@@ -2308,6 +2308,7 @@ mod tests {
         let holder_key = MockRemoteEcdsaKey::new_random("mdoc_key".to_string());
         let partial_mdoc = PartialMdoc::try_new(
             Mdoc::new_mock_with_ca_and_key(&ca, &holder_key).now_or_never().unwrap(),
+            holder_key.identifier.clone(),
             auth_request.credential_requests.as_ref().first().unwrap().claim_paths(),
         )
         .unwrap();
@@ -2514,6 +2515,7 @@ mod tests {
             Mdoc::new_mock_with_ca_and_key(&ca, &mdoc_holder_key)
                 .now_or_never()
                 .unwrap(),
+            mdoc_holder_key.identifier.clone(),
             auth_request.credential_requests.as_ref().first().unwrap().claim_paths(),
         )
         .unwrap();

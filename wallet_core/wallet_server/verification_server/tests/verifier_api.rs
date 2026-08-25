@@ -21,6 +21,7 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
+use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -819,7 +820,7 @@ fn prepare_example_credential_payload(
     (payload, issuer_keypair, holder_privkey.identifier, metadata)
 }
 
-fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
+fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Mdoc, String) {
     let (credential_payload, issuer_keypair, holder_privkey_identifier, _) =
         prepare_example_credential_payload(issuer_ca, wscd);
     let (issuer_signed, mso) = credential_payload
@@ -828,7 +829,7 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
         .unwrap()
         .unwrap();
 
-    Mdoc::new_unverified(mso, holder_privkey_identifier, issuer_signed)
+    (Mdoc::new_unverified(mso, issuer_signed), holder_privkey_identifier)
 }
 
 fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SignedSdJwt, String) {
@@ -894,8 +895,9 @@ async fn perform_full_disclosure(
                 .as_ref()
                 .iter()
                 .map(|request| {
-                    let mdoc = prepare_example_mdoc_mock(&issuer_ca, &wscd);
-                    let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
+                    let (mdoc, holder_privkey_identifier) = prepare_example_mdoc_mock(&issuer_ca, &wscd);
+                    let partial_mdoc =
+                        PartialMdoc::try_new(mdoc, holder_privkey_identifier, request.claim_paths()).unwrap();
 
                     (request.id().clone(), vec_nonempty![partial_mdoc])
                 })
@@ -1073,6 +1075,7 @@ async fn test_disclosed_attributes_failed_session() {
     assert_eq!(disclosure_session.credential_requests().as_ref().len(), 1);
     let partial_mdoc = PartialMdoc::try_new(
         mdoc,
+        EXAMPLE_KEY_IDENTIFIER.to_string(),
         disclosure_session
             .credential_requests()
             .as_ref()

@@ -1857,7 +1857,14 @@ mod tests {
         let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::generate());
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
-        (StoredAttestation::MsoMdoc { mdoc }, metadata_docs, normalized_metadata)
+        (
+            StoredAttestation::MsoMdoc {
+                key_identifier: "key_id".to_string(),
+                mdoc,
+            },
+            metadata_docs,
+            normalized_metadata,
+        )
     }
 
     #[rstest]

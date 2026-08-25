@@ -35,6 +35,7 @@ use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use openid4vc::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
@@ -293,8 +294,6 @@ pub fn mdoc_from_credential_payload(
     issuer_keypair: &KeyPair,
     holder_key: &SigningKey,
 ) -> Mdoc {
-    let private_key_id = crypto::utils::random_string(16);
-
     let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
         preview_payload,
         Utc::now(),
@@ -308,7 +307,7 @@ pub fn mdoc_from_credential_payload(
     .unwrap()
     .unwrap();
 
-    Mdoc::new_unverified(mso, private_key_id, issuer_signed)
+    Mdoc::new_unverified(mso, issuer_signed)
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
@@ -580,8 +579,8 @@ pub fn mock_issuance_session(
 
                 let (copies, attestation_type, exp, nbf, issuer_registration, attestation_presentation) =
                     match stored_attestation {
-                        StoredAttestation::MsoMdoc { mdoc } => {
-                            let (mso, _, _) = mdoc.clone().into_components();
+                        StoredAttestation::MsoMdoc { key_identifier, mdoc } => {
+                            let (mso, _) = mdoc.clone().into_components();
 
                             let exp = Some((&mso.validity_info.valid_until).try_into().unwrap());
                             let nbf = Some((&mso.validity_info.valid_from).try_into().unwrap());
@@ -608,7 +607,10 @@ pub fn mock_issuance_session(
                             .unwrap();
 
                             (
-                                IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc.clone()]),
+                                IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
+                                    key_identifier,
+                                    mdoc: mdoc.clone(),
+                                }]),
                                 mdoc.doc_type().to_string(),
                                 exp,
                                 nbf,
@@ -705,6 +707,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
             StoredAttestation::MsoMdoc {
+                key_identifier: crypto::utils::random_string(16),
                 mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair, holder_key),
             },
             metadata,

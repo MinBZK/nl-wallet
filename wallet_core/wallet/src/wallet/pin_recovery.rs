@@ -993,7 +993,10 @@ mod tests {
 
         let (pid_issuer, _) = mock_issuance_session([
             (
-                StoredAttestation::MsoMdoc { mdoc },
+                StoredAttestation::MsoMdoc {
+                    key_identifier: "key_id".to_string(),
+                    mdoc,
+                },
                 VerifiedTypeMetadataDocuments::nl_pid_example(),
             ),
             (

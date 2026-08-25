@@ -21,9 +21,10 @@ pub struct PartialMdoc {
 impl PartialMdoc {
     pub fn try_new<'a>(
         mdoc: Mdoc,
+        private_key_id: String,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
     ) -> std::result::Result<Self, MissingAttributesError> {
-        let (mso, private_key_id, issuer_signed) = mdoc.into_components();
+        let (mso, issuer_signed) = mdoc.into_components();
 
         let issuer_signed = issuer_signed.into_attribute_subset(claim_paths)?;
 
@@ -72,6 +73,7 @@ mod examples {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use crypto::WithIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -98,7 +100,12 @@ mod examples {
         pub fn new_mock_with_ca_and_key(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
             let mdoc = Mdoc::new_mock_with_ca_and_key(ca, device_key).now_or_never().unwrap();
 
-            Self::try_new(mdoc, PID_EXAMPLE_CLAIM_PATHS.iter()).unwrap()
+            Self::try_new(
+                mdoc,
+                device_key.identifier().to_string(),
+                PID_EXAMPLE_CLAIM_PATHS.iter(),
+            )
+            .unwrap()
         }
     }
 }

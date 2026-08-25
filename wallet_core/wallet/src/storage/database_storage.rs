@@ -32,6 +32,7 @@ use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -301,9 +302,9 @@ impl<K> DatabaseStorage<K> {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
-                            let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, key_identifier)?;
+                            let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed)?;
 
-                            StoredAttestation::MsoMdoc { mdoc }
+                            StoredAttestation::MsoMdoc { key_identifier, mdoc }
                         }
                         AttestationFormat::SdJwt => {
                             let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
@@ -1283,18 +1284,18 @@ fn create_attestation_copy_models(
     match copies {
         IssuedCredentialCopies::Mdoc(mdocs) => mdocs
             .into_nonempty_iter()
-            .map(|mdoc| {
+            .map(|MdocCopy { key_identifier, mdoc }| {
                 let issuer_certificate_dn = mdoc
                     .issuer_leaf_certificate()
                     .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
                     .to_canonical_distinguished_name()
                     .expect("the issuer certificate should contain a valid DN at this point");
 
-                let (mso, private_key_id, issuer_signed) = mdoc.into_components();
+                let (mso, issuer_signed) = mdoc.into_components();
 
                 let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
 
-                Ok((mso.status, private_key_id, issuer_certificate_dn, attestation_bytes))
+                Ok((mso.status, key_identifier, issuer_certificate_dn, attestation_bytes))
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
         IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
@@ -1825,9 +1826,14 @@ pub(crate) mod tests {
         // `ProtectedHeader { original_data: Some(..), .. }` so the equality check below will fail.
         // These lines fix that.
         let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
-        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, mdoc.into_private_key_id()).unwrap();
+        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed).unwrap();
 
-        let issued_mdoc_copies = IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc.clone(), mdoc.clone(), mdoc.clone()]);
+        let mdoc_copy = MdocCopy {
+            key_identifier: "mdoc_key_id".to_string(),
+            mdoc: mdoc.clone(),
+        };
+        let issued_mdoc_copies =
+            IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc_copy.clone(), mdoc_copy.clone(), mdoc_copy]);
 
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
@@ -1877,7 +1883,10 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
+            StoredAttestation::MsoMdoc {
+                mdoc: stored,
+                key_identifier,
+            } if key_identifier == "mdoc_key_id" && *stored == mdoc
         );
         assert_eq!(attestation_copy1.normalized_metadata, normalized_metadata);
 
@@ -1919,12 +1928,18 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
+            StoredAttestation::MsoMdoc {
+                mdoc: stored,
+                key_identifier,
+            } if key_identifier == "mdoc_key_id" && *stored == mdoc
         );
         assert_eq!(fetched_unique_mdoc.len(), 1);
         assert_matches!(
             &fetched_unique_mdoc.first().unwrap().attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
+            StoredAttestation::MsoMdoc {
+                mdoc: stored,
+                key_identifier,
+            } if key_identifier == "mdoc_key_id" && *stored == mdoc
         );
         assert!(fetched_unique_sd_jwt.is_empty());
         assert!(fetched_unique_other.is_empty());
@@ -1966,7 +1981,10 @@ pub(crate) mod tests {
         let attestation_copy2 = fetched_unique_attestation_type.first().unwrap();
         assert_matches!(
             &attestation_copy2.attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
+            StoredAttestation::MsoMdoc {
+                mdoc: stored,
+                key_identifier,
+            } if key_identifier == "mdoc_key_id" && *stored == mdoc
         );
         assert_eq!(attestation_copy2.normalized_metadata, normalized_metadata);
         assert_ne!(
@@ -2041,7 +2059,7 @@ pub(crate) mod tests {
 
         let mdoc = Mdoc::new_mock().await;
         let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
-        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, mdoc.into_private_key_id()).unwrap();
+        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed).unwrap();
 
         let attestation_type = mdoc.doc_type().to_string();
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
@@ -2051,7 +2069,10 @@ pub(crate) mod tests {
                 Utc::now(),
                 vec![(
                     CredentialWithMetadata::new(
-                        IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc]),
+                        IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
+                            key_identifier: "mdoc_key_id".to_string(),
+                            mdoc
+                        }]),
                         attestation_type.clone(),
                         None,
                         None,
@@ -2096,7 +2117,10 @@ pub(crate) mod tests {
                 vec![
                     (
                         CredentialWithMetadata::new(
-                            IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc]),
+                            IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
+                                key_identifier: "mdoc_key_id".to_string(),
+                                mdoc
+                            }]),
                             attestation_type.clone(),
                             None,
                             None,

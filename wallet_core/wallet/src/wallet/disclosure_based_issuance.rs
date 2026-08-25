@@ -338,7 +338,10 @@ mod tests {
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            StoredAttestation::MsoMdoc { mdoc },
+            StoredAttestation::MsoMdoc {
+                key_identifier: "mdoc_key_id".to_string(),
+                mdoc,
+            },
             metadata,
             None,
         );
