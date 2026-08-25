@@ -82,7 +82,6 @@ class SignScreen extends StatelessWidget {
     return BlocBuilder<SignBloc, SignState>(
       builder: (context, state) {
         final Widget result = switch (state) {
-          SignInitial() => _buildLoading(),
           SignLoadInProgress() => _buildLoading(),
           SignCheckOrganization() => _buildCheckOrganization(context, state),
           SignCheckAgreement() => _buildCheckAgreement(context, state),
