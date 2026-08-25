@@ -12,9 +12,7 @@ use oauth::errors::BodyOrRedirectErrorResponse;
 use oauth::errors::ErrorResponse;
 use oauth::errors::ErrorStatusCode;
 use oauth::errors::ErrorWithCode;
-use oauth::errors::ParErrorCode;
 use oauth::errors::RemoteErrorCode;
-use oauth::errors::TokenErrorCode;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -89,6 +87,88 @@ where
     }
 }
 
+/// The list of error codes that can result from the PAR POST request.
+///
+/// According to <https://datatracker.ietf.org/doc/html/rfc9126#section-2.3>, these can be taken either from
+/// <https://datatracker.ietf.org/doc/html/rfc6749#section-5.2> or
+/// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1>, i.e. the token endpoint error codes or the
+/// authorization endpoint error codes.
+///
+/// This type represents a selection among these error codes, containing only those that this codebase's PAR
+/// endpoints return.
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum ParErrorCode {
+    // Token error code.
+    InvalidClient,
+    // Both token and authorization error code.
+    InvalidRequest,
+    // Authorization error code.
+    ServerError,
+
+    /// Invalid Client Attestation / WIA.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
+    InvalidClientAttestation,
+
+    /// Client Attestation / WIA is valid but not fresh enough.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    UseFreshAttestation,
+}
+
+impl ErrorStatusCode for ParErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
+        }
+    }
+}
+
+/// The list of error codes that can result from the Token Request.
+///
+/// See <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum TokenErrorCode {
+    InvalidRequest,
+    InvalidClient,
+    InvalidGrant,
+    UnauthorizedClient,
+    UnsupportedGrantType,
+    InvalidScope,
+
+    /// Invalid Client Attestation / WIA.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
+    InvalidClientAttestation,
+
+    /// Client Attestation / WIA is valid but not fresh enough.
+    /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.3.1>
+    UseFreshAttestation,
+
+    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
+    /// This error type is not defined in the specs, but then again the entire HTTP response in case
+    /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
+    ServerError,
+}
+
+impl ErrorStatusCode for TokenErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::InvalidRequest
+            | Self::InvalidGrant
+            | Self::UnauthorizedClient
+            | Self::UnsupportedGrantType
+            | Self::InvalidScope => StatusCode::BAD_REQUEST,
+            Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
+                StatusCode::UNAUTHORIZED
+            }
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 // OpenID4VCI Error Codes
 
 impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode> {
@@ -96,10 +176,9 @@ impl From<AuthorizeError> for BodyOrRedirectErrorResponse<AuthorizationErrorCode
         let status_code = match value {
             // The errors at the Authorization Endpoint that can occur before the PAR is retrieved and the
             // `redirect_uri` is known are represented as HTTP status code and plain-text bodies.
-            AuthorizeError::UnknownClient(_) => StatusCode::UNAUTHORIZED,
+            AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => StatusCode::UNAUTHORIZED,
             AuthorizeError::ParStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AuthorizeError::UnknownRequestUri(_) => StatusCode::NOT_FOUND,
-            AuthorizeError::MismatchedClient { .. } => StatusCode::UNAUTHORIZED,
 
             // Once the `redirect_uri` is known, convert the error to a 303 redirect instead.
             AuthorizeError::AuthorizationRequest(redirect_error) => {

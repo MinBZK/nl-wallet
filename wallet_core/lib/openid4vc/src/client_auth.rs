@@ -6,14 +6,13 @@ use itertools::Itertools;
 use jwt::nonce::Nonce;
 use jwt::wia::WIA_CLIENT_AUTH_METHOD;
 use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
+use oauth::jose::JwsAlgorithm;
+use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
+use oauth::metadata::oauth_metadata::ClientAttestationMetadataExtension;
 use reqwest::Response;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-
-use crate::jose::JwsAlgorithm;
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-use crate::metadata::oauth_metadata::ClientAttestationMetadataExtension;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ClientAttestationMetadataError {
