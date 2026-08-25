@@ -7,15 +7,6 @@ abstract class SignEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class SignLoadTriggered extends SignEvent {
-  final String id;
-
-  const SignLoadTriggered(this.id);
-
-  @override
-  List<Object?> get props => [...super.props, id];
-}
-
 class SignBackPressed extends SignEvent {
   const SignBackPressed();
 }
