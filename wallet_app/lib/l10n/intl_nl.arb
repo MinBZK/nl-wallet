@@ -329,14 +329,6 @@
     "dashboardScreenMenuWCAGLabel": "Navigatiemenu",
     "dashboardScreenOverviewAnnouncement": "NL Wallet overzicht",
     "dashboardScreenTitle": "Menu",
-    "dataIncorrectScreenApproveCta": "Kaart toch toevoegen",
-    "dataIncorrectScreenApproveDescription": "De kaart nu toevoegen en updaten als de gegevens zijn aangepast.",
-    "dataIncorrectScreenApproveTitle": "Kaart toevoegen",
-    "dataIncorrectScreenDeclineCta": "Kaart afwijzen",
-    "dataIncorrectScreenDeclineDescription": "Als je de gegevens afwijst worden deze gegevens niet opgeslagen in je Wallet.",
-    "dataIncorrectScreenDeclineTitle": "Kaart afwijzen",
-    "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kunt nu twee dingen doen:",
-    "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
     "deleteCardDialogBody": "Deze kaart wordt verwijderd uit je wallet.\n\nJe kunt de vorige activiteiten van deze kaart nog steeds in je wallet bekijken.",
     "deleteCardDialogCancelCta": "Annuleren",
     "deleteCardDialogConfirmCta": "Ja, verwijderen",
@@ -831,26 +823,6 @@
     "invariantErrorScreenWhatCanYouDoTitle": "Wat kun je doen?",
     "issuanceAuthenticateExternallyDescription": "Volg de stappen op de website van de uitgever.\nGa daarna terug naar NL Wallet.",
     "issuanceAuthenticateExternallyTitle": "Ga verder in de browser",
-    "issuanceCheckCardPageConfirmCta": "Ja, volgende",
-    "issuanceCheckCardPageOverline": "Kaart {current} van {total}",
-    "@issuanceCheckCardPageOverline": {
-        "placeholders": {
-            "current": {
-                "example": "1",
-                "type": "int"
-            },
-            "total": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "issuanceCheckCardPageRejectCta": "Nee",
-    "issuanceCheckCardPageTitle": "Kloppen de gegevens",
-    "issuanceCheckDataOfferingPageNegativeCta": "Nee",
-    "issuanceCheckDataOfferingPagePositiveCta": "Ja, toevoegen",
-    "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
-    "issuanceCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
     "issuanceConfirmPinPageTitle": "Geef akkoord met pincode",
     "issuanceLoadingCardsDescription": "Kaarten worden opgehaald",
     "issuanceLoadingCardsTitle": "Even geduld",
