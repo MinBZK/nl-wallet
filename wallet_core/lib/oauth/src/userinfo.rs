@@ -1,6 +1,3 @@
-use std::fmt::Debug;
-use std::str::FromStr;
-
 use http_utils::reqwest::HttpClient;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
@@ -16,7 +13,6 @@ use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithKid;
 use jwt::jwk::JwkSet;
 use reqwest::header;
-use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::errors::RemoteErrorResponse;
@@ -24,7 +20,6 @@ use crate::jwks::HttpJwksClient;
 use crate::jwks::JwksError;
 use crate::metadata::oauth_metadata::OidcProviderMetadata;
 use crate::token::AccessToken;
-use crate::token::TokenRequest;
 
 /// Per [OpenID Connect Core §5.3.2](https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse), the
 /// UserInfo Response is either a plain JSON object (if the client did not request a signed and/or encrypted
@@ -33,18 +28,12 @@ use crate::token::TokenRequest;
 const USERINFO_ACCEPT: &str = "application/jwt, application/json";
 
 #[derive(Debug, thiserror::Error)]
-pub enum UserInfoError<TE>
-where
-    TE: Debug,
-{
+pub enum UserInfoError {
     #[error("transport error: {0}")]
     Http(#[from] reqwest::Error),
 
     #[error("config has no JWKS URI")]
     NoJwksUri,
-
-    #[error("error requesting access token: {0:?}")]
-    RequestingAccessToken(Box<RemoteErrorResponse<TE>>),
 
     #[error("error requesting userinfo: {0:?}")]
     RequestingUserInfo(Box<RemoteErrorResponse<AuthBearerErrorCode>>),
@@ -89,49 +78,14 @@ pub struct UserInfoDecryption<'a> {
     pub expected_enc_algs: &'a [EncryptionAlgorithm],
 }
 
-/// Exchange `token_request` for an access token at the provider's token endpoint. This is the first of the two
-/// steps needed to retrieve UserInfo claims; feed the resulting response's access token into [`request_userinfo`]
-/// to perform the second step.
-///
-/// Generic over the response type `R`, since profiles that extend the token response (such as OpenID4VCI's
-/// `VciTokenResponse`) need their extended fields deserialized too; pass [`crate::token::TokenResponse`] for a
-/// plain OAuth 2.0 token response.
-pub async fn request_token<G, R, TE>(
-    http_client: &HttpClient,
-    config: &OidcProviderMetadata,
-    token_request: TokenRequest<G>,
-) -> Result<R, UserInfoError<TE>>
-where
-    G: Serialize,
-    R: DeserializeOwned,
-    TE: Debug + FromStr,
-{
-    let response = http_client
-        .post(config.oauth_metadata.token_endpoint.clone(), |request| {
-            request.form(&token_request)
-        })
-        .await?;
-
-    let status = response.status();
-    if status.is_client_error() || status.is_server_error() {
-        let error = response.json::<RemoteErrorResponse<TE>>().await?;
-        return Err(UserInfoError::RequestingAccessToken(error.into()));
-    }
-
-    Ok(response.json::<R>().await?)
-}
-
 /// Fetch the raw UserInfo Response body, given a previously obtained `access_token`. The body is returned as-is: it
 /// may be a plain JSON object, a signed JWT (JWS) or a signed-and/or-encrypted JWT (JWE), depending on the
 /// provider's configuration.
-async fn request_userinfo_body<TE>(
+async fn request_userinfo_body(
     http_client: &HttpClient,
     config: &OidcProviderMetadata,
     access_token: &AccessToken,
-) -> Result<String, UserInfoError<TE>>
-where
-    TE: Debug,
-{
+) -> Result<String, UserInfoError> {
     // Get userinfo endpoint from discovery, throw an error otherwise.
     let endpoint = config
         .oidc_metadata_extension
@@ -174,16 +128,15 @@ fn looks_like_compact_jwe(token: &str) -> bool {
 /// a plain JSON response, a signed-only JWS, or a JWE (which may itself wrap either a signed JWS or plain claims).
 /// Pass `decryption` when the provider is known to encrypt its response; omit it (`None`) otherwise, in which case
 /// an encrypted response results in [`UserInfoError::EncryptedResponseWithoutDecrypter`].
-pub async fn request_userinfo<C, TE>(
+pub async fn request_userinfo<C>(
     http_client: &HttpClient,
     config: &OidcProviderMetadata,
     access_token: &AccessToken,
     client_id: &str,
     decryption: Option<UserInfoDecryption<'_>>,
-) -> Result<C, UserInfoError<TE>>
+) -> Result<C, UserInfoError>
 where
     C: DeserializeOwned + JwtTyp,
-    TE: Debug + FromStr,
 {
     let body = request_userinfo_body(http_client, config, access_token).await?;
 
@@ -220,11 +173,11 @@ where
     verify_against_keys(&payload, &jwks, validation)
 }
 
-fn verify_against_keys<C: DeserializeOwned + JwtTyp, TE: Debug>(
+fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     token: &str,
     jwks: &JwkSet,
     validation: JwtValidation,
-) -> Result<C, UserInfoError<TE>> {
+) -> Result<C, UserInfoError> {
     // using `Header` make the `typ` optional, but it will still be validated against `C::TYP`, if present
     let jwt: UnverifiedJwt<C, HeaderWithKid<Header>> = token.parse()?;
 
@@ -280,6 +233,7 @@ mod tests {
     use crate::token::TokenRequest;
     use crate::token::TokenResponse;
     use crate::token::TokenType;
+    use crate::token::request_token;
 
     // Test-only stand-in for a token endpoint's error code, to avoid depending on any concrete profile's error codes.
     #[derive(Debug, Clone, PartialEq, Eq, strum::Display, strum::EnumString)]
@@ -324,56 +278,8 @@ mod tests {
         http_client: &HttpClient,
         config: &OidcProviderMetadata,
         access_token: &AccessToken,
-    ) -> Result<String, UserInfoError<TestTokenErrorCode>> {
+    ) -> Result<String, UserInfoError> {
         request_userinfo_body(http_client, config, access_token).await
-    }
-
-    #[tokio::test]
-    async fn request_token_happy_path() {
-        let server = MockServer::start_async().await;
-        let metadata = create_metadata(&server);
-
-        let _token_mock = mock_token_endpoint(&server).await;
-
-        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
-        let result = request_token::<AuthorizationCodeGrantType, TokenResponse, TestTokenErrorCode>(
-            &http_client,
-            &metadata,
-            create_token_request(),
-        )
-        .await;
-
-        assert_eq!(result.unwrap().access_token.as_ref(), "test-access-token");
-    }
-
-    #[tokio::test]
-    async fn request_token_endpoint_error() {
-        let server = MockServer::start_async().await;
-        let metadata = create_metadata(&server);
-        let error_response = ErrorResponse {
-            error: TestTokenErrorCode::InvalidRequest,
-            error_description: Some("invalid code".to_string()),
-            error_uri: None,
-        };
-
-        let _token_mock = server
-            .mock_async(|when, then| {
-                when.method(POST).path("/issuance/token");
-                then.status(400)
-                    .header("content-type", "application/json")
-                    .json_body(serde_json::to_value(&error_response).unwrap());
-            })
-            .await;
-
-        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
-        let result = request_token::<AuthorizationCodeGrantType, TokenResponse, TestTokenErrorCode>(
-            &http_client,
-            &metadata,
-            create_token_request(),
-        )
-        .await;
-
-        assert_matches!(result, Err(UserInfoError::RequestingAccessToken(_)));
     }
 
     #[tokio::test]
@@ -472,7 +378,7 @@ mod tests {
         token: &str,
         jwks: &JwkSet,
         validation: JwtValidation,
-    ) -> Result<C, UserInfoError<TestTokenErrorCode>> {
+    ) -> Result<C, UserInfoError> {
         verify_against_keys(token, jwks, validation)
     }
 
@@ -694,7 +600,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let result = request_userinfo::<serde_json::Value, TestTokenErrorCode>(
+        let result = request_userinfo::<serde_json::Value>(
             &http_client,
             &metadata,
             &token_response.access_token,
@@ -748,7 +654,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let result = request_userinfo::<serde_json::Value, TestTokenErrorCode>(
+        let result = request_userinfo::<serde_json::Value>(
             &http_client,
             &metadata,
             &token_response.access_token,
@@ -795,7 +701,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let result = request_userinfo::<serde_json::Value, TestTokenErrorCode>(
+        let result = request_userinfo::<serde_json::Value>(
             &http_client,
             &metadata,
             &token_response.access_token,
@@ -840,7 +746,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let result = request_userinfo::<serde_json::Value, TestTokenErrorCode>(
+        let result = request_userinfo::<serde_json::Value>(
             &http_client,
             &metadata,
             &token_response.access_token,

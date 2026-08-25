@@ -22,8 +22,9 @@ use oauth::token::AuthorizationCode;
 use oauth::token::AuthorizationCodeGrantType;
 use oauth::token::TokenRequest;
 use oauth::token::TokenResponse;
+use oauth::token::request_token;
 use oauth::userinfo::UserInfoDecryption;
-use oauth::userinfo::request_token;
+use oauth::userinfo::UserInfoError;
 use oauth::userinfo::request_userinfo;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
@@ -39,7 +40,7 @@ const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A12
 
 static OPENID_SCOPE: LazyLock<Scope> = LazyLock::new(|| "openid".parse().expect("\"openid\" is a valid scope"));
 
-pub type UserInfoError = oauth::userinfo::UserInfoError<TokenErrorCode>;
+pub type TokenError = oauth::token::TokenEndpointError<TokenErrorCode>;
 
 #[derive(Serialize, Deserialize)]
 pub struct DigidUserInfo {
@@ -63,6 +64,9 @@ pub enum Error {
 
     #[error("upstream metadata has no authorization_endpoint")]
     NoUpstreamAuthorizationEndpoint,
+
+    #[error("error obtaining access_token: {0}")]
+    Token(#[source] TokenError),
 
     #[error("error fetching userinfo: {0}")]
     UserInfo(#[source] UserInfoError),
@@ -194,7 +198,7 @@ impl DigidClient for HttpDigidClient {
 
         let token_response: TokenResponse = request_token(self.metadata_client.http_client(), &metadata, token_request)
             .await
-            .map_err(Error::UserInfo)?;
+            .map_err(Error::Token)?;
 
         let decryption = UserInfoDecryption {
             decrypter: &self.decrypter,

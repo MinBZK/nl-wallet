@@ -1,11 +1,15 @@
 use std::collections::HashSet;
+use std::fmt::Debug;
+use std::str::FromStr;
 use std::time::Duration;
 
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 use derive_more::From;
+use http_utils::reqwest::HttpClient;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_with::DurationSeconds;
 use serde_with::StringWithSeparator;
 use serde_with::formats::SpaceSeparator;
@@ -13,6 +17,8 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use crate::errors::RemoteErrorResponse;
+use crate::metadata::oauth_metadata::OidcProviderMetadata;
 use crate::scope::Scope;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
@@ -125,4 +131,143 @@ impl TokenResponse {
 #[serde(tag = "grant_type", rename_all = "snake_case")]
 pub enum AuthorizationCodeGrantType {
     AuthorizationCode { code: AuthorizationCode },
+}
+
+/// Error type for token endpoint requests (see [`request_token`]).
+#[derive(Debug, thiserror::Error)]
+pub enum TokenEndpointError<TE>
+where
+    TE: Debug,
+{
+    #[error("transport error: {0}")]
+    Http(#[from] reqwest::Error),
+
+    #[error("error response from token endpoint: {0:?}")]
+    ErrorResponse(Box<RemoteErrorResponse<TE>>),
+}
+
+/// Exchange `token_request` for an access token at the provider's token endpoint.
+///
+/// Generic over the response type `R`, since profiles that extend the token response (such as OpenID4VCI's
+/// `VciTokenResponse`) need their extended fields deserialized too; pass [`TokenResponse`] for a plain OAuth 2.0
+/// token response.
+pub async fn request_token<G, R, TE>(
+    http_client: &HttpClient,
+    config: &OidcProviderMetadata,
+    token_request: TokenRequest<G>,
+) -> Result<R, TokenEndpointError<TE>>
+where
+    G: Serialize,
+    R: DeserializeOwned,
+    TE: Debug + FromStr,
+{
+    let response = http_client
+        .post(config.oauth_metadata.token_endpoint.clone(), |request| {
+            request.form(&token_request)
+        })
+        .await?;
+
+    let status = response.status();
+    if status.is_client_error() || status.is_server_error() {
+        let error = response.json::<RemoteErrorResponse<TE>>().await?;
+        return Err(TokenEndpointError::ErrorResponse(Box::new(error)));
+    }
+
+    Ok(response.json::<R>().await?)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
+    use http_utils::reqwest::HttpClient;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
+    use url::Url;
+
+    use super::*;
+    use crate::errors::ErrorResponse;
+    use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::oauth_metadata::OidcProviderMetadata;
+
+    #[derive(Debug, Clone, PartialEq, Eq, strum::Display, strum::EnumString)]
+    #[strum(serialize_all = "snake_case")]
+    enum TestTokenErrorCode {
+        InvalidRequest,
+    }
+
+    fn create_token_request() -> TokenRequest<AuthorizationCodeGrantType> {
+        TokenRequest {
+            grant_type: AuthorizationCodeGrantType::AuthorizationCode {
+                code: AuthorizationCode::from("test-code".to_string()),
+            },
+            client_id: None,
+            redirect_uri: Some("https://example.com/callback".parse::<Url>().unwrap()),
+            scope: None,
+            code_verifier: Some("test-verifier".to_string()),
+        }
+    }
+
+    fn create_metadata(server: &MockServer) -> OidcProviderMetadata {
+        let issuer_identifier: IssuerIdentifier = server.base_url().parse().unwrap();
+        OidcProviderMetadata::new_mock(issuer_identifier)
+    }
+
+    #[tokio::test]
+    async fn request_token_happy_path() {
+        let server = MockServer::start_async().await;
+        let metadata = create_metadata(&server);
+
+        let token_response_body =
+            TokenResponse::new(AccessToken::from("test-access-token".to_string()), TokenType::Bearer);
+        let _token_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&token_response_body).unwrap());
+            })
+            .await;
+
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let result = request_token::<AuthorizationCodeGrantType, TokenResponse, TestTokenErrorCode>(
+            &http_client,
+            &metadata,
+            create_token_request(),
+        )
+        .await;
+
+        assert_eq!(result.unwrap().access_token.as_ref(), "test-access-token");
+    }
+
+    #[tokio::test]
+    async fn request_token_endpoint_error() {
+        let server = MockServer::start_async().await;
+        let metadata = create_metadata(&server);
+        let error_response = ErrorResponse {
+            error: TestTokenErrorCode::InvalidRequest,
+            error_description: Some("invalid code".to_string()),
+            error_uri: None,
+        };
+
+        let _token_mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token");
+                then.status(400)
+                    .header("content-type", "application/json")
+                    .json_body(serde_json::to_value(&error_response).unwrap());
+            })
+            .await;
+
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let result = request_token::<AuthorizationCodeGrantType, TokenResponse, TestTokenErrorCode>(
+            &http_client,
+            &metadata,
+            create_token_request(),
+        )
+        .await;
+
+        assert_matches!(result, Err(TokenEndpointError::ErrorResponse(_)));
+    }
 }
