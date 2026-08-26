@@ -2,7 +2,7 @@
 
 ## Project Structure
 
-- `wallet_core/` — Rust workspace (~61 crates): core business logic, servers, FFI bindings
+- `wallet_core/` — Rust workspace: core business logic, servers, FFI bindings
 - `wallet_app/` — Flutter mobile app (iOS & Android), uses BLoC + Clean Architecture
 - `wallet_web/` — TypeScript web library (Web Components)
 - `wallet_admin_portal/` — Vue 3 + Vite frontend for the wallet_provider admin endpoints
