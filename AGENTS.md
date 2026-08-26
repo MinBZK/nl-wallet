@@ -34,16 +34,16 @@ flutter gen-l10n                                      # regenerate localizations
 
 ### Web (`wallet_web/`)
 ```bash
-npm run test    # Vitest
+npm run test -- --run    # Vitest (add --run, otherwise it stays in watch mode)
 npm run build
 ```
 
 ### Admin portal (`wallet_admin_portal/`, uses pnpm)
 ```bash
-pnpm test:unit     # Vitest
-pnpm type-check    # vue-tsc
-pnpm lint          # oxlint + eslint, both with --fix
-pnpm format        # oxfmt src/
+pnpm test:unit -- --run  # Vitest (add --run, otherwise it stays in watch mode)
+pnpm type-check          # vue-tsc
+pnpm lint                # oxlint + eslint, both with --fix
+pnpm format              # oxfmt src/
 pnpm build
 ```
 
