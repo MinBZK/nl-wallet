@@ -16,6 +16,10 @@
 cargo nextest run --manifest-path wallet_core/Cargo.toml
 cargo nextest run --manifest-path wallet_core/Cargo.toml --features integration_test
 cargo clippy --manifest-path wallet_core/Cargo.toml --all-features --tests -- -Dwarnings
+
+# format all crates (nightly rustfmt, skipping build artifacts in target/)
+find wallet_core -type d -name target -prune -o -mindepth 2 -type f -name Cargo.toml -print0 \
+  | xargs -0 -n1 cargo +nightly fmt --manifest-path
 ```
 
 ### Flutter
@@ -49,7 +53,7 @@ scripts/migrate-db.sh         # run DB migrations
 ## Code Conventions
 
 ### Rust
-- Rust edition 2024, line width 120
+- Rust edition 2024, line width 120; formatted with nightly `rustfmt` (see command above)
 - Imports in 3 groups (std → third-party and workspace → super/crate imports), alphabetically within each
 - Each imported symbol on its own import line
 - Custom error enums per module; use `thiserror`
@@ -72,7 +76,7 @@ scripts/migrate-db.sh         # run DB migrations
 
 - Never auto-commit or push without being asked
 - Run tests before marking any task done
-- Run `cargo clippy` after Rust changes; fix all warnings before finishing
+- Run `cargo +nightly fmt` and `cargo clippy` after Rust changes; fix all warnings before finishing
 - Run `dart format` after Dart changes
 - After modifying the Flutter-Rust bridge API, regenerate bindings with the script above
 - HSM and mock-OIDC integration tests run serially (configured in `.config/nextest.toml`)
