@@ -896,10 +896,12 @@ async fn perform_full_disclosure(
                 .iter()
                 .map(|request| {
                     let (mdoc, holder_privkey_identifier) = prepare_example_mdoc_mock(&issuer_ca, &wscd);
-                    let partial_mdoc =
-                        PartialMdoc::try_new(mdoc, holder_privkey_identifier, request.claim_paths()).unwrap();
+                    let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
 
-                    (request.id().clone(), vec_nonempty![partial_mdoc])
+                    (
+                        request.id().clone(),
+                        vec_nonempty![(partial_mdoc, holder_privkey_identifier)],
+                    )
                 })
                 .collect();
 
@@ -1075,7 +1077,6 @@ async fn test_disclosed_attributes_failed_session() {
     assert_eq!(disclosure_session.credential_requests().as_ref().len(), 1);
     let partial_mdoc = PartialMdoc::try_new(
         mdoc,
-        EXAMPLE_KEY_IDENTIFIER.to_string(),
         disclosure_session
             .credential_requests()
             .as_ref()
@@ -1089,7 +1090,7 @@ async fn test_disclosed_attributes_failed_session() {
         .disclose(
             DisclosableAttestations::MsoMdoc(HashMap::from([(
                 CredentialQuery::new_mock_mdoc_iso_example().id,
-                vec_nonempty![partial_mdoc],
+                vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())],
             )]))
             .try_into()
             .unwrap(),

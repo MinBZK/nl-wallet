@@ -48,10 +48,10 @@ fn create_example_device_response(
     assert_eq!(first_request.doc_type, mdoc.doc_type());
 
     let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
-    let partial_mdoc = PartialMdoc::try_new(mdoc, EXAMPLE_KEY_IDENTIFIER.to_string(), &claim_paths).unwrap();
+    let partial_mdoc = PartialMdoc::try_new(mdoc, &claim_paths).unwrap();
 
     let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
-        vec_nonempty![partial_mdoc],
+        vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())],
         session_transcript,
         &MockRemoteWscd::new_example(),
         (),

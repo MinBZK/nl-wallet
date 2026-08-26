@@ -54,7 +54,7 @@ pub trait DisclosureClient {
 
 #[derive(Debug, Clone)]
 pub enum DisclosableAttestations {
-    MsoMdoc(HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>),
+    MsoMdoc(HashMap<CredentialQueryIdentifier, VecNonEmpty<(PartialMdoc, String)>>),
     SdJwt(HashMap<CredentialQueryIdentifier, VecNonEmpty<(UnsignedSdJwtPresentation, String)>>),
 }
 

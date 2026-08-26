@@ -233,7 +233,10 @@ mod tests {
 
                 DisclosableAttestation::new(
                     Uuid::new_v4(),
-                    PartialAttestation::MsoMdoc { partial_mdoc },
+                    PartialAttestation::MsoMdoc {
+                        key_identifier: mdoc_key.identifier,
+                        partial_mdoc,
+                    },
                     AttestationPresentation::new_mock(),
                 )
             }

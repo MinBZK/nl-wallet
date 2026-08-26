@@ -37,7 +37,7 @@ impl DeviceResponse {
     }
 
     async fn sign_from_partial_mdocs_inner<K, W, P>(
-        partial_mdocs: &VecNonEmpty<PartialMdoc>,
+        partial_mdocs: &VecNonEmpty<(PartialMdoc, String)>,
         session_transcript: &SessionTranscript,
         wscd: &W,
         poa_input: P::Input,
@@ -50,8 +50,8 @@ impl DeviceResponse {
         // Prepare the credential keys and device auth challenges per mdoc.
         let (keys, challenges) = partial_mdocs
             .iter()
-            .map(|partial_mdoc| {
-                let credential_key = partial_mdoc.credential_key(wscd)?;
+            .map(|(partial_mdoc, key_identifier)| {
+                let credential_key = partial_mdoc.credential_key(key_identifier, wscd)?;
                 let device_signed_challenge =
                     DeviceAuthenticationKeyed::challenge(&partial_mdoc.doc_type, session_transcript)?;
 
@@ -71,7 +71,7 @@ impl DeviceResponse {
     }
 
     pub async fn sign_multiple_from_partial_mdocs<K, W, P>(
-        partial_mdocs: VecNonEmpty<PartialMdoc>,
+        partial_mdocs: VecNonEmpty<(PartialMdoc, String)>,
         session_transcript: &SessionTranscript,
         wscd: &W,
         poa_input: P::Input,
@@ -87,7 +87,9 @@ impl DeviceResponse {
         let device_responses = partial_mdocs
             .into_iter()
             .zip_eq(device_signeds)
-            .map(|(partial_mdoc, device_signed)| Self::new(vec_nonempty![Document::new(partial_mdoc, device_signed)]))
+            .map(|((partial_mdoc, _), device_signed)| {
+                Self::new(vec_nonempty![Document::new(partial_mdoc, device_signed)])
+            })
             .collect_vec()
             .try_into()
             // This is safe, as the source iterator is non-empty.
@@ -106,7 +108,7 @@ impl<P> DeviceResponseWithPoa<P> {
     }
 
     pub async fn sign_from_partial_mdocs<K, W>(
-        partial_mdocs: VecNonEmpty<PartialMdoc>,
+        partial_mdocs: VecNonEmpty<(PartialMdoc, String)>,
         session_transcript: &SessionTranscript,
         wscd: &W,
         poa_input: P::Input,
@@ -122,7 +124,7 @@ impl<P> DeviceResponseWithPoa<P> {
         let documents = partial_mdocs
             .into_iter()
             .zip_eq(device_signeds)
-            .map(|(partial_mdoc, device_signed)| Document::new(partial_mdoc, device_signed))
+            .map(|((partial_mdoc, _), device_signed)| Document::new(partial_mdoc, device_signed))
             .collect_vec()
             .try_into()
             // This is safe, as the source iterator is non-empty.
@@ -167,12 +169,12 @@ mod tests {
     fn test_device_response_sign_from_mdocs() {
         // Generate and sign some mdocs.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let (partial_mdocs, keys): (Vec<_>, Vec<_>) = (0..3)
+        let (partial_mdocs_and_key_ids, keys): (Vec<_>, Vec<_>) = (0..3)
             .map(|index| {
                 let key = MockRemoteEcdsaKey::new(format!("key_{index}"), SigningKey::generate());
                 let mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &key);
 
-                (mdoc, key)
+                ((mdoc, key.identifier.clone()), key)
             })
             .unzip();
         let wscd = MockRemoteWscd::new(keys);
@@ -182,7 +184,7 @@ mod tests {
 
         // Sign multiple `DeviceResponse`s that contain all of the attributes from the generated mdocs.
         let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
-            partial_mdocs.clone().try_into().unwrap(),
+            partial_mdocs_and_key_ids.clone().try_into().unwrap(),
             &session_transcript,
             &wscd,
             (),
@@ -191,10 +193,10 @@ mod tests {
         .unwrap()
         .expect("signing DeviceResponse from mdocs should succeed");
 
-        for (document, partial_mdoc) in device_responses
+        for (document, (partial_mdoc, key_identifier)) in device_responses
             .into_iter()
             .flat_map(|device_response| device_response.documents.map(|v| v.into_inner()).unwrap_or_default())
-            .zip(&partial_mdocs)
+            .zip(&partial_mdocs_and_key_ids)
         {
             // For each created `Document`, check the contents against the input mdoc.
             assert_eq!(document.doc_type, partial_mdoc.doc_type);
@@ -209,7 +211,12 @@ mod tests {
             if let DeviceAuth::DeviceSignature(signature) = &document.device_signed.device_auth {
                 signature
                     .clone_with_payload(device_auth_bytes)
-                    .verify(partial_mdoc.credential_key(&wscd).unwrap().verifying_key())
+                    .verify(
+                        partial_mdoc
+                            .credential_key(key_identifier, &wscd)
+                            .unwrap()
+                            .verifying_key(),
+                    )
                     .expect("device authentication in DeviceResponse should be valid");
             } else {
                 panic!("device authentication in DeviceResponse should be of signature type");

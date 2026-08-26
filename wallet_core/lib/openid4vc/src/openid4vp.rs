@@ -2256,7 +2256,7 @@ mod tests {
     /// authorization request, partial mdocs and encryption nonce.
     fn setup_mdoc_vp_token(
         auth_request: &NormalizedVpAuthorizationRequest,
-        partial_mdocs: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
+        partial_mdocs: HashMap<CredentialQueryIdentifier, VecNonEmpty<(PartialMdoc, String)>>,
         wscd: &MockRemoteWscd,
     ) -> (HashMap<CredentialQueryIdentifier, VerifiablePresentation>, Option<Poa>) {
         let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.to_string());
@@ -2308,14 +2308,14 @@ mod tests {
         let holder_key = MockRemoteEcdsaKey::new_random("mdoc_key".to_string());
         let partial_mdoc = PartialMdoc::try_new(
             Mdoc::new_mock_with_ca_and_key(&ca, &holder_key).now_or_never().unwrap(),
-            holder_key.identifier.clone(),
             auth_request.credential_requests.as_ref().first().unwrap().claim_paths(),
         )
         .unwrap();
 
+        let key_identifier = holder_key.identifier.clone();
         let wscd = MockRemoteWscd::new(vec![holder_key]);
 
-        let partial_mdocs = HashMap::from([("mdoc_0".parse().unwrap(), vec_nonempty![partial_mdoc])]);
+        let partial_mdocs = HashMap::from([("mdoc_0".parse().unwrap(), vec_nonempty![(partial_mdoc, key_identifier)])]);
         let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, &wscd);
         let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
 
@@ -2515,7 +2515,6 @@ mod tests {
             Mdoc::new_mock_with_ca_and_key(&ca, &mdoc_holder_key)
                 .now_or_never()
                 .unwrap(),
-            mdoc_holder_key.identifier.clone(),
             auth_request.credential_requests.as_ref().first().unwrap().claim_paths(),
         )
         .unwrap();
@@ -2524,7 +2523,7 @@ mod tests {
 
         let poa_input = JwtPoaInput::new(None, "".to_string());
         let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
-            vec_nonempty![partial_mdoc],
+            vec_nonempty![(partial_mdoc, mdoc_holder_key.identifier.clone())],
             &auth_request.session_transcript(),
             &wscd,
             poa_input,
@@ -2607,11 +2606,12 @@ mod tests {
         assert_eq!(attestations.len().get(), 2);
     }
 
+    #[expect(clippy::type_complexity, reason = "test code")]
     fn setup_poa_test(
         ca: &Ca,
     ) -> (
         NormalizedVpAuthorizationRequest,
-        HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
+        HashMap<CredentialQueryIdentifier, VecNonEmpty<(PartialMdoc, String)>>,
         MockRemoteWscd,
     ) {
         let test_credentials = nl_pid_credentials_full_name() + nl_pid_address_minimal_address();

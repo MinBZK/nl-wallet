@@ -879,9 +879,13 @@ where
             attestations
                 .iter()
                 .partition_map(|(id, attestation)| match attestation.partial_attestation() {
-                    PartialAttestation::MsoMdoc { partial_mdoc } => {
-                        Either::Left(((*id).clone(), vec_nonempty![partial_mdoc.as_ref().clone()]))
-                    }
+                    PartialAttestation::MsoMdoc {
+                        key_identifier,
+                        partial_mdoc,
+                    } => Either::Left((
+                        (*id).clone(),
+                        vec_nonempty![(partial_mdoc.as_ref().clone(), key_identifier.clone())],
+                    )),
                     PartialAttestation::SdJwt { key_identifier, sd_jwt } => {
                         Either::Right(((*id).clone(), vec_nonempty![(*sd_jwt.clone(), key_identifier.clone())]))
                     }
@@ -1459,7 +1463,7 @@ mod tests {
                             .map(|(id, partial_mdocs)| {
                                 let attributes = partial_mdocs
                                     .iter()
-                                    .map(|partial_mdoc| {
+                                    .map(|(partial_mdoc, _)| {
                                         partial_mdoc.issuer_signed().clone().into_entries_by_namespace()
                                     })
                                     .collect_vec();

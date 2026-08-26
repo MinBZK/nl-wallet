@@ -69,6 +69,7 @@ pub struct StoredAttestationCopy {
 #[derive(Debug, Clone)]
 pub enum PartialAttestation {
     MsoMdoc {
+        key_identifier: String,
         partial_mdoc: Box<PartialMdoc>,
     },
     SdJwt {
@@ -278,9 +279,10 @@ impl PartialAttestation {
     ) -> Result<Self, PartialAttestationError> {
         let partial_attestation = match attestation {
             StoredAttestation::MsoMdoc { key_identifier, mdoc } => {
-                let partial_mdoc = PartialMdoc::try_new(mdoc, key_identifier, claim_paths)?;
+                let partial_mdoc = PartialMdoc::try_new(mdoc, claim_paths)?;
 
                 PartialAttestation::MsoMdoc {
+                    key_identifier,
                     partial_mdoc: Box::new(partial_mdoc),
                 }
             }
@@ -323,7 +325,7 @@ impl DisclosableAttestation<PartialAttestation> {
         let partial_attestation = PartialAttestation::try_new(attestation, claim_paths)?;
 
         let presentation = match &partial_attestation {
-            PartialAttestation::MsoMdoc { partial_mdoc } => attestation_presentation_from_issuer_signed(
+            PartialAttestation::MsoMdoc { partial_mdoc, .. } => attestation_presentation_from_issuer_signed(
                 partial_mdoc.issuer_signed().clone(),
                 attestation_id,
                 normalized_metadata,
@@ -406,7 +408,7 @@ mod test {
     impl PartialAttestation {
         pub fn private_key_id(&self) -> &str {
             match &self {
-                PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.private_key_id(),
+                PartialAttestation::MsoMdoc { key_identifier, .. } => key_identifier.as_str(),
                 PartialAttestation::SdJwt { key_identifier, .. } => key_identifier.as_str(),
             }
         }

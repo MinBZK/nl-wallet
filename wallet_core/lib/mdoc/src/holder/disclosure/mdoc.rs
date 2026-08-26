@@ -14,14 +14,12 @@ use crate::iso::mdocs::DocType;
 pub struct PartialMdoc {
     pub(super) doc_type: DocType,
     pub(super) issuer_signed: IssuerSigned,
-    private_key_id: String,
     device_key: DeviceKey,
 }
 
 impl PartialMdoc {
     pub fn try_new<'a>(
         mdoc: Mdoc,
-        private_key_id: String,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
     ) -> std::result::Result<Self, MissingAttributesError> {
         let (mso, issuer_signed) = mdoc.into_components();
@@ -31,7 +29,6 @@ impl PartialMdoc {
         let partial_mdoc = Self {
             doc_type: mso.doc_type,
             issuer_signed,
-            private_key_id,
             device_key: mso.device_key_info.device_key,
         };
 
@@ -46,21 +43,17 @@ impl PartialMdoc {
         &self.issuer_signed
     }
 
-    pub fn private_key_id(&self) -> &str {
-        &self.private_key_id
-    }
-
     pub fn into_issuer_signed(self) -> IssuerSigned {
         self.issuer_signed
     }
 
-    pub(super) fn credential_key<K, W>(&self, wscd: &W) -> Result<K>
+    pub(super) fn credential_key<K, W>(&self, key_identifier: &str, wscd: &W) -> Result<K>
     where
         K: CredentialEcdsaKey,
         W: DisclosureWscd<Key = K>,
     {
         let public_key = (&self.device_key).try_into()?;
-        let key = wscd.new_key(&self.private_key_id, public_key);
+        let key = wscd.new_key(key_identifier, public_key);
 
         Ok(key)
     }
@@ -73,7 +66,6 @@ mod examples {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use crypto::WithIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -100,12 +92,7 @@ mod examples {
         pub fn new_mock_with_ca_and_key(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
             let mdoc = Mdoc::new_mock_with_ca_and_key(ca, device_key).now_or_never().unwrap();
 
-            Self::try_new(
-                mdoc,
-                device_key.identifier().to_string(),
-                PID_EXAMPLE_CLAIM_PATHS.iter(),
-            )
-            .unwrap()
+            Self::try_new(mdoc, PID_EXAMPLE_CLAIM_PATHS.iter()).unwrap()
         }
     }
 }
