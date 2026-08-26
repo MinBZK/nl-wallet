@@ -17,12 +17,21 @@ pub trait StatusListService {
         batch_id: Uuid,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
-    ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
+    ) -> Result<VecNonEmpty<StatusClaim>, ObtainClaimError<Self::Error>>;
 
     fn start_refresh_job(&self) -> AbortHandle;
 
     async fn republish_all(&self, force: bool) -> Result<(), Self::Error>;
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), Self::Error>;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ObtainClaimError<E> {
+    #[error("batch ID already exists: {0}")]
+    BatchIdExists(Uuid),
+
+    #[error(transparent)]
+    InternalError(E),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -89,7 +98,7 @@ pub mod mock {
                 batch_id: Uuid,
                 expires: Option<DateTimeSeconds>,
                 copies: NonZeroUsize,
-            ) -> Result<VecNonEmpty<StatusClaim>, Infallible>;
+            ) -> Result<VecNonEmpty<StatusClaim>, ObtainClaimError<Infallible>>;
 
             fn start_refresh_job(&self) -> AbortHandle;
 

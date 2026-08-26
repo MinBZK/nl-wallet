@@ -33,6 +33,7 @@ use sea_orm::QuerySelect;
 use sea_orm::RelationTrait;
 use sea_orm::SelectColumns;
 use sea_orm::Set;
+use sea_orm::SqlErr;
 use sea_orm::TransactionTrait;
 use sea_orm::TryInsertResult;
 use sea_orm::sea_query::Expr;
@@ -44,6 +45,7 @@ use sea_orm::sqlx::types::chrono::NaiveDate;
 use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::StatusListTokenBuilder;
@@ -219,7 +221,7 @@ where
         batch_id: Uuid,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
-    ) -> Result<VecNonEmpty<StatusClaim>, Self::Error> {
+    ) -> Result<VecNonEmpty<StatusClaim>, ObtainClaimError<Self::Error>> {
         tracing::debug!("Obtaining status claims with {} copies", copies);
         self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
             .await
@@ -362,20 +364,28 @@ where
         batch_id: Uuid,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
-    ) -> Result<(VecNonEmpty<StatusClaim>, Vec<JoinHandle<()>>), StatusListServiceError> {
+    ) -> Result<(VecNonEmpty<StatusClaim>, Vec<JoinHandle<()>>), ObtainClaimError<StatusListServiceError>> {
         let copies = copies.get();
 
         // If issuer requests more copies than the size of a complete status list,
         // this is a configuration issue.
         if copies > self.config.list_size.as_usize() {
-            return Err(StatusListServiceError::TooManyClaimsRequested(copies));
+            return Err(ObtainClaimError::InternalError(
+                StatusListServiceError::TooManyClaimsRequested(copies),
+            ));
         }
 
         // Get status lists with exclusive lock or create if not available
-        let (tx, lists) = self.fetch_exclusive_available_status_lists_or_create(copies).await?;
+        let (tx, lists) = self
+            .fetch_exclusive_available_status_lists_or_create(copies)
+            .await
+            .map_err(ObtainClaimError::InternalError)?;
 
         // Get the next status list items and store them in the attestation_batch table
-        let lists_with_items = self.fetch_status_list_items(&tx, lists, copies as u64).await?;
+        let lists_with_items = self
+            .fetch_status_list_items(&tx, lists, copies as u64)
+            .await
+            .map_err(ObtainClaimError::InternalError)?;
         Self::create_attestation_batch(
             &tx,
             batch_id,
@@ -386,7 +396,10 @@ where
             }),
         )
         .await?;
-        tx.commit().await?;
+
+        tx.commit()
+            .await
+            .map_err(|error| ObtainClaimError::InternalError(StatusListServiceError::Db(error)))?;
 
         // Schedule housekeeping after committing
         let tasks = self.schedule_housekeeping(lists_with_items.iter().map(|(list, _)| list));
@@ -538,23 +551,38 @@ where
         batch_id: Uuid,
         expiration_date: Option<NaiveDate>,
         list_indices: impl Iterator<Item = (i64, Vec<i32>)>,
-    ) -> Result<(), StatusListServiceError> {
+    ) -> Result<(), ObtainClaimError<StatusListServiceError>> {
         let model = attestation_batch::ActiveModel {
             id: NotSet,
             batch_id: Set(batch_id),
             expiration_date: Set(expiration_date),
             is_revoked: Set(false),
         };
-        let attestation_batch_id = attestation_batch::Entity::insert(model).exec(tx).await?.last_insert_id;
+        let attestation_batch_id = attestation_batch::Entity::insert(model)
+            .exec(tx)
+            .await
+            .map_err(|error| {
+                if error
+                    .sql_err()
+                    .is_some_and(|error| matches!(error, SqlErr::UniqueConstraintViolation(_)))
+                {
+                    ObtainClaimError::BatchIdExists(batch_id)
+                } else {
+                    ObtainClaimError::InternalError(StatusListServiceError::Db(error))
+                }
+            })?
+            .last_insert_id;
 
         let models = list_indices.map(|(list_id, indices)| attestation_batch_list_indices::ActiveModel {
             attestation_batch_id: Set(attestation_batch_id),
             status_list_id: Set(list_id),
             indices: Set(indices),
         });
+
         attestation_batch_list_indices::Entity::insert_many(models)
             .exec(tx)
-            .await?;
+            .await
+            .map_err(|error| ObtainClaimError::InternalError(StatusListServiceError::Db(error)))?;
 
         Ok(())
     }
@@ -1098,6 +1126,9 @@ mod tests {
         let result = service
             .obtain_status_claims_and_scheduled_tasks(batch_id, None, 3.try_into().unwrap())
             .await;
-        assert_matches!(result, Err(StatusListServiceError::TooManyClaimsRequested(size)) if size == 3);
+        assert_matches!(
+            result,
+            Err(ObtainClaimError::InternalError(StatusListServiceError::TooManyClaimsRequested(size))) if size == 3
+        );
     }
 }

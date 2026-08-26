@@ -647,6 +647,8 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::MissingCredentialConfiguration(_) => CredentialErrorCode::ServerError,
 
+            Self::StatusClaimBatchIdExists(_) => CredentialErrorCode::CredentialRequestDenied,
+
             Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims { .. } => CredentialErrorCode::ServerError,
 
             Self::JwkConversion(_) | Self::MdocConversion(_) | Self::SdJwtConversion(_) => {

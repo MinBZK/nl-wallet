@@ -49,6 +49,7 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
 use ssri::Integrity;
+use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
@@ -285,7 +286,10 @@ pub enum CredentialRequestError {
     #[error("issuer does not have credential configuration identifier configured: {0}")]
     MissingCredentialConfiguration(CredentialConfigurationId),
 
-    #[error("error obtaining status claim: {0}")]
+    #[error("could not obtain status claim, batch ID already exists in database: {0}")]
+    StatusClaimBatchIdExists(Uuid),
+
+    #[error("could not obtain status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("incorrect number of status claims, expected {expected}, but received {received}")]
@@ -1070,15 +1074,21 @@ where
             .await;
 
         // Note that as of now, a successful Credential Request does not advance the session state machine, meaning that
-        // a wallet could request the same credential multiple times. For a production-grade issuer, a limitation should
-        // be implemented where a wallet can only request each offered credential once in a single session. Then, once
-        // the last credential has been issued, the session would move to the "Done" state.
+        // a wallet could in theory request the same credential multiple times. In practice however, any subsequent
+        // request will fail, as the issuer tries to create status claims with the same batch_id, which will fail on a
+        // uniqueness constraint in the database.
         //
-        // This would involve persisting which credentials have been issued in a session within its state. However,
-        // since it is allowed and even desirable for a wallet to send multiple Credential Requests in parallel and
-        // because the state is written as a JSON blob that is opaque to PostgreSQL, this would require some sort of
-        // locking mechanism to guarantee atomicity of the state. For now, because of the complexity this entails, this
-        // non-trival functionality is beyond what is needed from the issuer implementation.
+        // For a production-grade issuer, a proper check should be performed earlier, where a wallet can only request
+        // each offered credential once in a single session. Then, once the last credential has been issued, the
+        // session should move to the "Done" state. This would involve persisting which credentials have been issued in
+        // a session within its state. However, since it is allowed and even desirable for a wallet to send multiple
+        // Credential Requests in parallel and because the state is written as a JSON blob that is opaque to PostgreSQL,
+        // this would require some sort of locking mechanism to guarantee atomicity of the state. For now, because of
+        // the complexity this entails, this non-trival functionality is beyond what is needed from the issuer
+        // implementation.
+        //
+        // Instead, we rely on detecting the uniqueness constraint violation of the status claims batch_id and return a
+        // specific error based on that.
 
         logged_issuance_result(response_result)
     }
@@ -1985,7 +1995,14 @@ impl Credentials {
         let status_claims = status_list
             .obtain_status_claims(batch_id, preview_credential_payload.expires, copy_count)
             .await
-            .map_err(|error| CredentialRequestError::ObtainStatusClaim(Box::new(error)))?;
+            .map_err(|error| match error {
+                // Identify the claims batch_id already existing in the database as a separate error, as this is the
+                // error that will occur if a wallet sends a Credential Request for the same credential multiple times.
+                // This particular error will then result in a 400 HTTP status code and a "credential_request_denied"
+                // error code, instead of a 500 error.
+                ObtainClaimError::BatchIdExists(id) => CredentialRequestError::StatusClaimBatchIdExists(id),
+                ObtainClaimError::InternalError(error) => CredentialRequestError::ObtainStatusClaim(Box::new(error)),
+            })?;
 
         if status_claims.len() != copy_count {
             return Err(CredentialRequestError::IncorrectNumberOfStatusClaims {
