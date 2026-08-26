@@ -87,7 +87,7 @@ scripts/migrate-db.sh         # run DB migrations
 ## Workflow Rules
 
 - Never auto-commit or push without being asked
-- Run tests before marking any task done
+- Run appropriate/relevant tests before marking any task done
 - Run `cargo +nightly fmt` and `cargo clippy` after Rust changes; fix all warnings before finishing
 - Run `dart format` after Dart changes
 - Run `pnpm lint` and `pnpm format` after `wallet_admin_portal/` changes
