@@ -131,6 +131,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::Notification;
+    use crate::storage::Keyed;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::TestWalletMockStorage;
@@ -150,9 +151,9 @@ mod tests {
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
+                Keyed {
                     key_identifier: "sd_jwt_key_id".to_string(),
-                    sd_jwt,
+                    data: StoredAttestation::SdJwt(sd_jwt),
                 },
                 sd_jwt_metadata,
                 None,

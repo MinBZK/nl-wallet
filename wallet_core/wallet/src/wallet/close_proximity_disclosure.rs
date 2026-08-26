@@ -72,6 +72,7 @@ use crate::pin::key::Pin as WalletPin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
+use crate::storage::Keyed;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
@@ -110,20 +111,21 @@ impl TryFrom<VpDisclosableAttestation> for CloseProximityDisclosableAttestation 
     type Error = DisclosureError;
 
     fn try_from(attestation: VpDisclosableAttestation) -> Result<Self, Self::Error> {
-        attestation.try_map_partial_attestation(|partial_attestation| {
-            let PartialAttestation::MsoMdoc {
-                key_identifier,
-                partial_mdoc,
-            } = partial_attestation
-            else {
-                // `ItemsRequest` only requests mdocs, and storage is expected to filter candidates by that format.
-                // Receiving an SD-JWT here means that soft contract was violated. Handle this defensively so the
-                // programming error remains observable as a distinct Sentry error.
-                return Err(DisclosureError::UnexpectedAttestationFormat);
-            };
+        attestation.try_map_partial_attestation(
+            |Keyed {
+                 key_identifier,
+                 data: attestation,
+             }| {
+                let PartialAttestation::MsoMdoc(partial_mdoc) = attestation else {
+                    // `ItemsRequest` only requests mdocs, and storage is expected to filter candidates by that format.
+                    // Receiving an SD-JWT here means that soft contract was violated. Handle this defensively so the
+                    // programming error remains observable as a distinct Sentry error.
+                    return Err(DisclosureError::UnexpectedAttestationFormat);
+                };
 
-            Ok((*partial_mdoc, key_identifier))
-        })
+                Ok((*partial_mdoc, key_identifier))
+            },
+        )
     }
 }
 

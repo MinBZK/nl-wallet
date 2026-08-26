@@ -521,6 +521,7 @@ mod tests {
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
+    use crate::storage::Keyed;
     use crate::storage::PinRecoveryData;
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
@@ -620,9 +621,9 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    StoredAttestation::SdJwt {
+                    Keyed {
                         key_identifier: "key".to_string(),
-                        sd_jwt: create_example_pid_sd_jwt().0,
+                        data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                     None,
@@ -925,9 +926,9 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    StoredAttestation::SdJwt {
+                    Keyed {
                         key_identifier: "key".to_string(),
-                        sd_jwt: create_example_pid_sd_jwt().0,
+                        data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                     None,
@@ -993,16 +994,16 @@ mod tests {
 
         let (pid_issuer, _) = mock_issuance_session([
             (
-                StoredAttestation::MsoMdoc {
+                Keyed {
                     key_identifier: "key_id".to_string(),
-                    mdoc,
+                    data: StoredAttestation::MsoMdoc(mdoc),
                 },
                 VerifiedTypeMetadataDocuments::nl_pid_example(),
             ),
             (
-                StoredAttestation::SdJwt {
+                Keyed {
                     key_identifier: "key_id".to_string(),
-                    sd_jwt: sd_jwt.clone(),
+                    data: StoredAttestation::SdJwt(sd_jwt.clone()),
                 },
                 VerifiedTypeMetadataDocuments::nl_pid_example(),
             ),

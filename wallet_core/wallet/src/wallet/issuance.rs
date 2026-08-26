@@ -922,6 +922,7 @@ mod tests {
     use crate::WalletEvent;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
+    use crate::storage::Keyed;
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
@@ -1267,9 +1268,9 @@ mod tests {
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
+                Keyed {
                     key_identifier: "key".to_string(),
-                    sd_jwt,
+                    data: StoredAttestation::SdJwt(sd_jwt),
                 },
                 metadata,
                 None,
@@ -1570,9 +1571,9 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            StoredAttestation::SdJwt {
+            Keyed {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: sd_jwt.into_verified(),
+                data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
             stored_type_metadata.normalized_metadata.clone(),
             None,
@@ -1839,28 +1840,36 @@ mod tests {
 
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
-    fn sd_jwt_pid() -> (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+    fn sd_jwt_pid() -> (
+        Keyed<StoredAttestation>,
+        VerifiedTypeMetadataDocuments,
+        NormalizedTypeMetadata,
+    ) {
         let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
         (
-            StoredAttestation::SdJwt {
+            Keyed {
                 key_identifier: "key_id".to_string(),
-                sd_jwt,
+                data: StoredAttestation::SdJwt(sd_jwt),
             },
             metadata_docs,
             normalized_metadata,
         )
     }
 
-    fn mdoc_pid() -> (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+    fn mdoc_pid() -> (
+        Keyed<StoredAttestation>,
+        VerifiedTypeMetadataDocuments,
+        NormalizedTypeMetadata,
+    ) {
         let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::generate());
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
         (
-            StoredAttestation::MsoMdoc {
+            Keyed {
                 key_identifier: "key_id".to_string(),
-                mdoc,
+                data: StoredAttestation::MsoMdoc(mdoc),
             },
             metadata_docs,
             normalized_metadata,
@@ -1876,7 +1885,11 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance(
         #[case] pid_credentials: impl IntoIterator<
-            Item = (StoredAttestation, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata),
+            Item = (
+                Keyed<StoredAttestation>,
+                VerifiedTypeMetadataDocuments,
+                NormalizedTypeMetadata,
+            ),
         >,
     ) {
         // Prepare a registered and unlocked wallet.
@@ -2353,9 +2366,9 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            StoredAttestation::SdJwt {
+            Keyed {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: sd_jwt.into_verified(),
+                data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
             type_metadata.normalized_metadata,
             None,

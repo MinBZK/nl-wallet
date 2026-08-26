@@ -348,6 +348,7 @@ mod tests {
     use crate::WalletState;
     use crate::pin::change::State;
     use crate::storage::ChangePinData;
+    use crate::storage::Keyed;
     use crate::storage::PinRecoveryData;
     use crate::storage::StoredAttestation;
     use crate::storage::TransferData;
@@ -733,9 +734,9 @@ mod tests {
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session([(
-            StoredAttestation::SdJwt {
+            Keyed {
                 key_identifier: "key_id".to_string(),
-                sd_jwt: sd_jwt.clone(),
+                data: StoredAttestation::SdJwt(sd_jwt.clone()),
             },
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         )]);

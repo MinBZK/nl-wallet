@@ -299,6 +299,7 @@ mod tests {
 
     use super::*;
     use crate::config::default_wallet_config;
+    use crate::storage::Keyed;
     use crate::storage::MockStorage;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
@@ -359,9 +360,9 @@ mod tests {
                 Uuid::new_v4(),
                 revocation_id_1,
                 ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
+                Keyed {
                     key_identifier: random_string(16),
-                    sd_jwt: sd_jwt.clone(),
+                    data: StoredAttestation::SdJwt(sd_jwt.clone()),
                 },
                 sd_jwt_metadata.clone(),
                 Some(RevocationStatus::Valid),
@@ -370,9 +371,9 @@ mod tests {
                 Uuid::new_v4(),
                 revocation_id_2,
                 ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
+                Keyed {
                     key_identifier: random_string(16),
-                    sd_jwt,
+                    data: StoredAttestation::SdJwt(sd_jwt),
                 },
                 sd_jwt_metadata,
                 Some(RevocationStatus::Revoked),

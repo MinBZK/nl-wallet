@@ -89,6 +89,7 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::storage::Keyed;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::create_example_pid_mdoc;
@@ -138,9 +139,9 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    StoredAttestation::SdJwt {
+                    Keyed {
                         key_identifier: "sd_jwt_key_id".to_string(),
-                        sd_jwt,
+                        data: StoredAttestation::SdJwt(sd_jwt),
                     },
                     sd_jwt_metadata,
                     None,
@@ -149,9 +150,9 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    StoredAttestation::MsoMdoc {
+                    Keyed {
                         key_identifier: "mdoc_key_id".to_string(),
-                        mdoc,
+                        data: StoredAttestation::MsoMdoc(mdoc),
                     },
                     mdoc_metadata,
                     None,
