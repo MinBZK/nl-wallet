@@ -81,4 +81,4 @@ scripts/migrate-db.sh         # run DB migrations
 - Run `cargo +nightly fmt` and `cargo clippy` after Rust changes; fix all warnings before finishing
 - Run `dart format` after Dart changes
 - After modifying the Flutter-Rust bridge API, regenerate bindings with the script above
-- HSM and mock-OIDC integration tests run serially (configured in `.config/nextest.toml`)
+- Mock-OIDC integration tests run serially (configured in `.config/nextest.toml`)
