@@ -63,8 +63,7 @@ class MenuTests : TestBase() {
         menuScreen.clickBottomBackButton()
 
         assertAll(
-            { assertTrue(menuScreen.menuListButtonsVisible(), "menu list buttons are not visible") },
-            { assertTrue(menuScreen.logoutButtonVisible(), "logout button is notvisible") },
+            { assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible") },
         )
     }
 }

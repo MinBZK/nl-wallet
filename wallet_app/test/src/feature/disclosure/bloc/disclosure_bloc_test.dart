@@ -383,7 +383,6 @@ void main() {
           return Result.success(
             StartDisclosureReadyToDisclose(
               relyingParty: WalletMockData.organization,
-              originUrl: 'http://origin.org',
               requestPurpose: 'testPurpose'.untranslated,
               sessionType: DisclosureSessionType.crossDevice,
               type: DisclosureType.regular,
@@ -459,7 +458,6 @@ void main() {
           return Result.success(
             StartDisclosureReadyToDisclose(
               relyingParty: WalletMockData.organization,
-              originUrl: 'http://origin.org',
               requestPurpose: 'testPurpose'.untranslated,
               sessionType: DisclosureSessionType.crossDevice,
               type: DisclosureType.regular,
@@ -871,7 +869,6 @@ void main() {
           return Result.success(
             StartDisclosureReadyToDisclose(
               relyingParty: WalletMockData.organization,
-              originUrl: 'http://origin.org',
               requestPurpose: 'requestPurpose'.untranslated,
               sessionType: DisclosureSessionType.closeProximity,
               type: DisclosureType.regular,
@@ -895,7 +892,6 @@ void main() {
           return Result.success(
             StartDisclosureReadyToDisclose(
               relyingParty: WalletMockData.organization,
-              originUrl: 'http://origin.org',
               requestPurpose: 'requestPurpose'.untranslated,
               sessionType: DisclosureSessionType.closeProximity,
               type: DisclosureType.regular,
@@ -927,7 +923,6 @@ void main() {
           return Result.success(
             StartDisclosureReadyToDisclose(
               relyingParty: WalletMockData.organization,
-              originUrl: 'http://origin.org',
               requestPurpose: 'requestPurpose'.untranslated,
               sessionType: DisclosureSessionType.closeProximity,
               type: DisclosureType.regular,
@@ -1035,7 +1030,6 @@ StartDisclosureReadyToDisclose emptyRequest({
   required DisclosureType type,
 }) => StartDisclosureReadyToDisclose(
   relyingParty: WalletMockData.organization,
-  originUrl: 'http://origin.org',
   requestPurpose: 'requestPurpose'.untranslated,
   sessionType: sessionType,
   type: type,
@@ -1049,9 +1043,6 @@ StartDisclosureMissingAttributes missingAttributesRequest({
   required DisclosureSessionType sessionType,
 }) => StartDisclosureMissingAttributes(
   relyingParty: WalletMockData.organization,
-  originUrl: 'http://origin.org',
-  requestPurpose: 'requestPurpose'.untranslated,
   sessionType: sessionType,
-  sharedDataWithOrganizationBefore: false,
   missingAttributes: [],
 );
