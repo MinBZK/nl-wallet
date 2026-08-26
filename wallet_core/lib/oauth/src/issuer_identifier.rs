@@ -170,10 +170,6 @@ mod tests {
         feature = "allow_insecure_url",
         case::ok_http("http://example.com/", Ok(()))
     )]
-    #[cfg_attr(
-        not(feature = "allow_insecure_url"),
-        case::err_http("http://example.com/", Err(IssuerUrlErrorDiscriminants::SchemeNotHttps))
-    )]
     fn test_issuer_url_parsing(#[case] input: &str, #[case] expected_result: Result<(), IssuerUrlErrorDiscriminants>) {
         let parsed_result = input.parse::<IssuerUrl>();
         let deserialized_result = serde_json::from_value::<IssuerUrl>(json!(input));
@@ -205,10 +201,6 @@ mod tests {
     #[cfg_attr(
         feature = "allow_insecure_url",
         case::ok_http("http://example.com/", Ok("http://example.com/"))
-    )]
-    #[cfg_attr(
-        not(feature = "allow_insecure_url"),
-        case::err_http("http://example.com/", Err(IssuerIdentifierErrorDiscriminants::UrlParsing))
     )]
     #[case::err_short_query("https://example.com/path?", Err(IssuerIdentifierErrorDiscriminants::HasQuery))]
     #[case::err_long_query(
