@@ -5,7 +5,6 @@
 - `wallet_core/` — Rust workspace (~61 crates): core business logic, servers, FFI bindings
 - `wallet_app/` — Flutter mobile app (iOS & Android), uses BLoC + Clean Architecture
 - `wallet_web/` — TypeScript web library (Web Components)
-- `nl-rdo-max/` — DigiD connector (Python)
 - `scripts/` — Dev environment, code generation, migrations
 - `deploy/` — Kubernetes/Helm charts
 
