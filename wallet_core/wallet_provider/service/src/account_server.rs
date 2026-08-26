@@ -542,8 +542,9 @@ impl<'a> PublicKeyByKid for CertificateSigningKeysByKid<'a> {
         let key = self.keys.get(&kid);
         match key {
             Some(key) if key.exp.is_none_or(|e| e > self.now) => Ok(Some(key.certificate_public_key.clone())),
-            Some(_) => Err(KeyExpired(self.now)),
-            None => Ok(None),
+            Some(key) if let Some(exp) = key.exp => Err(KeyExpired(exp)),
+            // only reached if key.exp is `None`
+            _ => Ok(None),
         }
     }
 }
