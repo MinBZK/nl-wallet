@@ -5,6 +5,8 @@
 - `wallet_core/` — Rust workspace (~61 crates): core business logic, servers, FFI bindings
 - `wallet_app/` — Flutter mobile app (iOS & Android), uses BLoC + Clean Architecture
 - `wallet_web/` — TypeScript web library (Web Components)
+- `wallet_admin_portal/` — Vue 3 + Vite frontend for the wallet_provider admin endpoints
+- `wallet_docs/` — Sphinx documentation source (Python)
 - `scripts/` — Dev environment, code generation, migrations
 - `deploy/` — Kubernetes/Helm charts
 
@@ -30,10 +32,19 @@ dart format . --line-length 120
 flutter gen-l10n                                      # regenerate localizations
 ```
 
-### Web
+### Web (`wallet_web/`)
 ```bash
 npm run test    # Vitest
 npm run build
+```
+
+### Admin portal (`wallet_admin_portal/`, uses pnpm)
+```bash
+pnpm test:unit     # Vitest
+pnpm type-check    # vue-tsc
+pnpm lint          # oxlint + eslint, both with --fix
+pnpm format        # oxfmt src/
+pnpm build
 ```
 
 ### Code Generation (run after changing bridge or bindings)
@@ -79,5 +90,6 @@ scripts/migrate-db.sh         # run DB migrations
 - Run tests before marking any task done
 - Run `cargo +nightly fmt` and `cargo clippy` after Rust changes; fix all warnings before finishing
 - Run `dart format` after Dart changes
+- Run `pnpm lint` and `pnpm format` after `wallet_admin_portal/` changes
 - After modifying the Flutter-Rust bridge API, regenerate bindings with the script above
 - Mock-OIDC integration tests run serially (configured in `.config/nextest.toml`)
