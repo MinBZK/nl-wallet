@@ -209,10 +209,10 @@ mod tests {
     use crate::attestation::AttestationPresentation;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
-    use crate::storage::Keyed;
     use crate::storage::PartialAttestation;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::WithKeyIdentifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_mdoc;
 
@@ -234,7 +234,7 @@ mod tests {
 
                 DisclosableAttestation::new(
                     Uuid::new_v4(),
-                    Keyed {
+                    WithKeyIdentifier {
                         key_identifier: mdoc_key.identifier,
                         data: PartialAttestation::MsoMdoc(partial_mdoc),
                     },
@@ -247,7 +247,7 @@ mod tests {
 
                 DisclosableAttestation::new(
                     Uuid::new_v4(),
-                    Keyed {
+                    WithKeyIdentifier {
                         key_identifier: "sd_jwt_key".to_string(),
                         data: PartialAttestation::SdJwt(Box::new(unsigned_presentation)),
                     },
@@ -342,7 +342,7 @@ mod tests {
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier: "mdoc_key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },

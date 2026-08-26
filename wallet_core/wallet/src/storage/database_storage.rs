@@ -75,12 +75,12 @@ use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 use super::DatabaseExport;
-use super::Keyed;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
 use super::StoredAttestation;
+use super::WithKeyIdentifier;
 use super::attestation_copy::StoredAttestationCopy;
 use super::data::KeyedData;
 use super::database::Database;
@@ -305,7 +305,7 @@ impl<K> DatabaseStorage<K> {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
                             let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed)?;
 
-                            Keyed {
+                            WithKeyIdentifier {
                                 key_identifier,
                                 data: StoredAttestation::MsoMdoc(mdoc),
                             }
@@ -315,7 +315,7 @@ impl<K> DatabaseStorage<K> {
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
                                 String::from_utf8(attestation_bytes.decompress()?).unwrap().as_str(),
                             )?;
-                            Keyed {
+                            WithKeyIdentifier {
                                 key_identifier,
                                 data: StoredAttestation::SdJwt(sd_jwt),
                             }
@@ -1890,7 +1890,7 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            Keyed {
+            WithKeyIdentifier {
                 data: StoredAttestation::MsoMdoc(stored),
                 key_identifier,
             } if key_identifier == "mdoc_key_id" && *stored == mdoc
@@ -1935,7 +1935,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            Keyed {
+            WithKeyIdentifier {
                 data: StoredAttestation::MsoMdoc(stored),
                 key_identifier,
             } if key_identifier == "mdoc_key_id" && *stored == mdoc
@@ -1943,7 +1943,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_mdoc.len(), 1);
         assert_matches!(
             &fetched_unique_mdoc.first().unwrap().attestation,
-            Keyed {
+            WithKeyIdentifier {
                 data: StoredAttestation::MsoMdoc(stored),
                 key_identifier,
             } if key_identifier == "mdoc_key_id" && *stored == mdoc
@@ -1988,7 +1988,7 @@ pub(crate) mod tests {
         let attestation_copy2 = fetched_unique_attestation_type.first().unwrap();
         assert_matches!(
             &attestation_copy2.attestation,
-            Keyed {
+            WithKeyIdentifier {
                 data: StoredAttestation::MsoMdoc(stored),
                 key_identifier,
             } if key_identifier == "mdoc_key_id" && *stored == mdoc
@@ -2503,7 +2503,7 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier,
                 data: StoredAttestation::SdJwt(stored)
             } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
@@ -2546,7 +2546,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier,
                 data: StoredAttestation::SdJwt(stored)
             } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
@@ -2555,7 +2555,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_sd_jwt.len(), 1);
         assert_matches!(
             &fetched_unique_sd_jwt.first().unwrap().attestation,
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier,
                 data: StoredAttestation::SdJwt(stored)
             } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
@@ -2581,7 +2581,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique.len(), 1);
         assert_matches!(
             &fetched_unique.first().unwrap().attestation,
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier,
                 data: StoredAttestation::SdJwt(stored)
             } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
@@ -3013,7 +3013,7 @@ pub(crate) mod tests {
             .map(|attestation| {
                 let StoredAttestationCopy {
                     attestation:
-                        Keyed {
+                        WithKeyIdentifier {
                             data: StoredAttestation::SdJwt(sd_jwt),
                             ..
                         },

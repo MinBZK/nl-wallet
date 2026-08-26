@@ -922,10 +922,10 @@ mod tests {
     use crate::WalletEvent;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
-    use crate::storage::Keyed;
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
+    use crate::storage::WithKeyIdentifier;
     use crate::wallet::state::CancelSessionError;
     use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::create_example_credential_payload;
@@ -1268,7 +1268,7 @@ mod tests {
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 ValidityWindow::new_valid_mock(),
-                Keyed {
+                WithKeyIdentifier {
                     key_identifier: "key".to_string(),
                     data: StoredAttestation::SdJwt(sd_jwt),
                 },
@@ -1571,7 +1571,7 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
@@ -1841,7 +1841,7 @@ mod tests {
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     fn sd_jwt_pid() -> (
-        Keyed<StoredAttestation>,
+        WithKeyIdentifier<StoredAttestation>,
         VerifiedTypeMetadataDocuments,
         NormalizedTypeMetadata,
     ) {
@@ -1849,7 +1849,7 @@ mod tests {
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
         (
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier: "key_id".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt),
             },
@@ -1859,7 +1859,7 @@ mod tests {
     }
 
     fn mdoc_pid() -> (
-        Keyed<StoredAttestation>,
+        WithKeyIdentifier<StoredAttestation>,
         VerifiedTypeMetadataDocuments,
         NormalizedTypeMetadata,
     ) {
@@ -1867,7 +1867,7 @@ mod tests {
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
 
         (
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier: "key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
@@ -1886,7 +1886,7 @@ mod tests {
     async fn test_accept_pid_issuance(
         #[case] pid_credentials: impl IntoIterator<
             Item = (
-                Keyed<StoredAttestation>,
+                WithKeyIdentifier<StoredAttestation>,
                 VerifiedTypeMetadataDocuments,
                 NormalizedTypeMetadata,
             ),
@@ -2366,7 +2366,7 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },

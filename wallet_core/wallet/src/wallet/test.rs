@@ -85,7 +85,6 @@ use crate::config::default_config_server_config;
 use crate::config::test::test_wallet_config;
 use crate::pin::key as pin_key;
 use crate::storage::KeyData;
-use crate::storage::Keyed;
 use crate::storage::MockHardwareDatabaseStorage;
 use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
@@ -94,6 +93,7 @@ use crate::storage::StorageState;
 use crate::storage::StoredAttestation;
 use crate::storage::StoredAttestationCopy;
 use crate::storage::WalletEvent;
+use crate::storage::WithKeyIdentifier;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
@@ -570,7 +570,7 @@ where
 /// This function is used to create a mock issuance session for testing purposes using the provided stored attestations.
 /// They do not need to be stored at all, we're simply reusing that type here for convenience.
 pub fn mock_issuance_session(
-    stored_attestations: impl IntoIterator<Item = (Keyed<StoredAttestation>, VerifiedTypeMetadataDocuments)>,
+    stored_attestations: impl IntoIterator<Item = (WithKeyIdentifier<StoredAttestation>, VerifiedTypeMetadataDocuments)>,
 ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
     let (credentials_with_metadata, attestation_presentations, issuer_registrations): (_, Vec<_>, Vec<_>) =
         stored_attestations
@@ -709,7 +709,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier: crypto::utils::random_string(16),
                 data: StoredAttestation::MsoMdoc(mdoc_from_credential_payload(
                     credential_payload.previewable_payload,
@@ -724,7 +724,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            Keyed {
+            WithKeyIdentifier {
                 key_identifier: crypto::utils::random_string(16),
                 data: StoredAttestation::SdJwt(verified_sd_jwt_from_credential_payload(
                     credential_payload,

@@ -72,9 +72,9 @@ use crate::pin::key::Pin as WalletPin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
-use crate::storage::Keyed;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
+use crate::storage::WithKeyIdentifier;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
 use crate::wallet::disclosure::RedirectUriPurpose;
@@ -112,7 +112,7 @@ impl TryFrom<VpDisclosableAttestation> for CloseProximityDisclosableAttestation 
 
     fn try_from(attestation: VpDisclosableAttestation) -> Result<Self, Self::Error> {
         attestation.try_map_partial_attestation(
-            |Keyed {
+            |WithKeyIdentifier {
                  key_identifier,
                  data: attestation,
              }| {

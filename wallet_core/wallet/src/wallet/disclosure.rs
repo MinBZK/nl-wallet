@@ -74,10 +74,10 @@ use crate::pin::key::Pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
-use crate::storage::Keyed;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::storage::StorageError;
+use crate::storage::WithKeyIdentifier;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
 use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
@@ -331,8 +331,9 @@ impl<T: Hash + Eq, P> WalletDisclosureAttestations<T, P> {
     }
 }
 
-pub(super) type VpDisclosableAttestation = DisclosableAttestation<Keyed<PartialAttestation>>;
-type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, Keyed<PartialAttestation>>;
+pub(super) type VpDisclosableAttestation = DisclosableAttestation<WithKeyIdentifier<PartialAttestation>>;
+type VpDisclosureAttestations =
+    WalletDisclosureAttestations<CredentialQueryIdentifier, WithKeyIdentifier<PartialAttestation>>;
 
 #[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
@@ -878,7 +879,7 @@ where
         // held in the session, as disclosing attestations needs to be retryable.
         let (partial_mdocs, sd_jwt_presentations): (HashMap<_, _>, HashMap<_, _>) =
             attestations.iter().partition_map(|(id, attestation)| {
-                let Keyed { key_identifier, data } = attestation.partial_attestation();
+                let WithKeyIdentifier { key_identifier, data } = attestation.partial_attestation();
                 match data {
                     PartialAttestation::MsoMdoc(partial_mdoc) => Either::Left((
                         (*id).clone(),

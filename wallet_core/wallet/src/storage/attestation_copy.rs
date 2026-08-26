@@ -34,7 +34,7 @@ pub enum PartialAttestationError {
 
 /// A wrapper that associates the WSCD key identifier with a (partial) attestation, regardless of its format.
 #[derive(Debug, Clone)]
-pub struct Keyed<T> {
+pub struct WithKeyIdentifier<T> {
     pub key_identifier: String,
     pub data: T,
 }
@@ -58,7 +58,7 @@ pub struct StoredAttestationCopy {
     pub(super) attestation_id: Uuid,
     pub(super) attestation_copy_id: Uuid,
     pub(super) validity_window: ValidityWindow,
-    pub(super) attestation: Keyed<StoredAttestation>,
+    pub(super) attestation: WithKeyIdentifier<StoredAttestation>,
     pub(super) normalized_metadata: NormalizedTypeMetadata,
     pub(super) revocation_status: Option<RevocationStatus>,
 }
@@ -290,7 +290,7 @@ impl PartialAttestation {
     }
 }
 
-impl DisclosableAttestation<Keyed<PartialAttestation>> {
+impl DisclosableAttestation<WithKeyIdentifier<PartialAttestation>> {
     pub fn try_new<'a>(
         attestation_copy: StoredAttestationCopy,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
@@ -299,10 +299,11 @@ impl DisclosableAttestation<Keyed<PartialAttestation>> {
         let StoredAttestationCopy {
             attestation_id,
             attestation_copy_id,
-            attestation: Keyed {
-                key_identifier,
-                data: attestation,
-            },
+            attestation:
+                WithKeyIdentifier {
+                    key_identifier,
+                    data: attestation,
+                },
             normalized_metadata,
             revocation_status,
             validity_window,
@@ -339,7 +340,7 @@ impl DisclosableAttestation<Keyed<PartialAttestation>> {
 
         let disclosable_attestation = Self {
             attestation_copy_id,
-            partial_attestation: Keyed {
+            partial_attestation: WithKeyIdentifier {
                 key_identifier,
                 data: partial_attestation,
             },
@@ -393,7 +394,7 @@ mod test {
         }
     }
 
-    impl Keyed<PartialAttestation> {
+    impl WithKeyIdentifier<PartialAttestation> {
         pub fn private_key_id(&self) -> &str {
             self.key_identifier.as_str()
         }
@@ -431,10 +432,10 @@ mod tests {
     use uuid::Uuid;
 
     use super::DisclosableAttestation;
-    use super::Keyed;
     use super::PartialAttestation;
     use super::StoredAttestation;
     use super::StoredAttestationCopy;
+    use super::WithKeyIdentifier;
     use crate::config::test::test_wallet_config;
 
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
@@ -460,7 +461,7 @@ mod tests {
         let copy = StoredAttestationCopy {
             attestation_id: *ATTESTATION_ID,
             attestation_copy_id: Uuid::new_v4(),
-            attestation: Keyed {
+            attestation: WithKeyIdentifier {
                 key_identifier: "mdoc_key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
@@ -488,7 +489,7 @@ mod tests {
         let copy = StoredAttestationCopy {
             attestation_id: *ATTESTATION_ID,
             attestation_copy_id: Uuid::new_v4(),
-            attestation: Keyed {
+            attestation: WithKeyIdentifier {
                 key_identifier: "sd_jwt_key_id".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
@@ -545,7 +546,7 @@ mod tests {
             assert_eq!(disclosable_attestation.presentation().attributes.len(), 1);
 
             // If the format is SD-JWT, the key identifier returned should be the same as the one provided.
-            if let Keyed {
+            if let WithKeyIdentifier {
                 key_identifier,
                 data: PartialAttestation::SdJwt(_),
             } = disclosable_attestation.partial_attestation()
