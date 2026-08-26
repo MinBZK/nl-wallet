@@ -8,6 +8,7 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
+use crate::config::ObservableConfigExpiry;
 use crate::config::is_expired;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
@@ -73,6 +74,27 @@ where
 
     pub fn clear_version_state_callback(&self) -> Option<RepositoryCallback<VersionState>> {
         self.update_policy_repository.clear_callback()
+    }
+}
+
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
+where
+    CR: ObservableConfigExpiry,
+    AKH: AttestedKeyHolder,
+    CID: IssuanceDiscovery,
+    DCC: DisclosureClient,
+{
+    /// Registers a callback that reports whether the wallet configuration should be considered expired.
+    pub fn set_config_expired_callback(
+        &self,
+        mut callback: RepositoryCallback<bool>,
+    ) -> Option<RepositoryCallback<bool>> {
+        callback(self.config_repository.config_expired());
+        self.config_repository.register_config_expiry_callback(callback)
+    }
+
+    pub fn clear_config_expired_callback(&self) -> Option<RepositoryCallback<bool>> {
+        self.config_repository.clear_config_expiry_callback()
     }
 }
 

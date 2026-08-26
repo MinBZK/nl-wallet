@@ -2429,6 +2429,17 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__clear_attestations_stream = _wire__crate__api__full__clear_attestations_streamPtr
       .asFunction<void Function(int)>();
 
+  void wire__crate__api__full__clear_config_expired_stream(int port_) {
+    return _wire__crate__api__full__clear_config_expired_stream(port_);
+  }
+
+  late final _wire__crate__api__full__clear_config_expired_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__clear_config_expired_stream',
+      );
+  late final _wire__crate__api__full__clear_config_expired_stream =
+      _wire__crate__api__full__clear_config_expired_streamPtr.asFunction<void Function(int)>();
+
   void wire__crate__api__full__clear_configuration_stream(int port_) {
     return _wire__crate__api__full__clear_configuration_stream(port_);
   }
@@ -2998,6 +3009,25 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__set_biometric_unlock = _wire__crate__api__full__set_biometric_unlockPtr
       .asFunction<void Function(int, bool)>();
+
+  void wire__crate__api__full__set_config_expired_stream(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
+  ) {
+    return _wire__crate__api__full__set_config_expired_stream(port_, sink);
+  }
+
+  late final _wire__crate__api__full__set_config_expired_streamPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_wallet_core_wire__crate__api__full__set_config_expired_stream');
+  late final _wire__crate__api__full__set_config_expired_stream = _wire__crate__api__full__set_config_expired_streamPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__set_configuration_stream(
     int port_,

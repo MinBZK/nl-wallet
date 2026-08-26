@@ -27,6 +27,7 @@ pub use self::data::default_wallet_config;
 pub use self::data::init_universal_link_base_url;
 pub use self::file_repository::FileStorageConfigurationRepository;
 pub use self::http_repository::HttpConfigurationRepository;
+pub use self::updating_repository::ObservableConfigExpiry;
 pub use self::updating_repository::UpdatingConfigurationRepository;
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;
