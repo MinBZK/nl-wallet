@@ -750,7 +750,7 @@ Generate/update localisation files (to compile/run the project successfully):
 
 <!-- References -->
 
-s [1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
+[1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
 
 [2]:
     https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
