@@ -58,6 +58,8 @@ scripts/migrate-db.sh         # run DB migrations
 - Each imported symbol on its own import line
 - Custom error enums per module; use `thiserror`
 - Async with Tokio; HTTP servers via Axum; DB via Sea-ORM
+- Prefer returning iterators over heap allocated values
+- In `thiserror` enum variants, use `#[source]` instead of `#[from]`
 
 ### Flutter/Dart
 - Line length 120 (`dart format . --line-length 120`)
