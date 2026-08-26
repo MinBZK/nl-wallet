@@ -13,7 +13,6 @@ part 'start_disclosure_result.freezed.dart';
 sealed class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.readyToDisclose({
     required Organization relyingParty,
-    required String originUrl,
     required LocalizedText requestPurpose,
     required bool sharedDataWithOrganizationBefore,
     required DisclosureSessionType sessionType,
@@ -24,9 +23,6 @@ sealed class StartDisclosureResult with _$StartDisclosureResult {
 
   const factory StartDisclosureResult.missingAttributes({
     required Organization relyingParty,
-    required String originUrl,
-    required LocalizedText requestPurpose,
-    required bool sharedDataWithOrganizationBefore,
     required DisclosureSessionType sessionType,
     required List<MissingAttribute> missingAttributes,
   }) = StartDisclosureMissingAttributes;

@@ -86,7 +86,6 @@ void _setupMockitoDummies() {
   provideDummy<StartDisclosureResult>(
     StartDisclosureReadyToDisclose(
       relyingParty: WalletMockData.organization,
-      originUrl: 'http://origin.org',
       requestPurpose: 'requestPurpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       type: DisclosureType.regular,
@@ -125,10 +124,7 @@ void _setupMockitoDummies() {
       policy: WalletMockData.policy,
       sessionType: DisclosureSessionType.sameDevice,
       cardRequests: [],
-      originUrl: '',
       requestPurpose: {},
-      type: DisclosureType.regular,
-      sharedDataWithOrganizationBefore: false,
     ),
   );
   provideDummy<core.PidIssuanceResult>(const core.PidIssuanceResult.ok(transferAvailable: true));
@@ -186,7 +182,6 @@ void _setupMockitoDummies() {
     Result.success(
       StartDisclosureReadyToDisclose(
         relyingParty: WalletMockData.organization,
-        originUrl: 'http://origin.org',
         requestPurpose: 'requestPurpose'.untranslated,
         sessionType: DisclosureSessionType.crossDevice,
         type: DisclosureType.login,
@@ -203,10 +198,7 @@ void _setupMockitoDummies() {
         policy: WalletMockData.policy,
         sessionType: DisclosureSessionType.sameDevice,
         cardRequests: [],
-        originUrl: '',
         requestPurpose: {},
-        type: DisclosureType.regular,
-        sharedDataWithOrganizationBefore: false,
       ),
     ),
   );

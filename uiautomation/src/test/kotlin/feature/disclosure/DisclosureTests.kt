@@ -6,9 +6,9 @@ import helper.GbaDataHelper.Field.NAME
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
 import helper.OrganizationMetadataHelper
+import helper.OrganizationMetadataHelper.Organization.JOB_FINDER
 import helper.OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM
 import helper.OrganizationMetadataHelper.Organization.ONLINE_MARKETPLACE
-import helper.OrganizationMetadataHelper.Organization.UNIVERSITY
 import helper.OrganizationMetadataHelper.Organization.XYZ_BANK
 import helper.TasDataHelper
 import helper.TestBase
@@ -288,7 +288,7 @@ class DisclosureTests : TestBase() {
         indexWebPage.clickJobFinderButton()
         jobFinderWebPage.openSameDeviceWalletFlow()
         jobFinderWebPage.switchToNativeContext()
-        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY))
+        disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(JOB_FINDER))
         // PVW-6101 Check for organization details
         disclosureScreen.goBack()
         disclosureScreen.clickSwapCardButton()

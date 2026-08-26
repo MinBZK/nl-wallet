@@ -333,14 +333,6 @@
     "dashboardScreenMenuWCAGLabel": "Navigation menu",
     "dashboardScreenOverviewAnnouncement": "NL Wallet overview",
     "dashboardScreenTitle": "Menu",
-    "dataIncorrectScreenApproveCta": "Add card anyway",
-    "dataIncorrectScreenApproveDescription": "Add the card now, and update it later once the data changes.",
-    "dataIncorrectScreenApproveTitle": "Add card",
-    "dataIncorrectScreenDeclineCta": "Decline card",
-    "dataIncorrectScreenDeclineDescription": "If you decline the card, it will not be added to your Wallet.",
-    "dataIncorrectScreenDeclineTitle": "Decline card",
-    "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
-    "dataIncorrectScreenHeaderTitle": "Are your details incorrect?",
     "deleteCardDialogBody": "The card will be deleted from your wallet.\n\nYou can still view the previous activities of this card in your wallet.",
     "deleteCardDialogCancelCta": "Cancel",
     "deleteCardDialogConfirmCta": "Yes, delete",
@@ -835,26 +827,6 @@
     "invariantErrorScreenWhatCanYouDoTitle": "What can you do?",
     "issuanceAuthenticateExternallyDescription": "Follow the steps on the issuer’s website.\nThen return to NL Wallet.",
     "issuanceAuthenticateExternallyTitle": "Continue in your browser",
-    "issuanceCheckCardPageConfirmCta": "Yes, next",
-    "issuanceCheckCardPageOverline": "Card {current} of {total}",
-    "@issuanceCheckCardPageOverline": {
-        "placeholders": {
-            "current": {
-                "example": "1",
-                "type": "int"
-            },
-            "total": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "issuanceCheckCardPageRejectCta": "No",
-    "issuanceCheckCardPageTitle": "Are these details correct?",
-    "issuanceCheckDataOfferingPageNegativeCta": "No",
-    "issuanceCheckDataOfferingPagePositiveCta": "Yes, add",
-    "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
-    "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
     "issuanceConfirmPinPageTitle": "Agree with your PIN",
     "issuanceLoadingCardsDescription": "Cards are being retrieved",
     "issuanceLoadingCardsTitle": "Please wait",
@@ -1101,8 +1073,6 @@
     "organizationApprovePageMoreInfoCta": "See details",
     "organizationApprovePageMoreInfoIssuanceCta": "See what data you are sharing",
     "organizationApprovePageMoreInfoLoginCta": "Check all details",
-    "organizationApprovePageShareWithApproveCta": "Yes, continue",
-    "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationDetailScreenCategoryInfo": "Organization type",
     "organizationDetailScreenLegalNameInfo": "Legal name",
     "organizationDetailScreenLocationInfo": "Location",

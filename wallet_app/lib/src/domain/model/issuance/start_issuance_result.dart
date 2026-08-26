@@ -5,7 +5,6 @@ import '../attribute/attribute.dart';
 import '../card/wallet_card.dart';
 import '../disclosure/disclose_card_request.dart';
 import '../disclosure/disclosure_session_type.dart';
-import '../disclosure/disclosure_type.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
 
@@ -25,22 +24,16 @@ sealed class StartIssuanceResult with _$StartIssuanceResult {
 
   const factory StartIssuanceResult.readyToDisclose({
     required Organization relyingParty,
-    required String originUrl,
     required LocalizedText requestPurpose,
     required DisclosureSessionType sessionType,
-    required DisclosureType type,
     required List<DiscloseCardRequest> cardRequests,
     required Policy policy,
-    required bool sharedDataWithOrganizationBefore,
   }) = StartIssuanceReadyToDisclose;
 
   const factory StartIssuanceResult.missingAttributes({
     required Organization relyingParty,
-    required String originUrl,
-    required LocalizedText requestPurpose,
     required DisclosureSessionType sessionType,
     required List<MissingAttribute> missingAttributes,
-    required bool sharedDataWithOrganizationBefore,
   }) = StartIssuanceMissingAttributes;
 
   Organization? get relyingParty => map(
