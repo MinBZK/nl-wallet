@@ -648,7 +648,8 @@ conditions.
   manually.
 - When reviewing a merge request LLMs can assist, but approval is a human act;
   don't approve a merge request you only had a model read.
-- In your LLM settings, training on your conversations with it must be disabled.
+- In your LLM settings, training on your conversations with it must be disabled,
+  to prevent the LLM from training on developer names in the git repository.
 
 ## Conventions
 
@@ -751,7 +752,6 @@ Generate/update localisation files (to compile/run the project successfully):
 <!-- References -->
 
 [1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
-
 [2]:
     https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
 [3]:
