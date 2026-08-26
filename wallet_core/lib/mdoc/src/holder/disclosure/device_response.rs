@@ -37,7 +37,7 @@ impl DeviceResponse {
     }
 
     async fn sign_from_partial_mdocs_inner<K, W, P>(
-        partial_mdocs: &VecNonEmpty<(PartialMdoc, String)>,
+        partial_mdocs_and_key_ids: &VecNonEmpty<(PartialMdoc, String)>,
         session_transcript: &SessionTranscript,
         wscd: &W,
         poa_input: P::Input,
@@ -48,7 +48,7 @@ impl DeviceResponse {
         P: WscdPoa,
     {
         // Prepare the credential keys and device auth challenges per mdoc.
-        let (keys, challenges) = partial_mdocs
+        let (keys, challenges) = partial_mdocs_and_key_ids
             .iter()
             .map(|(partial_mdoc, key_identifier)| {
                 let credential_key = wscd.new_key(key_identifier, partial_mdoc.public_key()?);
