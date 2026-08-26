@@ -1,7 +1,9 @@
 use std::collections::HashSet;
+use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
@@ -11,6 +13,7 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Days;
 use chrono::Utc;
@@ -28,13 +31,17 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-use token_status_list::status_list_service::mock::MockStatusListService;
+use token_status_list::status_list_service::ObtainClaimError;
+use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_service::mock::generate_status_claims;
+use tokio::task::AbortHandle;
 use url::Url;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use uuid::Uuid;
 
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
@@ -58,11 +65,11 @@ pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.a
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 pub type MockIssuer<G = TimeGenerator> =
-    Issuer<SigningKey, MockStatusListService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore>;
+    Issuer<SigningKey, MockObtainingStatusListService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore>;
 
 pub type MockAuthorizingIssuer<G = TimeGenerator> = AuthorizingIssuer<
     SigningKey,
-    MockStatusListService,
+    MockObtainingStatusListService,
     MemorySessionStore<IssuanceData, G>,
     MemoryNonceStore,
     MemoryStore<String, VciAuthorizationRequest>,
@@ -171,6 +178,57 @@ impl AuthorizationCodeFlow for StaticAuthorizingFlow {
     }
 }
 
+/// Mock implementation of [`StatusListService`] on which only `obtain_status_claims()` is meant to be called. This will
+/// return a `ObtainClaimError::BatchIdExists` error when a status claim was previously obtained for a particular
+/// `batch_id`.
+#[derive(Debug)]
+pub struct MockObtainingStatusListService {
+    uri: Url,
+    claimed_batch_ids: Mutex<HashSet<Uuid>>,
+}
+
+impl MockObtainingStatusListService {
+    pub fn new(uri: Url) -> Self {
+        Self {
+            uri,
+            claimed_batch_ids: Mutex::new(HashSet::new()),
+        }
+    }
+}
+
+impl StatusListService for MockObtainingStatusListService {
+    type Error = Infallible;
+
+    async fn obtain_status_claims(
+        &self,
+        batch_id: Uuid,
+        _expires: Option<DateTimeSeconds>,
+        copies: NonZeroUsize,
+    ) -> Result<VecNonEmpty<StatusClaim>, ObtainClaimError<Self::Error>> {
+        let mut claimed_batch_ids = self.claimed_batch_ids.lock().unwrap();
+
+        if claimed_batch_ids.contains(&batch_id) {
+            return Err(ObtainClaimError::BatchIdExists(batch_id));
+        }
+
+        claimed_batch_ids.insert(batch_id);
+
+        Ok(generate_status_claims(&self.uri, copies))
+    }
+
+    fn start_refresh_job(&self) -> AbortHandle {
+        tokio::task::spawn(async {}).abort_handle()
+    }
+
+    async fn republish_all(&self, _force: bool) -> Result<(), Self::Error> {
+        unimplemented!("republish_all() should not be called in tests");
+    }
+
+    async fn revoke_attestation_batches(&self, _batch_ids: Vec<Uuid>) -> Result<(), Self::Error> {
+        unimplemented!("revoke_attestation_batches() should not be called in tests");
+    }
+}
+
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] with a shared session store and some default credential
 /// configurations.
 pub fn setup_mock_issuer<G>(
@@ -247,19 +305,12 @@ where
         .map(|(format, attestation_type, metadata_documents)| {
             let config_id = format!("{attestation_type}_{format}");
 
-            let mut status_list = MockStatusListService::new();
             let status_list_uri_path = config_id.replace(':', "-");
-            status_list
-                .expect_obtain_status_claims()
-                .returning(move |_, _, copies| {
-                    let uri = format!("https://tsl.example.com/{status_list_uri_path}")
-                        .parse()
-                        .unwrap();
-                    Ok(generate_status_claims(&uri, copies))
-                });
-            status_list
-                .expect_start_refresh_job()
-                .return_once(|| tokio::task::spawn(async {}).abort_handle());
+            let status_list = MockObtainingStatusListService::new(
+                format!("https://tsl.example.com/{status_list_uri_path}")
+                    .parse()
+                    .unwrap(),
+            );
 
             let params = CredentialConfigurationParameters {
                 credential_kind: CredentialKind::new(format, attestation_type),
