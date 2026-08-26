@@ -51,7 +51,7 @@ impl DeviceResponse {
         let (keys, challenges) = partial_mdocs
             .iter()
             .map(|(partial_mdoc, key_identifier)| {
-                let credential_key = partial_mdoc.credential_key(key_identifier, wscd)?;
+                let credential_key = wscd.new_key(key_identifier, partial_mdoc.public_key()?);
                 let device_signed_challenge =
                     DeviceAuthenticationKeyed::challenge(&partial_mdoc.doc_type, session_transcript)?;
 
@@ -193,7 +193,7 @@ mod tests {
         .unwrap()
         .expect("signing DeviceResponse from mdocs should succeed");
 
-        for (document, (partial_mdoc, key_identifier)) in device_responses
+        for (document, (partial_mdoc, _)) in device_responses
             .into_iter()
             .flat_map(|device_response| device_response.documents.map(|v| v.into_inner()).unwrap_or_default())
             .zip(&partial_mdocs_and_key_ids)
@@ -211,12 +211,7 @@ mod tests {
             if let DeviceAuth::DeviceSignature(signature) = &document.device_signed.device_auth {
                 signature
                     .clone_with_payload(device_auth_bytes)
-                    .verify(
-                        partial_mdoc
-                            .credential_key(key_identifier, &wscd)
-                            .unwrap()
-                            .verifying_key(),
-                    )
+                    .verify(&partial_mdoc.public_key().unwrap())
                     .expect("device authentication in DeviceResponse should be valid");
             } else {
                 panic!("device authentication in DeviceResponse should be of signature type");

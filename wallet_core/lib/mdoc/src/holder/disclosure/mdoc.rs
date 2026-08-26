@@ -1,6 +1,5 @@
 use attestation_types::claim_path::ClaimPath;
-use crypto::CredentialEcdsaKey;
-use crypto::wscd::DisclosureWscd;
+use p256::ecdsa::VerifyingKey;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::super::Mdoc;
@@ -47,15 +46,8 @@ impl PartialMdoc {
         self.issuer_signed
     }
 
-    pub(super) fn credential_key<K, W>(&self, key_identifier: &str, wscd: &W) -> Result<K>
-    where
-        K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K>,
-    {
-        let public_key = (&self.device_key).try_into()?;
-        let key = wscd.new_key(key_identifier, public_key);
-
-        Ok(key)
+    pub fn public_key(&self) -> Result<VerifyingKey> {
+        Ok((&self.device_key).try_into()?)
     }
 }
 
