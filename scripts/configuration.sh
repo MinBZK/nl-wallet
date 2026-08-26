@@ -17,7 +17,7 @@ DEMO_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/demo/demo_relying_party"
 DEMO_ISSUER_DIR="${WALLET_CORE_DIR}/demo/demo_issuer"
 DEMO_INDEX_DIR="${WALLET_CORE_DIR}/demo/demo_index"
 REVOCATION_PORTAL_DIR="${WALLET_CORE_DIR}/revocation_portal"
-STATIC_SERVER_DIR="${WALLET_CORE_DIR}/static_server"
+export STATIC_SERVER_DIR="${WALLET_CORE_DIR}/static_server"
 UPS_DIR="${WALLET_CORE_DIR}/update_policy/server"
 GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
