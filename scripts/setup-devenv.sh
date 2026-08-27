@@ -541,6 +541,20 @@ export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC
 DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC
 
+generate_demo_issuer_issuance_key_pairs mdl
+DEMO_ISSUER_KEY_MDL_ISSUER=$(< "${TARGET_DIR}/demo_issuer/mdl.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_MDL_ISSUER
+DEMO_ISSUER_CRT_MDL_ISSUER=$(< "${TARGET_DIR}/demo_issuer/mdl.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_MDL_ISSUER
+DEMO_ISSUER_KEY_MDL_TSL=$(< "${TARGET_DIR}/demo_issuer/mdl.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_MDL_TSL
+DEMO_ISSUER_CRT_MDL_TSL=$(< "${TARGET_DIR}/demo_issuer/mdl.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_MDL_TSL
+DEMO_ISSUER_KEY_MDL_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mdl.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_MDL_WRPAC
+DEMO_ISSUER_CRT_MDL_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mdl.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_MDL_WRPAC
+
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
 
@@ -554,7 +568,7 @@ render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_ind
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${PID_ISSUER_DIR}"
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
-cp "${DEVENV}/com.example.museum_maandkaart.json" "${PACF_ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/com.example.museum_maandkaart.json" "${DEVENV}/org.iso.18013.5.1.mDL.json" "${PACF_ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.json" "${DEVENV}/com.example.museum_maandkaart.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.jum.bonuskaart.json" "${ACF_DEMO_ISSUER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
@@ -564,6 +578,7 @@ export ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
 export ISSUER_METADATA_HOUSING_PATH="com.example.housing.json"
 export ISSUER_METADATA_LOYALTY_PATH="com.example.jum.bonuskaart.json"
 export ISSUER_METADATA_MUSEUM_MAANDKAART_PATH="com.example.museum_maandkaart.json"
+export ISSUER_METADATA_MDL_PATH="org.iso.18013.5.1.mDL.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"

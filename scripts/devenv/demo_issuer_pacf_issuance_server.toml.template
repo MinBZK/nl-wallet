@@ -7,7 +7,8 @@ wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 wia_trust_anchors = ["${WIA_CA_CRT}"]
 
 type_metadata = [
-    "${ISSUER_METADATA_MUSEUM_MAANDKAART_PATH}"
+    "${ISSUER_METADATA_MUSEUM_MAANDKAART_PATH}",
+    "${ISSUER_METADATA_MDL_PATH}"
 ]
 
 [credential_metadata_keypair]
@@ -50,3 +51,19 @@ publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL}"
 certificate = "${DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL}"
+
+[credential_configurations."org.iso.18013.5.1.mDL"]
+format = "mso_mdoc"
+attestation_type = "org.iso.18013.5.1.mDL"
+valid_days = 3650
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_MDL_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_MDL_ISSUER}"
+
+[credential_configurations."org.iso.18013.5.1.mDL".status_list]
+group_name = "org.iso.18013.5.1.mDL"
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_MDL_TSL}"
+certificate = "${DEMO_ISSUER_CRT_MDL_TSL}"
