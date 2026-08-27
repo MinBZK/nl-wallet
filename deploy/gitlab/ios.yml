@@ -111,9 +111,7 @@ build-ios-app-adhoc-ont:
     APP_STORE_DISTRIBUTION: "false"
   after_script:
     - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
-    - cp *.ipa "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
-    - deploy/bin/store-artifact.sh "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa" qt/quality-time/apps/
-    - rm "nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa"
+    - mc put *.ipa qt/quality-time/apps/nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa
 
 build-ios-simulator-app-ont:
   extends: .build-ios-app
@@ -151,7 +149,7 @@ build-ios-simulator-app-ont:
   after_script:
     - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
     - (cd wallet_app/build/ios/iphonesimulator && zip -r "Runner-${CI_COMMIT_SHA}.app.zip" Runner.app)
-    - deploy/bin/store-artifact.sh "wallet_app/build/ios/iphonesimulator/Runner-${CI_COMMIT_SHA}.app.zip" qt/quality-time/apps/
+    - mc put "wallet_app/build/ios/iphonesimulator/Runner-${CI_COMMIT_SHA}.app.zip" qt/quality-time/apps/
 
 build-ios-app-mock:
   extends: .build-ios-app

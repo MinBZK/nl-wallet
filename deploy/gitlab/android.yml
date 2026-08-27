@@ -115,9 +115,7 @@ build-android-app-ont:
     APP_ALLOW_RELEASE_LOGS: "true"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
-    - cp *.apk "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
-    - deploy/bin/store-artifact.sh "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk" qt/quality-time/apps/
-    - rm "nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk"
+    - mc put *.apk qt/quality-time/apps/nl.ictu.edi.wallet.latest-release-${CI_COMMIT_SHA}.apk
 
 build-android-app-mock:
   extends: [.env-k8s, .build-android-app]
