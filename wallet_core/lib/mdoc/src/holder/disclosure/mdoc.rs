@@ -1,6 +1,5 @@
 use attestation_types::claim_path::ClaimPath;
-use crypto::CredentialEcdsaKey;
-use crypto::wscd::DisclosureWscd;
+use p256::ecdsa::VerifyingKey;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::super::Mdoc;
@@ -14,7 +13,6 @@ use crate::iso::mdocs::DocType;
 pub struct PartialMdoc {
     pub(super) doc_type: DocType,
     pub(super) issuer_signed: IssuerSigned,
-    private_key_id: String,
     device_key: DeviceKey,
 }
 
@@ -23,14 +21,13 @@ impl PartialMdoc {
         mdoc: Mdoc,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
     ) -> std::result::Result<Self, MissingAttributesError> {
-        let (mso, private_key_id, issuer_signed) = mdoc.into_components();
+        let (mso, issuer_signed) = mdoc.into_components();
 
         let issuer_signed = issuer_signed.into_attribute_subset(claim_paths)?;
 
         let partial_mdoc = Self {
             doc_type: mso.doc_type,
             issuer_signed,
-            private_key_id,
             device_key: mso.device_key_info.device_key,
         };
 
@@ -45,23 +42,12 @@ impl PartialMdoc {
         &self.issuer_signed
     }
 
-    pub fn private_key_id(&self) -> &str {
-        &self.private_key_id
-    }
-
     pub fn into_issuer_signed(self) -> IssuerSigned {
         self.issuer_signed
     }
 
-    pub(super) fn credential_key<K, W>(&self, wscd: &W) -> Result<K>
-    where
-        K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K>,
-    {
-        let public_key = (&self.device_key).try_into()?;
-        let key = wscd.new_key(&self.private_key_id, public_key);
-
-        Ok(key)
+    pub fn public_key(&self) -> Result<VerifyingKey> {
+        Ok((&self.device_key).try_into()?)
     }
 }
 

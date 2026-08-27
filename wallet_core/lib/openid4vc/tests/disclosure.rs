@@ -210,7 +210,10 @@ async fn disclosure_jwe(
     issuer_ca: &Ca,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::generate());
-    let partial_mdocs = vec_nonempty![PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key)];
+    let partial_mdocs = vec_nonempty![(
+        PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key),
+        mdoc_key.identifier.clone()
+    )];
     let encryption_nonce = "encryption_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
