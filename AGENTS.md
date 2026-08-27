@@ -34,8 +34,8 @@ flutter gen-l10n                                      # regenerate localizations
 
 ### Web (`wallet_web/`)
 ```bash
-npm run test -- --run    # Vitest (add --run, otherwise it stays in watch mode)
-npm run build
+pnpm run test -- --run    # Vitest (add --run, otherwise it stays in watch mode)
+pnpm run build
 ```
 
 ### Admin portal (`wallet_admin_portal/`, uses pnpm)
