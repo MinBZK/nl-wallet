@@ -69,7 +69,8 @@ scripts/migrate-db.sh         # run DB migrations
 - Async with Tokio; HTTP servers via Axum; DB via Sea-ORM
 - Prefer returning iterators over heap allocated values
 - In `thiserror` enum variants, use `#[source]` instead of `#[from]`
-- Prefer native `async fn` in traits; use `async_trait` only when object-safety is required (e.g. Sea-ORM migrations, uniffi callbacks)
+- Prefer native `async fn` in traits; use `async_trait` only when object-safety/dyn compatibility is required
+  (e.g. Sea-ORM migrations, uniffi callbacks)
 
 ### Flutter/Dart
 - Line length 120 (`dart format . --line-length 120`)
