@@ -2,19 +2,23 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::time::Duration;
 
+use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
 use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
+use rand::Rng;
 use tokio::task::JoinHandle;
 use tokio::time;
-use tokio::time::MissedTickBehavior;
 use tracing::error;
 use tracing::info;
+use tracing::warn;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::CONFIG_EXPIRY_LEEWAY;
 use super::ConfigurationError;
 use super::FileStorageConfigurationRepository;
 use super::WalletConfigurationRepository;
@@ -32,6 +36,47 @@ pub struct UpdatingConfigurationRepository<T> {
     updating_task: JoinHandle<()>,
 }
 
+/// Delay before the first attempt to replace an expired configuration, and the amount by which that delay grows with
+/// every consecutive attempt that fails to do so.
+const EXPIRED_RETRY_INTERVAL: Duration = Duration::from_secs(10);
+
+/// Upper bound for the delay between attempts to replace an expired configuration.
+const EXPIRED_RETRY_MAX_INTERVAL: Duration = Duration::from_secs(60);
+
+/// The fraction by which the delay between attempts is randomized. This prevents wallets having the same `exp` from
+/// retrying all at the same time, when their config expires.
+const EXPIRED_RETRY_JITTER: f64 = 0.2;
+
+/// The delay before the next attempt to replace an expired configuration, growing linearly with the number of
+/// consecutive attempts that failed to produce one, up to [`EXPIRED_RETRY_MAX_INTERVAL`].
+fn expired_retry_delay(failed_attempts: u32) -> Duration {
+    let delay = EXPIRED_RETRY_INTERVAL
+        .saturating_mul(failed_attempts.max(1))
+        .min(EXPIRED_RETRY_MAX_INTERVAL);
+
+    let jitter = rand::thread_rng().gen_range(-EXPIRED_RETRY_JITTER..=EXPIRED_RETRY_JITTER);
+
+    delay.mul_f64(1.0 + jitter)
+}
+
+/// The delay before the next attempt while the wallet holds a valid configuration, which is whichever comes first:
+/// the regular update frequency, or the moment the configuration expires. The latter makes sure the wallet notices
+/// its own expiry as it happens, instead of at the next regular update.
+fn valid_config_delay(config: &WalletConfiguration, update_frequency: Duration) -> Duration {
+    let expires: DateTime<Utc> = config.expires.into();
+    let until_expired = (expires + CONFIG_EXPIRY_LEEWAY - Utc::now())
+        .to_std()
+        .unwrap_or(Duration::ZERO);
+
+    // Fetch somewhat before the configuration actually expires, so that wallets sharing an `exp` do not all fetch at
+    // the very same instant. Note that this only ever moves the attempt earlier: doing so is free, as it simply
+    // replaces a configuration that is still valid, whereas moving it later would leave a window in which the
+    // configuration is expired without any attempt having been made to replace it.
+    let jitter = rand::thread_rng().gen_range(1.0 - EXPIRED_RETRY_JITTER..=1.0);
+
+    update_frequency.min(until_expired.mul_f64(jitter))
+}
+
 /// Tracks whether the wallet configuration should be reported as expired to the user interface.
 ///
 /// This is only advanced after a fetch attempt, so that the user is blocked when the wallet has no valid
@@ -44,15 +89,17 @@ struct ExpiryState {
 }
 
 impl ExpiryState {
-    /// Re-evaluates whether the given configuration is expired and reports the outcome. Must only be called once a
-    /// fetch attempt has resolved.
-    fn update(&self, config: &WalletConfiguration) {
+    /// Re-evaluates whether the given configuration is expired, reports the outcome and returns it. Must only be
+    /// called once a fetch attempt has resolved.
+    fn update(&self, config: &WalletConfiguration) -> bool {
         let expired = is_expired(config, Utc::now());
         self.expired.store(expired, Ordering::Relaxed);
 
         if let Some(callback) = self.callback.lock().as_deref_mut() {
             callback(expired);
         }
+
+        expired
     }
 
     fn expired(&self) -> bool {
@@ -128,30 +175,42 @@ where
         config: ConfigServerConfiguration,
     ) -> JoinHandle<()> {
         tokio::spawn(async move {
-            let mut interval = time::interval(config.update_frequency);
-            interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+            // The number of consecutive attempts that have left the wallet without a valid configuration.
+            let mut failed_attempts: u32 = 0;
 
             loop {
-                interval.tick().await;
-
-                info!("Wallet configuration update timer expired, fetching from remote...");
+                info!("Fetching wallet configuration from remote...");
 
                 match wrapped.fetch(&config.http_config).await {
-                    Ok(state) => {
-                        if let RepositoryUpdateState::Updated { .. } = state {
-                            let config = wrapped.get();
-
-                            if let Some(callback) = callback.lock().as_deref_mut() {
-                                callback(config);
-                            }
+                    Ok(RepositoryUpdateState::Updated { to, .. }) => {
+                        if let Some(callback) = callback.lock().as_deref_mut() {
+                            callback(to);
                         }
                     }
+                    // The configuration did not change, so there is nothing to report.
+                    Ok(RepositoryUpdateState::Unmodified(_) | RepositoryUpdateState::Cached(_)) => {}
                     Err(e) => error!("fetch configuration error: {}", e),
                 }
 
                 // Re-evaluate after every attempt, whatever its outcome: only a valid configuration can clear the
                 // expiry.
-                expiry.update(&wrapped.get());
+                let delay = if expiry.update(&wrapped.get()) {
+                    failed_attempts = failed_attempts.saturating_add(1);
+
+                    let delay = expired_retry_delay(failed_attempts);
+                    warn!(
+                        "Wallet configuration is expired, retrying in {:.1}s",
+                        delay.as_secs_f64()
+                    );
+
+                    delay
+                } else {
+                    failed_attempts = 0;
+
+                    valid_config_delay(&wrapped.get(), config.update_frequency)
+                };
+
+                time::sleep(delay).await;
             }
         })
     }
@@ -199,11 +258,18 @@ mod tests {
     use chrono::Utc;
     use parking_lot::Mutex;
     use parking_lot::RwLock;
+    use rstest::rstest;
     use tokio::sync::Notify;
     use tokio::time;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
+    use super::CONFIG_EXPIRY_LEEWAY;
+    use super::EXPIRED_RETRY_INTERVAL;
+    use super::EXPIRED_RETRY_JITTER;
+    use super::EXPIRED_RETRY_MAX_INTERVAL;
     use super::ExpiryState;
+    use super::expired_retry_delay;
+    use super::valid_config_delay;
     use crate::config::ConfigurationError;
     use crate::config::UpdatingConfigurationRepository;
     use crate::config::default_config_server_config;
@@ -305,7 +371,8 @@ mod tests {
                 callback_counter.fetch_add(1, Ordering::SeqCst);
             }));
 
-            // Advance the clock so that the initial fetch plus 9 additional ones occur.
+            // Advance the clock so that the initial fetch plus 8 additional ones occur. Note that the delay is
+            // applied after each fetch completes, so a full cycle takes slightly longer than the update frequency.
             for _ in 0..(9 * 101) {
                 // The `time::advance()` function does not seem to work if we simply
                 // advance the time by 100ms. This probably has something to do with
@@ -315,7 +382,7 @@ mod tests {
 
             counted += counter.load(Ordering::SeqCst);
         }
-        assert_eq!(10, counted);
+        assert_eq!(9, counted);
 
         for _ in 0..(9 * 101) {
             time::advance(Duration::from_millis(1)).await;
@@ -326,6 +393,54 @@ mod tests {
             "after config is dropped, the update loop should have been aborted and the count should not have been \
              updated"
         );
+    }
+
+    #[rstest]
+    #[case(1, EXPIRED_RETRY_INTERVAL)]
+    #[case(2, 2 * EXPIRED_RETRY_INTERVAL)]
+    #[case(5, 5 * EXPIRED_RETRY_INTERVAL)]
+    // Beyond this the delay is capped.
+    #[case(6, EXPIRED_RETRY_MAX_INTERVAL)]
+    #[case(7, EXPIRED_RETRY_MAX_INTERVAL)]
+    #[case(u32::MAX, EXPIRED_RETRY_MAX_INTERVAL)]
+    fn retry_delay_should_grow_linearly_up_to_the_maximum(#[case] failed_attempts: u32, #[case] expected: Duration) {
+        // Repeat, since the applied jitter is random.
+        for _ in 0..100 {
+            let delay = expired_retry_delay(failed_attempts);
+
+            assert!(
+                delay >= expected.mul_f64(1.0 - EXPIRED_RETRY_JITTER)
+                    && delay <= expected.mul_f64(1.0 + EXPIRED_RETRY_JITTER),
+                "delay of {delay:?} for {failed_attempts} failed attempts is not within jitter of {expected:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn valid_config_delay_should_not_outlast_the_configuration() {
+        let update_frequency = Duration::from_secs(3600);
+
+        // Repeat, since the applied jitter is random.
+        for _ in 0..100 {
+            // A configuration that outlives the update frequency should simply be fetched at the regular interval.
+            let delay = valid_config_delay(&config_expiring_in(TimeDelta::hours(2)), update_frequency);
+            assert_eq!(delay, update_frequency);
+
+            // One that expires sooner should be fetched again before it does, so that its expiry does not go
+            // unnoticed until the next regular update. Jitter should only ever make that happen earlier.
+            let window = Duration::from_secs(5 * 60) + CONFIG_EXPIRY_LEEWAY;
+            let delay = valid_config_delay(&config_expiring_in(TimeDelta::minutes(5)), update_frequency);
+
+            // Since `exp` has seconds precision and time passes between constructing the configuration and
+            // evaluating it, the actual window can be slightly shorter than the nominal one.
+            let tolerance = Duration::from_secs(2);
+
+            assert!(delay < update_frequency);
+            assert!(
+                delay <= window && delay >= window.mul_f64(1.0 - EXPIRED_RETRY_JITTER) - tolerance,
+                "delay of {delay:?} should fall within the jitter applied to {window:?}"
+            );
+        }
     }
 
     fn config_expiring_in(expires_in: TimeDelta) -> WalletConfiguration {
