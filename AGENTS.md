@@ -14,7 +14,6 @@
 
 ### Rust
 ```bash
-cargo nextest run --manifest-path wallet_core/Cargo.toml
 cargo nextest run --manifest-path wallet_core/Cargo.toml --features integration_test
 cargo clippy --manifest-path wallet_core/Cargo.toml --all-features --tests -- -Dwarnings
 
