@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::error::Error;
 
 use audit_log::audited;
 use audit_log::model::AuditLog;
@@ -34,10 +35,10 @@ pub enum RevocationError {
     Storage(#[from] PersistenceError),
 
     #[error("flag error: {0}")]
-    Flag(#[from] Box<dyn std::error::Error + Send + Sync>),
+    Flag(#[source] Box<dyn Error + Send + Sync>),
 
     #[error("error revoking WIA: {0}")]
-    WiaRevocation(#[from] token_status_list::status_list_service::RevocationError),
+    WiaRevocation(#[source] Box<dyn Error + Send + Sync>),
 
     #[error("wallet ID not found: {0:?}")]
     WalletIdsNotFound(HashSet<WalletId>),
@@ -52,11 +53,11 @@ pub enum RevocationError {
     RecoveryCodeNotFound(RecoveryCode),
 
     #[error("error while auditing: {0}")]
-    AuditLog(#[source] Box<dyn std::error::Error + Send + Sync>),
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
 }
 
 impl FromAuditLogError for RevocationError {
-    fn from_audit_log_error(audit_log_error: Box<dyn std::error::Error + Send + Sync>) -> Self {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
         Self::AuditLog(audit_log_error)
     }
 }
@@ -114,7 +115,8 @@ where
     user_state
         .status_list_service
         .revoke_attestation_batches(wia_ids)
-        .await?;
+        .await
+        .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
     Ok(revocation_date_time)
 }
@@ -169,7 +171,8 @@ where
     user_state
         .status_list_service
         .revoke_attestation_batches(wia_ids)
-        .await?;
+        .await
+        .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
     Ok(found_wallet_count)
 }
@@ -221,7 +224,8 @@ where
     user_state
         .status_list_service
         .revoke_attestation_batches(wia_ids)
-        .await?;
+        .await
+        .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
     Ok(())
 }
@@ -239,7 +243,11 @@ where
         .set_solution_revoked()
         .await
         .map_err(|err| RevocationError::Flag(Box::new(err)))?;
-    user_state.status_list_service.republish_all(false).await?;
+    user_state
+        .status_list_service
+        .republish_all(false)
+        .await
+        .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
     Ok(())
 }
 
@@ -254,7 +262,11 @@ where
         .clear_flag(WalletFlag::SolutionRevoked)
         .await
         .map_err(|err| RevocationError::Flag(Box::new(err)))?;
-    user_state.status_list_service.republish_all(true).await?;
+    user_state
+        .status_list_service
+        .republish_all(true)
+        .await
+        .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
     Ok(())
 }
 

@@ -605,7 +605,6 @@ impl ErrorWithCode for CredentialRequestError {
     type ErrorCode = CredentialErrorCode;
 
     fn error_code(&self) -> Self::ErrorCode {
-        // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
         // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
         match self {
             // The session backing the access token is gone (cleaned up) or in a terminal/wrong state:
@@ -620,35 +619,41 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialErrorCode::ServerError,
 
-            Self::Unauthorized | Self::MalformedToken => CredentialErrorCode::InvalidToken,
+            Self::MalformedToken | Self::Unauthorized => CredentialErrorCode::InvalidToken,
 
             Self::CredentialTypeNotOffered(_) => CredentialErrorCode::UnknownCredentialConfiguration,
 
-            Self::UseBatchIssuance => CredentialErrorCode::InvalidCredentialRequest,
-
-            Self::InvalidProofJwt(_) | Self::InvalidProofPublicKey(_) => CredentialErrorCode::InvalidProof,
-
-            Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
-
-            Self::ProofNonceStore(_) => CredentialErrorCode::ServerError,
-
-            Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
-
-            Self::Jwt(_) => CredentialErrorCode::InvalidProof,
-
-            Self::MissingCredentialConfiguration(_) => CredentialErrorCode::ServerError,
-
-            Self::CredentialTypeMismatch { .. } | Self::WrongNumberOfCredentialRequests => {
+            Self::UseBatchIssuance | Self::WrongNumberOfCredentialRequests | Self::CredentialTypeMismatch { .. } => {
                 CredentialErrorCode::InvalidCredentialRequest
             }
 
             Self::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
 
+            Self::TooManyCopiesRequested(_) => CredentialErrorCode::InvalidCredentialRequest,
+
+            Self::InvalidProofJwt(_) => CredentialErrorCode::InvalidProof,
+
+            Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
+
+            Self::ProofKeysNotDistinct => CredentialErrorCode::InvalidProof,
+
+            Self::ProofNonceStore(_) => CredentialErrorCode::ServerError,
+
+            Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
+
+            Self::UnknownCredentialIdentifier(_) => CredentialErrorCode::UnknownCredentialIdentifier,
+
+            Self::CredentialConfigurationIdNotAllowed => CredentialErrorCode::InvalidCredentialRequest,
+
+            Self::MissingCredentialConfiguration(_) => CredentialErrorCode::ServerError,
+
+            Self::StatusClaimBatchIdExists(_) => CredentialErrorCode::CredentialRequestDenied,
+
+            Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims { .. } => CredentialErrorCode::ServerError,
+
             Self::JwkConversion(_) | Self::MdocConversion(_) | Self::SdJwtConversion(_) => {
                 CredentialErrorCode::ServerError
             }
-
-            Self::ObtainStatusClaim(_) | Self::IncorrectNumberOfStatusClaims(_) => CredentialErrorCode::ServerError,
         }
     }
 }

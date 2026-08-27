@@ -568,6 +568,7 @@ mod tests {
     use openid4vc::server_state::SessionToken;
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
+    use openid4vc::test::MockObtainingStatusListService;
     use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
     use openid4vc::token::AuthorizationCode;
     use p256::ecdsa::SigningKey;
@@ -577,7 +578,6 @@ mod tests {
     use server_utils::keys::SecretKeyVariant;
     use server_utils::settings::SecretKey;
     use server_utils::store::StoreConnection;
-    use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::path::prefix_local_path;
     use utils::vec_nonempty;
 
@@ -595,7 +595,7 @@ mod tests {
     /// from `openid4vc::test` wrapped around a mock-backed flow.
     type TestAuthorizingIssuer = AuthorizingIssuer<
         SigningKey,
-        MockStatusListService,
+        MockObtainingStatusListService,
         MemorySessionStore<IssuanceData>,
         MemoryNonceStore,
         MemoryStore<String, VciAuthorizationRequest>,
