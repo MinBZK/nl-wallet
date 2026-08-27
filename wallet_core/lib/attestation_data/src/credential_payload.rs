@@ -461,7 +461,7 @@ impl SplitCredential {
         mdoc: Mdoc,
         metadata: &NormalizedTypeMetadata,
     ) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
-        let (mso, _, issuer_signed) = mdoc.into_components();
+        let (mso, issuer_signed) = mdoc.into_components();
         let attributes = issuer_signed.into_entries_by_namespace();
 
         let issued_at = (&mso.validity_info.signed)

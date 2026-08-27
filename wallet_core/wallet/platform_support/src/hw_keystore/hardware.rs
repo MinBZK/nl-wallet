@@ -7,7 +7,6 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::EncryptionKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::SecureEncryptionKey;
-use crypto::keys::WithIdentifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
@@ -103,12 +102,6 @@ impl EcdsaKey for HardwareEcdsaKey {
 
 impl SecureEcdsaKey for HardwareEcdsaKey {}
 
-impl WithIdentifier for HardwareEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.unique_key.identifier
-    }
-}
-
 impl StoredByIdentifier for HardwareEcdsaKey {
     type Error = HardwareKeyStoreError;
 
@@ -131,12 +124,6 @@ impl PlatformEcdsaKey for HardwareEcdsaKey {}
 // HardwareEncryptionKey wraps EncryptionKeyBridge from native.
 pub struct HardwareEncryptionKey {
     unique_key: UniqueKey,
-}
-
-impl WithIdentifier for HardwareEncryptionKey {
-    fn identifier(&self) -> &str {
-        &self.unique_key.identifier
-    }
 }
 
 impl StoredByIdentifier for HardwareEncryptionKey {

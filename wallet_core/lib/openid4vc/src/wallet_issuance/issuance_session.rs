@@ -53,6 +53,7 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
+use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
 use crate::authorization_details::IssuerAuthorizationDetails;
 use crate::client_auth::ClientAttestationChallengeMechanism;
@@ -933,7 +934,12 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 let unique_integrities: HashSet<_> = match &copies {
                     IssuedCredentialCopies::Mdoc(mdocs) => mdocs
                         .iter()
-                        .map(|mdoc| mdoc.type_metadata_integrity().map_err(WalletIssuanceError::Metadata))
+                        .map(|mdoc_copy| {
+                            mdoc_copy
+                                .mdoc
+                                .type_metadata_integrity()
+                                .map_err(WalletIssuanceError::Metadata)
+                        })
                         .try_collect()?,
                     IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
                         .iter()
@@ -1057,7 +1063,7 @@ impl Credential {
         preview: &CredentialPreview,
         normalized_type_metadata: &NormalizedTypeMetadata,
         trust_anchors: &TrustAnchors,
-    ) -> Result<Mdoc, WalletIssuanceError> {
+    ) -> Result<MdocCopy, WalletIssuanceError> {
         match self {
             Self::MsoMdoc {
                 credential: issuer_signed,
@@ -1083,7 +1089,7 @@ impl Credential {
                     .into_first();
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
-                let mdoc = Mdoc::new(key_identifier, *issuer_signed, &TimeGenerator, trust_anchors)
+                let mdoc = Mdoc::new(*issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(WalletIssuanceError::MdocVerification)?;
 
                 let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), normalized_type_metadata)?;
@@ -1095,7 +1101,7 @@ impl Credential {
                     &credential_issuer_certificate,
                 )?;
 
-                Ok(mdoc)
+                Ok(MdocCopy { key_identifier, mdoc })
             }
             Self::SdJwt { .. } => Err(WalletIssuanceError::UnexpectedCredentialResponseType {
                 expected: preview.format.to_string(),
