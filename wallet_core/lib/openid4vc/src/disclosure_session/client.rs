@@ -465,7 +465,7 @@ mod tests {
 
                 DisclosableAttestations::MsoMdoc(HashMap::from([(
                     "mdoc_pid_example".try_into().unwrap(),
-                    vec_nonempty![partial_mdoc],
+                    vec_nonempty![(partial_mdoc, "attestation_key".to_string())],
                 )]))
                 .try_into()
                 .unwrap()

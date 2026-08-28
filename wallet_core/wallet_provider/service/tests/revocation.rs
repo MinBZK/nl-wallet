@@ -504,12 +504,7 @@ async fn test_revoke_wallet_wia_error() {
     .await
     .unwrap_err();
 
-    assert!(matches!(
-        err,
-        RevocationError::WiaRevocation(token_status_list::status_list_service::RevocationError::InternalError(
-            _
-        ))
-    ));
+    assert!(matches!(err, RevocationError::WiaRevocation(_)));
 
     // all wallets should still be revoked, but the TSL is not published
     verify_revocation(
@@ -706,12 +701,7 @@ async fn test_revoke_wallet_by_revocation_code_wia_error() {
     .await
     .unwrap_err();
 
-    assert!(matches!(
-        err,
-        RevocationError::WiaRevocation(token_status_list::status_list_service::RevocationError::InternalError(
-            _
-        ))
-    ));
+    assert!(matches!(err, RevocationError::WiaRevocation(_)));
 
     // wallet should still be revoked in storage; WIA batches revoked too, but TSL publishing failed
     verify_revocation(

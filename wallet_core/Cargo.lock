@@ -5441,6 +5441,7 @@ name = "openid4vc_server"
 version = "0.6.0-dev"
 dependencies = [
  "attestation_data",
+ "attestation_types",
  "axum",
  "axum-extra",
  "axum-server",

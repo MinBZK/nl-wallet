@@ -9,7 +9,6 @@ use std::error::Error;
 
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::SecureEncryptionKey;
-use crypto::keys::WithIdentifier;
 
 pub use crate::bridge::hw_keystore::KeyStoreError;
 
@@ -40,7 +39,7 @@ pub enum HardwareKeyStoreError {
 /// NB: Any type that implements `StoredByIdentifier` should probably not implement
 ///     `Clone`, as this would circumvent the uniqueness of the instance.
 #[trait_variant::make(Send)]
-pub trait StoredByIdentifier: WithIdentifier {
+pub trait StoredByIdentifier {
     type Error: Error + Send + Sync + 'static;
 
     /// Creates a unique instance with the specified identifier. If an instance

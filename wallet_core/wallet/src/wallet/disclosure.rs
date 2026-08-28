@@ -77,6 +77,7 @@ use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::storage::StorageError;
+use crate::storage::WithKeyIdentifier;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
 use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
@@ -330,8 +331,9 @@ impl<T: Hash + Eq, P> WalletDisclosureAttestations<T, P> {
     }
 }
 
-pub(super) type VpDisclosableAttestation = DisclosableAttestation<PartialAttestation>;
-type VpDisclosureAttestations = WalletDisclosureAttestations<CredentialQueryIdentifier, PartialAttestation>;
+pub(super) type VpDisclosableAttestation = DisclosableAttestation<WithKeyIdentifier<PartialAttestation>>;
+type VpDisclosureAttestations =
+    WalletDisclosureAttestations<CredentialQueryIdentifier, WithKeyIdentifier<PartialAttestation>>;
 
 #[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
@@ -690,7 +692,7 @@ where
     ) -> Result<(), DisclosureError> {
         for (attestations, request) in candidate_attestations {
             for attestation in attestations.map(VecAtLeastN::into_inner).unwrap_or(Vec::new()) {
-                if let PartialAttestation::SdJwt { sd_jwt, .. } = attestation.into_partial_attestation() {
+                if let PartialAttestation::SdJwt(sd_jwt) = attestation.into_partial_attestation().data {
                     Self::verify_sd_jwt_non_selectively_disclosable_claims(&sd_jwt, request, organization)?;
                 }
             }
@@ -876,16 +878,18 @@ where
         // Gather both partial mdocs or SD-JWT presentations by cloning the attestations
         // held in the session, as disclosing attestations needs to be retryable.
         let (partial_mdocs, sd_jwt_presentations): (HashMap<_, _>, HashMap<_, _>) =
-            attestations
-                .iter()
-                .partition_map(|(id, attestation)| match attestation.partial_attestation() {
-                    PartialAttestation::MsoMdoc { partial_mdoc } => {
-                        Either::Left(((*id).clone(), vec_nonempty![partial_mdoc.as_ref().clone()]))
-                    }
-                    PartialAttestation::SdJwt { key_identifier, sd_jwt } => {
+            attestations.iter().partition_map(|(id, attestation)| {
+                let WithKeyIdentifier { key_identifier, data } = attestation.partial_attestation();
+                match data {
+                    PartialAttestation::MsoMdoc(partial_mdoc) => Either::Left((
+                        (*id).clone(),
+                        vec_nonempty![(partial_mdoc.as_ref().clone(), key_identifier.clone())],
+                    )),
+                    PartialAttestation::SdJwt(sd_jwt) => {
                         Either::Right(((*id).clone(), vec_nonempty![(*sd_jwt.clone(), key_identifier.clone())]))
                     }
-                });
+                }
+            });
 
         // This should result in either all partial mdocs or all SD-JWT presentations, which is guaranteed by the logic
         // in `VpDisclosureSession`, which rejects DCQL requests with a mix of formats. Additionally, there will be at
@@ -1459,7 +1463,7 @@ mod tests {
                             .map(|(id, partial_mdocs)| {
                                 let attributes = partial_mdocs
                                     .iter()
-                                    .map(|partial_mdoc| {
+                                    .map(|(partial_mdoc, _)| {
                                         partial_mdoc.issuer_signed().clone().into_entries_by_namespace()
                                     })
                                     .collect_vec();

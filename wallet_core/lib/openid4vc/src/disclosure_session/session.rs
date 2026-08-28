@@ -392,7 +392,7 @@ mod tests {
         let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
         let attestations = DisclosableAttestations::MsoMdoc(HashMap::from([(
             "mdoc_pid_example".try_into().unwrap(),
-            vec_nonempty![partial_mdoc],
+            vec_nonempty![(partial_mdoc, "mdoc_key".to_string())],
         )]))
         .try_into()
         .unwrap();

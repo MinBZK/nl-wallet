@@ -15,6 +15,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use itertools::Itertools;
@@ -46,7 +47,7 @@ use self::issuance_session::IssuanceTypeMetadata;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
 use crate::client_auth::ClientAttestationMetadataError;
-use crate::credential::Credential;
+use crate::credential::Credentials;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::TokenErrorCode;
@@ -173,7 +174,7 @@ pub enum WalletIssuanceError {
 
     #[error("received credential response: {actual:?}, expected type {expected}")]
     #[category(pd)]
-    UnexpectedCredentialResponseType { expected: String, actual: Credential },
+    UnexpectedCredentialResponseType { expected: Format, actual: Credentials },
 
     #[error("error reading HTTP error: {0}")]
     #[category(pd)]

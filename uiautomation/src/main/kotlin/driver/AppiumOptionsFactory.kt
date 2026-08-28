@@ -48,6 +48,7 @@ internal fun buildIOSOptions(
         setCapability("appium:boundElementsByIndex", true)
         setCapability("appium:customSnapshotTimeout", 15)
         setCapability("appium:settings[respectSystemAlerts]", true)
+        setCapability("appium:fullReset", true)
         setCapability("appium:xcodeOrgId", "XGL6UKBPLP")
         setCapability("appium:xcodeSigningId", "Apple Development")
         setCapability("appium:updatedWDABundleId", updatedWDABundleId)

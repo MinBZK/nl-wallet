@@ -31,6 +31,8 @@ import org.openqa.selenium.support.ui.WebDriverWait
 import java.io.File
 import java.io.IOException
 import java.time.Duration
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.imageio.ImageIO
 
 open class MobileActions {
@@ -291,6 +293,7 @@ open class MobileActions {
                 .until {
                     contextDriver.contextHandles
                         .filter { it.startsWith(WEB_VIEW_CONTEXT_PREFIX) }
+                        .sortedByDescending { webViewPageId(it) }
                         .any { context ->
                             contextDriver.context(context)
                             driver.windowHandles.any { window ->
@@ -305,26 +308,28 @@ open class MobileActions {
         }
     }
 
-    private fun logWebViewLandscape() {
+    // Convenience function for debugging
+    fun logWebViewLandscape(label: String = "webview-landscape") {
         val contextDriver = when (platform()) {
             Platform.ANDROID -> driver as AndroidDriver
             Platform.IOS -> driver as IOSDriver
         }
-        println("=== Web view landscape (could not locate target element) ===")
+        val landscape = StringBuilder("=== Web view landscape ===\n")
         contextDriver.contextHandles.forEach { context ->
-            println("Context: $context")
+            landscape.appendLine("Context: $context")
             if (context.startsWith(WEB_VIEW_CONTEXT_PREFIX)) {
                 try {
                     contextDriver.context(context)
                     driver.windowHandles.forEach { window ->
                         driver.switchTo().window(window)
-                        println("  window=$window url=${driver.currentUrl} title=${driver.title}")
+                        landscape.appendLine("  window=$window url=${driver.currentUrl} title=${driver.title}")
                     }
                 } catch (e: Exception) {
                     println("  (could not enumerate windows: ${e.message})")
                 }
             }
         }
+        writeArtifact(label, "txt", landscape.toString())
     }
 
     fun switchToNativeContext() {
@@ -756,9 +761,19 @@ open class MobileActions {
         return (element as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
     }
 
-    fun printPageSource() {
-        val driver = driver as AppiumDriver
-        println(driver.pageSource)
+    // Convenience function for debugging
+    fun printPageSource(label: String = "pagesource") {
+        val source = (driver as AppiumDriver).pageSource ?: ""
+        writeArtifact(label, "xml", source)
+    }
+
+    // Gitlab job log limit is often exceeded in test runs so write to file instead
+    protected fun writeArtifact(label: String, extension: String, content: String) {
+        val dir = File("build/page-sources")
+        dir.mkdirs()
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS"))
+        val file = File(dir, "$label-$timestamp.$extension")
+        file.writeText(content)
     }
 
     fun putAppInBackground(seconds: Int) {
