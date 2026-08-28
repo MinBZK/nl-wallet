@@ -28,6 +28,7 @@ class CameraPermissionTests : TestBase() {
     private lateinit var pinScreen: PinScreen
 
     fun setUp(testInfo: TestInfo) {
+        resetIosPermissions()
         startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
         dashboardScreen = DashboardScreen()
@@ -36,7 +37,7 @@ class CameraPermissionTests : TestBase() {
         pinScreen = PinScreen()
     }
 
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Camera permission not granted shows in-app permission screen")
     fun verifyCameraPermissionScreenShownWhenPermissionNotGranted(testInfo: TestInfo) {
         setUp(testInfo)
@@ -46,7 +47,7 @@ class CameraPermissionTests : TestBase() {
         assertTrue(qrScanner.grantPermissionButtonVisible(), "grant camera permission button is not visible")
     }
 
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Camera permission granted once is re-requested after app restart")
     fun verifyCameraPermissionRequestedAgainAfterOnceGrantAndAppRestart(testInfo: TestInfo) {
         assumeTrue(testConfig.platform == Platform.ANDROID, "Allow one time only permission on iOS is not supported")

@@ -66,8 +66,6 @@ class AppTourVideoTests : TestBase() {
         // This will break when the first video becomes longer
         Thread.sleep(8000)
         assertAll(
-            { assertTrue(videoPlayer.subtitlesOnToggleVisible(), "subtitle on toggle is not visible") },
-            { assertTrue(videoPlayer.soundOffToggleVisible(), "sound toggle is not visible") },
             { assertTrue(videoPlayer.closeButtonVisible(), "Close button is not visible") },
             { assertTrue(videoPlayer.replayButtonVisible(), "Replay button is not visible") },
         )

@@ -1,8 +1,10 @@
 package feature.notifications
 
+import com.codeborne.selenide.WebDriverRunner
 import helper.LocalizationHelper
 import helper.TasDataHelper
 import helper.TestBase
+import io.appium.java_client.HasDeviceTime
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -26,6 +28,7 @@ import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.issuer.IssuerWebPage
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
@@ -130,8 +133,12 @@ class CardNotificationsTests : TestBase() {
     private fun isDateCorrect(dateString: String, expectedDate: LocalDate): Boolean {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
         val parsedDateTime = LocalDateTime.parse(dateString, formatter)
-        return parsedDateTime.toLocalDate() == expectedDate
+        val utcDate = parsedDateTime.atOffset(deviceUtcOffset()).withOffsetSameInstant(ZoneOffset.UTC).toLocalDate()
+        return utcDate == expectedDate
     }
+
+    private fun deviceUtcOffset(): ZoneOffset =
+        OffsetDateTime.parse((WebDriverRunner.getWebDriver() as HasDeviceTime).deviceTime).offset
 
     private fun verifyDateIsOneYearMinusDaysfromNow(dateString: String, days: Long): Boolean {
         val expected = LocalDate.now(ZoneOffset.UTC).plusYears(1).minusDays(days)

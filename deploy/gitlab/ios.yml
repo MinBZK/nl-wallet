@@ -111,7 +111,7 @@ build-ios-app-adhoc-ont:
     APP_STORE_DISTRIBUTION: "false"
   after_script:
     - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
-    - mc put *.ipa qt/quality-time/apps/nl.ictu.edi.wallet.latest-${CI_COMMIT_SHA}.ipa
+    - mc put *.ipa qt/quality-time/apps/nl.ictu.edi.wallet.latest.ipa
 
 build-ios-simulator-app-ont:
   extends: .build-ios-app
@@ -148,8 +148,8 @@ build-ios-simulator-app-ont:
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
   after_script:
     - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
-    - (cd wallet_app/build/ios/iphonesimulator && zip -r "Runner-${CI_COMMIT_SHA}.app.zip" Runner.app)
-    - mc put "wallet_app/build/ios/iphonesimulator/Runner-${CI_COMMIT_SHA}.app.zip" qt/quality-time/apps/
+    - (cd wallet_app/build/ios/iphonesimulator && zip -r "Runner.app.zip" Runner.app)
+    - mc put "wallet_app/build/ios/iphonesimulator/Runner.app.zip" qt/quality-time/apps/
 
 build-ios-app-mock:
   extends: .build-ios-app
