@@ -1,5 +1,8 @@
 use http_utils::reqwest::HttpClient;
+use jwt::jwk::JwkSet;
 use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::jwks::HttpJwksClient;
+use oauth::jwks::JwksError;
 use oauth::metadata::oauth_metadata::OidcProviderMetadata;
 use oauth::metadata::well_known::WellKnownError;
 use oauth::metadata::well_known::WellKnownMetadata;
@@ -20,6 +23,9 @@ pub enum OidcHttpClientError {
 
     #[error("upstream OIDC metadata does not support the S256 PKCE code challenge method")]
     S256NotSupported,
+
+    #[error("error fetching OIDC provider JWKS: {0}")]
+    Jwks(#[source] JwksError),
 }
 
 pub struct OidcHttpClient {
@@ -63,6 +69,19 @@ impl OidcHttpClient {
 
         Ok(metadata)
     }
+
+    pub async fn fetch_jwks(&self, metadata: &OidcProviderMetadata) -> Result<JwkSet, OidcHttpClientError> {
+        let jwks_uri = metadata
+            .oauth_metadata
+            .jwks_uri
+            .clone()
+            .ok_or(OidcHttpClientError::JwksUriMissing)?;
+
+        HttpJwksClient::new(self.http_client.clone())
+            .jwks(jwks_uri)
+            .await
+            .map_err(OidcHttpClientError::Jwks)
+    }
 }
 
 #[cfg(test)]
@@ -71,6 +90,7 @@ mod tests {
     use httpmock::Method::GET;
     use httpmock::MockServer;
     use indexmap::IndexSet;
+    use jwt::jwk::JwkSet;
     use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
     use serde_json::json;
 
@@ -105,10 +125,24 @@ mod tests {
         OidcHttpClient::new(http_client, issuer)
     }
 
+    async fn jwks_client(status: u16) -> (OidcHttpClient, OidcProviderMetadata) {
+        let server = MockServer::start_async().await;
+        let issuer: IssuerIdentifier = server.base_url().parse().unwrap();
+        let metadata = metadata(&issuer);
+        server
+            .mock_async(move |when, then| {
+                when.method(GET).path("/jwks");
+                then.status(status).json_body(json!(JwkSet { keys: vec![] }));
+            })
+            .await;
+        let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        (OidcHttpClient::new(http_client, issuer), metadata)
+    }
+
     #[tokio::test]
     async fn fetch_metadata_returns_valid_metadata() {
         let client = client(|_| {}).await;
-        let metadata = client.fetch_metadata().await.unwrap();
+        let metadata = client.fetch_metadata().await.expect("should succeed");
         assert_eq!(&metadata.oauth_metadata.issuer, &client.expected_issuer);
     }
 
@@ -149,5 +183,27 @@ mod tests {
         let client = client(|metadata| metadata.oauth_metadata.code_challenge_methods_supported = None).await;
         let error = client.fetch_metadata().await.expect_err("should fail");
         assert!(matches!(error, OidcHttpClientError::S256NotSupported));
+    }
+
+    #[tokio::test]
+    async fn fetch_jwks_returns_provider_keys() {
+        let (client, metadata) = jwks_client(200).await;
+        let jwks = client.fetch_jwks(&metadata).await.expect("should succeed");
+        assert_eq!(jwks, JwkSet { keys: vec![] });
+    }
+
+    #[tokio::test]
+    async fn fetch_jwks_rejects_missing_jwks_uri() {
+        let (client, mut metadata) = jwks_client(200).await;
+        metadata.oauth_metadata.jwks_uri = None;
+        let error = client.fetch_jwks(&metadata).await.expect_err("should fail");
+        assert!(matches!(error, OidcHttpClientError::JwksUriMissing));
+    }
+
+    #[tokio::test]
+    async fn fetch_jwks_reports_provider_errors() {
+        let (client, metadata) = jwks_client(500).await;
+        let error = client.fetch_jwks(&metadata).await.expect_err("should fail");
+        assert!(matches!(error, OidcHttpClientError::Jwks(_)));
     }
 }
