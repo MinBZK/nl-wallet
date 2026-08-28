@@ -1,4 +1,5 @@
 pub mod account_server;
+pub mod admin_server;
 pub mod flags;
 pub mod instructions;
 pub mod keys;

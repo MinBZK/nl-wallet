@@ -101,13 +101,15 @@ attestation_types.path = "../../lib/attestation_types"
 audit_log.path = "../audit_log"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
+http_utils = { path = "../../lib/http_utils", features = ["reqwest"] }
 jwt.path = "../../lib/jwt"
+oauth.path = "../../lib/oauth"
 sd_jwt.path = "../../lib/sd_jwt"
 status_lists.path = "../../lib/status_lists"
 token_status_list.path = "../../lib/token_status_list"
+utils.path = "../../lib/utils"
 wallet_account = { path = "../wallet_account", features = ["server"] }
 wallet_provider_domain.path = "../domain"
-utils.path = "../../lib/utils"
 wscd.path = "../../lib/wscd"
 
 db_test = { path = "../../lib/db_test", optional = true }
@@ -116,11 +118,14 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true
+httpmock.workspace = true
+indexmap.workspace = true
 mockall.workspace = true
 rand.workspace = true
 rstest.workspace = true
-tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
+tracing-test.workspace = true
+url.workspace = true
 
 android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
@@ -128,7 +133,9 @@ attestation_data = { path = "../../lib/attestation_data", features = ["mock", "g
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
 audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
+http_utils = { path = "../../lib/http_utils", features = ["httpmock"] }
 jwt = { path = "../../lib/jwt", features = ["test", "mock"] }
+oauth.path = "../../lib/oauth"
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }
