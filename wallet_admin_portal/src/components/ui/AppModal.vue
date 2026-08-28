@@ -40,7 +40,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   background: rgba(21, 42, 98, 0.2);
-  padding: 24px;
+  padding: 1.5rem;
   z-index: 1000;
 }
 

@@ -14,11 +14,11 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   box-sizing: border-box;
   grid-row: 1;
   border-bottom: 2px solid var(--color-border);
-  padding: 16px;
+  padding: 1rem;
 }
 
 .brand-logo {
