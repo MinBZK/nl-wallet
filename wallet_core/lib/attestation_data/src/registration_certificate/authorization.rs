@@ -17,17 +17,16 @@ pub enum RegistrationCertificateAuthorizationError {
 impl StatusValidatedRegistrationCertificate {
     /// Validate that every credential, claim and requested value in a DCQL query is authorized by this certificate.
     pub fn validate_query_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
-        validate_query_authorization(query, self.payload().credentials.as_deref())
+        validate_query_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())
     }
 }
 
 fn validate_query_authorization(
     query: &Query,
-    authorized_credentials: Option<&[Credential]>,
+    authorized_credentials: &[Credential],
 ) -> Result<(), RegistrationCertificateAuthorizationError> {
     for credential_query in query.credentials.iter() {
         if !authorized_credentials
-            .unwrap_or_default()
             .iter()
             .any(|authorized| credential_query_is_authorized(credential_query, authorized))
         {
@@ -151,19 +150,15 @@ mod tests {
             ]),
         );
 
-        validate_query_authorization(&query, Some(&[authorized_sd_jwt()])).unwrap();
+        validate_query_authorization(&query, &[authorized_sd_jwt()]).unwrap();
     }
 
-    #[rstest]
-    #[case::missing(None)]
-    #[case::empty(Some(&[] as &[Credential]))]
-    fn reject_query_when_authorized_credentials_are_missing_or_empty(
-        #[case] authorized_credentials: Option<&[Credential]>,
-    ) {
+    #[test]
+    fn reject_query_when_authorized_credentials_are_empty() {
         let query = sd_jwt_query(&json!(["urn:example:pid"]), &json!([{ "path": ["family_name"] }]));
 
         assert_matches!(
-            validate_query_authorization(&query, authorized_credentials),
+            validate_query_authorization(&query, &[]),
             Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
         );
     }
@@ -191,7 +186,7 @@ mod tests {
             authorized_sd_jwt(),
         ];
 
-        validate_query_authorization(&query, Some(&authorized)).unwrap();
+        validate_query_authorization(&query, &authorized).unwrap();
     }
 
     #[test]
@@ -210,7 +205,7 @@ mod tests {
         ]);
 
         assert_matches!(
-            validate_query_authorization(&query, Some(&[authorized_sd_jwt()])),
+            validate_query_authorization(&query, &[authorized_sd_jwt()]),
             Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(id))
                 if id.as_ref() == "address"
         );
@@ -237,7 +232,7 @@ mod tests {
         let query = sd_jwt_query(&vct_values, &claims);
 
         assert_matches!(
-            validate_query_authorization(&query, Some(&[authorized_sd_jwt()])),
+            validate_query_authorization(&query, &[authorized_sd_jwt()]),
             Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
         );
     }
@@ -262,7 +257,7 @@ mod tests {
         ];
 
         assert_matches!(
-            validate_query_authorization(&query, Some(&authorized)),
+            validate_query_authorization(&query, &authorized),
             Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
         );
     }
@@ -279,7 +274,7 @@ mod tests {
             "claim": [{ "path": ["age"] }]
         }));
 
-        validate_query_authorization(&query, Some(&[authorized])).unwrap();
+        validate_query_authorization(&query, &[authorized]).unwrap();
     }
 
     #[rstest]
@@ -297,7 +292,7 @@ mod tests {
         let authorized = credential(authorized);
 
         assert_matches!(
-            validate_query_authorization(&query, Some(&[authorized])),
+            validate_query_authorization(&query, &[authorized]),
             Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
         );
     }
@@ -320,7 +315,7 @@ mod tests {
             "meta": { "vct_values": ["urn:example:pid"] }
         }));
 
-        validate_query_authorization(&query, Some(&[authorized])).unwrap();
+        validate_query_authorization(&query, &[authorized]).unwrap();
     }
 
     #[test]
@@ -349,9 +344,9 @@ mod tests {
             "claim": [{ "path": ["family_name"] }]
         }));
 
-        validate_query_authorization(&query, Some(&[fully_authorized])).unwrap();
+        validate_query_authorization(&query, &[fully_authorized]).unwrap();
         assert_matches!(
-            validate_query_authorization(&query, Some(&[partially_authorized])),
+            validate_query_authorization(&query, &[partially_authorized]),
             Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
         );
     }
@@ -381,7 +376,7 @@ mod tests {
             "claim": [{ "path": ["urn:example:pid", "family_name"] }]
         }));
 
-        validate_query_authorization(&query, Some(&[authorized])).unwrap();
+        validate_query_authorization(&query, &[authorized]).unwrap();
     }
 
     #[rstest]
@@ -415,7 +410,7 @@ mod tests {
         let authorized = credential(authorized);
 
         assert_matches!(
-            validate_query_authorization(&query, Some(&[authorized])),
+            validate_query_authorization(&query, &[authorized]),
             Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
         );
     }
