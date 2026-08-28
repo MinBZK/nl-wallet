@@ -36,10 +36,6 @@ pub struct UpdatingConfigurationRepository<T> {
     updating_task: JoinHandle<()>,
 }
 
-/// Delay before the first attempt to replace an expired configuration, and the amount by which that delay grows with
-/// every consecutive attempt that fails to do so.
-const EXPIRED_RETRY_INTERVAL: Duration = Duration::from_secs(10);
-
 /// Upper bound for the delay between attempts to replace an expired configuration.
 const EXPIRED_RETRY_MAX_INTERVAL: Duration = Duration::from_secs(60);
 
@@ -49,8 +45,8 @@ const EXPIRED_RETRY_JITTER: f64 = 0.2;
 
 /// The delay before the next attempt to replace an expired configuration, growing linearly with the number of
 /// consecutive attempts that failed to produce one, up to [`EXPIRED_RETRY_MAX_INTERVAL`].
-fn expired_retry_delay(failed_attempts: u32) -> Duration {
-    let delay = EXPIRED_RETRY_INTERVAL
+fn expired_retry_delay(retry_interval: Duration, failed_attempts: u32) -> Duration {
+    let delay = retry_interval
         .saturating_mul(failed_attempts.max(1))
         .min(EXPIRED_RETRY_MAX_INTERVAL);
 
@@ -197,7 +193,7 @@ where
                 let delay = if expiry.update(&wrapped.get()) {
                     failed_attempts = failed_attempts.saturating_add(1);
 
-                    let delay = expired_retry_delay(failed_attempts);
+                    let delay = expired_retry_delay(config.expired_retry_interval, failed_attempts);
                     warn!(
                         "Wallet configuration is expired, retrying in {:.1}s",
                         delay.as_secs_f64()
@@ -264,7 +260,6 @@ mod tests {
     use wallet_configuration::wallet_config::WalletConfiguration;
 
     use super::CONFIG_EXPIRY_LEEWAY;
-    use super::EXPIRED_RETRY_INTERVAL;
     use super::EXPIRED_RETRY_JITTER;
     use super::EXPIRED_RETRY_MAX_INTERVAL;
     use super::ExpiryState;
@@ -395,10 +390,12 @@ mod tests {
         );
     }
 
+    const RETRY_INTERVAL: Duration = Duration::from_secs(10);
+
     #[rstest]
-    #[case(1, EXPIRED_RETRY_INTERVAL)]
-    #[case(2, 2 * EXPIRED_RETRY_INTERVAL)]
-    #[case(5, 5 * EXPIRED_RETRY_INTERVAL)]
+    #[case(1, RETRY_INTERVAL)]
+    #[case(2, 2 * RETRY_INTERVAL)]
+    #[case(5, 5 * RETRY_INTERVAL)]
     // Beyond this the delay is capped.
     #[case(6, EXPIRED_RETRY_MAX_INTERVAL)]
     #[case(7, EXPIRED_RETRY_MAX_INTERVAL)]
@@ -406,7 +403,7 @@ mod tests {
     fn retry_delay_should_grow_linearly_up_to_the_maximum(#[case] failed_attempts: u32, #[case] expected: Duration) {
         // Repeat, since the applied jitter is random.
         for _ in 0..100 {
-            let delay = expired_retry_delay(failed_attempts);
+            let delay = expired_retry_delay(RETRY_INTERVAL, failed_attempts);
 
             assert!(
                 delay >= expected.mul_f64(1.0 - EXPIRED_RETRY_JITTER)

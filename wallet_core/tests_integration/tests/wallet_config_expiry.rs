@@ -136,7 +136,10 @@ async fn test_expired_configuration_is_rejected() {
 #[tokio::test]
 async fn test_expiry_is_reported_and_cleared() {
     // Both the configuration the wallet starts out with and the one on offer are expired.
-    let (server, config_server_config) = SwappableConfigServer::start(&wallet_config(expired_beyond_leeway(), 2)).await;
+    let (server, mut config_server_config) =
+        SwappableConfigServer::start(&wallet_config(expired_beyond_leeway(), 2)).await;
+
+    config_server_config.expired_retry_interval = Duration::from_millis(100);
 
     let storage_dir = tempfile::tempdir().unwrap();
     let repository = UpdatingConfigurationRepository::init(

@@ -20,6 +20,15 @@ pub struct ConfigServerConfiguration {
     #[serde(rename = "update_frequency_in_sec")]
     #[serde_as(as = "DurationSeconds")]
     pub update_frequency: Duration,
+
+    /// How long to wait between attempts to replace an expired wallet configuration.
+    #[serde(rename = "expired_retry_interval_in_sec", default = "default_expired_retry_interval")]
+    #[serde_as(as = "DurationSeconds")]
+    pub expired_retry_interval: Duration,
+}
+
+fn default_expired_retry_interval() -> Duration {
+    Duration::from_secs(10)
 }
 
 impl EnvironmentSpecific for ConfigServerConfiguration {
