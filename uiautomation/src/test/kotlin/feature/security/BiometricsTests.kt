@@ -28,10 +28,6 @@ import screen.web.digid.DigidLoginMockWebPage
 @DisplayName("Biometric unlock and configuration")
 class BiometricsTests : TestBase() {
 
-    companion object {
-        const val MAX_BIOMETRICS_RETRY_COUNT = 5
-    }
-
     private lateinit var l10n: LocalizationHelper
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var menuScreen: MenuScreen
@@ -68,7 +64,7 @@ class BiometricsTests : TestBase() {
         biometricsSetupScreen = BiometricsSetupScreen()
     }
 
-    @RetryingTest(value = MAX_BIOMETRICS_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC38 Unlock app with biometric")
     fun verifyBiometricUnlock(testInfo: TestInfo) {
         setUp(testInfo)
@@ -96,7 +92,7 @@ class BiometricsTests : TestBase() {
         assertTrue(dashboardScreen.visible(), "Dashboard is not visible")
     }
 
-    @RetryingTest(value = MAX_BIOMETRICS_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC59 No biometric enrolled on device")
     fun verifyNoEnrolledBiometric(testInfo: TestInfo) {
         setUp(testInfo)
@@ -132,7 +128,7 @@ class BiometricsTests : TestBase() {
         assertTrue(!pinScreen.biometricUnlockAvailable(), "Biometric unlock is available")
     }
 
-    @RetryingTest(value = MAX_BIOMETRICS_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC60 Disable biometrics")
     fun verifyDisableBiometrics(testInfo: TestInfo) {
         setUp(testInfo)
@@ -165,7 +161,7 @@ class BiometricsTests : TestBase() {
         assertTrue(!pinScreen.biometricUnlockAvailable(), "Biometric unlock is available")
     }
 
-    @RetryingTest(value = MAX_BIOMETRICS_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC61 Setup biometrics in settings")
     fun verifyBiometricConfigurationInAppSettings(testInfo: TestInfo) {
         setUp(testInfo)

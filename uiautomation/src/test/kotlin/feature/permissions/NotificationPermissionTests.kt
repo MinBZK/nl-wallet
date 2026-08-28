@@ -1,5 +1,6 @@
 package feature.permissions
 
+import domain.Platform
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import domain.Platform
 import screen.menu.MenuScreen
 import screen.permissions.NativePermissionDialog
 import screen.settings.NotificationsScreen
@@ -25,6 +25,7 @@ class NotificationPermissionTests : TestBase() {
     private lateinit var nativePermissionDialog: NativePermissionDialog
 
     fun setUp(testInfo: TestInfo) {
+        resetIosPermissions()
         startDriver(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         menuScreen = MenuScreen()
@@ -33,7 +34,7 @@ class NotificationPermissionTests : TestBase() {
         nativePermissionDialog = NativePermissionDialog()
     }
 
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Denying notification permission keeps notifications disabled")
     fun verifyDenyingNotificationPermissionKeepsNotificationsDisabled(testInfo: TestInfo) {
         setUp(testInfo)
