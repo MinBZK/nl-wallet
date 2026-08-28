@@ -24,10 +24,11 @@ find wallet_core -type d -name target -prune -o -mindepth 2 -type f -name Cargo.
 
 ### Flutter
 ```bash
-flutter test                                          # unit & widget tests
-flutter test --tags golden                            # golden (snapshot) tests
+flutter test                                          # unit & golden tests
+flutter test --tags=golden                            # golden (snapshot) tests only
+flutter test --exclude-tags=golden                    # unit tests only
 flutter run --dart-define=MOCK_REPOSITORIES=true      # run with mocks
-dart format . --line-length 120
+dart format . --line-length 120                       # format code
 flutter gen-l10n                                      # regenerate localizations
 ```
 
