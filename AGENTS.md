@@ -63,6 +63,7 @@ scripts/migrate-db.sh         # run DB migrations
 
 ### Rust
 - Rust edition 2024, line width 120; formatted with nightly `rustfmt` (see command above)
+- Coding style: "parse, don't validate"; use the type system to exclude illegal states where feasible
 - Imports in 3 groups (std → third-party and workspace → super/crate imports), alphabetically within each
 - Each imported symbol on its own import line
 - Custom error enums per module; use `thiserror`
