@@ -32,14 +32,14 @@
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
-  padding: 14px 24px 18px;
+  padding: 0.875rem 1.5rem 1.125rem;
   border-top: 2px solid var(--color-border);
 }
 
 .summary {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   color: var(--color-text-primary);
   font-size: 0.875rem;
   line-height: 1.4286;
@@ -60,7 +60,7 @@ select {
 .pages {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .page {

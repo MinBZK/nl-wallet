@@ -16,8 +16,8 @@
 .filters {
   display: grid;
   grid-template-columns: 320px 1fr 110px;
-  gap: 14px;
-  padding: 24px;
+  gap: 0.875rem;
+  padding: 1.5rem;
   align-items: center;
 }
 

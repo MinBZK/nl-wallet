@@ -58,7 +58,7 @@ const { loggedInUser } = useAuth()
 .nav-section {
   grid-row: 2;
   min-height: 0;
-  padding: 16px;
+  padding: 1rem;
   overflow-y: auto;
 }
 
@@ -72,7 +72,7 @@ const { loggedInUser } = useAuth()
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   border: 1px solid transparent;
   background: transparent;
   padding: 0.875rem 0.5rem;
