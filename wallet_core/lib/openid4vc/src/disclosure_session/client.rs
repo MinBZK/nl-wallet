@@ -38,6 +38,7 @@ use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
+use crate::registration_certificate::RegistrationCertificateError;
 use crate::registration_certificate::validate_registration_certificate;
 use crate::verifier::SessionType;
 
@@ -225,14 +226,18 @@ where
         let auth_request_result = match auth_request_result {
             Ok(auth_request) => validate_registration_certificate(
                 verifier_info.as_ref().map(|info| info.as_slice()),
-                &dcql_query,
                 &certificate,
                 wrprc_trust_anchors,
                 &self.registration_certificate_revocation_verifier,
                 &TimeGenerator,
             )
             .await
-            .map(|_| auth_request)
+            .and_then(|registration_certificate| {
+                registration_certificate
+                    .validate_query_authorization(&dcql_query)
+                    .map_err(RegistrationCertificateError::Authorization)
+            })
+            .map(|()| auth_request)
             .map_err(|error| AuthRequestValidationError::RegistrationCertificate(Box::new(error))),
             Err(error) => Err(error),
         }

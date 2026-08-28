@@ -10,7 +10,6 @@ use base64::prelude::*;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::DistinguishedNameError;
-use dcql::Query;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
@@ -42,7 +41,6 @@ pub enum RegistrationCertificateError {
 
 pub async fn validate_registration_certificate<C>(
     verifier_info: Option<&[VerifierInfo]>,
-    query: &Query,
     access_certificate: &BorrowingCertificate,
     registration_certificate_trust_anchors: &TrustAnchors,
     revocation_verifier: &RevocationVerifier<C>,
@@ -78,7 +76,7 @@ where
     let certificate = payload
         .validate_structure(&access_subject, time.generate())
         .map_err(RegistrationCertificateError::Structure)?;
-    let certificate = certificate
+    certificate
         .validate_status(
             revocation_verifier,
             registration_certificate_trust_anchors,
@@ -86,13 +84,7 @@ where
             time,
         )
         .await
-        .map_err(RegistrationCertificateError::Status)?;
-
-    certificate
-        .validate_query_authorization(query)
-        .map_err(RegistrationCertificateError::Authorization)?;
-
-    Ok(certificate)
+        .map_err(RegistrationCertificateError::Status)
 }
 
 #[cfg(test)]
@@ -154,16 +146,18 @@ mod tests {
     ) -> Result<(), RegistrationCertificateError> {
         let revocation_verifier = RevocationVerifier::new_without_caching(Arc::new(status_list_client));
 
-        validate_registration_certificate(
+        let certificate = validate_registration_certificate(
             verifier_info,
-            query,
             access_certificate,
             trust_anchors,
             &revocation_verifier,
             &TimeGenerator,
         )
-        .await
-        .map(|_| ())
+        .await?;
+
+        certificate
+            .validate_query_authorization(query)
+            .map_err(RegistrationCertificateError::Authorization)
     }
 
     #[rstest]
