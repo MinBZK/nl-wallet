@@ -45,6 +45,9 @@ impl VerifiedRegistrationCertificateEnvelope {
 }
 
 /// Parse and verify a JAdES-B/B JWT or WRPRC CWT registration-certificate envelope.
+///
+/// Per the ETSI TS 119 472-2 and 119 475 specs, the passed bytes may be of either format.
+/// Therefore this function attempts the passed bytes as either format.
 pub fn verify_registration_certificate_envelope(
     registration_certificate: &[u8],
     trust_anchors: &TrustAnchors,
