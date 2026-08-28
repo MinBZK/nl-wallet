@@ -50,6 +50,7 @@ use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::client_auth::AttestationChallenge;
+use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::draft;
 use openid4vc::credential_offer::CredentialOffer;
@@ -57,6 +58,7 @@ use openid4vc::errors::CredentialErrorCode;
 use openid4vc::errors::CredentialPreviewErrorCode;
 use openid4vc::errors::ParErrorCode;
 use openid4vc::errors::TokenErrorCode;
+use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
@@ -143,6 +145,7 @@ where
     Router::new()
         .route("/.well-known/openid-credential-issuer", get(credential_metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
+        .route("/issuance/client_auth_challenge", post(client_auth_challenge))
         .route("/issuance/token", post(token))
         .route("/issuance/type_metadata/{id}", get(type_metadata))
         .route("/issuance/credential_preview", post(credential_preview))
@@ -151,7 +154,7 @@ where
         .route("/issuance/credential", delete(reject_credential))
         .route("/issuance/batch_credential", post(batch_credential))
         .route("/issuance/batch_credential", delete(reject_batch_credential))
-        .route("/issuance/client_auth_challenge", post(client_auth_challenge))
+        .route(&format!("/issuance/{CREDENTIAL_ENDPOINT_V1_PATH}"), post(credential_v1))
         .with_state(IssuanceState { issuer })
 }
 
@@ -339,6 +342,29 @@ where
         .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn credential_v1<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
+    Json(credential_request): Json<CredentialRequest>,
+) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
+where
+    K: EcdsaKeySend,
+    L: StatusListService,
+    S: SessionStore<IssuanceData>,
+    N: NonceStore,
+{
+    let access_token = authorization_header.into();
+    let response = state
+        .issuer
+        .process_credential_request(&access_token, dpop, credential_request)
+        .await
+        .inspect_err(|error| warn!("processing credential request failed: {}", error))?;
+
+    // Deferred responses are not supported, so the response status is always 200.
+    Ok(Json(response))
 }
 
 async fn token<K, L, S, N>(
