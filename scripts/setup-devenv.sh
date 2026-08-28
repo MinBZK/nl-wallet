@@ -160,7 +160,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
     fi
 
     # Undo any changes to docker/Dockerfile we know to be discardable.
-    DIGID_CONNECTOR_CODE_CHANGES_HASH=1f62b863412ecac49d60571e3231d814a7d13f535bdbac34aa5a9f8a4101c2f0
+    DIGID_CONNECTOR_CODE_CHANGES_HASH=5688d205ace5b775026f0fb4cbec24441811e53e84e6d9c66ac0d1c1fb20f488
     DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff docker/Dockerfile | sha256sum | awk '{print $1}')
     if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
         echo -e "${INFO}Reverting known docker/Dockerfile changes${NC}"
@@ -188,6 +188,9 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
 
   # Workaround for groupadd existing group.
   ${SED} -i 's|^RUN groupadd --system|RUN groupadd -f --system|' docker/Dockerfile
+
+  # Workaround for charset-normalizer Cython ABI mismatch in 3.4.x: force pure-Python reinstall.
+  ${SED} -i 's|pip3 install --no-cache-dir "charset-normalizer|pip3 install --no-cache-dir --no-binary charset-normalizer "charset-normalizer|' docker/Dockerfile
 
   # Make sure we use our single ca if USE_SINGLE_CA is set. This works because setup-secrets.sh, which is indirectly
   # called by make setup-remote later, will not replace a previously existing set of ca certificate files.
