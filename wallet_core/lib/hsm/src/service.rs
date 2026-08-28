@@ -182,7 +182,7 @@ impl HandleType {
     }
 }
 
-#[cfg(feature = "test")]
+#[cfg(any(feature = "test", feature = "mock"))]
 #[derive(Debug, Clone, Copy)]
 pub enum AesKeyUsage {
     Encrypt,

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::generate::Ca;
@@ -50,7 +51,7 @@ fn create_example_device_response(
     let partial_mdoc = PartialMdoc::try_new(mdoc, &claim_paths).unwrap();
 
     let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
-        vec_nonempty![partial_mdoc],
+        vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())],
         session_transcript,
         &MockRemoteWscd::new_example(),
         (),

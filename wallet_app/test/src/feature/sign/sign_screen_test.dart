@@ -27,16 +27,6 @@ class MockSignBloc extends MockBloc<SignEvent, SignState> implements SignBloc {}
 
 void main() {
   group('goldens', () {
-    testGoldens('SignInitial Light', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const SignScreen().withState<SignBloc, SignState>(
-          MockSignBloc(),
-          const SignInitial(),
-        ),
-      );
-      await screenMatchesGolden('initial.light');
-    });
-
     testGoldens('SignLoadInProgress Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SignScreen().withState<SignBloc, SignState>(
@@ -173,16 +163,6 @@ void main() {
         ),
       );
       expect(find.byType(SignSuccessPage), findsOneWidget);
-    });
-
-    testWidgets('SignInitial state renders loader', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const SignScreen().withState<SignBloc, SignState>(
-          MockSignBloc(),
-          const SignInitial(),
-        ),
-      );
-      expect(find.byType(CenteredLoadingIndicator), findsOneWidget);
     });
 
     testWidgets('SignLoadInProgress state renders loader', (tester) async {

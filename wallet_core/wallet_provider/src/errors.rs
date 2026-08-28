@@ -144,6 +144,7 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::Poa(_)
                 | InstructionError::PopSigning(_)
                 | InstructionError::JwkConversion(_)
+                | InstructionError::StatusClaimBatchIdExists(_)
                 | InstructionError::ObtainStatusClaim(_)
                 | InstructionError::SystemRevocationError(_)
                 | InstructionError::UnsupportedHolderPublicKey(_) => Self::Unexpected,

@@ -2,11 +2,8 @@ package screen.permissions
 
 import domain.Platform
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
-import org.openqa.selenium.support.ui.ExpectedConditions
-import org.openqa.selenium.support.ui.WebDriverWait
+import org.openqa.selenium.NoAlertPresentException
 import util.MobileActions
-import java.time.Duration
 
 class NativePermissionDialog : MobileActions() {
 
@@ -14,27 +11,14 @@ class NativePermissionDialog : MobileActions() {
     private val androidDenyDontAskAgainButtonId = "com.android.permissioncontroller:id/permission_deny_and_dont_ask_again_button"
     private val androidAllowOneTimeButtonId = "com.android.permissioncontroller:id/permission_allow_one_time_button"
 
-    private val iosAlertTimeoutMillis = 5000L
-
-    private fun waitForIosAlert(): Boolean = try {
-        WebDriverWait(driver, Duration.ofMillis(iosAlertTimeoutMillis))
-            .until(ExpectedConditions.alertIsPresent())
-        true
-    } catch (e : TimeoutException) {
-        throw e
-    }
-
     fun visible(): Boolean = when (platform()) {
         Platform.ANDROID -> driver.findElements(By.id(androidDenyButtonId)).isNotEmpty()
-        Platform.IOS -> waitForIosAlert()
+        Platform.IOS -> try { driver.switchTo().alert(); true } catch (_: NoAlertPresentException) { false }
     }
 
     fun deny() = when (platform()) {
         Platform.ANDROID -> clickWebElementWithGesture(findWebElement(By.id(androidDenyButtonId)))
-        Platform.IOS -> {
-            waitForIosAlert()
-            driver.switchTo().alert().dismiss()
-        }
+        Platform.IOS -> driver.switchTo().alert().dismiss()
     }
 
     fun denyDontAskAgain() = when (platform()) {

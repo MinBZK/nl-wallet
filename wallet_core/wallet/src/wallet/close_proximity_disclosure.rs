@@ -74,6 +74,7 @@ use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
+use crate::storage::WithKeyIdentifier;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
 use crate::wallet::disclosure::RedirectUriPurpose;
@@ -103,23 +104,28 @@ pub type CloseProximityDisclosureCallback =
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "mdoc")), derive(Debug, Clone, TryFrom, FromStr, AsRef, Into, Display))]
 pub struct MdocUri(String);
 
-type CloseProximityDisclosableAttestation = DisclosableAttestation<PartialMdoc>;
-type CloseProximityDisclosureAttestations = WalletDisclosureAttestations<usize, PartialMdoc>;
+type CloseProximityDisclosableAttestation = DisclosableAttestation<(PartialMdoc, String)>;
+type CloseProximityDisclosureAttestations = WalletDisclosureAttestations<usize, (PartialMdoc, String)>;
 
 impl TryFrom<VpDisclosableAttestation> for CloseProximityDisclosableAttestation {
     type Error = DisclosureError;
 
     fn try_from(attestation: VpDisclosableAttestation) -> Result<Self, Self::Error> {
-        attestation.try_map_partial_attestation(|partial_attestation| {
-            let PartialAttestation::MsoMdoc { partial_mdoc } = partial_attestation else {
-                // `ItemsRequest` only requests mdocs, and storage is expected to filter candidates by that format.
-                // Receiving an SD-JWT here means that soft contract was violated. Handle this defensively so the
-                // programming error remains observable as a distinct Sentry error.
-                return Err(DisclosureError::UnexpectedAttestationFormat);
-            };
+        attestation.try_map_partial_attestation(
+            |WithKeyIdentifier {
+                 key_identifier,
+                 data: attestation,
+             }| {
+                let PartialAttestation::MsoMdoc(partial_mdoc) = attestation else {
+                    // `ItemsRequest` only requests mdocs, and storage is expected to filter candidates by that format.
+                    // Receiving an SD-JWT here means that soft contract was violated. Handle this defensively so the
+                    // programming error remains observable as a distinct Sentry error.
+                    return Err(DisclosureError::UnexpectedAttestationFormat);
+                };
 
-            Ok(*partial_mdoc)
-        })
+                Ok((*partial_mdoc, key_identifier))
+            },
+        )
     }
 }
 

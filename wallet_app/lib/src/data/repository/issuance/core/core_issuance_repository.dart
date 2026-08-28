@@ -5,7 +5,6 @@ import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../../domain/model/disclosure/disclosure_session_type.dart';
-import '../../../../domain/model/disclosure/disclosure_type.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
@@ -22,7 +21,6 @@ class CoreIssuanceRepository implements IssuanceRepository {
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<List<core.LocalizedString>, LocalizedText> _localizedStringMapper;
   final Mapper<core.DisclosureSessionType, DisclosureSessionType> _disclosureSessionTypeMapper;
-  final Mapper<core.DisclosureType, DisclosureType> _disclosureTypeMapper;
 
   CoreIssuanceRepository(
     this._walletCore,
@@ -32,7 +30,6 @@ class CoreIssuanceRepository implements IssuanceRepository {
     this._requestPolicyMapper,
     this._localizedStringMapper,
     this._disclosureSessionTypeMapper,
-    this._disclosureTypeMapper,
   );
 
   @override
@@ -49,24 +46,18 @@ class CoreIssuanceRepository implements IssuanceRepository {
         final policy = _requestPolicyMapper.map(result.policy);
         return StartIssuanceReadyToDisclose(
           relyingParty: relyingParty,
-          originUrl: result.requestOriginBaseUrl,
           requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
-          type: _disclosureTypeMapper.map(result.requestType),
           cardRequests: requests,
           policy: policy,
-          sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
       case core.StartDisclosureResult_RequestAttributesMissing():
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
         final missingAttributes = _missingAttributeMapper.mapList(result.missingAttributes);
         return StartIssuanceMissingAttributes(
           relyingParty: relyingParty,
-          originUrl: result.requestOriginBaseUrl,
-          requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           missingAttributes: missingAttributes,
-          sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
     }
   }

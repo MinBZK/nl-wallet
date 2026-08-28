@@ -341,7 +341,10 @@ pub enum InstructionError {
     #[error("cannot recover PIN: received PID does not belong to this wallet account")]
     PinRecoveryAccountMismatch,
 
-    #[error("error obtaining status claim: {0}")]
+    #[error("could not obtain status claim, batch ID already exists in database: {0}")]
+    StatusClaimBatchIdExists(Uuid),
+
+    #[error("could not obtain status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("recovery code is denied: {0}")]

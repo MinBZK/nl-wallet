@@ -55,7 +55,6 @@ class CoreDisclosureRepository implements DisclosureRepository {
         final policy = _requestPolicyMapper.map(result.policy);
         return StartDisclosureReadyToDisclose(
           relyingParty: relyingParty,
-          originUrl: result.requestOriginBaseUrl,
           requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           type: _disclosureTypeMapper.map(result.requestType),
@@ -68,11 +67,8 @@ class CoreDisclosureRepository implements DisclosureRepository {
         final missingAttributes = _missingAttributeMapper.mapList(result.missingAttributes);
         return StartDisclosureMissingAttributes(
           relyingParty: relyingParty,
-          originUrl: result.requestOriginBaseUrl,
-          requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           missingAttributes: missingAttributes,
-          sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
     }
   }

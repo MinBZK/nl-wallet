@@ -23,17 +23,12 @@ pub struct Mdoc {
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
     mso: MobileSecurityObject,
 
-    /// Identifier of the mdoc's private key. Obtain a reference to it with
-    /// [`DisclosureWscd::new_key(private_key_id, public_key)`].
-    // TODO (PVW-4962): Move this field to the `wallet` crate, as it is a concern of `Wallet`.
-    private_key_id: String,
     issuer_signed: IssuerSigned,
 }
 
 impl Mdoc {
     /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
     pub fn new(
-        private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -43,24 +38,16 @@ impl Mdoc {
         let IssuerSignedVerificationResult { mso, .. } =
             issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
 
-        let mdoc = Mdoc {
-            mso,
-            private_key_id,
-            issuer_signed,
-        };
+        let mdoc = Mdoc { mso, issuer_signed };
 
         Ok(mdoc)
     }
 
     /// Construct a new `Mdoc` by parsing the `issuer_auth` field of an `IssuerSigned` without validating it.
-    pub fn dangerous_parse_unverified(issuer_signed: IssuerSigned, private_key_id: String) -> Result<Self, CoseError> {
+    pub fn dangerous_parse_unverified(issuer_signed: IssuerSigned) -> Result<Self, CoseError> {
         let TaggedBytes(mso) = issuer_signed.issuer_auth.dangerous_parse_unverified()?;
 
-        let mdoc = Self {
-            mso,
-            private_key_id,
-            issuer_signed,
-        };
+        let mdoc = Self { mso, issuer_signed };
 
         Ok(mdoc)
     }
@@ -77,22 +64,10 @@ impl Mdoc {
         self.issuer_signed
     }
 
-    pub fn private_key_id(&self) -> &str {
-        &self.private_key_id
-    }
+    pub fn into_components(self) -> (MobileSecurityObject, IssuerSigned) {
+        let Self { mso, issuer_signed } = self;
 
-    pub fn into_private_key_id(self) -> String {
-        self.private_key_id
-    }
-
-    pub fn into_components(self) -> (MobileSecurityObject, String, IssuerSigned) {
-        let Self {
-            mso,
-            private_key_id,
-            issuer_signed,
-        } = self;
-
-        (mso, private_key_id, issuer_signed)
+        (mso, issuer_signed)
     }
 
     pub fn issuer_certificate_chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
@@ -142,12 +117,8 @@ mod test {
     use crate::utils::serialization::TaggedBytes;
 
     impl Mdoc {
-        pub fn new_unverified(mso: MobileSecurityObject, private_key_id: String, issuer_signed: IssuerSigned) -> Self {
-            Self {
-                mso,
-                private_key_id,
-                issuer_signed,
-            }
+        pub fn new_unverified(mso: MobileSecurityObject, issuer_signed: IssuerSigned) -> Self {
+            Self { mso, issuer_signed }
         }
 
         #[expect(clippy::too_many_arguments)]
@@ -194,13 +165,12 @@ mod test {
                 .unwrap();
 
             let TaggedBytes(mso) = mso_tagged;
-            let private_key_id = device_key.identifier().to_string();
             let issuer_signed = IssuerSigned {
                 name_spaces: Some(name_spaces),
                 issuer_auth,
             };
 
-            Self::new_unverified(mso, private_key_id, issuer_signed)
+            Self::new_unverified(mso, issuer_signed)
         }
 
         pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
@@ -220,7 +190,6 @@ pub mod mock {
     use chrono::Utc;
     use ciborium::Value;
     use crypto::CredentialEcdsaKey;
-    use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
@@ -256,13 +225,7 @@ pub mod mock {
                 .unwrap()
                 .issuer_signed;
 
-            Mdoc::new(
-                EXAMPLE_KEY_IDENTIFIER.to_string(),
-                issuer_signed,
-                &IsoCertTimeGenerator,
-                &TrustAnchors::from(ca),
-            )
-            .unwrap()
+            Mdoc::new(issuer_signed, &IsoCertTimeGenerator, &TrustAnchors::from(ca)).unwrap()
         }
 
         pub async fn new_mock() -> Self {

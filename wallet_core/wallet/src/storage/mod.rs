@@ -37,6 +37,7 @@ pub use self::attestation_copy::DisclosableAttestation;
 pub use self::attestation_copy::PartialAttestation;
 pub use self::attestation_copy::StoredAttestation;
 pub use self::attestation_copy::StoredAttestationCopy;
+pub use self::attestation_copy::WithKeyIdentifier;
 pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
 pub use self::data::KeyData;

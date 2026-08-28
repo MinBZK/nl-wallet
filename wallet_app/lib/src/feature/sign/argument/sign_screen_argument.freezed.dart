@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SignScreenArgument {
 
- String? get mockSessionId; String? get uri;
+ String get uri;
 /// Create a copy of SignScreenArgument
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SignScreenArgumentCopyWith<SignScreenArgument> get copyWith => _$SignScreenArgu
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SignScreenArgument&&(identical(other.mockSessionId, mockSessionId) || other.mockSessionId == mockSessionId)&&(identical(other.uri, uri) || other.uri == uri));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SignScreenArgument&&(identical(other.uri, uri) || other.uri == uri));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mockSessionId,uri);
+int get hashCode => Object.hash(runtimeType,uri);
 
 @override
 String toString() {
-  return 'SignScreenArgument(mockSessionId: $mockSessionId, uri: $uri)';
+  return 'SignScreenArgument(uri: $uri)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SignScreenArgumentCopyWith<$Res>  {
   factory $SignScreenArgumentCopyWith(SignScreenArgument value, $Res Function(SignScreenArgument) _then) = _$SignScreenArgumentCopyWithImpl;
 @useResult
 $Res call({
- String? mockSessionId, String? uri
+ String uri
 });
 
 
@@ -65,11 +65,10 @@ class _$SignScreenArgumentCopyWithImpl<$Res>
 
 /// Create a copy of SignScreenArgument
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? mockSessionId = freezed,Object? uri = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? uri = null,}) {
   return _then(_self.copyWith(
-mockSessionId: freezed == mockSessionId ? _self.mockSessionId : mockSessionId // ignore: cast_nullable_to_non_nullable
-as String?,uri: freezed == uri ? _self.uri : uri // ignore: cast_nullable_to_non_nullable
-as String?,
+uri: null == uri ? _self.uri : uri // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -154,10 +153,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? mockSessionId,  String? uri)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uri)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SignScreenArgument() when $default != null:
-return $default(_that.mockSessionId,_that.uri);case _:
+return $default(_that.uri);case _:
   return orElse();
 
 }
@@ -175,10 +174,10 @@ return $default(_that.mockSessionId,_that.uri);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? mockSessionId,  String? uri)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uri)  $default,) {final _that = this;
 switch (_that) {
 case _SignScreenArgument():
-return $default(_that.mockSessionId,_that.uri);case _:
+return $default(_that.uri);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +194,10 @@ return $default(_that.mockSessionId,_that.uri);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? mockSessionId,  String? uri)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uri)?  $default,) {final _that = this;
 switch (_that) {
 case _SignScreenArgument() when $default != null:
-return $default(_that.mockSessionId,_that.uri);case _:
+return $default(_that.uri);case _:
   return null;
 
 }
@@ -210,11 +209,10 @@ return $default(_that.mockSessionId,_that.uri);case _:
 @JsonSerializable()
 
 class _SignScreenArgument implements SignScreenArgument {
-  const _SignScreenArgument({this.mockSessionId, this.uri}): assert(mockSessionId != null || uri != null, 'Either a mockSessionId or a uri is needed to start signing');
+  const _SignScreenArgument({required this.uri});
   factory _SignScreenArgument.fromJson(Map<String, dynamic> json) => _$SignScreenArgumentFromJson(json);
 
-@override final  String? mockSessionId;
-@override final  String? uri;
+@override final  String uri;
 
 /// Create a copy of SignScreenArgument
 /// with the given fields replaced by the non-null parameter values.
@@ -229,16 +227,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SignScreenArgument&&(identical(other.mockSessionId, mockSessionId) || other.mockSessionId == mockSessionId)&&(identical(other.uri, uri) || other.uri == uri));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SignScreenArgument&&(identical(other.uri, uri) || other.uri == uri));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mockSessionId,uri);
+int get hashCode => Object.hash(runtimeType,uri);
 
 @override
 String toString() {
-  return 'SignScreenArgument(mockSessionId: $mockSessionId, uri: $uri)';
+  return 'SignScreenArgument(uri: $uri)';
 }
 
 
@@ -249,7 +247,7 @@ abstract mixin class _$SignScreenArgumentCopyWith<$Res> implements $SignScreenAr
   factory _$SignScreenArgumentCopyWith(_SignScreenArgument value, $Res Function(_SignScreenArgument) _then) = __$SignScreenArgumentCopyWithImpl;
 @override @useResult
 $Res call({
- String? mockSessionId, String? uri
+ String uri
 });
 
 
@@ -266,11 +264,10 @@ class __$SignScreenArgumentCopyWithImpl<$Res>
 
 /// Create a copy of SignScreenArgument
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? mockSessionId = freezed,Object? uri = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? uri = null,}) {
   return _then(_SignScreenArgument(
-mockSessionId: freezed == mockSessionId ? _self.mockSessionId : mockSessionId // ignore: cast_nullable_to_non_nullable
-as String?,uri: freezed == uri ? _self.uri : uri // ignore: cast_nullable_to_non_nullable
-as String?,
+uri: null == uri ? _self.uri : uri // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

@@ -15,7 +15,6 @@ use parking_lot::Mutex;
 use crate::CredentialEcdsaKey;
 use crate::EcdsaKey;
 use crate::SecureEcdsaKey;
-use crate::WithIdentifier;
 use crate::utils::random_string;
 use crate::wscd::DisclosureResult;
 use crate::wscd::DisclosureWscd;
@@ -68,12 +67,6 @@ impl EcdsaKey for MockRemoteEcdsaKey {
     }
 }
 impl SecureEcdsaKey for MockRemoteEcdsaKey {}
-
-impl WithIdentifier for MockRemoteEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
-    }
-}
 
 impl CredentialEcdsaKey for MockRemoteEcdsaKey {}
 

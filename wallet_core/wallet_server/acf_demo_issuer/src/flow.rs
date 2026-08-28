@@ -557,11 +557,11 @@ mod tests {
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
     use openid4vc::test::MOCK_ATTRS;
+    use openid4vc::test::MockObtainingStatusListService;
     use openid4vc::test::mock_type_metadata;
     use openid4vc::test::setup_mock_issuer_from_sd_jwt_metadata;
     use p256::ecdsa::SigningKey;
     use server_utils::store::StoreConnection;
-    use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::vec_nonempty;
 
     use super::CONSENT_PATH;
@@ -574,7 +574,7 @@ mod tests {
 
     type TestAuthorizingIssuer = AuthorizingIssuer<
         SigningKey,
-        MockStatusListService,
+        MockObtainingStatusListService,
         MemorySessionStore<IssuanceData>,
         MemoryNonceStore,
         MemoryStore<String, VciAuthorizationRequest>,

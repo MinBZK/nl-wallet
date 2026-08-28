@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 use crate::postgres::PostgresStatusListService;
 use crate::postgres::RevokeAll;
+use crate::postgres::StatusListServiceError;
 #[cfg(feature = "test_api")]
 use crate::postgres::revocation_helper::BatchIsRevoked;
 #[cfg(feature = "test_api")]
@@ -48,7 +49,7 @@ struct ApiDoc;
 async fn revoke_batch<K, R>(
     State(state): State<Arc<RevocationRouterState<K, R>>>,
     Json(batch_ids): Json<Vec<Uuid>>,
-) -> Result<(), RevocationError>
+) -> Result<(), RevocationError<StatusListServiceError>>
 where
     K: EcdsaKeySend + Sync + 'static,
     R: RevokeAll + Clone + Sync + 'static,
@@ -64,6 +65,7 @@ where
     )
     .await
     .map(|_| ())
+    .map_err(RevocationError::InternalError)
 }
 
 #[cfg(feature = "test_api")]
@@ -76,7 +78,7 @@ where
 )]
 async fn list_batch<K, R>(
     State(state): State<Arc<RevocationRouterState<K, R>>>,
-) -> Result<Json<Vec<BatchIsRevoked>>, RevocationError> {
+) -> Result<Json<Vec<BatchIsRevoked>>, RevocationError<StatusListServiceError>> {
     Ok(Json(state.revocation_helper.list_attestation_batches().await?))
 }
 
@@ -95,7 +97,7 @@ async fn list_batch<K, R>(
 async fn get_batch<K, R>(
     State(state): State<Arc<RevocationRouterState<K, R>>>,
     Path(batch_id): Path<Uuid>,
-) -> Result<Json<BatchIsRevoked>, RevocationError> {
+) -> Result<Json<BatchIsRevoked>, RevocationError<StatusListServiceError>> {
     Ok(Json(state.revocation_helper.get_attestation_batch(batch_id).await?))
 }
 

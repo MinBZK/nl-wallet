@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_types::credential_format::Format;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -14,29 +15,38 @@ use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use http::header;
 use http::header::ACCEPT;
+use http::header::AUTHORIZATION;
 use http::header::CONTENT_TYPE;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use itertools::Itertools;
+use jwt::SignedJwt;
 use jwt::VerifiedJwt;
+use jwt::pop::JwtPopClaims;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization_details::EntryContainer;
 use openid4vc::client_auth::fetch_client_auth_challenge;
+use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialResponse;
+use openid4vc::credential::Credentials;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
+use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::errors::AuthorizationErrorCode;
 use openid4vc::errors::RemoteErrorCode;
 use openid4vc::errors::TokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
+use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::nonce::response::NonceResponse;
 use openid4vc::pkce::PkcePair;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
@@ -80,6 +90,7 @@ use sd_jwt_vc_metadata::TypeMetadata;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::generator::TimeGenerator;
+use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
@@ -361,6 +372,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     let type_metadata = mock_type_metadata_with_required_attr(MOCK_ATTESTATION_TYPES[0], required_attr);
     // The document carries only the required attribute; the optional one is absent.
     let documents = vec_nonempty![mock_issuable_document_with_attrs(
+        Format::SdJwt,
         MOCK_ATTESTATION_TYPES[0],
         &[MOCK_ATTRS[1]]
     )];
@@ -892,11 +904,13 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
 /// Builds a parseable DPoP header for `POST {token_url}`. The PKCE check in the `/token`
 /// handler runs before DPoP semantic verification, so the value just has to deserialize —
 /// the URL/method don't need to match what the handler will later try to verify against.
-fn dpop_header_for(token_url: &Url) -> String {
+fn dpop_header_for_token_request(url: Url) -> (SigningKey, String) {
     let signing_key = SigningKey::generate();
-    Dpop::new(&signing_key, token_url.clone(), &Method::POST, None, None)
+    let dpop_header = Dpop::new(&signing_key, url, &Method::POST, None, None)
         .unwrap()
-        .to_string()
+        .to_string();
+
+    (signing_key, dpop_header)
 }
 
 /// Plant an `AuthCodeIssued` session against the given authorizing_issuer, returning the
@@ -963,11 +977,12 @@ async fn token_ok() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1040,11 +1055,12 @@ async fn token_rejects_missing_code_verifier() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1094,11 +1110,12 @@ async fn token_rejects_unknown_code_verifier() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1153,11 +1170,12 @@ async fn token_rejects_grant_type_mismatch() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1215,11 +1233,12 @@ async fn token_rejects_authorization_details() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1270,11 +1289,12 @@ async fn token_rejects_scope_mismatch() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
         .post(token_url.clone())
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1310,11 +1330,12 @@ async fn token_rejects_scope_mismatch() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1372,11 +1393,12 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1423,11 +1445,12 @@ async fn token_rejects_differing_client_id() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1478,11 +1501,12 @@ async fn token_rejects_differing_redirect_uri() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
         .post(token_url.clone())
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1516,11 +1540,12 @@ async fn token_rejects_differing_redirect_uri() {
         .await
         .unwrap();
 
+    let (_dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
     let response = http_client
-        .post(token_url.clone())
+        .post(token_url)
         .header(WIA_HEADER_NAME, wia.wia().serialization())
         .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .header(DPOP_HEADER_NAME, dpop_header)
         .form(&token_request)
         .send()
         .await
@@ -1529,6 +1554,197 @@ async fn token_rejects_differing_redirect_uri() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
     assert!(body.contains("invalid_request"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn pre_authorized_code_flow_credential_request() {
+    // Prepare an issuer with a new Pre-Authorized Code flow.
+    let attestation_count = NonZeroUsize::MIN;
+    let PreAuthCodeFlowServer {
+        issuer,
+        tls_trust_anchor,
+        wia_keypair,
+        ..
+    } = start_pre_authorized_code_flow_server(attestation_count).await;
+
+    let documents = mock_issuable_documents(attestation_count);
+    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
+
+    // Retrieve the client authorization challenge from the issuer.
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let base = issuer.issuer_identifier().as_base_url().as_ref().as_str();
+    let challenge = fetch_client_auth_challenge(
+        &HttpClient::new(http_client.clone()),
+        format!("{base}issuance/client_auth_challenge").parse().unwrap(),
+    )
+    .await
+    .unwrap();
+
+    // Build the TokenRequest and send it to the issuer to get the TokenResponse and DPoP nonce.
+    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+        .issue_wia(issuer.issuer_identifier().to_string(), Some(challenge))
+        .await
+        .unwrap();
+
+    let pre_authorized_code = credential_offer
+        .grants
+        .unwrap()
+        .pre_authorized_code
+        .unwrap()
+        .pre_authorized_code;
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+        redirect_uri: None,
+        scope: None,
+        code_verifier: None,
+        authorization_details: None,
+    };
+
+    let token_url = format!("{base}issuance/token",).parse::<Url>().unwrap();
+
+    let (dpop_key, dpop_header) = dpop_header_for_token_request(token_url.clone());
+    let response = http_client
+        .post(token_url)
+        .header(WIA_HEADER_NAME, wia.wia().serialization())
+        .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+        .header(DPOP_HEADER_NAME, dpop_header)
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+
+    let dpop_nonce = response
+        .headers()
+        .get(DPOP_NONCE_HEADER_NAME)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+    let token_response = response.json::<TokenResponse>().await.unwrap();
+
+    // Retrieve a fresh nonce from the issuer.
+    let nonce_url = format!("{base}issuance/nonce",).parse::<Url>().unwrap();
+
+    let nonce_response = http_client
+        .post(nonce_url.clone())
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json::<NonceResponse>()
+        .await
+        .unwrap();
+
+    // Use the proof nonce to build a CredentialRequest and send it to the issuer to have a single credential issued.
+    let credential_id = token_response
+        .authorization_details
+        .expect("TokenResponse should contain authorization_details")
+        .into_credential_ids_and_identifiers()
+        .into_first()
+        .1
+        .into_first();
+    let proof_claims = JwtPopClaims::new(
+        Some(nonce_response.c_nonce),
+        MOCK_WALLET_CLIENT_ID.to_string(),
+        issuer.issuer_identifier().as_ref().to_string(),
+        &MockTimeGenerator::default(),
+    );
+    let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())
+        .await
+        .unwrap()
+        .into();
+    let credential_request = CredentialRequest::new_credential_id(credential_id.clone(), vec_nonempty![proof]);
+
+    let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_V1_PATH}",)
+        .parse::<Url>()
+        .unwrap();
+
+    let dpop_header = Dpop::new(
+        &dpop_key,
+        credential_url.clone(),
+        &Method::POST,
+        Some(&token_response.access_token),
+        Some(dpop_nonce.clone()),
+    )
+    .unwrap()
+    .to_string();
+
+    let credential_response = http_client
+        .post(credential_url.clone())
+        .header(AUTHORIZATION, format!("DPoP {}", token_response.access_token.as_ref()))
+        .header(DPOP_HEADER_NAME, dpop_header)
+        .json(&credential_request)
+        .send()
+        .await
+        .expect("requesting credential from issuer should succeed")
+        .json::<CredentialResponse>()
+        .await
+        .expect("requesting credential from issuer should result in a CredentialResponse");
+
+    let Credentials::SdJwt(sd_jwt_credentials) = credential_response
+        .into_immediate_credentials()
+        .expect("CredentialResponse should contain immediate credentials")
+    else {
+        panic!("CredentialResponse should contain SD-JWT credentials");
+    };
+
+    assert_eq!(sd_jwt_credentials.len().get(), 1);
+
+    // Retrieving a fresh nonce and trying to request the same credential a second should result in a 400 HTTP status
+    // code and "credential_request_denied" error code.
+    let nonce_response = http_client
+        .post(nonce_url.clone())
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json::<NonceResponse>()
+        .await
+        .unwrap();
+
+    let proof_claims = JwtPopClaims::new(
+        Some(nonce_response.c_nonce),
+        MOCK_WALLET_CLIENT_ID.to_string(),
+        issuer.issuer_identifier().as_ref().to_string(),
+        &MockTimeGenerator::default(),
+    );
+    let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())
+        .await
+        .unwrap()
+        .into();
+    let credential_request = CredentialRequest::new_credential_id(credential_id, vec_nonempty![proof]);
+
+    let dpop_header = Dpop::new(
+        &dpop_key,
+        credential_url.clone(),
+        &Method::POST,
+        Some(&token_response.access_token),
+        Some(dpop_nonce),
+    )
+    .unwrap()
+    .to_string();
+
+    let response = http_client
+        .post(credential_url)
+        .header(AUTHORIZATION, format!("DPoP {}", token_response.access_token.as_ref()))
+        .header(DPOP_HEADER_NAME, dpop_header)
+        .json(&credential_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("credential_request_denied"), "unexpected body: {body}");
 }
 
 async fn setup_metadata_test() -> (Arc<MockIssuer>, RequestBuilder) {

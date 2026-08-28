@@ -22,10 +22,6 @@ sealed class SignState extends Equatable {
   ];
 }
 
-class SignInitial extends SignState {
-  const SignInitial();
-}
-
 class SignLoadInProgress extends SignState {
   const SignLoadInProgress();
 

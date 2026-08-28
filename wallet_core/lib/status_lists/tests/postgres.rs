@@ -51,6 +51,7 @@ use tempfile::TempDir;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
@@ -490,6 +491,15 @@ async fn test_service_create_status_claims() {
         db_list_indices[0].indices,
         vec![db_list_items[1].index, db_list_items[2].index]
     );
+
+    // Obtaining status claims with the same batch_id should result in an error.
+
+    let error = service
+        .obtain_status_claims_and_scheduled_tasks(batch_id, Some(expiration_date), NonZeroUsize::MIN)
+        .await
+        .expect_err("obtaining status claims with a batch_id that already exists should fail");
+
+    assert_matches!(error, ObtainClaimError::BatchIdExists(existing_batch_id) if existing_batch_id == batch_id);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

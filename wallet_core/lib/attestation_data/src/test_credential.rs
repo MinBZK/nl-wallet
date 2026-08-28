@@ -116,13 +116,13 @@ impl TestCredentials {
         &self,
         issuer_keypair: &KeyPair,
         wscd: &impl AsRef<MockRemoteWscd>,
-    ) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>> {
+    ) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<(PartialMdoc, String)>> {
         self.as_ref()
             .iter()
             .map(|credential| {
-                let partial_mdoc = credential.to_partial_mdoc(issuer_keypair, wscd);
+                let (partial_mdoc, identifier) = credential.to_partial_mdoc(issuer_keypair, wscd);
 
-                (credential.query_id.clone(), vec_nonempty![partial_mdoc])
+                (credential.query_id.clone(), vec_nonempty![(partial_mdoc, identifier)])
             })
             .collect()
     }
@@ -315,7 +315,7 @@ impl TestCredential {
         (credential_payload, holder_key.identifier, normalized_metadata)
     }
 
-    pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> Mdoc {
+    pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (Mdoc, String) {
         let (credential_payload, holder_key_identifier, _) = self.to_credential_payload(wscd);
 
         let (issuer_signed, mso) = credential_payload
@@ -324,7 +324,7 @@ impl TestCredential {
             .unwrap()
             .expect("TestCredential payload preview should convert to Mdoc");
 
-        Mdoc::new_unverified(mso, holder_key_identifier, issuer_signed)
+        (Mdoc::new_unverified(mso, issuer_signed), holder_key_identifier)
     }
 
     pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
@@ -339,11 +339,18 @@ impl TestCredential {
         (sd_jwt, holder_key_identifier)
     }
 
-    pub fn to_partial_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> PartialMdoc {
-        let mdoc = self.to_mdoc(issuer_keypair, wscd);
+    pub fn to_partial_mdoc(
+        &self,
+        issuer_keypair: &KeyPair,
+        wscd: &impl AsRef<MockRemoteWscd>,
+    ) -> (PartialMdoc, String) {
+        let (mdoc, holder_key_identifier) = self.to_mdoc(issuer_keypair, wscd);
         let claim_paths = self.to_mdoc_claim_paths().collect_vec();
 
-        PartialMdoc::try_new(mdoc, &claim_paths).expect("TestCredential payload preview should convert to PartialMdoc")
+        let partial_mdoc = PartialMdoc::try_new(mdoc, &claim_paths)
+            .expect("TestCredential payload preview should convert to PartialMdoc");
+
+        (partial_mdoc, holder_key_identifier)
     }
 
     pub fn to_unsigned_sd_jwt_presentation(

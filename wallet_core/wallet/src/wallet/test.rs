@@ -35,6 +35,7 @@ use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use openid4vc::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
@@ -92,6 +93,7 @@ use crate::storage::StorageState;
 use crate::storage::StoredAttestation;
 use crate::storage::StoredAttestationCopy;
 use crate::storage::WalletEvent;
+use crate::storage::WithKeyIdentifier;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
@@ -293,8 +295,6 @@ pub fn mdoc_from_credential_payload(
     issuer_keypair: &KeyPair,
     holder_key: &SigningKey,
 ) -> Mdoc {
-    let private_key_id = crypto::utils::random_string(16);
-
     let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
         preview_payload,
         Utc::now(),
@@ -308,7 +308,7 @@ pub fn mdoc_from_credential_payload(
     .unwrap()
     .unwrap();
 
-    Mdoc::new_unverified(mso, private_key_id, issuer_signed)
+    Mdoc::new_unverified(mso, issuer_signed)
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
@@ -570,7 +570,7 @@ where
 /// This function is used to create a mock issuance session for testing purposes using the provided stored attestations.
 /// They do not need to be stored at all, we're simply reusing that type here for convenience.
 pub fn mock_issuance_session(
-    stored_attestations: impl IntoIterator<Item = (StoredAttestation, VerifiedTypeMetadataDocuments)>,
+    stored_attestations: impl IntoIterator<Item = (WithKeyIdentifier<StoredAttestation>, VerifiedTypeMetadataDocuments)>,
 ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
     let (credentials_with_metadata, attestation_presentations, issuer_registrations): (_, Vec<_>, Vec<_>) =
         stored_attestations
@@ -579,9 +579,10 @@ pub fn mock_issuance_session(
                 let normalized_type_metadata = metadata_documents.to_normalized().unwrap();
 
                 let (copies, attestation_type, exp, nbf, issuer_registration, attestation_presentation) =
-                    match stored_attestation {
-                        StoredAttestation::MsoMdoc { mdoc } => {
-                            let (mso, _, _) = mdoc.clone().into_components();
+                    match stored_attestation.data {
+                        StoredAttestation::MsoMdoc(mdoc) => {
+                            let key_identifier = stored_attestation.key_identifier;
+                            let (mso, _) = mdoc.clone().into_components();
 
                             let exp = Some((&mso.validity_info.valid_until).try_into().unwrap());
                             let nbf = Some((&mso.validity_info.valid_from).try_into().unwrap());
@@ -608,7 +609,10 @@ pub fn mock_issuance_session(
                             .unwrap();
 
                             (
-                                IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc.clone()]),
+                                IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
+                                    key_identifier,
+                                    mdoc: mdoc.clone(),
+                                }]),
                                 mdoc.doc_type().to_string(),
                                 exp,
                                 nbf,
@@ -616,7 +620,8 @@ pub fn mock_issuance_session(
                                 attestation_presentation,
                             )
                         }
-                        StoredAttestation::SdJwt { key_identifier, sd_jwt } => {
+                        StoredAttestation::SdJwt(sd_jwt) => {
+                            let key_identifier = stored_attestation.key_identifier;
                             let claims = sd_jwt.claims();
                             let exp = claims.exp;
                             let nbf = claims.nbf;
@@ -704,8 +709,13 @@ fn example_stored_attestation_copy_with_issuer_keypair(
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            StoredAttestation::MsoMdoc {
-                mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair, holder_key),
+            WithKeyIdentifier {
+                key_identifier: crypto::utils::random_string(16),
+                data: StoredAttestation::MsoMdoc(mdoc_from_credential_payload(
+                    credential_payload.previewable_payload,
+                    issuer_keypair,
+                    holder_key,
+                )),
             },
             metadata,
             None,
@@ -714,9 +724,13 @@ fn example_stored_attestation_copy_with_issuer_keypair(
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
-            StoredAttestation::SdJwt {
+            WithKeyIdentifier {
                 key_identifier: crypto::utils::random_string(16),
-                sd_jwt: verified_sd_jwt_from_credential_payload(credential_payload, &metadata, issuer_keypair),
+                data: StoredAttestation::SdJwt(verified_sd_jwt_from_credential_payload(
+                    credential_payload,
+                    &metadata,
+                    issuer_keypair,
+                )),
             },
             metadata,
             None,

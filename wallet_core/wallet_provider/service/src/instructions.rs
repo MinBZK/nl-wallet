@@ -25,6 +25,7 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
+use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
 use utils::generator::Generator;
@@ -526,7 +527,10 @@ where
             NonZeroUsize::MIN, // only one WIA is issued
         )
         .await
-        .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)))?
+        .map_err(|error| match error {
+            ObtainClaimError::BatchIdExists(id) => InstructionError::StatusClaimBatchIdExists(id),
+            ObtainClaimError::InternalError(error) => InstructionError::ObtainStatusClaim(Box::new(error)),
+        })?
         .into_first(); // only one was requested
 
     // link WIA ID to Wallet user ID

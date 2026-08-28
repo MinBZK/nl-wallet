@@ -55,11 +55,9 @@ use jwt::JwtTyp;
 use jwt::JwtValidation;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
-use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithJwk;
-use jwt::jwk::jwk_to_public_key;
 use p256::ecdsa::SigningKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -106,9 +104,6 @@ pub enum DpopError {
     #[error("incorrect JWK public key")]
     #[category(critical)]
     IncorrectJwkPublicKey,
-
-    #[error("failed to convert key from/to JWK format: {0}")]
-    JwkConversion(#[from] JwkConversionError),
 
     #[error("JWT sign error: {0}")]
     JwtSign(#[source] JwtSignError),
@@ -202,12 +197,13 @@ impl Dpop {
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<PublicKey> {
-        let (header, payload) = self
-            .0
+        let Self(jwt) = self;
+        let (_header, payload, public_key) = jwt
             .parse_and_verify_with_jwk(DPOP_VALIDATION.to_owned())
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token, None)?;
-        Ok(jwk_to_public_key(&header.jwk)?)
+
+        Ok(public_key)
     }
 
     /// Verify the DPoP JWT against the specified public key obtained previously from [`Dpop::verify()`].

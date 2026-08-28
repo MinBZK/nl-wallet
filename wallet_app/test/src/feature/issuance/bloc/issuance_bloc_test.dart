@@ -4,7 +4,6 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
-import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
@@ -19,10 +18,7 @@ final _kDefaultReadyToDiscloseResponse = StartIssuanceReadyToDisclose(
   policy: WalletMockData.policy,
   sessionType: DisclosureSessionType.sameDevice,
   cardRequests: [WalletMockData.discloseCardRequestMultiCard],
-  originUrl: 'https://example.org',
   requestPurpose: {},
-  type: DisclosureType.regular,
-  sharedDataWithOrganizationBefore: false,
 );
 
 const _kBlockProcessDelay = Duration(milliseconds: 50);
@@ -70,10 +66,7 @@ void main() {
             policy: WalletMockData.policy,
             sessionType: DisclosureSessionType.crossDevice,
             cardRequests: [],
-            originUrl: 'https://example.org',
             requestPurpose: {},
-            type: DisclosureType.regular,
-            sharedDataWithOrganizationBefore: false,
           ),
         ),
       );
@@ -224,9 +217,6 @@ void main() {
             relyingParty: WalletMockData.organization,
             sessionType: DisclosureSessionType.crossDevice,
             missingAttributes: [MissingAttribute(label: 'missing'.untranslated)],
-            originUrl: 'https://example.org',
-            requestPurpose: {},
-            sharedDataWithOrganizationBefore: false,
           ),
         ),
       );

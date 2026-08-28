@@ -163,12 +163,4 @@ void main() {
       isA<SignCheckOrganization>().having((s) => s.afterBackPressed, 'afterBackPressed', true),
     ],
   );
-
-  test('SignEvent', () {
-    final input = const SignLoadTriggered('a');
-    final expectEquals = const SignLoadTriggered('a');
-    final expectDifferent = const SignLoadTriggered('b');
-    expect(input, equals(expectEquals));
-    expect(input, isNot(expectDifferent));
-  });
 }

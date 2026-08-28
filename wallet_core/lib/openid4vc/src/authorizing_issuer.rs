@@ -402,7 +402,6 @@ mod tests {
     use jwt::nonce::Nonce;
     use jwt::wia::WiaDisclosure;
     use p256::ecdsa::SigningKey;
-    use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
@@ -440,6 +439,7 @@ mod tests {
     use crate::store::Store;
     use crate::test::MOCK_ATTESTATION_TYPES;
     use crate::test::MockIssuer;
+    use crate::test::MockObtainingStatusListService;
     use crate::test::mock_issuable_documents;
     use crate::test::setup_mock_issuer;
     use crate::token::AuthorizationCode;
@@ -454,7 +454,7 @@ mod tests {
 
     type TestAuthorizingIssuer = AuthorizingIssuer<
         SigningKey,
-        MockStatusListService,
+        MockObtainingStatusListService,
         MemorySessionStore<IssuanceData>,
         MemoryNonceStore,
         MemoryStore<String, VciAuthorizationRequest>,

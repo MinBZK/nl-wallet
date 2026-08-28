@@ -1,5 +1,6 @@
 package feature.issuance
 
+import com.codeborne.selenide.WebDriverRunner
 import helper.GbaDataHelper
 import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
@@ -8,6 +9,8 @@ import helper.LocalizationHelper
 import helper.OrganizationMetadataHelper
 import helper.TasDataHelper
 import helper.TestBase
+import helper.clearBrowser
+import io.appium.java_client.AppiumDriver
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertAll
@@ -124,10 +127,13 @@ class RenewCardTests : TestBase() {
     @Tags(Tag("a11yBatch3"))
     fun verifyPIDCardRenewal(testInfo: TestInfo) {
         setUp(testInfo)
+        clearBrowser(WebDriverRunner.getWebDriver() as AppiumDriver)
+        dashboardScreen.openApp()
+        if (pinScreen.pinScreenVisible()) pinScreen.enterPin(DEFAULT_PIN)
+
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         cardDetailScreen.renewPidCard()
         personalizeInformScreen.clickDigidLoginButton()
-        digidLoginMockWebPage.switchToBrowser()
         digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
         personalizePidPreviewScreen.switchToNativeContext()

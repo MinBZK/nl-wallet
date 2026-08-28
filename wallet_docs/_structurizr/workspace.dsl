@@ -14,7 +14,12 @@ workspace "Name" "NL-Wallet" {
                 walletApp = container "Wallet app" "" "Android/iOS" {
                     appGui = component "App Frontend" "" "flutter (dart)"
                     appCore = component "App Core" "" "rust"
-                    appPlatform = component "Platform support" "native functions" "rust"
+                    ps = group "Platform support (native functions)" {
+                        appPlatformKeys = component "Key store bridge" "Signing and encryption keys that stay in the secure element" "rust + kotlin/swift"
+                        appPlatformAttest = component "Attested key bridge" "App and key attestation" "rust + kotlin/swift"
+                        appPlatformStorage = component "Storage bridge" "Location of the app database" "rust + kotlin/swift"
+                        appPlatformProximity = component "Close proximity bridge" "BLE transport for in-person disclosure (ISO 18013-5)" "rust + kotlin/swift"
+                    }
                 }
                 appDb = container "App database" "" "sqlite" {
                     tags "Database"
@@ -166,15 +171,22 @@ workspace "Name" "NL-Wallet" {
         ws.walletApp -> digid "[I-106] Start authentication for activation/recovery"
         ws.walletBackend -> ws.db "[I-401] Reads from and writes to"
 
-        ws.walletApp.appCore -> ws.walletApp.appGui "Exchange information from core to GUI"
-        ws.walletApp.appGui -> ws.walletApp.appCore "Exchange information from GUI to core"
-        ws.walletApp.appCore -> ws.walletApp.appPlatform "Use platform routines (iOS/Android)"
+        ws.walletApp.appGui -> ws.walletApp.appCore "Invoke wallet operations (unlock, PIN, issuance, disclosure)" "Flutter Rust Bridge (generated)"
+        ws.walletApp.appCore -> ws.walletApp.appGui "Report state changes (lock state, attestations, events)" "Flutter Rust Bridge (generated)"
+        ws.walletApp.appCore -> ws.walletApp.appPlatformKeys "Create keys, sign, encrypt and decrypt" "UniFFI (generated)"
+        ws.walletApp.appCore -> ws.walletApp.appPlatformAttest "Attest app and key" "UniFFI (generated)"
+        ws.walletApp.appCore -> ws.walletApp.appPlatformStorage "Get storage location" "UniFFI (generated)"
+        ws.walletApp.appCore -> ws.walletApp.appPlatformProximity "Set up and run in-person disclosure session" "UniFFI (generated)"
         ws.walletApp.appCore -> ws.updateServer "[I-105] Get update policies"
         ws.walletApp.appCore -> ws.configurationServer "[I-104] Get runtime configuration"
         ws.walletApp.appCore -> ws.walletBackend.hsmInstructionClient "[I-103] HSM-assisted operation (sign, generate key, PIN mgmt, recovery)"
         ws.walletBackend.hsmInstructionClient -> ws.walletBackend.walletAccountManager "account operations"
         ws.walletApp.appCore -> ws.appDb "[I-101] Store/retrieve attestations, logs, configuration"
-        ws.walletApp.appPlatform -> secureElement "[I-102] Manage keys, signing ops"
+        ws.walletApp.appPlatformKeys -> secureElement "[I-102] Manage keys, signing ops"
+        ws.walletApp.appPlatformKeys -> ws.appDb "Supplies the key that encrypts"
+        ws.walletApp.appPlatformStorage -> ws.appDb "Locates"
+        ws.walletApp.appPlatformAttest -> platformServices "[I-113] Request app/key attestation"
+        ws.walletApp.appPlatformProximity -> verifier "[I-111] Exchange disclosure messages" "Bluetooth LE (ISO 18013-5)"
         ws.revokeUi -> ws.walletBackend.walletAccountManager "[I-407] Revoke wallet (user request)"
         //PID issuer specific
         ws.walletApp -> issuerPid "[E-107] Wallet activation and PID issuance, [E-103] check PID status "
@@ -262,6 +274,11 @@ workspace "Name" "NL-Wallet" {
 
         component ws.walletApp "HD2NL-WalletApp" {
             include * verifier ws.wab
+        }
+
+        component ws.walletApp "JD2NL-WalletApp-Interfaces" "How the App Core connects to the user interface and to the phone" {
+            include u ws.walletApp.appGui ws.walletApp.appCore ws.walletApp.ps ws.appDb secureElement platformServices verifier
+            autolayout tb 300 400
         }
 
         systemContext issuerPb "ID3IssuerSoftwareSystem" {

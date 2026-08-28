@@ -525,6 +525,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::WithKeyIdentifier;
     use crate::wallet::PersistedPinRecoverySessionData;
     use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
@@ -620,9 +621,9 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    StoredAttestation::SdJwt {
+                    WithKeyIdentifier {
                         key_identifier: "key".to_string(),
-                        sd_jwt: create_example_pid_sd_jwt().0,
+                        data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                     None,
@@ -925,9 +926,9 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
-                    StoredAttestation::SdJwt {
+                    WithKeyIdentifier {
                         key_identifier: "key".to_string(),
-                        sd_jwt: create_example_pid_sd_jwt().0,
+                        data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                     None,
@@ -993,13 +994,16 @@ mod tests {
 
         let (pid_issuer, _) = mock_issuance_session([
             (
-                StoredAttestation::MsoMdoc { mdoc },
+                WithKeyIdentifier {
+                    key_identifier: "key_id".to_string(),
+                    data: StoredAttestation::MsoMdoc(mdoc),
+                },
                 VerifiedTypeMetadataDocuments::nl_pid_example(),
             ),
             (
-                StoredAttestation::SdJwt {
+                WithKeyIdentifier {
                     key_identifier: "key_id".to_string(),
-                    sd_jwt: sd_jwt.clone(),
+                    data: StoredAttestation::SdJwt(sd_jwt.clone()),
                 },
                 VerifiedTypeMetadataDocuments::nl_pid_example(),
             ),

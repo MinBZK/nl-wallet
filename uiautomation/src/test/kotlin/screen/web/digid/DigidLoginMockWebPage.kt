@@ -25,7 +25,7 @@ class DigidLoginMockWebPage : MobileActions() {
     }
 
     fun login(bsn: String) {
-        switchToWebViewContext()
+        switchToWebViewWindowContaining(bsnInput)
         enterBsn(bsn)
         clickLoginButton()
     }

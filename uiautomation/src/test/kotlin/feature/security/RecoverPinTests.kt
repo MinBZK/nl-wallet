@@ -1,6 +1,9 @@
 package feature.security
 
+import com.codeborne.selenide.WebDriverRunner
 import helper.TestBase
+import helper.clearBrowser
+import io.appium.java_client.AppiumDriver
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -50,6 +53,10 @@ class RecoverPinTests : TestBase() {
     fun verifyRecoverPinFlow(testInfo: TestInfo) {
         setUp(testInfo)
         menuScreen.clickLogoutButton()
+        assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
+
+        clearBrowser(WebDriverRunner.getWebDriver() as AppiumDriver)
+        pinScreen.openApp()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
 
         pinScreen.clickForgotPinButton()

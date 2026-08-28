@@ -1,15 +1,17 @@
 package feature.permissions
 
+import data.TestConfigRepository.Companion.testConfig
+import domain.Platform
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import domain.Platform
 import screen.dashboard.DashboardScreen
 import screen.permissions.BluetoothPermissionScreen
 import screen.permissions.NativePermissionDialog
@@ -33,6 +35,8 @@ class BluetoothPermissionTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Bluetooth permission not granted shows in-app permission screen")
     fun verifyBluetoothPermissionScreenShownWhenPermissionNotGranted(testInfo: TestInfo) {
+        // The iOS simulator has no Bluetooth and on real iOS devices the permissions cannot be reliably reset.
+        assumeTrue(testConfig.platform == Platform.ANDROID, "Bluetooth permission prompt is not available on the iOS simulator")
         setUp(testInfo)
         dashboardScreen.showQRCode()
         when (dashboardScreen.platform()) {

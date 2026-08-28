@@ -368,17 +368,20 @@ where
     H: DeserializeOwned + TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    /// Verify the JWT against the contained JWK in the header.
+    /// Verify the JWT against the contained JWK in the header, then return the header, payload and public key used to
+    /// verify the JWT.
     pub fn parse_and_verify_with_jwk(
         &self,
         validation: JwtValidation,
-    ) -> Result<(HeaderWithJwk<H>, T), JwtVerifyError> {
+    ) -> Result<(HeaderWithJwk<H>, T, PublicKey), JwtVerifyError> {
         let pubkey = jwk_to_public_key(&self.extract_jwk().map_err(JwtVerifyError::ParseError)?)
             .map_err(JwtParseError::Jwk)
             .map_err(JwtVerifyError::ParseError)?;
 
         let validation = validation.into_validation(&pubkey);
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
+        let (header, payload) = self.parse_and_verify(JwtDecodingKey::from(&pubkey), validation)?;
+
+        Ok((header, payload, pubkey))
     }
 
     /// Verify the JWT against an expected JWK in the header.
@@ -1691,13 +1694,11 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATION.to_owned()).unwrap();
+        let (header, deserialized, public_key) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATION.to_owned()).unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(
-            header.public_key().unwrap(),
-            PublicKey::from(*signing_key.verifying_key())
-        );
+        assert_eq!(public_key, header.public_key().unwrap());
+        assert_eq!(public_key, PublicKey::from(*signing_key.verifying_key()));
 
         let (header, deserialized) = jwt
             .parse_and_verify_with_expected_jwk(
@@ -1723,13 +1724,11 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let (header, deserialized) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATION.to_owned()).unwrap();
+        let (header, deserialized, public_key) = jwt.parse_and_verify_with_jwk(DEFAULT_VALIDATION.to_owned()).unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(
-            header.public_key().unwrap(),
-            PublicKey::from(*signing_key.verifying_key())
-        );
+        assert_eq!(public_key, header.public_key().unwrap());
+        assert_eq!(public_key, PublicKey::from(*signing_key.verifying_key()));
 
         let wrong_key = SigningKey::generate();
         let error = jwt

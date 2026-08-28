@@ -57,7 +57,6 @@ import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
-import '../../common/widget/status_icon.dart';
 import '../../common/widget/stepper_indicator.dart';
 import '../../common/widget/version/app_version_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
@@ -748,8 +747,6 @@ class OtherStylesTab extends StatelessWidget {
 
   List<Widget> _buildStatusAndBannerWidgets(BuildContext context) {
     return [
-      const ThemeSectionSubHeader(title: 'StatusIcon'),
-      const StatusIcon(icon: Icons.ac_unit),
       const ThemeSectionSubHeader(title: 'ActivitySummary'),
       ActivitySummary(
         events: [

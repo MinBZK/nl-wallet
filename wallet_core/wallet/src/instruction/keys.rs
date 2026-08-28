@@ -4,7 +4,6 @@ use std::num::NonZeroUsize;
 
 use crypto::WithVerifyingKey;
 use crypto::keys::CredentialEcdsaKey;
-use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
@@ -165,12 +164,6 @@ where
             .send(IssueWia { nonce, aud })
             .await?
             .wia_disclosure)
-    }
-}
-
-impl WithIdentifier for RemoteEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
     }
 }
 

@@ -10,7 +10,6 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::EncryptionKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::SecureEncryptionKey;
-use crypto::keys::WithIdentifier;
 use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
@@ -61,12 +60,6 @@ impl EcdsaKey for MockHardwareEcdsaKey {
     }
 }
 impl SecureEcdsaKey for MockHardwareEcdsaKey {}
-
-impl WithIdentifier for MockHardwareEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
-    }
-}
 
 impl StoredByIdentifier for MockHardwareEcdsaKey {
     type Error = Infallible;
@@ -148,12 +141,6 @@ impl EncryptionKey for MockHardwareEncryptionKey {
 }
 
 impl SecureEncryptionKey for MockHardwareEncryptionKey {}
-
-impl WithIdentifier for MockHardwareEncryptionKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
-    }
-}
 
 impl StoredByIdentifier for MockHardwareEncryptionKey {
     type Error = Infallible;

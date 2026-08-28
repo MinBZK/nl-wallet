@@ -9,6 +9,7 @@ use token_status_list::status_list_service::RevocationError;
 use uuid::Uuid;
 
 use super::PostgresStatusListService;
+use super::StatusListServiceError;
 use crate::entity::attestation_batch;
 
 #[derive(Debug)]
@@ -30,7 +31,10 @@ impl PostgresRevocationHelper {
         }
     }
 
-    pub async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
+    pub async fn get_attestation_batch(
+        &self,
+        batch_id: Uuid,
+    ) -> Result<BatchIsRevoked, RevocationError<StatusListServiceError>> {
         attestation_batch::Entity::find()
             .filter(attestation_batch::Column::BatchId.eq(batch_id))
             .select_only()
@@ -39,12 +43,14 @@ impl PostgresRevocationHelper {
             .into_tuple()
             .one(&self.connection)
             .await
-            .map_err(|error| RevocationError::InternalError(Box::new(error)))?
+            .map_err(|error| RevocationError::InternalError(StatusListServiceError::Db(error)))?
             .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
             .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
     }
 
-    pub async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
+    pub async fn list_attestation_batches(
+        &self,
+    ) -> Result<Vec<BatchIsRevoked>, RevocationError<StatusListServiceError>> {
         Ok(attestation_batch::Entity::find()
             .select_only()
             .select_column(attestation_batch::Column::BatchId)
@@ -52,7 +58,7 @@ impl PostgresRevocationHelper {
             .into_tuple()
             .all(&self.connection)
             .await
-            .map_err(|error| RevocationError::InternalError(Box::new(error)))?
+            .map_err(|error| RevocationError::InternalError(StatusListServiceError::Db(error)))?
             .into_iter()
             .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
             .collect())

@@ -450,7 +450,7 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
     return BlocProvider<SignBloc>(
       create: (BuildContext context) {
         return SignBloc(
-          arguments.uri!,
+          arguments.uri,
           context.read(),
           context.read(),
         );
