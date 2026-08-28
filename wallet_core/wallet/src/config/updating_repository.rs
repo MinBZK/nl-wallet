@@ -15,6 +15,8 @@ use tokio::time;
 use tracing::error;
 use tracing::info;
 use tracing::warn;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -58,9 +60,9 @@ fn expired_retry_delay(retry_interval: Duration, failed_attempts: u32) -> Durati
 /// The delay before the next attempt while the wallet holds a valid configuration, which is whichever comes first:
 /// the regular update frequency, or the moment the configuration expires. The latter makes sure the wallet notices
 /// its own expiry as it happens, instead of at the next regular update.
-fn valid_config_delay(config: &WalletConfiguration, update_frequency: Duration) -> Duration {
+fn valid_config_delay(config: &WalletConfiguration, update_frequency: Duration, now: DateTime<Utc>) -> Duration {
     let expires: DateTime<Utc> = config.expires.into();
-    let until_expired = (expires + CONFIG_EXPIRY_LEEWAY - Utc::now())
+    let until_expired = (expires + CONFIG_EXPIRY_LEEWAY - now)
         .to_std()
         .unwrap_or(Duration::ZERO);
 
@@ -85,10 +87,10 @@ struct ExpiryState {
 }
 
 impl ExpiryState {
-    /// Re-evaluates whether the given configuration is expired, reports the outcome and returns it. Must only be
-    /// called once a fetch attempt has resolved.
-    fn update(&self, config: &WalletConfiguration) -> bool {
-        let expired = is_expired(config, Utc::now());
+    /// Re-evaluates whether the given configuration is expired at `now`, reports the outcome and returns it. Must
+    /// only be called once a fetch attempt has resolved.
+    fn update(&self, config: &WalletConfiguration, now: DateTime<Utc>) -> bool {
+        let expired = is_expired(config, now);
         self.expired.store(expired, Ordering::Relaxed);
 
         if let Some(callback) = self.callback.lock().as_deref_mut() {
@@ -188,9 +190,12 @@ where
                     Err(e) => error!("fetch configuration error: {}", e),
                 }
 
+                // Read the clock once, so that the expiry and the delay derived from it cannot disagree.
+                let now = TimeGenerator.generate();
+
                 // Re-evaluate after every attempt, whatever its outcome: only a valid configuration can clear the
                 // expiry.
-                let delay = if expiry.update(&wrapped.get()) {
+                let delay = if expiry.update(&wrapped.get(), now) {
                     failed_attempts = failed_attempts.saturating_add(1);
 
                     let delay = expired_retry_delay(config.expired_retry_interval, failed_attempts);
@@ -203,7 +208,7 @@ where
                 } else {
                     failed_attempts = 0;
 
-                    valid_config_delay(&wrapped.get(), config.update_frequency)
+                    valid_config_delay(&wrapped.get(), config.update_frequency, now)
                 };
 
                 time::sleep(delay).await;
@@ -420,13 +425,13 @@ mod tests {
         // Repeat, since the applied jitter is random.
         for _ in 0..100 {
             // A configuration that outlives the update frequency should simply be fetched at the regular interval.
-            let delay = valid_config_delay(&config_expiring_in(TimeDelta::hours(2)), update_frequency);
+            let delay = valid_config_delay(&config_expiring_in(TimeDelta::hours(2)), update_frequency, Utc::now());
             assert_eq!(delay, update_frequency);
 
             // One that expires sooner should be fetched again before it does, so that its expiry does not go
             // unnoticed until the next regular update. Jitter should only ever make that happen earlier.
             let window = Duration::from_secs(5 * 60) + CONFIG_EXPIRY_LEEWAY;
-            let delay = valid_config_delay(&config_expiring_in(TimeDelta::minutes(5)), update_frequency);
+            let delay = valid_config_delay(&config_expiring_in(TimeDelta::minutes(5)), update_frequency, Utc::now());
 
             // Since `exp` has seconds precision and time passes between constructing the configuration and
             // evaluating it, the actual window can be slightly shorter than the nominal one.
@@ -471,13 +476,13 @@ mod tests {
 
         let expired_config = config_expiring_in(-TimeDelta::hours(1));
         for _ in 0..2 {
-            state.update(&expired_config);
+            state.update(&expired_config, Utc::now());
         }
 
         assert!(state.expired());
 
         // A subsequent fetch yielding a valid configuration should clear the expiry again.
-        state.update(&config_expiring_in(TimeDelta::hours(1)));
+        state.update(&config_expiring_in(TimeDelta::hours(1)), Utc::now());
 
         assert!(!state.expired());
 

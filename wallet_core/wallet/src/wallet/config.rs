@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use chrono::Utc;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
@@ -40,7 +41,7 @@ where
     /// configuration is expired. Resetting the wallet is deliberately left available, so that a user whose
     /// configuration cannot be refreshed still has a way out.
     pub fn is_config_expired(&self) -> bool {
-        is_expired(&self.config_repository.get(), Utc::now())
+        is_expired(&self.config_repository.get(), TimeGenerator.generate())
     }
 }
 
