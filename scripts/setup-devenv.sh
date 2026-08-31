@@ -569,7 +569,7 @@ cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${PID_ISSUER_DIR}
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.museum_maandkaart.json" "${DEVENV}/org.iso.18013.5.1.mDL.json" "${PACF_ISSUANCE_SERVER_DIR}"
-cp "${DEVENV}/com.example.jum.bonuskaart.json" "${DEVENV}/com.example.museum_maandkaart.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.jum.bonuskaart.json" "${DEVENV}/com.example.museum_maandkaart.json" "${DEVENV}/org.iso.18013.5.1.mDL.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.jum.bonuskaart.json" "${ACF_DEMO_ISSUER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
