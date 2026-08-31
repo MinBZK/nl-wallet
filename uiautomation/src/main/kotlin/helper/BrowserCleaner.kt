@@ -1,7 +1,6 @@
 package helper
 
 import com.codeborne.selenide.WebDriverRunner
-import data.TestConfigRepository.Companion.testConfig
 import domain.Platform
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
@@ -21,28 +20,32 @@ import java.time.Duration
 private const val SAFARI_BUNDLE_ID = "com.apple.mobilesafari"
 
 internal fun clearBrowser(driver: AppiumDriver) {
-    if (testConfig.remote) return
     try {
         val platform = driver.capabilities.platformName?.name?.let(Platform::fromString) ?: return
         when (platform) {
             Platform.ANDROID -> clearAndroidBrowser(driver as AndroidDriver)
             Platform.IOS -> closeAllIosSafariTabs(driver as IOSDriver)
         }
-    } catch (_: Exception) {}
+    } catch (e : Exception) {
+        println("Failed to clean browser: ${e.message}")
+    }
 }
 
 private fun clearAndroidBrowser(driver: AndroidDriver) {
     WebDriverRunner.setWebDriver(driver)
     MobileActions().switchToBrowser()
-    Thread.sleep(SCREEN_TRANSITION_MILLIS )
+    Thread.sleep(SCREEN_TRANSITION_MILLIS)
     val webContext = driver.contextHandles.firstOrNull { it.startsWith("WEBVIEW_") } ?: return
-    driver.context(webContext)
-    driver.switchTo().window(driver.windowHandles.last())
-    driver.windowHandles.toList().forEach { handle ->
-        driver.switchTo().window(handle)
-        try { driver.close() } catch (_: Exception) {}
+    try {
+        driver.context(webContext)
+        driver.windowHandles.forEach { handle ->
+            driver.switchTo().window(handle)
+            driver.close()
+        }
+    } finally {
+        driver.context(NATIVE_APP_CONTEXT)
     }
-    try { driver.terminateApp("com.android.chrome") } catch (_: Exception) {}
+    driver.terminateApp("com.android.chrome")
 }
 
 private fun closeAllIosSafariTabs(driver: IOSDriver) {
