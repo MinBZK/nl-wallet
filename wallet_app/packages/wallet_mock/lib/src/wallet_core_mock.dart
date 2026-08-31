@@ -225,9 +225,11 @@ class WalletCoreMock implements WalletCoreApi {
         inactiveWarningTimeout: const Duration(minutes: 1).inSeconds,
         inactiveLockTimeout: const Duration(minutes: 3).inSeconds,
         backgroundLockTimeout: const Duration(seconds: 20).inSeconds,
+        // Prioritised list of PID variants; anything matching after the first match is hidden.
+        // Listing another attestation type here (e.g. the address card) would thus hide it.
         pidAttestations: [
           const PidAttestation(format: Format.SdJwt, attestationType: MockAttestationTypes.pid),
-          const PidAttestation(format: Format.SdJwt, attestationType: MockAttestationTypes.address),
+          const PidAttestation(format: Format.MsoMdoc, attestationType: MockAttestationTypes.pid),
         ],
         staticAssetsBaseUrl: 'https://example.com/',
         version: '1',

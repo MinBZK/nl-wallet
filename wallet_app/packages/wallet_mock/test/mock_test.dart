@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:wallet_core/core.dart';
 import 'package:wallet_mock/mock.dart';
+import 'package:wallet_mock/src/data/mock/mock_attestations.dart';
 import 'package:wallet_mock/src/log/wallet_event_log.dart';
 import 'package:wallet_mock/src/manager/disclosure_manager.dart';
 import 'package:wallet_mock/src/manager/pin_manager.dart';
@@ -80,4 +81,14 @@ void main() {
     });
   });
 
+  group('Configuration', () {
+    test('Only one of the attestations issued as PID is listed as a PID variant', () async {
+      final config = await walletCore.crateApiFullSetConfigurationStream().first;
+      final pidVariantTypes = config.pidAttestations.map((it) => it.attestationType).toSet();
+
+      // pidAttestations is a prioritised list of variants of one PID: everything matching after the
+      // first match is hidden, so listing two attestations that are issued together hides one.
+      expect(kPidAttestations.map((it) => it.attestationType).where(pidVariantTypes.contains), hasLength(1));
+    });
+  });
 }
