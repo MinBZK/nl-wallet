@@ -181,8 +181,8 @@ pub enum VerifierInfo {
     },
 
     // Allow the verifier to announce formats that the wallet does not support.
-    #[serde(untagged)]
-    Other { format: String },
+    #[serde(other)]
+    Other,
 }
 
 impl VerifierInfo {
@@ -715,7 +715,7 @@ impl NormalizedVpAuthorizationRequest {
             .into_iter()
             .filter_map(|info| match info {
                 VerifierInfo::RegistrationCertificate { data } => Some(data),
-                VerifierInfo::Other { .. } => None,
+                VerifierInfo::Other => None,
             })
             .collect_vec();
         let registration_certificate = match registration_certificates.len() {
@@ -1260,6 +1260,7 @@ mod tests {
     use super::ClientIdScheme;
     use super::JsonBase64;
     use super::NormalizedVpAuthorizationRequest;
+    use super::REGISTRATION_CERTIFICATE_FORMAT;
     use super::RegistrationCertificateError;
     use super::VerifiablePresentation;
     use super::VerifierInfo;
@@ -2194,6 +2195,48 @@ mod tests {
     }
 
     #[test]
+    fn registration_certificate_verifier_info_should_reject_malformed_data() {
+        serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": "***",
+        }))
+        .unwrap_err();
+
+        let invalid_envelope = BASE64_URL_SAFE_NO_PAD.encode(b"not a registration certificate");
+        serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": invalid_envelope,
+        }))
+        .unwrap_err();
+    }
+
+    #[test]
+    fn verifier_info_should_accept_unknown_format() {
+        let verifier_info = serde_json::from_value::<VerifierInfo>(json!({
+            "format": "other_format",
+            "data": { "future": "data" },
+        }))
+        .unwrap();
+
+        assert_matches!(verifier_info, VerifierInfo::Other);
+    }
+
+    #[test]
+    fn verifier_info_should_reject_malformed_registration_certificate_among_valid_entries() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let valid = serde_json::to_value(VerifierInfo::registration_certificate(
+            auth_request.registration_certificate,
+        ))
+        .unwrap();
+
+        serde_json::from_value::<Vec<VerifierInfo>>(json!([
+            { "format": REGISTRATION_CERTIFICATE_FORMAT, "data": "***" },
+            valid,
+        ]))
+        .unwrap_err();
+    }
+
+    #[test]
     fn authorization_request_should_reject_missing_registration_certificate() {
         let (_, _, _, auth_request) = setup_mdoc();
         let mut auth_request = authorization_request_from_normalized(auth_request);
@@ -2212,9 +2255,7 @@ mod tests {
     fn authorization_request_should_reject_other_verifier_info_without_registration_certificate() {
         let (_, _, _, auth_request) = setup_mdoc();
         let mut auth_request = authorization_request_from_normalized(auth_request);
-        auth_request.verifier_info = Some(vec_nonempty![VerifierInfo::Other {
-            format: "other_format".to_string(),
-        }]);
+        auth_request.verifier_info = Some(vec_nonempty![VerifierInfo::Other]);
 
         let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
 
@@ -2249,12 +2290,11 @@ mod tests {
     fn authorization_request_should_accept_registration_certificate_among_other_verifier_info() {
         let (_, _, _, auth_request) = setup_mdoc();
         let mut auth_request = authorization_request_from_normalized(auth_request);
-        auth_request.verifier_info.as_mut().unwrap().insert(
-            0,
-            VerifierInfo::Other {
-                format: "other_format".to_string(),
-            },
-        );
+        auth_request
+            .verifier_info
+            .as_mut()
+            .unwrap()
+            .insert(0, VerifierInfo::Other);
 
         NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
