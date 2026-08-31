@@ -1,17 +1,20 @@
 use attestation_data::attributes::Attributes;
+use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::validity::IssuanceValidity;
 use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use dcql::CredentialQueryIdentifier;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
+use indexmap::IndexMap;
 use serde::Deserialize;
 use utils::vec_at_least::VecNonEmpty;
 
 /// Attributes of an attestation that was disclosed, but without the DisclosedAttributes enum. This way, we can
 /// deserialize both formats without having to deal with the enum variants in the code that uses this struct.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(from = "DisclosedAttestation")]
 pub struct DemoDisclosedAttestation {
     pub attestation_type: String,
     pub attributes: Attributes,
@@ -22,6 +25,35 @@ pub struct DemoDisclosedAttestation {
     /// The issuer CA's common name
     pub ca: String,
     pub issuance_validity: IssuanceValidity,
+}
+
+impl From<DisclosedAttestation> for DemoDisclosedAttestation {
+    fn from(value: DisclosedAttestation) -> Self {
+        // mdoc attributes are namespace-keyed; flatten them into a single map. If the same attribute name occurs in
+        // multiple namespaces, the last one wins, but no current attestation type has colliding names across
+        // namespaces.
+        let (format, attributes) = match value.attributes {
+            DisclosedAttributes::SdJwt(attributes) => (Format::SdJwt, attributes),
+            DisclosedAttributes::MsoMdoc(namespaces) => (
+                Format::MsoMdoc,
+                namespaces
+                    .into_values()
+                    .flat_map(IndexMap::into_iter)
+                    .collect::<IndexMap<_, _>>()
+                    .into(),
+            ),
+        };
+
+        Self {
+            attestation_type: value.attestation_type,
+            attributes,
+            format,
+            issuer_uri: value.issuer_uri,
+            attestation_qualification: value.attestation_qualification,
+            ca: value.ca,
+            issuance_validity: value.issuance_validity,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -41,7 +73,6 @@ impl MayHaveUniqueId for DemoDisclosedAttestations {
 #[cfg(test)]
 mod test {
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
@@ -60,10 +91,10 @@ mod test {
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::from_iter(vec![(
                     PID_ATTESTATION_TYPE.to_string(),
                     IndexMap::from_iter(vec![
-                        ("bsn".to_string(), AttributeValue::Text("999991772".to_string())),
-                        ("birthdate".to_string(), AttributeValue::Text("2000-03-24".to_string())),
-                        ("given_name".to_string(), AttributeValue::Text("Frouke".to_string())),
-                        ("family_name".to_string(), AttributeValue::Text("Jansen".to_string())),
+                        ("bsn".to_string(), Attribute::Text("999991772".to_string())),
+                        ("birthdate".to_string(), Attribute::Text("2000-03-24".to_string())),
+                        ("given_name".to_string(), Attribute::Text("Frouke".to_string())),
+                        ("family_name".to_string(), Attribute::Text("Jansen".to_string())),
                     ]),
                 )])),
                 issuer_uri: "https://issuer.example.com/".parse().unwrap(),
@@ -82,18 +113,12 @@ mod test {
                 attributes: DisclosedAttributes::SdJwt(
                     IndexMap::from_iter(vec![(
                         "address".to_string(),
-                        Attribute::Nested(IndexMap::from_iter(vec![
-                            (
-                                "postal_code".to_string(),
-                                Attribute::Single(AttributeValue::Text("3528BG".to_string())),
-                            ),
-                            (
-                                "house_number".to_string(),
-                                Attribute::Single(AttributeValue::Integer(51)),
-                            ),
+                        Attribute::Object(IndexMap::from_iter(vec![
+                            ("postal_code".to_string(), Attribute::Text("3528BG".to_string())),
+                            ("house_number".to_string(), Attribute::Number(51.into())),
                             (
                                 "street_address".to_string(),
-                                Attribute::Single(AttributeValue::Text("Groenewoudsedijk".to_string())),
+                                Attribute::Text("Groenewoudsedijk".to_string()),
                             ),
                         ])),
                     )])

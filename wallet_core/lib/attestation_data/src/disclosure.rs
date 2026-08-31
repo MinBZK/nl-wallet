@@ -28,7 +28,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::attributes::AttributeValue;
+use crate::attributes::Attribute;
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
 use crate::validity::IssuanceValidity;
@@ -36,7 +36,7 @@ use crate::validity::IssuanceValidity;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "format", content = "attributes", rename_all = "snake_case")]
 pub enum DisclosedAttributes {
-    MsoMdoc(IndexMap<NameSpace, IndexMap<String, AttributeValue>>),
+    MsoMdoc(IndexMap<NameSpace, IndexMap<String, Attribute>>),
     #[serde(rename = "dc+sd-jwt")]
     SdJwt(Attributes),
 }
@@ -342,7 +342,6 @@ mod test {
     use super::DisclosedAttestation;
     use super::DisclosedAttributes;
     use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
     use crate::validity::IssuanceValidity;
 
     impl DisclosedAttestation {
@@ -353,7 +352,7 @@ mod test {
                     EXAMPLE_NAMESPACE.to_string(),
                     EXAMPLE_ATTRIBUTES
                         .iter()
-                        .map(|attribute| (attribute.to_string(), AttributeValue::Null))
+                        .map(|attribute| (attribute.to_string(), Attribute::Null))
                         .collect(),
                 )])),
                 issuer_uri: "https://example.com".parse().unwrap(),
@@ -370,13 +369,10 @@ mod test {
                 attestation_type: EXAMPLE_DOC_TYPE.to_string(),
                 attributes: DisclosedAttributes::SdJwt(
                     IndexMap::from([
-                        ("family_name".to_string(), Attribute::Single(AttributeValue::Null)),
+                        ("family_name".to_string(), Attribute::Null),
                         (
                             "address".to_string(),
-                            Attribute::Nested(IndexMap::from([(
-                                "street".to_string(),
-                                Attribute::Single(AttributeValue::Null),
-                            )])),
+                            Attribute::Object(IndexMap::from([("street".to_string(), Attribute::Null)])),
                         ),
                     ])
                     .into(),
@@ -420,9 +416,9 @@ mod test {
             (
                 "pid".to_string(),
                 IndexMap::from([
-                    ("bsn".to_string(), AttributeValue::Text("123456789".to_string())),
-                    ("given_name".to_string(), AttributeValue::Text("John".to_string())),
-                    ("family_name".to_string(), AttributeValue::Text("Doe".to_string())),
+                    ("bsn".to_string(), Attribute::Text("123456789".to_string())),
+                    ("given_name".to_string(), Attribute::Text("John".to_string())),
+                    ("family_name".to_string(), Attribute::Text("Doe".to_string())),
                 ]),
             ),
             (
@@ -430,9 +426,9 @@ mod test {
                 IndexMap::from([
                     (
                         "street_address".to_string(),
-                        AttributeValue::Text("Main Street".to_string()),
+                        Attribute::Text("Main Street".to_string()),
                     ),
-                    ("house_number".to_string(), AttributeValue::Text("123".to_string())),
+                    ("house_number".to_string(), Attribute::Text("123".to_string())),
                 ]),
             ),
         ]));
@@ -466,7 +462,10 @@ mod test {
             "format": "mso_mdoc",
             "attributes": {
                 "com.example.pid": {
-                    "bsn": "0912345678"
+                    "bsn": {
+                        "type": "text",
+                        "value": "0912345678"
+                    }
                 }
             }
         },
@@ -483,7 +482,10 @@ mod test {
             "format": "mso_mdoc",
             "attributes": {
                 "com.example.address": {
-                    "street": "Hoofdstraat"
+                    "street": {
+                        "type": "text",
+                        "value": "Hoofdstraat"
+                    }
                 }
             }
         }
@@ -502,7 +504,10 @@ mod test {
             "format": "mso_mdoc",
             "attributes": {
                 "com.example.pid": {
-                    "bsn": "0912345678"
+                    "bsn": {
+                        "type": "text",
+                        "value": "0912345678"
+                    }
                 }
             }
         },
@@ -519,11 +524,14 @@ mod test {
             "format": "dc+sd-jwt",
             "attributes": {
                 "address": {
-                    "street": "Main St",
-                    "house_number": 123,
-                    "locality": "Anytown",
-                    "region": "Anystate",
-                    "country": "US"
+                    "type": "object",
+                    "value": {
+                        "street": {"type": "text", "value": "Main St"},
+                        "house_number": {"type": "number", "value": 123},
+                        "locality": {"type": "text", "value": "Anytown"},
+                        "region": {"type": "text", "value": "Anystate"},
+                        "country": {"type": "text", "value": "US"}
+                    }
                 }
             }
         }
@@ -541,16 +549,43 @@ mod test {
             },
             "format": "dc+sd-jwt",
             "attributes": {
-                "nationalities": [
-                    "DE",
-                    "NL"
-                ],
-                "is_over_65": true,
+                "nationalities": {
+                    "type": "array",
+                    "value": [
+                        {
+                            "type": "text",
+                            "value": "DE"
+                        },
+                        {
+                            "type": "text",
+                            "value": "NL"
+                        }
+                    ]
+                },
+                "is_over_65": {
+                    "type": "bool",
+                    "value": true
+                },
                 "address": {
-                    "street": "Main St",
-                    "house": {
-                        "number": 123,
-                        "letter": "A"
+                    "type": "object",
+                    "value": {
+                        "street": {
+                            "type": "text",
+                            "value": "Main St"
+                        },
+                        "house": {
+                            "type": "object",
+                            "value": {
+                                "number": {
+                                    "type": "number",
+                                    "value": 123
+                                },
+                                "letter": {
+                                    "type": "text",
+                                    "value": "A"
+                                }
+                            }
+                        }
                     }
                 }
             }

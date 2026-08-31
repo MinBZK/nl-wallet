@@ -201,37 +201,35 @@ impl From<wallet::AttestationAttribute> for AttestationAttribute {
 pub enum AttributeValue {
     String { value: String },
     Boolean { value: bool },
-    Number { value: i64 },
+    Number { value: i64 }, // TODO replace with f64
     Array { value: Vec<AttributeValue> },
     Null,
-}
-
-impl From<attestation_data::AttributeValue> for AttributeValue {
-    fn from(value: attestation_data::AttributeValue) -> Self {
-        match value {
-            attestation_data::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
-            attestation_data::AttributeValue::Integer(value) => AttributeValue::Number { value },
-            attestation_data::AttributeValue::Text(value) => AttributeValue::String { value },
-            attestation_data::AttributeValue::Null => AttributeValue::Null,
-            attestation_data::AttributeValue::Array(entries) => AttributeValue::Array {
-                value: entries.into_iter().map(AttributeValue::from).collect(),
-            },
-            attestation_data::AttributeValue::Date(date_time) => AttributeValue::String {
-                value: date_time.to_string(),
-            },
-            attestation_data::AttributeValue::Bytes(items) => AttributeValue::String {
-                value: hex::encode(items),
-            },
-        }
-    }
+    // Number { value: f64 },
+    // Date { value: DateTime<Utc> },
+    // Bytes { value: Vec<u8> },
+    // Map { value: HashMap<String, AttributeValue> },
 }
 
 impl From<attestation_data::Attribute> for AttributeValue {
     fn from(value: attestation_data::Attribute) -> Self {
         match value {
-            attestation_data::Attribute::Single(value) => value.into(),
-            // TODO nested attributes are converted to arrays of their keys
-            attestation_data::Attribute::Nested(entries) => AttributeValue::Array {
+            attestation_data::Attribute::Bool(value) => AttributeValue::Boolean { value },
+            attestation_data::Attribute::Number(value) => AttributeValue::Number {
+                value: value.as_i64().unwrap(), // TODO this should be a f64
+            },
+            attestation_data::Attribute::Text(value) => AttributeValue::String { value },
+            attestation_data::Attribute::Null => AttributeValue::Null,
+            attestation_data::Attribute::Array(entries) => AttributeValue::Array {
+                value: entries.into_iter().map(AttributeValue::from).collect(),
+            },
+            // TODO these should get their own types
+            attestation_data::Attribute::Date(date_time) => AttributeValue::String {
+                value: date_time.to_string(),
+            },
+            attestation_data::Attribute::Bytes(bytes) => AttributeValue::String {
+                value: hex::encode(bytes),
+            },
+            attestation_data::Attribute::Object(entries) => AttributeValue::Array {
                 value: entries
                     .into_iter()
                     .map(|(key, value)| AttributeValue::String {

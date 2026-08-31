@@ -17,7 +17,6 @@ use std::sync::Arc;
 use askama::Template;
 use askama_web::WebTemplate;
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_types::credential_kind::CredentialKind;
 use axum::Router;
@@ -193,8 +192,8 @@ fn issuable_documents(
         .map_err(|_| Error::NoRequestedCredentialKinds(requested_credential_kinds.clone()))
 }
 
-/// Traverses all attributes (including those nested inside [`AttributeValue::Array`] or
-/// [`Attribute::Nested`]) and replaces every `{{INSERT_RANDOM_VALUE}}` text value with a random string
+/// Traverses all attributes (including those nested inside [`Attribute::Array`] or
+/// [`Attribute::Object`]) and replaces every `{{INSERT_RANDOM_VALUE}}` text value with a random string
 /// of 10 digits, so each immediately-issued document gets fresh values.
 ///
 /// Intentionally duplicated from `demo_issuer` rather than shared: the placeholder convention is
@@ -208,29 +207,23 @@ fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> At
     inner.into()
 }
 
-fn substitute_placeholders_in_value(value: &mut AttributeValue, rng: &mut impl RngCore) {
-    match value {
-        AttributeValue::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
-            let n: u64 = rng.next_u64() % 10_000_000_000;
-            *value = AttributeValue::Text(format!("{n:010}"));
-        }
-        AttributeValue::Array(elements) => {
-            for element in elements {
-                substitute_placeholders_in_attribute(element, rng);
-            }
-        }
-        _ => {}
-    }
-}
-
 fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
     match attribute {
-        Attribute::Single(value) => substitute_placeholders_in_value(value, rng),
-        Attribute::Nested(map) => {
-            for attr in map.values_mut() {
-                substitute_placeholders_in_attribute(attr, rng);
-            }
+        Attribute::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
+            let n: u64 = rng.next_u64() % 10_000_000_000;
+            *attribute = Attribute::Text(format!("{n:010}"));
         }
+        Attribute::Array(elements) => {
+            elements.iter_mut().for_each(|element| {
+                substitute_placeholders_in_attribute(element, rng);
+            });
+        }
+        Attribute::Object(map) => {
+            map.values_mut().for_each(|attr| {
+                substitute_placeholders_in_attribute(attr, rng);
+            });
+        }
+        _ => {}
     }
 }
 
@@ -287,9 +280,9 @@ struct DocumentPreview {
 /// Render an attribute value for display on the consent page. The `start_date` attribute is stored
 /// as ISO `YYYY-MM-DD` text and shown in the selected language's locale (localized month name); all
 /// other values are shown verbatim. Unparseable dates fall back to the raw value.
-fn format_attribute_value(key: &str, value: &AttributeValue, language: Language) -> String {
+fn format_attribute_value(key: &str, value: &Attribute, language: Language) -> String {
     if key == "start_date"
-        && let AttributeValue::Text(text) = value
+        && let Attribute::Text(text) = value
         && let Ok(date) = NaiveDate::parse_from_str(text, "%Y-%m-%d")
     {
         // Render with the localized month name in day-first order, conventional for both en-GB
@@ -533,7 +526,6 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -590,13 +582,7 @@ mod tests {
     const ATTESTATION_TYPE: &str = "com.example.diploma";
 
     fn mock_attributes() -> Attributes {
-        IndexMap::from_iter(MOCK_ATTRS.map(|(key, val)| {
-            (
-                key.to_string(),
-                Attribute::Single(AttributeValue::Text(val.to_string())),
-            )
-        }))
-        .into()
+        IndexMap::from_iter(MOCK_ATTRS.map(|(key, val)| (key.to_string(), Attribute::Text(val.to_string())))).into()
     }
 
     /// A usecase keyed by [`USECASE_ID`] with the given `kind` and one document per credential kind.

@@ -2,7 +2,6 @@ use std::fs;
 use std::path::PathBuf;
 
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use crypto::utils::random_string;
 use oauth::pkce::S256PkcePair;
@@ -127,38 +126,38 @@ impl BrpClient for MockBrpClient {
 /// the `frouke.json` fixture, plus a fixed recovery code (the real flow inserts an HMAC over the BSN instead).
 pub fn mock_pid_example() -> Attributes {
     Attributes::example([
-        (vec![PID_FAMILY_NAME], AttributeValue::Text("Jansen".to_string())),
-        (vec![PID_GIVEN_NAME], AttributeValue::Text("Frouke".to_string())),
-        (vec![PID_BIRTH_DATE], AttributeValue::Text("2000-03-24".to_string())),
-        (vec![PID_AGE_OVER_18], AttributeValue::Bool(true)),
-        (vec![PID_BSN], AttributeValue::Text("999991772".to_string())),
+        (vec![PID_FAMILY_NAME], Attribute::Text("Jansen".to_string())),
+        (vec![PID_GIVEN_NAME], Attribute::Text("Frouke".to_string())),
+        (vec![PID_BIRTH_DATE], Attribute::Text("2000-03-24".to_string())),
+        (vec![PID_AGE_OVER_18], Attribute::Bool(true)),
+        (vec![PID_BSN], Attribute::Text("999991772".to_string())),
         (
             vec![PID_NATIONALITY],
-            AttributeValue::Array(vec![
-                Attribute::Single(AttributeValue::Text("Nederlandse".to_string())),
-                Attribute::Single(AttributeValue::Text("Belgische".to_string())),
+            Attribute::Array(vec![
+                Attribute::Text("Nederlandse".to_string()),
+                Attribute::Text("Belgische".to_string()),
             ]),
         ),
-        (vec![PID_RECOVERY_CODE], AttributeValue::Text("1234567".to_string())),
+        (vec![PID_RECOVERY_CODE], Attribute::Text("1234567".to_string())),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
-            AttributeValue::Text("Van Wijngaerdenstraat".to_string()),
+            Attribute::Text("Van Wijngaerdenstraat".to_string()),
         ),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
-            AttributeValue::Text("1".to_string()),
+            Attribute::Text("1".to_string()),
         ),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
-            AttributeValue::Text("2596TW".to_string()),
+            Attribute::Text("2596TW".to_string()),
         ),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
-            AttributeValue::Text("Toetsoog".to_string()),
+            Attribute::Text("Toetsoog".to_string()),
         ),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
-            AttributeValue::Text("Nederland".to_string()),
+            Attribute::Text("Nederland".to_string()),
         ),
     ])
 }

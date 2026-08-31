@@ -5,7 +5,6 @@ use std::sync::LazyLock;
 use askama::Template;
 use askama_web::WebTemplate;
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use axum::Json;
 use axum::Router;
@@ -423,8 +422,8 @@ async fn attestation(
     Ok(Json(documents).into_response())
 }
 
-/// Traverses all attributes (including those nested inside [`AttributeValue::Array`] or
-/// [`Attribute::Nested`]) and replaces template placeholders in text values:
+/// Traverses all attributes (including those nested inside [`Attribute::Array`] or
+/// [`Attribute::Object`]) and replaces template placeholders in text values:
 /// - `{{INSERT_RANDOM_VALUE}}` with a random string of 10 digits;
 /// - `{{INSERT_CURRENT_YEAR}}` with the current calendar year.
 fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
@@ -439,31 +438,25 @@ fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> At
         .into()
 }
 
-fn substitute_placeholders_in_value(value: &mut AttributeValue, rng: &mut impl RngCore) {
-    match value {
-        AttributeValue::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
-            let n: u64 = rng.next_u64() % 10_000_000_000;
-            *value = AttributeValue::Text(format!("{n:010}"));
-        }
-        AttributeValue::Text(text) if text.as_str() == "{{INSERT_CURRENT_YEAR}}" => {
-            *value = AttributeValue::Text(Utc::now().year().to_string());
-        }
-        AttributeValue::Array(elements) => {
-            for element in elements {
-                substitute_placeholders_in_attribute(element, rng);
-            }
-        }
-        _ => {}
-    }
-}
-
 fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
     match attribute {
-        Attribute::Single(value) => substitute_placeholders_in_value(value, rng),
-        Attribute::Nested(map) => {
-            for attr in map.values_mut() {
-                substitute_placeholders_in_attribute(attr, rng);
-            }
+        Attribute::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
+            let n: u64 = rng.next_u64() % 10_000_000_000;
+            *attribute = Attribute::Text(format!("{n:010}"));
         }
+        Attribute::Text(text) if text.as_str() == "{{INSERT_CURRENT_YEAR}}" => {
+            *attribute = Attribute::Text(Utc::now().year().to_string());
+        }
+        Attribute::Array(elements) => {
+            elements.iter_mut().for_each(|element| {
+                substitute_placeholders_in_attribute(element, rng);
+            });
+        }
+        Attribute::Object(map) => {
+            map.values_mut().for_each(|attr| {
+                substitute_placeholders_in_attribute(attr, rng);
+            });
+        }
+        _ => {}
     }
 }

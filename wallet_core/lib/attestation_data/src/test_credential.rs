@@ -42,7 +42,7 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::attributes::AttributeValue;
+use crate::attributes::Attribute;
 use crate::attributes::Attributes;
 use crate::attributes::AttributesTraversalBehaviour;
 use crate::credential_payload::CredentialPayload;
@@ -386,7 +386,7 @@ impl TestCredential {
                     .map(|(name_space, entries)| {
                         let name_space_attributes = entries
                             .into_iter()
-                            .map(|entry| (entry.name, AttributeValue::try_from(entry.value).unwrap()))
+                            .map(|entry| (entry.name, Attribute::try_from(entry.value).unwrap()))
                             .collect::<IndexMap<_, _>>();
 
                         (name_space, name_space_attributes)

@@ -3,10 +3,7 @@ use std::num::TryFromIntError;
 
 use attestation_types::claim_path::ClaimPath;
 use base64::prelude::*;
-use chrono::DateTime;
 use chrono::NaiveDate;
-use chrono::NaiveTime;
-use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -31,16 +28,18 @@ use utils::vec_at_least::VecNonEmpty;
 #[serde_as]
 #[derive(Debug, Clone, Display, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "lowercase")]
-pub enum AttributeValue {
+pub enum Attribute {
     Null,
-    Integer(i64),
+    Number(serde_json::Number),
     Bool(bool),
     Text(String),
     #[display("[{}]", _0.iter().join(", "))]
     Array(Vec<Attribute>),
+    #[display("{{{}}}", _0.iter().map(|(k, v)| format!("{}: {}", k, v)).join(", "))]
+    Object(IndexMap<String, Attribute>),
 
     // mdoc only
-    Date(DateTime<Utc>),
+    Date(chrono::NaiveDate),
     #[display("{}", BASE64_URL_SAFE_NO_PAD.encode(_0))]
     Bytes(#[serde_as(as = "Base64<UrlSafe, Unpadded>")] Vec<u8>),
 }
@@ -50,8 +49,11 @@ pub enum AttributeError {
     #[error("unable to convert mdoc cbor value: {0:?}")]
     FromCborConversion(Box<ciborium::Value>),
 
-    #[error("unable to convert number to cbor: {0}")]
-    NumberFromCborConversion(#[from] TryFromIntError),
+    #[error("unable to convert integer to cbor: {0}")]
+    NumberFromCborIntegerConversion(#[source] TryFromIntError),
+
+    #[error("unable to convert float {0} to cbor")]
+    NumberFromFloatConversion(f64),
 
     #[error("unable to convert claim value: {0:?}")]
     FromClaimValueConversion(Box<ClaimValue>),
@@ -81,27 +83,21 @@ pub enum AttributesError {
     MissingMandatoryAttribute(Vec<VecNonEmpty<ClaimPath>>),
 }
 
-impl From<AttributeValue> for ciborium::Value {
-    fn from(value: AttributeValue) -> Self {
-        match value {
-            AttributeValue::Integer(number) => ciborium::Value::Integer(number.into()),
-            AttributeValue::Bool(boolean) => ciborium::Value::Bool(boolean),
-            AttributeValue::Text(text) => ciborium::Value::Text(text),
-            AttributeValue::Null => ciborium::Value::Null,
-            AttributeValue::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
-            AttributeValue::Date(dt) => {
-                ciborium::Value::Tag(1004, Box::new(ciborium::Value::Text(dt.format("%Y-%m-%d").to_string())))
-            }
-            AttributeValue::Bytes(items) => ciborium::Value::Bytes(items),
-        }
-    }
-}
-
 impl From<Attribute> for ciborium::Value {
     fn from(value: Attribute) -> Self {
         match value {
-            Attribute::Single(v) => v.into(),
-            Attribute::Nested(map) => ciborium::Value::Map(
+            Attribute::Number(number) if let Some(i) = number.as_i64() => ciborium::Value::Integer(i.into()),
+            Attribute::Number(number) if let Some(f) = number.as_f64() => ciborium::Value::Float(f),
+            Attribute::Number(_) => unimplemented!("number should be either i64 or f64"),
+            Attribute::Bool(boolean) => ciborium::Value::Bool(boolean),
+            Attribute::Text(text) => ciborium::Value::Text(text),
+            Attribute::Null => ciborium::Value::Null,
+            Attribute::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
+            Attribute::Date(dt) => {
+                ciborium::Value::Tag(1004, Box::new(ciborium::Value::Text(dt.format("%Y-%m-%d").to_string())))
+            }
+            Attribute::Bytes(items) => ciborium::Value::Bytes(items),
+            Attribute::Object(map) => ciborium::Value::Map(
                 map.into_iter()
                     .map(|(k, v)| (ciborium::Value::Text(k), ciborium::Value::from(v)))
                     .collect(),
@@ -110,114 +106,25 @@ impl From<Attribute> for ciborium::Value {
     }
 }
 
-impl From<AttributeValue> for ClaimValue {
-    fn from(value: AttributeValue) -> Self {
-        match value {
-            AttributeValue::Null => ClaimValue::Null,
-            AttributeValue::Integer(number) => ClaimValue::Number(number.into()),
-            AttributeValue::Bool(boolean) => ClaimValue::Bool(boolean),
-            AttributeValue::Text(text) => ClaimValue::String(text),
-            AttributeValue::Array(elements) => {
-                ClaimValue::Array(elements.into_iter().map(Into::into).collect())
-            }
-            AttributeValue::Date(_) => unimplemented!("AttributeValue::Date to ClaimValue conversion not supported"),
-            AttributeValue::Bytes(_) => {
-                unimplemented!("AttributeValue::Bytes to ClaimValue conversion not supported")
-            }
-        }
-    }
-}
-
-impl From<Attribute> for ArrayClaim {
-    fn from(attr: Attribute) -> Self {
-        match attr {
-            Attribute::Single(value) => ArrayClaim::Value(ClaimValue::from(value)),
-            Attribute::Nested(_) => {
-                unimplemented!("Attribute::Nested to ClaimValue conversion not supported")
-            }
-        }
-    }
-}
-
-impl TryFrom<ciborium::Value> for AttributeValue {
-    type Error = AttributeError;
-
-    fn try_from(value: ciborium::Value) -> Result<Self, Self::Error> {
-        match value {
-            ciborium::Value::Text(text) => Ok(AttributeValue::Text(text)),
-            ciborium::Value::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            ciborium::Value::Integer(integer) => Ok(AttributeValue::Integer(integer.try_into()?)),
-            ciborium::Value::Null => Ok(AttributeValue::Null),
-            ciborium::Value::Array(elements) => Ok(AttributeValue::Array(
-                elements.into_iter().map(Attribute::try_from).try_collect()?,
-            )),
-            ciborium::Value::Bytes(bytes) => Ok(AttributeValue::Bytes(bytes)),
-            ciborium::Value::Tag(1004, inner) => match *inner {
-                ciborium::Value::Text(s) => NaiveDate::parse_from_str(&s, "%Y-%m-%d")
-                    .map_err(|_| AttributeError::FromCborConversion(Box::new(ciborium::Value::Text(s.clone()))))
-                    .map(|d| AttributeValue::Date(d.and_time(NaiveTime::default()).and_utc())),
-                other => Err(AttributeError::FromCborConversion(Box::new(ciborium::Value::Tag(
-                    1004,
-                    Box::new(other),
-                )))),
-            },
-            _ => Err(AttributeError::FromCborConversion(Box::new(value))),
-        }
-    }
-}
-
-impl TryFrom<ClaimValue> for AttributeValue {
-    type Error = AttributeError;
-
-    fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
-        match value {
-            ClaimValue::Null => Ok(AttributeValue::Null),
-            ClaimValue::Number(number) => {
-                Ok(AttributeValue::Integer(number.as_i64().ok_or_else(|| {
-                    AttributeError::NumberFromClaimValueConversion(number)
-                })?))
-            }
-            ClaimValue::Bool(boolean) => Ok(AttributeValue::Bool(boolean)),
-            ClaimValue::String(text) => Ok(AttributeValue::Text(text)),
-            ClaimValue::Array(elements) => Ok(AttributeValue::Array(
-                elements
-                    .into_iter()
-                    .filter_map(|value| match value {
-                        ArrayClaim::Value(claim_value) => Some(Attribute::try_from(claim_value)),
-                        _ => None, // ignore hashes in Arrays
-                    })
-                    .try_collect()?,
-            )),
-            // nested objects are handled at the Attribute level
-            _ => Err(AttributeError::FromClaimValueConversion(Box::new(value))),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Display, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Attribute {
-    Single(AttributeValue),
-    #[display("{{{}}}", _0.iter().map(|(k, v)| format!("{}: {}", k, v)).join(", "))]
-    Nested(IndexMap<String, Attribute>),
-}
-
 impl TryFrom<Attribute> for ClaimValue {
     type Error = ClaimNameError;
 
     fn try_from(value: Attribute) -> Result<Self, Self::Error> {
         match value {
-            Attribute::Single(attribute_value) => Ok(attribute_value.into()),
-            Attribute::Nested(nested) => Ok(attributes_to_claim_value(nested)?),
+            Attribute::Null => Ok(ClaimValue::Null),
+            Attribute::Number(number) => Ok(ClaimValue::Number(number)),
+            Attribute::Bool(boolean) => Ok(ClaimValue::Bool(boolean)),
+            Attribute::Text(text) => Ok(ClaimValue::String(text)),
+            Attribute::Array(elements) => Ok(ClaimValue::Array(
+                elements
+                    .into_iter()
+                    .map(|attr| Ok(ArrayClaim::Value(attr.try_into()?)))
+                    .try_collect()?,
+            )),
+            Attribute::Object(map) => map_to_claim_value(map),
+            Attribute::Date(_) => unimplemented!("Attribute::Date to ClaimValue conversion not supported"),
+            Attribute::Bytes(_) => unimplemented!("Attribute::Bytes to ClaimValue conversion not supported"),
         }
-    }
-}
-
-impl TryFrom<Attributes> for ClaimValue {
-    type Error = ClaimNameError;
-
-    fn try_from(value: Attributes) -> Result<Self, Self::Error> {
-        attributes_to_claim_value(value.0)
     }
 }
 
@@ -226,6 +133,30 @@ impl TryFrom<ciborium::Value> for Attribute {
 
     fn try_from(value: ciborium::Value) -> Result<Self, Self::Error> {
         match value {
+            ciborium::Value::Text(text) => Ok(Attribute::Text(text)),
+            ciborium::Value::Bool(bool) => Ok(Attribute::Bool(bool)),
+            ciborium::Value::Integer(integer) => Ok(Attribute::Number(
+                i64::try_from(integer)
+                    .map_err(AttributeError::NumberFromCborIntegerConversion)?
+                    .into(),
+            )),
+            ciborium::Value::Float(float) => Ok(Attribute::Number(
+                Number::from_f64(float).ok_or(AttributeError::NumberFromFloatConversion(float))?,
+            )),
+            ciborium::Value::Null => Ok(Attribute::Null),
+            ciborium::Value::Array(elements) => Ok(Attribute::Array(
+                elements.into_iter().map(Attribute::try_from).try_collect()?,
+            )),
+            ciborium::Value::Bytes(bytes) => Ok(Attribute::Bytes(bytes)),
+            ciborium::Value::Tag(1004, inner) => match *inner {
+                ciborium::Value::Text(s) => NaiveDate::parse_from_str(&s, "%Y-%m-%d")
+                    .map_err(|_| AttributeError::FromCborConversion(Box::new(ciborium::Value::Text(s.clone()))))
+                    .map(Attribute::Date),
+                other => Err(AttributeError::FromCborConversion(Box::new(ciborium::Value::Tag(
+                    1004,
+                    Box::new(other),
+                )))),
+            },
             ciborium::Value::Map(entries) => {
                 let map = entries
                     .into_iter()
@@ -237,9 +168,9 @@ impl TryFrom<ciborium::Value> for Attribute {
                         Ok((key, Attribute::try_from(v)?))
                     })
                     .collect::<Result<IndexMap<_, _>, AttributeError>>()?;
-                Ok(Attribute::Nested(map))
+                Ok(Attribute::Object(map))
             }
-            other => AttributeValue::try_from(other).map(Attribute::Single),
+            _ => Err(AttributeError::FromCborConversion(Box::new(value))),
         }
     }
 }
@@ -249,9 +180,29 @@ impl TryFrom<ClaimValue> for Attribute {
 
     fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
         match value {
-            ClaimValue::Object(object_claims) => Ok(Attribute::Nested(object_claims_to_attributes(object_claims)?.0)),
-            _ => Ok(Attribute::Single(value.try_into()?)),
+            ClaimValue::Null => Ok(Attribute::Null),
+            ClaimValue::Number(number) => Ok(Attribute::Number(number)),
+            ClaimValue::Bool(boolean) => Ok(Attribute::Bool(boolean)),
+            ClaimValue::String(text) => Ok(Attribute::Text(text)),
+            ClaimValue::Array(elements) => Ok(Attribute::Array(
+                elements
+                    .into_iter()
+                    .filter_map(|value| match value {
+                        ArrayClaim::Value(claim_value) => Some(Attribute::try_from(claim_value)),
+                        _ => None, // ignore hashes in Arrays
+                    })
+                    .try_collect()?,
+            )),
+            ClaimValue::Object(object_claims) => Ok(Attribute::Object(object_claims_to_attributes(object_claims)?.0)),
         }
+    }
+}
+
+impl TryFrom<Attributes> for ClaimValue {
+    type Error = ClaimNameError;
+
+    fn try_from(value: Attributes) -> Result<Self, Self::Error> {
+        map_to_claim_value(value.0)
     }
 }
 
@@ -276,7 +227,7 @@ fn object_claims_to_attributes(object_claims: ObjectClaims) -> Result<Attributes
     ))
 }
 
-fn attributes_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
+fn map_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
     Ok(ClaimValue::Object(ObjectClaims {
         _sd: None,
         claims: attributes
@@ -298,7 +249,7 @@ impl Attributes {
     }
 
     /// Returns a flattened view of the attribute values
-    pub fn flattened(&self) -> IndexMap<VecNonEmpty<&str>, &AttributeValue> {
+    pub fn flattened(&self) -> IndexMap<VecNonEmpty<&str>, &Attribute> {
         /// Recursive depth first traversal helper to flatten all leaf nodes.
         ///
         /// - `prefix` is the path to the current level
@@ -307,7 +258,7 @@ impl Attributes {
         fn traverse_depth_first<'a>(
             prefix: &[&'a str],
             attrs: &'a IndexMap<String, Attribute>,
-            result: &mut IndexMap<VecNonEmpty<&'a str>, &'a AttributeValue>,
+            result: &mut IndexMap<VecNonEmpty<&'a str>, &'a Attribute>,
         ) {
             attrs.iter().for_each(|(key, attr)| {
                 let path = prefix
@@ -317,10 +268,10 @@ impl Attributes {
                     .collect_vec();
 
                 match attr {
-                    Attribute::Nested(nested) => {
+                    Attribute::Object(nested) => {
                         traverse_depth_first(&path, nested, result);
                     }
-                    Attribute::Single(attribute) => {
+                    attribute => {
                         result.insert(VecNonEmpty::try_from(path).unwrap(), attribute);
                     }
                 }
@@ -456,9 +407,9 @@ impl Attributes {
             [head, ..] => {
                 let prefixed_key = format!("{prefix}.{head}");
 
-                if let Attribute::Nested(result) = result
+                if let Attribute::Object(result) = result
                     .entry(String::from(head))
-                    .or_insert_with(|| Attribute::Nested(IndexMap::new()))
+                    .or_insert_with(|| Attribute::Object(IndexMap::new()))
                 {
                     Self::traverse_attributes_by_claim(&prefixed_key, &keys[1..], attributes, result)?;
                 }
@@ -478,7 +429,7 @@ impl Attributes {
     ) -> Result<(), AttributeError> {
         if let Some(index) = entries.iter().position(|entry| entry.name == key) {
             let entry = entries.swap_remove(index);
-            group.insert(entry.name, Attribute::Single(entry.value.try_into()?));
+            group.insert(entry.name, entry.value.try_into()?);
         }
 
         Ok(())
@@ -549,16 +500,19 @@ impl Attributes {
                     .collect_vec();
 
                 // If it's a nested attribute, recurse deeper first
-                if let Attribute::Nested(nested) = attr {
+                if let Attribute::Object(nested) = attr {
                     traverse_depth_first(&path, nested, result, behaviour);
                 }
 
                 match (attr, behaviour) {
-                    (Attribute::Nested(_), AttributesTraversalBehaviour::AllPaths) | (Attribute::Single(_), _) => {
+                    (Attribute::Object(_), AttributesTraversalBehaviour::AllPaths) => {
                         // Push current path after children have been processed (post-order)
                         result.push(VecNonEmpty::try_from(path).unwrap());
                     }
-                    (Attribute::Nested(_), AttributesTraversalBehaviour::OnlyLeaves) => {}
+                    (Attribute::Object(_), AttributesTraversalBehaviour::OnlyLeaves) => {}
+                    (_, _) => {
+                        result.push(VecNonEmpty::try_from(path).unwrap());
+                    }
                 }
             }
         }
@@ -571,10 +525,7 @@ impl Attributes {
     /// Retrieve the attribute value at the specified location, if it exists.
     ///
     /// NB: for now only all claim paths must be strings.
-    pub fn get(
-        &self,
-        claim_paths: &VecNonEmpty<ClaimPath>,
-    ) -> Result<Option<&AttributeValue>, AttributesHandlingError> {
+    pub fn get(&self, claim_paths: &VecNonEmpty<ClaimPath>) -> Result<Option<&Attribute>, AttributesHandlingError> {
         let Some(mut attr) = self.as_ref().get(
             claim_paths
                 .first()
@@ -591,17 +542,17 @@ impl Attributes {
                 .ok_or(AttributesHandlingError::InvalidClaimPath)?;
 
             attr = match attr {
-                Attribute::Single(_) => return Ok(None),
-                Attribute::Nested(map) => match map.get(claim_path) {
+                Attribute::Object(map) => match map.get(claim_path) {
                     Some(map) => map,
                     None => return Ok(None),
                 },
+                _ => return Ok(None),
             };
         }
 
         let attr = match attr {
-            Attribute::Single(value) => value,
-            _ => return Ok(None),
+            Attribute::Object(_) => return Ok(None),
+            value => value,
         };
 
         Ok(Some(attr))
@@ -648,12 +599,12 @@ impl Attributes {
                 // Find the attribute at the path or create a new nested attribute.
                 let attribute = map
                     .entry(claim_path.to_string())
-                    .or_insert_with(|| Attribute::Nested(IndexMap::new()));
+                    .or_insert_with(|| Attribute::Object(IndexMap::new()));
 
                 // If the attribute is a leaf the claim path is longer than expected and thus invalid.
                 let child_map = match attribute {
-                    Attribute::Single(_) => return Err(AttributesHandlingError::InvalidClaimPath),
-                    Attribute::Nested(map) => map,
+                    Attribute::Object(map) => map,
+                    _ => return Err(AttributesHandlingError::InvalidClaimPath),
                 };
 
                 Ok(child_map)
@@ -666,8 +617,8 @@ impl Attributes {
             .ok_or(AttributesHandlingError::InvalidClaimPath)?;
 
         match leaf_map.get(last_claim_path) {
-            Some(Attribute::Single(_)) => Err(AttributesHandlingError::ClaimAlreadyExists),
-            Some(Attribute::Nested(_)) => Err(AttributesHandlingError::InvalidClaimPath),
+            Some(Attribute::Object(_)) => Err(AttributesHandlingError::InvalidClaimPath),
+            Some(_) => Err(AttributesHandlingError::ClaimAlreadyExists),
             None => {
                 leaf_map.insert(last_claim_path.to_string(), attribute);
 
@@ -691,8 +642,8 @@ impl Attributes {
                     .collect_vec();
 
                 match attribute {
-                    Attribute::Single(_) => keep_claim_paths.contains(&path),
-                    Attribute::Nested(attributes) => nested_prune(&path, attributes, keep_claim_paths),
+                    Attribute::Object(attributes) => nested_prune(&path, attributes, keep_claim_paths),
+                    _ => keep_claim_paths.contains(&path),
                 }
             });
 
@@ -726,12 +677,11 @@ mod examples {
     use itertools::Itertools;
 
     use super::Attribute;
-    use super::AttributeValue;
     use super::Attributes;
 
     impl Attributes {
         pub fn example<'a>(
-            attributes: impl IntoIterator<Item = (impl IntoIterator<Item = &'a str>, AttributeValue)>,
+            attributes: impl IntoIterator<Item = (impl IntoIterator<Item = &'a str>, Attribute)>,
         ) -> Self {
             attributes
                 .into_iter()
@@ -743,9 +693,7 @@ mod examples {
                         .try_into()
                         .expect("path should consist of at least one path element");
 
-                    attributes
-                        .insert(&path, Attribute::Single(value))
-                        .expect("paths are inconsistent");
+                    attributes.insert(&path, value).expect("paths are inconsistent");
 
                     attributes
                 })
@@ -768,18 +716,18 @@ mod mock {
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use attestation_types::pid_constants::PID_RESIDENT_STREET;
 
-    use super::AttributeValue;
+    use super::Attribute;
     use super::Attributes;
 
     impl Attributes {
         pub fn nl_pid_example() -> Self {
             Self::example([
-                ([PID_GIVEN_NAME], AttributeValue::Text("Willeke Liselotte".to_string())),
-                ([PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
-                ([PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
-                ([PID_AGE_OVER_18], AttributeValue::Bool(true)),
-                ([PID_BSN], AttributeValue::Text("999991772".to_string())),
-                ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+                ([PID_GIVEN_NAME], Attribute::Text("Willeke Liselotte".to_string())),
+                ([PID_FAMILY_NAME], Attribute::Text("De Bruijn".to_string())),
+                ([PID_BIRTH_DATE], Attribute::Text("1997-05-10".to_string())),
+                ([PID_AGE_OVER_18], Attribute::Bool(true)),
+                ([PID_BSN], Attribute::Text("999991772".to_string())),
+                ([PID_RECOVERY_CODE], Attribute::Text("123".to_string())),
             ])
         }
 
@@ -787,23 +735,23 @@ mod mock {
             Self::example([
                 (
                     [PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
-                    AttributeValue::Text("Turfmarkt".to_string()),
+                    Attribute::Text("Turfmarkt".to_string()),
                 ),
                 (
                     [PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
-                    AttributeValue::Text("147".to_string()),
+                    Attribute::Text("147".to_string()),
                 ),
                 (
                     [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
-                    AttributeValue::Text("2511 DP".to_string()),
+                    Attribute::Text("2511 DP".to_string()),
                 ),
                 (
                     [PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
-                    AttributeValue::Text("Den Haag".to_string()),
+                    Attribute::Text("Den Haag".to_string()),
                 ),
                 (
                     [PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
-                    AttributeValue::Text("Nederland".to_string()),
+                    Attribute::Text("Nederland".to_string()),
                 ),
             ])
         }
@@ -826,7 +774,6 @@ pub mod test {
     use utils::vec_nonempty;
 
     use super::Attribute;
-    use super::AttributeValue;
     use super::Attributes;
     use super::AttributesError;
     use super::AttributesHandlingError;
@@ -834,41 +781,26 @@ pub mod test {
 
     pub fn complex_attributes() -> IndexMap<String, Attribute> {
         IndexMap::from([
-            (
-                String::from("birth_date"),
-                Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
-            ),
+            (String::from("birth_date"), Attribute::Text(String::from("1963-08-12"))),
             (
                 String::from("place_of_birth"),
-                Attribute::Nested(IndexMap::from([
-                    (
-                        String::from("locality"),
-                        Attribute::Single(AttributeValue::Text(String::from("The Hague"))),
-                    ),
+                Attribute::Object(IndexMap::from([
+                    (String::from("locality"), Attribute::Text(String::from("The Hague"))),
                     (
                         String::from("country"),
-                        Attribute::Nested(IndexMap::from([
-                            (
-                                String::from("name"),
-                                Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
-                            ),
-                            (
-                                String::from("area_code"),
-                                Attribute::Single(AttributeValue::Integer(33)),
-                            ),
+                        Attribute::Object(IndexMap::from([
+                            (String::from("name"), Attribute::Text(String::from("The Netherlands"))),
+                            (String::from("area_code"), Attribute::Number(33.into())),
                         ])),
                     ),
                 ])),
             ),
             (
                 String::from("financial"),
-                Attribute::Nested(IndexMap::from([
-                    (String::from("has_debt"), Attribute::Single(AttributeValue::Bool(true))),
-                    (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
-                    (
-                        String::from("debt_amount"),
-                        Attribute::Single(AttributeValue::Integer(-10_000)),
-                    ),
+                Attribute::Object(IndexMap::from([
+                    (String::from("has_debt"), Attribute::Bool(true)),
+                    (String::from("has_job"), Attribute::Bool(false)),
+                    (String::from("debt_amount"), Attribute::Number((-10_000).into())),
                 ])),
             ),
         ])
@@ -947,22 +879,58 @@ pub mod test {
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
 
         let expected_json = json!({
-            "birthdate": "1963-08-12",
+            "birthdate": {
+                "type": "text",
+                "value": "1963-08-12"
+            },
             "place_of_birth": {
-                "locality": "The Hague",
-                "country": {
-                    "name": "The Netherlands",
-                    "area_code": 31
+                "type": "object",
+                "value": {
+                    "locality": {
+                        "type": "text",
+                        "value": "The Hague"
+                    },
+                    "country": {
+                        "type": "object",
+                        "value": {
+                            "name": {
+                                "type": "text",
+                                "value": "The Netherlands"
+                            },
+                            "area_code": {
+                                "type": "number",
+                                "value": 31
+                            }
+                        }
+                    }
                 }
             },
             "a": {
-                "b": {
-                    "c": {
-                        "d":{
-                            "e": "abcd"
-                        },
-                    },
-                    "c1": "abc",
+                "type": "object",
+                "value": {
+                    "b": {
+                        "type": "object",
+                        "value": {
+                            "c": {
+                                "type": "object",
+                                "value": {
+                                    "d": {
+                                        "type": "object",
+                                        "value": {
+                                            "e": {
+                                                "type": "text",
+                                                "value": "abcd"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "c1": {
+                                "type": "text",
+                                "value": "abc"
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -996,7 +964,17 @@ pub mod test {
 
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
 
-        let expected_json = json!({"nest.ed": { "birth.date": "1963-08-12" }});
+        let expected_json = json!({
+            "nest.ed": {
+                "type": "object",
+                "value": {
+                    "birth.date": {
+                        "type": "text",
+                        "value": "1963-08-12"
+                    }
+                }
+            }
+        });
         assert_eq!(
             serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
             expected_json.to_json_string_pretty().unwrap(),
@@ -1088,7 +1066,25 @@ pub mod test {
         )]);
 
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
-        let expected_json = json!({"b": { "b1": "1", "b3": "3", "b2": "2" }});
+        let expected_json = json!({
+            "b": {
+                "type": "object",
+                "value": {
+                    "b1": {
+                        "type": "text",
+                        "value": "1"
+                    },
+                    "b3": {
+                        "type": "text",
+                        "value": "3"
+                    },
+                    "b2": {
+                        "type": "text",
+                        "value": "2"
+                    }
+                }
+            }
+        });
         assert_eq!(
             serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
             expected_json.to_json_string_pretty().unwrap(),
@@ -1097,23 +1093,14 @@ pub mod test {
 
     fn setup_issuable_attributes() -> Attributes {
         IndexMap::from_iter(vec![
-            (
-                "city".to_string(),
-                Attribute::Single(AttributeValue::Text("The Capital".to_string())),
-            ),
-            ("postal_code".to_string(), Attribute::Single(AttributeValue::Null)),
-            (
-                "street".to_string(),
-                Attribute::Single(AttributeValue::Text("Main St.".to_string())),
-            ),
+            ("city".to_string(), Attribute::Text("The Capital".to_string())),
+            ("postal_code".to_string(), Attribute::Null),
+            ("street".to_string(), Attribute::Text("Main St.".to_string())),
             (
                 "house".to_string(),
-                Attribute::Nested(IndexMap::from_iter(vec![
-                    ("number".to_string(), Attribute::Single(AttributeValue::Integer(1))),
-                    (
-                        "letter".to_string(),
-                        Attribute::Single(AttributeValue::Text("A".to_string())),
-                    ),
+                Attribute::Object(IndexMap::from_iter(vec![
+                    ("number".to_string(), Attribute::Number(1.into())),
+                    ("letter".to_string(), Attribute::Text("A".to_string())),
                 ])),
             ),
         ])
@@ -1126,12 +1113,29 @@ pub mod test {
         assert_eq!(
             serde_json::to_value(attributes).unwrap(),
             json!({
-                "city": "The Capital",
-                "street": "Main St.",
-                "postal_code": null,
+                "city": {
+                    "type": "text",
+                    "value": "The Capital"
+                },
+                "postal_code": {
+                    "type": "null"
+                },
+                "street": {
+                    "type": "text",
+                    "value": "Main St."
+                },
                 "house": {
-                    "number": 1,
-                    "letter": "A"
+                    "type": "object",
+                    "value": {
+                        "number": {
+                            "type": "number",
+                            "value": 1
+                        },
+                        "letter": {
+                            "type": "text",
+                            "value": "A"
+                        }
+                    }
                 }
             })
         );
@@ -1140,7 +1144,7 @@ pub mod test {
     #[rstest]
     #[case(
         vec_nonempty![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("number".to_string())],
-        Ok(Some(&AttributeValue::Integer(1))))
+        Ok(Some(&Attribute::Number(1.into()))))
     ]
     #[case(
         vec_nonempty![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("foobar".to_string())],
@@ -1159,7 +1163,7 @@ pub mod test {
     #[case(vec_nonempty![ClaimPath::SelectAll], Err(AttributesHandlingError::InvalidClaimPath))]
     fn test_attributes_get_and_has_claim_paths(
         #[case] claim_paths: VecNonEmpty<ClaimPath>,
-        #[case] expected: Result<Option<&AttributeValue>, AttributesHandlingError>,
+        #[case] expected: Result<Option<&Attribute>, AttributesHandlingError>,
     ) {
         let attributes = setup_issuable_attributes();
 
@@ -1177,14 +1181,37 @@ pub mod test {
     #[case(
         vec![ClaimPath::SelectByKey("foo".to_string())],
         Ok(json!({
-            "outer": { "inner": "value" },
-            "foo": true
+            "outer": {
+                "type": "object",
+                "value": {
+                    "inner": {
+                        "type": "text",
+                        "value": "value"
+                    }
+                }
+            },
+            "foo": {
+                "type": "bool",
+                "value": true
+            }
         }))
     )]
     #[case(
         vec![ClaimPath::SelectByKey("outer".to_string()), ClaimPath::SelectByKey("foo".to_string())],
         Ok(json!({
-            "outer": { "inner": "value", "foo": true },
+            "outer": {
+                "type": "object",
+                "value": {
+                    "foo": {
+                        "type": "bool",
+                        "value": true
+                    },
+                    "inner": {
+                        "type": "text",
+                        "value": "value"
+                    }
+                }
+            }
         }))
     )]
     #[case(
@@ -1209,18 +1236,15 @@ pub mod test {
     ) {
         let mut attributes: Attributes = IndexMap::from_iter([(
             "outer".to_string(),
-            Attribute::Nested(IndexMap::from_iter([(
+            Attribute::Object(IndexMap::from_iter([(
                 "inner".to_string(),
-                Attribute::Single(AttributeValue::Text("value".to_string())),
+                Attribute::Text("value".to_string()),
             )])),
         )])
         .into();
 
         let result = attributes
-            .insert(
-                &claim_paths.try_into().unwrap(),
-                Attribute::Single(AttributeValue::Bool(true)),
-            )
+            .insert(&claim_paths.try_into().unwrap(), Attribute::Bool(true))
             .map(|_| serde_json::to_value(attributes).unwrap());
 
         assert_eq!(result, expected);
@@ -1244,10 +1268,7 @@ pub mod test {
     #[case(&[], IndexMap::new())]
     #[case(
         &[vec_nonempty![ClaimPath::SelectByKey("name".to_string())]],
-        IndexMap::from([(
-            "name".to_string(),
-            Attribute::Single(AttributeValue::Text("Wallet".to_string())),
-        )]),
+        IndexMap::from([("name".to_string(), Attribute::Text("Wallet".to_string()))]),
     )]
     #[case(
         &[
@@ -1261,14 +1282,11 @@ pub mod test {
         IndexMap::from([
             (
                 "country".to_string(),
-                Attribute::Nested(IndexMap::from([
-                    ("iso".to_string(), Attribute::Single(AttributeValue::Text("NL".to_string()))),
-                ])),
-            ), (
+                Attribute::Object(IndexMap::from([("iso".to_string(), Attribute::Text("NL".to_string()))])),
+            ),
+            (
                 "address".to_string(),
-                Attribute::Nested(IndexMap::from([
-                    ("street".to_string(), Attribute::Single(AttributeValue::Text("Gracht".to_string()))),
-                ])),
+                Attribute::Object(IndexMap::from([("street".to_string(), Attribute::Text("Gracht".to_string()))])),
             ),
         ]),
     )]
@@ -1307,9 +1325,9 @@ pub mod test {
         let attestation_type = "com.example.address";
         let nested_attributes: Attributes = IndexMap::from_iter(vec![(
             "house".to_string(),
-            Attribute::Nested(IndexMap::from_iter(vec![(
+            Attribute::Object(IndexMap::from_iter(vec![(
                 "number".to_string(),
-                Attribute::Single(AttributeValue::Integer(1)),
+                Attribute::Number(1.into()),
             )])),
         )])
         .into();
@@ -1328,31 +1346,22 @@ pub mod test {
 
     fn example_attributes() -> Attributes {
         IndexMap::from([
-            (
-                "name".to_string(),
-                Attribute::Single(AttributeValue::Text("Wallet".to_string())),
-            ),
+            ("name".to_string(), Attribute::Text("Wallet".to_string())),
             (
                 "address".to_string(),
-                Attribute::Nested(IndexMap::from([
-                    (
-                        "street".to_string(),
-                        Attribute::Single(AttributeValue::Text("Gracht".to_string())),
-                    ),
-                    ("number".to_string(), Attribute::Single(AttributeValue::Integer(123))),
+                Attribute::Object(IndexMap::from([
+                    ("street".to_string(), Attribute::Text("Gracht".to_string())),
+                    ("number".to_string(), Attribute::Number(123.into())),
                 ])),
             ),
             (
                 "country".to_string(),
-                Attribute::Nested(IndexMap::from([
-                    (
-                        "iso".to_string(),
-                        Attribute::Single(AttributeValue::Text("NL".to_string())),
-                    ),
-                    ("area_code".to_string(), Attribute::Single(AttributeValue::Integer(31))),
+                Attribute::Object(IndexMap::from([
+                    ("iso".to_string(), Attribute::Text("NL".to_string())),
+                    ("area_code".to_string(), Attribute::Number(31.into())),
                 ])),
             ),
-            ("adult".to_string(), Attribute::Single(AttributeValue::Bool(true))),
+            ("adult".to_string(), Attribute::Bool(true)),
         ])
         .into()
     }
@@ -1362,15 +1371,15 @@ pub mod test {
         assert_eq!(
             example_attributes().flattened(),
             IndexMap::from([
-                (vec_nonempty!["name"], &AttributeValue::Text("Wallet".to_string())),
+                (vec_nonempty!["name"], &Attribute::Text("Wallet".to_string())),
                 (
                     vec_nonempty!["address", "street"],
-                    &AttributeValue::Text("Gracht".to_string())
+                    &Attribute::Text("Gracht".to_string())
                 ),
-                (vec_nonempty!["address", "number"], &AttributeValue::Integer(123)),
-                (vec_nonempty!["country", "iso"], &AttributeValue::Text("NL".to_string())),
-                (vec_nonempty!["country", "area_code"], &AttributeValue::Integer(31)),
-                (vec_nonempty!["adult"], &AttributeValue::Bool(true)),
+                (vec_nonempty!["address", "number"], &Attribute::Number(123.into())),
+                (vec_nonempty!["country", "iso"], &Attribute::Text("NL".to_string())),
+                (vec_nonempty!["country", "area_code"], &Attribute::Number(31.into())),
+                (vec_nonempty!["adult"], &Attribute::Bool(true)),
             ]),
         );
     }
@@ -1534,11 +1543,8 @@ pub mod test {
 
         #[test]
         fn single_attribute_should_return_correct_claimpaths() {
-            let result: Attributes = IndexMap::from([(
-                String::from("a"),
-                Attribute::Single(AttributeValue::Text(String::from("1234"))),
-            )])
-            .into();
+            let result: Attributes =
+                IndexMap::from([(String::from("a"), Attribute::Text(String::from("1234")))]).into();
 
             let expected = vec![vec_nonempty![ClaimPath::SelectByKey(String::from("a"))]];
 
@@ -1549,23 +1555,14 @@ pub mod test {
         #[test]
         fn nested_attribute_should_return_correct_claimpaths() {
             let result: Attributes = IndexMap::from([
-                (
-                    String::from("b"),
-                    Attribute::Single(AttributeValue::Text(String::from("1234"))),
-                ),
+                (String::from("b"), Attribute::Text(String::from("1234"))),
                 (
                     String::from("a"),
-                    Attribute::Nested(IndexMap::from([(
+                    Attribute::Object(IndexMap::from([(
                         String::from("a1"),
-                        Attribute::Nested(IndexMap::from([
-                            (
-                                String::from("a2"),
-                                Attribute::Single(AttributeValue::Text(String::from("1234"))),
-                            ),
-                            (
-                                String::from("a3"),
-                                Attribute::Single(AttributeValue::Text(String::from("1234"))),
-                            ),
+                        Attribute::Object(IndexMap::from([
+                            (String::from("a2"), Attribute::Text(String::from("1234"))),
+                            (String::from("a3"), Attribute::Text(String::from("1234"))),
                         ])),
                     )])),
                 ),

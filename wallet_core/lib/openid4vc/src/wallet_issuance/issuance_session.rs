@@ -1247,7 +1247,6 @@ mod tests {
     use std::vec;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
@@ -1590,7 +1589,7 @@ mod tests {
         let type_metadata = session.type_metadata();
         assert_matches!(
                 &preview.credential_payload.attributes.as_ref()["family_name"],
-                Attribute::Single(AttributeValue::Text(v)) if v == "De Bruijn");
+                Attribute::Text(v) if v == "De Bruijn");
 
         assert_eq!(
             type_metadata
@@ -2552,8 +2551,8 @@ mod tests {
         let attributes = PreviewableCredentialPayload::example_with_attributes(
             PID_ATTESTATION_TYPE,
             Attributes::example([
-                (["new"], AttributeValue::Bool(true)),
-                (["family_name"], AttributeValue::Text(String::from("De Bruijn"))),
+                (["new"], Attribute::Bool(true)),
+                (["family_name"], Attribute::Text(String::from("De Bruijn"))),
             ]),
             &MockTimeGenerator::default(),
         )
