@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeParseError;
 use axum::Router;
@@ -218,6 +219,15 @@ pub enum VerifierSettingsValidationError {
         #[source]
         source: anyhow::Error,
     },
+
+    #[error(
+        "DCQL query for disclosure setting `{use_case_id}` is not authorized by its registration certificate: {source}"
+    )]
+    UnauthorizedDcqlQuery {
+        use_case_id: String,
+        #[source]
+        source: RegistrationCertificateAuthorizationError,
+    },
 }
 
 impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
@@ -229,6 +239,9 @@ impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
             }
             VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
                 Self::InvalidRegistrationCertificate { use_case_id, source }
+            }
+            VerifierUseCasesValidationError::UnauthorizedDcqlQuery { use_case_id, source } => {
+                Self::UnauthorizedDcqlQuery { use_case_id, source }
             }
         }
     }
@@ -265,6 +278,7 @@ impl VerifierSettings {
                 id: use_case_id,
                 key_pair: &settings.key_pair,
                 registration_certificate: settings.registration_certificate.as_deref(),
+                dcql_query: Some(&settings.dcql_query),
             })
             .collect::<Vec<_>>();
 

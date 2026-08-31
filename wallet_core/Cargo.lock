@@ -7911,6 +7911,7 @@ dependencies = [
  "config",
  "crypto",
  "db_test",
+ "dcql",
  "hsm",
  "http",
  "http_utils",

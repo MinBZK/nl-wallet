@@ -7,6 +7,7 @@ use dcql::Query;
 
 use super::Credential;
 use super::StatusValidatedRegistrationCertificate;
+use super::StructurallyValidatedRegistrationCertificate;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateAuthorizationError {
@@ -15,6 +16,13 @@ pub enum RegistrationCertificateAuthorizationError {
 }
 
 impl StatusValidatedRegistrationCertificate {
+    /// Validate that every credential, claim and requested value in a DCQL query is authorized by this certificate.
+    pub fn validate_query_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
+        validate_query_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())
+    }
+}
+
+impl StructurallyValidatedRegistrationCertificate {
     /// Validate that every credential, claim and requested value in a DCQL query is authorized by this certificate.
     pub fn validate_query_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
         validate_query_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())

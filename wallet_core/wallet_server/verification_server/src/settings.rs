@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Context;
+use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use config::Config;
 use config::ConfigError;
@@ -165,6 +166,12 @@ pub enum VerifierSettingsValidationError {
         #[source]
         source: anyhow::Error,
     },
+    #[error("DCQL query for use case `{usecase_id}` is not authorized by its registration certificate: {source}")]
+    UnauthorizedDcqlQuery {
+        usecase_id: String,
+        #[source]
+        source: RegistrationCertificateAuthorizationError,
+    },
 }
 
 impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
@@ -178,6 +185,12 @@ impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
             }
             VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
                 Self::InvalidRegistrationCertificate {
+                    usecase_id: use_case_id,
+                    source,
+                }
+            }
+            VerifierUseCasesValidationError::UnauthorizedDcqlQuery { use_case_id, source } => {
+                Self::UnauthorizedDcqlQuery {
                     usecase_id: use_case_id,
                     source,
                 }
@@ -256,6 +269,7 @@ impl ServerSettings for VerifierSettings {
                 id: use_case_id,
                 key_pair: &use_case.key_pair,
                 registration_certificate: use_case.registration_certificate.as_deref(),
+                dcql_query: use_case.dcql_query.as_ref(),
             })
             .collect::<Vec<_>>();
 

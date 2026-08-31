@@ -10,6 +10,7 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateError;
+use dcql::Query;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -105,6 +106,18 @@ fn to_use_case(key_pair: KeyPair, registration_certificate: Option<Vec<u8>>) -> 
         disclosure_base_deep_link: None,
         accept_undetermined_revocation_status: false,
     }
+}
+
+fn unauthorized_query() -> Query {
+    serde_json::from_value(json!({
+        "credentials": [{
+            "id": "unauthorized",
+            "format": "mso_mdoc",
+            "meta": { "doctype_value": "com.example.unauthorized" },
+            "claims": [{ "path": ["com.example.unauthorized", "claim"] }]
+        }]
+    }))
+    .unwrap()
 }
 
 fn default_settings() -> VerifierSettings {
@@ -288,5 +301,27 @@ fn test_settings_rejects_registration_certificate_for_other_access_certificate()
         settings.validate(),
         Err(VerifierSettingsValidationError::InvalidRegistrationCertificate { usecase_id, .. })
             if usecase_id == "mismatch"
+    );
+}
+
+#[test]
+fn test_settings_rejects_dcql_query_not_authorized_by_registration_certificate() {
+    let mut settings = default_settings();
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+    let wrpac = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
+    let wrprc_ca = Ca::generate_mock();
+    let registration_certificate =
+        registration_certificate(&wrpac, &wrprc_ca, RegistrationCertificateFormat::Jwt, None);
+    let mut use_case = to_use_case(wrpac, Some(registration_certificate));
+    use_case.dcql_query = Some(unauthorized_query());
+
+    settings.usecases = HashMap::from([("unauthorized".to_string(), use_case)]).into();
+    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
+    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
+
+    assert_matches!(
+        settings.validate(),
+        Err(VerifierSettingsValidationError::UnauthorizedDcqlQuery { usecase_id, .. })
+            if usecase_id == "unauthorized"
     );
 }
