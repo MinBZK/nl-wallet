@@ -313,6 +313,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use base64::prelude::*;
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -325,10 +326,14 @@ mod tests {
     use http::StatusCode;
     use http_utils::urls::BaseUrl;
     use itertools::Itertools;
+    use jwt::SignedJwt;
+    use jwt::UnverifiedJwt;
     use jwt::error::JwtParseError;
+    use jwt::headers::HeaderWithX5c;
     use mdoc::holder::disclosure::PartialMdoc;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
+    use serde::Serialize;
     use serde::de::Error;
     use token_status_list::verification::client::StatusListClient;
     use token_status_list::verification::client::mock::StatusListClientStub;
@@ -347,6 +352,7 @@ mod tests {
     use super::super::error::VpClientError;
     use super::super::error::VpSessionError;
     use super::super::error::VpVerifierError;
+    use super::super::message_client::VpMessageClient;
     use super::super::message_client::VpMessageClientError;
     use super::super::message_client::mock::MockErrorFactoryVpMessageClient;
     use super::super::message_client::mock::MockVerifierSession;
@@ -355,9 +361,11 @@ mod tests {
     use super::super::message_client::mock::request_uri;
     use super::super::session::VpDisclosureSession;
     use super::VpDisclosureClient;
+    use crate::errors::AuthorizationErrorResponse;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::openid4vp::AuthRequestValidationError;
+    use crate::openid4vp::VpAuthorizationRequest;
     use crate::openid4vp::VpAuthorizationResponse;
     use crate::openid4vp::VpFormatsSupported;
     use crate::openid4vp::VpRequestUri;
@@ -376,6 +384,43 @@ mod tests {
         ),
         (Box<VpSessionError>, Arc<MockVerifierSession>),
     >;
+
+    #[derive(Serialize)]
+    #[serde(transparent)]
+    struct MalformedVpAuthorizationRequest(serde_json::Value);
+
+    impl jwt::JwtTyp for MalformedVpAuthorizationRequest {
+        const TYP: &'static str = "oauth-authz-req+jwt";
+    }
+
+    #[derive(Debug, Clone)]
+    struct MalformedVpAuthorizationRequestMessageClient(UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>);
+
+    impl VpMessageClient for MalformedVpAuthorizationRequestMessageClient {
+        async fn get_authorization_request(
+            &self,
+            _url: BaseUrl,
+            _wallet_nonce: Option<String>,
+        ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
+            Ok(self.0.clone())
+        }
+
+        async fn send_authorization_response(
+            &self,
+            _url: BaseUrl,
+            _jwe: String,
+        ) -> Result<Option<Url>, VpMessageClientError> {
+            panic!("a malformed authorization request should not produce an authorization response")
+        }
+
+        async fn send_error(
+            &self,
+            _url: BaseUrl,
+            _error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
+        ) -> Result<Option<Url>, VpMessageClientError> {
+            panic!("a malformed authorization request should not be reported to the verifier")
+        }
+    }
 
     fn status_list_client() -> impl StatusListClient {
         let ca = Ca::generate_mock();
@@ -665,6 +710,57 @@ mod tests {
         assert_matches!(
             verifier_session.wallet_messages.lock().last(),
             Some(WalletMessage::Error(_))
+        );
+    }
+
+    #[test]
+    fn test_vp_disclosure_client_does_not_report_malformed_registration_certificate() {
+        let verifier_session = MockVerifierSession::new(
+            &VERIFIER_URL,
+            SessionType::SameDevice,
+            VpRequestUriMethod::GET,
+            None,
+            NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+        );
+        let registration_certificate = verifier_session.registration_certificate.as_ref().unwrap();
+        let registration_certificate_trust_anchors = registration_certificate.trust_anchors.clone();
+        let registration_certificate_status_list_client = registration_certificate.status_list_client.clone();
+        let mut auth_request = serde_json::to_value(VpAuthorizationRequest::from(
+            verifier_session.normalized_auth_request(None),
+        ))
+        .unwrap();
+        auth_request["verifier_info"][0]["data"] =
+            serde_json::Value::String(BASE64_URL_SAFE_NO_PAD.encode(b"not a registration certificate"));
+        let signed_auth_request = SignedJwt::<_, HeaderWithX5c>::sign_with_certificate(
+            &MalformedVpAuthorizationRequest(auth_request),
+            &verifier_session.key_pair,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap();
+        let auth_request = signed_auth_request.to_string().parse().unwrap();
+        let client = VpDisclosureClient::new(
+            MalformedVpAuthorizationRequestMessageClient(auth_request),
+            verifier_session.crl_verifier.clone(),
+            registration_certificate_status_list_client,
+        );
+
+        let error = client
+            .start(
+                &verifier_session.request_uri_query(),
+                DisclosureUriSource::Link,
+                &verifier_session.trust_anchors,
+                &registration_certificate_trust_anchors,
+            )
+            .now_or_never()
+            .unwrap()
+            .expect_err("starting a disclosure session with a malformed registration certificate should fail");
+
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::JwtVerification(_)
+            ))
         );
     }
 

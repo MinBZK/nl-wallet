@@ -1205,6 +1205,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
     use attestation_types::claim_path::ClaimPath;
@@ -1221,6 +1222,7 @@ mod tests {
     use crypto::x509::crl::CertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
     use dcql::CredentialQueryIdentifier;
+    use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -1285,6 +1287,12 @@ mod tests {
     );
 
     const EXAMPLE_X509_HASH_CLIENT_ID: &str = "x509_hash:ZXhhbXBsZS1jbGllbnQtaWQtaGFzaA";
+
+    #[derive(Clone, Copy)]
+    enum RegistrationCertificateFormat {
+        Jwt,
+        Cwt,
+    }
 
     fn authorization_request_from_normalized(value: NormalizedVpAuthorizationRequest) -> VpAuthorizationRequest {
         value.into()
@@ -2181,17 +2189,30 @@ mod tests {
         assert!(json_array_error.to_string().contains("error parsing entry as JSON"));
     }
 
-    #[test]
-    fn registration_certificate_verifier_info_should_roundtrip_data_as_string() {
-        let (_, _, _, auth_request) = setup_mdoc();
-        let verifier_info = VerifierInfo::registration_certificate(auth_request.registration_certificate);
-        let json = serde_json::to_value(&verifier_info).unwrap();
+    #[rstest]
+    #[case::jwt(RegistrationCertificateFormat::Jwt)]
+    #[case::cwt(RegistrationCertificateFormat::Cwt)]
+    fn registration_certificate_verifier_info_should_roundtrip_exact_json(
+        #[case] format: RegistrationCertificateFormat,
+    ) {
+        let (_, access_key_pair, _, auth_request) = setup_mdoc();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let query = Query::from(auth_request.credential_requests);
+        let certificate = match format {
+            RegistrationCertificateFormat::Jwt => authority.issue_jwt(access_key_pair.certificate(), query),
+            RegistrationCertificateFormat::Cwt => authority.issue_cwt(access_key_pair.certificate(), query),
+        };
+        let expected_json = json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
+        });
+        let envelope = RegistrationCertificateEnvelope::try_from(certificate.as_slice()).unwrap();
 
-        assert_eq!(json["format"], "registration_cert");
-        assert!(json["data"].is_string());
+        let json = serde_json::to_value(VerifierInfo::registration_certificate(envelope)).unwrap();
+        assert_eq!(json, expected_json);
 
-        let deserialized = serde_json::from_value::<VerifierInfo>(json.clone()).unwrap();
-        assert_eq!(serde_json::to_value(deserialized).unwrap(), json);
+        let deserialized = serde_json::from_value::<VerifierInfo>(json).unwrap();
+        assert_eq!(serde_json::to_value(deserialized).unwrap(), expected_json);
     }
 
     #[test]
