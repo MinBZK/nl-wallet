@@ -492,6 +492,7 @@ mod tests {
     use std::assert_matches;
     use std::slice::from_ref;
 
+    use base64::prelude::BASE64_STANDARD;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
@@ -507,6 +508,29 @@ mod tests {
     use crate::server_keys::generate::Ca;
     use crate::trust_anchor::TrustAnchors;
     use crate::x509::crl::parse_crl_der;
+
+    fn encode_pem(tag: &str, contents: &[u8]) -> String {
+        format!(
+            "-----BEGIN {tag}-----\n{}\n-----END {tag}-----\n",
+            BASE64_STANDARD.encode(contents)
+        )
+    }
+
+    #[test]
+    fn borrowing_certificate_from_pem_accepts_certificate_block() {
+        let ca = Ca::generate_mock();
+        let certificate_pem = encode_pem("CERTIFICATE", ca.certificate().as_ref());
+
+        BorrowingCertificate::from_pem(certificate_pem).expect("certificate PEM block should be accepted");
+    }
+
+    #[test]
+    fn borrowing_certificate_from_pem_rejects_other_block() {
+        let ca = Ca::generate_mock();
+        let public_key_pem = encode_pem("PUBLIC KEY", ca.certificate().as_ref());
+
+        BorrowingCertificate::from_pem(public_key_pem).expect_err("non-certificate PEM block should be rejected");
+    }
 
     #[test]
     fn generate_ca() {
@@ -581,7 +605,7 @@ mod tests {
         key_pair
             .certificate()
             .verify(
-                Some(CertificateUsage::OAuthStatusSigning),
+                Some(CertificateUsage::StatusListSigning),
                 &[],
                 &TimeGenerator,
                 &TrustAnchors::from(&ca),

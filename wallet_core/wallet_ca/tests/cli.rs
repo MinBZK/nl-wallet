@@ -731,7 +731,7 @@ fn status_list_token_requires_status_signing_certificate() -> Result<()> {
         .assert()
         .failure()
         .stderr(predicate::str::contains(
-            "status list signing certificate must have OAuth Status Signing usage",
+            "status list signing certificate must have Status List Signing usage",
         ));
 
     temp.close()?;
@@ -924,7 +924,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
         )?;
     }
 
@@ -958,7 +958,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
         )?;
     }
 
@@ -1023,7 +1023,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
         )?;
     }
 
@@ -1057,7 +1057,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
         )?;
     }
 
@@ -1120,7 +1120,7 @@ fn happy_flow_with_san() -> Result<()> {
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
         )?;
     }
 
@@ -1154,7 +1154,7 @@ fn happy_flow_with_san() -> Result<()> {
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
         )?;
     }
 

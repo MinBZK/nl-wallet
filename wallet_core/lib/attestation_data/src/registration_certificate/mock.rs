@@ -121,7 +121,7 @@ pub struct MockRegistrationCertificate {
 impl MockRegistrationCertificate {
     pub fn new(access_certificate: &BorrowingCertificate, query: Query) -> Self {
         let authority = MockRegistrationCertificateAuthority::new();
-        let certificate = authority.issue(access_certificate, query);
+        let certificate = authority.issue_jwt(access_certificate, query);
 
         Self {
             certificate,
@@ -170,7 +170,7 @@ impl MockRegistrationCertificateAuthority {
         }
     }
 
-    pub fn issue(&self, access_certificate: &BorrowingCertificate, query: Query) -> Vec<u8> {
+    pub fn issue_jwt(&self, access_certificate: &BorrowingCertificate, query: Query) -> Vec<u8> {
         let signing_key_pair = self.ca.generate_issuer_mock().unwrap();
         SignedJwt::<_, JadesbbHeader>::sign_with_iat(
             &registration_certificate_payload(access_certificate, query),

@@ -33,13 +33,7 @@ pub fn read_self_signed_ca(ca_crt_file: &CachedInput, ca_key_file: &CachedInput)
 }
 
 pub fn read_certificate(certificate_file: &CachedInput) -> Result<BorrowingCertificate> {
-    let certificate_pem = Pem::try_from(certificate_file.get_data())?;
-    ensure!(
-        certificate_pem.tag() == "CERTIFICATE",
-        "expected a CERTIFICATE PEM block"
-    );
-
-    Ok(BorrowingCertificate::from_der(certificate_pem.contents())?)
+    Ok(BorrowingCertificate::from_pem(certificate_file.get_data())?)
 }
 
 pub fn read_key_pair(certificate_file: &CachedInput, key_file: &CachedInput) -> Result<KeyPair> {

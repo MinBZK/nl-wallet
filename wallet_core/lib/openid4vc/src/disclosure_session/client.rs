@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::time::Duration;
 
 use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
@@ -42,10 +41,6 @@ use crate::registration_certificate::RegistrationCertificateError;
 use crate::registration_certificate::validate_registration_certificate;
 use crate::verifier::SessionType;
 
-const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
-const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(180);
-const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(10);
-
 #[derive(Debug)]
 pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher, C = HttpStatusListClient> {
     client: H,
@@ -61,11 +56,8 @@ where
         Self {
             client,
             crl_verifier,
-            registration_certificate_revocation_verifier: RevocationVerifier::new(
+            registration_certificate_revocation_verifier: RevocationVerifier::new_with_defaults(
                 Arc::new(status_list_client),
-                STATUS_LIST_TOKEN_CACHE_CAPACITY,
-                STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
-                STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
                 TimeGenerator,
             ),
         }
@@ -222,7 +214,10 @@ where
 
         let verifier_info = vp_auth_request.verifier_info.clone();
         let dcql_query = vp_auth_request.dcql_query.clone();
-        let auth_request_result = vp_auth_request.validate(&certificate, request_nonce.as_deref());
+        let auth_request_result = vp_auth_request
+            .validate(&certificate, request_nonce.as_deref())
+            .map_err(VpVerifierError::AuthRequestValidation);
+
         let auth_request_result = match auth_request_result {
             Ok(auth_request) => validate_registration_certificate(
                 verifier_info.as_ref().map(|info| info.as_slice()),
@@ -238,10 +233,14 @@ where
                     .map_err(RegistrationCertificateError::Authorization)
             })
             .map(|()| auth_request)
-            .map_err(|error| AuthRequestValidationError::RegistrationCertificate(Box::new(error))),
+            .map_err(|error| {
+                VpVerifierError::AuthRequestValidation(AuthRequestValidationError::RegistrationCertificate(Box::new(
+                    error,
+                )))
+            }),
             Err(error) => Err(error),
-        }
-        .map_err(VpVerifierError::AuthRequestValidation);
+        };
+
         let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
                 return Err(VpSessionError::Verifier(

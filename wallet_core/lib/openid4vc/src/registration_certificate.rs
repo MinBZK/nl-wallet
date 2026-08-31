@@ -167,7 +167,7 @@ mod tests {
     async fn validate_registration_certificate_envelope(#[case] format: EnvelopeFormat) {
         let (access_key_pair, query, authority) = setup(StatusType::Valid);
         let certificate = match format {
-            EnvelopeFormat::Jwt => authority.issue(access_key_pair.certificate(), query.clone()),
+            EnvelopeFormat::Jwt => authority.issue_jwt(access_key_pair.certificate(), query.clone()),
             EnvelopeFormat::Cwt => authority.issue_cwt(access_key_pair.certificate(), query.clone()),
         };
         let verifier_info = [registration_certificate_info(certificate)];
@@ -213,7 +213,7 @@ mod tests {
     #[tokio::test]
     async fn reject_multiple_registration_certificates() {
         let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let certificate = authority.issue(access_key_pair.certificate(), query.clone());
+        let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
         let verifier_info = [
             registration_certificate_info(certificate.clone()),
             registration_certificate_info(certificate),
@@ -235,7 +235,7 @@ mod tests {
     #[tokio::test]
     async fn accept_single_registration_certificate_among_other_verifier_info() {
         let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let certificate = authority.issue(access_key_pair.certificate(), query.clone());
+        let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
         let verifier_info = [
             VerifierInfo {
                 format: "first_other_format".to_string(),
@@ -280,7 +280,7 @@ mod tests {
     #[tokio::test]
     async fn reject_registration_certificate_from_untrusted_signer() {
         let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let certificate = authority.issue(access_key_pair.certificate(), query.clone());
+        let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
         let verifier_info = [registration_certificate_info(certificate)];
         let untrusted_ca = Ca::generate_mock();
 
@@ -300,7 +300,7 @@ mod tests {
     #[tokio::test]
     async fn reject_registration_certificate_with_mismatching_access_certificate_subject() {
         let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let certificate = authority.issue(access_key_pair.certificate(), query.clone());
+        let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
         let verifier_info = [registration_certificate_info(certificate)];
         let mismatching_access_certificate = Ca::generate_wrpac_mock_ca()
             .unwrap()
@@ -339,7 +339,7 @@ mod tests {
     #[tokio::test]
     async fn reject_revoked_registration_certificate() {
         let (access_key_pair, query, authority) = setup(StatusType::Invalid);
-        let certificate = authority.issue(access_key_pair.certificate(), query.clone());
+        let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
         let verifier_info = [registration_certificate_info(certificate)];
 
         let error = validate(
@@ -361,7 +361,7 @@ mod tests {
     #[tokio::test]
     async fn reject_query_not_authorized_by_registration_certificate() {
         let (access_key_pair, authorized_query, authority) = setup(StatusType::Valid);
-        let certificate = authority.issue(access_key_pair.certificate(), authorized_query);
+        let certificate = authority.issue_jwt(access_key_pair.certificate(), authorized_query);
         let verifier_info = [registration_certificate_info(certificate)];
         let unauthorized_query = Query::new_mock_sd_jwt_pid_example();
 

@@ -260,7 +260,7 @@ enum Command {
         #[arg(long, value_enum)]
         format: RegistrationCertificateFormat,
     },
-    /// Sign an OAuth Status List Token and print its compact JWT serialization
+    /// Sign a Status List Token and print its compact JWT serialization
     StatusList {
         /// Path to the Token Status List signing key file in PEM format
         #[arg(long, value_parser)]
@@ -410,7 +410,7 @@ impl Command {
     ) -> Result<CertificateConfiguration> {
         let usage = match cert_type {
             CertType::Issuer => Some(CertificateUsage::Mdl),
-            CertType::Tsl => Some(CertificateUsage::OAuthStatusSigning),
+            CertType::Tsl => Some(CertificateUsage::StatusListSigning),
             CertType::Wia => Some(CertificateUsage::Wia),
             CertType::Wrpac | CertType::Wrprc => None,
         };
@@ -561,9 +561,9 @@ impl Command {
                     anyhow::bail!("status list signing certificate must be an end-entity certificate");
                 }
                 let usage = CertificateUsage::from_certificate(signing_key_pair.certificate().x509_certificate())
-                    .context("status list signing certificate must have OAuth Status Signing usage")?;
-                if usage != CertificateUsage::OAuthStatusSigning {
-                    anyhow::bail!("status list signing certificate must have OAuth Status Signing usage");
+                    .context("status list signing certificate must have Status List Signing usage")?;
+                if usage != CertificateUsage::StatusListSigning {
+                    anyhow::bail!("status list signing certificate must have Status List Signing usage");
                 }
 
                 let mut status_list = TokenStatusList::new(statuses.len());

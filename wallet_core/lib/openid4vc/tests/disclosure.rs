@@ -1103,7 +1103,7 @@ where
     let access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let registration_certificate_authority = MockRegistrationCertificateAuthority::new();
     let registration_certificate =
-        registration_certificate_authority.issue(access_key_pair.certificate(), dcql_query.clone());
+        registration_certificate_authority.issue_jwt(access_key_pair.certificate(), dcql_query.clone());
     let use_case = WalletInitiatedUseCase::new(
         UseCaseData::new(access_key_pair, SessionTypeReturnUrl::SameDevice)
             .with_registration_certificate(registration_certificate),
@@ -1152,10 +1152,10 @@ fn setup_verifier(
 
     let default_access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let default_registration_certificate =
-        registration_certificate_authority.issue(default_access_key_pair.certificate(), dcql_query.clone());
+        registration_certificate_authority.issue_jwt(default_access_key_pair.certificate(), dcql_query.clone());
     let all_access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let all_registration_certificate =
-        registration_certificate_authority.issue(all_access_key_pair.certificate(), dcql_query.clone());
+        registration_certificate_authority.issue_jwt(all_access_key_pair.certificate(), dcql_query.clone());
 
     // Initialize the verifier
     let usecases = HashMap::from([
