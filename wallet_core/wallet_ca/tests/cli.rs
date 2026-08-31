@@ -12,6 +12,7 @@ use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
+use attestation_data::registration_certificate::mock::registration_certificate_payload;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration as ChronoDuration;
@@ -38,7 +39,6 @@ use pem::Pem;
 use predicates::prelude::*;
 use predicates::str::RegexPredicate;
 use predicates::str::StartsWithPredicate;
-use serde_json::Value;
 use serde_json::json;
 use time::Duration;
 use time::OffsetDateTime;
@@ -518,41 +518,18 @@ const DEFAULT_CA_LIFETIME: Duration = Duration::days(3650);
 const DEFAULT_CERTIFICATE_LIFETIME: Duration = Duration::days(365);
 const DEFAULT_CRL_LIFETIME: Duration = Duration::days(90);
 
-fn registration_certificate_payload(subject: &str) -> Value {
+fn registration_certificate_query() -> serde_json::Value {
     json!({
-        "id": "test-registration-certificate",
-        "name": "Test Relying Party",
-        "sub": subject,
-        "sub_ln": "Test Relying Party B.V.",
-        "country": "NL",
-        "registry_uri": "https://registry.example.com",
-        "support_uri": "https://support.example.com",
-        "srv_description": [[{
-            "lang": "en",
-            "value": "Test disclosure service"
-        }]],
-        "supervisory_authority": {},
-        "entitlements": ["https://uri.etsi.org/19475/Entitlement/Service_Provider"],
         "credentials": [{
+            "id": "pid",
             "format": "mso_mdoc",
             "meta": {
                 "doctype_value": "eu.europa.ec.eudi.pid.1"
             },
-            "claim": [{
+            "claims": [{
                 "path": ["eu.europa.ec.eudi.pid.1", "age_over_18"]
             }]
-        }],
-        "purpose": [{
-            "lang": "en",
-            "value": "Verify that the holder is over 18"
-        }],
-        "iat": chrono::Utc::now().timestamp(),
-        "status": {
-            "idx": "0",
-            "uri": "https://status.example.com/1"
-        },
-        "policy_id": ["0.4.0.19475.3.1"],
-        "certificate_policy": "https://registry.example.com/certificate-policy"
+        }]
     })
 }
 
@@ -615,10 +592,13 @@ fn generate_and_validate_registration_certificate() -> Result<()> {
         .assert()
         .success();
 
+    let access_certificate = certificate_from_pem(&wrpac_crt)?;
+    let mut payload = serde_json::to_value(registration_certificate_payload(
+        &access_certificate,
+        serde_json::from_value(registration_certificate_query())?,
+    ))?;
     let payload_file = temp.child("registration-certificate.json");
-    payload_file.write_str(&serde_json::to_string_pretty(&registration_certificate_payload(
-        "NTRNL-00000002",
-    ))?)?;
+    payload_file.write_str(&serde_json::to_string_pretty(&payload)?)?;
     let trust_anchors = trust_anchors_from_pem(&wrprc_ca_crt)?;
 
     let jwt = generate_registration_certificate(&wrprc_crt, &wrprc_key, &wrpac_crt, &payload_file, "jwt")?;
@@ -639,9 +619,8 @@ fn generate_and_validate_registration_certificate() -> Result<()> {
         .into_payload();
     assert_eq!(cwt_payload.sub, "NTRNL-00000002");
 
-    payload_file.write_str(&serde_json::to_string_pretty(&registration_certificate_payload(
-        "NTRNL-DIFFERENT",
-    ))?)?;
+    payload["sub"] = json!("NTRNL-DIFFERENT");
+    payload_file.write_str(&serde_json::to_string_pretty(&payload)?)?;
 
     Command::new(assert_cmd::cargo::cargo_bin!())
         .generate_registration_certificate(&wrprc_crt, &wrprc_key, &wrpac_crt, &payload_file, "jwt")

@@ -3,6 +3,7 @@ use chrono::Utc;
 use dcql::ClaimsQuery;
 use dcql::CredentialQueryFormat;
 use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -16,10 +17,11 @@ pub struct MultiLanguageString {
 
 pub type MultiLanguageStringSet = VecNonEmpty<MultiLanguageString>;
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Credential {
     #[serde(flatten)]
     pub format: CredentialQueryFormat,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub claim: Option<Vec<ClaimsQuery>>,
 }
 

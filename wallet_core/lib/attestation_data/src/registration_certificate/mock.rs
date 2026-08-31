@@ -3,6 +3,7 @@ use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use dcql::ClaimsSelection;
+use dcql::CredentialQuery;
 use dcql::Query;
 use futures::FutureExt;
 use jwt::SignedJwt;
@@ -19,11 +20,12 @@ use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
+use super::Credential;
 use crate::x509::RelyingParty;
 
 #[derive(Serialize)]
 #[serde(transparent)]
-struct RegistrationCertificateFixture(Value);
+pub struct RegistrationCertificateFixture(Value);
 
 impl jwt::JwtTyp for RegistrationCertificateFixture {
     const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
@@ -38,31 +40,29 @@ impl StatusListClient for StaticStatusListClient {
     }
 }
 
-fn registration_certificate_credentials(query: Query) -> Vec<Value> {
+fn registration_certificate_credentials(query: Query) -> Vec<Credential> {
     query
         .credentials
         .into_iter()
         .map(|credential| {
-            let mut value = serde_json::to_value(&credential).unwrap();
-            let object = value.as_object_mut().unwrap();
-            object.remove("id");
-            object.remove("multiple");
-            object.remove("trusted_authorities");
-            object.remove("require_cryptographic_holder_binding");
-            match credential.claims_selection {
-                ClaimsSelection::NoSelectivelyDisclosable => {}
+            let CredentialQuery {
+                format,
+                claims_selection,
+                ..
+            } = credential;
+            let claim = match claims_selection {
+                ClaimsSelection::NoSelectivelyDisclosable => None,
                 ClaimsSelection::Combinations { claims, .. } | ClaimsSelection::All { claims } => {
-                    object.insert("claim".to_string(), serde_json::to_value(claims).unwrap());
-                    object.remove("claims");
-                    object.remove("claim_sets");
+                    Some(claims.into_inner())
                 }
-            }
-            value
+            };
+
+            Credential { format, claim }
         })
         .collect()
 }
 
-fn registration_certificate_payload(
+pub fn registration_certificate_payload(
     access_certificate: &BorrowingCertificate,
     query: Query,
 ) -> RegistrationCertificateFixture {
