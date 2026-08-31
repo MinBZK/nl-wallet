@@ -770,10 +770,10 @@ mod tests {
         assert_matches!(err, PinRecoveryError::NoPidPresent);
     }
 
-    // Failing unit tests for continue_pid_recovery()
+    // Failing unit tests for continue_pin_recovery()
 
     #[tokio::test]
-    async fn continue_pid_recovery_no_digid_session() {
+    async fn continue_pin_recovery_no_digid_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let err = wallet
@@ -785,7 +785,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn continue_pid_recovery_has_issuance_session() {
+    async fn continue_pin_recovery_has_issuance_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         setup_issuance_session(&mut wallet);
@@ -799,7 +799,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn continue_pid_recovery_user_refused() {
+    async fn continue_pin_recovery_user_refused() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let mut authorization_session = MockAuthorizationSession::new();
@@ -957,10 +957,10 @@ mod tests {
         );
     }
 
-    // Failing unit tests for complete_pid_recovery()
+    // Failing unit tests for complete_pin_recovery()
 
     #[tokio::test]
-    async fn complete_pid_recovery_no_issuance_session() {
+    async fn complete_pin_recovery_no_issuance_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let err = wallet
@@ -972,7 +972,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn complete_pid_recovery_has_digid_session() {
+    async fn complete_pin_recovery_has_digid_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // complete_pin_recovery_internal without an active issuance session should return SessionState.
@@ -985,7 +985,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn complete_pid_recovery_too_simple_pin() {
+    async fn complete_pin_recovery_too_simple_pin() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup the issuance session
