@@ -29,6 +29,10 @@ class WalletCoreMock implements WalletCoreApi {
 
   bool _isBiometricsEnabled = false;
 
+  /// The DigiD based PID session; unlike disclosure based issuance it has no [IssuanceManager].
+  /// Starts when the redirect uri is created, as it does in the core.
+  bool _hasActivePidSession = false;
+
   WalletCoreMock(
     this._pinManager,
     this._wallet,
@@ -56,6 +60,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<String?> crateApiFullCancelSession() async {
+    _hasActivePidSession = false;
     if (_disclosureManager.hasActiveDisclosureSession) return _disclosureManager.cancelDisclosure().then((_) => null);
     if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.cancelIssuance();
     return null;
@@ -89,6 +94,7 @@ class WalletCoreMock implements WalletCoreApi {
 
     switch (result) {
       case WalletInstructionResult_Ok():
+        _hasActivePidSession = false;
         _wallet.add(kPidAttestations);
         for (final it in kPidAttestations) {
           _eventLog.logIssuance(it, isRenewal: isRenewalFlow);
@@ -144,7 +150,10 @@ class WalletCoreMock implements WalletCoreApi {
       _issuanceManager.startIssuanceFromOffer(offerUri);
 
   @override
-  Future<String> crateApiFullCreatePidIssuanceRedirectUri() async => MockConstants.pidIssuanceRedirectUri;
+  Future<String> crateApiFullCreatePidIssuanceRedirectUri() async {
+    _hasActivePidSession = true;
+    return MockConstants.pidIssuanceRedirectUri;
+  }
 
   @override
   Future<bool> crateApiFullHasRegistration() async => _pinManager.isRegistered;
@@ -200,6 +209,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<void> crateApiFullResetWallet() async {
+    _hasActivePidSession = false;
     await _pinManager.resetPin();
     _wallet.reset();
     _eventLog.reset();
@@ -308,6 +318,7 @@ class WalletCoreMock implements WalletCoreApi {
   @override
   Future<String> crateApiFullCreatePidRenewalRedirectUri() async {
     await Future.delayed(const Duration(seconds: 1));
+    _hasActivePidSession = true;
     return MockConstants.pidRenewalRedirectUri;
   }
 
@@ -361,14 +372,15 @@ class WalletCoreMock implements WalletCoreApi {
   Future<WalletState> crateApiFullGetWalletState() async {
     if (!_pinManager.isRegistered) return const WalletState.unregistered();
 
-    // Support basic [WalletState]s for the mock build
+    // Support basic [WalletState]s for the mock build. Like the core, an active session wins
+    // over 'empty': during the initial PID issuance the wallet is still empty.
     WalletState state = const WalletState.ready();
-    if (_wallet.isEmpty) {
-      state = const WalletState.empty();
-    } else if (_issuanceManager.hasActiveIssuanceSession) {
+    if (_hasActivePidSession || _issuanceManager.hasActiveIssuanceSession) {
       state = const WalletState.inIssuanceFlow();
     } else if (_disclosureManager.hasActiveDisclosureSession) {
       state = const WalletState.inDisclosureFlow();
+    } else if (_wallet.isEmpty) {
+      state = const WalletState.empty();
     }
     // Wrap in Locked state when wallet is locked
     final locked = await _wallet.lockedStream.first;

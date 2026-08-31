@@ -38,4 +38,46 @@ void main() {
       expect(await walletCore.crateApiFullIsInitialized(), isTrue);
     });
   });
+
+  group('WalletState', () {
+    const kPin = '132435';
+
+    test('Wallet is unregistered before a pin is set', () async {
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.unregistered());
+    });
+
+    test('Wallet is empty after registration', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.empty());
+    });
+
+    test('Wallet is in the issuance flow while the (empty) wallet awaits the PID', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.inIssuanceFlow());
+    });
+
+    test('Wallet is ready after accepting the PID', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      await walletCore.crateApiFullAcceptPidIssuance(pin: kPin);
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.ready());
+    });
+
+    test('Wallet is empty again after cancelling the PID issuance', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      await walletCore.crateApiFullCancelSession();
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.empty());
+    });
+
+    test('Wallet is in the issuance flow during PID renewal', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      await walletCore.crateApiFullAcceptPidIssuance(pin: kPin);
+      await walletCore.crateApiFullCreatePidRenewalRedirectUri();
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.inIssuanceFlow());
+    });
+  });
+
 }
