@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelopeParseError;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use axum::Router;
@@ -233,6 +235,13 @@ pub enum VerifierSettingsError {
 
     #[error("missing registration certificate for disclosure setting `{use_case_id}`")]
     MissingRegistrationCertificate { use_case_id: String },
+
+    #[error("invalid registration certificate for disclosure setting `{use_case_id}`: {source}")]
+    InvalidRegistrationCertificate {
+        use_case_id: String,
+        #[source]
+        source: RegistrationCertificateEnvelopeParseError,
+    },
 }
 
 impl VerifierSettings {
@@ -293,6 +302,13 @@ impl VerifierSettings {
                             use_case_id: use_case_id.clone(),
                         }
                     })?;
+                    let registration_certificate = RegistrationCertificateEnvelope::try_from(
+                        registration_certificate.as_slice(),
+                    )
+                    .map_err(|source| VerifierSettingsError::InvalidRegistrationCertificate {
+                        use_case_id: use_case_id.clone(),
+                        source,
+                    })?;
                     let key_pair = attestation
                         .key_pair
                         .parse(hsm)
@@ -300,8 +316,7 @@ impl VerifierSettings {
                         .map_err(VerifierSettingsError::PrivateKey)?;
 
                     let use_case = WalletInitiatedUseCase::new(
-                        UseCaseData::new(key_pair, SessionTypeReturnUrl::Both)
-                            .with_registration_certificate(registration_certificate),
+                        UseCaseData::new(key_pair, SessionTypeReturnUrl::Both, registration_certificate),
                         attestation.dcql_query.try_into().map_err(VerifierSettingsError::Dcql)?,
                         format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
                     );
@@ -354,8 +369,9 @@ fn validate_registration_certificate(
 ) -> Result<(), anyhow::Error> {
     let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
 
+    let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate)?;
     let payload =
-        verify_registration_certificate_envelope(registration_certificate, trust_anchors, &time)?.into_payload();
+        verify_registration_certificate_envelope(&registration_certificate, trust_anchors, &time)?.into_payload();
 
     payload
         .validate_structure(&access_subject, time.generate())

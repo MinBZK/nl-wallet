@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str;
 
 use chrono::DateTime;
@@ -17,15 +18,74 @@ use utils::generator::Generator;
 use super::UncheckedRegistrationCertificate;
 
 #[derive(Debug, thiserror::Error)]
-pub enum RegistrationCertificateEnvelopeError {
+pub enum RegistrationCertificateEnvelopeParseError {
     #[error("could not parse registration certificate JWT: {0}")]
-    JwtParsing(#[source] JwtParseError),
+    Jwt(#[source] JwtParseError),
+    #[error("could not parse registration certificate CWT: {0}")]
+    Cwt(#[source] WrprcCwtError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RegistrationCertificateEnvelopeError {
     #[error("could not verify registration certificate JWT: {0}")]
-    JwtVerification(#[source] JwtX5cVerifyError),
-    #[error("could not parse or verify registration certificate CWT: {0}")]
+    Jwt(#[source] JwtX5cVerifyError),
+    #[error("could not verify registration certificate CWT: {0}")]
     Cwt(#[source] WrprcCwtError),
     #[error("could not parse registration-certificate signing-certificate subject: {0}")]
     SigningCertificateSubject(#[source] CertificateError),
+}
+
+/// A parsed, but not yet authenticated, registration-certificate envelope.
+pub enum RegistrationCertificateEnvelope {
+    Jwt(UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader>),
+    Cwt(UnverifiedWrprcCwt<UncheckedRegistrationCertificate>),
+}
+
+impl fmt::Debug for RegistrationCertificateEnvelope {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Jwt(_) => "RegistrationCertificateEnvelope::Jwt",
+            Self::Cwt(_) => "RegistrationCertificateEnvelope::Cwt",
+        })
+    }
+}
+
+impl Clone for RegistrationCertificateEnvelope {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Jwt(jwt) => Self::Jwt(
+                jwt.serialization()
+                    .parse()
+                    .expect("a previously parsed JWT should remain parseable"),
+            ),
+            Self::Cwt(cwt) => Self::Cwt(cwt.clone()),
+        }
+    }
+}
+
+impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
+    type Error = RegistrationCertificateEnvelopeParseError;
+
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+        match str::from_utf8(bytes) {
+            Ok(compact_jwt) if compact_jwt.split('.').count() == 3 => compact_jwt
+                .parse()
+                .map(Self::Jwt)
+                .map_err(RegistrationCertificateEnvelopeParseError::Jwt),
+            _ => UnverifiedWrprcCwt::from_slice(bytes)
+                .map(Self::Cwt)
+                .map_err(RegistrationCertificateEnvelopeParseError::Cwt),
+        }
+    }
+}
+
+impl RegistrationCertificateEnvelope {
+    pub fn to_vec(&self) -> Result<Vec<u8>, WrprcCwtError> {
+        match self {
+            Self::Jwt(jwt) => Ok(jwt.serialization().as_bytes().to_vec()),
+            Self::Cwt(cwt) => cwt.to_vec(),
+        }
+    }
 }
 
 /// A registration-certificate envelope whose signature and certificate chain have been verified.
@@ -44,34 +104,26 @@ impl VerifiedRegistrationCertificateEnvelope {
     }
 }
 
-/// Parse and verify a JAdES-B/B JWT or WRPRC CWT registration-certificate envelope.
-///
-/// Per the ETSI TS 119 472-2 and 119 475 specs, the passed bytes may be of either format.
-/// Therefore this function attempts the passed bytes as either format.
+/// Verify a parsed JAdES-B/B JWT or WRPRC CWT registration-certificate envelope.
 pub fn verify_registration_certificate_envelope(
-    registration_certificate: &[u8],
+    registration_certificate: &RegistrationCertificateEnvelope,
     trust_anchors: &TrustAnchors,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<VerifiedRegistrationCertificateEnvelope, RegistrationCertificateEnvelopeError> {
-    let (payload, signing_certificate_dn) = match str::from_utf8(registration_certificate) {
-        Ok(compact_jwt) if compact_jwt.split('.').count() == 3 => {
-            let unverified: UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader> = compact_jwt
-                .parse()
-                .map_err(RegistrationCertificateEnvelopeError::JwtParsing)?;
+    let (payload, signing_certificate_dn) = match registration_certificate.clone() {
+        RegistrationCertificateEnvelope::Jwt(unverified) => {
             let (header, payload) = unverified
                 .parse_and_verify_against_trust_anchors(trust_anchors, time, None, DEFAULT_VALIDATION.to_owned())
-                .map_err(RegistrationCertificateEnvelopeError::JwtVerification)?;
+                .map_err(RegistrationCertificateEnvelopeError::Jwt)?;
             let signing_certificate_dn = header
                 .x5c
                 .first()
                 .to_canonical_distinguished_name()
                 .map_err(RegistrationCertificateEnvelopeError::SigningCertificateSubject)?;
-
             (payload, signing_certificate_dn)
         }
-        _ => {
-            let verified = UnverifiedWrprcCwt::<UncheckedRegistrationCertificate>::from_slice(registration_certificate)
-                .map_err(RegistrationCertificateEnvelopeError::Cwt)?
+        RegistrationCertificateEnvelope::Cwt(unverified) => {
+            let verified = unverified
                 .into_verified_against_trust_anchors(trust_anchors, time, None)
                 .map_err(RegistrationCertificateEnvelopeError::Cwt)?;
             let signing_certificate_dn = verified

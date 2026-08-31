@@ -212,15 +212,14 @@ where
             return Err(VpSessionError::Verifier(error));
         }
 
-        let verifier_info = vp_auth_request.verifier_info.clone();
         let dcql_query = vp_auth_request.dcql_query.clone();
         let auth_request_result = vp_auth_request
             .validate(&certificate, request_nonce.as_deref())
             .map_err(VpVerifierError::AuthRequestValidation);
 
         let auth_request_result = match auth_request_result {
-            Ok(auth_request) => validate_registration_certificate(
-                verifier_info.as_ref().map(|info| info.as_slice()),
+            Ok((auth_request, selected_encryption_algorithm)) => validate_registration_certificate(
+                &auth_request.registration_certificate,
                 &certificate,
                 wrprc_trust_anchors,
                 &self.registration_certificate_revocation_verifier,
@@ -232,7 +231,7 @@ where
                     .validate_query_authorization(&dcql_query)
                     .map_err(RegistrationCertificateError::Authorization)
             })
-            .map(|()| auth_request)
+            .map(|()| (auth_request, selected_encryption_algorithm))
             .map_err(|error| {
                 VpVerifierError::AuthRequestValidation(AuthRequestValidationError::RegistrationCertificate(Box::new(
                     error,

@@ -9,10 +9,12 @@ use std::time::Duration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use cose::CoseAlgorithmIdentifier;
+use cose::KnownCoseAlgorithmIdentifier;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -74,6 +76,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
@@ -167,18 +170,24 @@ pub struct VpAuthorizationRequest {
     pub transaction_data: Option<VecNonEmpty<serde_json::Map<String, serde_json::Value>>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct VerifierInfo {
-    pub format: String,
-    pub data: String,
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "format")]
+pub enum VerifierInfo {
+    #[serde(rename = "registration_cert")]
+    RegistrationCertificate {
+        #[serde_as(as = "RegistrationCertificateEnvelopeBase64")]
+        data: RegistrationCertificateEnvelope,
+    },
+
+    // Allow the verifier to announce formats that the wallet does not support.
+    #[serde(untagged)]
+    Other { format: String },
 }
 
 impl VerifierInfo {
-    pub fn registration_certificate(data: String) -> Self {
-        Self {
-            format: REGISTRATION_CERTIFICATE_FORMAT.to_string(),
-            data,
-        }
+    pub fn registration_certificate(data: RegistrationCertificateEnvelope) -> Self {
+        Self::RegistrationCertificate { data }
     }
 }
 
@@ -221,6 +230,33 @@ where
             .map_err(|error| serde::de::Error::custom(format!("error parsing entry as JSON: {error}")))?;
 
         Ok(value)
+    }
+}
+
+/// A registration-certificate envelope encoded as a URL-safe-no-pad Base64 string.
+pub struct RegistrationCertificateEnvelopeBase64;
+
+impl SerializeAs<RegistrationCertificateEnvelope> for RegistrationCertificateEnvelopeBase64 {
+    fn serialize_as<S>(source: &RegistrationCertificateEnvelope, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = source.to_vec().map_err(serde::ser::Error::custom)?;
+        BASE64_URL_SAFE_NO_PAD.encode(bytes).serialize(serializer)
+    }
+}
+
+impl<'de> DeserializeAs<'de, RegistrationCertificateEnvelope> for RegistrationCertificateEnvelopeBase64 {
+    fn deserialize_as<D>(deserializer: D) -> Result<RegistrationCertificateEnvelope, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let base64 = String::deserialize(deserializer)?;
+        let bytes = BASE64_URL_SAFE_NO_PAD
+            .decode(base64)
+            .map_err(serde::de::Error::custom)?;
+
+        RegistrationCertificateEnvelope::try_from(bytes.as_slice()).map_err(serde::de::Error::custom)
     }
 }
 
@@ -524,6 +560,7 @@ impl VpAuthorizationRequest {
 /// Note that this data type is internal to both the wallet and verifier, and not part of the OpenID4VP protocol,
 /// so it is never sent over the wire. It implements (De)serialize so that the verifier can persist it to
 /// the session store.
+#[serde_as]
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NormalizedVpAuthorizationRequest {
@@ -535,9 +572,60 @@ pub struct NormalizedVpAuthorizationRequest {
     pub client_metadata: VpClientMetadata,
     pub state: Option<String>,
     pub wallet_nonce: Option<String>,
+    #[serde_as(as = "RegistrationCertificateEnvelopeBase64")]
+    pub registration_certificate: RegistrationCertificateEnvelope,
 }
 
 impl NormalizedVpAuthorizationRequest {
+    /// Construct the normalized Authorization Request retained by a verifier.
+    pub fn new_for_verifier(
+        credential_requests: NormalizedCredentialRequests,
+        client_id: ClientId,
+        nonce: Nonce,
+        encryption_pubkey: JwePublicKey,
+        response_uri: BaseUrl,
+        wallet_nonce: Option<String>,
+        registration_certificate: RegistrationCertificateEnvelope,
+    ) -> Self {
+        let jwk = encryption_pubkey.clone().into();
+
+        Self {
+            client_id,
+            nonce,
+            encryption_pubkey,
+            response_uri,
+            credential_requests,
+            client_metadata: VpClientMetadata {
+                jwks: VpJwks {
+                    keys: vec_nonempty![jwk],
+                },
+                vp_formats_supported: VpFormatsSupported {
+                    mso_mdoc: Some(MsoMdocAlgValues {
+                        issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                        deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                    }),
+                    sd_jwt: Some(SdJwtAlgValues {
+                        sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                        kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                    }),
+                },
+                // HAIP requires verifiers to list both A128GCM and A256GCM.
+                encrypted_response_enc_values_supported: Some(
+                    RESPONSE_ENCRYPTION_ALGORITHMS
+                        .iter()
+                        .copied()
+                        .map(JweEncryptionAlgorithm::from)
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .expect("RESPONSE_ENCRYPTION_ALGORITHMS contains more than one algorithm"),
+                ),
+            },
+            state: None,
+            wallet_nonce,
+            registration_certificate,
+        }
+    }
+
     fn select_encryption_algorithm(
         client_metadata: &VpClientMetadata,
     ) -> Result<EncryptionAlgorithm, AuthRequestValidationError> {
@@ -620,6 +708,29 @@ impl NormalizedVpAuthorizationRequest {
         let encryption_pubkey = jwe_public_keys.into_first();
 
         let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
+        let mut registration_certificates = vp_auth_request
+            .verifier_info
+            .map(VecNonEmpty::into_inner)
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|info| match info {
+                VerifierInfo::RegistrationCertificate { data } => Some(data),
+                VerifierInfo::Other { .. } => None,
+            })
+            .collect_vec();
+        let registration_certificate = match registration_certificates.len() {
+            0 => {
+                return Err(AuthRequestValidationError::RegistrationCertificate(Box::new(
+                    RegistrationCertificateError::Missing,
+                )));
+            }
+            1 => registration_certificates.pop().unwrap(),
+            _ => {
+                return Err(AuthRequestValidationError::RegistrationCertificate(Box::new(
+                    RegistrationCertificateError::Multiple,
+                )));
+            }
+        };
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
@@ -630,6 +741,7 @@ impl NormalizedVpAuthorizationRequest {
             client_metadata,
             state: vp_auth_request.oauth_request.state,
             wallet_nonce: vp_auth_request.wallet_nonce,
+            registration_certificate,
         })
     }
 
@@ -650,6 +762,25 @@ impl NormalizedVpAuthorizationRequest {
             ))),
             &self.response_uri,
         )
+    }
+}
+
+impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
+    fn from(value: NormalizedVpAuthorizationRequest) -> Self {
+        Self {
+            aud: VpAuthorizationRequestAudience::SelfIssued,
+            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
+            nonce: Some(value.nonce),
+            response_mode: Some(ResponseMode::DirectPostJwt),
+            dcql_query: value.credential_requests.into(),
+            client_metadata: Some(value.client_metadata),
+            response_uri: Some(value.response_uri),
+            wallet_nonce: value.wallet_nonce,
+            verifier_info: Some(vec_nonempty![VerifierInfo::registration_certificate(
+                value.registration_certificate,
+            )]),
+            transaction_data: None,
+        }
     }
 }
 

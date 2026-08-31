@@ -1,4 +1,5 @@
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
 use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
 use attestation_data::registration_certificate::RegistrationCertificateValidationError;
@@ -6,7 +7,6 @@ use attestation_data::registration_certificate::StatusValidatedRegistrationCerti
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use attestation_data::x509::RelyingPartyError;
-use base64::prelude::*;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::DistinguishedNameError;
@@ -14,17 +14,12 @@ use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
 
-use crate::openid4vp::REGISTRATION_CERTIFICATE_FORMAT;
-use crate::openid4vp::VerifierInfo;
-
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateError {
     #[error("Authorization Request does not contain a registration certificate")]
     Missing,
     #[error("Authorization Request contains multiple registration certificates")]
     Multiple,
-    #[error("registration certificate is not valid base64url: {0}")]
-    Base64(#[source] base64::DecodeError),
     #[error("registration certificate has an invalid envelope: {0}")]
     Envelope(#[source] RegistrationCertificateEnvelopeError),
     #[error("could not parse access-certificate subject: {0}")]
@@ -40,7 +35,7 @@ pub enum RegistrationCertificateError {
 }
 
 pub async fn validate_registration_certificate<C>(
-    verifier_info: Option<&[VerifierInfo]>,
+    registration_certificate: &RegistrationCertificateEnvelope,
     access_certificate: &BorrowingCertificate,
     registration_certificate_trust_anchors: &TrustAnchors,
     revocation_verifier: &RevocationVerifier<C>,
@@ -49,23 +44,12 @@ pub async fn validate_registration_certificate<C>(
 where
     C: StatusListClient,
 {
-    let registration_certificates = verifier_info
-        .unwrap_or_default()
-        .iter()
-        .filter(|info| info.format == REGISTRATION_CERTIFICATE_FORMAT)
-        .collect::<Vec<_>>();
-    let registration_certificate = match registration_certificates.as_slice() {
-        [] => return Err(RegistrationCertificateError::Missing),
-        [registration_certificate] => registration_certificate,
-        _ => return Err(RegistrationCertificateError::Multiple),
-    };
-
-    let certificate_bytes = BASE64_URL_SAFE_NO_PAD
-        .decode(&registration_certificate.data)
-        .map_err(RegistrationCertificateError::Base64)?;
-    let envelope =
-        verify_registration_certificate_envelope(&certificate_bytes, registration_certificate_trust_anchors, time)
-            .map_err(RegistrationCertificateError::Envelope)?;
+    let envelope = verify_registration_certificate_envelope(
+        registration_certificate,
+        registration_certificate_trust_anchors,
+        time,
+    )
+    .map_err(RegistrationCertificateError::Envelope)?;
     let (payload, signing_certificate_dn) = envelope.into_parts();
     let access_certificate_subject = access_certificate
         .to_distinguished_name()

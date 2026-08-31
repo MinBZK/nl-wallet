@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Context;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use config::Config;
@@ -138,9 +139,13 @@ impl UseCaseSettings {
         let registration_certificate = self
             .registration_certificate
             .context("registration certificate should have been validated at startup")?;
+        let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate.as_slice())?;
         let use_case = RpInitiatedUseCase::new(
-            UseCaseData::new(self.key_pair.parse(hsm).await?, self.session_type_return_url)
-                .with_registration_certificate(registration_certificate),
+            UseCaseData::new(
+                self.key_pair.parse(hsm).await?,
+                self.session_type_return_url,
+                registration_certificate,
+            ),
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
             self.disclosure_base_deep_link,
@@ -173,8 +178,9 @@ fn validate_registration_certificate(
 ) -> Result<(), anyhow::Error> {
     let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
 
+    let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate)?;
     let payload =
-        verify_registration_certificate_envelope(registration_certificate, trust_anchors, &time)?.into_payload();
+        verify_registration_certificate_envelope(&registration_certificate, trust_anchors, &time)?.into_payload();
 
     payload
         .validate_structure(&access_subject, time.generate())
