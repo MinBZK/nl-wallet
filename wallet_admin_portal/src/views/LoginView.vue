@@ -41,14 +41,14 @@ function login() {
   box-shadow:
     0 4px 8px 3px rgba(21, 42, 98, 0.1),
     0 1px 3px 0 rgba(21, 42, 98, 0.15);
-  padding: 40px;
+  padding: 2.5rem;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 40px;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
   min-height: 54px;
 }
 

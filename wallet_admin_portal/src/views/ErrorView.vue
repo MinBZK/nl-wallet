@@ -25,7 +25,7 @@ function restart() {
 .error-page {
   min-height: 100vh;
   box-sizing: border-box;
-  padding: 48px;
+  padding: 3rem;
   background: var(--color-background);
 }
 
@@ -54,8 +54,8 @@ p {
   justify-content: center;
   background: var(--color-surface-tint);
   border-radius: 16px;
-  padding: 48px;
-  margin-bottom: 24px;
+  padding: 3rem;
+  margin-bottom: 1.5rem;
 }
 
 .illustration {

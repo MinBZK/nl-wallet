@@ -1,7 +1,17 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import TopHeader from '../components/TopHeader.vue'
 import router from '../router'
+import { mockAuthenticatedUser } from './mockAuth'
+import { usePageTitle } from '@/composables/pageTitle.ts'
+
+beforeEach(() => {
+  mockAuthenticatedUser()
+})
+
+afterEach(() => {
+  usePageTitle().resetPageTitle()
+})
 
 async function mountHeader(path: string, showCreateTaskButton = false) {
   await router.push(path)
@@ -41,5 +51,15 @@ describe('TopHeader', () => {
     const wrapper = await mountHeader('/tasks', true)
 
     expect(wrapper.get('button').text()).toContain('Maak taak aan')
+  })
+
+  it('prefers a view-set title override over the route title', async () => {
+    const wrapper = await mountHeader('/tasks')
+    expect(wrapper.get('h1').text()).toBe('Openstaande taken')
+
+    usePageTitle().setPageTitle('Updated title')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('h1').text()).toBe('Updated title')
   })
 })

@@ -7,12 +7,12 @@ const defaultProfile: UserProfileResponse = {
   privileges: [Privilege.ShowAllTasks],
 }
 
-function stubApiMe(response: { status: number; json: () => Promise<unknown> }) {
+function stubApiMe(status: number, json: () => Promise<unknown>) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: string | URL | Request) => {
       const url = input instanceof Request ? input.url : String(input)
-      if (url.includes('/api/me')) return response
+      if (url.includes('/api/me')) return { status, ok: status >= 200 && status < 300, json }
       throw new Error(`Unmocked fetch call: ${url}`)
     }),
   )
@@ -20,10 +20,10 @@ function stubApiMe(response: { status: number; json: () => Promise<unknown> }) {
 
 /** Stubs global fetch so `/api/me` resolves as an authenticated session */
 export function mockAuthenticatedUser(profile: UserProfileResponse = defaultProfile) {
-  stubApiMe({ status: 200, json: async () => profile })
+  stubApiMe(200, async () => profile)
 }
 
 /** Stubs global fetch so `/api/me` resolves as an unauthenticated (401) session. */
 export function mockUnauthenticatedUser() {
-  stubApiMe({ status: 401, json: async () => ({}) })
+  stubApiMe(401, async () => ({}))
 }
