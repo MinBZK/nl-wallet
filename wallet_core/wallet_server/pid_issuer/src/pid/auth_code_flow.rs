@@ -724,11 +724,7 @@ mod tests {
         let bsn = "123";
         let key: Vec<_> = (0..32).collect();
 
-        let attrs: Attributes = IndexMap::from_iter([(
-            "bsn".to_string(),
-            Attribute::Text(bsn.to_string()),
-        )])
-        .into();
+        let attrs: Attributes = IndexMap::from_iter([("bsn".to_string(), Attribute::Text(bsn.to_string()))]).into();
 
         let secret_key = SecretKeyVariant::from_settings(
             SecretKey::Software {
