@@ -99,7 +99,7 @@ use crate::jwk::jwk_to_public_key;
 ///
 /// # Ok::<(), anyhow::Error>(())
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{serialization}")]
 pub struct UnverifiedJwt<T, H = HeaderWithTyp> {
     serialization: String,
@@ -107,6 +107,16 @@ pub struct UnverifiedJwt<T, H = HeaderWithTyp> {
     payload_end: usize,
 
     _jwt_type: PhantomData<(T, H)>,
+}
+
+impl<T, H> Clone for UnverifiedJwt<T, H> {
+    fn clone(&self) -> Self {
+        Self {
+            serialization: self.serialization.clone(),
+            payload_end: self.payload_end,
+            _jwt_type: PhantomData,
+        }
+    }
 }
 
 impl<T, H> FromStr for UnverifiedJwt<T, H> {
@@ -1297,6 +1307,17 @@ mod tests {
         assert_eq!(header.alg, alg);
         let (header, _) = parsed.dangerous_parse_unverified().unwrap();
         assert_eq!(header.alg, alg);
+    }
+
+    #[test]
+    fn test_unverified_jwt_clone_without_clone_marker_types() {
+        struct NotClone;
+
+        let jwt: UnverifiedJwt<NotClone, NotClone> = "header.payload.signature".parse().unwrap();
+        let cloned = jwt.clone();
+
+        assert_eq!(cloned.serialization, jwt.serialization);
+        assert_eq!(cloned.payload_end, jwt.payload_end);
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

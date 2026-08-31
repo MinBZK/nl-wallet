@@ -36,6 +36,7 @@ pub enum RegistrationCertificateEnvelopeError {
 }
 
 /// A parsed, but not yet authenticated, registration-certificate envelope.
+#[derive(Clone)]
 pub enum RegistrationCertificateEnvelope {
     Jwt(UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader>),
     Cwt(UnverifiedWrprcCwt<UncheckedRegistrationCertificate>),
@@ -47,19 +48,6 @@ impl fmt::Debug for RegistrationCertificateEnvelope {
             Self::Jwt(_) => "RegistrationCertificateEnvelope::Jwt",
             Self::Cwt(_) => "RegistrationCertificateEnvelope::Cwt",
         })
-    }
-}
-
-impl Clone for RegistrationCertificateEnvelope {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Jwt(jwt) => Self::Jwt(
-                jwt.serialization()
-                    .parse()
-                    .expect("a previously parsed JWT should remain parseable"),
-            ),
-            Self::Cwt(cwt) => Self::Cwt(cwt.clone()),
-        }
     }
 }
 
