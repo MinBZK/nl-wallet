@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
@@ -182,6 +183,13 @@ pub struct CredentialConfigurationSettings {
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
+
+    /// Overrides the root mdoc namespace used when issuing this attestation as `MsoMdoc`. This exists for attestation
+    /// types whose mdoc namespace is mandated by an external specification and differs from their doctype, e.g. ISO
+    /// 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace `org.iso.18013.5.1`. Must be left unset for
+    /// `SdJwt`.
+    #[serde(default)]
+    pub mdoc_namespace: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -344,6 +352,7 @@ impl CredentialConfigurationsSettings {
                             valid_days: Days::new(settings.valid_days),
                             issuer_uri,
                             attestation_qualification: settings.attestation_qualification,
+                            mdoc_namespace: settings.mdoc_namespace,
                             metadata_documents,
                         };
 
@@ -380,6 +389,8 @@ pub enum IssuerSettingsValidationError {
         attestation: CanonicalDistinguishedName,
         status_list: CanonicalDistinguishedName,
     },
+    #[error("credential configuration {config_id} uses format dc+sd-jwt, but has mdoc_namespace set")]
+    MdocNamespaceOnSdJwtFormat { config_id: CredentialConfigurationId },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -450,6 +461,12 @@ impl IssuerSettings {
                         config_id: config_id.clone(),
                     });
                 }
+            }
+
+            if attestation.mdoc_namespace.is_some() && attestation.credential_kind.format == Format::SdJwt {
+                return Err(IssuerSettingsValidationError::MdocNamespaceOnSdJwtFormat {
+                    config_id: config_id.clone(),
+                });
             }
         }
 
@@ -722,6 +739,7 @@ mod tests {
                     },
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(ISSUANCE_CERT_SAN_URI.as_ref().to_string().parse().unwrap()),
+                    mdoc_namespace: None,
                 },
             )])
             .into(),
@@ -835,6 +853,7 @@ mod tests {
                 },
                 attestation_qualification: Default::default(),
                 certificate_san: None,
+                mdoc_namespace: None,
             },
         )])
         .into();

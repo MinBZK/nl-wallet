@@ -325,6 +325,7 @@ where
                     .unwrap()
                     .into_first(),
                 attestation_qualification: AttestationQualification::default(),
+                mdoc_namespace: None,
                 metadata_documents,
             };
 

@@ -55,6 +55,7 @@ certificate = "${DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL}"
 [credential_configurations."org.iso.18013.5.1.mDL"]
 format = "mso_mdoc"
 attestation_type = "org.iso.18013.5.1.mDL"
+mdoc_namespace = "org.iso.18013.5.1"
 valid_days = 3650
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MDL_ISSUER}"

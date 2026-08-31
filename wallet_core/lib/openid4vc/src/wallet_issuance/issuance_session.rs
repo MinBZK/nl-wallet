@@ -2136,7 +2136,7 @@ mod tests {
             .unwrap();
 
             let (issuer_signed, _) = credential_payload
-                .into_signed_mdoc(&self.issuer_key)
+                .into_signed_mdoc(&self.issuer_key, None)
                 .now_or_never()
                 .unwrap()
                 .unwrap();

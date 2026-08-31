@@ -54,6 +54,10 @@ pub struct CredentialConfigurationParameters<K, L> {
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
+    /// Overrides the root mdoc namespace used when issuing this attestation as `MsoMdoc`. This exists for attestation
+    /// types whose mdoc namespace is mandated by an external specification and differs from their doctype, e.g. ISO
+    /// 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace `org.iso.18013.5.1`. Must be `None` for `SdJwt`.
+    pub mdoc_namespace: Option<String>,
     #[debug(skip)]
     pub metadata_documents: TypeMetadataDocuments,
 }
@@ -73,6 +77,7 @@ pub(crate) struct CredentialConfiguration<K, L> {
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
+    pub mdoc_namespace: Option<String>,
     pub metadata: CredentialConfigurationMetadata,
 }
 
@@ -95,6 +100,7 @@ impl<K, L> CredentialConfiguration<K, L> {
             valid_days,
             issuer_uri,
             attestation_qualification,
+            mdoc_namespace,
             metadata_documents,
         }: CredentialConfigurationParameters<K, L>,
     ) -> Result<Self, CredentialConfigurationsError> {
@@ -112,6 +118,7 @@ impl<K, L> CredentialConfiguration<K, L> {
             valid_days,
             issuer_uri,
             attestation_qualification,
+            mdoc_namespace,
             metadata,
         };
 
@@ -318,6 +325,7 @@ mod tests {
                     valid_days: Days::new(1),
                     issuer_uri: "https://example.com".parse().unwrap(),
                     attestation_qualification: AttestationQualification::default(),
+                    mdoc_namespace: None,
                     metadata_documents,
                 };
 

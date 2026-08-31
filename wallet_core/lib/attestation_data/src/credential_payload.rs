@@ -329,6 +329,7 @@ impl CredentialPayload {
     pub async fn into_signed_mdoc(
         self,
         issuer_keypair: &KeyPair<impl EcdsaKey>,
+        mdoc_namespace: Option<&str>,
     ) -> Result<(IssuerSigned, MobileSecurityObject), CredentialPayloadIntoSignedMdocError> {
         let CredentialPayload {
             issued_at,
@@ -357,7 +358,7 @@ impl CredentialPayload {
             expected_update: None,
         };
 
-        let attributes = attributes.to_mdoc_attributes(&attestation_type);
+        let attributes = attributes.to_mdoc_attributes(mdoc_namespace.unwrap_or(&attestation_type));
         let attrs = IssuerNameSpaces::try_from(attributes)
             .map_err(CredentialPayloadIntoSignedMdocError::MissingOrEmptyNamespace)?;
 
@@ -781,7 +782,7 @@ mod test {
     async fn test_into_signed_mdoc() {
         let (payload_preview, credential_payload, _, metadata_integrity, ca, issuance_key) = setup_into_signed();
 
-        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
+        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key, None).await.unwrap();
 
         // The IssuerSigned should be valid
         issuer_signed
@@ -1093,11 +1094,7 @@ mod test {
             expires: Some(Utc.with_ymd_and_hms(2000, 1, 1, 0, 1, 1).unwrap().into()),
             not_before: Some(Utc.with_ymd_and_hms(1969, 1, 1, 0, 1, 1).unwrap().into()),
             attestation_qualification: AttestationQualification::PubEAA,
-            attributes: IndexMap::from([(
-                String::from("attr1"),
-                Attribute::Text(String::from("val1")),
-            )])
-            .into(),
+            attributes: IndexMap::from([(String::from("attr1"), Attribute::Text(String::from("val1")))]).into(),
         };
 
         let mut existing = new.clone();
@@ -1115,11 +1112,7 @@ mod test {
         assert!(!new.matches_existing(&existing, &epoch_generator));
 
         let mut existing = new.clone();
-        existing.attributes = IndexMap::from([(
-            String::from("attr1"),
-            Attribute::Text(String::from("val2")),
-        )])
-        .into();
+        existing.attributes = IndexMap::from([(String::from("attr1"), Attribute::Text(String::from("val2")))]).into();
         assert!(!new.matches_existing(&existing, &epoch_generator));
 
         let mut existing = new.clone();

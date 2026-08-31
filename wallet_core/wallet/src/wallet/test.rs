@@ -303,7 +303,7 @@ pub fn mdoc_from_credential_payload(
         StatusClaim::new_mock(),
     )
     .unwrap()
-    .into_signed_mdoc(issuer_keypair)
+    .into_signed_mdoc(issuer_keypair, None)
     .now_or_never()
     .unwrap()
     .unwrap();

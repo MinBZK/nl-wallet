@@ -360,8 +360,10 @@ impl Attributes {
     /// }
     /// ```
     ///
-    /// Note in particular that attributes in a namespace whose names equals the attestation_type in the metadata
-    /// are mapped to the root level of the output.
+    /// Note in particular that attributes in the root mdoc namespace (see [`Self::find_mdoc_namespace_root`]) are
+    /// mapped to the root level of the output. This root namespace does not necessarily equal the attestation_type
+    /// in the metadata: e.g. ISO 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace
+    /// `org.iso.18013.5.1`.
     pub fn from_mdoc_attributes(
         type_metadata: &NormalizedTypeMetadata,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
@@ -371,9 +373,13 @@ impl Attributes {
 
         let mut result = IndexMap::with_capacity(key_paths.len());
 
-        // The key paths of the claims determines the order of the attributes result
-        for key_path in key_paths {
-            Self::traverse_attributes_by_claim(type_metadata.vct(), key_path.as_slice(), &mut attributes, &mut result)?;
+        // Only proceed if a root namespace can be found; if not, the loop below is skipped and `attributes` is left
+        // untouched, which is reported below as `SomeAttributesNotProcessed`.
+        if let Some(namespace_root) = Self::find_mdoc_namespace_root(&attributes) {
+            // The key paths of the claims determines the order of the attributes result
+            for key_path in key_paths {
+                Self::traverse_attributes_by_claim(&namespace_root, key_path.as_slice(), &mut attributes, &mut result)?;
+            }
         }
 
         if !attributes.is_empty() {
@@ -381,6 +387,24 @@ impl Attributes {
         }
 
         Ok(Self(result))
+    }
+
+    /// Find the namespace that every other namespace present is nested under, i.e. the value that was passed as
+    /// `mdoc_namespace` to [`Self::to_mdoc_attributes`] when this data was constructed (a namespace `root.group` is
+    /// considered nested under `root`). Returns `None` if the namespaces present don't share such a common root,
+    /// which for well-formed data only happens when `attributes` is empty.
+    fn find_mdoc_namespace_root(attributes: &IndexMap<NameSpace, Vec<Entry>>) -> Option<String> {
+        attributes
+            .keys()
+            .find(|candidate| {
+                attributes.keys().all(|namespace| {
+                    namespace == *candidate
+                        || namespace
+                            .strip_prefix(candidate.as_str())
+                            .is_some_and(|rest| rest.starts_with('.'))
+                })
+            })
+            .cloned()
     }
 
     fn traverse_attributes_by_claim(

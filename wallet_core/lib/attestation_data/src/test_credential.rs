@@ -319,7 +319,7 @@ impl TestCredential {
         let (credential_payload, holder_key_identifier, _) = self.to_credential_payload(wscd);
 
         let (issuer_signed, mso) = credential_payload
-            .into_signed_mdoc(issuer_keypair)
+            .into_signed_mdoc(issuer_keypair, None)
             .now_or_never()
             .unwrap()
             .expect("TestCredential payload preview should convert to Mdoc");

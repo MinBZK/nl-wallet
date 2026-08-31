@@ -275,6 +275,7 @@ mod tests {
             valid_days: Days::new(1),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),
+            mdoc_namespace: None,
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
 
