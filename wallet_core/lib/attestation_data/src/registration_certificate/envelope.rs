@@ -39,7 +39,7 @@ pub enum RegistrationCertificateEnvelopeError {
 #[derive(Clone)]
 pub enum RegistrationCertificateEnvelope {
     Jwt(UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader>),
-    Cwt(UnverifiedWrprcCwt<UncheckedRegistrationCertificate>),
+    Cwt(Box<UnverifiedWrprcCwt<UncheckedRegistrationCertificate>>),
 }
 
 impl fmt::Debug for RegistrationCertificateEnvelope {
@@ -61,6 +61,7 @@ impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
                 .map(Self::Jwt)
                 .map_err(RegistrationCertificateEnvelopeParseError::Jwt),
             _ => UnverifiedWrprcCwt::from_slice(bytes)
+                .map(Box::new)
                 .map(Self::Cwt)
                 .map_err(RegistrationCertificateEnvelopeParseError::Cwt),
         }
@@ -111,7 +112,7 @@ pub fn verify_registration_certificate_envelope(
             (payload, signing_certificate_dn)
         }
         RegistrationCertificateEnvelope::Cwt(unverified) => {
-            let verified = unverified
+            let verified = (*unverified)
                 .into_verified_against_trust_anchors(trust_anchors, time, None)
                 .map_err(RegistrationCertificateEnvelopeError::Cwt)?;
             let signing_certificate_dn = verified

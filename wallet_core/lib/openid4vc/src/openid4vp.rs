@@ -578,6 +578,7 @@ pub struct NormalizedVpAuthorizationRequest {
 
 impl NormalizedVpAuthorizationRequest {
     /// Construct the normalized Authorization Request retained by a verifier.
+    #[expect(clippy::too_many_arguments, reason = "constructor")]
     pub fn new_for_verifier(
         credential_requests: NormalizedCredentialRequests,
         client_id: ClientId,
