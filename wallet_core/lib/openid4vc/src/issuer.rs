@@ -111,7 +111,7 @@ use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 
-pub const CREDENTIAL_ENDPOINT_V1_PATH: &str = "credential_v1";
+pub const CREDENTIAL_ENDPOINT_PATH: &str = "credential";
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
@@ -667,8 +667,7 @@ where
         let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
 
         let server_url = issuer_identifier.as_issuer_url().join_issuer_url("/issuance");
-        let credential_endpoint = server_url.join_issuer_url("/credential");
-        let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
+        let credential_endpoint = server_url.join_issuer_url(&format!("/{CREDENTIAL_ENDPOINT_PATH}"));
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
         let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
         let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
@@ -681,7 +680,6 @@ where
             authorization_servers: None,
             endpoints: IssuerEndpoints {
                 credential_endpoint,
-                batch_credential_endpoint: Some(batch_credential_endpoint),
                 nonce_endpoint: Some(nonce_endpoint),
                 deferred_credential_endpoint: None,
                 notification_endpoint: None,
@@ -1792,12 +1790,7 @@ impl Session<AccessTokenIssued> {
         N: NonceStore,
     {
         // First, check that the request is authorized.
-        self.check_credential_endpoint_access(
-            access_token,
-            dpop,
-            &issuer_data.server_url,
-            CREDENTIAL_ENDPOINT_V1_PATH,
-        )?;
+        self.check_credential_endpoint_access(access_token, dpop, &issuer_data.server_url, CREDENTIAL_ENDPOINT_PATH)?;
 
         let session_data = self.session_data();
 
@@ -2133,7 +2126,6 @@ mod tests {
     use crate::cleanup::start_cleanup_task;
     use crate::client_auth::ClientAttestationChallengeMechanism;
     use crate::credential::CredentialResponse;
-    use crate::credential::draft;
     use crate::dpop::Dpop;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
@@ -2159,6 +2151,7 @@ mod tests {
     use crate::token::AccessToken;
     use crate::token::TokenRequest;
     use crate::token::TokenResponse;
+    use crate::wallet_issuance::AcceptIssuanceSelection;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
@@ -2299,36 +2292,22 @@ mod tests {
             }
         }
 
-        fn tamper_credential_request(
-            &self,
-            mut credential_request: draft::CredentialRequest,
-        ) -> draft::CredentialRequest {
+        fn tamper_credential_request(&self, mut credential_request: CredentialRequest) -> CredentialRequest {
             if self.invalidate_pop {
-                let invalidated_proof = match credential_request.proof.as_ref().unwrap() {
-                    draft::CredentialRequestProof::Jwt { jwt } => draft::CredentialRequestProof::Jwt {
-                        jwt: invalidate_jwt_str(jwt.serialization()).parse().unwrap(),
-                    },
+                credential_request.proofs = match credential_request.proofs {
+                    Some(CredentialRequestProofs::Jwt(jwts)) => {
+                        let jwts = jwts
+                            .into_nonempty_iter()
+                            .map(|jwt| invalidate_jwt_str(jwt.serialization()).parse().unwrap())
+                            .collect();
+
+                        Some(CredentialRequestProofs::Jwt(jwts))
+                    }
+                    _ => None,
                 };
-                credential_request.proof = Some(invalidated_proof);
             }
 
             credential_request
-        }
-
-        fn tamper_credential_requests(
-            &self,
-            mut credential_requests: draft::CredentialRequests,
-        ) -> draft::CredentialRequests {
-            if self.invalidate_pop {
-                let invalidated_request =
-                    self.tamper_credential_request(credential_requests.credential_requests.first().clone());
-
-                let mut requests = credential_requests.credential_requests.into_inner();
-                requests[0] = invalidated_request;
-                credential_requests.credential_requests = requests.try_into().unwrap();
-            }
-
-            credential_requests
         }
     }
 
@@ -2390,36 +2369,15 @@ mod tests {
         async fn request_credential(
             &self,
             _url: Url,
-            credential_request: &draft::CredentialRequest,
+            credential_request: &CredentialRequest,
             dpop_header: &Dpop,
             access_token: &AccessToken,
         ) -> Result<CredentialResponse, WalletIssuanceError> {
             self.issuer
-                .process_credential(
-                    self.access_token(access_token),
+                .process_credential_request(
+                    &self.access_token(access_token),
                     self.dpop_header(dpop_header),
                     self.tamper_credential_request(credential_request.clone()),
-                )
-                .await
-                .map_err(|error| {
-                    let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
-
-                    WalletIssuanceError::CredentialRequest(Box::new(error_response.into()))
-                })
-        }
-
-        async fn request_credentials(
-            &self,
-            _url: Url,
-            credential_requests: &draft::CredentialRequests,
-            dpop_header: &Dpop,
-            access_token: &AccessToken,
-        ) -> Result<draft::CredentialResponses, WalletIssuanceError> {
-            self.issuer
-                .process_batch_credential(
-                    self.access_token(access_token),
-                    self.dpop_header(dpop_header),
-                    self.tamper_credential_requests(credential_requests.clone()),
                 )
                 .await
                 .map_err(|error| {
@@ -2503,7 +2461,10 @@ mod tests {
         .unwrap();
 
         let wscd = MockRemoteWscd::new(vec![]);
-        session.accept_issuance(&trust_anchors, &wscd).await.unwrap_err()
+        session
+            .accept_issuance(&AcceptIssuanceSelection::All, &trust_anchors, &wscd)
+            .await
+            .unwrap_err()
     }
 
     /// Like [`start_and_accept_err`] but for errors that happen at token request time (inside
@@ -2820,7 +2781,7 @@ mod tests {
         };
         let dpop = Dpop::new(
             &dpop_private_key,
-            issuer.issuer_data.server_url.join(CREDENTIAL_ENDPOINT_V1_PATH),
+            issuer.issuer_data.server_url.join(CREDENTIAL_ENDPOINT_PATH),
             &Method::POST,
             Some(&access_token),
             Some(request_dpop_nonce),
@@ -2879,7 +2840,12 @@ mod tests {
         // Populate a `CredentialRequest` that can be used to have the credential issued, its contents depending on the
         // `CredentialRequestFailure` enum.
         let credential_request = if failure == CredentialRequestFailure::CredentialConfigurationId {
-            CredentialRequest::new_config_id(prepared_credential.credential_configuration_id.clone(), proofs)
+            CredentialRequest::new(
+                CredentialRequestIdentifier::CredentialConfigurationId(
+                    prepared_credential.credential_configuration_id.clone(),
+                ),
+                proofs,
+            )
         } else {
             let identifier = if failure == CredentialRequestFailure::UnknownCredentialIdentifier {
                 "unknown_credential_id".to_string()
@@ -2887,7 +2853,7 @@ mod tests {
                 prepared_credential.id.to_string()
             };
 
-            CredentialRequest::new_credential_id(identifier, proofs)
+            CredentialRequest::new(CredentialRequestIdentifier::CredentialIdentifier(identifier), proofs)
         };
 
         // Create a fixture to populate the `Issuer` session, containing the `PreparedCredential`.

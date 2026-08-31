@@ -62,7 +62,6 @@ impl IssuerMetadata {
     ) -> IssuerMetadata {
         let issuer_url = issuer_identifier.as_issuer_url();
         let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
-        let batch_credential_endpoint = issuer_url.join_issuer_url("/issuance/batch_credential");
         let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
         let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
 
@@ -102,7 +101,6 @@ impl IssuerMetadata {
             authorization_servers: None,
             endpoints: IssuerEndpoints {
                 credential_endpoint,
-                batch_credential_endpoint: Some(batch_credential_endpoint),
                 nonce_endpoint: Some(nonce_endpoint),
                 deferred_credential_endpoint: None,
                 notification_endpoint: None,

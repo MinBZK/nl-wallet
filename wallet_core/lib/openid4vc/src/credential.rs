@@ -138,17 +138,9 @@ pub struct CredentialRequest {
 }
 
 impl CredentialRequest {
-    pub fn new_credential_id(credential_id: String, proofs: VecNonEmpty<UnverifiedJwtProof>) -> Self {
+    pub fn new(identifier: CredentialRequestIdentifier, proofs: VecNonEmpty<UnverifiedJwtProof>) -> Self {
         Self {
-            identifier: CredentialRequestIdentifier::CredentialIdentifier(credential_id),
-            proofs: Some(CredentialRequestProofs::Jwt(proofs)),
-            credential_response_encryption: None,
-        }
-    }
-
-    pub fn new_config_id(config_id: CredentialConfigurationId, proofs: VecNonEmpty<UnverifiedJwtProof>) -> Self {
-        Self {
-            identifier: CredentialRequestIdentifier::CredentialConfigurationId(config_id),
+            identifier,
             proofs: Some(CredentialRequestProofs::Jwt(proofs)),
             credential_response_encryption: None,
         }

@@ -30,6 +30,7 @@ use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization_details::EntryContainer;
 use openid4vc::client_auth::fetch_client_auth_challenge;
 use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialRequestIdentifier;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::Credentials;
 use openid4vc::credential_offer::CredentialOfferContainer;
@@ -41,7 +42,7 @@ use openid4vc::errors::RemoteErrorCode;
 use openid4vc::errors::TokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
-use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
+use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
@@ -66,6 +67,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::TokenResponse;
 use openid4vc::token::TokenType;
+use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceFlow;
@@ -351,7 +353,10 @@ async fn authorization_code_flow(
     assert_eq!(session.previews_with_metadata().count(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
+    let issued_creds = session
+        .accept_issuance(&AcceptIssuanceSelection::All, &server.trust_anchors, &wscd)
+        .await
+        .unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
@@ -389,7 +394,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
-        .accept_issuance(&server.trust_anchors, &wscd)
+        .accept_issuance(&AcceptIssuanceSelection::All, &server.trust_anchors, &wscd)
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
@@ -445,7 +450,10 @@ async fn pre_authorized_code_flow(
 
     let copy_count = 4;
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session.accept_issuance(&trust_anchors, &wscd).await.unwrap();
+    let issued_creds = session
+        .accept_issuance(&AcceptIssuanceSelection::All, &trust_anchors, &wscd)
+        .await
+        .unwrap();
 
     verify_issued_credentials(
         issued_creds,
@@ -1667,9 +1675,12 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap()
         .into();
-    let credential_request = CredentialRequest::new_credential_id(credential_id.clone(), vec_nonempty![proof]);
+    let credential_request = CredentialRequest::new(
+        CredentialRequestIdentifier::CredentialIdentifier(credential_id.clone()),
+        vec_nonempty![proof],
+    );
 
-    let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_V1_PATH}",)
+    let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_PATH}",)
         .parse::<Url>()
         .unwrap();
 
@@ -1727,7 +1738,10 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap()
         .into();
-    let credential_request = CredentialRequest::new_credential_id(credential_id, vec_nonempty![proof]);
+    let credential_request = CredentialRequest::new(
+        CredentialRequestIdentifier::CredentialIdentifier(credential_id),
+        vec_nonempty![proof],
+    );
 
     let dpop_header = Dpop::new(
         &dpop_key,

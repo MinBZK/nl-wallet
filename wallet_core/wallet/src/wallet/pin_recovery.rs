@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -8,6 +9,7 @@ use error_category::sentry_capture_error;
 use http_utils::urls;
 use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
@@ -112,6 +114,7 @@ pub enum PinRecoverySession<AS, IS> {
     Issuance {
         recovery_code_path: VecNonEmpty<ClaimPath>,
         pid_attestation_type: String,
+        pid_preview_index: usize,
         issuance_session: IS,
     },
 }
@@ -253,7 +256,7 @@ where
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
         let pid_config = &config.pid_attributes;
-        let pid_preview = Self::pid_preview(
+        let (pid_preview_index, pid_preview) = Self::pid_preview(
             issuance_session.previews_with_metadata().map(|(preview, _)| preview),
             pid_config,
         )?;
@@ -267,6 +270,7 @@ where
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
             recovery_code_path,
             pid_attestation_type,
+            pid_preview_index,
             issuance_session,
         }));
 
@@ -330,6 +334,7 @@ where
         let Some(Session::PinRecovery(PinRecoverySession::Issuance {
             recovery_code_path,
             pid_attestation_type,
+            pid_preview_index,
             mut issuance_session,
         })) = self.session.take()
         else {
@@ -370,13 +375,17 @@ where
 
         let pin_recovery_wscd = pin_recovery_wscd_factory(instruction_client, pin_pubkey);
 
-        // Accept issuance to obtain the PID. This sends the `StartPinRecovery` instruction to the WP.
+        // Accept issuance to obtain only the SD-JWT PID. This sends the `StartPinRecovery` instruction to the WP.
         // `accept_issuance()` below is the point of no return. If the app is killed between there and completion,
         // PIN recovery will have to start again from the start.
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
         let issuance_result = issuance_session
-            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd)
+            .accept_issuance(
+                &AcceptIssuanceSelection::PreviewIndices(HashSet::from([pid_preview_index])),
+                config.issuer_trust_anchors(),
+                &pin_recovery_wscd,
+            )
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
@@ -1017,6 +1026,7 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             recovery_code_path: vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
             pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
+            pid_preview_index: 1,
             issuance_session: pid_issuer,
         }));
     }

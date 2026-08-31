@@ -1,6 +1,7 @@
 use attestation_data::attributes::AttributeValue;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
+use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -47,9 +48,9 @@ where
     pub(super) fn pid_preview<'a>(
         mut previews: impl Iterator<Item = &'a CredentialPreview>,
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<&'a CredentialPreview, RecoveryCodeError> {
+    ) -> Result<(usize, &'a CredentialPreview), RecoveryCodeError> {
         previews
-            .find(|preview| {
+            .find_position(|preview| {
                 preview.format == Format::SdJwt
                     && pid_config
                         .sd_jwt

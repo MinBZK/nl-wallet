@@ -129,9 +129,6 @@ pub struct IssuerEndpoints {
     /// scheme and MAY contain port, path, and query parameter components.
     pub credential_endpoint: IssuerUrl,
 
-    // TODO (PVW-5554): Remove this field when removing the batch credential endpoint.
-    pub batch_credential_endpoint: Option<IssuerUrl>,
-
     /// URL of the Credential Issuer's Nonce Endpoint, as defined in Section 7. This URL MUST use the https scheme and
     /// MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not require the
     /// use of `c_nonce``.

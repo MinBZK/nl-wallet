@@ -56,22 +56,14 @@ use crate::token::CredentialPreviewError;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletIssuanceError {
-    #[error("failed to get public key: {0}")]
-    #[category(pd)]
-    VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
-
     #[error("DPoP error: {0}")]
     Dpop(#[from] DpopError),
 
-    #[error("failed to convert key from/to JWK format: {0}")]
+    #[error("failed to convert JWK to public key: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
     #[error("JWT parse error: {0}")]
-    JwtParse(#[from] JwtParseError),
-
-    #[error("missing c_nonce")]
-    #[category(critical)]
-    MissingNonce,
+    JwtParse(#[source] JwtParseError),
 
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]
@@ -150,6 +142,10 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     CredentialRejection(Box<RemoteErrorResponse<CredentialErrorCode>>),
 
+    #[error("accepted credential preview indices are out of bounds: {}", .0.iter().join(", "))]
+    #[category(critical)]
+    AcceptSelectionOutOfBounds(HashSet<usize>),
+
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -161,10 +157,6 @@ pub enum WalletIssuanceError {
     #[error("public key contained in mdoc not equal to expected value")]
     #[category(critical)]
     PublicKeyMismatch,
-
-    #[error("received {found} responses, expected {expected}")]
-    #[category(critical)]
-    UnexpectedCredentialResponseCount { found: usize, expected: usize },
 
     #[error("deferred issuance is not supported")]
     #[category(expected)]
@@ -461,10 +453,17 @@ pub trait AuthorizationSession {
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
+#[derive(Debug, Clone)]
+pub enum AcceptIssuanceSelection {
+    All,
+    PreviewIndices(HashSet<usize>),
+}
+
 /// Represents an active credential issuance session for which previews are available.
 pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
+        selection: &AcceptIssuanceSelection,
         trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>

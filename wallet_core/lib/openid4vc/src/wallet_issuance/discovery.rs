@@ -408,7 +408,8 @@ where
             .get_jwt(WellKnownPath::CredentialIssuer.url(&credential_offer.credential_issuer))
             .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataHttp)?
-            .parse()?;
+            .parse()
+            .map_err(WalletIssuanceError::JwtParse)?;
 
         let issuer_metadata_payload = issuer_metadata_jwt
             .into_verified_against_trust_anchors_with_crl(
@@ -713,7 +714,6 @@ mod test {
         let mut issuer_metadata_json = json!({
             "credential_issuer": issuer_identifier.to_string(),
             "credential_endpoint": server.url("/issuance/credential"),
-            "batch_credential_endpoint": server.url("/issuance/batch_credential"),
             "credential_preview_endpoint": server.url("/issuance/credential_preview"),
             "batch_credential_issuance": {
                 "batch_size": 1000,
