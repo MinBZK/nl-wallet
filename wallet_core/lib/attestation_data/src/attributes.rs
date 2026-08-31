@@ -2,6 +2,11 @@ use std::collections::HashSet;
 use std::num::TryFromIntError;
 
 use attestation_types::claim_path::ClaimPath;
+use base64::prelude::*;
+use chrono::DateTime;
+use chrono::NaiveDate;
+use chrono::NaiveTime;
+use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -17,17 +22,27 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Number;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
+use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 
-#[derive(Debug, Clone, Display, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde_as]
+#[derive(Debug, Clone, Display, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "lowercase")]
 pub enum AttributeValue {
     Null,
     Integer(i64),
     Bool(bool),
     Text(String),
     #[display("[{}]", _0.iter().join(", "))]
-    Array(Vec<AttributeValue>),
+    Array(Vec<Attribute>),
+
+    // mdoc only
+    Date(DateTime<Utc>),
+    #[display("{}", BASE64_URL_SAFE_NO_PAD.encode(_0))]
+    Bytes(#[serde_as(as = "Base64<UrlSafe, Unpadded>")] Vec<u8>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -43,6 +58,9 @@ pub enum AttributeError {
 
     #[error("unable to convert number from claim value: {0}")]
     NumberFromClaimValueConversion(Number),
+
+    #[error("unable to convert map key, expected string: {0:?}")]
+    MapKeyConversion(Box<ciborium::Value>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -71,6 +89,23 @@ impl From<AttributeValue> for ciborium::Value {
             AttributeValue::Text(text) => ciborium::Value::Text(text),
             AttributeValue::Null => ciborium::Value::Null,
             AttributeValue::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
+            AttributeValue::Date(dt) => {
+                ciborium::Value::Tag(1004, Box::new(ciborium::Value::Text(dt.format("%Y-%m-%d").to_string())))
+            }
+            AttributeValue::Bytes(items) => ciborium::Value::Bytes(items),
+        }
+    }
+}
+
+impl From<Attribute> for ciborium::Value {
+    fn from(value: Attribute) -> Self {
+        match value {
+            Attribute::Single(v) => v.into(),
+            Attribute::Nested(map) => ciborium::Value::Map(
+                map.into_iter()
+                    .map(|(k, v)| (ciborium::Value::Text(k), ciborium::Value::from(v)))
+                    .collect(),
+            ),
         }
     }
 }
@@ -83,7 +118,22 @@ impl From<AttributeValue> for ClaimValue {
             AttributeValue::Bool(boolean) => ClaimValue::Bool(boolean),
             AttributeValue::Text(text) => ClaimValue::String(text),
             AttributeValue::Array(elements) => {
-                ClaimValue::Array(elements.into_iter().map(|e| ArrayClaim::Value(Self::from(e))).collect())
+                ClaimValue::Array(elements.into_iter().map(Into::into).collect())
+            }
+            AttributeValue::Date(_) => unimplemented!("AttributeValue::Date to ClaimValue conversion not supported"),
+            AttributeValue::Bytes(_) => {
+                unimplemented!("AttributeValue::Bytes to ClaimValue conversion not supported")
+            }
+        }
+    }
+}
+
+impl From<Attribute> for ArrayClaim {
+    fn from(attr: Attribute) -> Self {
+        match attr {
+            Attribute::Single(value) => ArrayClaim::Value(ClaimValue::from(value)),
+            Attribute::Nested(_) => {
+                unimplemented!("Attribute::Nested to ClaimValue conversion not supported")
             }
         }
     }
@@ -99,8 +149,18 @@ impl TryFrom<ciborium::Value> for AttributeValue {
             ciborium::Value::Integer(integer) => Ok(AttributeValue::Integer(integer.try_into()?)),
             ciborium::Value::Null => Ok(AttributeValue::Null),
             ciborium::Value::Array(elements) => Ok(AttributeValue::Array(
-                elements.into_iter().map(Self::try_from).try_collect()?,
+                elements.into_iter().map(Attribute::try_from).try_collect()?,
             )),
+            ciborium::Value::Bytes(bytes) => Ok(AttributeValue::Bytes(bytes)),
+            ciborium::Value::Tag(1004, inner) => match *inner {
+                ciborium::Value::Text(s) => NaiveDate::parse_from_str(&s, "%Y-%m-%d")
+                    .map_err(|_| AttributeError::FromCborConversion(Box::new(ciborium::Value::Text(s.clone()))))
+                    .map(|d| AttributeValue::Date(d.and_time(NaiveTime::default()).and_utc())),
+                other => Err(AttributeError::FromCborConversion(Box::new(ciborium::Value::Tag(
+                    1004,
+                    Box::new(other),
+                )))),
+            },
             _ => Err(AttributeError::FromCborConversion(Box::new(value))),
         }
     }
@@ -123,7 +183,7 @@ impl TryFrom<ClaimValue> for AttributeValue {
                 elements
                     .into_iter()
                     .filter_map(|value| match value {
-                        ArrayClaim::Value(claim_value) => Some(claim_value.try_into()),
+                        ArrayClaim::Value(claim_value) => Some(Attribute::try_from(claim_value)),
                         _ => None, // ignore hashes in Arrays
                     })
                     .try_collect()?,
@@ -134,10 +194,11 @@ impl TryFrom<ClaimValue> for AttributeValue {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Display, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Attribute {
     Single(AttributeValue),
+    #[display("{{{}}}", _0.iter().map(|(k, v)| format!("{}: {}", k, v)).join(", "))]
     Nested(IndexMap<String, Attribute>),
 }
 
@@ -147,7 +208,7 @@ impl TryFrom<Attribute> for ClaimValue {
     fn try_from(value: Attribute) -> Result<Self, Self::Error> {
         match value {
             Attribute::Single(attribute_value) => Ok(attribute_value.into()),
-            Attribute::Nested(index_map) => Ok(attributes_to_claim_value(index_map)?),
+            Attribute::Nested(nested) => Ok(attributes_to_claim_value(nested)?),
         }
     }
 }
@@ -157,6 +218,29 @@ impl TryFrom<Attributes> for ClaimValue {
 
     fn try_from(value: Attributes) -> Result<Self, Self::Error> {
         attributes_to_claim_value(value.0)
+    }
+}
+
+impl TryFrom<ciborium::Value> for Attribute {
+    type Error = AttributeError;
+
+    fn try_from(value: ciborium::Value) -> Result<Self, Self::Error> {
+        match value {
+            ciborium::Value::Map(entries) => {
+                let map = entries
+                    .into_iter()
+                    .map(|(k, v)| {
+                        let key = match k {
+                            ciborium::Value::Text(s) => Ok(s),
+                            other => Err(AttributeError::MapKeyConversion(Box::new(other))),
+                        }?;
+                        Ok((key, Attribute::try_from(v)?))
+                    })
+                    .collect::<Result<IndexMap<_, _>, AttributeError>>()?;
+                Ok(Attribute::Nested(map))
+            }
+            other => AttributeValue::try_from(other).map(Attribute::Single),
+        }
     }
 }
 
@@ -171,7 +255,7 @@ impl TryFrom<ClaimValue> for Attribute {
     }
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, AsRef, From)]
 pub struct Attributes(IndexMap<String, Attribute>);
 
 impl TryFrom<ObjectClaims> for Attributes {

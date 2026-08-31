@@ -406,7 +406,7 @@ async fn attestation(
         .ok_or(anyhow::Error::msg("invalid disclosure result"))?;
 
     let documents: Vec<IssuableDocument> = data
-        .get(attribute_value)
+        .get(&attribute_value.to_string())
         .map(|docs| {
             docs.iter()
                 .cloned()
@@ -450,7 +450,7 @@ fn substitute_placeholders_in_value(value: &mut AttributeValue, rng: &mut impl R
         }
         AttributeValue::Array(elements) => {
             for element in elements {
-                substitute_placeholders_in_value(element, rng);
+                substitute_placeholders_in_attribute(element, rng);
             }
         }
         _ => {}

@@ -216,6 +216,29 @@ impl From<attestation_data::AttributeValue> for AttributeValue {
             attestation_data::AttributeValue::Array(entries) => AttributeValue::Array {
                 value: entries.into_iter().map(AttributeValue::from).collect(),
             },
+            attestation_data::AttributeValue::Date(date_time) => AttributeValue::String {
+                value: date_time.to_string(),
+            },
+            attestation_data::AttributeValue::Bytes(items) => AttributeValue::String {
+                value: hex::encode(items),
+            },
+        }
+    }
+}
+
+impl From<attestation_data::Attribute> for AttributeValue {
+    fn from(value: attestation_data::Attribute) -> Self {
+        match value {
+            attestation_data::Attribute::Single(value) => value.into(),
+            // TODO nested attributes are converted to arrays of their keys
+            attestation_data::Attribute::Nested(entries) => AttributeValue::Array {
+                value: entries
+                    .into_iter()
+                    .map(|(key, value)| AttributeValue::String {
+                        value: format!("{}: {}", key, value),
+                    })
+                    .collect(),
+            },
         }
     }
 }

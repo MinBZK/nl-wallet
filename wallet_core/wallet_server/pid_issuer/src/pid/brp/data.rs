@@ -99,7 +99,10 @@ impl BrpPerson {
                 Some((
                     String::from(PID_NATIONALITY),
                     Attribute::Single(AttributeValue::Array(
-                        nationalities.into_iter().map(AttributeValue::Text).collect_vec(),
+                        nationalities
+                            .into_iter()
+                            .map(|n| Attribute::Single(AttributeValue::Text(n)))
+                            .collect_vec(),
                     )),
                 )),
                 Some((

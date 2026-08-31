@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use crypto::utils::random_string;
@@ -134,8 +135,8 @@ pub fn mock_pid_example() -> Attributes {
         (
             vec![PID_NATIONALITY],
             AttributeValue::Array(vec![
-                AttributeValue::Text("Nederlandse".to_string()),
-                AttributeValue::Text("Belgische".to_string()),
+                Attribute::Single(AttributeValue::Text("Nederlandse".to_string())),
+                Attribute::Single(AttributeValue::Text("Belgische".to_string())),
             ]),
         ),
         (vec![PID_RECOVERY_CODE], AttributeValue::Text("1234567".to_string())),

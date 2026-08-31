@@ -90,7 +90,7 @@ pub enum PreviewableCredentialPayloadFromMdocError {
 
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PreviewableCredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
@@ -229,7 +229,7 @@ pub enum CredentialPayloadIntoSignedMdocError {
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct CredentialPayload {
     #[serde(rename = "iat")]
     pub issued_at: DateTimeSeconds,

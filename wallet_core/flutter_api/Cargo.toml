@@ -19,6 +19,7 @@ allow_insecure_url = ["wallet/allow_insecure_url"]
 anyhow.workspace = true
 backtrace.workspace = true
 chrono.workspace = true
+hex.workspace = true
 itertools.workspace = true
 parking_lot.workspace = true
 sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "logs", "reqwest", "rustls", "tracing"] }

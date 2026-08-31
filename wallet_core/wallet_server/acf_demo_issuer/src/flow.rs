@@ -216,7 +216,7 @@ fn substitute_placeholders_in_value(value: &mut AttributeValue, rng: &mut impl R
         }
         AttributeValue::Array(elements) => {
             for element in elements {
-                substitute_placeholders_in_value(element, rng);
+                substitute_placeholders_in_attribute(element, rng);
             }
         }
         _ => {}
