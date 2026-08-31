@@ -2025,7 +2025,7 @@ impl Credentials {
                         preview_credential_payload,
                         issued_at,
                         public_key,
-                        metadata_integrity,
+                        Some(metadata_integrity),
                         status_claim,
                     )
                     .map_err(CredentialRequestError::JwkConversion)

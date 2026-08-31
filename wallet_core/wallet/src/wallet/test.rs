@@ -56,7 +56,6 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use ssri::Integrity;
 use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
@@ -299,7 +298,7 @@ pub fn mdoc_from_credential_payload(
         preview_payload,
         Utc::now(),
         &PublicKey::from(*holder_key.verifying_key()),
-        Integrity::from(""),
+        None,
         StatusClaim::new_mock(),
     )
     .unwrap()

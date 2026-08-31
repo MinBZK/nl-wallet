@@ -812,7 +812,7 @@ fn prepare_example_credential_payload(
         payload_preview,
         Utc::now(),
         &PublicKey::from(*holder_privkey.verifying_key()),
-        Integrity::from(""),
+        Some(Integrity::from("")),
         StatusClaim::new_mock(),
     )
     .unwrap();

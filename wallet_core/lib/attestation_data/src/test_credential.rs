@@ -307,7 +307,7 @@ impl TestCredential {
             self.payload_preview.clone(),
             Utc::now(),
             &PublicKey::from(*holder_key.verifying_key()),
-            self.metadata_integrity(),
+            Some(self.metadata_integrity()),
             self.status.clone(),
         )
         .expect("TestCredential payload preview should convert to CredentialPayload");

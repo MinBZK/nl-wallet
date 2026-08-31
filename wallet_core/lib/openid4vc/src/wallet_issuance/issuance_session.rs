@@ -2120,7 +2120,7 @@ mod tests {
                 self.previewable_payload,
                 Utc::now(),
                 holder_pubkey,
-                self.metadata_integrity,
+                Some(self.metadata_integrity),
                 self.status,
             )
             .unwrap();

@@ -425,7 +425,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-    use ssri::Integrity;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
@@ -448,7 +447,7 @@ mod tests {
             payload_preview,
             Utc::now(),
             &PublicKey::from(*holder_privkey.verifying_key()),
-            Integrity::from(""),
+            None,
             StatusClaim::new_mock(),
         )
         .unwrap()

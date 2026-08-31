@@ -146,10 +146,6 @@ impl PreviewableCredentialPayload {
 /// Shared error for required fields that are absent from a decoded credential, regardless of format.
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialPayloadMissingFieldError {
-    #[error("missing metadata integrity")]
-    #[category(critical)]
-    MetadataIntegrity,
-
     #[error("missing status claim")]
     #[category(critical)]
     StatusClaim,
@@ -239,9 +235,10 @@ pub struct CredentialPayload {
     #[serde(rename = "cnf")]
     pub confirmation_key: ConfirmationClaim,
 
-    /// Contains the integrity digest of the type metadata document of this `vct`.
+    /// Contains the integrity digest of the SD-JWT Type Metadata document of this `vct`. When absent, the credential
+    /// is described by the issuer credential metadata instead.
     #[serde(rename = "vct#integrity")]
-    pub vct_integrity: Integrity,
+    pub vct_integrity: Option<Integrity>,
 
     /// The information on how to read the status of the Verifiable Credential.
     pub status: StatusClaim,
@@ -255,7 +252,7 @@ impl CredentialPayload {
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_pubkey: &PublicKey,
-        metadata_integrity: Integrity,
+        vct_integrity: Option<Integrity>,
         status: StatusClaim,
     ) -> Result<Self, JwkConversionError> {
         let confirmation_key = jwk_from_public_key(holder_pubkey)?;
@@ -263,7 +260,7 @@ impl CredentialPayload {
         Ok(CredentialPayload {
             issued_at: issued_at.into(),
             confirmation_key: ConfirmationClaim::Jwk(confirmation_key),
-            vct_integrity: metadata_integrity,
+            vct_integrity,
             status,
             previewable_payload,
         })
@@ -388,7 +385,7 @@ impl CredentialPayload {
             issuer_uri: Some(issuer),
             attestation_qualification: Some(attestation_qualification),
             status: Some(status),
-            type_metadata_integrity: Some(vct_integrity),
+            type_metadata_integrity: vct_integrity,
         };
 
         let mso = TaggedBytes(mso);
@@ -421,9 +418,7 @@ impl SplitCredential {
         Ok(CredentialPayload {
             issued_at: self.issued_at,
             confirmation_key: self.key_info,
-            vct_integrity: self
-                .vct_integrity
-                .ok_or(CredentialPayloadMissingFieldError::MetadataIntegrity)?,
+            vct_integrity: self.vct_integrity,
             status: self.status.ok_or(CredentialPayloadMissingFieldError::StatusClaim)?,
             previewable_payload: self.previewable,
         })
@@ -513,7 +508,7 @@ impl TryFrom<CredentialPayload> for SdJwtVcClaims {
     fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
         Ok(SdJwtVcClaims {
             vct: value.previewable_payload.attestation_type,
-            vct_integrity: Some(value.vct_integrity),
+            vct_integrity: value.vct_integrity,
             iss: value.previewable_payload.issuer,
             iat: value.issued_at,
             exp: value.previewable_payload.expires,
@@ -550,13 +545,13 @@ mod examples {
             previewable_payload: PreviewableCredentialPayload,
             issued_at: DateTime<Utc>,
             holder_pubkey: &PublicKey,
-            metadata_integrity: Integrity,
+            vct_integrity: Option<Integrity>,
             status: StatusClaim,
         ) -> Result<Self, JwkConversionError> {
             Ok(Self {
                 issued_at: issued_at.into(),
                 confirmation_key: ConfirmationClaim::try_from_public_key(holder_pubkey)?,
-                vct_integrity: metadata_integrity,
+                vct_integrity,
                 status,
                 previewable_payload,
             })
@@ -574,7 +569,7 @@ mod examples {
             Self {
                 issued_at: time.into(),
                 confirmation_key: ConfirmationClaim::Jwk(confirmation_key),
-                vct_integrity: Integrity::from(""),
+                vct_integrity: Some(Integrity::from("")),
                 status: StatusClaim::new_mock(),
                 previewable_payload,
             }
@@ -763,7 +758,7 @@ mod test {
             payload_preview.clone(),
             Utc::now(),
             &PublicKey::from(*SigningKey::generate().verifying_key()),
-            metadata_integrity.clone(),
+            Some(metadata_integrity.clone()),
             StatusClaim::new_mock(),
         )
         .unwrap();
@@ -864,7 +859,7 @@ mod test {
         let payload = CredentialPayload {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
             confirmation_key: ConfirmationClaim::Jwk(confirmation_key.clone()),
-            vct_integrity: Integrity::from(""),
+            vct_integrity: Some(Integrity::from("")),
             status: StatusClaim::new_mock(),
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: String::from("com.example.pid"),
@@ -920,7 +915,7 @@ mod test {
             preview_payload.clone(),
             Utc::now(),
             &PublicKey::from(*holder_key.verifying_key()),
-            Integrity::from(""),
+            Some(Integrity::from("")),
             StatusClaim::new_mock(),
         )
         .unwrap();
