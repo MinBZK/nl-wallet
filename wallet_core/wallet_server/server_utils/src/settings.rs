@@ -3,8 +3,11 @@ use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
 
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
+use attestation_data::x509::RelyingParty;
 use chrono::DateTime;
 use chrono::Utc;
 use config::ConfigError;
@@ -186,6 +189,26 @@ pub enum CertificateVerificationError {
     NoCertificateType(#[source] CertificateTypeError, String),
 }
 
+pub struct VerifierUseCase<'a> {
+    pub id: &'a str,
+    pub key_pair: &'a KeyPair,
+    pub registration_certificate: Option<&'a [u8]>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum VerifierUseCasesValidationError {
+    #[error("{0}")]
+    Certificate(#[source] CertificateVerificationError),
+    #[error("missing registration certificate for use case `{use_case_id}`")]
+    MissingRegistrationCertificate { use_case_id: String },
+    #[error("invalid registration certificate for use case `{use_case_id}`: {source}")]
+    InvalidRegistrationCertificate {
+        use_case_id: String,
+        #[source]
+        source: anyhow::Error,
+    },
+}
+
 pub trait ServerSettings: Sized {
     type ValidationError: std::error::Error + Send + Sync + 'static;
 
@@ -221,4 +244,60 @@ pub fn verify_key_pairs(
     }
 
     Ok(())
+}
+
+pub fn validate_verifier_use_cases(
+    use_cases: &[VerifierUseCase<'_>],
+    wrpac_trust_anchors: &TrustAnchors,
+    wrprc_trust_anchors: &TrustAnchors,
+    time: &impl Generator<DateTime<Utc>>,
+) -> Result<(), VerifierUseCasesValidationError> {
+    let key_pairs = use_cases
+        .iter()
+        .map(|use_case| (use_case.id, use_case.key_pair))
+        .collect::<Vec<_>>();
+
+    verify_key_pairs(&key_pairs, wrpac_trust_anchors, None, time)
+        .map_err(VerifierUseCasesValidationError::Certificate)?;
+
+    for use_case in use_cases {
+        let registration_certificate = use_case.registration_certificate.ok_or_else(|| {
+            VerifierUseCasesValidationError::MissingRegistrationCertificate {
+                use_case_id: use_case.id.to_string(),
+            }
+        })?;
+
+        validate_registration_certificate(
+            registration_certificate,
+            &use_case.key_pair.certificate,
+            wrprc_trust_anchors,
+            time,
+        )
+        .map_err(
+            |source| VerifierUseCasesValidationError::InvalidRegistrationCertificate {
+                use_case_id: use_case.id.to_string(),
+                source,
+            },
+        )?;
+    }
+
+    Ok(())
+}
+
+fn validate_registration_certificate(
+    registration_certificate: &[u8],
+    access_certificate: &BorrowingCertificate,
+    trust_anchors: &TrustAnchors,
+    time: &impl Generator<DateTime<Utc>>,
+) -> Result<(), anyhow::Error> {
+    let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
+
+    let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate)?;
+    let payload =
+        verify_registration_certificate_envelope(&registration_certificate, trust_anchors, time)?.into_payload();
+
+    payload
+        .validate_structure(&access_subject, time.generate())
+        .map(|_| ())
+        .map_err(anyhow::Error::from)
 }

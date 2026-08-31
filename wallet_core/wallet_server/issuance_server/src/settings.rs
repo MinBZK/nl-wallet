@@ -4,15 +4,12 @@ use std::sync::Arc;
 
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeParseError;
-use attestation_data::registration_certificate::verify_registration_certificate_envelope;
-use attestation_data::x509::RelyingParty;
 use axum::Router;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::BorrowingCertificate;
 use dcql::Query;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use derive_more::Debug;
@@ -44,12 +41,13 @@ use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::verify_key_pairs;
+use server_utils::settings::VerifierUseCase;
+use server_utils::settings::VerifierUseCasesValidationError;
+use server_utils::settings::validate_verifier_use_cases;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use server_utils::store::SessionStoreVariant;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
-use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -222,6 +220,20 @@ pub enum VerifierSettingsValidationError {
     },
 }
 
+impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
+    fn from(value: VerifierUseCasesValidationError) -> Self {
+        match value {
+            VerifierUseCasesValidationError::Certificate(error) => Self::Certificate(error),
+            VerifierUseCasesValidationError::MissingRegistrationCertificate { use_case_id } => {
+                Self::MissingRegistrationCertificate { use_case_id }
+            }
+            VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
+                Self::InvalidRegistrationCertificate { use_case_id, source }
+            }
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum VerifierSettingsError {
     #[error("invalid disclosure private key: {0}")]
@@ -246,39 +258,23 @@ pub enum VerifierSettingsError {
 
 impl VerifierSettings {
     fn validate(&self, wrprc_trust_anchors: &TrustAnchors) -> Result<(), VerifierSettingsValidationError> {
-        let time = TimeGenerator;
-
-        let key_pairs: Vec<(&str, &KeyPair)> = self
+        let use_cases = self
             .disclosure_settings
             .iter()
-            .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
-            .collect();
+            .map(|(use_case_id, settings)| VerifierUseCase {
+                id: use_case_id,
+                key_pair: &settings.key_pair,
+                registration_certificate: settings.registration_certificate.as_deref(),
+            })
+            .collect::<Vec<_>>();
 
-        verify_key_pairs(&key_pairs, &self.wrpac_trust_anchors, None, &time)
-            .map_err(VerifierSettingsValidationError::Certificate)?;
-
-        for (use_case_id, settings) in &self.disclosure_settings {
-            let registration_certificate = settings.registration_certificate.as_deref().ok_or_else(|| {
-                VerifierSettingsValidationError::MissingRegistrationCertificate {
-                    use_case_id: use_case_id.clone(),
-                }
-            })?;
-
-            validate_registration_certificate(
-                registration_certificate,
-                &settings.key_pair.certificate,
-                wrprc_trust_anchors,
-                time,
-            )
-            .map_err(
-                |source| VerifierSettingsValidationError::InvalidRegistrationCertificate {
-                    use_case_id: use_case_id.clone(),
-                    source,
-                },
-            )?;
-        }
-
-        Ok(())
+        validate_verifier_use_cases(
+            &use_cases,
+            &self.wrpac_trust_anchors,
+            wrprc_trust_anchors,
+            &TimeGenerator,
+        )
+        .map_err(Into::into)
     }
 
     pub async fn into_disclosure_router(
@@ -359,22 +355,4 @@ impl VerifierSettings {
 
         Ok(router)
     }
-}
-
-fn validate_registration_certificate(
-    registration_certificate: &[u8],
-    access_certificate: &BorrowingCertificate,
-    trust_anchors: &TrustAnchors,
-    time: TimeGenerator,
-) -> Result<(), anyhow::Error> {
-    let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
-
-    let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate)?;
-    let payload =
-        verify_registration_certificate_envelope(&registration_certificate, trust_anchors, &time)?.into_payload();
-
-    payload
-        .validate_structure(&access_subject, time.generate())
-        .map(|_| ())
-        .map_err(anyhow::Error::from)
 }

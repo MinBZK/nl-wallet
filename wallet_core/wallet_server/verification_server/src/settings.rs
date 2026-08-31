@@ -4,14 +4,10 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
-use attestation_data::registration_certificate::verify_registration_certificate_envelope;
-use attestation_data::x509::RelyingParty;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::BorrowingCertificate;
 use dcql::Query;
 use derive_more::AsRef;
 use derive_more::From;
@@ -43,9 +39,10 @@ use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::verify_key_pairs;
+use server_utils::settings::VerifierUseCase;
+use server_utils::settings::VerifierUseCasesValidationError;
+use server_utils::settings::validate_verifier_use_cases;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
-use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -170,22 +167,23 @@ pub enum VerifierSettingsValidationError {
     },
 }
 
-fn validate_registration_certificate(
-    registration_certificate: &[u8],
-    access_certificate: &BorrowingCertificate,
-    trust_anchors: &TrustAnchors,
-    time: TimeGenerator,
-) -> Result<(), anyhow::Error> {
-    let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
-
-    let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate)?;
-    let payload =
-        verify_registration_certificate_envelope(&registration_certificate, trust_anchors, &time)?.into_payload();
-
-    payload
-        .validate_structure(&access_subject, time.generate())
-        .map(|_| ())
-        .map_err(anyhow::Error::from)
+impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
+    fn from(value: VerifierUseCasesValidationError) -> Self {
+        match value {
+            VerifierUseCasesValidationError::Certificate(error) => Self::Certificate(error),
+            VerifierUseCasesValidationError::MissingRegistrationCertificate { use_case_id } => {
+                Self::MissingRegistrationCertificate {
+                    usecase_id: use_case_id,
+                }
+            }
+            VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
+                Self::InvalidRegistrationCertificate {
+                    usecase_id: use_case_id,
+                    source,
+                }
+            }
+        }
+    }
 }
 
 impl From<&EphemeralIdSecret> for hmac::Key {
@@ -250,40 +248,24 @@ impl ServerSettings for VerifierSettings {
     fn validate(&self) -> Result<(), VerifierSettingsValidationError> {
         tracing::debug!("verifying verifier.usecases certificates");
 
-        let time = TimeGenerator;
-
-        let key_pairs: Vec<(&str, &KeyPair)> = self
+        let use_cases = self
             .usecases
             .as_ref()
             .iter()
-            .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
-            .collect();
+            .map(|(use_case_id, use_case)| VerifierUseCase {
+                id: use_case_id,
+                key_pair: &use_case.key_pair,
+                registration_certificate: use_case.registration_certificate.as_deref(),
+            })
+            .collect::<Vec<_>>();
 
-        verify_key_pairs(&key_pairs, &self.server_settings.wrpac_trust_anchors, None, &time)
-            .map_err(VerifierSettingsValidationError::Certificate)?;
-
-        for (usecase_id, usecase) in self.usecases.as_ref() {
-            let registration_certificate = usecase.registration_certificate.as_deref().ok_or_else(|| {
-                VerifierSettingsValidationError::MissingRegistrationCertificate {
-                    usecase_id: usecase_id.clone(),
-                }
-            })?;
-
-            validate_registration_certificate(
-                registration_certificate,
-                &usecase.key_pair.certificate,
-                &self.server_settings.wrprc_trust_anchors,
-                time,
-            )
-            .map_err(
-                |source| VerifierSettingsValidationError::InvalidRegistrationCertificate {
-                    usecase_id: usecase_id.clone(),
-                    source,
-                },
-            )?;
-        }
-
-        Ok(())
+        validate_verifier_use_cases(
+            &use_cases,
+            &self.server_settings.wrpac_trust_anchors,
+            &self.server_settings.wrprc_trust_anchors,
+            &TimeGenerator,
+        )
+        .map_err(Into::into)
     }
 
     fn server_settings(&self) -> &Settings {
