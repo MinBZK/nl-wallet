@@ -28,7 +28,6 @@ use futures::future::try_join_all;
 use futures::join;
 use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
-use itertools::Either;
 use itertools::Itertools;
 use jwt::Algorithm;
 use jwt::JwtValidation;
@@ -57,7 +56,6 @@ use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 use uuid::Uuid;
 
 use crate::authorization_details::AuthorizationDetails;
@@ -70,8 +68,6 @@ use crate::credential::CredentialResponse;
 use crate::credential::Credentials;
 use crate::credential::MdocCredential;
 use crate::credential::SdJwtCredential;
-use crate::credential::UnverifiedJwtProof;
-use crate::credential::draft;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurations;
@@ -241,18 +237,6 @@ pub enum CredentialRequestError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
-    #[error("credential type not offered")]
-    CredentialTypeNotOffered(String),
-
-    #[error("credential request ambiguous, use /batch_credential instead")]
-    UseBatchIssuance,
-
-    #[error("wrong number of credential requests")]
-    WrongNumberOfCredentialRequests,
-
-    #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
-    CredentialTypeMismatch { requested: Format, offered: Format },
-
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 
@@ -417,6 +401,7 @@ impl IssuanceState for Done {}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum SessionResult {
+    // Note that this state is currently never reached, see the comment in `Issuer::process_credential_request()`.
     Done,
     Failed { error: String },
     Cancelled,
@@ -990,66 +975,6 @@ where
     S: SessionStore<IssuanceData>,
     N: NonceStore,
 {
-    pub async fn process_credential(
-        &self,
-        access_token: AccessToken,
-        dpop: Dpop,
-        credential_request: draft::CredentialRequest,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
-        let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self
-            .get_session(code)
-            .await
-            .map_err(CredentialRequestError::IssuanceError)?;
-
-        let (response, next) = session
-            .process_credential(
-                credential_request,
-                access_token,
-                dpop,
-                &self.issuer_data,
-                self.nonce_store.as_ref(),
-            )
-            .await;
-
-        self.sessions
-            .write(next.into(), false)
-            .await
-            .map_err(|error| CredentialRequestError::IssuanceError(IssuanceError::SessionStore(error)))?;
-
-        logged_issuance_result(response)
-    }
-
-    pub async fn process_batch_credential(
-        &self,
-        access_token: AccessToken,
-        dpop: Dpop,
-        credential_requests: draft::CredentialRequests,
-    ) -> Result<draft::CredentialResponses, CredentialRequestError> {
-        let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self
-            .get_session(code)
-            .await
-            .map_err(CredentialRequestError::IssuanceError)?;
-
-        let (response, next) = session
-            .process_batch_credential(
-                credential_requests,
-                access_token,
-                dpop,
-                &self.issuer_data,
-                self.nonce_store.as_ref(),
-            )
-            .await;
-
-        self.sessions
-            .write(next.into(), false)
-            .await
-            .map_err(|error| CredentialRequestError::IssuanceError(IssuanceError::SessionStore(error)))?;
-
-        logged_issuance_result(response)
-    }
-
     pub async fn process_credential_request(
         &self,
         access_token: &AccessToken,
@@ -1494,42 +1419,11 @@ impl TryFrom<SessionState<IssuanceData>> for Session<AccessTokenIssued> {
 }
 
 impl Session<AccessTokenIssued> {
-    async fn process_credential<K, L, N>(
-        self,
-        credential_request: draft::CredentialRequest,
-        access_token: AccessToken,
-        dpop: Dpop,
-        issuer_data: &IssuerData<K, L>,
-        nonce_store: &N,
-    ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>)
-    where
-        K: EcdsaKey,
-        N: NonceStore,
-        L: StatusListService,
-    {
-        let result = self
-            .process_credential_inner(credential_request, access_token, dpop, issuer_data, nonce_store)
-            .await;
-
-        // In case of success, transition the session to done. This means the client won't be able to reuse its access
-        // token in more requests to this endpoint. (The OpenID4VCI and OAuth specs allow reuse of access tokens, but
-        // don't forbid that a server doesn't allow that.)
-        let next = match &result {
-            Ok(_) => self.transition(Done {
-                session_result: SessionResult::Done,
-            }),
-            Err(err) => self.transition_fail(err),
-        };
-
-        (result, next)
-    }
-
     pub fn check_credential_endpoint_access(
         &self,
         access_token: &AccessToken,
         dpop: Dpop,
-        server_url: &BaseUrl,
-        endpoint: &str,
+        endpoint: &Url,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1541,8 +1435,7 @@ impl Session<AccessTokenIssued> {
         // Check that the DPoP is valid and its key matches the one from the Token Request
         dpop.verify_expecting_key(
             session_data.dpop_public_key.to_owned(),
-            // TODO (PVW-6197): Use credential endpoint from issuer metadata instead.
-            &server_url.join(endpoint),
+            endpoint,
             &Method::POST,
             Some(access_token),
             Some(&session_data.dpop_nonce),
@@ -1550,230 +1443,6 @@ impl Session<AccessTokenIssued> {
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         Ok(())
-    }
-
-    async fn process_credential_inner<K, L, N>(
-        &self,
-        credential_request: draft::CredentialRequest,
-        access_token: AccessToken,
-        dpop: Dpop,
-        issuer_data: &IssuerData<K, L>,
-        nonce_store: &N,
-    ) -> Result<CredentialResponse, CredentialRequestError>
-    where
-        K: EcdsaKey,
-        L: StatusListService,
-        N: NonceStore,
-    {
-        let session_data = self.session_data();
-
-        self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "credential")?;
-
-        // If we have exactly one credential on offer that matches the credential type that the client is
-        // requesting, then we issue that credential.
-        // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
-        let requested_format = credential_request.credential_type.as_ref().format();
-        let offered_creds = session_data
-            .prepared_credentials
-            .iter()
-            .filter(|credential| credential.format == requested_format)
-            .collect_vec();
-
-        let credential = match (offered_creds.first(), offered_creds.len()) {
-            (Some(credential), 1) => Ok(*credential),
-            (_, 0) => Err(CredentialRequestError::CredentialTypeNotOffered(
-                credential_request.credential_type.as_ref().to_string(),
-            )),
-            // If we have more than one credential on offer of the specified credential type then it is not clear which
-            // one we should issue; abort
-            _ => Err(CredentialRequestError::UseBatchIssuance),
-        }?;
-
-        let (holder_pubkey, request_nonce) = credential_request.verify(issuer_data.jwt_proof_validation.clone())?;
-
-        let nonce_status = nonce_store
-            .check_nonce_status_and_remove([request_nonce].iter())
-            .await
-            .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
-
-        if !matches!(nonce_status, NonceStatus::AllValid) {
-            return Err(CredentialRequestError::InvalidNonce);
-        }
-
-        let credential_config = issuer_data
-            .get_credential_config_for_prepared_credential(credential)
-            .ok_or_else(|| {
-                CredentialRequestError::MissingCredentialConfiguration(credential.credential_configuration_id.clone())
-            })?;
-
-        let credentials = Credentials::sign_batch(
-            credential.id,
-            requested_format,
-            credential.credential_payload.clone(),
-            utc_now_truncated_to_days(),
-            vec_nonempty![&holder_pubkey],
-            credential_config.metadata.first_document_integrity().clone(),
-            credential_config.metadata.normalized(),
-            &credential_config.key_pair,
-            &credential_config.status_list,
-        )
-        .await?;
-
-        Ok(CredentialResponse::new_immediate(credentials))
-    }
-
-    async fn process_batch_credential<K, L, N>(
-        self,
-        credential_requests: draft::CredentialRequests,
-        access_token: AccessToken,
-        dpop: Dpop,
-        issuer_data: &IssuerData<K, L>,
-        nonce_store: &N,
-    ) -> (
-        Result<draft::CredentialResponses, CredentialRequestError>,
-        Session<Done>,
-    )
-    where
-        K: EcdsaKey,
-        L: StatusListService,
-        N: NonceStore,
-    {
-        let result = self
-            .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data, nonce_store)
-            .await;
-
-        // In case of success, transition the session to done. This means the client won't be able to reuse its access
-        // token in more requests to this endpoint. (The OpenID4VCI and OAuth specs allow reuse of access tokens, but
-        // don't forbid that a server doesn't allow that.)
-        let next = match &result {
-            Ok(_) => self.transition(Done {
-                session_result: SessionResult::Done,
-            }),
-            Err(err) => self.transition_fail(err),
-        };
-
-        (result, next)
-    }
-
-    async fn process_batch_credential_inner<K, L, N>(
-        &self,
-        credential_requests: draft::CredentialRequests,
-        access_token: AccessToken,
-        dpop: Dpop,
-        issuer_data: &IssuerData<K, L>,
-        nonce_store: &N,
-    ) -> Result<draft::CredentialResponses, CredentialRequestError>
-    where
-        K: EcdsaKey,
-        L: StatusListService,
-        N: NonceStore,
-    {
-        let session_data = self.session_data();
-
-        self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "batch_credential")?;
-
-        let mut request_nonces = Vec::with_capacity(credential_requests.credential_requests.as_ref().len());
-        let credentials_and_holder_pubkeys = session_data
-            .prepared_credentials
-            .iter()
-            .map(|credential| {
-                // For every credential collect for every copy the verified key
-                let copy_count = issuer_data.metadata.batch_size().get();
-                let format_pubkeys: VecNonEmpty<_> = (0..copy_count)
-                    .map(|_| {
-                        let cred_req = credential_requests
-                            .credential_requests
-                            .as_ref()
-                            .get(request_nonces.len())
-                            .ok_or(CredentialRequestError::WrongNumberOfCredentialRequests)?;
-
-                        // Verify the assumption that the order of the incoming requests matches exactly
-                        // that of the flattened batch_size by matching the requested format.
-                        if credential.format != cred_req.credential_type.as_ref().format() {
-                            return Err(CredentialRequestError::CredentialTypeMismatch {
-                                offered: credential.format,
-                                requested: cred_req.credential_type.as_ref().format(),
-                            });
-                        }
-
-                        let (key, nonce) = cred_req.verify(issuer_data.jwt_proof_validation.clone())?;
-
-                        request_nonces.push(nonce);
-
-                        Ok(key)
-                    })
-                    .collect::<Result<Vec<_>, _>>()?
-                    .try_into()
-                    .expect("guaranteerd to be non-empty because copy_count's source is non-zero");
-
-                let credential_config = issuer_data
-                    .get_credential_config_for_prepared_credential(credential)
-                    .ok_or_else(|| {
-                        CredentialRequestError::MissingCredentialConfiguration(
-                            credential.credential_configuration_id.clone(),
-                        )
-                    })?;
-
-                Ok((credential, credential_config, format_pubkeys))
-            })
-            .collect::<Result<Vec<_>, CredentialRequestError>>()?;
-
-        // Verify that we have consumed all credential requests
-        if request_nonces.len() != credential_requests.credential_requests.as_ref().len() {
-            return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
-        }
-
-        // Check the validity of all of the nonces used, which may be equal to each other.
-        let nonce_status = nonce_store
-            .check_nonce_status_and_remove(request_nonces.iter())
-            .await
-            .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
-
-        if !matches!(nonce_status, NonceStatus::AllValid) {
-            return Err(CredentialRequestError::InvalidNonce);
-        }
-
-        // Make sure all credentials are issued with the same `issued_at` timestamp
-        let issued_at = utc_now_truncated_to_days();
-
-        // Sign all credentials and create `Credentials` type per batch of credentials.
-        let credentials = try_join_all(credentials_and_holder_pubkeys.iter().map(
-            |(credential, credential_config, format_pubkeys)| {
-                Credentials::sign_batch(
-                    credential.id,
-                    credential.format,
-                    credential.credential_payload.clone(),
-                    issued_at,
-                    format_pubkeys.nonempty_iter().collect(),
-                    credential_config.metadata.first_document_integrity().clone(),
-                    credential_config.metadata.normalized(),
-                    &credential_config.key_pair,
-                    &credential_config.status_list,
-                )
-            },
-        ))
-        .await?;
-
-        // Unpick each created `Credentials` into one or more `Credentials` that contain only one credential copy of the
-        // relevant format, then wrap each of these in a `CredentialResponse`.
-        let credential_responses = credentials
-            .into_iter()
-            .flat_map(|credentials| match credentials {
-                Credentials::MsoMdoc(mdoc_credentials) => Either::Left(
-                    mdoc_credentials
-                        .into_iter()
-                        .map(|mdoc_credential| Credentials::MsoMdoc(vec_nonempty![mdoc_credential])),
-                ),
-                Credentials::SdJwt(sd_jwt_credentials) => Either::Right(
-                    sd_jwt_credentials
-                        .into_iter()
-                        .map(|sd_jwt_credential| Credentials::SdJwt(vec_nonempty![sd_jwt_credential])),
-                ),
-            })
-            .map(CredentialResponse::new_immediate)
-            .collect();
-
-        Ok(draft::CredentialResponses { credential_responses })
     }
 
     async fn process_credential_request<K, L, N>(
@@ -1790,7 +1459,11 @@ impl Session<AccessTokenIssued> {
         N: NonceStore,
     {
         // First, check that the request is authorized.
-        self.check_credential_endpoint_access(access_token, dpop, &issuer_data.server_url, CREDENTIAL_ENDPOINT_PATH)?;
+        self.check_credential_endpoint_access(
+            access_token,
+            dpop,
+            issuer_data.metadata.endpoints.credential_endpoint.as_url(),
+        )?;
 
         let session_data = self.session_data();
 
@@ -1890,18 +1563,6 @@ impl<T: IssuanceState> Session<T> {
     }
 }
 
-impl draft::CredentialRequest {
-    fn verify(&self, jwt_proof_validation: JwtValidation) -> Result<(PublicKey, Nonce), CredentialRequestError> {
-        let (holder_pubkey, nonce) = self
-            .proof
-            .as_ref()
-            .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
-            .verify(jwt_proof_validation)?;
-
-        Ok((holder_pubkey, nonce))
-    }
-}
-
 impl CredentialRequest {
     fn verify(
         &self,
@@ -1925,7 +1586,15 @@ impl CredentialRequest {
         let public_keys_and_nonces = jwts
             .into_nonempty_iter()
             .zip(utils::vec_at_least::repeat_n(jwt_proof_validation, jwt_count))
-            .map(|(jwt, jwt_proof_validation)| verify_jwt_proof(jwt, jwt_proof_validation))
+            .map(|(jwt, jwt_proof_validation)| {
+                let (_header, payload, public_key) = jwt
+                    .parse_and_verify_with_jwk(jwt_proof_validation)
+                    .map_err(CredentialRequestError::InvalidProofJwt)?;
+
+                let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
+
+                Ok((public_key, nonce))
+            })
             .collect::<Result<VecNonEmpty<_>, _>>()?;
 
         // Check that each of the JWKs contained a public key distinct from all of the others.
@@ -1939,27 +1608,6 @@ impl CredentialRequest {
         }
 
         Ok(public_keys_and_nonces)
-    }
-}
-
-fn verify_jwt_proof(
-    jwt: &UnverifiedJwtProof,
-    validation: JwtValidation,
-) -> Result<(PublicKey, Nonce), CredentialRequestError> {
-    let (_header, payload, public_key) = jwt
-        .parse_and_verify_with_jwk(validation)
-        .map_err(CredentialRequestError::InvalidProofJwt)?;
-
-    let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
-
-    Ok((public_key, nonce))
-}
-
-impl draft::CredentialRequestProof {
-    fn verify(&self, validation: JwtValidation) -> Result<(PublicKey, Nonce), CredentialRequestError> {
-        let Self::Jwt { jwt } = self;
-
-        verify_jwt_proof(jwt, validation)
     }
 }
 
@@ -2116,6 +1764,7 @@ mod tests {
     use tracing_test::traced_test;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
     use wscd::mock_remote::MockWiaClient;
