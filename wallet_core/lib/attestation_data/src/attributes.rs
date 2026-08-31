@@ -375,7 +375,7 @@ impl Attributes {
 
         // Only proceed if a root namespace can be found; if not, the loop below is skipped and `attributes` is left
         // untouched, which is reported below as `SomeAttributesNotProcessed`.
-        if let Some(namespace_root) = Self::find_mdoc_namespace_root(&attributes) {
+        if let Some(namespace_root) = Self::find_mdoc_namespace_root(type_metadata.vct(), &attributes) {
             // The key paths of the claims determines the order of the attributes result
             for key_path in key_paths {
                 Self::traverse_attributes_by_claim(&namespace_root, key_path.as_slice(), &mut attributes, &mut result)?;
@@ -389,21 +389,31 @@ impl Attributes {
         Ok(Self(result))
     }
 
-    /// Find the namespace that every other namespace present is nested under, i.e. the value that was passed as
-    /// `mdoc_namespace` to [`Self::to_mdoc_attributes`] when this data was constructed (a namespace `root.group` is
-    /// considered nested under `root`). Returns `None` if the namespaces present don't share such a common root,
-    /// which for well-formed data only happens when `attributes` is empty.
-    fn find_mdoc_namespace_root(attributes: &IndexMap<NameSpace, Vec<Entry>>) -> Option<String> {
+    fn is_root_namespace(candidate: &str, attributes: &IndexMap<NameSpace, Vec<Entry>>) -> bool {
+        attributes.keys().all(|namespace| {
+            namespace == candidate
+                || namespace
+                    .strip_prefix(candidate)
+                    .is_some_and(|rest| rest.starts_with('.'))
+        })
+    }
+
+    /// Find the root mdoc namespace. Prefer `attestation_type` itself if every namespace present is `attestation_type`
+    /// or nested under it (`attestation_type.group...`), which covers the normal case where the mdoc namespace
+    /// equals the attestation_type. If `attestation_type` doesn't work as a root (e.g. attestation types whose mdoc
+    /// namespace was overridden to differ from `attestation_type`, such as ISO 18013-5 mDL), fall back to
+    /// whichever namespace present is a common root for every other one.
+    fn find_mdoc_namespace_root(
+        attestation_type: &str,
+        attributes: &IndexMap<NameSpace, Vec<Entry>>,
+    ) -> Option<String> {
+        if Self::is_root_namespace(attestation_type, attributes) {
+            return Some(attestation_type.to_owned());
+        }
+
         attributes
             .keys()
-            .find(|candidate| {
-                attributes.keys().all(|namespace| {
-                    namespace == *candidate
-                        || namespace
-                            .strip_prefix(candidate.as_str())
-                            .is_some_and(|rest| rest.starts_with('.'))
-                })
-            })
+            .find(|candidate| Self::is_root_namespace(candidate, attributes))
             .cloned()
     }
 
@@ -971,6 +981,10 @@ pub mod test {
             "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
+                    "path": ["root_entry"],
+                    "display": [{"locale": "en", "label": "root entry"}],
+                },
+                {
                     "path": ["nest.ed", "birth.date"],
                     "display": [{"locale": "en", "label": "nested birthday"}],
                 }
@@ -978,17 +992,30 @@ pub mod test {
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
-        let mdoc_attributes = IndexMap::from([(
-            String::from("com.example.pid.nest.ed"),
-            vec![Entry {
-                name: String::from("birth.date"),
-                value: ciborium::Value::Text(String::from("1963-08-12")),
-            }],
-        )]);
+        let mdoc_attributes = IndexMap::from([
+            (
+                "com.example.pid".to_owned(),
+                vec![Entry {
+                    name: "root_entry".to_owned(),
+                    value: ciborium::Value::Text("x".to_owned()),
+                }],
+            ),
+            (
+                "com.example.pid.nest.ed".to_owned(),
+                vec![Entry {
+                    name: "birth.date".to_owned(),
+                    value: ciborium::Value::Text("1963-08-12".to_owned()),
+                }],
+            ),
+        ]);
 
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
 
         let expected_json = json!({
+            "root_entry": {
+                "type": "text",
+                "value": "x"
+            },
             "nest.ed": {
                 "type": "object",
                 "value": {
@@ -1012,6 +1039,10 @@ pub mod test {
             "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
+                    "path": ["root_entry"],
+                    "display": [{"locale": "en", "label": "root entry"}],
+                },
+                {
                     "path": ["a", "a1"],
                     "display": [{"locale": "en", "label": "a a1"}],
                 },
@@ -1023,23 +1054,32 @@ pub mod test {
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
-        let mdoc_attributes = IndexMap::from([(
-            String::from("com.example.pid.a"),
-            vec![
-                Entry {
-                    name: String::from("a1"),
-                    value: ciborium::Value::Text(String::from("1")),
-                },
-                Entry {
-                    name: String::from("a2"),
-                    value: ciborium::Value::Text(String::from("2")),
-                },
-                Entry {
-                    name: String::from("a3"),
-                    value: ciborium::Value::Text(String::from("3")),
-                },
-            ],
-        )]);
+        let mdoc_attributes = IndexMap::from([
+            (
+                "com.example.pid".to_owned(),
+                vec![Entry {
+                    name: "root_entry".to_owned(),
+                    value: ciborium::Value::Text("x".to_owned()),
+                }],
+            ),
+            (
+                String::from("com.example.pid.a"),
+                vec![
+                    Entry {
+                        name: "a1".to_owned(),
+                        value: ciborium::Value::Text("1".to_owned()),
+                    },
+                    Entry {
+                        name: "a2".to_owned(),
+                        value: ciborium::Value::Text("2".to_owned()),
+                    },
+                    Entry {
+                        name: "a3".to_owned(),
+                        value: ciborium::Value::Text("3".to_owned()),
+                    },
+                ],
+            ),
+        ]);
 
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes);
         assert_matches!(result, Err(AttributesError::SomeAttributesNotProcessed(attrs))
@@ -1056,6 +1096,10 @@ pub mod test {
             "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
+                    "path": ["root_entry"],
+                    "display": [{"locale": "en", "label": "root entry"}],
+                },
+                {
                     "path": ["b", "b1"],
                     "display": [{"locale": "en", "label": "b b1"}],
                 },
@@ -1071,26 +1115,39 @@ pub mod test {
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
-        let mdoc_attributes = IndexMap::from([(
-            String::from("com.example.pid.b"),
-            vec![
-                Entry {
-                    name: String::from("b1"),
-                    value: ciborium::Value::Text(String::from("1")),
-                },
-                Entry {
-                    name: String::from("b2"),
-                    value: ciborium::Value::Text(String::from("2")),
-                },
-                Entry {
-                    name: String::from("b3"),
-                    value: ciborium::Value::Text(String::from("3")),
-                },
-            ],
-        )]);
+        let mdoc_attributes = IndexMap::from([
+            (
+                "com.example.pid".to_owned(),
+                vec![Entry {
+                    name: "root_entry".to_owned(),
+                    value: ciborium::Value::Text("x".to_owned()),
+                }],
+            ),
+            (
+                String::from("com.example.pid.b"),
+                vec![
+                    Entry {
+                        name: "b1".to_owned(),
+                        value: ciborium::Value::Text("1".to_owned()),
+                    },
+                    Entry {
+                        name: "b2".to_owned(),
+                        value: ciborium::Value::Text("2".to_owned()),
+                    },
+                    Entry {
+                        name: "b3".to_owned(),
+                        value: ciborium::Value::Text("3".to_owned()),
+                    },
+                ],
+            ),
+        ]);
 
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
         let expected_json = json!({
+            "root_entry": {
+                "type": "text",
+                "value": "x"
+            },
             "b": {
                 "type": "object",
                 "value": {

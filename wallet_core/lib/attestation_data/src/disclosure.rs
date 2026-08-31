@@ -424,10 +424,7 @@ mod test {
             (
                 "address".to_string(),
                 IndexMap::from([
-                    (
-                        "street_address".to_string(),
-                        Attribute::Text("Main Street".to_string()),
-                    ),
+                    ("street_address".to_string(), Attribute::Text("Main Street".to_string())),
                     ("house_number".to_string(), Attribute::Text("123".to_string())),
                 ]),
             ),
