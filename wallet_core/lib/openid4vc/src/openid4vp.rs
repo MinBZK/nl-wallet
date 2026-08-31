@@ -1203,6 +1203,8 @@ mod tests {
 
     use attestation_data::attributes::AttributesTraversalBehaviour;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
     use attestation_types::claim_path::ClaimPath;
@@ -1254,16 +1256,14 @@ mod tests {
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
-    use super::AuthorizationRequestBase;
     use super::ClientId;
     use super::ClientIdScheme;
     use super::JsonBase64;
     use super::NormalizedVpAuthorizationRequest;
-    use super::ResponseMode;
+    use super::RegistrationCertificateError;
     use super::VerifiablePresentation;
     use super::VerifierInfo;
     use super::VpAuthorizationRequest;
-    use super::VpAuthorizationRequestAudience;
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
     use super::VpRequestUriObject;
@@ -1275,7 +1275,6 @@ mod tests {
     use crate::openid4vp::MsoMdocAlgValues;
     use crate::openid4vp::SdJwtAlgValues;
     use crate::openid4vp::VpFormatsSupported;
-    use crate::verifier::create_normalized_vp_authorization_request;
 
     #[serde_as]
     #[derive(Debug, Deserialize)]
@@ -1287,18 +1286,15 @@ mod tests {
     const EXAMPLE_X509_HASH_CLIENT_ID: &str = "x509_hash:ZXhhbXBsZS1jbGllbnQtaWQtaGFzaA";
 
     fn authorization_request_from_normalized(value: NormalizedVpAuthorizationRequest) -> VpAuthorizationRequest {
-        VpAuthorizationRequest {
-            aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
-            nonce: Some(value.nonce),
-            response_mode: Some(ResponseMode::DirectPostJwt),
-            dcql_query: value.credential_requests.into(),
-            client_metadata: Some(value.client_metadata),
-            response_uri: Some(value.response_uri),
-            wallet_nonce: value.wallet_nonce,
-            verifier_info: None,
-            transaction_data: None,
-        }
+        value.into()
+    }
+
+    fn with_mock_registration_certificate(mut auth_request: VpAuthorizationRequest) -> VpAuthorizationRequest {
+        let (_, _, _, normalized) = setup_mdoc();
+        auth_request.verifier_info = Some(vec_nonempty![VerifierInfo::registration_certificate(
+            normalized.registration_certificate,
+        )]);
+        auth_request
     }
 
     #[test]
@@ -1407,13 +1403,18 @@ mod tests {
 
         let response_uri = "https://cert.rp.example.com/response_uri".parse().unwrap();
 
-        let auth_request = create_normalized_vp_authorization_request(
+        let registration_certificate =
+            MockRegistrationCertificate::new(rp_keypair.certificate(), credential_requests.clone().into());
+        let registration_certificate =
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             credential_requests,
             ClientId::x509_hash_from_certificate(rp_keypair.certificate()),
             Nonce::from("nonce".to_string()),
             encryption_public_key,
             response_uri,
             None,
+            registration_certificate,
         );
 
         (ca, rp_keypair, encryption_secret_key, auth_request)
@@ -1596,7 +1597,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
@@ -1645,7 +1646,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(
@@ -1700,7 +1701,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert!(
@@ -1816,7 +1817,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(
@@ -1954,7 +1955,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(normalized_request.encryption_pubkey.id(), Some("supported"));
@@ -2181,17 +2182,81 @@ mod tests {
 
     #[test]
     fn registration_certificate_verifier_info_should_roundtrip_data_as_string() {
-        let verifier_info = VerifierInfo::registration_certificate("-_8A".to_string());
+        let (_, _, _, auth_request) = setup_mdoc();
+        let verifier_info = VerifierInfo::registration_certificate(auth_request.registration_certificate);
         let json = serde_json::to_value(&verifier_info).unwrap();
 
-        assert_eq!(
-            json,
-            json!({
-                "format": "registration_cert",
-                "data": "-_8A",
-            })
+        assert_eq!(json["format"], "registration_cert");
+        assert!(json["data"].is_string());
+
+        let deserialized = serde_json::from_value::<VerifierInfo>(json.clone()).unwrap();
+        assert_eq!(serde_json::to_value(deserialized).unwrap(), json);
+    }
+
+    #[test]
+    fn authorization_request_should_reject_missing_registration_certificate() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request.verifier_info = None;
+
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::RegistrationCertificate(registration_error)
+                if matches!(registration_error.as_ref(), RegistrationCertificateError::Missing)
         );
-        assert_eq!(serde_json::from_value::<VerifierInfo>(json).unwrap(), verifier_info);
+    }
+
+    #[test]
+    fn authorization_request_should_reject_other_verifier_info_without_registration_certificate() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request.verifier_info = Some(vec_nonempty![VerifierInfo::Other {
+            format: "other_format".to_string(),
+        }]);
+
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::RegistrationCertificate(registration_error)
+                if matches!(registration_error.as_ref(), RegistrationCertificateError::Missing)
+        );
+    }
+
+    #[test]
+    fn authorization_request_should_reject_multiple_registration_certificates() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let duplicate = auth_request.registration_certificate.clone();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request
+            .verifier_info
+            .as_mut()
+            .unwrap()
+            .push(VerifierInfo::registration_certificate(duplicate));
+
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::RegistrationCertificate(registration_error)
+                if matches!(registration_error.as_ref(), RegistrationCertificateError::Multiple)
+        );
+    }
+
+    #[test]
+    fn authorization_request_should_accept_registration_certificate_among_other_verifier_info() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request.verifier_info.as_mut().unwrap().insert(
+            0,
+            VerifierInfo::Other {
+                format: "other_format".to_string(),
+            },
+        );
+
+        NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
     #[test]

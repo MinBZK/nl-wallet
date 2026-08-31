@@ -1,3 +1,4 @@
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use chrono::DateTime;
@@ -60,7 +61,8 @@ async fn verify_and_validate_registration_certificate_from_jades_jwt() {
         .unwrap();
 
     let encoded = signed.to_string();
-    let payload = verify_registration_certificate_envelope(encoded.as_bytes(), &TrustAnchors::from(&ca), &time)
+    let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_bytes()).unwrap();
+    let payload = verify_registration_certificate_envelope(&envelope, &TrustAnchors::from(&ca), &time)
         .unwrap()
         .into_payload();
     let certificate = payload
@@ -80,7 +82,8 @@ async fn verify_and_validate_registration_certificate_from_wrprc_cwt() {
         .unwrap();
 
     let encoded = signed.to_vec().unwrap();
-    let payload = verify_registration_certificate_envelope(&encoded, &TrustAnchors::from(&ca), &time)
+    let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
+    let payload = verify_registration_certificate_envelope(&envelope, &TrustAnchors::from(&ca), &time)
         .unwrap()
         .into_payload();
     let certificate = payload

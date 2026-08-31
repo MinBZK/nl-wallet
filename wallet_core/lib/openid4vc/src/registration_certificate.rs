@@ -77,11 +77,11 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
     use attestation_data::registration_certificate::RegistrationCertificateValidationError;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_data::registration_certificate::mock::StaticStatusListClient;
-    use base64::prelude::*;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -96,16 +96,10 @@ mod tests {
 
     use super::RegistrationCertificateError;
     use super::validate_registration_certificate;
-    use crate::openid4vp::VerifierInfo;
 
     enum EnvelopeFormat {
         Jwt,
         Cwt,
-    }
-
-    enum MissingRegistrationCertificate {
-        NoVerifierInfo,
-        OtherVerifierInfo,
     }
 
     fn setup(status: StatusType) -> (KeyPair, Query, MockRegistrationCertificateAuthority) {
@@ -117,12 +111,12 @@ mod tests {
         (access_key_pair, query, authority)
     }
 
-    fn registration_certificate_info(certificate: Vec<u8>) -> VerifierInfo {
-        VerifierInfo::registration_certificate(BASE64_URL_SAFE_NO_PAD.encode(certificate))
+    fn registration_certificate_envelope(certificate: &[u8]) -> RegistrationCertificateEnvelope {
+        RegistrationCertificateEnvelope::try_from(certificate).unwrap()
     }
 
     async fn validate(
-        verifier_info: Option<&[VerifierInfo]>,
+        registration_certificate: &RegistrationCertificateEnvelope,
         query: &Query,
         access_certificate: &BorrowingCertificate,
         trust_anchors: &TrustAnchors,
@@ -131,7 +125,7 @@ mod tests {
         let revocation_verifier = RevocationVerifier::new_without_caching(Arc::new(status_list_client));
 
         let certificate = validate_registration_certificate(
-            verifier_info,
+            registration_certificate,
             access_certificate,
             trust_anchors,
             &revocation_verifier,
@@ -154,10 +148,10 @@ mod tests {
             EnvelopeFormat::Jwt => authority.issue_jwt(access_key_pair.certificate(), query.clone()),
             EnvelopeFormat::Cwt => authority.issue_cwt(access_key_pair.certificate(), query.clone()),
         };
-        let verifier_info = [registration_certificate_info(certificate)];
+        let envelope = registration_certificate_envelope(&certificate);
 
         validate(
-            Some(&verifier_info),
+            &envelope,
             &query,
             access_key_pair.certificate(),
             &authority.trust_anchors,
@@ -165,111 +159,17 @@ mod tests {
         )
         .await
         .unwrap();
-    }
-
-    #[rstest]
-    #[case::no_verifier_info(MissingRegistrationCertificate::NoVerifierInfo)]
-    #[case::other_verifier_info(MissingRegistrationCertificate::OtherVerifierInfo)]
-    #[tokio::test]
-    async fn reject_missing_registration_certificate(#[case] missing: MissingRegistrationCertificate) {
-        let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let verifier_info = match missing {
-            MissingRegistrationCertificate::NoVerifierInfo => None,
-            MissingRegistrationCertificate::OtherVerifierInfo => Some(vec![VerifierInfo {
-                format: "other_format".to_string(),
-                data: "other_data".to_string(),
-            }]),
-        };
-
-        let error = validate(
-            verifier_info.as_deref(),
-            &query,
-            access_key_pair.certificate(),
-            &authority.trust_anchors,
-            authority.status_list_client.clone(),
-        )
-        .await
-        .unwrap_err();
-
-        assert_matches!(error, RegistrationCertificateError::Missing);
-    }
-
-    #[tokio::test]
-    async fn reject_multiple_registration_certificates() {
-        let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
-        let verifier_info = [
-            registration_certificate_info(certificate.clone()),
-            registration_certificate_info(certificate),
-        ];
-
-        let error = validate(
-            Some(&verifier_info),
-            &query,
-            access_key_pair.certificate(),
-            &authority.trust_anchors,
-            authority.status_list_client.clone(),
-        )
-        .await
-        .unwrap_err();
-
-        assert_matches!(error, RegistrationCertificateError::Multiple);
-    }
-
-    #[tokio::test]
-    async fn accept_single_registration_certificate_among_other_verifier_info() {
-        let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
-        let verifier_info = [
-            VerifierInfo {
-                format: "first_other_format".to_string(),
-                data: "first_other_data".to_string(),
-            },
-            registration_certificate_info(certificate),
-            VerifierInfo {
-                format: "second_other_format".to_string(),
-                data: "second_other_data".to_string(),
-            },
-        ];
-
-        validate(
-            Some(&verifier_info),
-            &query,
-            access_key_pair.certificate(),
-            &authority.trust_anchors,
-            authority.status_list_client.clone(),
-        )
-        .await
-        .unwrap();
-    }
-
-    #[tokio::test]
-    async fn reject_invalid_base64url_registration_certificate() {
-        let (access_key_pair, query, authority) = setup(StatusType::Valid);
-        let verifier_info = [VerifierInfo::registration_certificate("***".to_string())];
-
-        let error = validate(
-            Some(&verifier_info),
-            &query,
-            access_key_pair.certificate(),
-            &authority.trust_anchors,
-            authority.status_list_client.clone(),
-        )
-        .await
-        .unwrap_err();
-
-        assert_matches!(error, RegistrationCertificateError::Base64(_));
     }
 
     #[tokio::test]
     async fn reject_registration_certificate_from_untrusted_signer() {
         let (access_key_pair, query, authority) = setup(StatusType::Valid);
         let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
-        let verifier_info = [registration_certificate_info(certificate)];
+        let envelope = registration_certificate_envelope(&certificate);
         let untrusted_ca = Ca::generate_mock();
 
         let error = validate(
-            Some(&verifier_info),
+            &envelope,
             &query,
             access_key_pair.certificate(),
             &TrustAnchors::from(&untrusted_ca),
@@ -285,7 +185,7 @@ mod tests {
     async fn reject_registration_certificate_with_mismatching_access_certificate_subject() {
         let (access_key_pair, query, authority) = setup(StatusType::Valid);
         let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
-        let verifier_info = [registration_certificate_info(certificate)];
+        let envelope = registration_certificate_envelope(&certificate);
         let mismatching_access_certificate = Ca::generate_wrpac_mock_ca()
             .unwrap()
             .generate_key_pair(
@@ -301,7 +201,7 @@ mod tests {
             .unwrap();
 
         let error = validate(
-            Some(&verifier_info),
+            &envelope,
             &query,
             mismatching_access_certificate.certificate(),
             &authority.trust_anchors,
@@ -324,10 +224,10 @@ mod tests {
     async fn reject_revoked_registration_certificate() {
         let (access_key_pair, query, authority) = setup(StatusType::Invalid);
         let certificate = authority.issue_jwt(access_key_pair.certificate(), query.clone());
-        let verifier_info = [registration_certificate_info(certificate)];
+        let envelope = registration_certificate_envelope(&certificate);
 
         let error = validate(
-            Some(&verifier_info),
+            &envelope,
             &query,
             access_key_pair.certificate(),
             &authority.trust_anchors,
@@ -346,11 +246,11 @@ mod tests {
     async fn reject_query_not_authorized_by_registration_certificate() {
         let (access_key_pair, authorized_query, authority) = setup(StatusType::Valid);
         let certificate = authority.issue_jwt(access_key_pair.certificate(), authorized_query);
-        let verifier_info = [registration_certificate_info(certificate)];
+        let envelope = registration_certificate_envelope(&certificate);
         let unauthorized_query = Query::new_mock_sd_jwt_pid_example();
 
         let error = validate(
-            Some(&verifier_info),
+            &envelope,
             &unauthorized_query,
             access_key_pair.certificate(),
             &authority.trust_anchors,

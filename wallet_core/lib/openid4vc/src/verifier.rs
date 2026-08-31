@@ -1569,10 +1569,10 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::validity::IssuanceValidity;
     use attestation_types::qualification::AttestationQualification;
-    use base64::Engine;
-    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
@@ -1639,13 +1639,21 @@ mod tests {
 
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
-    const REGISTRATION_CERTIFICATE: &[u8] = b"registration certificate";
-
     type TestVerifier<G> = Verifier<
         MemorySessionStore<DisclosureData, G>,
         RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData, G>>,
         StatusListClientStub<SigningKey>,
     >;
+
+    fn use_case_data(ca: &Ca, session_type_return_url: SessionTypeReturnUrl) -> UseCaseData<SigningKey> {
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+        let registration_certificate =
+            MockRegistrationCertificate::new(key_pair.certificate(), Query::new_mock_mdoc_pid_example());
+        let registration_certificate =
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+
+        UseCaseData::new(key_pair, session_type_return_url, registration_certificate)
+    }
 
     impl From<VpAuthorizationErrorCode> for RemoteAuthorizationErrorResponse<VpAuthorizationErrorCode> {
         fn from(error: VpAuthorizationErrorCode) -> Self {
@@ -1674,25 +1682,11 @@ mod tests {
         let use_cases = HashMap::from([
             (
                 DISCLOSURE_USECASE.to_string(),
-                RpInitiatedUseCase::new(
-                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url)
-                        .with_registration_certificate(REGISTRATION_CERTIFICATE.to_vec()),
-                    None,
-                    None,
-                    None,
-                    false,
-                ),
+                RpInitiatedUseCase::new(use_case_data(&ca, session_type_return_url), None, None, None, false),
             ),
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
-                RpInitiatedUseCase::new(
-                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url)
-                        .with_registration_certificate(REGISTRATION_CERTIFICATE.to_vec()),
-                    None,
-                    None,
-                    None,
-                    false,
-                ),
+                RpInitiatedUseCase::new(use_case_data(&ca, session_type_return_url), None, None, None, false),
             ),
         ]);
 
@@ -1814,12 +1808,9 @@ mod tests {
             .into_unverified()
             .dangerous_parse_unverified()
             .unwrap();
-        assert_eq!(
-            authorization_request.verifier_info.unwrap().as_slice(),
-            &[VerifierInfo::registration_certificate(
-                BASE64_URL_SAFE_NO_PAD.encode(REGISTRATION_CERTIFICATE)
-            )]
-        );
+        let verifier_info = authorization_request.verifier_info.unwrap();
+        assert_eq!(verifier_info.len().get(), 1);
+        assert_matches!(verifier_info.first(), VerifierInfo::RegistrationCertificate { .. });
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
         let end_session_message = WalletAuthResponse::Error(VpAuthorizationErrorCode::AccessDenied.into());
@@ -2146,16 +2137,13 @@ mod tests {
         // Initialize server state
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
+        let mut use_case_data = use_case_data(&ca, SessionTypeReturnUrl::SameDevice);
+        use_case_data.client_id = "client_id".into();
 
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE.to_string(),
             WalletInitiatedUseCase {
-                data: UseCaseData {
-                    key_pair: ca.generate_wrpac_verifier_mock().unwrap(),
-                    session_type_return_url: SessionTypeReturnUrl::SameDevice,
-                    client_id: "client_id".into(),
-                    registration_certificate: None,
-                },
+                data: use_case_data,
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },

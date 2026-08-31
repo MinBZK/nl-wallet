@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
 use attestation_data::registration_certificate::mock::StaticStatusListClient;
@@ -98,8 +99,6 @@ use openid4vc::verifier::VpToken;
 use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
-use openid4vc::verifier::create_normalized_vp_authorization_request;
-use openid4vc::verifier::create_vp_authorization_request;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
@@ -164,15 +163,21 @@ async fn disclosure_direct() {
     let nonce = Nonce::from("nonce".to_string());
     let response_uri: BaseUrl = "https://cert.rp.example.com/response_uri".parse().unwrap();
     let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
-    let iso_auth_request = create_normalized_vp_authorization_request(
-        NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+    let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_pid_example();
+    let registration_certificate =
+        MockRegistrationCertificate::new(auth_keypair.certificate(), Query::from(credential_requests.clone()));
+    let registration_certificate =
+        RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+    let iso_auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
+        credential_requests,
         ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
         nonce.clone(),
         encryption_secret_key.to_jwe_public_key(),
         response_uri,
         None,
+        registration_certificate,
     );
-    let auth_request = create_vp_authorization_request(iso_auth_request.clone(), None);
+    let auth_request = VpAuthorizationRequest::from(iso_auth_request.clone());
     let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .await
         .unwrap();
@@ -356,17 +361,19 @@ impl DirectMockVpMessageClient {
         let response_uri: BaseUrl = "https://cert.rp.example.com/response_uri".parse().unwrap();
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
 
-        let auth_request = create_normalized_vp_authorization_request(
-            test_credentials.to_normalized_credential_requests(formats.iter().copied()),
+        let credential_requests = test_credentials.to_normalized_credential_requests(formats.iter().copied());
+        let registration_certificate =
+            MockRegistrationCertificate::new(auth_keypair.certificate(), Query::from(credential_requests.clone()));
+        let registration_certificate_envelope =
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
+            credential_requests,
             ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
             Nonce::from("nonce".to_string()),
             encryption_secret_key.to_jwe_public_key(),
             response_uri.clone(),
             None,
-        );
-        let registration_certificate = MockRegistrationCertificate::new(
-            auth_keypair.certificate(),
-            Query::from(auth_request.credential_requests.clone()),
+            registration_certificate_envelope,
         );
 
         Self {
@@ -403,10 +410,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let auth_request = create_vp_authorization_request(
-            self.auth_request.clone(),
-            Some(&self.registration_certificate.certificate),
-        );
+        let auth_request = VpAuthorizationRequest::from(self.auth_request.clone());
         let jws = SignedJwt::sign_with_certificate(&auth_request, &self.auth_keypair)
             .await
             .unwrap()
@@ -1104,9 +1108,14 @@ where
     let registration_certificate_authority = MockRegistrationCertificateAuthority::new();
     let registration_certificate =
         registration_certificate_authority.issue_jwt(access_key_pair.certificate(), dcql_query.clone());
+    let registration_certificate =
+        RegistrationCertificateEnvelope::try_from(registration_certificate.as_slice()).unwrap();
     let use_case = WalletInitiatedUseCase::new(
-        UseCaseData::new(access_key_pair, SessionTypeReturnUrl::SameDevice)
-            .with_registration_certificate(registration_certificate),
+        UseCaseData::new(
+            access_key_pair,
+            SessionTypeReturnUrl::SameDevice,
+            registration_certificate,
+        ),
         dcql_query.try_into().unwrap(),
         "https://example.com/redirect_uri".parse().unwrap(),
     );
@@ -1153,17 +1162,24 @@ fn setup_verifier(
     let default_access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let default_registration_certificate =
         registration_certificate_authority.issue_jwt(default_access_key_pair.certificate(), dcql_query.clone());
+    let default_registration_certificate =
+        RegistrationCertificateEnvelope::try_from(default_registration_certificate.as_slice()).unwrap();
     let all_access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let all_registration_certificate =
         registration_certificate_authority.issue_jwt(all_access_key_pair.certificate(), dcql_query.clone());
+    let all_registration_certificate =
+        RegistrationCertificateEnvelope::try_from(all_registration_certificate.as_slice()).unwrap();
 
     // Initialize the verifier
     let usecases = HashMap::from([
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
-                UseCaseData::new(default_access_key_pair, SessionTypeReturnUrl::SameDevice)
-                    .with_registration_certificate(default_registration_certificate),
+                UseCaseData::new(
+                    default_access_key_pair,
+                    SessionTypeReturnUrl::SameDevice,
+                    default_registration_certificate,
+                ),
                 None,
                 None,
                 None,
@@ -1173,8 +1189,11 @@ fn setup_verifier(
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
-                UseCaseData::new(all_access_key_pair, SessionTypeReturnUrl::Both)
-                    .with_registration_certificate(all_registration_certificate),
+                UseCaseData::new(
+                    all_access_key_pair,
+                    SessionTypeReturnUrl::Both,
+                    all_registration_certificate,
+                ),
                 None,
                 None,
                 None,

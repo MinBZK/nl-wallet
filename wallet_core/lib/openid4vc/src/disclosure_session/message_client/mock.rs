@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use chrono::Utc;
 use cose::KnownCoseAlgorithmIdentifier;
@@ -44,8 +45,6 @@ use crate::openid4vp::WalletRequest;
 use crate::verifier::EphemeralIdParameters;
 use crate::verifier::SessionType;
 use crate::verifier::VerifierUrlParameters;
-use crate::verifier::create_normalized_vp_authorization_request;
-use crate::verifier::create_vp_authorization_request;
 
 /// Message that the wallet sends to the verifier through one of the mock [`VpMessageClient`] implementations.
 #[derive(Debug, Clone)]
@@ -236,13 +235,22 @@ impl MockVerifierSession {
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
-        let mut auth_request = create_normalized_vp_authorization_request(
+        let registration_certificate = self.registration_certificate.as_ref().cloned().unwrap_or_else(|| {
+            MockRegistrationCertificate::new(
+                self.key_pair.certificate(),
+                Query::from(self.credential_requests.clone()),
+            )
+        });
+        let registration_certificate =
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        let mut auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             self.credential_requests.clone(),
             ClientId::x509_hash_from_certificate(self.key_pair.certificate()),
             self.nonce.clone(),
             self.encryption_secret_key.to_jwe_public_key(),
             self.response_uri.clone(),
             wallet_nonce,
+            registration_certificate,
         );
         auth_request.client_metadata = VpClientMetadata {
             vp_formats_supported: self.vp_formats_supported.clone(),
@@ -255,12 +263,10 @@ impl MockVerifierSession {
 
     /// Generate the first protocol message of the verifier.
     fn signed_auth_request(&self, wallet_request: WalletRequest) -> SignedJwt<VpAuthorizationRequest, HeaderWithX5c> {
-        let request = create_vp_authorization_request(
-            self.normalized_auth_request(wallet_request.wallet_nonce),
-            self.registration_certificate
-                .as_ref()
-                .map(|certificate| certificate.certificate.as_slice()),
-        );
+        let mut request = VpAuthorizationRequest::from(self.normalized_auth_request(wallet_request.wallet_nonce));
+        if self.registration_certificate.is_none() {
+            request.verifier_info = None;
+        }
 
         SignedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
