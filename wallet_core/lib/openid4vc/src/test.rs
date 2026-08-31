@@ -12,6 +12,7 @@ use attestation_data::x509::generate::mock::generate_issuer_mock_with_registrati
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
@@ -25,7 +26,6 @@ use crypto::x509::crl::mock::MockCrlFetcher;
 use derive_more::Constructor;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
-use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;

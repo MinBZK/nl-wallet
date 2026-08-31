@@ -3,15 +3,13 @@ use std::fmt::Debug;
 use std::ops::Deref;
 
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::data_uri::DataUri;
-use attestation_types::image::Image;
+use attestation_types::metadata::ClaimDisplayMetadata;
+use attestation_types::metadata::DisplayMetadata;
 use itertools::Itertools;
 use nutype::nutype;
 use regex::regex;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::TryFromInto;
-use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 use utils::spec::SpecOptional;
@@ -236,70 +234,6 @@ pub struct MetadataExtends {
 }
 
 #[skip_serializing_none]
-#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DisplayMetadata {
-    ///  A language tag as defined in Section 2 of [RFC5646](https://www.rfc-editor.org/info/rfc5646).
-    pub locale: String,
-
-    /// A human-readable name for the type, intended for end users.
-    pub name: String,
-
-    /// A human-readable description for the type, intended for end users.
-    pub description: Option<String>,
-
-    /// A templated summary for the type, intended to be rendered to the end user.
-    pub summary: Option<String>,
-
-    /// An object containing rendering information for the type
-    #[debug(skip)]
-    pub rendering: Option<RenderingMetadata>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum RenderingMetadata {
-    Simple {
-        /// An object containing information about the logo to be displayed for the type.
-        logo: Option<LogoMetadata>,
-
-        /// An object containing information about the background image to be displayed for the type.
-        background_image: Option<BackgroundImageMetadata>,
-
-        /// An RGB color value for the background of the credential.
-        background_color: Option<String>,
-
-        /// An RGB color value for the text of the credential.
-        text_color: Option<String>,
-    },
-    SvgTemplates,
-}
-
-#[serde_as]
-#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LogoMetadata {
-    /// Explicitly reject non-embedded images and unsupported mime types
-    #[debug(skip)]
-    #[serde(rename = "uri")]
-    #[serde_as(as = "TryFromInto<DataUri>")]
-    pub image: Image,
-
-    /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
-    /// because of accessibility requirements.
-    pub alt_text: SpecOptional<String>,
-}
-
-#[serde_as]
-#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BackgroundImageMetadata {
-    /// Explicitly reject non-embedded images and unsupported mime types
-    #[debug(skip)]
-    #[serde(rename = "uri")]
-    #[serde_as(as = "TryFromInto<DataUri>")]
-    pub image: Image,
-}
-
-#[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimMetadata {
     /// A list indicating the claim or claims that are being addressed, as described below.
@@ -353,19 +287,6 @@ pub enum ClaimSelectiveDisclosureMetadata {
     Never,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClaimDisplayMetadata {
-    /// A language tag as defined in Section 2 of [RFC5646](https://www.rfc-editor.org/info/rfc5646).
-    pub locale: String,
-
-    /// A human-readable label for the claim, intended for end users.
-    pub label: String,
-
-    /// A human-readable description for the claim, intended for end users.
-    pub description: Option<String>,
-}
-
 // The requirements for the svg_id according to the specification are:
 // "It MUST consist of only alphanumeric characters and underscores and MUST NOT start with a digit."
 #[nutype(
@@ -386,13 +307,13 @@ impl Deref for SvgId {
 mod example_constructors {
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::metadata::DisplayMetadata;
     use crypto::utils::random_string;
     use utils::vec_nonempty;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
     use super::ClaimSelectiveDisclosureMetadata;
-    use super::DisplayMetadata;
     use super::TypeMetadata;
     use super::UncheckedTypeMetadata;
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
@@ -498,7 +419,11 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::data_uri::DataUri;
+    use attestation_types::image::Image;
     use attestation_types::image::ImageError;
+    use attestation_types::metadata::BackgroundImageMetadata;
+    use attestation_types::metadata::LogoMetadata;
+    use attestation_types::metadata::RenderingMetadata;
     use rstest::rstest;
     use serde_json::json;
     use utils::vec_nonempty;

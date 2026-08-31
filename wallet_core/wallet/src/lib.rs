@@ -65,6 +65,10 @@ pub mod attestation_data {
 pub mod attestation_types {
     pub use attestation_types::credential_format::Format;
     pub use attestation_types::image::Image;
+    pub use attestation_types::metadata::ClaimDisplayMetadata;
+    pub use attestation_types::metadata::DisplayMetadata;
+    pub use attestation_types::metadata::LogoMetadata;
+    pub use attestation_types::metadata::RenderingMetadata;
 }
 
 pub mod configuration {
@@ -78,13 +82,6 @@ pub mod configuration {
 
 pub mod openid4vc {
     pub use openid4vc::verifier::SessionType;
-}
-
-pub mod sd_jwt_vc_metadata {
-    pub use sd_jwt_vc_metadata::ClaimDisplayMetadata;
-    pub use sd_jwt_vc_metadata::DisplayMetadata;
-    pub use sd_jwt_vc_metadata::LogoMetadata;
-    pub use sd_jwt_vc_metadata::RenderingMetadata;
 }
 
 pub mod utils {

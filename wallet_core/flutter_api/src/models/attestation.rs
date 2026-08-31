@@ -2,7 +2,7 @@ use chrono::Utc;
 use svg_sanitize::SanitizedSvg;
 use tracing::warn;
 use wallet::attestation_data;
-use wallet::sd_jwt_vc_metadata::LogoMetadata;
+use wallet::attestation_types::LogoMetadata;
 
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
@@ -98,8 +98,8 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
-impl From<wallet::sd_jwt_vc_metadata::DisplayMetadata> for DisplayMetadata {
-    fn from(value: wallet::sd_jwt_vc_metadata::DisplayMetadata) -> Self {
+impl From<wallet::attestation_types::DisplayMetadata> for DisplayMetadata {
+    fn from(value: wallet::attestation_types::DisplayMetadata) -> Self {
         Self {
             locale: value.locale,
             name: value.name,
@@ -120,10 +120,10 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
-    fn from(value: wallet::sd_jwt_vc_metadata::RenderingMetadata) -> Self {
+impl From<wallet::attestation_types::RenderingMetadata> for RenderingMetadata {
+    fn from(value: wallet::attestation_types::RenderingMetadata) -> Self {
         match value {
-            wallet::sd_jwt_vc_metadata::RenderingMetadata::Simple {
+            wallet::attestation_types::RenderingMetadata::Simple {
                 logo,
                 background_image,
                 background_color,
@@ -142,7 +142,7 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
                 background_color,
                 text_color,
             },
-            wallet::sd_jwt_vc_metadata::RenderingMetadata::SvgTemplates => RenderingMetadata::SvgTemplates,
+            wallet::attestation_types::RenderingMetadata::SvgTemplates => RenderingMetadata::SvgTemplates,
         }
     }
 }
@@ -170,8 +170,8 @@ pub struct ClaimDisplayMetadata {
     pub description: Option<String>,
 }
 
-impl From<wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata> for ClaimDisplayMetadata {
-    fn from(value: wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata) -> Self {
+impl From<wallet::attestation_types::ClaimDisplayMetadata> for ClaimDisplayMetadata {
+    fn from(value: wallet::attestation_types::ClaimDisplayMetadata) -> Self {
         Self {
             locale: value.locale,
             label: value.label,

@@ -3,15 +3,15 @@ use std::mem;
 use std::num::NonZeroUsize;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::metadata::ClaimDisplayMetadata;
+use attestation_types::metadata::DisplayMetadata;
 use itertools::Either;
 use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::chain::SortedTypeMetadata;
-use crate::metadata::ClaimDisplayMetadata;
 use crate::metadata::ClaimMetadata;
 use crate::metadata::ClaimSelectiveDisclosureMetadata;
-use crate::metadata::DisplayMetadata;
 use crate::metadata::UncheckedTypeMetadata;
 
 #[derive(Debug, thiserror::Error)]
@@ -373,6 +373,8 @@ mod tests {
     use std::assert_matches;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::metadata::ClaimDisplayMetadata;
+    use attestation_types::metadata::DisplayMetadata;
     use rstest::rstest;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_at_least::NonEmptyIterator;
@@ -382,10 +384,8 @@ mod tests {
     use super::NormalizedTypeMetadata;
     use super::NormalizedTypeMetadataError;
     use crate::chain::SortedTypeMetadata;
-    use crate::metadata::ClaimDisplayMetadata;
     use crate::metadata::ClaimMetadata;
     use crate::metadata::ClaimSelectiveDisclosureMetadata;
-    use crate::metadata::DisplayMetadata;
     use crate::metadata::SvgId;
     use crate::metadata::TypeMetadata;
     use crate::metadata::UncheckedTypeMetadata;

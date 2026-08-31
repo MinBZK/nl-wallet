@@ -160,13 +160,13 @@ pub mod test {
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
+    use attestation_types::metadata::ClaimDisplayMetadata;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use indexmap::IndexMap;
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;
-    use sd_jwt_vc_metadata::ClaimDisplayMetadata;
     use sd_jwt_vc_metadata::ClaimMetadata;
     use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
