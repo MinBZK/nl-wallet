@@ -1280,7 +1280,6 @@ impl IssuedCredentialCopies {
 mod tests {
     use std::assert_matches;
     use std::num::NonZeroU8;
-    use std::num::NonZeroUsize;
     use std::time::Duration;
     use std::vec;
 
@@ -1301,7 +1300,6 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
-    use crypto::trust_anchor::BorrowingTrustAnchor;
     use crypto::x509::CertificateError;
     use derive_more::Debug;
     use futures::FutureExt;
@@ -2182,30 +2180,16 @@ mod tests {
 
     /// Return a new session ready for `accept_issuance()`.
     fn new_session_state(
-        credential_previews: VecNonEmpty<CredentialPreview>,
-        attestation_type: &str,
-        issuance_type_metadata: IssuanceTypeMetadata,
+        credential_previews: Vec<CredentialPreview>,
+        type_metadata: Vec<IssuanceTypeMetadata>,
+        batch_size: NonZeroU8,
         has_nonce_endpoint: bool,
     ) -> IssuanceState {
         let issuer_identifier = "https://issuer.example.com".parse().unwrap();
 
-        let config_id = credential_previews
-            .iter()
-            .map(|preview| &preview.config_id)
-            .unique()
-            .exactly_one()
-            .unwrap()
-            .clone();
-        let mut issuer_metadata = IssuerMetadata::new_mock(
-            issuer_identifier,
-            vec![(
-                config_id.clone(),
-                CredentialKind::new(Format::SdJwt, attestation_type.to_string()),
-            )],
-        );
-        issuer_metadata.batch_credential_issuance = None;
+        let mut issuer_endpoints = IssuerEndpoints::new_mock(&issuer_identifier);
         if !has_nonce_endpoint {
-            issuer_metadata.endpoints.nonce_endpoint = None;
+            issuer_endpoints.nonce_endpoint = None;
         }
 
         let previews_by_credential_id = credential_previews
@@ -2213,13 +2197,18 @@ mod tests {
             .map(|preview| (preview.credential_id.clone(), preview))
             .collect();
 
+        let type_metadata = type_metadata
+            .into_iter()
+            .map(|metadata| (metadata.normalized_metadata.vct().to_string(), metadata))
+            .collect();
+
         IssuanceState {
             access_token: "access_token".to_string().into(),
-            credential_issuer: issuer_metadata.credential_issuer,
-            issuer_endpoints: issuer_metadata.endpoints,
-            batch_size: NonZeroU8::MIN,
+            credential_issuer: issuer_identifier,
+            issuer_endpoints,
+            batch_size,
             offered_credentials: OfferedCredentials::CredentialIds(previews_by_credential_id),
-            type_metadata: [(attestation_type.to_string(), issuance_type_metadata)].into(),
+            type_metadata,
             issuer_registration: IssuerRegistration::new_mock(),
             dpop_signing_key: SigningKey::generate(),
             dpop_nonce: Some("dpop_nonce".parse().unwrap()),
@@ -2247,26 +2236,31 @@ mod tests {
 
     #[derive(Debug, Clone)]
     struct MockCredentialSigner {
-        pub trust_anchor: BorrowingTrustAnchor,
+        formats_by_credential_id: HashMap<String, Format>,
+        pub trust_anchors: TrustAnchors,
         issuer_key: KeyPair,
         metadata_integrity: Integrity,
-        previewable_payload: PreviewableCredentialPayload,
+        normalized_metadata: NormalizedTypeMetadata,
+        preview_payload: PreviewableCredentialPayload,
     }
 
     impl MockCredentialSigner {
-        pub fn new_with_preview_and_type_metadata_state() -> (Self, CredentialPreview, String, IssuanceTypeMetadata) {
+        pub fn new_with_preview_and_type_metadata(
+            formats_by_credential_id: HashMap<String, Format>,
+        ) -> (Self, Vec<CredentialPreview>, IssuanceTypeMetadata) {
             let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
             let type_metadata = TypeMetadata::example_with_claim_name(&preview_payload.attestation_type, "family_name");
 
-            Self::from_metadata_and_payload_with_preview_data(type_metadata, preview_payload)
+            Self::from_metadata_and_preview(formats_by_credential_id, type_metadata, preview_payload)
         }
 
-        pub fn from_metadata_and_payload_with_preview_data(
+        pub fn from_metadata_and_preview(
+            formats_by_credential_id: HashMap<String, Format>,
             type_metadata: TypeMetadata,
             preview_payload: PreviewableCredentialPayload,
-        ) -> (Self, CredentialPreview, String, IssuanceTypeMetadata) {
+        ) -> (Self, Vec<CredentialPreview>, IssuanceTypeMetadata) {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
-            let trust_anchor = ca.to_borrowing_trust_anchor();
+            let trust_anchors = TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap();
 
             let issuer_registration = IssuerRegistration::new_mock();
             let issuer_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
@@ -2276,29 +2270,57 @@ mod tests {
                 TypeMetadataDocuments::from_single_example(type_metadata);
             let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(&attestation_type).unwrap();
 
-            let signer = Self {
-                trust_anchor,
-                issuer_key,
-                metadata_integrity,
-                previewable_payload: preview_payload.clone(),
-            };
+            let credential_count = formats_by_credential_id.len();
+            let previews = formats_by_credential_id
+                .clone()
+                .into_iter()
+                .zip(std::iter::repeat_n(
+                    (preview_payload.clone(), issuer_certificate),
+                    credential_count,
+                ))
+                .map(
+                    |((credential_id, format), (credential_payload, issuer_certificate))| CredentialPreview {
+                        credential_id,
+                        config_id: "config_id".to_string().into(),
+                        format,
+                        credential_payload,
+                        issuer_certificate,
+                    },
+                )
+                .collect();
 
-            let preview = CredentialPreview {
-                credential_id: "credential_id".to_string(),
-                config_id: "config_id".to_string().into(),
-                format: Format::MsoMdoc,
-                credential_payload: preview_payload,
-                issuer_certificate,
-            };
             let issuance_type_metadata = IssuanceTypeMetadata {
-                normalized_metadata,
+                normalized_metadata: normalized_metadata.clone(),
                 raw_metadata,
             };
 
-            (signer, preview, attestation_type, issuance_type_metadata)
+            let signer = Self {
+                formats_by_credential_id,
+                trust_anchors,
+                issuer_key,
+                metadata_integrity,
+                normalized_metadata,
+                preview_payload,
+            };
+
+            (signer, previews, issuance_type_metadata)
         }
 
         pub fn response_from_request(&self, request: &CredentialRequest) -> CredentialResponse {
+            let credential_id = match &request.identifier {
+                CredentialRequestIdentifier::CredentialIdentifier(credential_id) => credential_id,
+                CredentialRequestIdentifier::CredentialConfigurationId(config_id) => {
+                    if config_id.as_ref() != "config_id" {
+                        panic!("requested credential configuration identifier is not correct");
+                    }
+
+                    self.formats_by_credential_id
+                        .keys()
+                        .exactly_one()
+                        .expect("credential configuration identifier is only allowed for a single credential")
+                }
+            };
+
             let holder_pubkeys = match request.proofs.as_ref().unwrap() {
                 CredentialRequestProofs::Jwt(jwts) => jwts
                     .nonempty_iter()
@@ -2306,38 +2328,68 @@ mod tests {
                     .collect::<VecNonEmpty<_>>(),
             };
 
-            self.response_from_holder_pubkeys(holder_pubkeys.nonempty_iter())
+            self.response_from_holder_pubkeys(credential_id, holder_pubkeys.nonempty_iter())
         }
 
         pub fn response_from_holder_pubkeys<'a>(
             &self,
+            credential_id: &str,
             holder_pubkeys: impl IntoNonEmptyIterator<Item = &'a PublicKey>,
         ) -> CredentialResponse {
-            let mdoc_credentials = holder_pubkeys
-                .into_nonempty_iter()
-                .map(|holder_pubkey| {
-                    let credential_payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
-                        self.previewable_payload.clone(),
-                        Utc::now(),
-                        holder_pubkey,
-                        self.metadata_integrity.clone(),
-                        StatusClaim::new_mock(),
-                    )
-                    .unwrap();
+            let credential_payloads = holder_pubkeys.into_nonempty_iter().map(|holder_pubkey| {
+                CredentialPayload::from_previewable_credential_payload_unvalidated(
+                    self.preview_payload.clone(),
+                    Utc::now(),
+                    holder_pubkey,
+                    self.metadata_integrity.clone(),
+                    StatusClaim::new_mock(),
+                )
+                .unwrap()
+            });
 
-                    let (issuer_signed, _) = credential_payload
-                        .into_signed_mdoc(&self.issuer_key)
-                        .now_or_never()
-                        .unwrap()
-                        .unwrap();
+            let credentials = match self
+                .formats_by_credential_id
+                .get(credential_id)
+                .expect("requested credential identifier is not correct")
+            {
+                Format::MsoMdoc => {
+                    let mdoc_credentials = credential_payloads
+                        .map(|credential_payload| {
+                            let (issuer_signed, _) = credential_payload
+                                .into_signed_mdoc(&self.issuer_key)
+                                .now_or_never()
+                                .unwrap()
+                                .unwrap();
 
-                    MdocCredential {
-                        credential: issuer_signed,
-                    }
-                })
-                .collect();
+                            MdocCredential {
+                                credential: issuer_signed,
+                            }
+                        })
+                        .collect();
 
-            CredentialResponse::new_immediate(Credentials::MsoMdoc(mdoc_credentials))
+                    Credentials::MsoMdoc(mdoc_credentials)
+                }
+                Format::SdJwt => {
+                    let sd_jwt_credentials = credential_payloads
+                        .map(|credential_payload| {
+                            let unverified_sd_jwt = credential_payload
+                                .into_signed_sd_jwt(&self.normalized_metadata, &self.issuer_key)
+                                .now_or_never()
+                                .unwrap()
+                                .unwrap()
+                                .into();
+
+                            SdJwtCredential {
+                                credential: unverified_sd_jwt,
+                            }
+                        })
+                        .collect();
+
+                    Credentials::SdJwt(sd_jwt_credentials)
+                }
+            };
+
+            CredentialResponse::new_immediate(credentials)
         }
     }
 
@@ -2368,9 +2420,48 @@ mod tests {
         PresentWithDpopNonce,
     }
 
+    enum AcceptIssuanceTestFormats {
+        CredentialId(Vec<Format>),
+        CredentialConfigurationId(Format),
+    }
+
     #[rstest]
+    #[case::credential_id_single_mdoc(
+        AcceptIssuanceTestFormats::CredentialId(vec![Format::MsoMdoc]),
+        AcceptIssuanceSelection::All
+    )]
+    #[case::config_id_single_mdoc(
+        AcceptIssuanceTestFormats::CredentialConfigurationId(Format::MsoMdoc),
+        AcceptIssuanceSelection::All
+    )]
+    #[case::multi_mdoc(
+        AcceptIssuanceTestFormats::CredentialId(vec![Format::MsoMdoc, Format::MsoMdoc, Format::MsoMdoc]),
+        AcceptIssuanceSelection::All
+    )]
+    #[case::credential_id_single_sd_jwt(
+        AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt]),
+        AcceptIssuanceSelection::All
+    )]
+    #[case::config_id_single_sd_jwt(
+        AcceptIssuanceTestFormats::CredentialConfigurationId(Format::SdJwt),
+        AcceptIssuanceSelection::All
+    )]
+    #[case::multi_sd_jwt(
+        AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt, Format::SdJwt, Format::SdJwt]),
+        AcceptIssuanceSelection::All
+    )]
+    #[case::mixed(
+        AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt, Format::MsoMdoc, Format::MsoMdoc, Format::SdJwt]),
+        AcceptIssuanceSelection::All
+    )]
+    #[case::mixed_selection(
+        AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt, Format::MsoMdoc, Format::MsoMdoc, Format::SdJwt]),
+        AcceptIssuanceSelection::PreviewIndices(HashSet::from([1, 3]))
+    )]
     fn test_accept_issuance(
-        #[values(NonZeroUsize::MIN, 3.try_into().unwrap())] credential_count: NonZeroUsize,
+        #[case] formats: AcceptIssuanceTestFormats,
+        #[case] selection: AcceptIssuanceSelection,
+        #[values(NonZeroU8::MIN, 4.try_into().unwrap())] batch_size: NonZeroU8,
         #[values(
             TestNonceEndpoint::Absent,
             TestNonceEndpoint::Present,
@@ -2378,41 +2469,47 @@ mod tests {
         )]
         nonce_endpoint: TestNonceEndpoint,
     ) {
-        let (signer, preview_data, attestation_type, type_metadata) =
-            MockCredentialSigner::new_with_preview_and_type_metadata_state();
-        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
+        let formats_by_credential_id = match formats {
+            AcceptIssuanceTestFormats::CredentialId(formats) => formats
+                .into_iter()
+                .enumerate()
+                .map(|(index, format)| (format!("credential_id_{index}"), format))
+                .collect(),
+            AcceptIssuanceTestFormats::CredentialConfigurationId(format) => {
+                HashMap::from([("credential_id".to_string(), format)])
+            }
+        };
+
+        let credential_count = match &selection {
+            AcceptIssuanceSelection::All => formats_by_credential_id.len(),
+            AcceptIssuanceSelection::PreviewIndices(indices) => indices.len(),
+        };
+
+        let (signer, previews, type_metadata) =
+            MockCredentialSigner::new_with_preview_and_type_metadata(formats_by_credential_id);
+        let trust_anchors = signer.trust_anchors.clone();
         let wscd = MockRemoteWscd::default();
 
         let (mut mock_msg_client, has_nonce_endpoint, expected_dpop_nonce) = match nonce_endpoint {
             TestNonceEndpoint::Absent => (MockVcMessageClient::new(), false, "dpop_nonce".parse().unwrap()),
             TestNonceEndpoint::Present => (
-                mock_openid_message_client_nonce(None, credential_count.get()),
+                mock_openid_message_client_nonce(None, credential_count),
                 true,
                 "dpop_nonce".parse().unwrap(),
             ),
             TestNonceEndpoint::PresentWithDpopNonce => (
-                mock_openid_message_client_nonce(Some("new_dpop_nonce"), credential_count.get()),
+                mock_openid_message_client_nonce(Some("new_dpop_nonce"), credential_count),
                 true,
                 "new_dpop_nonce".parse().unwrap(),
             ),
         };
 
-        let previews = utils::vec_at_least::repeat_n(preview_data, credential_count)
-            .into_nonempty_iter()
-            .enumerate()
-            .map(|(index, mut preview)| {
-                preview.credential_id = format!("credential_id_{index}");
-
-                preview
-            })
-            .collect();
-
-        let session_state = new_session_state(previews, &attestation_type, type_metadata, has_nonce_endpoint);
+        let session_state = new_session_state(previews, vec![type_metadata], batch_size, has_nonce_endpoint);
 
         let dpop_signing_key = session_state.dpop_signing_key.clone();
         mock_msg_client
             .expect_request_credential()
-            .times(credential_count.get())
+            .times(credential_count)
             .returning(move |url, credential_request, dpop_header, access_token| {
                 check_credential_endpoint_input(
                     &url,
@@ -2429,26 +2526,27 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&AcceptIssuanceSelection::All, &trust_anchor, &wscd)
+        .accept_issuance(&selection, &trust_anchors, &wscd)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
 
-        assert_eq!(credential_copies.len(), credential_count.get());
+        assert_eq!(credential_copies.len(), credential_count);
     }
 
     #[test]
-    fn test_accept_issuance_incorrect_resource_integrity() {
-        let (mut signer, preview_data, attestation_type, type_metadata) =
-            MockCredentialSigner::new_with_preview_and_type_metadata_state();
-        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
+    fn test_accept_issuance_error_resource_integrity() {
+        let (mut signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string(), Format::SdJwt)]),
+        );
+        let trust_anchors = signer.trust_anchors.clone();
 
-        // Include a random resource integrity in the MSO of the returned mdoc.
+        // Include a random resource integrity in the payload of the returned SD-JWT.
         signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
-        mock_msg_client.expect_request_credential().return_once(
+        mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
                 let response = signer.response_from_request(credential_request);
 
@@ -2458,9 +2556,13 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec_nonempty![preview_data], &attestation_type, type_metadata, true),
+            session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
         }
-        .accept_issuance(&AcceptIssuanceSelection::All, &trust_anchor, &MockRemoteWscd::default())
+        .accept_issuance(
+            &AcceptIssuanceSelection::All,
+            &trust_anchors,
+            &MockRemoteWscd::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -2472,15 +2574,15 @@ mod tests {
     }
 
     #[rstest]
-    fn test_accept_issuance_deferred_issuance() {
-        let (signer, preview_data, attestation_type, type_metadata) =
-            MockCredentialSigner::new_with_preview_and_type_metadata_state();
-        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
+    fn test_accept_issuance_error_deferred_issuance_unsupported() {
+        let (signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string(), Format::SdJwt)]),
+        );
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
-        mock_msg_client.expect_request_credential().times(1).returning(
-            move |_url, _credential_request, _dpop_header, _access_token| {
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            |_url, _credential_request, _dpop_header, _access_token| {
                 let credential_response = CredentialResponse::Deferred {
                     transaction_id: "12345".to_string(),
                     interval: Duration::from_hours(24),
@@ -2492,9 +2594,13 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec_nonempty![preview_data], &attestation_type, type_metadata, true),
+            session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
         }
-        .accept_issuance(&AcceptIssuanceSelection::All, &trust_anchor, &MockRemoteWscd::default())
+        .accept_issuance(
+            &AcceptIssuanceSelection::All,
+            &signer.trust_anchors,
+            &MockRemoteWscd::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -2509,20 +2615,21 @@ mod tests {
         PublicKey,
         TrustAnchors,
     ) {
-        let (signer, preview_data, _, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata_state();
-        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
+        let (signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string(), Format::MsoMdoc)]),
+        );
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
         let credential_response = signer
-            .response_from_holder_pubkeys(vec_nonempty![&holder_pubkey])
+            .response_from_holder_pubkeys("credential_id", vec_nonempty![&holder_pubkey])
             .into_immediate_credentials()
             .unwrap();
 
         (
             credential_response,
-            preview_data,
+            previews.into_iter().next().unwrap(),
             type_metadata,
             holder_pubkey,
-            trust_anchor,
+            signer.trust_anchors,
         )
     }
 

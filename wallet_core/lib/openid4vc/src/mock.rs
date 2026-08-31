@@ -60,16 +60,14 @@ impl IssuerMetadata {
         issuer_identifier: IssuerIdentifier,
         credential_configs: Vec<(CredentialConfigurationId, CredentialKind)>,
     ) -> IssuerMetadata {
-        let issuer_url = issuer_identifier.as_issuer_url();
-        let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
-        let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
-        let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
+        let endpoints = IssuerEndpoints::new_mock(&issuer_identifier);
 
         let credential_configurations_supported = credential_configs
             .into_iter()
             .map(|(config_id, credential_kind)| {
                 let scope = format!("{config_id}_scope").parse().unwrap();
-                let type_metadata_uri = issuer_url
+                let type_metadata_uri = issuer_identifier
+                    .as_issuer_url()
                     .join_issuer_url("/issuance/type_metadata")
                     .join_config_id(&config_id);
 
@@ -99,13 +97,7 @@ impl IssuerMetadata {
         IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
-            endpoints: IssuerEndpoints {
-                credential_endpoint,
-                nonce_endpoint: Some(nonce_endpoint),
-                deferred_credential_endpoint: None,
-                notification_endpoint: None,
-                credential_preview_endpoint: Some(credential_preview_endpoint),
-            },
+            endpoints,
             credential_request_encryption: None,
             credential_response_encryption: None,
             batch_credential_issuance: Some(BatchCredentialIssuance {
@@ -113,6 +105,23 @@ impl IssuerMetadata {
             }),
             display: None,
             credential_configurations_supported,
+        }
+    }
+}
+
+impl IssuerEndpoints {
+    pub fn new_mock(issuer_identifier: &IssuerIdentifier) -> Self {
+        let issuer_url = issuer_identifier.as_issuer_url();
+        let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
+        let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
+        let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
+
+        Self {
+            credential_endpoint,
+            nonce_endpoint: Some(nonce_endpoint),
+            deferred_credential_endpoint: None,
+            notification_endpoint: None,
+            credential_preview_endpoint: Some(credential_preview_endpoint),
         }
     }
 }
