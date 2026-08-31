@@ -171,7 +171,7 @@ typedef struct wire_cst_AttributeValue_Boolean {
 } wire_cst_AttributeValue_Boolean;
 
 typedef struct wire_cst_AttributeValue_Number {
-  int64_t value;
+  double value;
 } wire_cst_AttributeValue_Number;
 
 typedef struct wire_cst_list_attribute_value {
@@ -183,11 +183,36 @@ typedef struct wire_cst_AttributeValue_Array {
   struct wire_cst_list_attribute_value *value;
 } wire_cst_AttributeValue_Array;
 
+typedef struct wire_cst_AttributeValue_Date {
+  struct wire_cst_list_prim_u_8_strict *value;
+} wire_cst_AttributeValue_Date;
+
+typedef struct wire_cst_AttributeValue_Image {
+  struct wire_cst_image *value;
+} wire_cst_AttributeValue_Image;
+
+typedef struct wire_cst_record_string_attribute_value {
+  struct wire_cst_list_prim_u_8_strict *field0;
+  struct wire_cst_attribute_value field1;
+} wire_cst_record_string_attribute_value;
+
+typedef struct wire_cst_list_record_string_attribute_value {
+  struct wire_cst_record_string_attribute_value *ptr;
+  int32_t len;
+} wire_cst_list_record_string_attribute_value;
+
+typedef struct wire_cst_AttributeValue_Map {
+  struct wire_cst_list_record_string_attribute_value *value;
+} wire_cst_AttributeValue_Map;
+
 typedef union AttributeValueKind {
   struct wire_cst_AttributeValue_String String;
   struct wire_cst_AttributeValue_Boolean Boolean;
   struct wire_cst_AttributeValue_Number Number;
   struct wire_cst_AttributeValue_Array Array;
+  struct wire_cst_AttributeValue_Date Date;
+  struct wire_cst_AttributeValue_Image Image;
+  struct wire_cst_AttributeValue_Map Map;
 } AttributeValueKind;
 
 typedef struct wire_cst_attribute_value {
@@ -809,6 +834,8 @@ struct wire_cst_list_prim_u_8_strict *frbgen_wallet_core_cst_new_list_prim_u_8_s
 
 struct wire_cst_list_record_i_32_notification_type *frbgen_wallet_core_cst_new_list_record_i_32_notification_type(int32_t len);
 
+struct wire_cst_list_record_string_attribute_value *frbgen_wallet_core_cst_new_list_record_string_attribute_value(int32_t len);
+
 struct wire_cst_list_wallet_event *frbgen_wallet_core_cst_new_list_wallet_event(int32_t len);
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
@@ -838,6 +865,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_16_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_string_attribute_value);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);

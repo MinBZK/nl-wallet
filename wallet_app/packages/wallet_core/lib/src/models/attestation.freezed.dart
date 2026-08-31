@@ -313,7 +313,7 @@ extension AttributeValuePatterns on AttributeValue {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AttributeValue_String value)?  string,TResult Function( AttributeValue_Boolean value)?  boolean,TResult Function( AttributeValue_Number value)?  number,TResult Function( AttributeValue_Array value)?  array,TResult Function( AttributeValue_Null value)?  null_,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AttributeValue_String value)?  string,TResult Function( AttributeValue_Boolean value)?  boolean,TResult Function( AttributeValue_Number value)?  number,TResult Function( AttributeValue_Array value)?  array,TResult Function( AttributeValue_Null value)?  null_,TResult Function( AttributeValue_Date value)?  date,TResult Function( AttributeValue_Image value)?  image,TResult Function( AttributeValue_Map value)?  map,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
@@ -321,7 +321,10 @@ return string(_that);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that);case AttributeValue_Number() when number != null:
 return number(_that);case AttributeValue_Array() when array != null:
 return array(_that);case AttributeValue_Null() when null_ != null:
-return null_(_that);case _:
+return null_(_that);case AttributeValue_Date() when date != null:
+return date(_that);case AttributeValue_Image() when image != null:
+return image(_that);case AttributeValue_Map() when map != null:
+return map(_that);case _:
   return orElse();
 
 }
@@ -339,7 +342,7 @@ return null_(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AttributeValue_String value)  string,required TResult Function( AttributeValue_Boolean value)  boolean,required TResult Function( AttributeValue_Number value)  number,required TResult Function( AttributeValue_Array value)  array,required TResult Function( AttributeValue_Null value)  null_,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AttributeValue_String value)  string,required TResult Function( AttributeValue_Boolean value)  boolean,required TResult Function( AttributeValue_Number value)  number,required TResult Function( AttributeValue_Array value)  array,required TResult Function( AttributeValue_Null value)  null_,required TResult Function( AttributeValue_Date value)  date,required TResult Function( AttributeValue_Image value)  image,required TResult Function( AttributeValue_Map value)  map,}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String():
@@ -347,7 +350,10 @@ return string(_that);case AttributeValue_Boolean():
 return boolean(_that);case AttributeValue_Number():
 return number(_that);case AttributeValue_Array():
 return array(_that);case AttributeValue_Null():
-return null_(_that);}
+return null_(_that);case AttributeValue_Date():
+return date(_that);case AttributeValue_Image():
+return image(_that);case AttributeValue_Map():
+return map(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -361,7 +367,7 @@ return null_(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AttributeValue_String value)?  string,TResult? Function( AttributeValue_Boolean value)?  boolean,TResult? Function( AttributeValue_Number value)?  number,TResult? Function( AttributeValue_Array value)?  array,TResult? Function( AttributeValue_Null value)?  null_,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AttributeValue_String value)?  string,TResult? Function( AttributeValue_Boolean value)?  boolean,TResult? Function( AttributeValue_Number value)?  number,TResult? Function( AttributeValue_Array value)?  array,TResult? Function( AttributeValue_Null value)?  null_,TResult? Function( AttributeValue_Date value)?  date,TResult? Function( AttributeValue_Image value)?  image,TResult? Function( AttributeValue_Map value)?  map,}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
@@ -369,7 +375,10 @@ return string(_that);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that);case AttributeValue_Number() when number != null:
 return number(_that);case AttributeValue_Array() when array != null:
 return array(_that);case AttributeValue_Null() when null_ != null:
-return null_(_that);case _:
+return null_(_that);case AttributeValue_Date() when date != null:
+return date(_that);case AttributeValue_Image() when image != null:
+return image(_that);case AttributeValue_Map() when map != null:
+return map(_that);case _:
   return null;
 
 }
@@ -386,14 +395,17 @@ return null_(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( double value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,TResult Function( String value)?  date,TResult Function( Image value)?  image,TResult Function( List<(String, AttributeValue)> value)?  map,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that.value);case AttributeValue_Number() when number != null:
 return number(_that.value);case AttributeValue_Array() when array != null:
 return array(_that.value);case AttributeValue_Null() when null_ != null:
-return null_();case _:
+return null_();case AttributeValue_Date() when date != null:
+return date(_that.value);case AttributeValue_Image() when image != null:
+return image(_that.value);case AttributeValue_Map() when map != null:
+return map(_that.value);case _:
   return orElse();
 
 }
@@ -411,14 +423,17 @@ return null_();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( double value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,required TResult Function( String value)  date,required TResult Function( Image value)  image,required TResult Function( List<(String, AttributeValue)> value)  map,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String():
 return string(_that.value);case AttributeValue_Boolean():
 return boolean(_that.value);case AttributeValue_Number():
 return number(_that.value);case AttributeValue_Array():
 return array(_that.value);case AttributeValue_Null():
-return null_();}
+return null_();case AttributeValue_Date():
+return date(_that.value);case AttributeValue_Image():
+return image(_that.value);case AttributeValue_Map():
+return map(_that.value);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -432,14 +447,17 @@ return null_();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( double value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,TResult? Function( String value)?  date,TResult? Function( Image value)?  image,TResult? Function( List<(String, AttributeValue)> value)?  map,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that.value);case AttributeValue_Number() when number != null:
 return number(_that.value);case AttributeValue_Array() when array != null:
 return array(_that.value);case AttributeValue_Null() when null_ != null:
-return null_();case _:
+return null_();case AttributeValue_Date() when date != null:
+return date(_that.value);case AttributeValue_Image() when image != null:
+return image(_that.value);case AttributeValue_Map() when map != null:
+return map(_that.value);case _:
   return null;
 
 }
@@ -586,7 +604,7 @@ class AttributeValue_Number extends AttributeValue {
   const AttributeValue_Number({required this.value}): super._();
   
 
- final  PlatformInt64 value;
+ final  double value;
 
 /// Create a copy of AttributeValue
 /// with the given fields replaced by the non-null parameter values.
@@ -618,7 +636,7 @@ abstract mixin class $AttributeValue_NumberCopyWith<$Res> implements $AttributeV
   factory $AttributeValue_NumberCopyWith(AttributeValue_Number value, $Res Function(AttributeValue_Number) _then) = _$AttributeValue_NumberCopyWithImpl;
 @useResult
 $Res call({
- PlatformInt64 value
+ double value
 });
 
 
@@ -638,7 +656,7 @@ class _$AttributeValue_NumberCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
   return _then(AttributeValue_Number(
 value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
-as PlatformInt64,
+as double,
   ));
 }
 
@@ -748,6 +766,219 @@ String toString() {
 
 
 
+
+/// @nodoc
+
+
+class AttributeValue_Date extends AttributeValue {
+  const AttributeValue_Date({required this.value}): super._();
+  
+
+ final  String value;
+
+/// Create a copy of AttributeValue
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AttributeValue_DateCopyWith<AttributeValue_Date> get copyWith => _$AttributeValue_DateCopyWithImpl<AttributeValue_Date>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Date&&(identical(other.value, value) || other.value == value));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,value);
+
+@override
+String toString() {
+  return 'AttributeValue.date(value: $value)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AttributeValue_DateCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_DateCopyWith(AttributeValue_Date value, $Res Function(AttributeValue_Date) _then) = _$AttributeValue_DateCopyWithImpl;
+@useResult
+$Res call({
+ String value
+});
+
+
+
+
+}
+/// @nodoc
+class _$AttributeValue_DateCopyWithImpl<$Res>
+    implements $AttributeValue_DateCopyWith<$Res> {
+  _$AttributeValue_DateCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_Date _self;
+  final $Res Function(AttributeValue_Date) _then;
+
+/// Create a copy of AttributeValue
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
+  return _then(AttributeValue_Date(
+value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class AttributeValue_Image extends AttributeValue {
+  const AttributeValue_Image({required this.value}): super._();
+  
+
+ final  Image value;
+
+/// Create a copy of AttributeValue
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AttributeValue_ImageCopyWith<AttributeValue_Image> get copyWith => _$AttributeValue_ImageCopyWithImpl<AttributeValue_Image>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Image&&(identical(other.value, value) || other.value == value));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,value);
+
+@override
+String toString() {
+  return 'AttributeValue.image(value: $value)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AttributeValue_ImageCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_ImageCopyWith(AttributeValue_Image value, $Res Function(AttributeValue_Image) _then) = _$AttributeValue_ImageCopyWithImpl;
+@useResult
+$Res call({
+ Image value
+});
+
+
+$ImageCopyWith<$Res> get value;
+
+}
+/// @nodoc
+class _$AttributeValue_ImageCopyWithImpl<$Res>
+    implements $AttributeValue_ImageCopyWith<$Res> {
+  _$AttributeValue_ImageCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_Image _self;
+  final $Res Function(AttributeValue_Image) _then;
+
+/// Create a copy of AttributeValue
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
+  return _then(AttributeValue_Image(
+value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
+as Image,
+  ));
+}
+
+/// Create a copy of AttributeValue
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ImageCopyWith<$Res> get value {
+  
+  return $ImageCopyWith<$Res>(_self.value, (value) {
+    return _then(_self.copyWith(value: value));
+  });
+}
+}
+
+/// @nodoc
+
+
+class AttributeValue_Map extends AttributeValue {
+  const AttributeValue_Map({required final  List<(String, AttributeValue)> value}): _value = value,super._();
+  
+
+ final  List<(String, AttributeValue)> _value;
+ List<(String, AttributeValue)> get value {
+  if (_value is EqualUnmodifiableListView) return _value;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_value);
+}
+
+
+/// Create a copy of AttributeValue
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AttributeValue_MapCopyWith<AttributeValue_Map> get copyWith => _$AttributeValue_MapCopyWithImpl<AttributeValue_Map>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Map&&const DeepCollectionEquality().equals(other._value, _value));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_value));
+
+@override
+String toString() {
+  return 'AttributeValue.map(value: $value)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AttributeValue_MapCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_MapCopyWith(AttributeValue_Map value, $Res Function(AttributeValue_Map) _then) = _$AttributeValue_MapCopyWithImpl;
+@useResult
+$Res call({
+ List<(String, AttributeValue)> value
+});
+
+
+
+
+}
+/// @nodoc
+class _$AttributeValue_MapCopyWithImpl<$Res>
+    implements $AttributeValue_MapCopyWith<$Res> {
+  _$AttributeValue_MapCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_Map _self;
+  final $Res Function(AttributeValue_Map) _then;
+
+/// Create a copy of AttributeValue
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
+  return _then(AttributeValue_Map(
+value: null == value ? _self._value : value // ignore: cast_nullable_to_non_nullable
+as List<(String, AttributeValue)>,
+  ));
+}
+
+
+}
 
 /// @nodoc
 mixin _$RenderingMetadata {

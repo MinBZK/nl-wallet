@@ -2139,7 +2139,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         );
       case 2:
         return AttributeValue_Number(
-          value: dco_decode_i_64(raw[1]),
+          value: dco_decode_f_64(raw[1]),
         );
       case 3:
         return AttributeValue_Array(
@@ -2147,6 +2147,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         );
       case 4:
         return AttributeValue_Null();
+      case 5:
+        return AttributeValue_Date(
+          value: dco_decode_String(raw[1]),
+        );
+      case 6:
+        return AttributeValue_Image(
+          value: dco_decode_box_autoadd_image(raw[1]),
+        );
+      case 7:
+        return AttributeValue_Map(
+          value: dco_decode_list_record_string_attribute_value(raw[1]),
+        );
       default:
         throw Exception("unreachable");
     }
@@ -2336,6 +2348,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2383,12 +2401,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   int dco_decode_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
-  }
-
-  @protected
-  PlatformInt64 dco_decode_i_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dcoDecodeI64(raw);
   }
 
   @protected
@@ -2544,6 +2556,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<(int, NotificationType)> dco_decode_list_record_i_32_notification_type(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_record_i_32_notification_type).toList();
+  }
+
+  @protected
+  List<(String, AttributeValue)> dco_decode_list_record_string_attribute_value(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_record_string_attribute_value).toList();
   }
 
   @protected
@@ -2713,6 +2731,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return (
       dco_decode_i_32(arr[0]),
       dco_decode_notification_type(arr[1]),
+    );
+  }
+
+  @protected
+  (String, AttributeValue) dco_decode_record_string_attribute_value(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (
+      dco_decode_String(arr[0]),
+      dco_decode_attribute_value(arr[1]),
     );
   }
 
@@ -3162,13 +3193,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_value = sse_decode_bool(deserializer);
         return AttributeValue_Boolean(value: var_value);
       case 2:
-        var var_value = sse_decode_i_64(deserializer);
+        var var_value = sse_decode_f_64(deserializer);
         return AttributeValue_Number(value: var_value);
       case 3:
         var var_value = sse_decode_list_attribute_value(deserializer);
         return AttributeValue_Array(value: var_value);
       case 4:
         return AttributeValue_Null();
+      case 5:
+        var var_value = sse_decode_String(deserializer);
+        return AttributeValue_Date(value: var_value);
+      case 6:
+        var var_value = sse_decode_box_autoadd_image(deserializer);
+        return AttributeValue_Image(value: var_value);
+      case 7:
+        var var_value = sse_decode_list_record_string_attribute_value(deserializer);
+        return AttributeValue_Map(value: var_value);
       default:
         throw UnimplementedError('');
     }
@@ -3363,6 +3403,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
+  }
+
+  @protected
   FlutterConfiguration sse_decode_flutter_configuration(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_inactiveWarningTimeout = sse_decode_u_16(deserializer);
@@ -3418,12 +3464,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   int sse_decode_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getInt32();
-  }
-
-  @protected
-  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getPlatformInt64();
   }
 
   @protected
@@ -3655,6 +3695,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<(String, AttributeValue)> sse_decode_list_record_string_attribute_value(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <(String, AttributeValue)>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_record_string_attribute_value(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<WalletEvent> sse_decode_list_wallet_event(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3867,6 +3919,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_field0 = sse_decode_i_32(deserializer);
     var var_field1 = sse_decode_notification_type(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
+  (String, AttributeValue) sse_decode_record_string_attribute_value(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    var var_field1 = sse_decode_attribute_value(deserializer);
     return (var_field0, var_field1);
   }
 
@@ -4266,6 +4326,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  double cst_encode_f_64(double raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
   int cst_encode_format(Format raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
@@ -4577,12 +4643,21 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_bool(value, serializer);
       case AttributeValue_Number(value: final value):
         sse_encode_i_32(2, serializer);
-        sse_encode_i_64(value, serializer);
+        sse_encode_f_64(value, serializer);
       case AttributeValue_Array(value: final value):
         sse_encode_i_32(3, serializer);
         sse_encode_list_attribute_value(value, serializer);
       case AttributeValue_Null():
         sse_encode_i_32(4, serializer);
+      case AttributeValue_Date(value: final value):
+        sse_encode_i_32(5, serializer);
+        sse_encode_String(value, serializer);
+      case AttributeValue_Image(value: final value):
+        sse_encode_i_32(6, serializer);
+        sse_encode_box_autoadd_image(value, serializer);
+      case AttributeValue_Map(value: final value):
+        sse_encode_i_32(7, serializer);
+        sse_encode_list_record_string_attribute_value(value, serializer);
     }
   }
 
@@ -4751,6 +4826,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
+  }
+
+  @protected
   void sse_encode_flutter_configuration(FlutterConfiguration self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_16(self.inactiveWarningTimeout, serializer);
@@ -4791,12 +4872,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
-  }
-
-  @protected
-  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putPlatformInt64(self);
   }
 
   @protected
@@ -4983,6 +5058,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_list_record_string_attribute_value(List<(String, AttributeValue)> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_record_string_attribute_value(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_wallet_event(List<WalletEvent> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -5158,6 +5242,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.$1, serializer);
     sse_encode_notification_type(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_record_string_attribute_value((String, AttributeValue) self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_attribute_value(self.$2, serializer);
   }
 
   @protected

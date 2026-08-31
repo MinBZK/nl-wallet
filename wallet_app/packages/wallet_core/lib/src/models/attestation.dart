@@ -107,12 +107,21 @@ sealed class AttributeValue with _$AttributeValue {
     required bool value,
   }) = AttributeValue_Boolean;
   const factory AttributeValue.number({
-    required PlatformInt64 value,
+    required double value,
   }) = AttributeValue_Number;
   const factory AttributeValue.array({
     required List<AttributeValue> value,
   }) = AttributeValue_Array;
   const factory AttributeValue.null_() = AttributeValue_Null;
+  const factory AttributeValue.date({
+    required String value,
+  }) = AttributeValue_Date;
+  const factory AttributeValue.image({
+    required Image value,
+  }) = AttributeValue_Image;
+  const factory AttributeValue.map({
+    required List<(String, AttributeValue)> value,
+  }) = AttributeValue_Map;
 }
 
 class ClaimDisplayMetadata {

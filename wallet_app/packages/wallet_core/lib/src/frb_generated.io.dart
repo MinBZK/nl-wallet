@@ -173,6 +173,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   DisplayTarget dco_decode_display_target(dynamic raw);
 
   @protected
+  double dco_decode_f_64(dynamic raw);
+
+  @protected
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw);
 
   @protected
@@ -183,9 +186,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int dco_decode_i_32(dynamic raw);
-
-  @protected
-  PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
   IdentifyUriResult dco_decode_identify_uri_result(dynamic raw);
@@ -248,6 +248,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<(int, NotificationType)> dco_decode_list_record_i_32_notification_type(dynamic raw);
 
   @protected
+  List<(String, AttributeValue)> dco_decode_list_record_string_attribute_value(dynamic raw);
+
+  @protected
   List<WalletEvent> dco_decode_list_wallet_event(dynamic raw);
 
   @protected
@@ -300,6 +303,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   (int, NotificationType) dco_decode_record_i_32_notification_type(dynamic raw);
+
+  @protected
+  (String, AttributeValue) dco_decode_record_string_attribute_value(dynamic raw);
 
   @protected
   (String, String) dco_decode_record_string_string(dynamic raw);
@@ -489,6 +495,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   DisplayTarget sse_decode_display_target(SseDeserializer deserializer);
 
   @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
+
+  @protected
   FlutterConfiguration sse_decode_flutter_configuration(SseDeserializer deserializer);
 
   @protected
@@ -499,9 +508,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
-
-  @protected
-  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
   IdentifyUriResult sse_decode_identify_uri_result(SseDeserializer deserializer);
@@ -564,6 +570,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<(int, NotificationType)> sse_decode_list_record_i_32_notification_type(SseDeserializer deserializer);
 
   @protected
+  List<(String, AttributeValue)> sse_decode_list_record_string_attribute_value(SseDeserializer deserializer);
+
+  @protected
   List<WalletEvent> sse_decode_list_wallet_event(SseDeserializer deserializer);
 
   @protected
@@ -616,6 +625,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   (int, NotificationType) sse_decode_record_i_32_notification_type(SseDeserializer deserializer);
+
+  @protected
+  (String, AttributeValue) sse_decode_record_string_attribute_value(SseDeserializer deserializer);
 
   @protected
   (String, String) sse_decode_record_string_string(SseDeserializer deserializer);
@@ -863,12 +875,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  int cst_encode_i_64(PlatformInt64 raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.toInt();
-  }
-
-  @protected
   int cst_encode_isize(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toInt();
@@ -1022,6 +1028,18 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     final ans = wire.cst_new_list_record_i_32_notification_type(raw.length);
     for (var i = 0; i < raw.length; ++i) {
       cst_api_fill_to_wire_record_i_32_notification_type(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_record_string_attribute_value> cst_encode_list_record_string_attribute_value(
+    List<(String, AttributeValue)> raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_record_string_attribute_value(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_record_string_attribute_value(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -1182,7 +1200,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is AttributeValue_Number) {
-      var pre_value = cst_encode_i_64(apiObj.value);
+      var pre_value = cst_encode_f_64(apiObj.value);
       wireObj.tag = 2;
       wireObj.kind.Number.value = pre_value;
       return;
@@ -1195,6 +1213,24 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     }
     if (apiObj is AttributeValue_Null) {
       wireObj.tag = 4;
+      return;
+    }
+    if (apiObj is AttributeValue_Date) {
+      var pre_value = cst_encode_String(apiObj.value);
+      wireObj.tag = 5;
+      wireObj.kind.Date.value = pre_value;
+      return;
+    }
+    if (apiObj is AttributeValue_Image) {
+      var pre_value = cst_encode_box_autoadd_image(apiObj.value);
+      wireObj.tag = 6;
+      wireObj.kind.Image.value = pre_value;
+      return;
+    }
+    if (apiObj is AttributeValue_Map) {
+      var pre_value = cst_encode_list_record_string_attribute_value(apiObj.value);
+      wireObj.tag = 7;
+      wireObj.kind.Map.value = pre_value;
       return;
     }
   }
@@ -1516,6 +1552,15 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_record_string_attribute_value(
+    (String, AttributeValue) apiObj,
+    wire_cst_record_string_attribute_value wireObj,
+  ) {
+    wireObj.field0 = cst_encode_String(apiObj.$1);
+    cst_api_fill_to_wire_attribute_value(apiObj.$2, wireObj.field1);
+  }
+
+  @protected
   void cst_api_fill_to_wire_record_string_string((String, String) apiObj, wire_cst_record_string_string wireObj) {
     wireObj.field0 = cst_encode_String(apiObj.$1);
     wireObj.field1 = cst_encode_String(apiObj.$2);
@@ -1827,6 +1872,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_disclosure_type(DisclosureType raw);
 
   @protected
+  double cst_encode_f_64(double raw);
+
+  @protected
   int cst_encode_format(Format raw);
 
   @protected
@@ -2022,6 +2070,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_display_target(DisplayTarget self, SseSerializer serializer);
 
   @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
+
+  @protected
   void sse_encode_flutter_configuration(FlutterConfiguration self, SseSerializer serializer);
 
   @protected
@@ -2032,9 +2083,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
   void sse_encode_identify_uri_result(IdentifyUriResult self, SseSerializer serializer);
@@ -2097,6 +2145,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_list_record_i_32_notification_type(List<(int, NotificationType)> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_record_string_attribute_value(List<(String, AttributeValue)> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_wallet_event(List<WalletEvent> self, SseSerializer serializer);
 
   @protected
@@ -2149,6 +2200,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_record_i_32_notification_type((int, NotificationType) self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_record_string_attribute_value((String, AttributeValue) self, SseSerializer serializer);
 
   @protected
   void sse_encode_record_string_string((String, String) self, SseSerializer serializer);
@@ -3594,6 +3648,25 @@ class WalletCoreWire implements BaseWire {
         )
       >();
 
+  ffi.Pointer<wire_cst_list_record_string_attribute_value> cst_new_list_record_string_attribute_value(int len) {
+    return _cst_new_list_record_string_attribute_value(len);
+  }
+
+  late final _cst_new_list_record_string_attribute_valuePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_record_string_attribute_value> Function(
+            ffi.Int32,
+          )
+        >
+      >('frbgen_wallet_core_cst_new_list_record_string_attribute_value');
+  late final _cst_new_list_record_string_attribute_value = _cst_new_list_record_string_attribute_valuePtr
+      .asFunction<
+        ffi.Pointer<wire_cst_list_record_string_attribute_value> Function(
+          int,
+        )
+      >();
+
   ffi.Pointer<wire_cst_list_wallet_event> cst_new_list_wallet_event(int len) {
     return _cst_new_list_wallet_event(len);
   }
@@ -3833,12 +3906,37 @@ final class wire_cst_AttributeValue_Boolean extends ffi.Struct {
 }
 
 final class wire_cst_AttributeValue_Number extends ffi.Struct {
-  @ffi.Int64()
-  external int value;
+  @ffi.Double()
+  external double value;
 }
 
 final class wire_cst_AttributeValue_Array extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attribute_value> value;
+}
+
+final class wire_cst_AttributeValue_Date extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
+}
+
+final class wire_cst_AttributeValue_Image extends ffi.Struct {
+  external ffi.Pointer<wire_cst_image> value;
+}
+
+final class wire_cst_record_string_attribute_value extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+
+  external wire_cst_attribute_value field1;
+}
+
+final class wire_cst_list_record_string_attribute_value extends ffi.Struct {
+  external ffi.Pointer<wire_cst_record_string_attribute_value> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_AttributeValue_Map extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_record_string_attribute_value> value;
 }
 
 final class AttributeValueKind extends ffi.Union {
@@ -3849,6 +3947,12 @@ final class AttributeValueKind extends ffi.Union {
   external wire_cst_AttributeValue_Number Number;
 
   external wire_cst_AttributeValue_Array Array;
+
+  external wire_cst_AttributeValue_Date Date;
+
+  external wire_cst_AttributeValue_Image Image;
+
+  external wire_cst_AttributeValue_Map Map;
 }
 
 final class wire_cst_attribute_value extends ffi.Struct {
