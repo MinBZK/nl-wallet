@@ -29,7 +29,7 @@ use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
-use openid4vc::wallet_issuance::issuance_session::IssuanceMetadata;
+use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
 use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -536,7 +536,7 @@ where
             .iter()
             .map(|preview| CredentialKind::new(preview.format, preview.credential_payload.attestation_type.clone()))
             .collect();
-        let type_metadata = issuance_session.type_metadata();
+        let type_metadata = issuance_session.metadata();
 
         let config = self.config_repository.get();
         if pid_purpose.is_some() {
@@ -571,7 +571,7 @@ where
             .into_iter()
             .map(|(preview_data, identity)| {
                 // TODO (PVW-5547): Build the presentation from the Credential Metadata as well.
-                let Some(IssuanceMetadata::TypeMetadata {
+                let Some(OfferedCredentialMetadata::TypeMetadata {
                     normalized: normalized_metadata,
                     ..
                 }) = type_metadata.get(&preview_data.config_id)
@@ -1554,7 +1554,7 @@ mod tests {
         let time_generator = MockTimeGenerator::default();
 
         let (payload, issuance_metadata) = create_example_credential_payload(&time_generator, attestation_type);
-        let IssuanceMetadata::TypeMetadata {
+        let OfferedCredentialMetadata::TypeMetadata {
             normalized: type_metadata,
             ..
         } = &issuance_metadata
@@ -2368,7 +2368,7 @@ mod tests {
         let time_generator = MockTimeGenerator::default();
 
         let (payload, type_metadata) = create_example_pid_credential_payload(&time_generator);
-        let IssuanceMetadata::TypeMetadata {
+        let OfferedCredentialMetadata::TypeMetadata {
             normalized: type_metadata,
             ..
         } = type_metadata

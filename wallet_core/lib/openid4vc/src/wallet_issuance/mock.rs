@@ -15,8 +15,8 @@ use wscd::wscd::WiaClient;
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
 use super::IssuanceFlow;
-use super::IssuanceMetadata;
 use super::IssuanceSession;
+use super::OfferedCredentialMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -153,7 +153,7 @@ mockall::mock! {
 
         pub fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
-        pub fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceMetadata>;
+        pub fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, OfferedCredentialMetadata>;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
@@ -176,7 +176,7 @@ impl IssuanceSession for MockIssuanceSession {
         self.credential_previews()
     }
 
-    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceMetadata> {
+    fn metadata(&self) -> &HashMap<CredentialConfigurationId, OfferedCredentialMetadata> {
         self.type_metadata()
     }
 

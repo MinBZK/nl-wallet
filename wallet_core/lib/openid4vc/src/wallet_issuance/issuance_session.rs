@@ -354,7 +354,7 @@ struct IssuanceState {
     batch_size: NonZeroU8,
     credential_previews: VecNonEmpty<CredentialPreview>,
     credential_request_types: VecNonEmpty<draft::CredentialRequestType>,
-    type_metadata: HashMap<CredentialConfigurationId, IssuanceMetadata>,
+    metadata: HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
     issuer_registration: IssuerRegistration,
     #[debug(skip)]
     dpop_signing_key: SigningKey,
@@ -362,7 +362,7 @@ struct IssuanceState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum IssuanceMetadata {
+pub enum OfferedCredentialMetadata {
     TypeMetadata {
         normalized: NormalizedTypeMetadata,
         raw: SortedTypeMetadataDocuments,
@@ -515,9 +515,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .iter()
             .map(|OfferedCredentialConfig { config_id, config, .. }| (config_id, config));
 
-        // Request preview and fetch type metadata
-        let (type_metadata, credential_previews) = try_join!(
-            Self::fetch_type_metadata(credential_config_iter, &credential_issuer, &message_client),
+        // Request preview and fetch metadata
+        let (metadata, credential_previews) = try_join!(
+            Self::fetch_metadata(credential_config_iter, &credential_issuer, &message_client),
             Self::request_previews(
                 credential_preview_endpoint.as_url(),
                 &token_response.access_token,
@@ -552,7 +552,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             batch_size,
             credential_previews,
             credential_request_types,
-            type_metadata,
+            metadata,
             issuer_registration,
             dpop_signing_key,
             dpop_nonce,
@@ -680,11 +680,11 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         Ok(credential_previews)
     }
 
-    async fn fetch_type_metadata(
+    async fn fetch_metadata(
         credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &CredentialConfiguration)>,
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
-    ) -> Result<HashMap<CredentialConfigurationId, IssuanceMetadata>, WalletIssuanceError> {
+    ) -> Result<HashMap<CredentialConfigurationId, OfferedCredentialMetadata>, WalletIssuanceError> {
         // Get the metadata URI and attestation_type for each credential configuration, while collecting any Credential
         // Configuration IDs for which no type metadata URI is given.
         let (configs_data, missing_uri_config_ids): (Vec<_>, Vec<_>) = credential_configurations
@@ -755,7 +755,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     .into_normalized(attestation_type)
                     .map_err(WalletIssuanceError::TypeMetadataVerification)?;
 
-                let metadata = IssuanceMetadata::TypeMetadata { normalized, raw };
+                let metadata = OfferedCredentialMetadata::TypeMetadata { normalized, raw };
 
                 Ok((config_id.clone(), metadata))
             },
@@ -877,10 +877,10 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 let copy_count = usize::from(self.session_state.batch_size.get());
 
                 // Get the type metadata of the credential configuration this credential was offered under.
-                let Some(IssuanceMetadata::TypeMetadata {
+                let Some(OfferedCredentialMetadata::TypeMetadata {
                     normalized: normalized_metadata,
                     raw: raw_metadata,
-                }) = self.session_state.type_metadata.get(&preview.config_id)
+                }) = self.session_state.metadata.get(&preview.config_id)
                 else {
                     Err(WalletIssuanceError::TypeMetadataNotFound(preview.config_id.clone()))?
                 };
@@ -997,8 +997,8 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         &self.session_state.credential_previews
     }
 
-    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceMetadata> {
-        &self.session_state.type_metadata
+    fn metadata(&self) -> &HashMap<CredentialConfigurationId, OfferedCredentialMetadata> {
+        &self.session_state.metadata
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {
@@ -1585,7 +1585,8 @@ mod tests {
                 &preview.credential_payload.attributes.as_ref()["family_name"],
                 Attribute::Single(AttributeValue::Text(v)) if v == "De Bruijn");
 
-        let Some(IssuanceMetadata::TypeMetadata { normalized, .. }) = session.type_metadata().get(&preview.config_id)
+        let Some(OfferedCredentialMetadata::TypeMetadata { normalized, .. }) =
+            session.metadata().get(&preview.config_id)
         else {
             panic!("session should contain type metadata for the credential configuration");
         };
@@ -2001,7 +2002,7 @@ mod tests {
     fn new_session_state(
         credential_previews: VecNonEmpty<CredentialPreview>,
         attestation_type: &str,
-        issuance_metadata: IssuanceMetadata,
+        issuance_metadata: OfferedCredentialMetadata,
         has_nonce_endpoint: bool,
     ) -> IssuanceState {
         let credential_request_types = credential_request_types_from_preview(&credential_previews, NonZeroU8::MIN);
@@ -2029,7 +2030,7 @@ mod tests {
             batch_size: NonZeroU8::MIN,
             credential_previews,
             credential_request_types,
-            type_metadata: [(config_id, issuance_metadata)].into(),
+            metadata: [(config_id, issuance_metadata)].into(),
             issuer_registration: IssuerRegistration::new_mock(),
             dpop_signing_key: SigningKey::generate(),
             dpop_nonce: Some("dpop_nonce".to_string()),
@@ -2065,7 +2066,8 @@ mod tests {
     }
 
     impl MockCredentialSigner {
-        pub fn new_with_preview_and_type_metadata_state() -> (Self, CredentialPreview, String, IssuanceMetadata) {
+        pub fn new_with_preview_and_type_metadata_state() -> (Self, CredentialPreview, String, OfferedCredentialMetadata)
+        {
             let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
             let type_metadata = TypeMetadata::example_with_claim_name(&preview_payload.attestation_type, "family_name");
 
@@ -2075,7 +2077,7 @@ mod tests {
         pub fn from_metadata_and_payload_with_preview_data(
             type_metadata: TypeMetadata,
             preview_payload: PreviewableCredentialPayload,
-        ) -> (Self, CredentialPreview, String, IssuanceMetadata) {
+        ) -> (Self, CredentialPreview, String, OfferedCredentialMetadata) {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
             let trust_anchor = ca.to_borrowing_trust_anchor();
 
@@ -2101,7 +2103,7 @@ mod tests {
                 credential_payload: preview_payload,
                 issuer_certificate,
             };
-            let issuance_type_metadata = IssuanceMetadata::TypeMetadata {
+            let issuance_type_metadata = OfferedCredentialMetadata::TypeMetadata {
                 normalized: normalized_metadata,
                 raw: raw_metadata,
             };
@@ -2389,7 +2391,7 @@ mod tests {
         TrustAnchors,
     ) {
         let (signer, preview_data, _, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata_state();
-        let IssuanceMetadata::TypeMetadata {
+        let OfferedCredentialMetadata::TypeMetadata {
             normalized: type_metadata,
             ..
         } = metadata

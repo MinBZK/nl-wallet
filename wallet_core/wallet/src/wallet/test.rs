@@ -37,7 +37,7 @@ use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
-use openid4vc::wallet_issuance::issuance_session::IssuanceMetadata;
+use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use openid4vc::wallet_issuance::mock::MockIssuanceSession;
 use p256::ecdsa::SigningKey;
@@ -168,11 +168,11 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 /// The WRPAC CA material, generated once for testing.
 pub static WRPAC_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_wrpac_mock_ca().unwrap());
 
-/// Generates a valid `CredentialPayload` along with its metadata `IssuanceMetadata`.
+/// Generates a valid `CredentialPayload` along with its metadata `OfferedCredentialMetadata`.
 pub fn create_example_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
     attestation_type: &str,
-) -> (CredentialPayload, IssuanceMetadata) {
+) -> (CredentialPayload, OfferedCredentialMetadata) {
     let credential_payload = CredentialPayload::example_with_attributes(
         attestation_type,
         Attributes::example([
@@ -202,7 +202,7 @@ pub fn create_example_credential_payload(
 
     (
         credential_payload,
-        IssuanceMetadata::TypeMetadata {
+        OfferedCredentialMetadata::TypeMetadata {
             normalized: normalized_metadata,
             raw: raw_metadata,
         },
@@ -224,7 +224,7 @@ pub fn create_preview_from_payload(
 
 pub fn create_example_pid_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
-) -> (CredentialPayload, IssuanceMetadata) {
+) -> (CredentialPayload, OfferedCredentialMetadata) {
     create_example_credential_payload(time_generator, PID_ATTESTATION_TYPE)
 }
 
@@ -234,7 +234,7 @@ pub fn create_example_preview_data(
     format: Format,
     attestation_type: &str,
     config_id: CredentialConfigurationId,
-) -> (CredentialPreview, IssuanceMetadata) {
+) -> (CredentialPreview, OfferedCredentialMetadata) {
     let (credential_payload, type_metadata) = create_example_credential_payload(time_generator, attestation_type);
     (
         create_preview_from_payload(credential_payload, format, config_id),
@@ -246,7 +246,7 @@ pub fn create_example_preview_data(
 pub fn create_example_pid_preview_data(
     time_generator: &impl Generator<DateTime<Utc>>,
     format: Format,
-) -> (CredentialPreview, IssuanceMetadata) {
+) -> (CredentialPreview, OfferedCredentialMetadata) {
     create_example_preview_data(
         time_generator,
         format,
