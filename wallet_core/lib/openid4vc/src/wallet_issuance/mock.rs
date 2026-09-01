@@ -155,8 +155,6 @@ mockall::mock! {
     pub IssuanceSession {
         pub fn accept(&self) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
 
-        pub fn reject(&self) -> Result<(), WalletIssuanceError>;
-
         pub fn previews_with_metadata(&self) -> &MockIssuanceSessionPreviewsWithMetadata;
 
         pub fn issuer(&self) -> &IssuerRegistration;
@@ -170,10 +168,6 @@ impl IssuanceSession for MockIssuanceSession {
         _: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept()
-    }
-
-    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
-        self.reject()
     }
 
     fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {

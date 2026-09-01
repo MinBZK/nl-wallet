@@ -408,7 +408,6 @@ pub enum SessionResult {
     // Note that this state is currently never reached, see the comment in `Issuer::process_credential_request()`.
     Done,
     Failed { error: String },
-    Cancelled,
     Expired,
 }
 
@@ -1025,50 +1024,6 @@ where
         // specific error based on that.
 
         logged_issuance_result(response_result)
-    }
-}
-
-impl<K, L, S, N> Issuer<K, L, S, N>
-where
-    S: SessionStore<IssuanceData>,
-{
-    pub async fn process_reject_issuance(
-        &self,
-        access_token: AccessToken,
-        dpop: Dpop,
-        endpoint_name: &str,
-    ) -> Result<(), CredentialRequestError> {
-        let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self
-            .get_session(code)
-            .await
-            .map_err(CredentialRequestError::IssuanceError)?;
-
-        // Check authorization of the request
-        let session_data = session.session_data();
-        if session_data.access_token != access_token {
-            return Err(CredentialRequestError::Unauthorized);
-        }
-
-        dpop.verify_expecting_key(
-            session_data.dpop_public_key.to_owned(),
-            &self.issuer_data.server_url.join(endpoint_name),
-            &Method::DELETE,
-            Some(&access_token),
-            Some(&session_data.dpop_nonce),
-        )
-        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
-
-        let next = session.transition(Done {
-            session_result: SessionResult::Cancelled,
-        });
-
-        self.sessions
-            .write(next.into(), false)
-            .await
-            .map_err(|error| CredentialRequestError::IssuanceError(IssuanceError::SessionStore(error)))?;
-
-        Ok(())
     }
 }
 
@@ -2045,26 +2000,6 @@ mod tests {
                     let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
 
                     WalletIssuanceError::CredentialRequest(Box::new(error_response.into()))
-                })
-        }
-
-        async fn reject(
-            &self,
-            _url: Url,
-            dpop_header: &Dpop,
-            access_token: &AccessToken,
-        ) -> Result<(), WalletIssuanceError> {
-            self.issuer
-                .process_reject_issuance(
-                    self.access_token(access_token),
-                    self.dpop_header(dpop_header),
-                    "credentials",
-                )
-                .await
-                .map_err(|error| {
-                    let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
-
-                    WalletIssuanceError::CredentialRejection(Box::new(error_response.into()))
                 })
         }
     }

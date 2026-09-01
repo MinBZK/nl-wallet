@@ -122,9 +122,6 @@ pub trait VcMessageClient {
         dpop_header: &Dpop,
         access_token: &AccessToken,
     ) -> Result<CredentialResponse, WalletIssuanceError>;
-
-    async fn reject(&self, url: Url, dpop_header: &Dpop, access_token: &AccessToken)
-    -> Result<(), WalletIssuanceError>;
 }
 
 #[derive(Debug)]
@@ -296,38 +293,6 @@ impl VcMessageClient for HttpVcMessageClient {
                 }
             })
             .await
-    }
-
-    async fn reject(
-        &self,
-        url: Url,
-        dpop_header: &Dpop,
-        access_token: &AccessToken,
-    ) -> Result<(), WalletIssuanceError> {
-        self.http_client
-            .delete(url, |builder| {
-                builder
-                    .header(DPOP_HEADER_NAME, dpop_header.to_string())
-                    .header(AUTHORIZATION, Self::dpop_auth_header(access_token))
-            })
-            .map_err(WalletIssuanceError::CredentialRejectionHttp)
-            .and_then(|response| async {
-                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
-                let status = response.status();
-
-                if status.is_client_error() || status.is_server_error() {
-                    let error = response
-                        .json::<RemoteErrorResponse<CredentialErrorCode>>()
-                        .await
-                        .map_err(WalletIssuanceError::CredentialRejectionHttp)?;
-
-                    Err(WalletIssuanceError::CredentialRejection(Box::new(error)))
-                } else {
-                    Ok(())
-                }
-            })
-            .await?;
-        Ok(())
     }
 }
 
@@ -972,25 +937,6 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         .await?;
 
         Ok(credentials)
-    }
-
-    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
-        let url = self
-            .session_state
-            .issuer_endpoints
-            .credential_endpoint
-            .clone()
-            .into_url();
-
-        let dpop_header =
-            self.session_state
-                .dpop_header(url.clone(), &Method::DELETE, self.session_state.dpop_nonce.clone())?;
-
-        self.message_client
-            .reject(url, &dpop_header, &self.session_state.access_token)
-            .await?;
-
-        Ok(())
     }
 
     fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {

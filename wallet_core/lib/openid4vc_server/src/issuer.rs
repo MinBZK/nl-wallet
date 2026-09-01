@@ -17,7 +17,6 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
-use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
 use axum_extra::TypedHeader;
@@ -152,7 +151,6 @@ where
         .route("/issuance/credential_preview", post(credential_preview))
         .route("/issuance/nonce", post(nonce))
         .route(&credential_path, post(credential))
-        .route(&credential_path, delete(reject_credential))
         .with_state(IssuanceState { issuer })
 }
 
@@ -352,24 +350,6 @@ where
     // deferred responses, the status code is always 200.
 
     Ok(Json(response))
-}
-
-async fn reject_credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
-where
-    S: SessionStore<IssuanceData>,
-{
-    let access_token = authorization_header.into();
-    state
-        .issuer
-        .process_reject_issuance(access_token, dpop, "credential")
-        .await
-        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
-
-    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Debug, Clone)]

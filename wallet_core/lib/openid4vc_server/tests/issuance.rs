@@ -465,52 +465,6 @@ async fn pre_authorized_code_flow(
 }
 
 #[tokio::test]
-async fn reject_issuance() {
-    let attestation_count = NonZeroUsize::MIN;
-    let PreAuthCodeFlowServer {
-        issuer,
-        trust_anchors,
-        tls_trust_anchor,
-        wia_keypair,
-        crl_verifier,
-        ..
-    } = start_pre_authorized_code_flow_server(attestation_count).await;
-
-    let documents = mock_issuable_documents(attestation_count);
-    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
-    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
-
-    let discovery = HttpIssuanceDiscovery::new(
-        HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
-        crl_verifier,
-    );
-
-    let flow = discovery
-        .start(
-            IssuanceDiscoveryParameters::new(
-                &credential_offer_url,
-                &CredentialSelection::All,
-                &MockWiaClient::new_with_wia_keypair(wia_keypair),
-                &trust_anchors,
-            ),
-            MOCK_WALLET_CLIENT_ID.to_string(),
-            REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-        )
-        .await
-        .unwrap();
-
-    let IssuanceFlow::PreAuthorizedCode {
-        issuance_session: session,
-    } = flow
-    else {
-        panic!("should have received Pre-Authorized Code flow");
-    };
-
-    session.reject_issuance().await.unwrap();
-}
-
-#[tokio::test]
 async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     let attestation_count = NonZeroUsize::MIN;
     let PreAuthCodeFlowServer {
