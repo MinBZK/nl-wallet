@@ -197,5 +197,47 @@ void main() {
       expect(mapper.map(input)[const Locale('ja_JP')], '日付 2024/10/5');
       expect(mapper.map(input)[const Locale('nl')], 'Datum 5-10-2024');
     });
+
+    test('composite values are summarized on a single line', () {
+      final input = WalletCard(
+        attestationId: 'id',
+        attestationType: 'org.iso.18013.5.1.mDL',
+        format: AttestationFormat.mdoc,
+        issuer: WalletMockData.organization,
+        status: WalletMockData.status,
+        metadata: const [
+          CardDisplayMetadata(
+            language: Locale('nl'),
+            name: '',
+            rawSummary: '{{driving_privileges}}',
+          ),
+        ],
+        attributes: [
+          DataAttribute(
+            key: 'driving_privileges',
+            svgId: 'driving_privileges',
+            label: ''.untranslated,
+            value: ArrayValue([
+              MapValue({
+                'vehicle_category_code': const StringValue('AM'),
+                'issue_date': DateValue(DateTime(2018, 8, 9)),
+              }),
+              MapValue({
+                'vehicle_category_code': const StringValue('B'),
+                'issue_date': DateValue(DateTime(2017, 2, 23)),
+              }),
+            ]),
+          ),
+        ],
+      );
+
+      final summary = mapper.map(input)[const Locale('nl')]!;
+      // The card front has no line limit, so a multi line summary would stretch the card.
+      expect(summary, isNot(contains('\n')));
+      expect(
+        summary,
+        'vehicle_category_code: AM, issue_date: 9-8-2018, vehicle_category_code: B, issue_date: 23-2-2017',
+      );
+    });
   });
 }
