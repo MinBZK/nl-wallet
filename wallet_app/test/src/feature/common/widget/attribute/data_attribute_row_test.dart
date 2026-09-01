@@ -134,6 +134,31 @@ void main() {
       await screenMatchesGolden('data_attribute_row/map_value');
     });
 
+    testGoldens('Array of maps (driving_privileges)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Driving privileges',
+            value: ArrayValue([
+              MapValue({
+                'vehicle_category_code': const StringValue('AM'),
+                'issue_date': DateValue(DateTime(2018, 8, 9)),
+                'expiry_date': DateValue(DateTime(2024, 10, 20)),
+              }),
+              MapValue({
+                'vehicle_category_code': const StringValue('B'),
+                'issue_date': DateValue(DateTime(2017, 2, 23)),
+                'expiry_date': DateValue(DateTime(2024, 10, 20)),
+              }),
+            ]),
+            key: 'mock_driving_privileges',
+          ),
+        ),
+        surfaceSize: const Size(260, 180),
+      );
+      await screenMatchesGolden('data_attribute_row/array_of_maps');
+    });
+
     testGoldens('Null', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         DataAttributeRow(

@@ -47,6 +47,11 @@ class DataAttributeRow extends StatelessWidget {
     // An image is rendered instead of formatted.
     if (attributeValue is ImageValue) return _buildImageSubtitle(context, attributeValue);
 
+    // A map is spread over one row per entry, so that the keys line up.
+    if (attributeValue is MapValue && attributeValue.value.isNotEmpty) {
+      return _buildMapStyleSubtitle(context, attributeValue);
+    }
+
     final prettyValue = attributeValue.prettyPrint(context);
     return Text.rich(
       prettyValue.toTextSpan(context),
@@ -73,6 +78,29 @@ class DataAttributeRow extends StatelessWidget {
     );
   }
 
+  Widget _buildMapStyleSubtitle(BuildContext context, MapValue mapValue) {
+    return Semantics(
+      // Dedicated semanticsLabel, this makes sure it gets announced on Android as well.
+      attributedLabel: _buildAttributedString(context, mapValue),
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: mapValue.value.entries
+            .map(
+              (entry) => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich('${entry.key}: '.toTextSpan(context), style: context.textTheme.bodyMedium),
+                  Expanded(child: _buildSubtitle(context, entry.value)),
+                ],
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
   Widget _buildArrayStyleSubtitle(BuildContext context, ArrayValue arrayValue) {
     return Semantics(
       // Dedicated semanticsLabel, this makes sure it gets announced on Android as well.
@@ -84,7 +112,8 @@ class DataAttributeRow extends StatelessWidget {
         itemBuilder: (c, i) {
           final subtitleRow = _buildSubtitle(context, arrayValue.value[i]);
           return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            // Aligns the dot with the first line, which matters for multi line entries such as a map.
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(width: 24, height: 24, child: BulletListDot()),
               Expanded(child: subtitleRow),
@@ -96,15 +125,8 @@ class DataAttributeRow extends StatelessWidget {
     );
   }
 
-  AttributedString _buildAttributedString(BuildContext context, ArrayValue arrayValue) {
-    final attributedStrings = arrayValue.value.map(
-      (it) {
-        if (it is ArrayValue) return _buildAttributedString(context, it);
-        return it.prettyPrint(context).toAttributedString(context);
-      },
-    );
-    return attributedStrings.reduce((acc, it) => acc + ', '.toAttributedString(context) + it);
-  }
+  AttributedString _buildAttributedString(BuildContext context, AttributeValue attributeValue) =>
+      attributeValue.prettyPrint(context, inline: true).toAttributedString(context);
 
   TextStyle? _resolveSubtitleStyle(BuildContext context, AttributeValue attributeValue) {
     switch (attributeValue) {
