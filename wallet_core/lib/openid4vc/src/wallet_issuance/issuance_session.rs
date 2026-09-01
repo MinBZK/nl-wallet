@@ -1270,7 +1270,9 @@ impl IssuedCredentialCopies {
 
         // Check that the integrity hash received in the credential matches that of encoded JSON of the first metadata
         // document.
-        let verified_metadata = metadata_documents.into_verified(integrity.clone())?;
+        let verified_metadata = metadata_documents
+            .into_verified(integrity.clone())
+            .map_err(WalletIssuanceError::MetadataIntegrityVerification)?;
 
         Ok(verified_metadata)
     }
@@ -2563,7 +2565,7 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_issuance_error_resource_integrity() {
+    fn test_accept_issuance_error_metadata_integrity_verification() {
         let (mut signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
             HashMap::from([("credential_id".to_string(), Format::SdJwt)]),
         );
@@ -2597,7 +2599,7 @@ mod tests {
 
         assert_matches!(
             error,
-            WalletIssuanceError::TypeMetadataVerification(TypeMetadataChainError::ResourceIntegrity(_))
+            WalletIssuanceError::MetadataIntegrityVerification(TypeMetadataChainError::ResourceIntegrity(_))
         );
     }
 

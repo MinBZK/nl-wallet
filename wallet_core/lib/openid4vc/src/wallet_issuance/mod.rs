@@ -81,7 +81,7 @@ pub enum WalletIssuanceError {
 
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
-    TypeMetadataVerification(#[from] TypeMetadataChainError),
+    TypeMetadataVerification(#[source] TypeMetadataChainError),
 
     #[error("attributes do not match type metadata: {0}")]
     #[category(pd)]
@@ -223,13 +223,17 @@ pub enum WalletIssuanceError {
     #[error("error retrieving metadata from issued mdoc: {0}")]
     Metadata(#[source] mdoc::Error),
 
+    #[error("missing metadata integrity digest in SD-JWT payload")]
+    #[category(critical)]
+    MetadataIntegrityMissing,
+
     #[error("metadata integrity digest contained is not consistent across credential copies")]
     #[category(critical)]
     MetadataIntegrityInconsistent,
 
-    #[error("missing metadata integrity digest")]
+    #[error("type metadata integrity did not verify correctly: {0}")]
     #[category(critical)]
-    MetadataIntegrityMissing,
+    MetadataIntegrityVerification(#[source] TypeMetadataChainError),
 
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
