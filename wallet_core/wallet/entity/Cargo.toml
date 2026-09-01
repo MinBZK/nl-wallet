@@ -22,4 +22,5 @@ zstd.workspace = true
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
 crypto = { path = "../../lib/crypto", features = ["persistence"] }
+openid4vc.path = "../../lib/openid4vc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"

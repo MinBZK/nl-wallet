@@ -28,7 +28,7 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(Attestation::ExtendedTypes).json().not_null())
-                    .col(ColumnDef::new(Attestation::TypeMetadata).json().not_null())
+                    .col(ColumnDef::new(Attestation::Metadata).json().not_null())
                     .to_owned(),
             )
             .await?;
@@ -131,7 +131,7 @@ pub enum Attestation {
     Format,
     EnumText,
     ExtendedTypes,
-    TypeMetadata,
+    Metadata,
 }
 
 #[derive(DeriveIden)]

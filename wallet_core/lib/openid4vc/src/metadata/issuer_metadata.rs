@@ -287,7 +287,7 @@ pub struct IssuerDisplay {
 
 /// A language identifier, and a name in that language.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NameLocale {
     /// String value of a display name for the Credential Issuer or Credential.
     pub name: Option<String>,
@@ -300,7 +300,7 @@ pub struct NameLocale {
 
 /// Information about the logo of the Credential Issuer or Credential.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Logo {
     /// String value that contains a URI where the Wallet can obtain the logo. The Wallet needs to determine the
     /// scheme, since the URI value could use the `https:` scheme, the `data:` scheme, etc.
@@ -611,7 +611,7 @@ pub enum AttackPotentialResistance {
 /// SD-JWT VC display metadata are always preferred by the Wallet over the information in this object, which serves
 /// as the default fallback.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialMetadata {
     /// A non-empty array of objects, where each object contains the display properties of the supported Credential
     /// for a certain language.
@@ -642,7 +642,7 @@ impl CredentialMetadata {
 
 /// Display properties of a supported Credential for a certain language.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialDisplay {
     /// A language identifier, and a name in that language.
     #[serde(flatten)]
@@ -693,7 +693,7 @@ impl From<DisplayMetadata> for CredentialDisplay {
 }
 
 /// Information about the background image of the Credential.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundImage {
     /// String value that contains a URI where the Wallet can obtain the background image of the Credential from the
     /// Credential Issuer. The Wallet needs to determine the scheme, since the URI value could use the `https:` scheme,
@@ -716,7 +716,7 @@ const fn bool_value<const B: bool>() -> bool {
 /// A claims description object as used in the Credential Issuer metadata is an object used to describe how a certain
 /// claim in the Credential is displayed to the End-User.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialClaim {
     /// The value MUST be a non-empty array representing a claims path pointer that specifies the path to a claim
     /// within the credential, as defined in Appendix C.

@@ -13,8 +13,8 @@ use chrono::DateTime;
 use chrono::Utc;
 use entity::attestation;
 use entity::attestation::AttestationFormat;
+use entity::attestation::AttestationMetadataModel;
 use entity::attestation::ExtendedTypesModel;
-use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::compressed_blob::CompressedBlob;
 use entity::deletion_event;
@@ -269,7 +269,7 @@ impl<K> DatabaseStorage<K> {
             .column(attestation::Column::AttestationFormat)
             .column(attestation::Column::Expiration)
             .column(attestation::Column::NotBefore)
-            .column(attestation::Column::TypeMetadata)
+            .column(attestation::Column::Metadata)
             .expr_as(
                 Func::cust("json_group_array").arg(Expr::col(attestation_copy::Column::RevocationStatus)),
                 "revocation_statuses",
@@ -299,7 +299,7 @@ impl<K> DatabaseStorage<K> {
                     not_before,
                     metadata,
                     revocation_statuses,
-                ): (_, _, _, CompressedBlob, _, _, _, TypeMetadataModel, String)| {
+                ): (_, _, _, CompressedBlob, _, _, _, AttestationMetadataModel, String)| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -322,7 +322,13 @@ impl<K> DatabaseStorage<K> {
                         }
                     };
 
-                    let normalized_metadata = metadata.documents.to_normalized()?;
+                    let normalized_metadata = match metadata {
+                        AttestationMetadataModel::TypeMetadata(documents) => documents.to_normalized()?,
+                        // TODO (PVW-5547): Return the Credential Metadata as well.
+                        AttestationMetadataModel::CredentialMetadata(_) => {
+                            return Err(StorageError::UnsupportedStoredMetadata);
+                        }
+                    };
 
                     let revocation_status_raw: Vec<Option<String>> = serde_json::from_str(&revocation_statuses)?;
                     let revocation_statuses: Vec<Option<RevocationStatus>> = revocation_status_raw
@@ -757,7 +763,7 @@ where
                         expiration: Set(expiration.map(Into::into)),
                         not_before: Set(not_before.map(Into::into)),
                         extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
-                        type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
+                        metadata: Set(AttestationMetadataModel::TypeMetadata(metadata_documents)),
                     };
 
                     let copy_models = create_attestation_copy_models(attestation_id, copies)?;
