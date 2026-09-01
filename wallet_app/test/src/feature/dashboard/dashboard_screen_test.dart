@@ -234,8 +234,8 @@ void main() {
     testWidgets('should not notify the coordinator again when the layout changes while visible', (tester) async {
       await pumpDashboard(tester);
 
-      // A layout change (e.g. a banner appearing) makes the VisibilityDetector report again, even
-      // though the dashboard was fully visible the whole time.
+      // A change to the detector's own geometry (e.g. an orientation change) makes the
+      // VisibilityDetector report again, even though the dashboard was fully visible the whole time.
       await tester.binding.setSurfaceSize(iphoneXSizeLandscape);
       tester.view.physicalSize = iphoneXSizeLandscape;
       await tester.pumpAndSettle();
