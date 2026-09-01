@@ -149,7 +149,7 @@ pub enum IssuanceError {
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
 
-    #[error("type metadata for config id `{0}` not found")]
+    #[error("type metadata for credential configuration id `{0}` not found")]
     #[category(critical)]
     MissingTypeMetadata(CredentialConfigurationId),
 
@@ -570,7 +570,7 @@ where
             .into_iter()
             .map(|(preview_data, identity)| {
                 let normalized_metadata = &type_metadata
-                    .get(&preview_data.credential_payload.attestation_type)
+                    .get(&preview_data.config_id)
                     .map(Ok)
                     .unwrap_or_else(|| Err(IssuanceError::MissingTypeMetadata(preview_data.config_id.clone())))?
                     .normalized_metadata;
@@ -1425,7 +1425,7 @@ mod tests {
                 create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             session
                 .expect_type_metadata()
-                .return_const([(preview.credential_payload.attestation_type.clone(), type_metadata)].into());
+                .return_const([(preview.config_id.clone(), type_metadata)].into());
             session
                 .expect_credential_previews()
                 .return_const(vec_nonempty![preview]);
@@ -1595,7 +1595,7 @@ mod tests {
         issuance_session.expect_type_metadata().return_const(
             previews
                 .iter()
-                .map(|preview| preview.credential_payload.attestation_type.clone())
+                .map(|preview| preview.config_id.clone())
                 .zip_eq(std::iter::repeat_n(type_metadata, preview_count))
                 .collect(),
         );
@@ -1653,8 +1653,8 @@ mod tests {
 
         let mut issuance_session = MockIssuanceSession::new();
         issuance_session.expect_type_metadata().return_const(HashMap::from([
-            ("sd_jwt_attestation_type".to_string(), sd_jwt_type_metadata),
-            ("mdoc_attestation_type".to_string(), mdoc_type_metadata),
+            (sd_jwt_preview.config_id.clone(), sd_jwt_type_metadata),
+            (mdoc_preview.config_id.clone(), mdoc_type_metadata),
         ]));
         issuance_session
             .expect_credential_previews()
@@ -1764,7 +1764,7 @@ mod tests {
             let mut session = MockIssuanceSession::new();
             session
                 .expect_type_metadata()
-                .return_const([("some_attestation_type".to_string(), type_metadata)].into());
+                .return_const([(preview.config_id.clone(), type_metadata)].into());
             session
                 .expect_credential_previews()
                 .return_const(vec_nonempty![preview]);
