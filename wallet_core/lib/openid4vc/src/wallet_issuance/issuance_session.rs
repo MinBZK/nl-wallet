@@ -2685,7 +2685,9 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::DeferredIssuanceUnsupported);
     }
 
-    fn mock_credential_response_credential() -> (
+    fn mock_credential_response_credential(
+        format: Format,
+    ) -> (
         Credentials,
         CredentialPreview,
         IssuanceTypeMetadata,
@@ -2693,7 +2695,7 @@ mod tests {
         TrustAnchors,
     ) {
         let (signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
-            HashMap::from([("credential_id".to_string(), Format::MsoMdoc)]),
+            HashMap::from([("credential_id".to_string(), format)]),
         );
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
         let credential_response = signer
@@ -2710,44 +2712,52 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc() {
-        let (credentials, preview_data, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
-
-        let _issued_credential = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), holder_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview_data,
-                &trust_anchor,
-            )
-            .expect("should be able to convert CredentialResponse into Mdoc");
+    fn credentials_test_into_issued_credential(
+        credentials: Credentials,
+        key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
+        normalized_type_metadata: &NormalizedTypeMetadata,
+        preview: &CredentialPreview,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<(), WalletIssuanceError> {
+        match &credentials {
+            Credentials::MsoMdoc(_) => credentials
+                .into_issued_mdocs(
+                    key_identifiers_and_public_keys,
+                    normalized_type_metadata,
+                    preview,
+                    trust_anchors,
+                )
+                .map(|_| ()),
+            Credentials::SdJwt(_) => credentials
+                .into_issued_sd_jwts(
+                    key_identifiers_and_public_keys,
+                    normalized_type_metadata,
+                    preview,
+                    trust_anchors,
+                )
+                .map(|_| ()),
+        }
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_public_key_mismatch_error() {
-        let (credentials, preview_data, type_metadata, _, trust_anchor) = mock_credential_response_credential();
+    #[rstest]
+    fn test_credential_response_into_credential(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
+        let (credentials, preview_data, type_metadata, holder_public_key, trust_anchor) =
+            mock_credential_response_credential(format);
 
-        // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
-        // public key than the one contained within the response should fail.
-        let other_public_key = PublicKey::from(*SigningKey::generate().verifying_key());
-        let error = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), other_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview_data,
-                &trust_anchor,
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, WalletIssuanceError::PublicKeyMismatch);
+        credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), holder_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview_data,
+            &trust_anchor,
+        )
+        .expect("should be able to convert CredentialResponse into credential");
     }
 
     #[test]
     fn test_credential_response_into_mdoc_attribute_random_length_error() {
         let (credentials, preview_data, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
+            mock_credential_response_credential(Format::MsoMdoc);
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
         // that contains insufficient random data should fail.
@@ -2790,35 +2800,9 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error() {
-        let (credentials, preview, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
-
-        // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
-        // public key in the preview than is contained within the response should fail.
-        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let other_issuance_key =
-            generate_pid_issuer_mock_with_registration(&other_ca, &IssuerRegistration::new_mock()).unwrap();
-        let preview_data = CredentialPreview {
-            issuer_certificate: other_issuance_key.certificate().clone(),
-            ..preview
-        };
-
-        let error = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), holder_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview_data,
-                &trust_anchor,
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, WalletIssuanceError::IssuerMismatch);
-    }
-
-    #[test]
     fn test_credential_response_into_mdoc_mdoc_verification_error() {
-        let (credentials, preview, type_metadata, holder_public_key, _) = mock_credential_response_credential();
+        let (credentials, preview, type_metadata, holder_public_key, _) =
+            mock_credential_response_credential(Format::MsoMdoc);
 
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
@@ -2835,9 +2819,80 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
+    fn test_credential_response_into_sd_jwt_sd_jwt_verification_error() {
+        let (credentials, preview, type_metadata, holder_public_key, _) =
+            mock_credential_response_credential(Format::SdJwt);
+
+        // Converting a `CredentialResponse` into an SD-JWT credential that
+        // is validated against incorrect trust anchors should fail.
+        let error = credentials
+            .into_issued_sd_jwts(
+                vec_nonempty![("key_id".to_string(), holder_public_key)],
+                &type_metadata.normalized_metadata,
+                &preview,
+                &TrustAnchors::empty(),
+            )
+            .expect_err("should not be able to convert CredentialResponse into SD-JWT");
+
+        assert_matches!(error, WalletIssuanceError::SdJwtVerification(_));
+    }
+
+    #[rstest]
+    fn test_credential_response_into_mdoc_public_key_mismatch_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
+        let (credentials, preview_data, type_metadata, _, trust_anchor) = mock_credential_response_credential(format);
+
+        // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
+        // public key than the one contained within the response should fail.
+        let other_public_key = PublicKey::from(*SigningKey::generate().verifying_key());
+        let error = credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), other_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview_data,
+            &trust_anchor,
+        )
+        .expect_err("should not be able to convert CredentialResponse into credential");
+
+        assert_matches!(error, WalletIssuanceError::PublicKeyMismatch);
+    }
+
+    #[rstest]
+    fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
+        let (credentials, preview, type_metadata, holder_public_key, trust_anchor) =
+            mock_credential_response_credential(format);
+
+        // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
+        // public key in the preview than is contained within the response should fail.
+        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let other_issuance_key =
+            generate_pid_issuer_mock_with_registration(&other_ca, &IssuerRegistration::new_mock()).unwrap();
+        let preview_data = CredentialPreview {
+            issuer_certificate: other_issuance_key.certificate().clone(),
+            ..preview
+        };
+
+        let error = credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), holder_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview_data,
+            &trust_anchor,
+        )
+        .expect_err("should not be able to convert CredentialResponse into credential");
+
+        assert_matches!(error, WalletIssuanceError::IssuerMismatch);
+    }
+
+    #[rstest]
+    fn test_credential_response_into_mdoc_issued_attributes_mismatch_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
         let (credentials, mut preview, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
+            mock_credential_response_credential(format);
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.
@@ -2852,99 +2907,107 @@ mod tests {
         .attributes;
         preview.credential_payload.attributes = attributes;
 
-        let error = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), holder_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview,
-                &trust_anchor,
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+        let error = credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), holder_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview,
+            &trust_anchor,
+        )
+        .expect_err("should not be able to convert CredentialResponse into credential");
 
         assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_issued_issuer_mismatch_error() {
+    #[rstest]
+    fn test_credential_response_into_mdoc_issued_issuer_mismatch_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
         let (credentials, mut preview, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
+            mock_credential_response_credential(format);
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different `issuer_uri` in the preview than
         // contained within the response should fail.
         preview.credential_payload.issuer = "https://other-issuer.example.com".parse().unwrap();
 
-        let error = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), holder_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview,
-                &trust_anchor,
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+        let error = credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), holder_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview,
+            &trust_anchor,
+        )
+        .expect_err("should not be able to convert CredentialResponse into credential");
 
         assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_issued_doctype_mismatch_error() {
+    #[rstest]
+    fn test_credential_response_into_mdoc_issued_doctype_mismatch_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
         let (credentials, mut preview, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
+            mock_credential_response_credential(format);
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
         // within the response should fail.
         preview.credential_payload.attestation_type = String::from("other.attestation_type");
 
-        let error = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), holder_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview,
-                &trust_anchor,
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+        let error = credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), holder_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview,
+            &trust_anchor,
+        )
+        .expect_err("should not be able to convert CredentialResponse into credential");
 
         assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_issued_validity_info_mismatch_error() {
+    #[rstest]
+    fn test_credential_response_into_mdoc_issued_validity_info_mismatch_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
         let (credentials, mut preview, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
+            mock_credential_response_credential(format);
 
         // Converting a `CredentialResponse` into an `Mdoc` with different expiration information in the preview than
         // contained within the response should fail.
 
         preview.credential_payload.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
 
-        let error = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), holder_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview,
-                &trust_anchor,
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+        let error = credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), holder_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview,
+            &trust_anchor,
+        )
+        .expect_err("should not be able to convert CredentialResponse into credential");
 
         assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_issued_attestation_qualification_mismatch_error() {
+    #[rstest]
+    fn test_credential_response_into_mdoc_issued_attestation_qualification_mismatch_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
         let (credentials, mut preview, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential();
+            mock_credential_response_credential(format);
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
         // within the response should fail.
         preview.credential_payload.attestation_qualification = AttestationQualification::PubEAA;
 
-        let error = credentials
-            .into_issued_mdocs(
-                vec_nonempty![("key_id".to_string(), holder_public_key)],
-                &type_metadata.normalized_metadata,
-                &preview,
-                &trust_anchor,
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+        let error = credentials_test_into_issued_credential(
+            credentials,
+            vec_nonempty![("key_id".to_string(), holder_public_key)],
+            &type_metadata.normalized_metadata,
+            &preview,
+            &trust_anchor,
+        )
+        .expect_err("should not be able to convert CredentialResponse into credential");
 
         assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
