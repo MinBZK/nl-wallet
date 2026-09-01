@@ -29,6 +29,7 @@ use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
+use openid4vc::wallet_issuance::issuance_session::IssuanceMetadata;
 use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -569,11 +570,14 @@ where
         let attestations = previews_and_identity
             .into_iter()
             .map(|(preview_data, identity)| {
-                let normalized_metadata = &type_metadata
-                    .get(&preview_data.config_id)
-                    .map(Ok)
-                    .unwrap_or_else(|| Err(IssuanceError::MissingTypeMetadata(preview_data.config_id.clone())))?
-                    .normalized_metadata;
+                // TODO (PVW-5547): Build the presentation from the Credential Metadata as well.
+                let Some(IssuanceMetadata::TypeMetadata {
+                    normalized: normalized_metadata,
+                    ..
+                }) = type_metadata.get(&preview_data.config_id)
+                else {
+                    return Err(IssuanceError::MissingTypeMetadata(preview_data.config_id.clone()));
+                };
 
                 let attestation = AttestationPresentation::create_from_attributes(
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
@@ -1549,7 +1553,14 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let time_generator = MockTimeGenerator::default();
 
-        let (payload, type_metadata) = create_example_credential_payload(&time_generator, attestation_type);
+        let (payload, issuance_metadata) = create_example_credential_payload(&time_generator, attestation_type);
+        let IssuanceMetadata::TypeMetadata {
+            normalized: type_metadata,
+            ..
+        } = &issuance_metadata
+        else {
+            panic!("example credential payload should come with type metadata");
+        };
         let preview_count = preview_formats.len();
         let previews = std::iter::repeat_n(payload, preview_count)
             .zip_eq(preview_formats.into_iter())
@@ -1561,9 +1572,9 @@ mod tests {
         let ca = Ca::generate_mock();
         let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
 
-        let (payload, stored_type_metadata) = create_example_credential_payload(&time_generator, attestation_type);
+        let (payload, _) = create_example_credential_payload(&time_generator, attestation_type);
         let sd_jwt = payload
-            .into_signed_sd_jwt(&type_metadata.normalized_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(type_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1577,7 +1588,7 @@ mod tests {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
-            StoredAttestationMetadata::TypeMetadata(stored_type_metadata.normalized_metadata.clone()),
+            StoredAttestationMetadata::TypeMetadata(type_metadata.clone()),
             None,
         );
 
@@ -1596,7 +1607,7 @@ mod tests {
             previews
                 .iter()
                 .map(|preview| preview.config_id.clone())
-                .zip_eq(std::iter::repeat_n(type_metadata, preview_count))
+                .zip_eq(std::iter::repeat_n(issuance_metadata, preview_count))
                 .collect(),
         );
         issuance_session
@@ -2357,8 +2368,15 @@ mod tests {
         let time_generator = MockTimeGenerator::default();
 
         let (payload, type_metadata) = create_example_pid_credential_payload(&time_generator);
+        let IssuanceMetadata::TypeMetadata {
+            normalized: type_metadata,
+            ..
+        } = type_metadata
+        else {
+            panic!("example credential payload should come with type metadata");
+        };
         let sd_jwt = payload
-            .into_signed_sd_jwt(&type_metadata.normalized_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(&type_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -2372,7 +2390,7 @@ mod tests {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
-            StoredAttestationMetadata::TypeMetadata(type_metadata.normalized_metadata),
+            StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,
         );
 

@@ -37,7 +37,7 @@ use wscd::wscd::WiaClient;
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
-use self::issuance_session::IssuanceTypeMetadata;
+use self::issuance_session::IssuanceMetadata;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
 use crate::client_auth::ClientAttestationMetadataError;
@@ -453,7 +453,7 @@ pub trait IssuanceSession {
 
     fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
-    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
+    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceMetadata>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }
