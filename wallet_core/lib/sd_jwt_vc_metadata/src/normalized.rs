@@ -148,8 +148,8 @@ impl NormalizedTypeMetadata {
         &self.claims
     }
 
-    pub fn into_presentation_components(self) -> (String, VecNonEmpty<DisplayMetadata>, Vec<ClaimMetadata>) {
-        (self.vcts.into_first(), self.display, self.claims)
+    pub fn into_presentation_components(self) -> (VecNonEmpty<DisplayMetadata>, Vec<ClaimMetadata>) {
+        (self.display, self.claims)
     }
 
     /// Returns all claim paths that only consist out of `SelectByKey` as a `VecNonEmpty` of `&str`.

@@ -578,6 +578,7 @@ where
                 let attestation = AttestationPresentation::create_from_attributes(
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
                     preview_data.format,
+                    preview_data.credential_payload.attestation_type.clone(),
                     normalized_metadata.clone(),
                     organization.clone(),
                     AttestationValidity {

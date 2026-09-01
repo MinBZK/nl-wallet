@@ -1193,7 +1193,7 @@ impl Credentials {
     ) -> Result<(), WalletIssuanceError> {
         let sd_metadata = metadata
             .into_presentation_components()
-            .2
+            .1
             .into_iter()
             .map(|md| (md.path.into_inner(), md.sd))
             .collect();

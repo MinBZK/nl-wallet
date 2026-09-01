@@ -593,6 +593,7 @@ pub fn mock_issuance_session(
 
                             let attestation_presentation = AttestationPresentation::create_from_mdoc(
                                 AttestationIdentity::Ephemeral,
+                                normalized_type_metadata.vct().to_string(),
                                 normalized_type_metadata.clone(),
                                 issuer_registration.organization.clone(),
                                 AttestationValidity {
@@ -633,6 +634,7 @@ pub fn mock_issuance_session(
 
                             let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
                                 AttestationIdentity::Ephemeral,
+                                normalized_type_metadata.vct().to_string(),
                                 normalized_type_metadata.clone(),
                                 issuer_registration.organization.clone(),
                                 AttestationValidity {

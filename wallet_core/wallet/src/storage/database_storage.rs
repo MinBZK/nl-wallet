@@ -2884,6 +2884,7 @@ pub(crate) mod tests {
 
         let attestation = AttestationPresentation::create_from_sd_jwt_claims(
             AttestationIdentity::Fixed { id: attestation_id },
+            normalized_metadata.vct().to_string(),
             normalized_metadata,
             organization.clone().into(),
             AttestationValidity {
@@ -3030,6 +3031,7 @@ pub(crate) mod tests {
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
                     Format::SdJwt,
+                    normalized_metadata.vct().to_string(),
                     normalized_metadata,
                     organization.clone().into(),
                     AttestationValidity {

@@ -20,8 +20,10 @@ use super::AttestationPresentationConfig;
 use super::AttestationValidity;
 
 impl AttestationPresentation {
+    #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(crate) fn create_from_mdoc(
         identity: AttestationIdentity,
+        attestation_type: String,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
@@ -33,6 +35,7 @@ impl AttestationPresentation {
         Self::create_from_attributes(
             identity,
             Format::MsoMdoc,
+            attestation_type,
             metadata,
             issuer_organization,
             validity,
@@ -41,8 +44,10 @@ impl AttestationPresentation {
         )
     }
 
+    #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(crate) fn create_from_sd_jwt_claims(
         identity: AttestationIdentity,
+        attestation_type: String,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
@@ -54,6 +59,7 @@ impl AttestationPresentation {
         Self::create_from_attributes(
             identity,
             Format::SdJwt,
+            attestation_type,
             metadata,
             issuer_organization,
             validity,
@@ -67,13 +73,14 @@ impl AttestationPresentation {
     pub(crate) fn create_from_attributes(
         identity: AttestationIdentity,
         format: Format,
+        attestation_type: String,
         metadata: NormalizedTypeMetadata,
         issuer: Box<Organization>,
         validity: AttestationValidity,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let (attestation_type, display_metadata, claims) = metadata.into_presentation_components();
+        let (display_metadata, claims) = metadata.into_presentation_components();
 
         // For every claim in the metadata, find the correct attribute
         // and convert it to a `AttestationAttribute` value (with optionally Json Schema metadata).
@@ -217,6 +224,7 @@ pub mod test {
 
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
+            example_metadata().vct().to_string(),
             example_metadata(),
             Organization::new_mock().into(),
             AttestationValidity {
@@ -258,6 +266,7 @@ pub mod test {
 
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
+            example_metadata().vct().to_string(),
             example_metadata(),
             Organization::new_mock().into(),
             AttestationValidity {
@@ -296,6 +305,7 @@ pub mod test {
 
         let error = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
+            metadata.vct().to_string(),
             metadata,
             Organization::new_mock().into(),
             AttestationValidity {
@@ -380,6 +390,7 @@ pub mod test {
         let attestation_presentation = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Ephemeral,
             Format::SdJwt,
+            type_metadata.vct().to_string(),
             type_metadata,
             organization.clone().into(),
             AttestationValidity {
@@ -461,6 +472,7 @@ pub mod test {
         let error = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Ephemeral,
             Format::SdJwt,
+            type_metadata.vct().to_string(),
             type_metadata,
             Organization::new_mock().into(),
             AttestationValidity {
@@ -497,6 +509,7 @@ pub mod test {
 
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
+            NormalizedTypeMetadata::nl_pid_example().vct().to_string(),
             NormalizedTypeMetadata::nl_pid_example(),
             Organization::new_mock().into(),
             AttestationValidity {

@@ -83,9 +83,11 @@ pub struct DisclosableAttestation<P> {
     presentation: AttestationPresentation,
 }
 
+#[expect(clippy::too_many_arguments, reason = "internal constructor")]
 fn attestation_presentation_from_issuer_signed(
     issuer_signed: IssuerSigned,
     attestation_id: Uuid,
+    attestation_type: String,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
     validity: AttestationValidity,
@@ -93,6 +95,7 @@ fn attestation_presentation_from_issuer_signed(
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_mdoc(
         AttestationIdentity::Fixed { id: attestation_id },
+        attestation_type,
         normalized_metadata,
         issuer_organization,
         validity,
@@ -102,9 +105,11 @@ fn attestation_presentation_from_issuer_signed(
     .expect("a stored mdoc attestation should convert to AttestationPresentation without errors")
 }
 
+#[expect(clippy::too_many_arguments, reason = "internal constructor")]
 fn attestation_presentation_from_sd_jwt(
     sd_jwt: &VerifiedSdJwt,
     attestation_id: Uuid,
+    attestation_type: String,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Box<Organization>,
     validity: AttestationValidity,
@@ -112,6 +117,7 @@ fn attestation_presentation_from_sd_jwt(
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_sd_jwt_claims(
         AttestationIdentity::Fixed { id: attestation_id },
+        attestation_type,
         normalized_metadata,
         issuer_organization,
         validity,
@@ -124,6 +130,14 @@ fn attestation_presentation_from_sd_jwt(
 }
 
 impl StoredAttestation {
+    /// The type of the attestation, which is contained in the attestation itself and covered by the issuer signature.
+    fn attestation_type(&self) -> &str {
+        match self {
+            Self::MsoMdoc(mdoc) => mdoc.doc_type(),
+            Self::SdJwt(sd_jwt) => &sd_jwt.claims().vct,
+        }
+    }
+
     /// Extract the [`IssuerRegistration`] from a stored attestation by parsing it from the issuer certificate.
     fn issuer_registration(&self) -> IssuerRegistration {
         let issuer_leaf_certificate = match self {
@@ -199,7 +213,7 @@ impl StoredAttestationCopy {
     }
 
     pub fn attestation_type(&self) -> &str {
-        self.normalized_metadata.vct()
+        self.attestation.data.attestation_type()
     }
 
     pub fn into_attributes(self) -> Attributes {
@@ -235,11 +249,13 @@ impl StoredAttestationCopy {
     /// to an [`AttestationPresentation`] that can be displayed to the user.
     pub fn into_attestation_presentation(self, config: &impl AttestationPresentationConfig) -> AttestationPresentation {
         let issuer_registration = self.attestation.data.issuer_registration();
+        let attestation_type = self.attestation.data.attestation_type().to_string();
 
         match self.attestation.data {
             StoredAttestation::MsoMdoc(mdoc) => attestation_presentation_from_issuer_signed(
                 mdoc.into_issuer_signed(),
                 self.attestation_id,
+                attestation_type.clone(),
                 self.normalized_metadata,
                 issuer_registration.organization,
                 AttestationValidity {
@@ -251,6 +267,7 @@ impl StoredAttestationCopy {
             StoredAttestation::SdJwt(sd_jwt) => attestation_presentation_from_sd_jwt(
                 &sd_jwt,
                 self.attestation_id,
+                attestation_type.clone(),
                 self.normalized_metadata,
                 issuer_registration.organization,
                 AttestationValidity {
@@ -311,12 +328,14 @@ impl DisclosableAttestation<WithKeyIdentifier<PartialAttestation>> {
         } = attestation_copy;
 
         let issuer_registration = attestation.issuer_registration();
+        let attestation_type = attestation.attestation_type().to_string();
         let partial_attestation = PartialAttestation::try_new(attestation, claim_paths)?;
 
         let presentation = match &partial_attestation {
             PartialAttestation::MsoMdoc(partial_mdoc) => attestation_presentation_from_issuer_signed(
                 partial_mdoc.issuer_signed().clone(),
                 attestation_id,
+                attestation_type.clone(),
                 normalized_metadata,
                 issuer_registration.organization,
                 AttestationValidity {
@@ -328,6 +347,7 @@ impl DisclosableAttestation<WithKeyIdentifier<PartialAttestation>> {
             PartialAttestation::SdJwt(sd_jwt) => attestation_presentation_from_sd_jwt(
                 sd_jwt.as_ref().as_ref(),
                 attestation_id,
+                attestation_type.clone(),
                 normalized_metadata,
                 issuer_registration.organization,
                 AttestationValidity {
