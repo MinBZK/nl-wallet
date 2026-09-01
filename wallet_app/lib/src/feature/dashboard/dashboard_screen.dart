@@ -115,13 +115,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       leading: _buildLeadingMenuButton(context),
       fadeInTitleOnScroll: false,
       leadingWidth: double.infinity,
-      actions: const [
-        FadeInAtOffset(
+      actions: [
+        const FadeInAtOffset(
           visibleOffset: 150,
           appearOffset: 100,
           child: QrIconButton(),
         ),
-        HelpIconButton(),
+        HelpIconButton(
+          onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.helpOverviewRoute),
+        ),
       ],
     );
   }
