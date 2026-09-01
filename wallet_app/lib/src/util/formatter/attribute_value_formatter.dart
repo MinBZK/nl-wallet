@@ -17,6 +17,8 @@ class AttributeValueFormatter {
       NumberValue() => '${attribute.value}',
       DateValue() => _prettyPrintDateTime(locale, attribute.value),
       ArrayValue() => _formatArrayValue(locale, attribute),
+      ImageValue() => l10n.cardValueImage,
+      MapValue() => _formatMapValue(locale, attribute),
       NullValue() => l10n.cardValueNull,
     };
   }
@@ -24,6 +26,11 @@ class AttributeValueFormatter {
   static String _formatArrayValue(Locale locale, ArrayValue attribute) {
     if (attribute.value.isEmpty) return locale.l10n.cardValueEmptyList;
     return attribute.value.map((it) => '  • ${formatWithLocale(locale, it)}').join('\n');
+  }
+
+  static String _formatMapValue(Locale locale, MapValue attribute) {
+    if (attribute.value.isEmpty) return locale.l10n.cardValueEmptyList;
+    return attribute.value.entries.map((it) => '${it.key}: ${formatWithLocale(locale, it.value)}').join('\n');
   }
 
   static String _prettyPrintDateTime(Locale locale, DateTime dateTime) {

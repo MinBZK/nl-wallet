@@ -92,6 +92,8 @@ class DataAttributeRow extends StatelessWidget {
       case BooleanValue():
       case NumberValue():
       case DateValue():
+      case ImageValue():
+      case MapValue():
         return null;
     }
   }

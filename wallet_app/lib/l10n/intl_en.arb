@@ -274,6 +274,7 @@
     "cardValueEmpty": "Left empty",
     "cardValueEmptyList": "Left empty",
     "cardValueFalse": "No",
+    "cardValueImage": "Photo",
     "cardValueNull": "Not provided",
     "cardValueTrue": "Yes",
     "changeLanguageScreenTitle": "Select a language",

@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../app_image_data.dart';
+
 sealed class AttributeValue extends Equatable {
   /// Dynamic value getter, used to implement [Equatable] once vs in every subclass
   dynamic get value;
@@ -30,7 +32,7 @@ class BooleanValue extends AttributeValue {
 
 class NumberValue extends AttributeValue {
   @override
-  final int value;
+  final num value;
 
   const NumberValue(this.value);
 }
@@ -50,6 +52,28 @@ class ArrayValue extends AttributeValue {
 
   @override
   String toString() => value.join(', ');
+}
+
+/// Only provided by mdoc based attestations, e.g. the portrait of an mDL.
+class ImageValue extends AttributeValue {
+  @override
+  final AppImageData value;
+
+  const ImageValue(this.value);
+
+  @override
+  String toString() => '<IMAGE>';
+}
+
+/// Only provided by mdoc based attestations, e.g. a single entry of the mDL driving_privileges.
+class MapValue extends AttributeValue {
+  @override
+  final Map<String, AttributeValue> value;
+
+  const MapValue(this.value);
+
+  @override
+  String toString() => value.entries.map((it) => '${it.key}: ${it.value}').join(', ');
 }
 
 class NullValue extends AttributeValue {
