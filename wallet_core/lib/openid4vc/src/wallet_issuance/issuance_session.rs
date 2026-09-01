@@ -2242,6 +2242,7 @@ mod tests {
         pub trust_anchors: TrustAnchors,
         issuer_key: KeyPair,
         metadata_integrity: Integrity,
+        pub first_metadata_integrity_random: bool,
         normalized_metadata: NormalizedTypeMetadata,
         preview_payload: PreviewableCredentialPayload,
     }
@@ -2301,6 +2302,7 @@ mod tests {
                 trust_anchors,
                 issuer_key,
                 metadata_integrity,
+                first_metadata_integrity_random: false,
                 normalized_metadata,
                 preview_payload,
             };
@@ -2338,16 +2340,25 @@ mod tests {
             credential_id: &str,
             holder_pubkeys: impl IntoNonEmptyIterator<Item = &'a PublicKey>,
         ) -> CredentialResponse {
-            let credential_payloads = holder_pubkeys.into_nonempty_iter().map(|holder_pubkey| {
-                CredentialPayload::from_previewable_credential_payload_unvalidated(
-                    self.preview_payload.clone(),
-                    Utc::now(),
-                    holder_pubkey,
-                    self.metadata_integrity.clone(),
-                    StatusClaim::new_mock(),
-                )
-                .unwrap()
-            });
+            let credential_payloads = holder_pubkeys
+                .into_nonempty_iter()
+                .enumerate()
+                .map(|(index, holder_pubkey)| {
+                    let metadata_integrity = if self.first_metadata_integrity_random && index == 0 {
+                        Integrity::from(crypto::utils::random_bytes(32))
+                    } else {
+                        self.metadata_integrity.clone()
+                    };
+
+                    CredentialPayload::from_previewable_credential_payload_unvalidated(
+                        self.preview_payload.clone(),
+                        Utc::now(),
+                        holder_pubkey,
+                        metadata_integrity,
+                        StatusClaim::new_mock(),
+                    )
+                    .unwrap()
+                });
 
             let credentials = match self
                 .formats_by_credential_id
@@ -2565,6 +2576,42 @@ mod tests {
     }
 
     #[test]
+    fn test_accept_issuance_error_metadata_integrity_inconsistent() {
+        let (mut signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id_1".to_string(), Format::SdJwt)]),
+        );
+        let trust_anchors = signer.trust_anchors.clone();
+
+        // Prepare one of the returned SD-JWT copies to have an incorrect resource integrity in its payload.
+        signer.first_metadata_integrity_random = true;
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                let response = signer.response_from_request(credential_request);
+
+                Ok(response)
+            },
+        );
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, vec![type_metadata], 4.try_into().unwrap(), true),
+        }
+        .accept_issuance(
+            &AcceptIssuanceSelection::All,
+            &trust_anchors,
+            &MockRemoteWscd::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::MetadataIntegrityInconsistent);
+    }
+
+    #[test]
     fn test_accept_issuance_error_metadata_integrity_verification() {
         let (mut signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
             HashMap::from([("credential_id".to_string(), Format::SdJwt)]),
@@ -2572,7 +2619,7 @@ mod tests {
         let trust_anchors = signer.trust_anchors.clone();
 
         // Include a random resource integrity in the payload of the returned SD-JWT.
-        signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
+        signer.first_metadata_integrity_random = true;
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
