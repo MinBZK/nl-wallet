@@ -19,6 +19,26 @@ use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
 
+use crate::authorization_code_flow::InvalidAuthorizationRequest;
+use crate::authorizing_issuer::AuthorizationRequestError;
+use crate::authorizing_issuer::AuthorizeError;
+use crate::authorizing_issuer::CompleteAuthorizationError;
+use crate::authorizing_issuer::ParError;
+use crate::issuer::CredentialPreviewError;
+use crate::issuer::CredentialRequestError;
+use crate::issuer::IssuanceError;
+use crate::issuer::TokenRequestError;
+use crate::issuer::WiaVerificationError;
+use crate::verifier::CancelSessionError;
+use crate::verifier::DisclosedAttributesError;
+use crate::verifier::GetAuthRequestError;
+use crate::verifier::NewSessionError;
+use crate::verifier::PostAuthResponseError;
+use crate::verifier::SessionError;
+use crate::verifier::SessionStatus;
+use crate::verifier::SessionStatusError;
+use crate::verifier::WithRedirectUri;
+
 pub type RemoteDisclosureErrorResponse<T> = DisclosureErrorResponse<RemoteErrorCode<T>>;
 
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
@@ -54,26 +74,6 @@ impl<T> From<DisclosureErrorResponse<T>> for DisclosureErrorResponse<RemoteError
         }
     }
 }
-
-use crate::authorization_code_flow::InvalidAuthorizationRequest;
-use crate::authorizing_issuer::AuthorizationRequestError;
-use crate::authorizing_issuer::AuthorizeError;
-use crate::authorizing_issuer::CompleteAuthorizationError;
-use crate::authorizing_issuer::ParError;
-use crate::issuer::CredentialPreviewError;
-use crate::issuer::CredentialRequestError;
-use crate::issuer::IssuanceError;
-use crate::issuer::TokenRequestError;
-use crate::issuer::WiaVerificationError;
-use crate::verifier::CancelSessionError;
-use crate::verifier::DisclosedAttributesError;
-use crate::verifier::GetAuthRequestError;
-use crate::verifier::NewSessionError;
-use crate::verifier::PostAuthResponseError;
-use crate::verifier::SessionError;
-use crate::verifier::SessionStatus;
-use crate::verifier::SessionStatusError;
-use crate::verifier::WithRedirectUri;
 
 impl<E, T> From<WithRedirectUri<E>> for DisclosureErrorResponse<T>
 where
