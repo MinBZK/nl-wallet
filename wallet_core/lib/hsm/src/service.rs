@@ -209,13 +209,9 @@ pub trait Pkcs11Client {
     async fn delete_key(&self, key_handle: impl KeyHandle) -> Result<()>;
     async fn sign<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8]) -> Result<Vec<u8>>;
     async fn verify<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8], signature: Vec<u8>) -> Result<()>;
-    async fn encrypt(
-        &self,
-        key_handle: &SecretKeyHandle,
-        iv: InitializationVector,
-        data: Vec<u8>,
-    ) -> Result<(Vec<u8>, InitializationVector)>;
-    async fn decrypt(
+    async fn encrypt_gcm(&self, key_handle: &SecretKeyHandle, data: Vec<u8>)
+    -> Result<(Vec<u8>, InitializationVector)>;
+    async fn decrypt_gcm(
         &self,
         key_handle: &SecretKeyHandle,
         iv: InitializationVector,
@@ -396,17 +392,15 @@ impl Hsm for Pkcs11Hsm {
         Pkcs11Client::verify(self, &handle, data, signature).await
     }
 
-    async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>> {
-        let iv = random_bytes(32);
+    async fn encrypt_gcm<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>> {
         let handle = self.get_secret_key_handle(identifier).await?;
-        let (encrypted_data, initialization_vector) =
-            Pkcs11Client::encrypt(self, &handle, InitializationVector(iv), data).await?;
+        let (encrypted_data, initialization_vector) = Pkcs11Client::encrypt_gcm(self, &handle, data).await?;
         Ok(Encrypted::new(encrypted_data, initialization_vector))
     }
 
-    async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
+    async fn decrypt_gcm<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
         let handle = self.get_secret_key_handle(identifier).await?;
-        Pkcs11Client::decrypt(self, &handle, encrypted.iv, encrypted.data).await
+        Pkcs11Client::decrypt_gcm(self, &handle, encrypted.iv, encrypted.data).await
     }
 }
 
@@ -644,16 +638,16 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn encrypt(
+    async fn encrypt_gcm(
         &self,
         key_handle: &SecretKeyHandle,
-        mut iv: InitializationVector,
         data: Vec<u8>,
     ) -> Result<(Vec<u8>, InitializationVector)> {
         let pool = self.pool.clone();
         let object_handle = key_handle.to_object_handle();
 
         spawn::blocking(move || {
+            let mut iv = InitializationVector(random_bytes(12));
             let session = pool.get()?;
             let gcm_params = GcmParams::new(iv.0.as_mut_slice(), &[], AES_AUTHENTICATION_TAG_BITS.into())?;
             let encrypted_data = session.encrypt(&Mechanism::AesGcm(gcm_params), object_handle, &data)?;
@@ -663,7 +657,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn decrypt(
+    async fn decrypt_gcm(
         &self,
         key_handle: &SecretKeyHandle,
         mut iv: InitializationVector,
