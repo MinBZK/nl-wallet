@@ -7,8 +7,13 @@ import '../../../../util/extension/string_extension.dart';
 import '../../../../util/formatter/attribute_value_formatter.dart';
 import '../../../../util/helper/bsn_helper.dart';
 import '../../../../util/helper/semantics_helper.dart';
+import '../app_image.dart';
 import '../bullet_list_dot.dart';
 import '../list/list_item.dart';
+
+/// Bounds the rendered height of an [ImageValue], e.g. the portrait of an mDL.
+const _kImageHeight = 160.0;
+const _kImageBorderRadius = 4.0;
 
 class DataAttributeRow extends StatelessWidget {
   final DataAttribute attribute;
@@ -34,17 +39,37 @@ class DataAttributeRow extends StatelessWidget {
   }
 
   Widget _buildSubtitle(BuildContext context, AttributeValue attributeValue) {
-    final prettyValue = attributeValue.prettyPrint(context);
-
     // Check for non-empty array, this value is not simply formatted and displayed.
     if (attributeValue is ArrayValue && attributeValue.value.isNotEmpty) {
       return _buildArrayStyleSubtitle(context, attributeValue);
     }
 
+    // An image is rendered instead of formatted.
+    if (attributeValue is ImageValue) return _buildImageSubtitle(context, attributeValue);
+
+    final prettyValue = attributeValue.prettyPrint(context);
     return Text.rich(
       prettyValue.toTextSpan(context),
       semanticsLabel: BsnHelper.isValidBsnFormat(prettyValue) ? SemanticsHelper.splitNumberString(prettyValue) : null,
       style: _resolveSubtitleStyle(context, attribute.value),
+    );
+  }
+
+  Widget _buildImageSubtitle(BuildContext context, ImageValue imageValue) {
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(_kImageBorderRadius),
+          child: AppImage(
+            asset: imageValue.value,
+            height: _kImageHeight,
+            // Without this the row announces the label but never the fact that it holds a value.
+            altText: imageValue.prettyPrint(context),
+          ),
+        ),
+      ),
     );
   }
 

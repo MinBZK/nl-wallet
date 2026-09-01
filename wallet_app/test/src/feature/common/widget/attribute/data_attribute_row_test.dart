@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/attribute/data_attribute_row.dart';
 
@@ -92,6 +93,45 @@ void main() {
         surfaceSize: kGoldenSize,
       );
       await screenMatchesGolden('data_attribute_row/date_value');
+    });
+
+    testGoldens('Image', (tester) async {
+      // Portrait aspect ratio, so that the width derived from the bounded height is visible.
+      const portraitSvg = '''
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+          <rect width="300" height="400" fill="#E4EBFB"/>
+          <circle cx="150" cy="150" r="70" fill="#0E47CB"/>
+          <path d="M30 400c0-70 54-120 120-120s120 50 120 120z" fill="#0E47CB"/>
+        </svg>
+      ''';
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Portrait',
+            value: const ImageValue(SvgImage(portraitSvg)),
+            key: 'mock_image',
+          ),
+        ),
+        surfaceSize: const Size(220, 212),
+      );
+      await screenMatchesGolden('data_attribute_row/image_value');
+    });
+
+    testGoldens('Map', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Driving privilege',
+            value: MapValue({
+              'vehicle_category_code': const StringValue('B'),
+              'issue_date': DateValue(DateTime(2017, 2, 23)),
+            }),
+            key: 'mock_map',
+          ),
+        ),
+        surfaceSize: const Size(220, 72),
+      );
+      await screenMatchesGolden('data_attribute_row/map_value');
     });
 
     testGoldens('Null', (tester) async {
