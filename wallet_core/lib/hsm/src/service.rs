@@ -165,6 +165,7 @@ impl SignVerifyKeyHandle for PrivateKeyHandle {
 const AES_AUTHENTICATION_TAG_BITS: u64 = 128;
 pub const AES_BLOCK_SIZE: usize = 16;
 const AES_CTR_COUNTER_BITS: u64 = (AES_BLOCK_SIZE * 8) as u64;
+const AES_GCM_IV_BYTES_SIZE: usize = 12;
 
 enum HandleType {
     Secret,
@@ -647,7 +648,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         let object_handle = key_handle.to_object_handle();
 
         spawn::blocking(move || {
-            let mut iv = InitializationVector(random_bytes(12));
+            let mut iv = InitializationVector(random_bytes(AES_GCM_IV_BYTES_SIZE));
             let session = pool.get()?;
             let gcm_params = GcmParams::new(iv.0.as_mut_slice(), &[], AES_AUTHENTICATION_TAG_BITS.into())?;
             let encrypted_data = session.encrypt(&Mechanism::AesGcm(gcm_params), object_handle, &data)?;
