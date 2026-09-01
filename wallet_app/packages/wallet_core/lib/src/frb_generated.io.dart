@@ -242,6 +242,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Uint16List dco_decode_list_prim_u_16_strict(dynamic raw);
 
   @protected
+  List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
@@ -562,6 +565,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer);
+
+  @protected
+  List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -1013,6 +1019,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_list_prim_u_8_loose> cst_encode_list_prim_u_8_loose(List<int> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_prim_u_8_loose(raw.length);
+    ans.ref.ptr.asTypedList(raw.length).setAll(0, raw);
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_list_prim_u_8_strict(Uint8List raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_prim_u_8_strict(raw.length);
@@ -1221,15 +1235,21 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Date.value = pre_value;
       return;
     }
+    if (apiObj is AttributeValue_Bytes) {
+      var pre_value = cst_encode_list_prim_u_8_strict(apiObj.value);
+      wireObj.tag = 6;
+      wireObj.kind.Bytes.value = pre_value;
+      return;
+    }
     if (apiObj is AttributeValue_Image) {
       var pre_value = cst_encode_box_autoadd_image(apiObj.value);
-      wireObj.tag = 6;
+      wireObj.tag = 7;
       wireObj.kind.Image.value = pre_value;
       return;
     }
     if (apiObj is AttributeValue_Map) {
       var pre_value = cst_encode_list_record_string_attribute_value(apiObj.value);
-      wireObj.tag = 7;
+      wireObj.tag = 8;
       wireObj.kind.Map.value = pre_value;
       return;
     }
@@ -2139,6 +2159,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_list_prim_u_16_strict(Uint16List self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
 
   @protected
@@ -2883,6 +2906,28 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__identify_uri = _wire__crate__api__full__identify_uriPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
+  void wire__crate__models__image__image_try_jpeg_from_bytes(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_loose> value,
+  ) {
+    return _wire__crate__models__image__image_try_jpeg_from_bytes(port_, value);
+  }
+
+  late final _wire__crate__models__image__image_try_jpeg_from_bytesPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+          )
+        >
+      >(
+        'frbgen_wallet_core_wire__crate__models__image__image_try_jpeg_from_bytes',
+      );
+  late final _wire__crate__models__image__image_try_jpeg_from_bytes =
+      _wire__crate__models__image__image_try_jpeg_from_bytesPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_loose>)>();
+
   void wire__crate__api__full__init(int port_) {
     return _wire__crate__api__full__init(port_);
   }
@@ -3616,6 +3661,19 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_list_prim_u_16_strict = _cst_new_list_prim_u_16_strictPtr
       .asFunction<ffi.Pointer<wire_cst_list_prim_u_16_strict> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_prim_u_8_loose> cst_new_list_prim_u_8_loose(
+    int len,
+  ) {
+    return _cst_new_list_prim_u_8_loose(len);
+  }
+
+  late final _cst_new_list_prim_u_8_loosePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_prim_u_8_loose> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_prim_u_8_loose',
+      );
+  late final _cst_new_list_prim_u_8_loose = _cst_new_list_prim_u_8_loosePtr
+      .asFunction<ffi.Pointer<wire_cst_list_prim_u_8_loose> Function(int)>();
+
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_new_list_prim_u_8_strict(
     int len,
   ) {
@@ -3710,6 +3768,13 @@ final class wire_cst_list_prim_u_16_loose extends ffi.Struct {
 }
 
 final class wire_cst_list_prim_u_8_strict extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint8> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_list_prim_u_8_loose extends ffi.Struct {
   external ffi.Pointer<ffi.Uint8> ptr;
 
   @ffi.Int32()
@@ -3918,6 +3983,10 @@ final class wire_cst_AttributeValue_Date extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
 }
 
+final class wire_cst_AttributeValue_Bytes extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
+}
+
 final class wire_cst_AttributeValue_Image extends ffi.Struct {
   external ffi.Pointer<wire_cst_image> value;
 }
@@ -3949,6 +4018,8 @@ final class AttributeValueKind extends ffi.Union {
   external wire_cst_AttributeValue_Array Array;
 
   external wire_cst_AttributeValue_Date Date;
+
+  external wire_cst_AttributeValue_Bytes Bytes;
 
   external wire_cst_AttributeValue_Image Image;
 

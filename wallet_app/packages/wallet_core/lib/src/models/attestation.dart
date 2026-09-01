@@ -116,6 +116,9 @@ sealed class AttributeValue with _$AttributeValue {
   const factory AttributeValue.date({
     required String value,
   }) = AttributeValue_Date;
+  const factory AttributeValue.bytes({
+    required Uint8List value,
+  }) = AttributeValue_Bytes;
   const factory AttributeValue.image({
     required Image value,
   }) = AttributeValue_Image;

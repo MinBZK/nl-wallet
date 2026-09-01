@@ -207,7 +207,8 @@ pub enum AttributeValue {
 
     // only available for mdocs
     Date { value: String },
-    Image { value: Image },
+    Bytes { value: Vec<u8> },
+    Image { value: Image }, // bytes that represent an image
     Map { value: Vec<(String, AttributeValue)> },
 }
 
@@ -227,11 +228,9 @@ impl From<attestation_data::Attribute> for AttributeValue {
             attestation_data::Attribute::Date(date) => AttributeValue::Date {
                 value: date.format("%Y-%m-%d").to_string(),
             },
-            attestation_data::Attribute::Bytes(bytes) => match bytes.try_into() {
+            attestation_data::Attribute::Bytes(bytes) => match Image::try_jpeg_from_bytes(bytes) {
                 Ok(value) => AttributeValue::Image { value },
-                Err(bytes) => AttributeValue::String {
-                    value: hex::encode(bytes), // TODO what to do with this
-                },
+                Err(value) => AttributeValue::Bytes { value },
             },
             attestation_data::Attribute::Object(entries) => AttributeValue::Map {
                 value: entries.into_iter().map(|(key, value)| (key, value.into())).collect(),

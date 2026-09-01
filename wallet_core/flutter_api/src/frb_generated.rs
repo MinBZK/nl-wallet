@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -591652018;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 872502596;
 
 // Section: executor
 
@@ -933,6 +933,27 @@ fn wire__crate__api__full__identify_uri_impl(
                     })()
                     .await,
                 )
+            }
+        },
+    )
+}
+fn wire__crate__models__image__image_try_jpeg_from_bytes_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    value: impl CstDecode<Vec<u8>>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "image_try_jpeg_from_bytes",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_value = value.cst_decode();
+            move |context| {
+                transform_result_dco::<_, _, Vec<u8>>((move || {
+                    let output_ok = crate::models::image::Image::try_jpeg_from_bytes(api_value)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -2052,10 +2073,14 @@ impl SseDecode for crate::models::attestation::AttributeValue {
                 return crate::models::attestation::AttributeValue::Date { value: var_value };
             }
             6 => {
+                let mut var_value = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::attestation::AttributeValue::Bytes { value: var_value };
+            }
+            7 => {
                 let mut var_value = <crate::models::image::Image>::sse_decode(deserializer);
                 return crate::models::attestation::AttributeValue::Image { value: var_value };
             }
-            7 => {
+            8 => {
                 let mut var_value =
                     <Vec<(String, crate::models::attestation::AttributeValue)>>::sse_decode(deserializer);
                 return crate::models::attestation::AttributeValue::Map { value: var_value };
@@ -3433,11 +3458,14 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttributeValu
             crate::models::attestation::AttributeValue::Date { value } => {
                 [5.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::attestation::AttributeValue::Image { value } => {
+            crate::models::attestation::AttributeValue::Bytes { value } => {
                 [6.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::attestation::AttributeValue::Map { value } => {
+            crate::models::attestation::AttributeValue::Image { value } => {
                 [7.into_dart(), value.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::attestation::AttributeValue::Map { value } => {
+                [8.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -4547,12 +4575,16 @@ impl SseEncode for crate::models::attestation::AttributeValue {
                 <i32>::sse_encode(5, serializer);
                 <String>::sse_encode(value, serializer);
             }
-            crate::models::attestation::AttributeValue::Image { value } => {
+            crate::models::attestation::AttributeValue::Bytes { value } => {
                 <i32>::sse_encode(6, serializer);
+                <Vec<u8>>::sse_encode(value, serializer);
+            }
+            crate::models::attestation::AttributeValue::Image { value } => {
+                <i32>::sse_encode(7, serializer);
                 <crate::models::image::Image>::sse_encode(value, serializer);
             }
             crate::models::attestation::AttributeValue::Map { value } => {
-                <i32>::sse_encode(7, serializer);
+                <i32>::sse_encode(8, serializer);
                 <Vec<(String, crate::models::attestation::AttributeValue)>>::sse_encode(value, serializer);
             }
             _ => {
@@ -5875,12 +5907,18 @@ mod io {
                     }
                 }
                 6 => {
+                    let ans = unsafe { self.kind.Bytes };
+                    crate::models::attestation::AttributeValue::Bytes {
+                        value: ans.value.cst_decode(),
+                    }
+                }
+                7 => {
                     let ans = unsafe { self.kind.Image };
                     crate::models::attestation::AttributeValue::Image {
                         value: ans.value.cst_decode(),
                     }
                 }
-                7 => {
+                8 => {
                     let ans = unsafe { self.kind.Map };
                     crate::models::attestation::AttributeValue::Map {
                         value: ans.value.cst_decode(),
@@ -6262,6 +6300,15 @@ mod io {
     impl CstDecode<Vec<u16>> for *mut wire_cst_list_prim_u_16_strict {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<u16> {
+            unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            }
+        }
+    }
+    impl CstDecode<Vec<u8>> for *mut wire_cst_list_prim_u_8_loose {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<u8> {
             unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -7374,6 +7421,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__models__image__image_try_jpeg_from_bytes(
+        port_: i64,
+        value: *mut wire_cst_list_prim_u_8_loose,
+    ) {
+        wire__crate__models__image__image_try_jpeg_from_bytes_impl(port_, value)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__init(port_: i64) {
         wire__crate__api__full__init_impl(port_)
     }
@@ -7804,6 +7859,15 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_8_loose(len: i32) -> *mut wire_cst_list_prim_u_8_loose {
+        let ans = wire_cst_list_prim_u_8_loose {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(ans)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_8_strict(len: i32) -> *mut wire_cst_list_prim_u_8_strict {
         let ans = wire_cst_list_prim_u_8_strict {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
@@ -7933,6 +7997,7 @@ mod io {
         Number: wire_cst_AttributeValue_Number,
         Array: wire_cst_AttributeValue_Array,
         Date: wire_cst_AttributeValue_Date,
+        Bytes: wire_cst_AttributeValue_Bytes,
         Image: wire_cst_AttributeValue_Image,
         Map: wire_cst_AttributeValue_Map,
         nil__: (),
@@ -7960,6 +8025,11 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_AttributeValue_Date {
+        value: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_AttributeValue_Bytes {
         value: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
@@ -8219,6 +8289,12 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_list_prim_u_16_strict {
         ptr: *mut u16,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_prim_u_8_loose {
+        ptr: *mut u8,
         len: i32,
     }
     #[repr(C)]

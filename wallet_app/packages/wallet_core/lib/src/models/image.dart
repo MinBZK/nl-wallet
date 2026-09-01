@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'image.freezed.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `try_from`, `try_from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `try_from`
 
 // Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SanitizedSvg>>
 abstract class SanitizedSvg implements RustOpaqueInterface {
@@ -31,6 +31,9 @@ sealed class Image with _$Image {
   const factory Image.asset({
     required String path,
   }) = Image_Asset;
+
+  static Future<Image> tryJpegFromBytes({required List<int> value}) =>
+      WalletCore.instance.api.crateModelsImageImageTryJpegFromBytes(value: value);
 }
 
 class ImageWithMetadata {
