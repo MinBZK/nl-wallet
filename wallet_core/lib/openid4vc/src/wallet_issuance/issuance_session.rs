@@ -2535,6 +2535,34 @@ mod tests {
     }
 
     #[test]
+    fn test_accept_issuance_error_accept_selection_out_of_bounds() {
+        let (signer, previews, type_metadata) =
+            MockCredentialSigner::new_with_preview_and_type_metadata(HashMap::from([
+                ("credential_id_1".to_string(), Format::SdJwt),
+                ("credential_id_2".to_string(), Format::SdJwt),
+                ("credential_id_3".to_string(), Format::SdJwt),
+            ]));
+
+        let error = HttpIssuanceSession {
+            message_client: MockVcMessageClient::new(),
+            session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
+        }
+        .accept_issuance(
+            &AcceptIssuanceSelection::PreviewIndices(HashSet::from([2, 3, 42])),
+            &signer.trust_anchors,
+            &MockRemoteWscd::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::AcceptSelectionOutOfBounds(indices) if indices == HashSet::from([3, 42])
+        );
+    }
+
+    #[test]
     fn test_accept_issuance_error_resource_integrity() {
         let (mut signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
             HashMap::from([("credential_id".to_string(), Format::SdJwt)]),
