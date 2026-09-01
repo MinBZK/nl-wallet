@@ -638,6 +638,7 @@ mod test {
     use crate::credential_offer::PreAuthTransactionCode;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
+    use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
     use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
@@ -727,7 +728,7 @@ mod test {
                     "type_metadata_uri": issuer_identifier
                                             .as_issuer_url()
                                             .join_issuer_url("/issuance/type_metadata")
-                                            .join_config_id(CONFIG_ID.as_ref()),
+                                            .join_config_id(&CONFIG_ID),
                 }
             },
         });
