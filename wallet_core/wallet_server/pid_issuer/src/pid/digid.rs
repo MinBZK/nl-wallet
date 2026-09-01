@@ -28,7 +28,7 @@ use oauth::userinfo::UserInfoError;
 use oauth::userinfo::request_userinfo;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::errors::TokenErrorCode;
+use openid4vc::errors::VciTokenErrorCode;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -40,7 +40,7 @@ const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A12
 
 static OPENID_SCOPE: LazyLock<Scope> = LazyLock::new(|| "openid".parse().expect("\"openid\" is a valid scope"));
 
-pub type TokenError = oauth::token::TokenEndpointError<TokenErrorCode>;
+pub type TokenError = oauth::token::TokenEndpointError<VciTokenErrorCode>;
 
 #[derive(Serialize, Deserialize)]
 pub struct DigidUserInfo {

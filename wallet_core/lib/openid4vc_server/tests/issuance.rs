@@ -44,7 +44,7 @@ use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::Credentials;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::errors::TokenErrorCode;
+use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
@@ -530,7 +530,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     assert_matches!(
         error,
         WalletIssuanceError::VciTokenRequest(error_response)
-            if error_response.error == RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation)
+            if error_response.error == RemoteErrorCode::Known(VciTokenErrorCode::InvalidClientAttestation)
     );
 }
 

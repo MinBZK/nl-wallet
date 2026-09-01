@@ -131,7 +131,7 @@ impl ErrorStatusCode for ParErrorCode {
 /// See <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
-pub enum TokenErrorCode {
+pub enum VciTokenErrorCode {
     InvalidRequest,
     InvalidClient,
     InvalidGrant,
@@ -153,7 +153,7 @@ pub enum TokenErrorCode {
     ServerError,
 }
 
-impl ErrorStatusCode for TokenErrorCode {
+impl ErrorStatusCode for VciTokenErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidRequest
@@ -243,11 +243,11 @@ impl ErrorWithCode for ParError {
 }
 
 impl ErrorWithCode for TokenRequestError {
-    type ErrorCode = TokenErrorCode;
+    type ErrorCode = VciTokenErrorCode;
 
     fn error_code(&self) -> Self::ErrorCode {
         match self {
-            Self::IssuanceError(IssuanceError::SessionStore(_)) => TokenErrorCode::ServerError,
+            Self::IssuanceError(IssuanceError::SessionStore(_)) => VciTokenErrorCode::ServerError,
 
             // A missing session (cleaned up) or a session in a terminal/wrong state (already used or
             // expired) both mean the authorization grant presented at `/token` is no longer valid.
@@ -257,33 +257,37 @@ impl ErrorWithCode for TokenRequestError {
             // (there are no PKCE / client_id / scope / redirect_uri checks that also yield it), so the
             // wallet can unambiguously map a pre-authorized `invalid_grant` onto a specific error without
             // relying on a non-standard error code.
-            Self::SessionNotFound | Self::IssuanceError(IssuanceError::UnexpectedState) => TokenErrorCode::InvalidGrant,
+            Self::SessionNotFound | Self::IssuanceError(IssuanceError::UnexpectedState) => {
+                VciTokenErrorCode::InvalidGrant
+            }
 
-            Self::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+            Self::IssuanceError(_) => VciTokenErrorCode::InvalidRequest,
 
-            Self::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
+            Self::UnexpectedGrantType { .. } => VciTokenErrorCode::UnsupportedGrantType,
 
-            Self::Wia(WiaVerificationError::WiaVerification(WiaError::Expired)) => TokenErrorCode::UseFreshAttestation,
+            Self::Wia(WiaVerificationError::WiaVerification(WiaError::Expired)) => {
+                VciTokenErrorCode::UseFreshAttestation
+            }
 
-            Self::Wia(WiaVerificationError::ChallengeStore(_)) => TokenErrorCode::ServerError,
+            Self::Wia(WiaVerificationError::ChallengeStore(_)) => VciTokenErrorCode::ServerError,
 
             Self::Wia(WiaVerificationError::InvalidChallenge)
             | Self::Wia(WiaVerificationError::MissingChallenge)
-            | Self::Wia(WiaVerificationError::WiaVerification(_)) => TokenErrorCode::InvalidClientAttestation,
+            | Self::Wia(WiaVerificationError::WiaVerification(_)) => VciTokenErrorCode::InvalidClientAttestation,
 
-            Self::MissingCodeVerifier | Self::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
+            Self::MissingCodeVerifier | Self::PkceVerificationFailed => VciTokenErrorCode::InvalidGrant,
 
-            Self::UnknownClient(_) => TokenErrorCode::InvalidClient,
+            Self::UnknownClient(_) => VciTokenErrorCode::InvalidClient,
 
-            Self::ClientIdMismatch { .. } => TokenErrorCode::InvalidGrant,
+            Self::ClientIdMismatch { .. } => VciTokenErrorCode::InvalidGrant,
 
-            Self::AuthorizationDetailsUnsupported => TokenErrorCode::InvalidRequest,
+            Self::AuthorizationDetailsUnsupported => VciTokenErrorCode::InvalidRequest,
 
-            Self::ScopeMismatch { .. } | Self::PreAuthorizedScopeUnsupported(_) => TokenErrorCode::InvalidScope,
+            Self::ScopeMismatch { .. } | Self::PreAuthorizedScopeUnsupported(_) => VciTokenErrorCode::InvalidScope,
 
-            Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => TokenErrorCode::InvalidRequest,
+            Self::MissingRedirectUri | Self::RedirectUriMismatch { .. } => VciTokenErrorCode::InvalidRequest,
 
-            Self::CredentialConfigNotOffered(_) => TokenErrorCode::ServerError,
+            Self::CredentialConfigNotOffered(_) => VciTokenErrorCode::ServerError,
         }
     }
 }
@@ -753,7 +757,7 @@ mod tests {
     use super::CredentialRequestError;
     use super::ErrorWithCode;
     use super::ParErrorCode;
-    use super::TokenErrorCode;
+    use super::VciTokenErrorCode;
     use crate::issuer::IssuanceError;
     use crate::issuer::TokenRequestError;
 
@@ -783,11 +787,11 @@ mod tests {
         // `invalid_grant`, which lets the wallet render the "QR code no longer valid" screen.
         assert_eq!(
             TokenRequestError::SessionNotFound.error_code(),
-            TokenErrorCode::InvalidGrant
+            VciTokenErrorCode::InvalidGrant
         );
         assert_eq!(
             TokenRequestError::IssuanceError(IssuanceError::UnexpectedState).error_code(),
-            TokenErrorCode::InvalidGrant
+            VciTokenErrorCode::InvalidGrant
         );
     }
 
