@@ -4,6 +4,7 @@ use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::metadata::AttestationMetadata;
 use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
@@ -74,13 +75,15 @@ impl AttestationPresentation {
         identity: AttestationIdentity,
         format: Format,
         attestation_type: String,
-        metadata: NormalizedTypeMetadata,
+        metadata: impl AttestationMetadata,
         issuer: Box<Organization>,
         validity: AttestationValidity,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let (display_metadata, claims) = metadata.into_presentation_components();
+        let (display_metadata, claims) = metadata
+            .into_presentation_components()
+            .map_err(AttestationError::Metadata)?;
 
         // For every claim in the metadata, find the correct attribute
         // and convert it to a `AttestationAttribute` value (with optionally Json Schema metadata).
@@ -109,7 +112,7 @@ impl AttestationPresentation {
                     key: claim_path,
                     metadata: claim.display,
                     value: value.to_owned(),
-                    svg_id: claim.svg_id.map(String::from),
+                    svg_id: claim.svg_id,
                 })
             }
         }

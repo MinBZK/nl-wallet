@@ -3,12 +3,18 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::ops::Not;
+use std::str::FromStr;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::data_uri::DataUri;
+use attestation_types::image::Image;
+use attestation_types::metadata::AttestationMetadata;
+use attestation_types::metadata::AttestationMetadataError;
 use attestation_types::metadata::BackgroundImageMetadata;
+use attestation_types::metadata::ClaimDescription;
+use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::metadata::DisplayMetadata;
 use attestation_types::metadata::LogoMetadata;
 use attestation_types::metadata::RenderingMetadata;
@@ -747,25 +753,194 @@ impl From<ClaimMetadata> for CredentialClaim {
     }
 }
 
+impl CredentialMetadata {
+    fn claim_descriptions(&self) -> impl Iterator<Item = &CredentialClaim> {
+        self.claims.iter().flat_map(|claims| claims.iter())
+    }
+}
+
+impl AttestationMetadata for CredentialMetadata {
+    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
+        self.claim_descriptions().filter_map(|claim| {
+            let path = claim
+                .path
+                .iter()
+                .map(ClaimPath::try_key_path)
+                .collect::<Option<Vec<_>>>()?;
+
+            Some(path.try_into().expect("source of path is non-empty"))
+        })
+    }
+
+    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
+        self.claim_descriptions()
+            .filter(|claim| claim.mandatory)
+            .map(|claim| &claim.path)
+    }
+
+    fn into_presentation_components(
+        self,
+    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
+        // Note that metadata without any display properties or claims is deliberately not an error here, but rather a
+        // UI concern.
+        let display = self
+            .display
+            .map(|display| {
+                display
+                    .into_inner()
+                    .into_iter()
+                    .map(DisplayMetadata::try_from)
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .transpose()?
+            .unwrap_or_default();
+
+        let claims = self
+            .claims
+            .map(|claims| claims.into_inner().into_iter().map(ClaimDescription::from).collect())
+            .unwrap_or_default();
+
+        Ok((display, claims))
+    }
+}
+
+impl TryFrom<CredentialDisplay> for DisplayMetadata {
+    type Error = AttestationMetadataError;
+
+    fn try_from(value: CredentialDisplay) -> Result<Self, Self::Error> {
+        let CredentialDisplay {
+            name_locale: NameLocale { name, locale },
+            logo,
+            description,
+            background_color,
+            background_image,
+            text_color,
+        } = value;
+
+        let locale = locale.ok_or(AttestationMetadataError::NoDisplayLocale)?;
+        let name = name.ok_or_else(|| AttestationMetadataError::NoDisplayName(Some(locale.clone())))?;
+
+        let logo = logo.map(LogoMetadata::try_from).transpose()?;
+        let background_image = background_image.map(BackgroundImageMetadata::try_from).transpose()?;
+
+        // Only include rendering information if any of its properties is actually present.
+        let rendering =
+            (logo.is_some() || background_image.is_some() || background_color.is_some() || text_color.is_some())
+                .then_some(RenderingMetadata::Simple {
+                    logo,
+                    background_image,
+                    background_color,
+                    text_color,
+                });
+
+        let display = Self {
+            locale,
+            name,
+            description,
+            summary: None,
+            rendering,
+        };
+
+        Ok(display)
+    }
+}
+
+impl TryFrom<Logo> for LogoMetadata {
+    type Error = AttestationMetadataError;
+
+    fn try_from(value: Logo) -> Result<Self, Self::Error> {
+        let logo = Self {
+            image: image_from_uri(&value.uri)?,
+            alt_text: value.alt_text.unwrap_or_default().into(),
+        };
+
+        Ok(logo)
+    }
+}
+
+impl TryFrom<BackgroundImage> for BackgroundImageMetadata {
+    type Error = AttestationMetadataError;
+
+    fn try_from(value: BackgroundImage) -> Result<Self, Self::Error> {
+        let background_image = Self {
+            image: image_from_uri(&value.uri)?,
+        };
+
+        Ok(background_image)
+    }
+}
+
+/// Decode an image that is embedded in a URI. Images hosted externally are rejected.
+fn image_from_uri(uri: &Url) -> Result<Image, AttestationMetadataError> {
+    let data_uri = DataUri::from_str(uri.as_str()).map_err(AttestationMetadataError::ImageDataUri)?;
+
+    Image::try_from(data_uri).map_err(AttestationMetadataError::Image)
+}
+
+impl From<CredentialClaim> for ClaimDescription {
+    fn from(value: CredentialClaim) -> Self {
+        let display = value
+            .display
+            .map(|display| {
+                display
+                    .into_inner()
+                    .into_iter()
+                    // Both fields are optional in the specification, while the wallet requires them for display.
+                    .filter_map(|NameLocale { name, locale }| {
+                        Some(ClaimDisplayMetadata {
+                            locale: locale?,
+                            label: name?,
+                            description: None,
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Self {
+            path: value.path,
+            display,
+            svg_id: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
 
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Attributes;
+    use attestation_data::attributes::AttributesError;
+    use attestation_types::claim_path::ClaimPath;
+    use attestation_types::image::Image;
+    use attestation_types::metadata::AttestationMetadata;
+    use attestation_types::metadata::AttestationMetadataError;
+    use attestation_types::metadata::ClaimDisplayMetadata;
+    use attestation_types::metadata::RenderingMetadata;
     use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
     use jwt::VerifiedJwt;
     use serde_json::json;
+    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
+    use super::BackgroundImage;
     use super::CoseAlgorithmIdentifier;
+    use super::CredentialClaim;
     use super::CredentialConfiguration;
+    use super::CredentialDisplay;
     use super::CredentialFormat;
+    use super::CredentialMetadata;
     use super::CryptographicBindingMethod;
     use super::IssuerMetadata;
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
+    use super::Logo;
+    use super::NameLocale;
     use super::SignedIssuerMetadataPayload;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::jwe::JweCompressionAlgorithm;
@@ -1400,6 +1575,226 @@ mod tests {
         assert_eq!(
             credential_config.type_metadata_uri,
             Some("https://example.com/type_metadata".parse().unwrap())
+        );
+    }
+
+    /// A single transparent pixel, as a PNG.
+    const PIXEL_PNG_DATA_URI: &str =
+        "data:image/png;base64,\
+         iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+    fn key_path(keys: &[&str]) -> VecNonEmpty<ClaimPath> {
+        keys.iter()
+            .map(|key| ClaimPath::SelectByKey(String::from(*key)))
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap()
+    }
+
+    fn claim(keys: &[&str], mandatory: bool) -> CredentialClaim {
+        CredentialClaim {
+            path: key_path(keys),
+            mandatory,
+            display: Some(vec_nonempty![NameLocale {
+                name: Some(format!("label for {}", keys.join("."))),
+                locale: Some(String::from("en")),
+            }]),
+        }
+    }
+
+    fn example_metadata() -> CredentialMetadata {
+        CredentialMetadata {
+            display: Some(vec_nonempty![CredentialDisplay {
+                name_locale: NameLocale {
+                    name: Some(String::from("Example credential")),
+                    locale: Some(String::from("en")),
+                },
+                logo: Some(Logo {
+                    uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                    alt_text: Some(String::from("a single pixel")),
+                }),
+                description: Some(String::from("An example")),
+                background_color: Some(String::from("#FFFFFF")),
+                background_image: Some(BackgroundImage {
+                    uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                }),
+                text_color: Some(String::from("#000000")),
+            }]),
+            claims: Some(vec_nonempty![
+                claim(&["birth_date"], true),
+                claim(&["place_of_birth", "locality"], false),
+            ]),
+        }
+    }
+
+    #[test]
+    fn test_credential_metadata_claim_paths() {
+        let metadata = example_metadata();
+
+        assert_eq!(
+            metadata.claim_key_paths().collect::<Vec<_>>(),
+            vec![vec_nonempty!["birth_date"], vec_nonempty!["place_of_birth", "locality"],]
+        );
+        assert_eq!(
+            metadata.mandatory_claims().cloned().collect::<Vec<_>>(),
+            vec![key_path(&["birth_date"])]
+        );
+    }
+
+    #[test]
+    fn test_credential_metadata_presentation_components() {
+        let (display, claims) = example_metadata()
+            .into_presentation_components()
+            .expect("credential metadata should convert to presentation components");
+
+        let display = display.into_iter().next().expect("display should contain one entry");
+        assert_eq!(display.locale, "en");
+        assert_eq!(display.name, "Example credential");
+        assert_eq!(display.description.as_deref(), Some("An example"));
+        // The Credential Issuer metadata has no equivalent of a templated summary.
+        assert!(display.summary.is_none());
+
+        let rendering = display.rendering.expect("display should contain rendering metadata");
+        assert_matches!(
+            rendering,
+            RenderingMetadata::Simple {
+                logo: Some(logo),
+                background_image: Some(background_image),
+                background_color: Some(background_color),
+                text_color: Some(text_color),
+            } if matches!(logo.image, Image::Png(_))
+                && logo.alt_text.as_ref() == "a single pixel"
+                && matches!(background_image.image, Image::Png(_))
+                && background_color == "#FFFFFF"
+                && text_color == "#000000"
+        );
+
+        assert_eq!(
+            claims.iter().map(|claim| claim.path.clone()).collect::<Vec<_>>(),
+            vec![key_path(&["birth_date"]), key_path(&["place_of_birth", "locality"])]
+        );
+        assert_eq!(
+            claims.first().unwrap().display,
+            vec![ClaimDisplayMetadata {
+                locale: String::from("en"),
+                label: String::from("label for birth_date"),
+                description: None,
+            }]
+        );
+        // Only SD-JWT VC Type Metadata provides SVG template identifiers.
+        assert!(claims.iter().all(|claim| claim.svg_id.is_none()));
+    }
+
+    /// Metadata that describes no display properties is not an error, as it is up to the UI to decide what to render.
+    #[test]
+    fn test_credential_metadata_without_display() {
+        let metadata = CredentialMetadata {
+            display: None,
+            claims: Some(vec_nonempty![claim(&["birth_date"], false)]),
+        };
+
+        let (display, claims) = metadata
+            .into_presentation_components()
+            .expect("credential metadata without display should convert");
+
+        assert!(display.is_empty());
+        assert_eq!(claims.len(), 1);
+    }
+
+    #[test]
+    fn test_credential_metadata_presentation_components_error_external_logo() {
+        let metadata = CredentialMetadata {
+            display: Some(vec_nonempty![CredentialDisplay {
+                name_locale: NameLocale {
+                    name: Some(String::from("Example credential")),
+                    locale: Some(String::from("en")),
+                },
+                // Only images that are embedded in the URI are accepted.
+                logo: Some(Logo {
+                    uri: "https://example.com/logo.png".parse().unwrap(),
+                    alt_text: None,
+                }),
+                description: None,
+                background_color: None,
+                background_image: None,
+                text_color: None,
+            }]),
+            claims: None,
+        };
+
+        let error = metadata
+            .into_presentation_components()
+            .expect_err("credential metadata with an externally hosted logo should not convert");
+
+        assert_matches!(error, AttestationMetadataError::ImageDataUri(_));
+    }
+
+    #[test]
+    fn test_credential_metadata_without_claims() {
+        let metadata = CredentialMetadata {
+            display: Some(vec_nonempty![CredentialDisplay {
+                name_locale: NameLocale {
+                    name: Some(String::from("Example credential")),
+                    locale: Some(String::from("en")),
+                },
+                logo: None,
+                description: None,
+                background_color: None,
+                background_image: None,
+                text_color: None,
+            }]),
+            claims: None,
+        };
+
+        assert_eq!(metadata.claim_key_paths().count(), 0);
+
+        let (display, claims) = metadata
+            .clone()
+            .into_presentation_components()
+            .expect("credential metadata without claims should convert");
+
+        // Rendering metadata is only present if any of its properties is.
+        assert!(
+            display
+                .into_iter()
+                .next()
+                .expect("display should contain one entry")
+                .rendering
+                .is_none()
+        );
+        assert!(claims.is_empty());
+
+        let error = Attributes::example([(["birth_date"], AttributeValue::Text(String::from("1963-08-12")))])
+            .validate(&metadata)
+            .expect_err("attributes should not validate against metadata without claims");
+
+        assert_matches!(error, AttributesError::AttributesWithoutClaim(paths) if paths == vec![vec!["birth_date"]]);
+    }
+
+    #[test]
+    fn test_credential_metadata_validate_attributes() {
+        let metadata = example_metadata();
+
+        Attributes::example([
+            (vec!["birth_date"], AttributeValue::Text(String::from("1963-08-12"))),
+            (
+                vec!["place_of_birth", "locality"],
+                AttributeValue::Text(String::from("The Hague")),
+            ),
+        ])
+        .validate(&metadata)
+        .expect("attributes should validate against the credential metadata");
+
+        let error = Attributes::example([(
+            vec!["place_of_birth", "locality"],
+            AttributeValue::Text(String::from("The Hague")),
+        )])
+        .validate(&metadata)
+        .expect_err("attributes missing a mandatory claim should not validate");
+
+        assert_matches!(
+            error,
+            AttributesError::MissingMandatoryAttribute(paths) if paths == vec![key_path(&["birth_date"])]
         );
     }
 }

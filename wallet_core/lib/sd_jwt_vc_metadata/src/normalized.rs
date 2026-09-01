@@ -3,6 +3,9 @@ use std::mem;
 use std::num::NonZeroUsize;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::metadata::AttestationMetadata;
+use attestation_types::metadata::AttestationMetadataError;
+use attestation_types::metadata::ClaimDescription;
 use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::metadata::DisplayMetadata;
 use itertools::Either;
@@ -52,6 +55,45 @@ pub struct NormalizedTypeMetadata {
     vcts: VecNonEmpty<String>,
     display: VecNonEmpty<DisplayMetadata>,
     claims: Vec<ClaimMetadata>,
+}
+
+impl AttestationMetadata for NormalizedTypeMetadata {
+    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
+        self.claims.iter().filter_map(|claim| {
+            let path = claim
+                .path
+                .iter()
+                .map(ClaimPath::try_key_path)
+                .collect::<Option<Vec<_>>>()?;
+
+            Some(path.try_into().expect("source of path is non-empty"))
+        })
+    }
+
+    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
+        self.claims
+            .iter()
+            .filter(|claim| claim.mandatory)
+            .map(|claim| &claim.path)
+    }
+
+    /// Note that this conversion is infallible. It also always yields display metadata, as a type metadata chain is
+    /// validated to contain it when it is normalized.
+    fn into_presentation_components(
+        self,
+    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
+        let claims = self
+            .claims
+            .into_iter()
+            .map(|claim| ClaimDescription {
+                path: claim.path,
+                display: claim.display,
+                svg_id: claim.svg_id.map(String::from),
+            })
+            .collect();
+
+        Ok((self.display.into_inner(), claims))
+    }
 }
 
 impl NormalizedTypeMetadata {
@@ -146,31 +188,6 @@ impl NormalizedTypeMetadata {
 
     pub fn claims(&self) -> &[ClaimMetadata] {
         &self.claims
-    }
-
-    pub fn into_presentation_components(self) -> (VecNonEmpty<DisplayMetadata>, Vec<ClaimMetadata>) {
-        (self.display, self.claims)
-    }
-
-    /// Returns all claim paths that only consist out of `SelectByKey` as a `VecNonEmpty` of `&str`.
-    pub fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
-        self.claims.iter().filter_map(|claim| {
-            let path = claim
-                .path
-                .iter()
-                .map(ClaimPath::try_key_path)
-                .collect::<Option<Vec<_>>>()?;
-
-            Some(path.try_into().expect("source of path is non-empty"))
-        })
-    }
-
-    /// Returns all claim paths that are mandatory.
-    pub fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
-        self.claims
-            .iter()
-            .filter(|claim| claim.mandatory)
-            .map(|claim| &claim.path)
     }
 }
 

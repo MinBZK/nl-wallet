@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::num::TryFromIntError;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::metadata::AttestationMetadata;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -248,9 +249,9 @@ impl Attributes {
         result
     }
 
-    pub fn validate(&self, type_metadata: &NormalizedTypeMetadata) -> Result<(), AttributesError> {
+    pub fn validate(&self, metadata: &impl AttestationMetadata) -> Result<(), AttributesError> {
         let flattened_attributes = self.flattened();
-        let claim_key_paths = type_metadata.claim_key_paths().collect_vec();
+        let claim_key_paths = metadata.claim_key_paths().collect_vec();
 
         let attributes_without_claim = flattened_attributes
             .keys()
@@ -262,7 +263,7 @@ impl Attributes {
             return Err(AttributesError::AttributesWithoutClaim(attributes_without_claim));
         }
 
-        let missing_mandatory = type_metadata
+        let missing_mandatory = metadata
             .mandatory_claims()
             .filter(|path| {
                 let has_claim = path

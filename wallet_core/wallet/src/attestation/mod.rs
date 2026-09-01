@@ -7,6 +7,7 @@ use attestation_data::attributes::AttributesError;
 use attestation_data::auth::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
+use attestation_types::metadata::AttestationMetadataError;
 use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::metadata::DisplayMetadata;
 use chrono::DateTime;
@@ -33,6 +34,10 @@ pub enum AttestationError {
     #[error("error converting to attributes: {0}")]
     #[category(pd)]
     Attributes(#[from] AttributesError),
+
+    #[error("could not convert metadata for presentation: {0}")]
+    #[category(pd)]
+    Metadata(#[source] AttestationMetadataError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -64,7 +69,7 @@ pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub format: Format,
     pub attestation_type: String,
-    pub display_metadata: VecNonEmpty<DisplayMetadata>,
+    pub display_metadata: Vec<DisplayMetadata>,
     pub issuer: Box<Organization>,
     pub validity: AttestationValidity,
     pub attributes: Vec<AttestationAttribute>,
@@ -153,7 +158,6 @@ pub mod mock {
     use attestation_data::auth::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
-    use utils::vec_nonempty;
 
     use super::AttestationIdentity;
     use super::AttestationPresentation;
@@ -176,7 +180,7 @@ pub mod mock {
                 identity: AttestationIdentity::Ephemeral,
                 format: Format::SdJwt,
                 attestation_type: "mock".to_string(),
-                display_metadata: vec_nonempty![DisplayMetadata {
+                display_metadata: vec![DisplayMetadata {
                     locale: "nl".to_string(),
                     name: "mock".to_string(),
                     description: None,

@@ -1150,7 +1150,7 @@ impl Credentials {
 
                 // Verify whether each claims selective disclosability matches the metadata.
                 // This validation is SD-JWT specific, and therefore cannot be part of `validate_credential`.
-                Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized_type_metadata.clone())?;
+                Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized_type_metadata)?;
 
                 Ok(SdJwtCopy { key_identifier, sd_jwt })
             }
@@ -1189,13 +1189,14 @@ impl Credentials {
     fn verify_selective_disclosability(
         sd_jwt: &VerifiedSdJwt,
         issued_claims: Vec<VecNonEmpty<ClaimPath>>,
-        metadata: NormalizedTypeMetadata,
+        metadata: &NormalizedTypeMetadata,
     ) -> Result<(), WalletIssuanceError> {
+        // Note that this reads the selective disclosability of each claim, which is specific to SD-JWT VC Type
+        // Metadata and therefore not available through the `AttestationMetadata` trait.
         let sd_metadata = metadata
-            .into_presentation_components()
-            .1
-            .into_iter()
-            .map(|md| (md.path.into_inner(), md.sd))
+            .claims()
+            .iter()
+            .map(|claim| (claim.path.as_ref().to_vec(), claim.sd))
             .collect();
 
         // Iterate over the issued_claims, validating each element in the path against the metadata.

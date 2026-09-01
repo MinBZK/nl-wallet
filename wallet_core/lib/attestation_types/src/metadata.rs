@@ -4,9 +4,57 @@ use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use utils::spec::SpecOptional;
+use utils::vec_at_least::VecNonEmpty;
 
+use crate::claim_path::ClaimPath;
 use crate::data_uri::DataUri;
+use crate::data_uri::DataUriError;
 use crate::image::Image;
+use crate::image::ImageError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum AttestationMetadataError {
+    #[error("display information is missing a name for locale {}", .0.as_deref().unwrap_or("<none>"))]
+    NoDisplayName(Option<String>),
+
+    #[error("display information is missing a locale")]
+    NoDisplayLocale,
+
+    #[error("could not read image as a data URI: {0}")]
+    ImageDataUri(#[source] DataUriError),
+
+    #[error("could not convert image: {0}")]
+    Image(#[source] ImageError),
+}
+
+/// Implemented by every kind of metadata that allows both validating a received attestation against its metadata and
+/// converting it to a representation that can be shown to the user.
+pub trait AttestationMetadata {
+    /// The paths of all claims that consist solely of `SelectByKey` components, as a path of `&str`. Claims with any
+    /// other kind of path component are skipped, as those are not supported.
+    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>>;
+
+    /// The paths of all claims the issuer is required to include in the attestation.
+    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>>;
+
+    /// Decompose this metadata into the parts needed to present the attestation to the user.
+    fn into_presentation_components(
+        self,
+    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError>;
+}
+
+/// The description of a single claim of an attestation, independent of the kind of metadata it was derived from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClaimDescription {
+    /// The path to the claim within the attestation.
+    pub path: VecNonEmpty<ClaimPath>,
+
+    /// How the claim is displayed to the user, per locale.
+    pub display: Vec<ClaimDisplayMetadata>,
+
+    /// The identifier of the claim for reference in an SVG template, if any.
+    pub svg_id: Option<String>,
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
