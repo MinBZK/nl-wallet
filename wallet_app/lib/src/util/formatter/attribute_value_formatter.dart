@@ -19,6 +19,7 @@ class AttributeValueFormatter {
       NumberValue() => '${attribute.value}',
       DateValue() => _prettyPrintDateTime(locale, attribute.value),
       ArrayValue() => _formatArrayValue(locale, attribute, inline),
+      BytesValue() => l10n.cardValueUnsupported,
       ImageValue() => l10n.cardValueImage,
       MapValue() => _formatMapValue(locale, attribute, inline),
       NullValue() => l10n.cardValueNull,

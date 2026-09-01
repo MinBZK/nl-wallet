@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../converter/app_image_data_converter.dart';
@@ -13,6 +15,7 @@ const _kBooleanValue = 'bool';
 const _kNumberValue = 'number';
 const _kDateValue = 'date';
 const _kArrayValue = 'array';
+const _kBytesValue = 'bytes';
 const _kImageValue = 'image';
 const _kMapValue = 'map';
 const _kNullValue = 'null';
@@ -33,6 +36,8 @@ class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, 
         return DateValue(_decodeDateTime(json[_kValueKey]!));
       case _kArrayValue:
         return ArrayValue(List<AttributeValue>.from(json[_kValueKey].map(fromJson)));
+      case _kBytesValue:
+        return BytesValue(const Base64Decoder().convert(json[_kValueKey]!));
       case _kImageValue:
         return ImageValue(const AppImageDataConverter().fromJson(json[_kValueKey]!));
       case _kMapValue:
@@ -58,6 +63,8 @@ class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, 
         return {_kTypeKey: _kDateValue, _kValueKey: _encodeDateTime(object.value)};
       case ArrayValue():
         return {_kTypeKey: _kArrayValue, _kValueKey: object.value.map(toJson).toList()};
+      case BytesValue():
+        return {_kTypeKey: _kBytesValue, _kValueKey: const Base64Encoder().convert(object.value)};
       case ImageValue():
         return {_kTypeKey: _kImageValue, _kValueKey: const AppImageDataConverter().toJson(object.value)};
       case MapValue():

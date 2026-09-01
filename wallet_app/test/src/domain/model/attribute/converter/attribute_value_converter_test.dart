@@ -18,6 +18,7 @@ void main() {
     'DateValue': DateValue(DateTime(2030, 7, 1)),
     'NullValue': NullValue(),
     'ArrayValue': ArrayValue([const StringValue('A'), DateValue(DateTime(2024, 10, 5))]),
+    'BytesValue': BytesValue(Uint8List.fromList([0, 1, 2, 253, 254, 255])),
     'ImageValue (memory)': ImageValue(AppMemoryImage(Uint8List.fromList([0, 1, 2, 253, 254, 255]))),
     'ImageValue (svg)': const ImageValue(SvgImage('<svg></svg>')),
     'ImageValue (asset)': const ImageValue(AppAssetImage('assets/logo.png')),

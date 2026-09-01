@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 
 import '../app_image_data.dart';
@@ -52,6 +54,19 @@ class ArrayValue extends AttributeValue {
 
   @override
   String toString() => value.join(', ');
+}
+
+/// Only provided by mdoc based attestations: bytes the core could not recognize as an image,
+/// e.g. a JPEG 2000 portrait. Kept separate from [ImageValue] so that the UI can say the value
+/// exists but can't be rendered, instead of pretending it was never provided.
+class BytesValue extends AttributeValue {
+  @override
+  final Uint8List value;
+
+  const BytesValue(this.value);
+
+  @override
+  String toString() => '<BYTES>';
 }
 
 /// Only provided by mdoc based attestations, e.g. the portrait of an mDL.

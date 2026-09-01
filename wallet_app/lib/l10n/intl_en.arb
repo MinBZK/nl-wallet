@@ -277,6 +277,7 @@
     "cardValueImage": "Photo",
     "cardValueNull": "Not provided",
     "cardValueTrue": "Yes",
+    "cardValueUnsupported": "Cannot be displayed",
     "changeLanguageScreenTitle": "Select a language",
     "changePinScreenConfirmNewPinTitle": "Success! Repeat your new PIN",
     "changePinScreenEnterCurrentPinTitle": "First, enter your current PIN",

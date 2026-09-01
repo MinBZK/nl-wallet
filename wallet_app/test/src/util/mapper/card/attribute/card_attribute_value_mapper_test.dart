@@ -70,6 +70,12 @@ void main() {
       expect(mapper.map(input), ImageValue(AppMemoryImage(data)));
     });
 
+    test('`AttributeValue_Bytes` should be kept as bytes rather than stringified', () {
+      final data = Uint8List.fromList([1, 2, 3]);
+      final core.AttributeValue input = core.AttributeValue_Bytes(value: data);
+      expect(mapper.map(input), BytesValue(data));
+    });
+
     test('`AttributeValue_Map` should keep keys and their order', () {
       const core.AttributeValue input = core.AttributeValue_Map(
         value: [

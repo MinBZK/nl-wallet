@@ -273,6 +273,7 @@
     "cardValueImage": "Foto",
     "cardValueNull": "Niet opgegeven",
     "cardValueTrue": "Ja",
+    "cardValueUnsupported": "Kan niet worden getoond",
     "changeLanguageScreenTitle": "Kies een taal",
     "changePinScreenConfirmNewPinTitle": "Gelukt! Herhaal je nieuwe pincode",
     "changePinScreenEnterCurrentPinTitle": "Voer eerst je huidige pincode in",
