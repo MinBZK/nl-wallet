@@ -91,6 +91,7 @@ use crate::storage::Storage;
 use crate::storage::StorageState;
 use crate::storage::StoredAttestation;
 use crate::storage::StoredAttestationCopy;
+use crate::storage::StoredAttestationMetadata;
 use crate::storage::WalletEvent;
 use crate::storage::WithKeyIdentifier;
 use crate::update_policy::MockUpdatePolicyRepository;
@@ -718,7 +719,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
                     holder_key,
                 )),
             },
-            metadata,
+            StoredAttestationMetadata::TypeMetadata(metadata),
             None,
         ),
         Format::SdJwt => StoredAttestationCopy::new(
@@ -733,7 +734,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
                     issuer_keypair,
                 )),
             },
-            metadata,
+            StoredAttestationMetadata::TypeMetadata(metadata),
             None,
         ),
     }

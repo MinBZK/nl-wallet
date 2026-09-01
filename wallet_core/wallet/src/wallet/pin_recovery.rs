@@ -525,6 +525,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::StoredAttestationMetadata;
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::PersistedPinRecoverySessionData;
     use crate::wallet::Session;
@@ -625,7 +626,7 @@ mod tests {
                         key_identifier: "key".to_string(),
                         data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
                     },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
                     None,
                 )])
             });
@@ -930,7 +931,7 @@ mod tests {
                         key_identifier: "key".to_string(),
                         data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
                     },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
                     None,
                 )])
             });

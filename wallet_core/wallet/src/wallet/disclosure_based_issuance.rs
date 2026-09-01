@@ -212,6 +212,7 @@ mod tests {
     use crate::storage::PartialAttestation;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::StoredAttestationMetadata;
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_mdoc;
@@ -346,7 +347,7 @@ mod tests {
                 key_identifier: "mdoc_key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
-            metadata,
+            StoredAttestationMetadata::TypeMetadata(metadata),
             None,
         );
 

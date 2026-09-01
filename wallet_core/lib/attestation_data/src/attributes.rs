@@ -14,7 +14,6 @@ use sd_jwt::claims::ArrayClaim;
 use sd_jwt::claims::ClaimNameError;
 use sd_jwt::claims::ClaimValue;
 use sd_jwt::claims::ObjectClaims;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Number;
@@ -329,17 +328,18 @@ impl Attributes {
     /// Note in particular that attributes in a namespace whose names equals the attestation_type in the metadata
     /// are mapped to the root level of the output.
     pub fn from_mdoc_attributes(
-        type_metadata: &NormalizedTypeMetadata,
+        attestation_type: &str,
+        metadata: &impl AttestationMetadata,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttributesError> {
         // Get the claim paths consisting only out of claim key paths
-        let key_paths = type_metadata.claim_key_paths().collect_vec();
+        let key_paths = metadata.claim_key_paths().collect_vec();
 
         let mut result = IndexMap::with_capacity(key_paths.len());
 
         // The key paths of the claims determines the order of the attributes result
         for key_path in key_paths {
-            Self::traverse_attributes_by_claim(type_metadata.vct(), key_path.as_slice(), &mut attributes, &mut result)?;
+            Self::traverse_attributes_by_claim(attestation_type, key_path.as_slice(), &mut attributes, &mut result)?;
         }
 
         if !attributes.is_empty() {
@@ -861,7 +861,7 @@ pub mod test {
                 }],
             ),
         ]);
-        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+        let result = Attributes::from_mdoc_attributes(type_metadata.vct(), &type_metadata, mdoc_attributes).unwrap();
 
         let expected_json = json!({
             "birthdate": "1963-08-12",
@@ -911,7 +911,7 @@ pub mod test {
             }],
         )]);
 
-        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+        let result = Attributes::from_mdoc_attributes(type_metadata.vct(), &type_metadata, mdoc_attributes).unwrap();
 
         let expected_json = json!({"nest.ed": { "birth.date": "1963-08-12" }});
         assert_eq!(
@@ -956,7 +956,7 @@ pub mod test {
             ],
         )]);
 
-        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes);
+        let result = Attributes::from_mdoc_attributes(type_metadata.vct(), &type_metadata, mdoc_attributes);
         assert_matches!(result, Err(AttributesError::SomeAttributesNotProcessed(attrs))
         if *attrs == IndexMap::from([(
             String::from("com.example.pid.a"),
@@ -1004,7 +1004,7 @@ pub mod test {
             ],
         )]);
 
-        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+        let result = Attributes::from_mdoc_attributes(type_metadata.vct(), &type_metadata, mdoc_attributes).unwrap();
         let expected_json = json!({"b": { "b1": "1", "b3": "3", "b2": "2" }});
         assert_eq!(
             serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),

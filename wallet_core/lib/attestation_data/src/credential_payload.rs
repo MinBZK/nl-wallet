@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use attestation_types::metadata::AttestationMetadata;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
@@ -137,7 +138,7 @@ impl PreviewableCredentialPayload {
 
     pub fn from_mdoc(
         mdoc: Mdoc,
-        metadata: &NormalizedTypeMetadata,
+        metadata: &impl AttestationMetadata,
     ) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
         Ok(SplitCredential::from_mdoc(mdoc, metadata)?.previewable)
     }
@@ -273,7 +274,7 @@ impl CredentialPayload {
             .map_err(CredentialPayloadFromSdJwtError::MissingField)
     }
 
-    pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadFromMdocError> {
+    pub fn from_mdoc(mdoc: Mdoc, metadata: &impl AttestationMetadata) -> Result<Self, CredentialPayloadFromMdocError> {
         SplitCredential::from_mdoc(mdoc, metadata)
             .map_err(CredentialPayloadFromMdocError::PreviewableCredentialPayload)?
             .try_into_credential_payload()
@@ -454,17 +455,20 @@ impl SplitCredential {
 
     fn from_mdoc(
         mdoc: Mdoc,
-        metadata: &NormalizedTypeMetadata,
+        metadata: &impl AttestationMetadata,
     ) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
         let (mso, issuer_signed) = mdoc.into_components();
         let attributes = issuer_signed.into_entries_by_namespace();
+        let attestation_type = mso.doc_type;
+        let attributes = Attributes::from_mdoc_attributes(&attestation_type, metadata, attributes)
+            .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?;
 
         let issued_at = (&mso.validity_info.signed)
             .try_into()
             .map_err(PreviewableCredentialPayloadFromMdocError::DateConversion)?;
 
         let previewable = PreviewableCredentialPayload {
-            attestation_type: mso.doc_type,
+            attestation_type,
             issuer: mso
                 .issuer_uri
                 .ok_or(PreviewableCredentialPayloadFromMdocError::MissingIssuerUri)?,
@@ -481,8 +485,7 @@ impl SplitCredential {
             attestation_qualification: mso
                 .attestation_qualification
                 .ok_or(PreviewableCredentialPayloadFromMdocError::MissingAttestationQualification)?,
-            attributes: Attributes::from_mdoc_attributes(metadata, attributes)
-                .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?,
+            attributes,
         };
 
         let key_info = ConfirmationClaim::Jwk(

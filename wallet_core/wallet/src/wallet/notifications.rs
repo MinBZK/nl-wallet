@@ -133,6 +133,7 @@ mod tests {
     use crate::Notification;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::StoredAttestationMetadata;
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
@@ -155,7 +156,7 @@ mod tests {
                     key_identifier: "sd_jwt_key_id".to_string(),
                     data: StoredAttestation::SdJwt(sd_jwt),
                 },
-                sd_jwt_metadata,
+                StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata),
                 None,
             )])
         });

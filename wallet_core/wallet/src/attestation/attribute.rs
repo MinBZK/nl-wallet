@@ -9,7 +9,6 @@ use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
 use sd_jwt::claims::ObjectClaims;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -25,13 +24,13 @@ impl AttestationPresentation {
     pub(crate) fn create_from_mdoc(
         identity: AttestationIdentity,
         attestation_type: String,
-        metadata: NormalizedTypeMetadata,
+        metadata: impl AttestationMetadata,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
+        let nested_attributes = Attributes::from_mdoc_attributes(&attestation_type, &metadata, mdoc_attributes)?;
 
         Self::create_from_attributes(
             identity,
@@ -49,7 +48,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_sd_jwt_claims(
         identity: AttestationIdentity,
         attestation_type: String,
-        metadata: NormalizedTypeMetadata,
+        metadata: impl AttestationMetadata,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
         sd_jwt_claims: ObjectClaims,

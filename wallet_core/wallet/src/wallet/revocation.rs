@@ -302,6 +302,7 @@ mod tests {
     use crate::storage::MockStorage;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::StoredAttestationMetadata;
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_sd_jwt;
@@ -364,7 +365,7 @@ mod tests {
                     key_identifier: random_string(16),
                     data: StoredAttestation::SdJwt(sd_jwt.clone()),
                 },
-                sd_jwt_metadata.clone(),
+                StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata.clone()),
                 Some(RevocationStatus::Valid),
             ),
             StoredAttestationCopy::new(
@@ -375,7 +376,7 @@ mod tests {
                     key_identifier: random_string(16),
                     data: StoredAttestation::SdJwt(sd_jwt),
                 },
-                sd_jwt_metadata,
+                StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata),
                 Some(RevocationStatus::Revoked),
             ),
         ];

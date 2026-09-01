@@ -926,6 +926,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationMetadata;
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::state::CancelSessionError;
     use crate::wallet::test::AUTH_URL;
@@ -1273,7 +1274,7 @@ mod tests {
                     key_identifier: "key".to_string(),
                     data: StoredAttestation::SdJwt(sd_jwt),
                 },
-                metadata,
+                StoredAttestationMetadata::TypeMetadata(metadata),
                 None,
             )
         };
@@ -1576,7 +1577,7 @@ mod tests {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
-            stored_type_metadata.normalized_metadata.clone(),
+            StoredAttestationMetadata::TypeMetadata(stored_type_metadata.normalized_metadata.clone()),
             None,
         );
 
@@ -1919,7 +1920,7 @@ mod tests {
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
                     stored_attestation.clone(),
-                    normalized_metadata,
+                    StoredAttestationMetadata::TypeMetadata(normalized_metadata),
                     None,
                 );
 
@@ -2371,7 +2372,7 @@ mod tests {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
-            type_metadata.normalized_metadata,
+            StoredAttestationMetadata::TypeMetadata(type_metadata.normalized_metadata),
             None,
         );
 

@@ -80,6 +80,7 @@ use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
 use super::StoredAttestation;
+use super::StoredAttestationMetadata;
 use super::WithKeyIdentifier;
 use super::attestation_copy::StoredAttestationCopy;
 use super::data::KeyedData;
@@ -322,11 +323,12 @@ impl<K> DatabaseStorage<K> {
                         }
                     };
 
-                    let normalized_metadata = match metadata {
-                        AttestationMetadataModel::TypeMetadata(documents) => documents.to_normalized()?,
-                        // TODO (PVW-5547): Return the Credential Metadata as well.
-                        AttestationMetadataModel::CredentialMetadata(_) => {
-                            return Err(StorageError::UnsupportedStoredMetadata);
+                    let metadata = match metadata {
+                        AttestationMetadataModel::TypeMetadata(documents) => {
+                            StoredAttestationMetadata::TypeMetadata(documents.to_normalized()?)
+                        }
+                        AttestationMetadataModel::CredentialMetadata(credential_metadata) => {
+                            StoredAttestationMetadata::CredentialMetadata(credential_metadata)
                         }
                     };
 
@@ -342,7 +344,7 @@ impl<K> DatabaseStorage<K> {
                         attestation_id,
                         attestation_copy_id,
                         attestation,
-                        normalized_metadata,
+                        metadata,
                         revocation_status: determine_revocation_status(&revocation_statuses),
                         validity_window: ValidityWindow {
                             valid_until: expiration,
@@ -1901,7 +1903,10 @@ pub(crate) mod tests {
                 key_identifier,
             } if key_identifier == "mdoc_key_id" && *stored == mdoc
         );
-        assert_eq!(attestation_copy1.normalized_metadata, normalized_metadata);
+        assert_eq!(
+            attestation_copy1.metadata,
+            StoredAttestationMetadata::TypeMetadata(normalized_metadata.clone())
+        );
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is SD-JWT.
@@ -1999,7 +2004,10 @@ pub(crate) mod tests {
                 key_identifier,
             } if key_identifier == "mdoc_key_id" && *stored == mdoc
         );
-        assert_eq!(attestation_copy2.normalized_metadata, normalized_metadata);
+        assert_eq!(
+            attestation_copy2.metadata,
+            StoredAttestationMetadata::TypeMetadata(normalized_metadata.clone())
+        );
         assert_ne!(
             attestation_copy1.attestation_copy_id,
             attestation_copy2.attestation_copy_id
@@ -2514,7 +2522,10 @@ pub(crate) mod tests {
                 data: StoredAttestation::SdJwt(stored)
             } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
         );
-        assert_eq!(attestation_copy1.normalized_metadata, normalized_metadata);
+        assert_eq!(
+            attestation_copy1.metadata,
+            StoredAttestationMetadata::TypeMetadata(normalized_metadata.clone())
+        );
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is mdoc.
