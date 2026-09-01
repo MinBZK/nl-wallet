@@ -65,6 +65,14 @@ scripts/migrate-db.sh         # run DB migrations
 ### Rust
 - Rust edition 2024, line width 120; formatted with nightly `rustfmt` (see command above)
 - Coding style: "parse, don't validate"; use the type system to exclude illegal states where feasible
+  - Prefer a newtype with a private field and a fallible constructor (`TryFrom`/`fn new() -> Result<_, _>`)
+    over a check the caller is expected to remember; holding the value is then proof it is valid
+  - Parse untrusted input once, at the boundary (deserialization, HTTP handler, settings load); functions
+    further in take already-parsed types
+  - In non-test code, avoid `unwrap()`/`expect()`/`unreachable!()` on invariants established elsewhere —
+    change the type so the case cannot arise (see `utils::vec_at_least` for the non-empty-collection case)
+  - Push the burden of proof of invariants upward as far as is practical, but no further: don't push proof
+    obligations onto callers when doing so makes the API onerous
 - Imports in 3 groups (std → third-party and workspace → super/crate imports), alphabetically within each
 - Each imported symbol on its own import line
 - Custom error enums per module; use `thiserror`
