@@ -233,7 +233,7 @@ automation-tests-load-device-config:
     IOS_DEVICE_UDID: "${IOS_1_UDID}"
     IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
 
-run-automation-tests-publish-results:
+run-automation-tests-publish-results-android:
   rules: !reference [.run-automation-tests-default, rules]
   needs:
     - { job: run-automation-card-and-history-tests-android }
@@ -246,6 +246,16 @@ run-automation-tests-publish-results:
     - { job: run-automation-notifications-tests-android }
     - { job: run-automation-revocation-tests-android }
     - { job: run-automation-permissions-tests-android }
+    - { job: run-automation-close-proximity-tests-android }
+    - { job: run-automation-cross-device-tests-android }
+    - { job: run-automation-wallet-transfer-tests-android }
+  script:
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-android.zip uiautomation/build/test-results/test/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e-android.zip uiautomation/build/allure-results/*
+
+run-automation-tests-publish-results-ios:
+  rules: !reference [.run-automation-tests-default, rules]
+  needs:
     - { job: run-automation-card-and-history-tests-ios }
     - { job: run-automation-disclosure-tests-ios }
     - { job: run-automation-introduction-tests-ios }
@@ -256,16 +266,13 @@ run-automation-tests-publish-results:
     - { job: run-automation-notifications-tests-ios }
     - { job: run-automation-revocation-tests-ios }
     - { job: run-automation-permissions-tests-ios }
-    - { job: run-automation-close-proximity-tests-android }
     - { job: run-automation-close-proximity-tests-ios }
-    - { job: run-automation-cross-device-tests-android }
     - { job: run-automation-cross-device-tests-ios }
-    - { job: run-automation-wallet-transfer-tests-android }
     - { job: run-automation-wallet-transfer-tests-ios }
     - { job: run-automation-biometrics-tests-ios }
   script:
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-ios.zip uiautomation/build/test-results/test/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e-ios.zip uiautomation/build/allure-results/*
 
 run-automation-card-and-history-tests-android:
   extends: .run-automation-tests-default

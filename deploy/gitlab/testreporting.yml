@@ -27,7 +27,10 @@ build-test-report:
     - job: test-rust-gba-pid
       artifacts: false
       optional: true
-    - job: run-automation-tests-publish-results
+    - job: run-automation-tests-publish-results-android
+      artifacts: false
+      optional: true
+    - job: run-automation-tests-publish-results-ios
       artifacts: false
       optional: true
     - job: run-wallet-web-browsertest-test-ont
@@ -52,7 +55,7 @@ build-test-report:
     - pnpm run fetch-results
     - >
       pnpm run generate allure-results/browsertest-{wallet-web,fallback-pages,revocation-portal}.zip
-      allure-results/{e2e,revocation-portal,web}.zip junit-results/{android,flutter,flutter-ui,ios,rust}.xml
+      allure-results/{e2e-android,e2e-ios,revocation-portal,web}.zip junit-results/{android,flutter,flutter-ui,ios,rust}.xml
     - mv allure-report/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
     - zip -j allure-report.zip allure-report-$CI_COMMIT_SHORT_SHA.html
   after_script:
