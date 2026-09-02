@@ -257,7 +257,6 @@ impl<K, L> CredentialConfigurations<K, L> {
                         proof_types,
                         display,
                         claims,
-                        type_metadata_uri,
                     ),
                     Format::SdJwt => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         attestation_type,

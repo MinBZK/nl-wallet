@@ -81,7 +81,6 @@ impl IssuerMetadata {
                         vec![ProofType::Jwt],
                         vec![],
                         vec![],
-                        type_metadata_uri,
                     ),
                     Format::SdJwt => CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         credential_kind.attestation_type,

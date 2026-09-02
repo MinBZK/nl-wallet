@@ -362,16 +362,14 @@ impl CredentialConfiguration {
         proof_types: Vec<ProofType>,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
-        type_metadata_uri: IssuerUrl,
     ) -> Self {
-        Self::new_ecdsa_p256_sha256(
-            CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
-            scope,
-            CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types),
-            vc_display,
-            vc_claims,
-            type_metadata_uri,
-        )
+        Self {
+            format: CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
+            scope: Some(scope),
+            cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types)),
+            credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
+            type_metadata_uri: None,
+        }
     }
 
     pub fn new_sd_jwt_ecdsa_p256_sha256(
