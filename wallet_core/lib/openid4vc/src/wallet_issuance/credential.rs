@@ -5,6 +5,15 @@ use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::metadata::issuer_metadata::CredentialMetadata;
+
+/// The metadata that describes an issued credential, which is persisted along with it.
+#[derive(Clone, Debug)]
+pub enum IssuedCredentialMetadata {
+    TypeMetadata(VerifiedTypeMetadataDocuments),
+    CredentialMetadata(CredentialMetadata),
+}
+
 #[derive(Clone, Debug)]
 pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
@@ -12,7 +21,7 @@ pub struct CredentialWithMetadata {
     pub expiration: Option<DateTimeSeconds>,
     pub not_before: Option<DateTimeSeconds>,
     pub extended_attestation_types: Vec<String>,
-    pub metadata_documents: VerifiedTypeMetadataDocuments,
+    pub metadata: IssuedCredentialMetadata,
 }
 
 impl CredentialWithMetadata {
@@ -22,7 +31,7 @@ impl CredentialWithMetadata {
         expiration: Option<DateTimeSeconds>,
         not_before: Option<DateTimeSeconds>,
         extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
-        metadata_documents: VerifiedTypeMetadataDocuments,
+        metadata: IssuedCredentialMetadata,
     ) -> Self {
         Self {
             copies,
@@ -30,7 +39,7 @@ impl CredentialWithMetadata {
             expiration,
             not_before,
             extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
-            metadata_documents,
+            metadata,
         }
     }
 }

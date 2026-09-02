@@ -29,7 +29,6 @@ use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
-use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
 use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -150,9 +149,9 @@ pub enum IssuanceError {
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
 
-    #[error("type metadata for credential configuration id `{0}` not found")]
+    #[error("metadata for credential configuration id `{0}` not found")]
     #[category(critical)]
-    MissingTypeMetadata(CredentialConfigurationId),
+    MissingMetadata(CredentialConfigurationId),
 
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
@@ -536,7 +535,7 @@ where
             .iter()
             .map(|preview| CredentialKind::new(preview.format, preview.credential_payload.attestation_type.clone()))
             .collect();
-        let type_metadata = issuance_session.metadata();
+        let metadata = issuance_session.metadata();
 
         let config = self.config_repository.get();
         if pid_purpose.is_some() {
@@ -570,20 +569,15 @@ where
         let attestations = previews_and_identity
             .into_iter()
             .map(|(preview_data, identity)| {
-                // TODO (PVW-5547): Build the presentation from the Credential Metadata as well.
-                let Some(OfferedCredentialMetadata::TypeMetadata {
-                    normalized: normalized_metadata,
-                    ..
-                }) = type_metadata.get(&preview_data.config_id)
-                else {
-                    return Err(IssuanceError::MissingTypeMetadata(preview_data.config_id.clone()));
-                };
+                let metadata = metadata
+                    .get(&preview_data.config_id)
+                    .ok_or_else(|| IssuanceError::MissingMetadata(preview_data.config_id.clone()))?;
 
                 let attestation = AttestationPresentation::create_from_attributes(
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
                     preview_data.format,
                     preview_data.credential_payload.attestation_type.clone(),
-                    normalized_metadata.clone(),
+                    metadata.clone(),
                     organization.clone(),
                     AttestationValidity {
                         revocation_status: None,
@@ -901,6 +895,7 @@ mod tests {
     use itertools::multiunzip;
     use mockall::predicate::*;
     use openid4vc::wallet_issuance::IssuanceFlow;
+    use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1428,7 +1423,7 @@ mod tests {
             let (preview, type_metadata) =
                 create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             session
-                .expect_type_metadata()
+                .expect_metadata()
                 .return_const([(preview.config_id.clone(), type_metadata)].into());
             session
                 .expect_credential_previews()
@@ -1603,7 +1598,7 @@ mod tests {
 
         // Set up the `MockIssuanceSession` directly.
         let mut issuance_session = MockIssuanceSession::new();
-        issuance_session.expect_type_metadata().return_const(
+        issuance_session.expect_metadata().return_const(
             previews
                 .iter()
                 .map(|preview| preview.config_id.clone())
@@ -1663,7 +1658,7 @@ mod tests {
             .return_once(|_| Ok(vec![]));
 
         let mut issuance_session = MockIssuanceSession::new();
-        issuance_session.expect_type_metadata().return_const(HashMap::from([
+        issuance_session.expect_metadata().return_const(HashMap::from([
             (sd_jwt_preview.config_id.clone(), sd_jwt_type_metadata),
             (mdoc_preview.config_id.clone(), mdoc_type_metadata),
         ]));
@@ -1774,7 +1769,7 @@ mod tests {
         wallet.issuance_discovery.expect_start_sync().return_once(move || {
             let mut session = MockIssuanceSession::new();
             session
-                .expect_type_metadata()
+                .expect_metadata()
                 .return_const([(preview.config_id.clone(), type_metadata)].into());
             session
                 .expect_credential_previews()

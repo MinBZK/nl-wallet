@@ -9,6 +9,10 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::metadata::AttestationMetadata;
+use attestation_types::metadata::AttestationMetadataError;
+use attestation_types::metadata::ClaimDescription;
+use attestation_types::metadata::DisplayMetadata;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -53,6 +57,7 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
+use super::credential::IssuedCredentialMetadata;
 use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
 use crate::authorization_details::IssuerAuthorizationDetails;
@@ -74,6 +79,7 @@ use crate::errors::TokenErrorCode;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::CredentialFormat;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
@@ -368,6 +374,31 @@ pub enum OfferedCredentialMetadata {
         raw: SortedTypeMetadataDocuments,
     },
     CredentialMetadata(CredentialMetadata),
+}
+
+impl AttestationMetadata for OfferedCredentialMetadata {
+    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
+        match self {
+            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.claim_key_paths()),
+            Self::CredentialMetadata(metadata) => Either::Right(metadata.claim_key_paths()),
+        }
+    }
+
+    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
+        match self {
+            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.mandatory_claims()),
+            Self::CredentialMetadata(metadata) => Either::Right(metadata.mandatory_claims()),
+        }
+    }
+
+    fn into_presentation_components(
+        self,
+    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
+        match self {
+            Self::TypeMetadata { normalized, .. } => normalized.into_presentation_components(),
+            Self::CredentialMetadata(metadata) => metadata.into_presentation_components(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -685,24 +716,55 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, OfferedCredentialMetadata>, WalletIssuanceError> {
-        // Get the metadata URI and attestation_type for each credential configuration, while collecting any Credential
-        // Configuration IDs for which no type metadata URI is given.
-        let (configs_data, missing_uri_config_ids): (Vec<_>, Vec<_>) = credential_configurations
+        // An mdoc is described by the Credential Metadata contained in the Credential Issuer metadata, while an SD-JWT
+        // is described by SD-JWT VC Type Metadata that is fetched separately. Note that this means that any
+        // `type_metadata_uri` an issuer provides for an mdoc credential configuration is deliberately ignored.
+        let (mdoc_configs, type_metadata_configs): (Vec<_>, Vec<_>) = credential_configurations
             .into_iter()
-            .partition_map(|(config_id, config)| match config.type_metadata_uri.as_ref() {
-                Some(uri) => {
-                    let attestation_type = config
-                        .format
-                        .attestation_type()
-                        // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
-                        .expect("unsupported format");
+            .partition_map(|(config_id, config)| match config.format {
+                CredentialFormat::MsoMdoc { .. } => Either::Left((config_id, config)),
+                // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
+                CredentialFormat::SdJwt { .. } | CredentialFormat::Other { .. } => Either::Right((config_id, config)),
+            });
 
-                    Either::Left((uri, (config_id, attestation_type)))
-                }
+        // Read the Credential Metadata for the mdoc credential configurations, while collecting any Credential
+        // Configuration IDs that do not have it.
+        let (mdoc_metadata, missing_credential_metadata_config_ids): (HashMap<_, _>, Vec<_>) = mdoc_configs
+            .into_iter()
+            .partition_map(|(config_id, config)| match config.credential_metadata.as_ref() {
+                Some(credential_metadata) => Either::Left((
+                    config_id.clone(),
+                    OfferedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
+                )),
                 None => Either::Right(config_id.clone()),
             });
 
-        // TODO (PVW-5547): Use Credential Metadata from Issuer Metadata if type metadata URI is not present.
+        if !missing_credential_metadata_config_ids.is_empty() {
+            return Err(WalletIssuanceError::CredentialMetadataMissing(
+                missing_credential_metadata_config_ids,
+            ));
+        }
+
+        // Get the metadata URI and attestation_type for each credential configuration, while collecting any Credential
+        // Configuration IDs for which no type metadata URI is given.
+        let (configs_data, missing_uri_config_ids): (Vec<_>, Vec<_>) =
+            type_metadata_configs.into_iter().partition_map(|(config_id, config)| {
+                match config.type_metadata_uri.as_ref() {
+                    Some(uri) => {
+                        let attestation_type = config
+                            .format
+                            .attestation_type()
+                            // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
+                            .expect("unsupported format");
+
+                        Either::Left((uri, (config_id, attestation_type)))
+                    }
+                    None => Either::Right(config_id.clone()),
+                }
+            });
+
+        // TODO (PVW-5547): Fall back to the Credential Metadata for SD-JWT when no type metadata URI is present,
+        //                  and only return this error when neither is available.
         if !missing_uri_config_ids.is_empty() {
             return Err(WalletIssuanceError::TypeMetadataUriMissing(missing_uri_config_ids));
         }
@@ -762,6 +824,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         ))
         .await?
         .into_iter()
+        .chain(mdoc_metadata)
         .collect();
 
         Ok(metadata_per_config_id)
@@ -868,7 +931,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
 
-        let docs = self
+        let credentials = self
             .session_state
             .credential_previews
             .iter()
@@ -876,19 +939,16 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .map(|preview| {
                 let copy_count = usize::from(self.session_state.batch_size.get());
 
-                // Get the type metadata of the credential configuration this credential was offered under.
-                let Some(OfferedCredentialMetadata::TypeMetadata {
-                    normalized: normalized_metadata,
-                    raw: raw_metadata,
-                }) = self.session_state.metadata.get(&preview.config_id)
-                else {
-                    Err(WalletIssuanceError::TypeMetadataNotFound(preview.config_id.clone()))?
+                // Get the metadata of the credential configuration this credential was offered under.
+                let Some(metadata) = self.session_state.metadata.get(&preview.config_id) else {
+                    Err(WalletIssuanceError::MetadataNotFound(preview.config_id.clone()))?
                 };
 
-                // Consume the amount of copies from the front of `responses_and_keys`.
-                let copies = match preview.format {
-                    Format::MsoMdoc => IssuedCredentialCopies::Mdoc(
-                        responses_and_pubkeys
+                // Consume the amount of copies from the front of `responses_and_keys`. Note that the integrity digest
+                // is only checked for an SD-JWT, as that is the only format described by Type Metadata.
+                let (copies, extended_attestation_types, issued_metadata) = match (preview.format, metadata) {
+                    (Format::MsoMdoc, OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
+                        let mdocs = responses_and_pubkeys
                             .drain(..copy_count)
                             .map(|(cred_response, (pubkey, key_id))| {
                                 let credentials = cred_response
@@ -899,16 +959,24 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                                     key_id,
                                     &pubkey,
                                     preview,
-                                    normalized_metadata,
+                                    credential_metadata,
                                     trust_anchors,
                                 )
                             })
                             .collect::<Result<Vec<_>, _>>()?
                             .try_into()
-                            .expect("the resulting vector is never empty since 'copies' is nonzero"),
-                    ),
-                    Format::SdJwt => IssuedCredentialCopies::SdJwt(
-                        responses_and_pubkeys
+                            .expect("the resulting vector is never empty since 'copies' is nonzero");
+
+                        // Credential Metadata is not covered by an integrity digest, nor does it describe a chain of
+                        // extended attestation types.
+                        (
+                            IssuedCredentialCopies::Mdoc(mdocs),
+                            Vec::new(),
+                            IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
+                        )
+                    }
+                    (Format::SdJwt, OfferedCredentialMetadata::TypeMetadata { normalized, raw }) => {
+                        let sd_jwts: VecNonEmpty<_> = responses_and_pubkeys
                             .drain(..copy_count)
                             .map(|(cred_response, (pubkey, key_id))| {
                                 let credentials = cred_response
@@ -919,60 +987,65 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                                     key_id,
                                     &pubkey,
                                     preview,
-                                    normalized_metadata,
+                                    normalized,
                                     trust_anchors,
                                 )
                             })
                             .collect::<Result<Vec<_>, _>>()?
                             .try_into()
-                            .expect("the resulting vector is never empty since 'copy_count' is nonzero"),
-                    ),
-                };
+                            .expect("the resulting vector is never empty since 'copy_count' is nonzero");
 
-                // Verify that each of the resulting credentials contain exactly the same metadata integrity digest.
-                let unique_integrities: HashSet<_> = match &copies {
-                    IssuedCredentialCopies::Mdoc(mdocs) => mdocs
-                        .iter()
-                        .map(|mdoc_copy| {
-                            mdoc_copy
-                                .mdoc
-                                .type_metadata_integrity()
-                                .map_err(WalletIssuanceError::Metadata)
-                        })
-                        .try_collect()?,
-                    IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
-                        .iter()
-                        .map(|sd_jwt_copy| {
-                            sd_jwt_copy
-                                .sd_jwt
-                                .claims()
-                                .vct_integrity
-                                .as_ref()
-                                .ok_or(WalletIssuanceError::MetadataIntegrityMissing)
-                        })
-                        .try_collect()?,
-                };
-                let integrity = unique_integrities
-                    .into_iter()
-                    .exactly_one()
-                    .map_err(|_| WalletIssuanceError::MetadataIntegrityInconsistent)?;
+                        // Verify that each of the resulting credentials contain exactly the same metadata integrity
+                        // digest.
+                        let unique_integrities: HashSet<_> = sd_jwts
+                            .iter()
+                            .map(|sd_jwt_copy| {
+                                sd_jwt_copy
+                                    .sd_jwt
+                                    .claims()
+                                    .vct_integrity
+                                    .as_ref()
+                                    .ok_or(WalletIssuanceError::MetadataIntegrityMissing)
+                            })
+                            .try_collect()?;
+                        let integrity = unique_integrities
+                            .into_iter()
+                            .exactly_one()
+                            .map_err(|_| WalletIssuanceError::MetadataIntegrityInconsistent)?;
 
-                // Check that the integrity hash received in the credential matches
-                // that of encoded JSON of the first metadata document.
-                let verified_metadata = raw_metadata.clone().into_verified(integrity.clone())?;
+                        // Check that the integrity hash received in the credential matches
+                        // that of encoded JSON of the first metadata document.
+                        let verified_metadata = raw.clone().into_verified(integrity.clone())?;
+
+                        (
+                            IssuedCredentialCopies::SdJwt(sd_jwts),
+                            normalized.extended_vcts().map(String::from).collect(),
+                            IssuedCredentialMetadata::TypeMetadata(verified_metadata),
+                        )
+                    }
+                    // TODO (PVW-5547): Fall back to the Credential Metadata for SD-JWT as well.
+                    (Format::SdJwt, OfferedCredentialMetadata::CredentialMetadata(_)) => {
+                        Err(WalletIssuanceError::TypeMetadataNotFound(preview.config_id.clone()))?
+                    }
+                    (Format::MsoMdoc, OfferedCredentialMetadata::TypeMetadata { .. }) => {
+                        Err(WalletIssuanceError::CredentialMetadataMissing(vec![
+                            preview.config_id.clone(),
+                        ]))?
+                    }
+                };
 
                 Ok::<_, WalletIssuanceError>(CredentialWithMetadata::new(
                     copies,
                     preview.credential_payload.attestation_type.clone(),
                     preview.credential_payload.expires,
                     preview.credential_payload.not_before,
-                    normalized_metadata.extended_vcts(),
-                    verified_metadata,
+                    extended_attestation_types,
+                    issued_metadata,
                 ))
             })
             .try_collect()?;
 
-        Ok(docs)
+        Ok(credentials)
     }
 
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
@@ -1060,7 +1133,7 @@ impl Credentials {
         key_identifier: String,
         public_key: &PublicKey,
         preview: &CredentialPreview,
-        normalized_type_metadata: &NormalizedTypeMetadata,
+        credential_metadata: &CredentialMetadata,
         trust_anchors: &TrustAnchors,
     ) -> Result<MdocCopy, WalletIssuanceError> {
         match self {
@@ -1093,7 +1166,7 @@ impl Credentials {
                 let mdoc = Mdoc::new(issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(WalletIssuanceError::MdocVerification)?;
 
-                let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), normalized_type_metadata)?;
+                let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), credential_metadata)?;
 
                 Self::validate_credential(
                     preview,
@@ -1294,8 +1367,11 @@ mod tests {
     use crate::errors::RemoteErrorCode;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::issuer_identifier::IssuerUrl;
+    use crate::metadata::issuer_metadata::CredentialClaim;
+    use crate::metadata::issuer_metadata::CredentialDisplay;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::IssuerMetadata;
+    use crate::metadata::issuer_metadata::NameLocale;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::metadata::well_known::WellKnownMetadata;
     use crate::preview::CredentialPreviewResponse;
@@ -2063,9 +2139,50 @@ mod tests {
         metadata_integrity: Integrity,
         previewable_payload: PreviewableCredentialPayload,
         status: StatusClaim,
+        normalized_metadata: NormalizedTypeMetadata,
+        raw_metadata: SortedTypeMetadataDocuments,
     }
 
     impl MockCredentialSigner {
+        /// Turn this signer into one that issues an SD-JWT, which is described by Type Metadata rather than by
+        /// Credential Metadata, along with the matching preview and session metadata.
+        pub fn into_sd_jwt(self) -> (Self, CredentialPreview, OfferedCredentialMetadata) {
+            let preview = CredentialPreview {
+                config_id: "config_id".to_string().into(),
+                format: Format::SdJwt,
+                credential_payload: self.previewable_payload.clone(),
+                issuer_certificate: self.issuer_key.certificate().clone(),
+            };
+            let metadata = OfferedCredentialMetadata::TypeMetadata {
+                normalized: self.normalized_metadata.clone(),
+                raw: self.raw_metadata.clone(),
+            };
+
+            (self, preview, metadata)
+        }
+
+        pub fn into_sd_jwt_response_from_holder_pubkey(self, holder_pubkey: &PublicKey) -> CredentialResponse {
+            let credential_payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
+                self.previewable_payload,
+                Utc::now(),
+                holder_pubkey,
+                Some(self.metadata_integrity),
+                self.status,
+            )
+            .unwrap();
+
+            let sd_jwt = credential_payload
+                .into_signed_sd_jwt(&self.normalized_metadata, &self.issuer_key)
+                .now_or_never()
+                .unwrap()
+                .unwrap();
+
+            let credentials = Credentials::SdJwt(vec_nonempty![SdJwtCredential {
+                credential: sd_jwt.into_unverified()
+            }]);
+
+            CredentialResponse::new_immediate(credentials)
+        }
         pub fn new_with_preview_and_type_metadata_state() -> (Self, CredentialPreview, String, OfferedCredentialMetadata)
         {
             let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
@@ -2095,6 +2212,8 @@ mod tests {
                 metadata_integrity,
                 previewable_payload: preview_payload.clone(),
                 status: StatusClaim::new_mock(),
+                normalized_metadata: normalized_metadata.clone(),
+                raw_metadata,
             };
 
             let preview = CredentialPreview {
@@ -2103,10 +2222,29 @@ mod tests {
                 credential_payload: preview_payload,
                 issuer_certificate,
             };
-            let issuance_type_metadata = OfferedCredentialMetadata::TypeMetadata {
-                normalized: normalized_metadata,
-                raw: raw_metadata,
-            };
+            // The preview is for an mdoc, which is described by Credential Metadata. Note that this describes the
+            // single claim contained in `PreviewableCredentialPayload::example_family_name()`.
+            let issuance_type_metadata = OfferedCredentialMetadata::CredentialMetadata(CredentialMetadata {
+                display: Some(vec_nonempty![CredentialDisplay {
+                    name_locale: NameLocale {
+                        name: Some("Example credential".to_string()),
+                        locale: Some("en".to_string()),
+                    },
+                    logo: None,
+                    description: None,
+                    background_color: None,
+                    background_image: None,
+                    text_color: None,
+                }]),
+                claims: Some(vec_nonempty![CredentialClaim {
+                    path: vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())],
+                    mandatory: false,
+                    display: Some(vec_nonempty![NameLocale {
+                        name: Some("Family name".to_string()),
+                        locale: Some("en".to_string()),
+                    }]),
+                }]),
+            });
 
             (signer, preview, attestation_type, issuance_type_metadata)
         }
@@ -2306,20 +2444,26 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_incorrect_resource_integrity() {
-        let (mut signer, preview_data, attestation_type, type_metadata) =
-            MockCredentialSigner::new_with_preview_and_type_metadata_state();
+        // The integrity digest is only checked against a Type Metadata document, which describes an SD-JWT.
+        let (mut signer, _, attestation_type, _) = MockCredentialSigner::new_with_preview_and_type_metadata_state();
         let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
 
-        // Include a random resource integrity in the MSO of the returned mdoc.
+        // Include a random resource integrity in the returned SD-JWT.
         signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
+
+        let (signer, preview_data, type_metadata) = signer.into_sd_jwt();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(false);
 
         mock_msg_client.expect_request_credential().return_once(
             |_url, credential_request, _dpop_header, _access_token_header| {
-                let response = signer.into_response_from_request(credential_request);
+                let proof_jwt = match credential_request.proof.as_ref().unwrap() {
+                    draft::CredentialRequestProof::Jwt { jwt } => jwt,
+                };
+                let holder_pubkey =
+                    jwk_to_public_key(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
 
-                Ok(response)
+                Ok(signer.into_sd_jwt_response_from_holder_pubkey(&holder_pubkey))
             },
         );
 
@@ -2386,17 +2530,13 @@ mod tests {
     fn mock_credential_response_credential() -> (
         Credentials,
         CredentialPreview,
-        NormalizedTypeMetadata,
+        CredentialMetadata,
         PublicKey,
         TrustAnchors,
     ) {
         let (signer, preview_data, _, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata_state();
-        let OfferedCredentialMetadata::TypeMetadata {
-            normalized: type_metadata,
-            ..
-        } = metadata
-        else {
-            panic!("mock credential signer should provide type metadata");
+        let OfferedCredentialMetadata::CredentialMetadata(type_metadata) = metadata else {
+            panic!("mock credential signer should provide credential metadata");
         };
         let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());

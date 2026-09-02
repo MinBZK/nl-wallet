@@ -213,6 +213,14 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataUriMultipleAttestationTypes(Box<Vec<(IssuerUrl, Vec<String>)>>),
 
+    #[error("no credential metadata for credential configuration id(s): {}", .0.iter().join(", "))]
+    #[category(critical)]
+    CredentialMetadataMissing(Vec<CredentialConfigurationId>),
+
+    #[error("metadata for credential configuration id `{0}` not found")]
+    #[category(critical)]
+    MetadataNotFound(CredentialConfigurationId),
+
     #[error("type metadata for credential configuration id `{0}` not found")]
     #[category(critical)]
     TypeMetadataNotFound(CredentialConfigurationId),
@@ -229,9 +237,6 @@ pub enum WalletIssuanceError {
     #[error("issuer contained in credential not equal to expected value")]
     #[category(critical)]
     IssuerMismatch,
-
-    #[error("error retrieving metadata from issued mdoc: {0}")]
-    Metadata(#[source] mdoc::Error),
 
     #[error("metadata integrity digest contained is not consistent across credential copies")]
     #[category(critical)]

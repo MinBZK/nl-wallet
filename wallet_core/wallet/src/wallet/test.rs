@@ -35,6 +35,7 @@ use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
 use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
@@ -667,7 +668,7 @@ pub fn mock_issuance_session(
                     exp,
                     nbf,
                     normalized_type_metadata.extended_vcts(),
-                    metadata_documents,
+                    IssuedCredentialMetadata::TypeMetadata(metadata_documents),
                 );
 
                 (credential_with_metadata, attestation_presentation, issuer_registration)

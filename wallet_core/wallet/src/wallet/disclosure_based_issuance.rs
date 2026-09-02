@@ -298,7 +298,7 @@ mod tests {
                 let mut issuance_session = MockIssuanceSession::new();
 
                 issuance_session
-                    .expect_type_metadata()
+                    .expect_metadata()
                     .return_const([(credential_preview.config_id.clone(), type_metadata)].into());
 
                 issuance_session

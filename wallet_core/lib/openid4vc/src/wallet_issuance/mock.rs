@@ -153,7 +153,7 @@ mockall::mock! {
 
         pub fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
 
-        pub fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, OfferedCredentialMetadata>;
+        pub fn metadata(&self) -> &HashMap<CredentialConfigurationId, OfferedCredentialMetadata>;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
@@ -177,7 +177,7 @@ impl IssuanceSession for MockIssuanceSession {
     }
 
     fn metadata(&self) -> &HashMap<CredentialConfigurationId, OfferedCredentialMetadata> {
-        self.type_metadata()
+        self.metadata()
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {
