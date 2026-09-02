@@ -93,7 +93,7 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataChainError),
 
-    #[error("attributes do not match type metadata: {0}")]
+    #[error("attributes do not match metadata: {0}")]
     #[category(pd)]
     AttributesVerification(#[from] AttributesError),
 
