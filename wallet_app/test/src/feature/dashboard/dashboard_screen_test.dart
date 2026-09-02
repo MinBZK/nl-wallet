@@ -8,8 +8,10 @@ import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
+import 'package:wallet/src/navigation/wallet_routes.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -206,6 +208,15 @@ void main() {
       final altCardTitleFinder = find.text(WalletMockData.altCard.title.testValue);
       expect(cardTitleFinder, findsOneWidget);
       expect(altCardTitleFinder, findsOneWidget);
+    });
+
+    testWidgets('ltc24 clicking the help icon navigates to the help overview', (tester) async {
+      await _pumpSuccessWithVersionState(tester, state: VersionStateOk());
+
+      await tester.tap(find.byType(HelpIconButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text(WalletRoutes.helpOverviewRoute), findsOneWidget);
     });
   });
 }
