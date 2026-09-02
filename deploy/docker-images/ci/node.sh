@@ -14,6 +14,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 npm --version
 node --version
 
-npm install --global pnpm@11.16.0
+npm install --global pnpm@11.24.0
 
 pnpm --version
