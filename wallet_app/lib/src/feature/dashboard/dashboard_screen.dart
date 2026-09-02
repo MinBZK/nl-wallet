@@ -81,7 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           context.read<ObserveWalletLockedUseCase>().invoke(),
           _visibilitySubject.stream,
           (locked, visibilityInfo) => !locked && visibilityInfo.visibleFraction >= 1,
-        ).listen((visible) {
+        ).distinct().listen((visible) {
           final context = this.context;
           if (context.mounted && visible) {
             context.read<AppEventCoordinator>().onDashboardShown();
