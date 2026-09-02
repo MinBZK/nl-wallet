@@ -250,7 +250,7 @@ run-automation-tests-publish-results-android:
     - { job: run-automation-cross-device-tests-android }
     - { job: run-automation-wallet-transfer-tests-android }
   script:
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-android.zip uiautomation/build/test-results/test/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-android.zip uiautomation/build/test-results/test/TEST-feature.*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e-android.zip uiautomation/build/allure-results/*
 
 run-automation-tests-publish-results-ios:
@@ -271,7 +271,7 @@ run-automation-tests-publish-results-ios:
     - { job: run-automation-wallet-transfer-tests-ios }
     - { job: run-automation-biometrics-tests-ios }
   script:
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-ios.zip uiautomation/build/test-results/test/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-ios.zip uiautomation/build/test-results/test/TEST-feature.*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e-ios.zip uiautomation/build/allure-results/*
 
 run-automation-card-and-history-tests-android:
