@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use oauth::authorization::AuthorizationCodeRequest;
+pub use oauth::authorization::AuthorizationRequestBase;
 pub use oauth::authorization::ResponseType;
 use oauth::pkce::PkcePair;
 use oauth::scope::Scope;
@@ -14,12 +15,6 @@ use url::Url;
 
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
-
-/// The shared OAuth 2.0 fields that any authorization request — whether for OpenID4VCI issuance or OpenID4VP
-/// presentation — must carry.
-///
-/// Flow-specific variants embed this with `#[serde(flatten)]` and add their own fields.
-pub type AuthorizationRequestBase = oauth::authorization::AuthorizationRequestBase<ResponseType>;
 
 /// An OpenID4VCI authorization request, posted in URL-encoded form to the `/par` endpoint
 /// (RFC 9126) and later referenced from `/authorize` via [`PushedAuthorizationRequest`].

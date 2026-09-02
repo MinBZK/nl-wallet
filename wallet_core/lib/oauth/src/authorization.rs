@@ -1,8 +1,4 @@
 use std::collections::HashSet;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::hash::Hash;
-use std::str::FromStr;
 
 use chrono::Duration;
 use jwt::nonce::Nonce;
@@ -28,20 +24,16 @@ use crate::scope::Scope;
 pub const APPLICATION_OAUTH_AUTHZ_REQ_JWT: &str = "application/oauth-authz-req+jwt";
 
 /// The shared [OAuth 2.0 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
-/// authorization request must carry. Generic over the `response_type` value, since supported response types vary
-/// per profile (e.g. plain OAuth `code`, OpenID4VP's `vp_token`, SIOPv2's `id_token`).
+/// authorization request must carry. The supported `response_type` values vary per profile (e.g. plain OAuth `code`,
+/// OpenID4VP's `vp_token`, SIOPv2's `id_token`), which [`ResponseType`] enumerates.
 ///
 /// Flow-specific request types embed this with `#[serde(flatten)]` and add their own fields.
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AuthorizationRequestBase<T>
-where
-    T: Display + FromStr + Eq + Hash + Clone + Debug,
-    T::Err: Display,
-{
-    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, T>")]
-    pub response_type: HashSet<T>,
+pub struct AuthorizationRequestBase {
+    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, ResponseType>")]
+    pub response_type: HashSet<ResponseType>,
 
     pub client_id: String,
     pub state: Option<String>,
@@ -51,12 +43,8 @@ where
     _request_uri: SpecForbidden,
 }
 
-impl<T> AuthorizationRequestBase<T>
-where
-    T: Display + FromStr + Eq + Hash + Clone + Debug,
-    T::Err: Display,
-{
-    pub fn new(response_type: HashSet<T>, client_id: String, state: Option<String>) -> Self {
+impl AuthorizationRequestBase {
+    pub fn new(response_type: HashSet<ResponseType>, client_id: String, state: Option<String>) -> Self {
         Self {
             response_type,
             client_id,
@@ -112,7 +100,7 @@ pub enum ResponseType {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthorizationCodeRequest {
     #[serde(flatten)]
-    pub oauth_request: AuthorizationRequestBase<ResponseType>,
+    pub oauth_request: AuthorizationRequestBase,
 
     /// Required in this setting: OAuth 2.0 only permits omitting `redirect_uri` when the client has a single
     /// pre-registered redirect URI with the Authorization Server (RFC 6749 §3.1.2.3). OpenID4VCI wallets aren't
