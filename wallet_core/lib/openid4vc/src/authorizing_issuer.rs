@@ -183,15 +183,15 @@ where
         if !self
             .issuer
             .accepted_wallet_client_ids()
-            .contains(request.oauth_request.client_id.as_str())
+            .contains(request.auth_request.oauth_request.client_id.as_str())
         {
-            return Err(ParError::UnknownClient(request.oauth_request.client_id));
+            return Err(ParError::UnknownClient(request.auth_request.oauth_request.client_id));
         }
 
         // `verify_wia()` checks that the WIA's `sub` matches `client_id`.
         // <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.1-2.7.1>
         self.issuer
-            .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
+            .verify_wia(wia_disclosure, Some(&request.auth_request.oauth_request.client_id))
             .await
             .map_err(ParError::Wia)?;
 
@@ -200,8 +200,14 @@ where
         }
 
         // Exact-match the wallet's redirect_uri against the configured allowlist.
-        if !self.wallet_redirect_uris.iter().contains(request.redirect_uri.as_ref()) {
-            return Err(ParError::InvalidRedirectUri(request.redirect_uri.into_inner()));
+        if !self
+            .wallet_redirect_uris
+            .iter()
+            .contains(request.auth_request.redirect_uri.as_ref())
+        {
+            return Err(ParError::InvalidRedirectUri(
+                request.auth_request.redirect_uri.into_inner(),
+            ));
         }
 
         let request_uri = generate_request_uri();
@@ -240,9 +246,9 @@ where
             .live()
             .ok_or_else(|| AuthorizeError::UnknownRequestUri(request_uri.to_string()))?;
 
-        if authorization_request.oauth_request.client_id != client_id {
+        if authorization_request.auth_request.oauth_request.client_id != client_id {
             return Err(AuthorizeError::MismatchedClient {
-                expected: authorization_request.oauth_request.client_id,
+                expected: authorization_request.auth_request.oauth_request.client_id,
                 actual: client_id.to_string(),
             });
         }
@@ -265,8 +271,8 @@ where
         &self,
         authorization_request: VciAuthorizationRequest,
     ) -> Result<Url, RedirectError<AuthorizationRequestError>> {
-        let redirect_uri = authorization_request.redirect_uri.as_ref().clone();
-        let state = authorization_request.oauth_request.state.clone();
+        let redirect_uri = authorization_request.auth_request.redirect_uri.as_ref().clone();
+        let state = authorization_request.auth_request.oauth_request.state.clone();
 
         // Extract the wallet-side parameters the flow must retain (rejecting an unsupported
         // code_challenge_method here, for every flow at once). Keep the redirect_uri + state so we
@@ -575,7 +581,7 @@ mod tests {
             .unwrap()
             .live()
             .expect("request should be stored under the returned request_uri");
-        assert_eq!(stored.oauth_request.client_id, MOCK_WALLET_CLIENT_ID);
+        assert_eq!(stored.auth_request.oauth_request.client_id, MOCK_WALLET_CLIENT_ID);
     }
 
     #[tokio::test]
@@ -828,7 +834,7 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_propagates_invalid_authorization_request() {
         let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
-        request.scope = HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]);
+        request.auth_request.scope = HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]);
         let (authorizing_issuer, _sessions, _) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), request)],
             AuthorizeOutcome::RedirectTo(upstream_url()),

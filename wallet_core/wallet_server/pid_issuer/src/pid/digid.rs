@@ -12,6 +12,8 @@ use jwk_simple::Key;
 use jwt::JwtTyp;
 use jwt::error::JwtVerifyError;
 use jwt::nonce::Nonce;
+use oauth::authorization::AuthorizationCodeRequest;
+use oauth::authorization::OidcAuthorizationRequest;
 use oauth::errors::TokenErrorCode;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::metadata::oauth_metadata::OidcProviderMetadata;
@@ -27,8 +29,6 @@ use oauth::token::request_token;
 use oauth::userinfo::UserInfoDecryption;
 use oauth::userinfo::UserInfoError;
 use oauth::userinfo::request_userinfo;
-use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::VciAuthorizationRequest;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -163,18 +163,16 @@ impl DigidClient for HttpDigidClient {
         state: String,
         pkce_pair: &S256PkcePair,
     ) -> Result<Url, Error> {
-        // Create a new upstream authorization request
-        let vci_request = VciAuthorizationRequest::for_auth_code(
-            client_id,
-            redirect_uri,
-            state,
-            None,
-            HashSet::from([OPENID_SCOPE.clone()]),
-            pkce_pair,
-        );
-
+        // Create a new upstream authorization request. Note that this is a plain OIDC request: the connection between
+        // the PID issuer and the DigiD connector is not an OpenID4VCI connection.
         let oidc_request = OidcAuthorizationRequest {
-            vci_request,
+            auth_request: AuthorizationCodeRequest::new(
+                client_id,
+                redirect_uri,
+                state,
+                HashSet::from([OPENID_SCOPE.clone()]),
+                pkce_pair,
+            ),
             nonce: Some(Nonce::new_random()),
         };
 
