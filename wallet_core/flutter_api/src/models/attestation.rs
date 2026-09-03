@@ -209,7 +209,7 @@ pub enum AttributeValue {
     Date { value: String },
     Bytes { value: Vec<u8> },
     Image { value: Image }, // bytes that represent an image
-    Map { value: Vec<(String, AttributeValue)> },
+    Map { value: Vec<(String, Box<AttributeValue>)> },
 }
 
 impl From<attestation_data::Attribute> for AttributeValue {
@@ -233,7 +233,10 @@ impl From<attestation_data::Attribute> for AttributeValue {
                 Err(value) => AttributeValue::Bytes { value },
             },
             attestation_data::Attribute::Object(entries) => AttributeValue::Map {
-                value: entries.into_iter().map(|(key, value)| (key, value.into())).collect(),
+                value: entries
+                    .into_iter()
+                    .map(|(key, value)| (key, Box::new(value.into())))
+                    .collect(),
             },
         }
     }

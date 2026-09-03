@@ -2082,7 +2082,7 @@ impl SseDecode for crate::models::attestation::AttributeValue {
             }
             8 => {
                 let mut var_value =
-                    <Vec<(String, crate::models::attestation::AttributeValue)>>::sse_decode(deserializer);
+                    <Vec<(String, Box<crate::models::attestation::AttributeValue>)>>::sse_decode(deserializer);
                 return crate::models::attestation::AttributeValue::Map { value: var_value };
             }
             _ => {
@@ -2109,6 +2109,13 @@ impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u8().unwrap() != 0
+    }
+}
+
+impl SseDecode for Box<crate::models::attestation::AttributeValue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        return Box::new(<crate::models::attestation::AttributeValue>::sse_decode(deserializer));
     }
 }
 
@@ -2608,13 +2615,13 @@ impl SseDecode for Vec<(i32, crate::models::notification::NotificationType)> {
     }
 }
 
-impl SseDecode for Vec<(String, crate::models::attestation::AttributeValue)> {
+impl SseDecode for Vec<(String, Box<crate::models::attestation::AttributeValue>)> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
-            ans_.push(<(String, crate::models::attestation::AttributeValue)>::sse_decode(
+            ans_.push(<(String, Box<crate::models::attestation::AttributeValue>)>::sse_decode(
                 deserializer,
             ));
         }
@@ -2874,11 +2881,11 @@ impl SseDecode for (i32, crate::models::notification::NotificationType) {
     }
 }
 
-impl SseDecode for (String, crate::models::attestation::AttributeValue) {
+impl SseDecode for (String, Box<crate::models::attestation::AttributeValue>) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_field0 = <String>::sse_decode(deserializer);
-        let mut var_field1 = <crate::models::attestation::AttributeValue>::sse_decode(deserializer);
+        let mut var_field1 = <Box<crate::models::attestation::AttributeValue>>::sse_decode(deserializer);
         return (var_field0, var_field1);
     }
 }
@@ -4585,7 +4592,7 @@ impl SseEncode for crate::models::attestation::AttributeValue {
             }
             crate::models::attestation::AttributeValue::Map { value } => {
                 <i32>::sse_encode(8, serializer);
-                <Vec<(String, crate::models::attestation::AttributeValue)>>::sse_encode(value, serializer);
+                <Vec<(String, Box<crate::models::attestation::AttributeValue>)>>::sse_encode(value, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -4615,6 +4622,13 @@ impl SseEncode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u8(self as _).unwrap();
+    }
+}
+
+impl SseEncode for Box<crate::models::attestation::AttributeValue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::models::attestation::AttributeValue>::sse_encode(*self, serializer);
     }
 }
 
@@ -5057,12 +5071,12 @@ impl SseEncode for Vec<(i32, crate::models::notification::NotificationType)> {
     }
 }
 
-impl SseEncode for Vec<(String, crate::models::attestation::AttributeValue)> {
+impl SseEncode for Vec<(String, Box<crate::models::attestation::AttributeValue>)> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <(String, crate::models::attestation::AttributeValue)>::sse_encode(item, serializer);
+            <(String, Box<crate::models::attestation::AttributeValue>)>::sse_encode(item, serializer);
         }
     }
 }
@@ -5276,11 +5290,11 @@ impl SseEncode for (i32, crate::models::notification::NotificationType) {
     }
 }
 
-impl SseEncode for (String, crate::models::attestation::AttributeValue) {
+impl SseEncode for (String, Box<crate::models::attestation::AttributeValue>) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.0, serializer);
-        <crate::models::attestation::AttributeValue>::sse_encode(self.1, serializer);
+        <Box<crate::models::attestation::AttributeValue>>::sse_encode(self.1, serializer);
     }
 }
 
@@ -5928,6 +5942,13 @@ mod io {
             }
         }
     }
+    impl CstDecode<Box<crate::models::attestation::AttributeValue>> for *mut wire_cst_attribute_value {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Box<crate::models::attestation::AttributeValue> {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::attestation::AttributeValue>::cst_decode(*wrap).into()
+        }
+    }
     impl CstDecode<crate::models::attestation::AttestationPresentation> for *mut wire_cst_attestation_presentation {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::AttestationPresentation {
@@ -6336,11 +6357,11 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
-    impl CstDecode<Vec<(String, crate::models::attestation::AttributeValue)>>
-        for *mut wire_cst_list_record_string_attribute_value
+    impl CstDecode<Vec<(String, Box<crate::models::attestation::AttributeValue>)>>
+        for *mut wire_cst_list_record_string_box_attribute_value
     {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<(String, crate::models::attestation::AttributeValue)> {
+        fn cst_decode(self) -> Vec<(String, Box<crate::models::attestation::AttributeValue>)> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -6455,9 +6476,11 @@ mod io {
             (self.field0.cst_decode(), self.field1.cst_decode())
         }
     }
-    impl CstDecode<(String, crate::models::attestation::AttributeValue)> for wire_cst_record_string_attribute_value {
+    impl CstDecode<(String, Box<crate::models::attestation::AttributeValue>)>
+        for wire_cst_record_string_box_attribute_value
+    {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> (String, crate::models::attestation::AttributeValue) {
+        fn cst_decode(self) -> (String, Box<crate::models::attestation::AttributeValue>) {
             (self.field0.cst_decode(), self.field1.cst_decode())
         }
     }
@@ -7028,15 +7051,15 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
-    impl NewWithNullPtr for wire_cst_record_string_attribute_value {
+    impl NewWithNullPtr for wire_cst_record_string_box_attribute_value {
         fn new_with_null_ptr() -> Self {
             Self {
                 field0: core::ptr::null_mut(),
-                field1: Default::default(),
+                field1: core::ptr::null_mut(),
             }
         }
     }
-    impl Default for wire_cst_record_string_attribute_value {
+    impl Default for wire_cst_record_string_box_attribute_value {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -7632,6 +7655,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_attribute_value() -> *mut wire_cst_attribute_value {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attribute_value::new_with_null_ptr())
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(
     ) -> *mut wire_cst_attestation_presentation {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attestation_presentation::new_with_null_ptr())
@@ -7891,12 +7919,12 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_list_record_string_attribute_value(
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_record_string_box_attribute_value(
         len: i32,
-    ) -> *mut wire_cst_list_record_string_attribute_value {
-        let wrap = wire_cst_list_record_string_attribute_value {
+    ) -> *mut wire_cst_list_record_string_box_attribute_value {
+        let wrap = wire_cst_list_record_string_box_attribute_value {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
-                <wire_cst_record_string_attribute_value>::new_with_null_ptr(),
+                <wire_cst_record_string_box_attribute_value>::new_with_null_ptr(),
                 len,
             ),
             len,
@@ -8040,7 +8068,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_AttributeValue_Map {
-        value: *mut wire_cst_list_record_string_attribute_value,
+        value: *mut wire_cst_list_record_string_box_attribute_value,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -8311,8 +8339,8 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_list_record_string_attribute_value {
-        ptr: *mut wire_cst_record_string_attribute_value,
+    pub struct wire_cst_list_record_string_box_attribute_value {
+        ptr: *mut wire_cst_record_string_box_attribute_value,
         len: i32,
     }
     #[repr(C)]
@@ -8414,9 +8442,9 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_record_string_attribute_value {
+    pub struct wire_cst_record_string_box_attribute_value {
         field0: *mut wire_cst_list_prim_u_8_strict,
-        field1: wire_cst_attribute_value,
+        field1: *mut wire_cst_attribute_value,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
