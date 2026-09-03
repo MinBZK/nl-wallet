@@ -1,0 +1,313 @@
+//! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
+
+use derive_more::Constructor;
+use futures::TryFutureExt;
+use http_utils::reqwest::HttpClient;
+use indexmap::IndexSet;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::skip_serializing_none;
+use url::Url;
+
+use super::well_known::WellKnownMetadata;
+use crate::issuer_identifier::IssuerIdentifier;
+use crate::jose::JwsAlgorithm;
+use crate::metadata::well_known::WellKnownError;
+
+/// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
+/// published at `.well-known/oauth-authorization-server`.
+///
+/// This struct also serves as a lenient representation of
+/// [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html) Provider Metadata
+/// (see [`OidcProviderMetadata`]), since OIDC Discovery is a superset of RFC 8414. Key differences: OIDC requires
+/// `jwks_uri`, `subject_types_supported`, and `id_token_signing_alg_values_supported` to be non-empty; RFC 8414 does
+/// not define those fields. This struct accepts both by treating them as optional/defaulting to empty.
+#[skip_serializing_none]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AuthorizationServerMetadata {
+    pub issuer: IssuerIdentifier,
+    #[serde(default)]
+    pub authorization_endpoint: Option<Url>,
+    pub token_endpoint: Url,
+    #[serde(default)]
+    pub jwks_uri: Option<Url>,
+    #[serde(default)]
+    pub registration_endpoint: Option<Url>,
+    #[serde(default)]
+    pub scopes_supported: Option<IndexSet<String>>,
+    // There are only three valid response types, plus combinations of them, and none
+    // If we want to make these user friendly we want a struct to represent all 7 types
+    pub response_types_supported: IndexSet<String>,
+    // There are only two possible values here, query and fragment. Default is both.
+    #[serde(default)]
+    pub response_modes_supported: Option<IndexSet<String>>,
+    // Must support at least authorization_code and implicit.
+    #[serde(default)]
+    pub grant_types_supported: Option<IndexSet<String>>,
+    // Spec options are client_secret_post, client_secret_basic, client_secret_jwt, private_key_jwt
+    // If omitted, client_secret_basic is used
+    #[serde(default)]
+    pub token_endpoint_auth_methods_supported: Option<IndexSet<String>>,
+    // Only wanted with jwt auth methods, should have RS256, none not allowed
+    #[serde(default)]
+    pub token_endpoint_auth_signing_alg_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub service_documentation: Option<Url>,
+    #[serde(default)]
+    pub ui_locales_supported: Option<IndexSet<String>>,
+
+    #[serde(default)]
+    pub op_policy_uri: Option<Url>,
+    #[serde(default)]
+    pub op_tos_uri: Option<Url>,
+    // This is a NONSTANDARD extension Google uses that is a part of the Oauth discovery draft
+    #[serde(default)]
+    pub code_challenge_methods_supported: Option<IndexSet<String>>,
+}
+
+/// OpenID Connect Discovery 1.0 Provider Metadata fields that are not already defined by RFC 8414, see
+/// <https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata>.
+#[skip_serializing_none]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OpenIdMetadataExtension {
+    #[serde(default)]
+    pub userinfo_endpoint: Option<Url>,
+    #[serde(default)]
+    pub acr_values_supported: Option<IndexSet<String>>,
+    // pairwise and public are valid by spec, but servers can add more
+    #[serde(default = "IndexSet::new")]
+    pub subject_types_supported: IndexSet<String>,
+    // Must include at least RS256, none is only allowed with response types without id tokens
+    #[serde(default = "IndexSet::new")]
+    pub id_token_signing_alg_values_supported: IndexSet<String>,
+    #[serde(default)]
+    pub id_token_encryption_alg_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub id_token_encryption_enc_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub userinfo_signing_alg_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub userinfo_encryption_alg_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub userinfo_encryption_enc_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub request_object_signing_alg_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub request_object_encryption_alg_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub request_object_encryption_enc_values_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub display_values_supported: Option<IndexSet<String>>,
+    // Valid options are normal, aggregated, and distributed. If omitted, only use normal
+    #[serde(default)]
+    pub claim_types_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub claims_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub claims_locales_supported: Option<IndexSet<String>>,
+    #[serde(default)]
+    pub claims_parameter_supported: bool,
+    #[serde(default)]
+    pub request_parameter_supported: bool,
+    #[serde(default = "bool_value::<true>")]
+    pub request_uri_parameter_supported: bool,
+    #[serde(default)]
+    pub require_request_uri_registration: bool,
+}
+
+// Needed for: request_uri_parameter_supported: true,
+impl Default for OpenIdMetadataExtension {
+    fn default() -> Self {
+        Self {
+            userinfo_endpoint: None,
+            acr_values_supported: None,
+            subject_types_supported: IndexSet::new(),
+            id_token_signing_alg_values_supported: IndexSet::new(),
+            id_token_encryption_alg_values_supported: None,
+            id_token_encryption_enc_values_supported: None,
+            userinfo_signing_alg_values_supported: None,
+            userinfo_encryption_alg_values_supported: None,
+            userinfo_encryption_enc_values_supported: None,
+            request_object_signing_alg_values_supported: None,
+            request_object_encryption_alg_values_supported: None,
+            request_object_encryption_enc_values_supported: None,
+            display_values_supported: None,
+            claim_types_supported: None,
+            claims_supported: None,
+            claims_locales_supported: None,
+            claims_parameter_supported: false,
+            request_parameter_supported: false,
+            request_uri_parameter_supported: true,
+            require_request_uri_registration: false,
+        }
+    }
+}
+
+/// Pushed Authorization Requests metadata fields, as defined by
+/// [RFC 9126](https://www.rfc-editor.org/rfc/rfc9126.html#section-5).
+#[skip_serializing_none]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ParMetadataExtension {
+    /// The URL of the pushed authorization request endpoint at which a client can post an authorization request to
+    /// exchange for a request_uri value usable at the authorization server.
+    #[serde(default)]
+    pub pushed_authorization_request_endpoint: Option<Url>,
+
+    /// Boolean parameter indicating whether the authorization server accepts authorization request data only via PAR.
+    /// If omitted, the default value is false.
+    #[serde(default)]
+    pub require_pushed_authorization_requests: bool,
+}
+
+/// Metadata fields for Attestation-Based Client Authentication, as defined by
+/// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10).
+#[skip_serializing_none]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ClientAttestationMetadataExtension {
+    /// JWS signing algorithms supported by the authorization server for validating client attestation JWTs used in
+    /// Attestation-Based Client Authentication.
+    #[serde(default)]
+    pub client_attestation_signing_alg_values_supported: Option<IndexSet<JwsAlgorithm>>,
+
+    /// JWS signing algorithms supported by the authorization server for validating client attestation PoP JWTs used
+    /// in Attestation-Based Client Authentication.
+    #[serde(default)]
+    pub client_attestation_pop_signing_alg_values_supported: Option<IndexSet<JwsAlgorithm>>,
+
+    /// Endpoint for retrieving challenges for use in Attestation-Based Client Authentication.
+    /// Empty if the Authorization Server does not have a challenge endpoint. If it is present, then the wallet
+    /// MUST invoke the endpoint to obtain a challenge which then MUST be used in its next PoP.
+    #[serde(default)]
+    pub challenge_endpoint: Option<Url>,
+}
+
+impl AuthorizationServerMetadata {
+    /// Returns a new instance with the specified URLs, and all other parameters set to none/empty/false.
+    pub fn new(issuer: IssuerIdentifier, token_endpoint: Url) -> Self {
+        Self {
+            issuer,
+            authorization_endpoint: None,
+            token_endpoint,
+            jwks_uri: None,
+            registration_endpoint: None,
+            scopes_supported: None,
+            response_types_supported: IndexSet::new(),
+            response_modes_supported: None,
+            grant_types_supported: None,
+            token_endpoint_auth_methods_supported: None,
+            token_endpoint_auth_signing_alg_values_supported: None,
+            service_documentation: None,
+            ui_locales_supported: None,
+            op_policy_uri: None,
+            op_tos_uri: None,
+            code_challenge_methods_supported: None,
+        }
+    }
+}
+
+impl WellKnownMetadata for AuthorizationServerMetadata {
+    const PATH: &'static str = "oauth-authorization-server";
+
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.issuer
+    }
+}
+
+/// Metadata obtained from an OpenID Provider's `/.well-known/openid-configuration` endpoint (OpenID Connect
+/// Discovery 1.0). Combines the RFC 8414 [`AuthorizationServerMetadata`] fields with the additional fields defined
+/// by OIDC Discovery, since OIDC Discovery Provider Metadata is a superset of RFC 8414 Authorization Server
+/// Metadata.
+#[derive(Clone, Debug, Deserialize, Serialize, Constructor)]
+pub struct OidcProviderMetadata {
+    #[serde(flatten)]
+    pub oauth_metadata: AuthorizationServerMetadata,
+    #[serde(flatten)]
+    pub oidc_metadata_extension: OpenIdMetadataExtension,
+}
+
+impl OidcProviderMetadata {
+    /// Return the legacy OpenID well-known URL.
+    ///
+    /// This is the original OpenID behavior, which had it's own mechanism for the WellKnown spec was created, there it
+    /// was required to specify the `.well-known` by extending the issuer URL. See also
+    /// [https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig] and
+    /// [https://www.rfc-editor.org/info/rfc8414/#section-5].
+    pub fn legacy_well_known_url(issuer: &IssuerIdentifier) -> Url {
+        let url = issuer.as_base_url().as_ref();
+        url.join(&format!(".well-known/{}.json", Self::PATH))
+            .expect("both paths are already safe url encoded")
+    }
+}
+
+impl WellKnownMetadata for OidcProviderMetadata {
+    const PATH: &'static str = "openid-configuration";
+
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        self.oauth_metadata.issuer_identifier()
+    }
+
+    /// Fetch well known openid-configuration from the standard location, fallback to the legacy OpenID configuration.
+    ///
+    /// See [https://www.rfc-editor.org/info/rfc8414/#section-5].
+    async fn fetch_well_known_json(client: &HttpClient, issuer: &IssuerIdentifier) -> Result<Self, WellKnownError> {
+        Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer)
+            .or_else(|error| {
+                tracing::debug!(
+                    "Failed fetching .well-known configuration: {}. Trying fallback...",
+                    error
+                );
+
+                Self::fetch_well_known_json_from(client, Self::legacy_well_known_url(issuer), issuer)
+            })
+            .await
+    }
+}
+
+const fn bool_value<const B: bool>() -> bool {
+    B
+}
+
+#[cfg(test)]
+pub mod tests {
+    use http::header;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
+    use http_utils::reqwest::HttpClient;
+    use httpmock::Method::GET;
+    use httpmock::MockServer;
+    use serde_json::json;
+
+    use super::AuthorizationServerMetadata;
+    use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::well_known::WellKnownMetadata;
+
+    #[tokio::test]
+    async fn test_discovery() {
+        let server = MockServer::start_async().await;
+        let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
+
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/oauth-authorization-server");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "issuer": server.base_url(),
+                        "authorization_endpoint": server.url("/oauth2/authorize"),
+                        "token_endpoint": server.url("/oauth2/token"),
+                        "jwks_uri": server.url("/.well-known/jwks.json"),
+                        "response_types_supported": ["code", "id_token", "token id_token"],
+                        "scopes_supported": ["openid"],
+                    }));
+            })
+            .await;
+
+        let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let metadata = AuthorizationServerMetadata::fetch_well_known_json(&client, &issuer_identifier)
+            .await
+            .unwrap();
+
+        assert_eq!(metadata.issuer, issuer_identifier);
+        mock.assert_async().await;
+    }
+}

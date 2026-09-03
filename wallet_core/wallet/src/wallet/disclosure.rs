@@ -1030,6 +1030,8 @@ mod tests {
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use mockall::predicate::function;
+    use oauth::errors::ErrorResponse;
+    use oauth::errors::RemoteErrorCode;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::DisclosableAttestations;
@@ -1041,10 +1043,8 @@ mod tests {
     use openid4vc::disclosure_session::mock::MockDisclosureClient;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::errors::DisclosureErrorResponse;
-    use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetAuthRequestErrorCode;
     use openid4vc::errors::PostAuthResponseErrorCode;
-    use openid4vc::errors::RemoteErrorCode;
     use openid4vc::verifier::SessionType;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;

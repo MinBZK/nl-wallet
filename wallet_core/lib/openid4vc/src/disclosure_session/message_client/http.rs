@@ -6,15 +6,15 @@ use http_utils::reqwest::HttpClient;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use oauth::authorization::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
+use oauth::errors::AuthorizationErrorResponse;
 use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::ACCEPT;
 use url::Url;
 
-use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use super::VpMessageClient;
 use super::VpMessageClientError;
-use crate::errors::AuthorizationErrorResponse;
 use crate::errors::GetAuthRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
 use crate::errors::RemoteDisclosureErrorResponse;

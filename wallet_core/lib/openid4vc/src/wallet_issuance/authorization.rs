@@ -10,6 +10,16 @@ use itertools::Either;
 use itertools::Itertools;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
+use oauth::authorization::AuthorizationResponse;
+use oauth::authorization::PushedAuthorizationRequest;
+use oauth::authorization::PushedAuthorizationResponse;
+use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::RemoteErrorCode;
+use oauth::errors::RemoteErrorResponse;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::pkce::PkcePair;
+use oauth::pkce::S256PkcePair;
+use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -20,23 +30,14 @@ use super::WalletIssuanceError;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
-use crate::authorization::AuthorizationResponse;
-use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::client_auth::ClientAttestationChallengeMechanism;
 use crate::client_auth::fetch_client_auth_challenge;
-use crate::errors::AuthorizationErrorCode;
 use crate::errors::ParErrorCode;
-use crate::errors::RemoteErrorCode;
-use crate::errors::RemoteErrorResponse;
-use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
-use crate::pkce::PkcePair;
-use crate::pkce::S256PkcePair;
-use crate::token::AuthorizationCode;
-use crate::token::TokenRequest;
+use crate::token::VciTokenRequest;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -198,11 +199,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
         };
 
-        let mut auth_url = auth_endpoints.authorization_endpoint;
-        auth_url
-            .query_pairs_mut()
-            .append_pair("client_id", &client_id)
-            .append_pair("request_uri", &par_response.request_uri);
+        let auth_url = PushedAuthorizationRequest::from_par_response(client_id, &par_response)
+            .into_authorization_url(auth_endpoints.authorization_endpoint);
 
         Ok(Self {
             credential_configurations,
@@ -317,7 +315,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
         // Create the Token Request to be sent to the issuer with the minimal amount of information required. This does
         // not include either a `scope` or `authorization_details` field, as we have no need to further restrict the
         // credentials requested at this point.
-        let token_request = TokenRequest::new_authorization_code(
+        let token_request = VciTokenRequest::new_authorization_code(
             authorization_code,
             self.redirect_uri,
             self.pkce_pair.into_code_verifier(),
@@ -356,6 +354,11 @@ mod tests {
     use httpmock::MockServer;
     use jwt::nonce::Nonce;
     use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
+    use oauth::errors::AuthorizationErrorCode;
+    use oauth::errors::RemoteErrorCode;
+    use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::pkce::MockPkcePair;
+    use oauth::pkce::S256PkcePair;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -369,14 +372,9 @@ mod tests {
     use super::OAuthError;
     use crate::client_auth::ClientAttestationChallengeMechanism;
     use crate::client_auth::ClientAttestationChallengeMechanismError;
-    use crate::errors::AuthorizationErrorCode;
-    use crate::errors::RemoteErrorCode;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::pkce::MockPkcePair;
-    use crate::pkce::S256PkcePair;
     use crate::wallet_issuance::authorization_endpoints::AuthorizationEndpoints;
     use crate::wallet_issuance::mock::RecordingWiaClient;
 

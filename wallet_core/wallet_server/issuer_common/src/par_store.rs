@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
+use oauth::par::PAR_TTL;
 use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::par::PAR_TTL;
 use openid4vc::store::Consumed;
 use openid4vc::store::MemoryStore;
 use openid4vc::store::Store;

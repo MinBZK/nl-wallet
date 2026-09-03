@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::issuer_identifier::IssuerUrl;
+use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::IgnoredAny;
@@ -13,11 +16,7 @@ use strum::EnumString;
 use url::Url;
 use utils::vec_at_least::VecNonEmptyUnique;
 
-use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::token::AuthorizationCode;
-
 pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offer";
 
 /// OpenID4VCI protocol message containing the credential offer. The Credential Offer contains a single URI query
@@ -259,6 +258,7 @@ pub enum PreAuthTransactionCodeInputMode {
 
 #[cfg(test)]
 mod tests {
+    use oauth::issuer_identifier::IssuerUrl;
     use serde_json::json;
     use url::Url;
 
@@ -267,7 +267,6 @@ mod tests {
     use super::Grants;
     use super::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use super::PreAuthTransactionCodeInputMode;
-    use crate::issuer_identifier::IssuerUrl;
 
     #[test]
     fn test_grants_serialization() {

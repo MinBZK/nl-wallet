@@ -1,6 +1,8 @@
 use base64::prelude::*;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
+use serde::Deserialize;
+use serde::Serialize;
 
 /// The maximum length for a PKCE verifier is 128 characters.
 const CODE_VERIFIER_LENGTH: usize = 128;
@@ -68,4 +70,18 @@ impl S256PkcePair {
     pub fn challenge_for(verifier: &str) -> String {
         BASE64_URL_SAFE_NO_PAD.encode(sha256(verifier.as_bytes()))
     }
+}
+
+/// The PKCE code challenge as defined by [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636.html), sent by the client
+/// in the Authorization Request.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "code_challenge_method")]
+pub enum PkceCodeChallenge {
+    S256 {
+        code_challenge: String,
+    },
+    #[serde(rename = "plain")]
+    Plain {
+        code_challenge: String,
+    },
 }

@@ -14,10 +14,16 @@ use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
+use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
 use jwt::JwtTyp;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::issuer_identifier::IssuerUrl;
+use oauth::jose::JwsAlgorithm;
+use oauth::metadata::well_known::WellKnownMetadata;
+use oauth::scope::Scope;
 use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
@@ -34,14 +40,8 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_identifier::IssuerUrl;
-use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
-use crate::metadata::well_known::WellKnownMetadata;
-use crate::scope::Scope;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
 #[as_ref(str)]
 pub struct CredentialConfigurationId(String);
@@ -49,6 +49,21 @@ pub struct CredentialConfigurationId(String);
 impl Borrow<str> for CredentialConfigurationId {
     fn borrow(&self) -> &str {
         self.as_ref()
+    }
+}
+
+pub trait JoinCredentialConfigurationId {
+    fn join_config_id(&self, config_id: &CredentialConfigurationId) -> Self;
+}
+
+impl JoinCredentialConfigurationId for IssuerUrl {
+    fn join_config_id(&self, config_id: &CredentialConfigurationId) -> Self {
+        let mut url = self.as_ref().as_ref().clone();
+        url.path_segments_mut()
+            .expect("issuer URL has a base and is guaranteed to have path segments")
+            .push(config_id.as_ref());
+        Self::try_from(BaseUrl::try_from(url).expect("issuer URL has a base and is guaranteed to succeed"))
+            .expect("if input is HTTPS, the output will be HTTPS")
     }
 }
 
@@ -153,6 +168,8 @@ pub struct IssuerEndpoints {
 }
 
 impl WellKnownMetadata for IssuerMetadata {
+    const PATH: &'static str = "openid-credential-issuer";
+
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         &self.credential_issuer
     }
@@ -757,6 +774,9 @@ mod tests {
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
     use jwt::VerifiedJwt;
+    use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::issuer_identifier::IssuerUrl;
+    use rstest::rstest;
     use serde_json::json;
 
     use super::CoseAlgorithmIdentifier;
@@ -764,10 +784,10 @@ mod tests {
     use super::CredentialFormat;
     use super::CryptographicBindingMethod;
     use super::IssuerMetadata;
+    use super::JoinCredentialConfigurationId;
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
     use super::SignedIssuerMetadataPayload;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::jwe::JweCompressionAlgorithm;
 
     #[test]
@@ -1401,5 +1421,18 @@ mod tests {
             credential_config.type_metadata_uri,
             Some("https://example.com/type_metadata".parse().unwrap())
         );
+    }
+
+    #[rstest]
+    #[case::simple("simple", "https://example.com/simple")]
+    #[case::colons("urn:example:pid:nl:1", "https://example.com/urn:example:pid:nl:1")]
+    #[case::slash("hello/world", "https://example.com/hello%2Fworld")]
+    #[case::panda("🐼", "https://example.com/%F0%9F%90%BC")]
+    fn test_issuer_url_joining_config_id(#[case] config_id: String, #[case] expected: &str) {
+        let issuer_url = IssuerUrl::try_new("https://example.com")
+            .unwrap()
+            .join_config_id(&config_id.into());
+
+        assert_eq!(issuer_url, expected.parse::<IssuerUrl>().unwrap());
     }
 }

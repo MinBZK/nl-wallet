@@ -128,10 +128,10 @@ pub struct DpopPayload {
     iat: DateTime<Utc>,
 }
 
-pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
+pub const DPOP_JWT_TYPE: &str = "dpop+jwt";
 
 impl JwtTyp for DpopPayload {
-    const TYP: &'static str = OPENID4VCI_DPOP_JWT_TYPE;
+    const TYP: &'static str = DPOP_JWT_TYPE;
 }
 
 #[derive(Clone, AsRef, FromStr, Display)]
@@ -241,9 +241,9 @@ mod tests {
     use serde::de::DeserializeOwned;
     use url::Url;
 
+    use super::DPOP_JWT_TYPE;
     use super::Dpop;
-    use crate::dpop::DpopPayload;
-    use crate::dpop::OPENID4VCI_DPOP_JWT_TYPE;
+    use super::DpopPayload;
     use crate::token::AccessToken;
 
     #[rstest]
@@ -260,7 +260,7 @@ mod tests {
 
         // Check the `typ` of the Header
         let header: Header = part(0, dpop.0.serialization());
-        assert_eq!(header.typ, Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()));
+        assert_eq!(header.typ, Some(DPOP_JWT_TYPE.to_string()));
 
         // Examine some fields in the claims
         let claims: DpopPayload = part(1, dpop.0.serialization());
