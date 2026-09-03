@@ -18,7 +18,14 @@ pub trait WellKnownMetadata: DeserializeOwned {
     fn issuer_identifier(&self) -> &IssuerIdentifier;
 
     async fn fetch_well_known_json(client: &HttpClient, issuer: &IssuerIdentifier) -> Result<Self, WellKnownError> {
-        let url = Self::well_known_url(issuer);
+        Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer).await
+    }
+
+    async fn fetch_well_known_json_from(
+        client: &HttpClient,
+        url: Url,
+        issuer: &IssuerIdentifier,
+    ) -> Result<Self, WellKnownError> {
         let metadata: Self = client.get_json(url).await?;
         if metadata.issuer_identifier() != issuer {
             return Err(WellKnownError::IssuerIdentifierMismatch {
