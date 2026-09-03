@@ -221,6 +221,27 @@
         "credential_type": "urn:eudi:pid:nl:1",
         "path": ["urn:eudi:pid:nl:1", "bsn"]
       }
+    },
+    "mdl": {
+      "data": [
+        {
+          "format": "mso_mdoc",
+          "attestation_type": "org.iso.18013.5.1.mDL",
+          "attributes": {
+            "family_name": "Jansen",
+            "given_name": "Frouke",
+            "birth_date": "1990-04-15",
+            "issue_date": "2020-07-01",
+            "expiry_date": "2030-07-01",
+            "issuing_country": "NL",
+            "issuing_authority": "RDW",
+            "document_number": "{{INSERT_RANDOM_VALUE}}",
+            "portrait": "░░░▒█▓▓▒▓▓▒▓▓▓▓▒▒▒▒▒▓▒▒▒▓▓░▒\n░░░▓█▓▓▓▒▓▒░░░░░░░░░▒▒▓▒▒▒▒▒\n░░░▓▓▓▒▒▒▒░░░░░░░░░░░▒▒▒▓▒▒▒\n░░░▓▓▓▒▒▒▒▒░░░░░░░░░▒▒▒▓▓▒▒▒\n░░░▓▓▓▒▒▒▒▒▒▒░░░░▒▒▒▒▒▒▓▓▒░▒\n░░░▒▓▓▒▒▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒░░\n░░░▒▓▓▒▒▓▒▓░▒▒░░░▒▓▒▒▒▒▒▒▒░░\n░░░░▓▒▒▒▒▒░▒▒▒░░▒▒░░░░░▒▒░░░\n░░░░▒▒▒▒▒▒░░▒▒▒░▒░░░░▒▒▒▒░░▒\n░░░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░▒\n░░░░░░▒▒▒▒▒▒▒▒▒▒░▒░▒▒▒▒▒░░░▒\n░▒░░░░▒▒▒▒▒▒▓▓▓▓▓▒▒▒▒▒▒░░░░▒\n░░░░░░░▒▒▒▒▒▒▒▒▒▒░▒▒▒▒░░░░░▒\n░▒░░░░░▒▒▒▒▒▒▒▒░▒▒▒▒▒░░░░░░▒\n░░░░░░░▒▒▒▒▒▓▒▒▒▒▒▒▒▒░░░░░░▒",
+            "driving_privileges": ["AM", "B"],
+            "un_distinguishing_sign": "NL"
+          }
+        }
+      ]
     }
   }
 }

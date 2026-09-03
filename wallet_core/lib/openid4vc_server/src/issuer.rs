@@ -57,7 +57,7 @@ use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::errors::CredentialErrorCode;
 use openid4vc::errors::CredentialPreviewErrorCode;
 use openid4vc::errors::ParErrorCode;
-use openid4vc::errors::TokenErrorCode;
+use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -369,10 +369,10 @@ where
 
 async fn token<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
-    wia_headers: WiaHeaders<TokenErrorCode>,
+    wia_headers: WiaHeaders<VciTokenErrorCode>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<VciTokenRequest>,
-) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<TokenErrorCode>>
+) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<VciTokenErrorCode>>
 where
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
@@ -456,7 +456,7 @@ impl WiaRejection for ParErrorCode {
     }
 }
 
-impl WiaRejection for TokenErrorCode {
+impl WiaRejection for VciTokenErrorCode {
     fn invalid_client_attestation(description: String) -> ErrorResponse<Self> {
         ErrorResponse {
             error: Self::InvalidClientAttestation,
@@ -566,7 +566,7 @@ mod tests {
     use axum::http::request::Parts;
     use jwt::wia::WIA_HEADER_NAME;
     use jwt::wia::WIA_POP_HEADER_NAME;
-    use openid4vc::errors::TokenErrorCode;
+    use openid4vc::errors::VciTokenErrorCode;
     use rstest::rstest;
 
     use super::WiaHeaders;
@@ -589,7 +589,7 @@ mod tests {
             (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes()),
         ]);
 
-        let WiaHeaders(wia, wia_pop, _) = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+        let WiaHeaders(wia, wia_pop, _) = WiaHeaders::<VciTokenErrorCode>::from_request_parts(&mut parts, &())
             .await
             .unwrap();
 
@@ -622,11 +622,11 @@ mod tests {
     async fn should_reject_invalid_headers(#[case] headers: &[(&str, &[u8])], #[case] expected_description: &str) {
         let mut parts = request_parts(headers);
 
-        let error = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+        let error = WiaHeaders::<VciTokenErrorCode>::from_request_parts(&mut parts, &())
             .await
             .unwrap_err();
 
-        assert_eq!(error.error, TokenErrorCode::InvalidClientAttestation);
+        assert_eq!(error.error, VciTokenErrorCode::InvalidClientAttestation);
         assert!(
             error
                 .error_description

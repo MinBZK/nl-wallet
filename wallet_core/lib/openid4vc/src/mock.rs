@@ -14,6 +14,7 @@ use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::token::VciTokenRequest;
 
@@ -41,7 +42,7 @@ impl IssuerMetadata {
                 let scope = format!("{config_id}_scope").parse().unwrap();
                 let type_metadata_uri = issuer_url
                     .join_issuer_url("/issuance/type_metadata")
-                    .join_config_id(config_id.as_ref());
+                    .join_config_id(&config_id);
 
                 let config = match credential_kind.format {
                     Format::MsoMdoc => CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(

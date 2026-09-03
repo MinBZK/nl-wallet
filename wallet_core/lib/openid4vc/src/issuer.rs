@@ -2150,7 +2150,7 @@ mod tests {
     use crate::credential::draft;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
-    use crate::errors::TokenErrorCode;
+    use crate::errors::VciTokenErrorCode;
     use crate::issuable_document::IssuableDocument;
     use crate::nonce::response::NonceResponse;
     use crate::preview::CredentialPreviewResponse;
@@ -2359,7 +2359,7 @@ mod tests {
                 .process_token_request(token_request.clone(), dpop_header.clone(), wia.clone())
                 .await
                 .map_err(|error| {
-                    let error_response = ErrorResponse::<TokenErrorCode>::from(error);
+                    let error_response = ErrorResponse::<VciTokenErrorCode>::from(error);
 
                     WalletIssuanceError::VciTokenRequest(Box::new(error_response.into()))
                 })?;
@@ -2599,7 +2599,7 @@ mod tests {
         assert_matches!(
             error,
             WalletIssuanceError::VciTokenRequest(err)
-                if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
+                if matches!(err.error, RemoteErrorCode::Known(VciTokenErrorCode::InvalidClientAttestation))
         );
     }
 
@@ -2623,7 +2623,7 @@ mod tests {
         assert_matches!(
             error,
             WalletIssuanceError::VciTokenRequest(err)
-                if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
+                if matches!(err.error, RemoteErrorCode::Known(VciTokenErrorCode::InvalidClientAttestation))
         );
     }
 
@@ -2648,7 +2648,7 @@ mod tests {
         assert_matches!(
             error,
             WalletIssuanceError::VciTokenRequest(err)
-                if matches!(err.error, RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation))
+                if matches!(err.error, RemoteErrorCode::Known(VciTokenErrorCode::InvalidClientAttestation))
         );
     }
 

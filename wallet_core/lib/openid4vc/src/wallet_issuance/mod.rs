@@ -50,7 +50,7 @@ use crate::client_auth::ClientAttestationMetadataError;
 use crate::credential::Credentials;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
-use crate::errors::TokenErrorCode;
+use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
@@ -114,7 +114,7 @@ pub enum WalletIssuanceError {
 
     #[error("retrieving access token from issuer reported an error: {0:?}")]
     #[category(pd)]
-    VciTokenRequest(Box<RemoteErrorResponse<TokenErrorCode>>),
+    VciTokenRequest(Box<RemoteErrorResponse<VciTokenErrorCode>>),
 
     #[error("pre-authorized code is no longer valid: it has expired or was already used")]
     #[category(expected)]

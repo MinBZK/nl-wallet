@@ -98,7 +98,7 @@ h2 {
 .action-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   width: 100%;
   box-sizing: border-box;
   min-height: 5rem;

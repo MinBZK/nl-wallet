@@ -54,6 +54,8 @@
                                 {{ base.trans.loyalty_index }}
                             {% when "museum_maandkaart" %}
                                 {{ base.trans.museum_maandkaart_index }}
+                            {% when "mdl" %}
+                                {{ base.trans.mdl_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

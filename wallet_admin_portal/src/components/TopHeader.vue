@@ -1,7 +1,7 @@
 <template>
   <header class="header">
     <div class="text">
-      <h1>{{ route.meta.title }}</h1>
+      <h1>{{ titleOverride ?? route.meta.title }}</h1>
       <p>{{ route.meta.description }}</p>
     </div>
     <AppButton v-if="showCreateTaskButton" @click="isCreateTaskModalOpen = true">
@@ -15,6 +15,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { usePageTitle } from '@/composables/pageTitle.ts'
 import { useRoute } from 'vue-router'
 import CreateTaskModal from './tasks/CreateTaskModal.vue'
 import AppButton from './ui/AppButton.vue'
@@ -29,6 +30,7 @@ withDefaults(
 )
 
 const route = useRoute()
+const { titleOverride } = usePageTitle()
 const isCreateTaskModalOpen = ref(false)
 </script>
 
@@ -36,7 +38,7 @@ const isCreateTaskModalOpen = ref(false)
 .header {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 1.5rem;
   box-sizing: border-box;
   padding: 0 1.5rem;
   border-bottom: 2px solid var(--color-border);

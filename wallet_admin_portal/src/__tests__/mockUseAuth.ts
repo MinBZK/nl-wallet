@@ -1,5 +1,9 @@
 import { ref } from 'vue'
-import { hasTaskCreationPrivilege, type UserProfile } from '@/composables/authentication'
+import {
+  hasTaskCreationPrivilege,
+  type AuthState,
+  type UserProfile,
+} from '@/composables/authentication'
 import { Role } from '@/types/roles.ts'
 import type { Privilege } from '@/types/privilege.ts'
 
@@ -23,4 +27,11 @@ export function mockLoggedInUser(privileges: Privilege[], overrides: Partial<Use
 /** Simulates a logged-out session`. */
 export function mockLoggedOutUser() {
   loggedInUser.value = null
+}
+
+/** Mocked `getAuthState()`, derived from {@link loggedInUser}. */
+export async function mockGetAuthState(): Promise<AuthState> {
+  return loggedInUser.value
+    ? { status: 'authenticated', user: loggedInUser.value }
+    : { status: 'unauthenticated' }
 }

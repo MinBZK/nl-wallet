@@ -63,7 +63,7 @@ impl WalletAuthorizationContext {
         request: VciAuthorizationRequest,
         credential_configs: &CredentialConfigurations<K, L>,
     ) -> Result<Self, InvalidAuthorizationRequest> {
-        let code_challenge = match request.code_challenge {
+        let code_challenge = match request.auth_request.code_challenge {
             PkceCodeChallenge::S256 { code_challenge } => code_challenge,
             PkceCodeChallenge::Plain { .. } => return Err(InvalidAuthorizationRequest::UnsupportedCodeChallenge),
         };
@@ -79,6 +79,7 @@ impl WalletAuthorizationContext {
         // The scope is part of `WalletAuthorizationContext` in order to store this in the session state in the next
         // step. Once there, it is used to compare against any scope that is requested as part of the Token Request.
         let credential_kinds = request
+            .auth_request
             .scope
             .iter()
             .flat_map(|scope| credential_configs.get_by_scope(scope))
@@ -86,18 +87,18 @@ impl WalletAuthorizationContext {
             .collect::<HashSet<_>>();
 
         if credential_kinds.is_empty() {
-            return Err(InvalidAuthorizationRequest::NoValidScope(request.scope));
+            return Err(InvalidAuthorizationRequest::NoValidScope(request.auth_request.scope));
         }
 
         Ok(Self {
-            state: request.oauth_request.state,
+            state: request.auth_request.oauth_request.state,
             issuer_state: request.issuer_state,
             credential_kinds,
             request_values: AuthRequestValues {
-                client_id: request.oauth_request.client_id,
-                redirect_uri: request.redirect_uri.into_inner(),
+                client_id: request.auth_request.oauth_request.client_id,
+                redirect_uri: request.auth_request.redirect_uri.into_inner(),
                 code_challenge,
-                scope: request.scope,
+                scope: request.auth_request.scope,
             },
         })
     }
@@ -206,7 +207,7 @@ mod tests {
         // A `plain` code_challenge_method is not supported.
         let issuer = mock_issuer();
         let mut request = vci_request(HashSet::from([WALLET_SCOPE.parse().unwrap()]));
-        request.code_challenge = PkceCodeChallenge::Plain {
+        request.auth_request.code_challenge = PkceCodeChallenge::Plain {
             code_challenge: "plain-challenge".to_string(),
         };
 

@@ -23,7 +23,7 @@ withDefaults(
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 0.75rem;
   border: none;
   border-radius: 6px;
   font-weight: 700;
@@ -51,7 +51,7 @@ withDefaults(
   color: #fff;
 }
 
-.app-button.primary:hover {
+.app-button.primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
 }
 
@@ -61,7 +61,12 @@ withDefaults(
   color: var(--color-primary);
 }
 
-.app-button.secondary:hover {
+.app-button.secondary:hover:not(:disabled) {
   background: #f5f6ff;
+}
+
+.app-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

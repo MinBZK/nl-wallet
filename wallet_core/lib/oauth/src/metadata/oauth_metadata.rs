@@ -1,6 +1,7 @@
 //! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
 use derive_more::Constructor;
+use futures::TryFutureExt;
 use http_utils::reqwest::HttpClient;
 use indexmap::IndexSet;
 use serde::Deserialize;
@@ -59,18 +60,6 @@ pub struct AuthorizationServerMetadata {
     pub op_policy_uri: Option<Url>,
     #[serde(default)]
     pub op_tos_uri: Option<Url>,
-    #[serde(default)]
-    pub revocation_endpoint: Option<Url>,
-    #[serde(default)]
-    pub revocation_endpoint_auth_methods_supported: Option<IndexSet<String>>,
-    #[serde(default)]
-    pub revocation_endpoint_auth_signing_alg_values_supported: Option<IndexSet<String>>,
-    #[serde(default)]
-    pub introspection_endpoint: Option<Url>,
-    #[serde(default)]
-    pub introspection_endpoint_auth_methods_supported: Option<IndexSet<String>>,
-    #[serde(default)]
-    pub introspection_endpoint_auth_signing_alg_values_supported: Option<IndexSet<String>>,
     // This is a NONSTANDARD extension Google uses that is a part of the Oauth discovery draft
     #[serde(default)]
     pub code_challenge_methods_supported: Option<IndexSet<String>>,
@@ -211,14 +200,16 @@ impl AuthorizationServerMetadata {
             ui_locales_supported: None,
             op_policy_uri: None,
             op_tos_uri: None,
-            revocation_endpoint: None,
-            revocation_endpoint_auth_methods_supported: None,
-            revocation_endpoint_auth_signing_alg_values_supported: None,
-            introspection_endpoint: None,
-            introspection_endpoint_auth_methods_supported: None,
-            introspection_endpoint_auth_signing_alg_values_supported: None,
             code_challenge_methods_supported: None,
         }
+    }
+}
+
+impl WellKnownMetadata for AuthorizationServerMetadata {
+    const PATH: &'static str = "oauth-authorization-server";
+
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.issuer
     }
 }
 
@@ -235,49 +226,16 @@ pub struct OidcProviderMetadata {
 }
 
 impl OidcProviderMetadata {
+    /// Return the legacy OpenID well-known URL.
+    ///
+    /// This is the original OpenID behavior, which had it's own mechanism for the WellKnown spec was created, there it
+    /// was required to specify the `.well-known` by extending the issuer URL. See also
+    /// [https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig] and
+    /// [https://www.rfc-editor.org/info/rfc8414/#section-5].
     pub fn legacy_well_known_url(issuer: &IssuerIdentifier) -> Url {
         let url = issuer.as_base_url().as_ref();
         url.join(&format!(".well-known/{}.json", Self::PATH))
             .expect("both paths are already safe url encoded")
-    }
-
-    pub async fn fetch_well_known_with_fallback(
-        client: &HttpClient,
-        issuer: &IssuerIdentifier,
-    ) -> Result<Self, WellKnownError> {
-        match Self::fetch_well_known_json(client, issuer).await {
-            Ok(result) => Ok(result),
-            Err(error) => {
-                tracing::debug!(
-                    "Failed fetching .well-known configuration: {}. Trying fallback...",
-                    error
-                );
-                Self::fetch_well_known_fallback(client, issuer).await
-            }
-        }
-    }
-
-    pub async fn fetch_well_known_fallback(
-        client: &HttpClient,
-        issuer: &IssuerIdentifier,
-    ) -> Result<Self, WellKnownError> {
-        let url = Self::legacy_well_known_url(issuer);
-        let metadata: Self = client.get_json(url).await?;
-        if metadata.issuer_identifier() != issuer {
-            return Err(WellKnownError::IssuerIdentifierMismatch {
-                expected: Box::new(issuer.clone()),
-                received: Box::new(metadata.issuer_identifier().clone()),
-            });
-        }
-        Ok(metadata)
-    }
-}
-
-impl WellKnownMetadata for AuthorizationServerMetadata {
-    const PATH: &'static str = "oauth-authorization-server";
-
-    fn issuer_identifier(&self) -> &IssuerIdentifier {
-        &self.issuer
     }
 }
 
@@ -286,6 +244,22 @@ impl WellKnownMetadata for OidcProviderMetadata {
 
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         self.oauth_metadata.issuer_identifier()
+    }
+
+    /// Fetch well known openid-configuration from the standard location, fallback to the legacy OpenID configuration.
+    ///
+    /// See [https://www.rfc-editor.org/info/rfc8414/#section-5].
+    async fn fetch_well_known_json(client: &HttpClient, issuer: &IssuerIdentifier) -> Result<Self, WellKnownError> {
+        Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer)
+            .or_else(|error| {
+                tracing::debug!(
+                    "Failed fetching .well-known configuration: {}. Trying fallback...",
+                    error
+                );
+
+                Self::fetch_well_known_json_from(client, Self::legacy_well_known_url(issuer), issuer)
+            })
+            .await
     }
 }
 

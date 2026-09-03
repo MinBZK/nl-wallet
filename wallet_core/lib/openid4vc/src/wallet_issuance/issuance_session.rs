@@ -73,7 +73,7 @@ use crate::credential::SdJwtCredential;
 use crate::credential::draft;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
-use crate::errors::TokenErrorCode;
+use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
@@ -177,7 +177,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
                 if status.is_client_error() || status.is_server_error() {
                     let error = response
-                        .json::<RemoteErrorResponse<TokenErrorCode>>()
+                        .json::<RemoteErrorResponse<VciTokenErrorCode>>()
                         .await
                         .map_err(WalletIssuanceError::TokenRequestHttp)?;
 
@@ -449,7 +449,7 @@ fn map_pre_authorized_token_error(error: WalletIssuanceError, token_request: &Vc
 
     match &error {
         WalletIssuanceError::VciTokenRequest(response)
-            if is_pre_authorized && response.error == RemoteErrorCode::Known(TokenErrorCode::InvalidGrant) =>
+            if is_pre_authorized && response.error == RemoteErrorCode::Known(VciTokenErrorCode::InvalidGrant) =>
         {
             WalletIssuanceError::PreAuthorizedCodeExpired
         }
@@ -1315,7 +1315,7 @@ mod tests {
 
     fn invalid_grant_error() -> WalletIssuanceError {
         WalletIssuanceError::VciTokenRequest(Box::new(ErrorResponse {
-            error: RemoteErrorCode::Known(TokenErrorCode::InvalidGrant),
+            error: RemoteErrorCode::Known(VciTokenErrorCode::InvalidGrant),
             error_description: None,
             error_uri: None,
         }))
@@ -1346,7 +1346,7 @@ mod tests {
 
         // Any other error code in the pre-authorized flow is left untouched.
         let other = WalletIssuanceError::VciTokenRequest(Box::new(ErrorResponse {
-            error: RemoteErrorCode::Known(TokenErrorCode::InvalidRequest),
+            error: RemoteErrorCode::Known(VciTokenErrorCode::InvalidRequest),
             error_description: None,
             error_uri: None,
         }));

@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:wallet_core/core.dart';
 import 'package:wallet_mock/mock.dart';
+import 'package:wallet_mock/src/data/mock/mock_attestations.dart';
 import 'package:wallet_mock/src/log/wallet_event_log.dart';
 import 'package:wallet_mock/src/manager/disclosure_manager.dart';
 import 'package:wallet_mock/src/manager/pin_manager.dart';
@@ -36,6 +37,58 @@ void main() {
     test('Calling init initializes the wallet', () async {
       await walletCore.crateApiFullInit();
       expect(await walletCore.crateApiFullIsInitialized(), isTrue);
+    });
+  });
+
+  group('WalletState', () {
+    const kPin = '132435';
+
+    test('Wallet is unregistered before a pin is set', () async {
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.unregistered());
+    });
+
+    test('Wallet is empty after registration', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.empty());
+    });
+
+    test('Wallet is in the issuance flow while the (empty) wallet awaits the PID', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.inIssuanceFlow());
+    });
+
+    test('Wallet is ready after accepting the PID', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      await walletCore.crateApiFullAcceptPidIssuance(pin: kPin);
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.ready());
+    });
+
+    test('Wallet is empty again after cancelling the PID issuance', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      await walletCore.crateApiFullCancelSession();
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.empty());
+    });
+
+    test('Wallet is in the issuance flow during PID renewal', () async {
+      await walletCore.crateApiFullRegister(pin: kPin);
+      await walletCore.crateApiFullCreatePidIssuanceRedirectUri();
+      await walletCore.crateApiFullAcceptPidIssuance(pin: kPin);
+      await walletCore.crateApiFullCreatePidRenewalRedirectUri();
+      expect(await walletCore.crateApiFullGetWalletState(), const WalletState.inIssuanceFlow());
+    });
+  });
+
+  group('Configuration', () {
+    test('Only one of the attestations issued as PID is listed as a PID variant', () async {
+      final config = await walletCore.crateApiFullSetConfigurationStream().first;
+      final pidVariantTypes = config.pidAttestations.map((it) => it.attestationType).toSet();
+
+      // pidAttestations is a prioritised list of variants of one PID: everything matching after the
+      // first match is hidden, so listing two attestations that are issued together hides one.
+      expect(kPidAttestations.map((it) => it.attestationType).where(pidVariantTypes.contains), hasLength(1));
     });
   });
 }
