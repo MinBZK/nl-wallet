@@ -81,7 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           context.read<ObserveWalletLockedUseCase>().invoke(),
           _visibilitySubject.stream,
           (locked, visibilityInfo) => !locked && visibilityInfo.visibleFraction >= 1,
-        ).listen((visible) {
+        ).distinct().listen((visible) {
           final context = this.context;
           if (context.mounted && visible) {
             context.read<AppEventCoordinator>().onDashboardShown();
@@ -115,13 +115,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       leading: _buildLeadingMenuButton(context),
       fadeInTitleOnScroll: false,
       leadingWidth: double.infinity,
-      actions: const [
-        FadeInAtOffset(
+      actions: [
+        const FadeInAtOffset(
           visibleOffset: 150,
           appearOffset: 100,
           child: QrIconButton(),
         ),
-        HelpIconButton(),
+        HelpIconButton(
+          onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.helpOverviewRoute),
+        ),
       ],
     );
   }

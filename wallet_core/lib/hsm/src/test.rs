@@ -231,10 +231,10 @@ impl<H> TestCase<H> {
             .await
             .unwrap();
 
-        let encrypted: Encrypted<Vec<u8>> = Hsm::encrypt(hsm, &identifier, data.clone()).await.unwrap();
+        let encrypted: Encrypted<Vec<u8>> = Hsm::encrypt_gcm(hsm, &identifier, data.clone()).await.unwrap();
         assert_ne!(data.clone(), encrypted.data.clone());
 
-        let decrypted = Hsm::decrypt(hsm, &identifier, encrypted).await.unwrap();
+        let decrypted = Hsm::decrypt_gcm(hsm, &identifier, encrypted).await.unwrap();
         assert_eq!(data, decrypted);
     }
 

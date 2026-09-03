@@ -39,6 +39,7 @@ pub const TRANSLATIONS: Translations = Translations {
         housing_index: "Get housing card",
         loyalty_index: "Get loyalty card",
         museum_maandkaart_index: "Get museum monthly pass",
+        mdl_index: "Get mobile driver's license",
     },
     nl: Words {
         en: "English",
@@ -60,6 +61,7 @@ pub const TRANSLATIONS: Translations = Translations {
         housing_index: "Ontvang huurkaart",
         loyalty_index: "Ontvang bonuskaart",
         museum_maandkaart_index: "Ontvang museumkaart",
+        mdl_index: "Ontvang digitaal rijbewijs",
     },
 };
 
@@ -83,6 +85,7 @@ pub struct Words<'a> {
     pub housing_index: &'a str,
     pub loyalty_index: &'a str,
     pub museum_maandkaart_index: &'a str,
+    pub mdl_index: &'a str,
 }
 
 impl<'a> Index<Language> for Words<'a> {

@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import router from '@/router'
 import { request, UnauthorizedError } from '@/api/request'
 import { roleFromPrivileges, type Role } from '@/types/roles'
 import { Privilege } from '@/types/privilege.ts'
@@ -14,6 +13,11 @@ export interface UserProfile extends UserProfileResponse {
   canCreateTask: boolean
 }
 
+export type AuthState =
+  | { status: 'authenticated'; user: UserProfile }
+  | { status: 'unauthenticated' }
+  | { status: 'unavailable' }
+
 const TASK_CREATION_PRIVILEGES = [
   Privilege.RevokeWallet,
   Privilege.BlockUser,
@@ -26,7 +30,7 @@ export function hasTaskCreationPrivilege(privileges: string[]): boolean {
 }
 
 const loggedInUser = ref<UserProfile | null>(null)
-let fetchPromise: Promise<void> | null = null
+let fetchPromise: Promise<AuthState> | null = null
 
 /** Clears auth state, allowing the next `useAuth()` call to retry the fetch. */
 function resetAuthState() {
@@ -34,26 +38,35 @@ function resetAuthState() {
   fetchPromise = null
 }
 
-/** Fetches the current user; a 401 redirects to `/login`, any other failure redirects to `/error`. */
-async function fetchUser() {
+/** Fetches the current auth state; a 401 is unauthenticated, any other failure is unavailable. */
+async function fetchAuthState(): Promise<AuthState> {
   try {
     const profile = await request<UserProfileResponse>('/me')
-    loggedInUser.value = {
+    const user: UserProfile = {
       ...profile,
       role: roleFromPrivileges(profile.privileges),
       canCreateTask: hasTaskCreationPrivilege(profile.privileges),
     }
+    loggedInUser.value = user
+    return { status: 'authenticated', user }
   } catch (error) {
     resetAuthState()
-    if (error instanceof UnauthorizedError) return
-    router.push('/error')
+    return { status: error instanceof UnauthorizedError ? 'unauthenticated' : 'unavailable' }
   }
 }
 
 /** Reactive logged-in user. */
 export function useAuth() {
   if (!fetchPromise) {
-    fetchPromise = fetchUser()
+    fetchPromise = fetchAuthState()
   }
   return { loggedInUser }
+}
+
+/** Resolves once the user profile has loaded, e.g. for use in a route guard. */
+export async function getAuthState(): Promise<AuthState> {
+  if (!fetchPromise) {
+    fetchPromise = fetchAuthState()
+  }
+  return fetchPromise
 }
