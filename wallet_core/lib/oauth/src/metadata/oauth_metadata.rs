@@ -1,7 +1,6 @@
 //! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
 use derive_more::Constructor;
-use futures::TryFutureExt;
 use http_utils::reqwest::HttpClient;
 use indexmap::IndexSet;
 use serde::Deserialize;
@@ -250,16 +249,19 @@ impl WellKnownMetadata for OidcProviderMetadata {
     ///
     /// See [https://www.rfc-editor.org/info/rfc8414/#section-5].
     async fn fetch_well_known_json(client: &HttpClient, issuer: &IssuerIdentifier) -> Result<Self, WellKnownError> {
-        Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer)
-            .or_else(|error| {
+        match Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer).await {
+            // Only fall back to the legacy location if the standard location could not be fetched, any other error
+            // means the metadata was served but is not acceptable, which should be reported to the caller.
+            Err(error @ WellKnownError::Http(_)) => {
                 tracing::debug!(
                     "Failed fetching .well-known configuration: {}. Trying fallback...",
                     error
                 );
 
-                Self::fetch_well_known_json_from(client, Self::legacy_well_known_url(issuer), issuer)
-            })
-            .await
+                Self::fetch_well_known_json_from(client, Self::legacy_well_known_url(issuer), issuer).await
+            }
+            result => result,
+        }
     }
 }
 
