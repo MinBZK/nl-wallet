@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:yaml/yaml.dart';
 
-import '../domain/model/help/help_topic_group.dart';
 import '../domain/model/help/topic_block.dart';
 import 'help_category_icon_names.dart';
 import 'mapper/help/topic_block_mapper.dart';
@@ -37,8 +36,7 @@ class ValidationResult {
 /// contains `help.yaml` plus per-locale markdown subdirectories).
 ///
 /// Issues (block CI): missing markdown, orphan markdown, broken `help://`
-/// links, missing/blank translations, unknown category `icon` names, unknown
-/// topic-group ids.
+/// links, missing/blank translations, and unknown category `icon` names.
 ValidationResult validateHelpContent({required String helpDir}) {
   final issues = <ContentIssue>[];
   final yaml = loadYaml(File('$helpDir/$_kHelpYamlFile').readAsStringSync()) as YamlMap;
@@ -52,7 +50,6 @@ ValidationResult validateHelpContent({required String helpDir}) {
   _checkHelpLinksResolve(helpDir, topicIds, issues);
   _checkTranslations(yaml, categoryIds, subcategoryIds, topicIds, issues);
   _checkCategoryIcons(yaml, issues);
-  _checkGroupIds(yaml, issues);
 
   return ValidationResult(issues);
 }
@@ -62,8 +59,7 @@ Set<String> _collectTopicIds(YamlMap yaml) {
   return structure
       .cast<YamlMap>()
       .expand((category) => (category['subcategories'] as YamlList).cast<YamlMap>())
-      .expand((sub) => (sub['topics'] as YamlList).cast<YamlMap>())
-      .expand((group) => (group['topicIds'] as YamlList).whereType<String>())
+      .expand((sub) => (sub['topicIds'] as YamlList).whereType<String>())
       .toSet();
 }
 
@@ -285,31 +281,6 @@ void _checkCategoryIcons(YamlMap yaml, List<ContentIssue> issues) {
               "category '$categoryId' uses unknown icon '$icon' — add it to `helpCategoryIcons` and `allowedHelpCategoryIconNames` (Dart change required).",
         ),
       );
-    }
-  }
-}
-
-/// Topic-group ids the app understands, derived from [HelpTopicGroupKind].
-/// The repository parser silently drops a group whose `groupId` is anything
-/// else, so an unknown id means its topics never reach a screen.
-final _kValidGroupIds = HelpTopicGroupKind.values.map((kind) => kind.name).toSet();
-
-void _checkGroupIds(YamlMap yaml, List<ContentIssue> issues) {
-  for (final category in yaml['structure'] as YamlList) {
-    for (final sub in (category as YamlMap)['subcategories'] as YamlList) {
-      final subMap = sub as YamlMap;
-      final subcategoryId = subMap['subcategoryId'];
-      for (final group in subMap['topics'] as YamlList) {
-        final groupId = (group as YamlMap)['groupId'];
-        if (groupId is String && _kValidGroupIds.contains(groupId)) continue;
-        issues.add(
-          ContentIssue(
-            file: _kHelpYamlFile,
-            message:
-                "subcategory '$subcategoryId' uses unknown groupId '$groupId' — expected one of: ${_kValidGroupIds.join(', ')}",
-          ),
-        );
-      }
     }
   }
 }
