@@ -76,3 +76,15 @@ root_public_keys = [
 ]
 package_name = "nl.ictu.edi.wallet.latest"
 allow_sideloading = true
+
+# Optional: accept registrations from devices without Google Play services or a Google account
+# (e.g. GrapheneOS, LineageOS, /e/OS) using hardware key attestation alone, without a Play Integrity
+# token. Disabled unless `enabled = true`. The conditions below keep a hardware root of trust, so this
+# is a replacement of the Play Integrity signal rather than a removal of device integrity.
+# [android.key_attestation_only]
+# enabled = false
+# # Verified boot states to accept. "verified" is the strongest (locked bootloader + verified OS,
+# # including relocked GrapheneOS). Add "self_signed"/"unverified" only after weighing the risk.
+# allowed_verified_boot_states = ["verified"]
+# require_device_locked = true
+# require_matching_signature_digest = true

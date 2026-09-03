@@ -5,6 +5,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use android_attest::attestation_extension::key_description::VerifiedBootState;
 use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
@@ -168,6 +169,57 @@ pub struct Android {
     pub credentials_file: PathBuf,
     #[serde_as(as = "HashSet<Hex>")]
     pub play_store_certificate_hashes: HashSet<Vec<u8>>,
+    /// Optional policy for accepting registrations without a Google Play Integrity token, for
+    /// devices without Google Play services or a Google account (e.g. GrapheneOS, LineageOS, /e/OS).
+    /// When omitted, key-attestation-only registration is disabled.
+    #[serde(default)]
+    pub key_attestation_only: Option<AndroidKeyAttestationOnly>,
+}
+
+/// Configuration of the key-attestation-only registration path. See
+/// `wallet_provider_service::account_server::KeyAttestationOnlyPolicy` for the semantics.
+#[derive(Clone, Deserialize)]
+pub struct AndroidKeyAttestationOnly {
+    /// Whether registration without a Play Integrity token is accepted at all.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Verified boot states that are accepted. Defaults to only `verified`, the strongest state.
+    #[serde(default = "default_allowed_verified_boot_states")]
+    pub allowed_verified_boot_states: Vec<AndroidVerifiedBootState>,
+    /// Require a locked bootloader. Defaults to `true`.
+    #[serde(default = "default_true")]
+    pub require_device_locked: bool,
+    /// Require a matching app signing certificate digest. Defaults to `true`.
+    #[serde(default = "default_true")]
+    pub require_matching_signature_digest: bool,
+}
+
+#[derive(Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AndroidVerifiedBootState {
+    Verified,
+    SelfSigned,
+    Unverified,
+    Failed,
+}
+
+impl From<AndroidVerifiedBootState> for VerifiedBootState {
+    fn from(value: AndroidVerifiedBootState) -> Self {
+        match value {
+            AndroidVerifiedBootState::Verified => VerifiedBootState::Verified,
+            AndroidVerifiedBootState::SelfSigned => VerifiedBootState::SelfSigned,
+            AndroidVerifiedBootState::Unverified => VerifiedBootState::Unverified,
+            AndroidVerifiedBootState::Failed => VerifiedBootState::Failed,
+        }
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_allowed_verified_boot_states() -> Vec<AndroidVerifiedBootState> {
+    vec![AndroidVerifiedBootState::Verified]
 }
 
 #[derive(Clone, From, Into)]

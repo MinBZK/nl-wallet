@@ -9,6 +9,7 @@ mod m20250102_000030_create_wallet_transfer_table;
 mod m20251107_154522_create_wallet_user_wua_table;
 mod m20260202_105409_create_recovery_code_table;
 mod m20260202_120929_create_wallet_flag_table;
+mod m20260602_000001_make_android_integrity_verdict_nullable;
 
 pub struct Migrator;
 
@@ -26,6 +27,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251107_154522_create_wallet_user_wua_table::Migration),
             Box::new(m20260202_105409_create_recovery_code_table::Migration),
             Box::new(m20260202_120929_create_wallet_flag_table::Migration),
+            Box::new(m20260602_000001_make_android_integrity_verdict_nullable::Migration),
         ];
         migrations.extend(wallet_provider_migrations);
 
