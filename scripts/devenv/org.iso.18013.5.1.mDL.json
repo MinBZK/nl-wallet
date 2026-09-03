@@ -7,7 +7,7 @@
       "locale": "en-US",
       "name": "Driver's Licence",
       "description": "A mobile driver's licence",
-      "summary": "{{driving_privileges}}",
+      "summary": "{{document_number}}",
       "rendering": {
         "simple": {
           "logo": {
@@ -38,6 +38,15 @@
   ],
   "claims": [
     {
+      "path": ["portrait"],
+      "display": [
+        { "locale": "nl-NL", "label": "Portretfoto", "description": "Foto van de rijbewijshouder (base64)" },
+        { "locale": "en-US", "label": "Portrait", "description": "Photo of the licence holder (base64)" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
       "path": ["family_name"],
       "display": [
         { "locale": "nl-NL", "label": "Achternaam", "description": "Achternaam van de rijbewijshouder" },
@@ -66,6 +75,16 @@
       "mandatory": true
     },
     {
+      "path": ["document_number"],
+      "display": [
+        { "locale": "nl-NL", "label": "Documentnummer", "description": "Uniek documentnummer van het rijbewijs" },
+        { "locale": "en-US", "label": "Document number", "description": "Unique document number of the licence" }
+      ],
+      "sd": "always",
+      "mandatory": true,
+      "svg_id": "document_number"
+    },
+    {
       "path": ["issue_date"],
       "display": [
         { "locale": "nl-NL", "label": "Afgiftedatum", "description": "Datum van afgifte van het rijbewijs" },
@@ -84,13 +103,14 @@
       "mandatory": true
     },
     {
-      "path": ["issuing_country"],
+      "path": ["driving_privileges"],
       "display": [
-        { "locale": "nl-NL", "label": "Uitgevend land", "description": "Land dat het rijbewijs heeft afgegeven" },
-        { "locale": "en-US", "label": "Issuing country", "description": "Country that issued the licence" }
+        { "locale": "nl-NL", "label": "Rijbevoegdheden", "description": "Toegestane rijtuigcategorieën" },
+        { "locale": "en-US", "label": "Driving privileges", "description": "Permitted vehicle categories" }
       ],
       "sd": "always",
-      "mandatory": true
+      "mandatory": true,
+      "svg_id": "driving_privileges"
     },
     {
       "path": ["issuing_authority"],
@@ -106,32 +126,13 @@
       "mandatory": true
     },
     {
-      "path": ["document_number"],
+      "path": ["issuing_country"],
       "display": [
-        { "locale": "nl-NL", "label": "Documentnummer", "description": "Uniek documentnummer van het rijbewijs" },
-        { "locale": "en-US", "label": "Document number", "description": "Unique document number of the licence" }
+        { "locale": "nl-NL", "label": "Uitgevend land", "description": "Land dat het rijbewijs heeft afgegeven" },
+        { "locale": "en-US", "label": "Issuing country", "description": "Country that issued the licence" }
       ],
       "sd": "always",
       "mandatory": true
-    },
-    {
-      "path": ["portrait"],
-      "display": [
-        { "locale": "nl-NL", "label": "Portretfoto", "description": "Foto van de rijbewijshouder (base64)" },
-        { "locale": "en-US", "label": "Portrait", "description": "Photo of the licence holder (base64)" }
-      ],
-      "sd": "always",
-      "mandatory": true
-    },
-    {
-      "path": ["driving_privileges"],
-      "display": [
-        { "locale": "nl-NL", "label": "Rijbevoegdheden", "description": "Toegestane rijtuigcategorieën" },
-        { "locale": "en-US", "label": "Driving privileges", "description": "Permitted vehicle categories" }
-      ],
-      "sd": "always",
-      "mandatory": true,
-      "svg_id": "driving_privileges"
     },
     {
       "path": ["un_distinguishing_sign"],
