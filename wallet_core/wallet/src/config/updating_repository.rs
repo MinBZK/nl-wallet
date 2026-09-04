@@ -75,6 +75,19 @@ fn valid_config_delay(config: &WalletConfiguration, update_frequency: Duration, 
     update_frequency.min(until_expired.mul_f64(jitter))
 }
 
+/// The outcome of evaluating the `exp` of a wallet configuration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ConfigurationStatus {
+    Valid,
+    Expired,
+}
+
+impl ConfigurationStatus {
+    fn is_expired(self) -> bool {
+        matches!(self, Self::Expired)
+    }
+}
+
 /// Tracks whether the wallet configuration should be reported as expired to the user interface.
 ///
 /// This is only advanced after a fetch attempt, so that the user is blocked when the wallet has no valid
@@ -87,17 +100,22 @@ struct ExpiryState {
 }
 
 impl ExpiryState {
-    /// Re-evaluates whether the given configuration is expired at `now`, reports the outcome and returns it. Must
-    /// only be called once a fetch attempt has resolved.
-    fn update(&self, config: &WalletConfiguration, now: DateTime<Utc>) -> bool {
-        let expired = is_expired(config, now);
-        self.expired.store(expired, Ordering::Relaxed);
+    /// Re-evaluates the status of the given configuration at `now`, reports it and returns it. Must only be called
+    /// once a fetch attempt has resolved.
+    fn evaluate(&self, config: &WalletConfiguration, now: DateTime<Utc>) -> ConfigurationStatus {
+        let status = if is_expired(config, now) {
+            ConfigurationStatus::Expired
+        } else {
+            ConfigurationStatus::Valid
+        };
+
+        self.expired.store(status.is_expired(), Ordering::Relaxed);
 
         if let Some(callback) = self.callback.lock().as_deref_mut() {
-            callback(expired);
+            callback(status.is_expired());
         }
 
-        expired
+        status
     }
 
     fn expired(&self) -> bool {
@@ -195,20 +213,23 @@ where
 
                 // Re-evaluate after every attempt, whatever its outcome: only a valid configuration can clear the
                 // expiry.
-                let delay = if expiry.update(&wrapped.get(), now) {
-                    failed_attempts = failed_attempts.saturating_add(1);
+                let delay = match expiry.evaluate(&wrapped.get(), now) {
+                    ConfigurationStatus::Expired => {
+                        failed_attempts = failed_attempts.saturating_add(1);
 
-                    let delay = expired_retry_delay(config.expired_retry_interval, failed_attempts);
-                    warn!(
-                        "Wallet configuration is expired, retrying in {:.1}s",
-                        delay.as_secs_f64()
-                    );
+                        let delay = expired_retry_delay(config.expired_retry_interval, failed_attempts);
+                        warn!(
+                            "Wallet configuration is expired, retrying in {:.1}s",
+                            delay.as_secs_f64()
+                        );
 
-                    delay
-                } else {
-                    failed_attempts = 0;
+                        delay
+                    }
+                    ConfigurationStatus::Valid => {
+                        failed_attempts = 0;
 
-                    valid_config_delay(&wrapped.get(), config.update_frequency, now)
+                        valid_config_delay(&wrapped.get(), config.update_frequency, now)
+                    }
                 };
 
                 time::sleep(delay).await;
@@ -265,6 +286,7 @@ mod tests {
     use wallet_configuration::wallet_config::WalletConfiguration;
 
     use super::CONFIG_EXPIRY_LEEWAY;
+    use super::ConfigurationStatus;
     use super::EXPIRED_RETRY_JITTER;
     use super::EXPIRED_RETRY_MAX_INTERVAL;
     use super::ExpiryState;
@@ -465,24 +487,30 @@ mod tests {
     }
 
     #[test]
-    fn expiry_should_not_be_reported_before_the_first_update() {
+    fn expiry_should_not_be_reported_before_the_first_evaluation() {
         assert!(!ExpiryState::default().expired());
     }
 
     #[test]
-    fn expiry_should_be_reported_after_every_update() {
+    fn expiry_should_be_reported_after_every_evaluation() {
         let state = ExpiryState::default();
         let reported = record_reported(&state);
 
         let expired_config = config_expiring_in(-TimeDelta::hours(1));
         for _ in 0..2 {
-            state.update(&expired_config, Utc::now());
+            assert_eq!(
+                state.evaluate(&expired_config, Utc::now()),
+                ConfigurationStatus::Expired
+            );
         }
 
         assert!(state.expired());
 
         // A subsequent fetch yielding a valid configuration should clear the expiry again.
-        state.update(&config_expiring_in(TimeDelta::hours(1)), Utc::now());
+        assert_eq!(
+            state.evaluate(&config_expiring_in(TimeDelta::hours(1)), Utc::now()),
+            ConfigurationStatus::Valid
+        );
 
         assert!(!state.expired());
 
