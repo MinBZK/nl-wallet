@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
+import 'package:wallet/src/navigation/wallet_routes.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -207,6 +210,59 @@ void main() {
       expect(cardTitleFinder, findsOneWidget);
       expect(altCardTitleFinder, findsOneWidget);
     });
+
+    testWidgets('ltc24 clicking the help icon navigates to the help overview', (tester) async {
+      await _pumpSuccessWithVersionState(tester, state: VersionStateOk());
+
+      await tester.tap(find.byType(HelpIconButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text(WalletRoutes.helpOverviewRoute), findsOneWidget);
+    });
+  });
+
+  group('onDashboardShown', () {
+    late MockAppEventCoordinator appEventCoordinator;
+    late MockObserveWalletLockedUseCase observeWalletLockedUseCase;
+    late BehaviorSubject<bool> isLockedStream;
+
+    setUp(() {
+      appEventCoordinator = MockAppEventCoordinator();
+      isLockedStream = BehaviorSubject.seeded(false);
+      observeWalletLockedUseCase = MockObserveWalletLockedUseCase();
+      when(observeWalletLockedUseCase.invoke()).thenAnswer((_) => isLockedStream);
+    });
+
+    tearDown(() => isLockedStream.close());
+
+    Future<void> pumpDashboard(WidgetTester tester) => _pumpSuccessWithVersionState(
+      tester,
+      state: VersionStateOk(),
+      appEventCoordinator: appEventCoordinator,
+      observeWalletLockedUseCase: observeWalletLockedUseCase,
+    );
+
+    testWidgets('should not notify the coordinator again when the layout changes while visible', (tester) async {
+      await pumpDashboard(tester);
+
+      // A change to the detector's own geometry (e.g. an orientation change) makes the
+      // VisibilityDetector report again, even though the dashboard was fully visible the whole time.
+      await tester.binding.setSurfaceSize(iphoneXSizeLandscape);
+      tester.view.physicalSize = iphoneXSizeLandscape;
+      await tester.pumpAndSettle();
+
+      verify(appEventCoordinator.onDashboardShown()).called(1);
+    });
+
+    testWidgets('should notify the coordinator again when the dashboard is shown after a lock', (tester) async {
+      await pumpDashboard(tester);
+
+      isLockedStream.add(true);
+      isLockedStream.add(false);
+      await tester.pumpAndSettle();
+
+      verify(appEventCoordinator.onDashboardShown()).called(2);
+    });
   });
 }
 
@@ -217,6 +273,8 @@ Future<void> _pumpSuccessWithVersionState(
   Brightness brightness = Brightness.light,
   double textScaleSize = 1,
   Size surfaceSize = iphoneXSize,
+  AppEventCoordinator? appEventCoordinator,
+  ObserveWalletLockedUseCase? observeWalletLockedUseCase,
 }) async {
   await tester.pumpWidgetWithAppWrapper(
     const DashboardScreen().withState<DashboardBloc, DashboardState>(
@@ -227,8 +285,10 @@ Future<void> _pumpSuccessWithVersionState(
     textScaleSize: textScaleSize,
     surfaceSize: surfaceSize,
     providers: [
-      RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
-      RepositoryProvider<ObserveWalletLockedUseCase>(create: (c) => MockObserveWalletLockedUseCase()),
+      RepositoryProvider<AppEventCoordinator>(create: (c) => appEventCoordinator ?? MockAppEventCoordinator()),
+      RepositoryProvider<ObserveWalletLockedUseCase>(
+        create: (c) => observeWalletLockedUseCase ?? MockObserveWalletLockedUseCase(),
+      ),
       RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
       RepositoryProvider<ObserveVersionStateUsecase>(
         create: (c) {

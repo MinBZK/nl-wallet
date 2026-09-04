@@ -181,7 +181,7 @@ Object? _getMockArgumentsForRoute(String routeName) {
     case WalletRoutes.helpCategoryRoute:
       return const HelpCategory(id: 'cat', icon: 'help_outline', title: 'Cat', subtitle: 'Sub', subcategories: []);
     case WalletRoutes.helpSubcategoryRoute:
-      return const HelpSubcategory(id: 'sub', title: 'Sub', groups: []);
+      return const HelpSubcategory(id: 'sub', title: 'Sub', topics: []);
     case WalletRoutes.helpTopicRoute:
       return const HelpTopicScreenArgument(topicId: 'cid');
     default:

@@ -136,6 +136,7 @@ test_common = [
     "dep:acf_demo_issuer",
     "dep:issuer_common",
     "dep:jwt",
+    "dep:oauth",
     "dep:openid4vc",
     "dep:reqwest",
     "dep:rustls",
@@ -241,6 +242,7 @@ performance_test = [
     "dep:crypto",
     "dep:dotenvy",
     "dep:indexmap",
+    "dep:oauth",
     "dep:openid4vc",
     "dep:reqwest",
     "dep:server_utils",
@@ -309,6 +311,7 @@ http_utils = { path = "../lib/http_utils", optional = true }
 issuance_server = { path = "../wallet_server/issuance_server", optional = true }
 issuer_common = { path = "../wallet_server/issuer_common", optional = true }
 jwt = { path = "../lib/jwt", optional = true }
+oauth = { path = "../lib/oauth", optional = true }
 openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true }
 pacf_issuance_server = { path = "../wallet_server/pacf_issuance_server", optional = true }
@@ -342,6 +345,7 @@ itertools.workspace = true
 android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
 hsm = { path = "../lib/hsm", features = ["test"] }
 issuance_server = { path = "../wallet_server/issuance_server" }
+oauth.path = "../lib/oauth"
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 openid4vc_server = { path = "../lib/openid4vc_server", features = ["issuance"] }
 pacf_issuance_server = { path = "../wallet_server/pacf_issuance_server" }

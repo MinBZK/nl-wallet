@@ -115,7 +115,7 @@ build-android-app-ont:
     APP_ALLOW_RELEASE_LOGS: "true"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
-    - mc put *.apk qt/quality-time/apps/nl.ictu.edi.wallet.latest-release.apk
+    - deploy/bin/store-artifact.sh *.apk qt/quality-time/apps/nl.ictu.edi.wallet.latest-release.apk
 
 build-android-app-mock:
   extends: [.env-k8s, .build-android-app]

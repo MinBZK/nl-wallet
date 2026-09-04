@@ -61,6 +61,7 @@ attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 http_utils.path = "../../lib/http_utils"
+oauth.path = "../../lib/oauth"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 utils.path = "../../lib/utils"
 

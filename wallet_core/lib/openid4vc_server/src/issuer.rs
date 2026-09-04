@@ -37,8 +37,15 @@ use jwt::wia::WIA_POP_HEADER_NAME;
 use jwt::wia::Wia;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaPop;
-use openid4vc::authorization::PushedAuthorizationRequest;
-use openid4vc::authorization::PushedAuthorizationResponse;
+use oauth::authorization::PushedAuthorizationRequest;
+use oauth::authorization::PushedAuthorizationResponse;
+use oauth::dpop::DPOP_HEADER_NAME;
+use oauth::dpop::DPOP_NONCE_HEADER_NAME;
+use oauth::dpop::Dpop;
+use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::BodyOrRedirectErrorResponse;
+use oauth::errors::ErrorResponse;
+use oauth::token::AccessToken;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
@@ -46,29 +53,22 @@ use openid4vc::client_auth::AttestationChallenge;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential_offer::CredentialOffer;
-use openid4vc::dpop::DPOP_HEADER_NAME;
-use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
-use openid4vc::dpop::Dpop;
-use openid4vc::errors::AuthorizationErrorCode;
-use openid4vc::errors::BodyOrRedirectErrorResponse;
 use openid4vc::errors::CredentialErrorCode;
 use openid4vc::errors::CredentialPreviewErrorCode;
-use openid4vc::errors::ErrorResponse;
 use openid4vc::errors::ParErrorCode;
-use openid4vc::errors::TokenErrorCode;
+use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
-use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
+use openid4vc::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
-use openid4vc::token::AccessToken;
-use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenResponse;
+use openid4vc::token::VciTokenRequest;
+use openid4vc::token::VciTokenResponse;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
@@ -230,7 +230,7 @@ where
 
 async fn oauth_metadata<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
-) -> Json<AuthorizationServerMetadata> {
+) -> Json<IssuerAuthorizationServerMetadata> {
     Json(state.issuer.oauth_metadata())
 }
 
@@ -257,10 +257,10 @@ where
 
 async fn token<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
-    wia_headers: WiaHeaders<TokenErrorCode>,
+    wia_headers: WiaHeaders<VciTokenErrorCode>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Form(token_request): Form<TokenRequest>,
-) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
+    Form(token_request): Form<VciTokenRequest>,
+) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<VciTokenErrorCode>>
 where
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
@@ -395,7 +395,7 @@ impl WiaRejection for ParErrorCode {
     }
 }
 
-impl WiaRejection for TokenErrorCode {
+impl WiaRejection for VciTokenErrorCode {
     fn invalid_client_attestation(description: String) -> ErrorResponse<Self> {
         ErrorResponse {
             error: Self::InvalidClientAttestation,
@@ -505,7 +505,7 @@ mod tests {
     use axum::http::request::Parts;
     use jwt::wia::WIA_HEADER_NAME;
     use jwt::wia::WIA_POP_HEADER_NAME;
-    use openid4vc::errors::TokenErrorCode;
+    use openid4vc::errors::VciTokenErrorCode;
     use rstest::rstest;
 
     use super::WiaHeaders;
@@ -528,7 +528,7 @@ mod tests {
             (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes()),
         ]);
 
-        let WiaHeaders(wia, wia_pop, _) = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+        let WiaHeaders(wia, wia_pop, _) = WiaHeaders::<VciTokenErrorCode>::from_request_parts(&mut parts, &())
             .await
             .unwrap();
 
@@ -561,11 +561,11 @@ mod tests {
     async fn should_reject_invalid_headers(#[case] headers: &[(&str, &[u8])], #[case] expected_description: &str) {
         let mut parts = request_parts(headers);
 
-        let error = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+        let error = WiaHeaders::<VciTokenErrorCode>::from_request_parts(&mut parts, &())
             .await
             .unwrap_err();
 
-        assert_eq!(error.error, TokenErrorCode::InvalidClientAttestation);
+        assert_eq!(error.error, VciTokenErrorCode::InvalidClientAttestation);
         assert!(
             error
                 .error_description

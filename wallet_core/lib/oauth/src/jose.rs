@@ -1,7 +1,6 @@
 use serde::Deserialize;
 
-/// Algorithms that the Issuer supports for a proof, as defined in [IANA.JOSE]. The Wallet uses one of them to sign the
-/// proof.
+/// Algorithms as defined in [IANA.JOSE].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, strum::Display, serde_with::SerializeDisplay)]
 pub enum JwsAlgorithm {
     ES256,

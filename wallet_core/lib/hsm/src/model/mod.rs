@@ -14,8 +14,8 @@ pub trait Hsm {
     async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error>;
     async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> Result<Vec<u8>, Self::Error>;
     async fn verify_hmac(&self, identifier: &str, data: &[u8], signature: Vec<u8>) -> Result<(), Self::Error>;
-    async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>, Self::Error>;
-    async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error>;
+    async fn encrypt_gcm<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>, Self::Error>;
+    async fn decrypt_gcm<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error>;
 }
 
 #[cfg(any(feature = "test", feature = "mock"))]
@@ -166,13 +166,13 @@ pub mod mock {
             Ok(mac.verify_slice(&signature)?)
         }
 
-        async fn encrypt<T>(&self, _identifier: &str, mut data: Vec<u8>) -> Result<Encrypted<T>, Self::Error> {
+        async fn encrypt_gcm<T>(&self, _identifier: &str, mut data: Vec<u8>) -> Result<Encrypted<T>, Self::Error> {
             // add byte to data, so that the encrypted representation is different from the original
             data.push(0);
             Ok(Encrypted::new(data, InitializationVector(random_bytes(32))))
         }
 
-        async fn decrypt<T>(&self, _identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error> {
+        async fn decrypt_gcm<T>(&self, _identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error> {
             // strip added byte to get the original back
             let mut data = encrypted.data;
             data.pop();
@@ -217,16 +217,15 @@ pub mod mock {
             todo!()
         }
 
-        async fn encrypt(
+        async fn encrypt_gcm(
             &self,
             _key_handle: &SecretKeyHandle,
-            _iv: InitializationVector,
             _data: Vec<u8>,
         ) -> Result<(Vec<u8>, InitializationVector), HsmError> {
             todo!()
         }
 
-        async fn decrypt(
+        async fn decrypt_gcm(
             &self,
             _key_handle: &SecretKeyHandle,
             _iv: InitializationVector,
