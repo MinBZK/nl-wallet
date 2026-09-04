@@ -100,11 +100,6 @@ pub enum StorageError {
     #[category(pd)]
     MetadataChain(#[from] TypeMetadataChainError),
 
-    // TODO (PVW-5547): Remove this once reading an attestation described by Credential Metadata is implemented.
-    #[error("stored attestation is described by Credential Metadata, which is not supported yet")]
-    #[category(critical)]
-    UnsupportedStoredMetadata,
-
     #[error("could not encode / decode mdoc CBOR: {0}")]
     Cbor(#[from] CborError),
 
