@@ -232,6 +232,8 @@ where
                     }
                 };
 
+                // Delay from the end of the attempt rather than its start: otherwise a very slow failed fetch would
+                // mean hitting the retry too soon, possible overwhelming an endpoint that is already failing.
                 time::sleep(delay).await;
             }
         })
