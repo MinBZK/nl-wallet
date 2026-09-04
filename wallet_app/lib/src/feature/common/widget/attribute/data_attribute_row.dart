@@ -11,8 +11,8 @@ import '../app_image.dart';
 import '../bullet_list_dot.dart';
 import '../list/list_item.dart';
 
-/// Bounds the rendered height of an [ImageValue], e.g. the portrait of an mDL.
-const _kImageHeight = 160.0;
+/// Bounds an [ImageValue], e.g. the portrait of an mDL.
+const _kMaxImageSize = 160.0;
 const _kImageBorderRadius = 4.0;
 
 class DataAttributeRow extends StatelessWidget {
@@ -67,11 +67,14 @@ class DataAttributeRow extends StatelessWidget {
         padding: const EdgeInsets.only(top: 4),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(_kImageBorderRadius),
-          child: AppImage(
-            asset: imageValue.value,
-            height: _kImageHeight,
-            // Without this the row announces the label but never the fact that it holds a value.
-            altText: imageValue.prettyPrint(context),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _kMaxImageSize, maxHeight: _kMaxImageSize),
+            child: AppImage(
+              asset: imageValue.value,
+              fit: BoxFit.contain,
+              // Without this the row announces the label but never the fact that it holds a value.
+              altText: imageValue.prettyPrint(context),
+            ),
           ),
         ),
       ),

@@ -117,6 +117,26 @@ void main() {
       await screenMatchesGolden('data_attribute_row/image_value');
     });
 
+    testGoldens('Image (ultra wide)', (tester) async {
+      const ultraWideSvg = '''
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 100" width="1200" height="100">
+          <rect width="1200" height="100" fill="#E4EBFB"/>
+          <circle cx="600" cy="50" r="40" fill="#0E47CB"/>
+        </svg>
+      ''';
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Ultra wide',
+            value: const ImageValue(SvgImage(ultraWideSvg)),
+            key: 'mock_image',
+          ),
+        ),
+        surfaceSize: const Size(220, 60),
+      );
+      await screenMatchesGolden('data_attribute_row/image_value_ultra_wide');
+    });
+
     testGoldens('Map', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         DataAttributeRow(
