@@ -215,9 +215,9 @@ where
         Ok(WalletState::Ready)
     }
 
-    /// Checks the common preconditions for session (issuance/disclosure)-related operations: version not blocked,
-    /// wallet registered, and wallet not locked.
-    pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError>
+    /// Checks the preconditions that apply to every operation relying on the wallet configuration: the app version
+    /// is not blocked and the configuration has not expired.
+    pub(super) fn check_config_preconditions(&self) -> Result<(), CheckPreconditionsError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
     {
@@ -230,6 +230,17 @@ where
         if self.is_config_expired() {
             return Err(CheckPreconditionsError::ConfigExpired);
         }
+
+        Ok(())
+    }
+
+    /// Checks the common preconditions for session (issuance/disclosure)-related operations: version not blocked,
+    /// configuration not expired, wallet registered, and wallet not locked.
+    pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+    {
+        self.check_config_preconditions()?;
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -258,15 +269,7 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(CheckPreconditionsError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(CheckPreconditionsError::ConfigExpired);
-        }
+        self.check_config_preconditions()?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self

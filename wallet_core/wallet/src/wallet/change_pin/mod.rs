@@ -50,15 +50,8 @@ where
         info!("Fetching update policy");
         self.update_policy_repository.fetch(&config.http_config).await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(ChangePinError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(ChangePinError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(ChangePinError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = match &mut self.registration {
@@ -127,15 +120,8 @@ where
     pub async fn continue_change_pin(&mut self, pin: &Pin) -> Result<(), ChangePinError> {
         info!("Continue PIN change");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(ChangePinError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(ChangePinError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(ChangePinError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self

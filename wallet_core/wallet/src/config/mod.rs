@@ -80,8 +80,8 @@ pub enum ConfigurationError {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use chrono::SubsecRound;
     use chrono::TimeDelta;
-    use chrono::Timelike;
     use chrono::Utc;
     use rstest::rstest;
     use wallet_configuration::wallet_config::WalletConfiguration;
@@ -111,7 +111,7 @@ pub(crate) mod test {
     #[case(-TimeDelta::hours(1), true)]
     fn test_is_expired(#[case] expires_in: TimeDelta, #[case] expected_expired: bool) {
         // `exp` has seconds precision, so use a whole-second `now`.
-        let now = Utc::now().with_nanosecond(0).unwrap();
+        let now = Utc::now().trunc_subsecs(0);
 
         let config = WalletConfiguration {
             expires: (now + expires_in).into(),

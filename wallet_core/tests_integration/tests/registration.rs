@@ -6,6 +6,7 @@ use serde_json::json;
 use serial_test::serial;
 use tests_integration::common::*;
 use update_policy_server::config::UpdatePolicyConfig;
+use wallet::errors::CheckPreconditionsError;
 use wallet::errors::WalletRegistrationError;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -53,5 +54,10 @@ async fn ltc43_test_registration_blocked() {
     let result = wallet.register("123344".into()).await;
     assert!(wallet.is_blocked());
 
-    assert!(matches!(result, Err(WalletRegistrationError::VersionBlocked)));
+    assert!(matches!(
+        result,
+        Err(WalletRegistrationError::CheckPreconditions(
+            CheckPreconditionsError::VersionBlocked
+        ))
+    ));
 }

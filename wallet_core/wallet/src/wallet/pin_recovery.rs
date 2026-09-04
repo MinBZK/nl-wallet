@@ -51,16 +51,13 @@ use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
+use crate::wallet::CheckPreconditionsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum PinRecoveryError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
-    #[category(expected)]
-    #[error("wallet configuration is expired")]
-    ConfigExpired,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(CheckPreconditionsError),
 
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -134,15 +131,8 @@ where
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
         info!("Generating OAuth URL, starting issuer discovery");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(PinRecoveryError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(PinRecoveryError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(PinRecoveryError::CheckPreconditions)?;
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -209,15 +199,8 @@ where
     pub async fn continue_pin_recovery(&mut self, redirect_uri: Url) -> Result<(), PinRecoveryError> {
         info!("Received redirect URI, processing URI and retrieving access token");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(PinRecoveryError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(PinRecoveryError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(PinRecoveryError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -315,15 +298,8 @@ where
             VerifyingKey,
         ) -> P,
     {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(PinRecoveryError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(PinRecoveryError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(PinRecoveryError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self

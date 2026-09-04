@@ -44,6 +44,7 @@ use crate::storage::TransferKeyData;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::HistoryError;
 use crate::wallet::WalletRegistration;
 use crate::wallet::attestations::AttestationsError;
@@ -52,12 +53,8 @@ use crate::wallet::notifications::NotificationsError;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum TransferError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
-    #[category(expected)]
-    #[error("wallet configuration is expired")]
-    ConfigExpired,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(CheckPreconditionsError),
 
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -386,15 +383,8 @@ where
     }
 
     fn validate_transfer_allowed(&self) -> Result<(), TransferError> {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(TransferError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(TransferError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(TransferError::CheckPreconditions)?;
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -516,7 +506,10 @@ mod tests {
             .await
             .expect_err("Wallet validate transfer should have resulted in error");
 
-        assert_matches!(error, TransferError::VersionBlocked);
+        assert_matches!(
+            error,
+            TransferError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
     }
 
     #[tokio::test]

@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use wallet_account::messages::registration::WalletCertificate;
 
+use crate::errors::CheckPreconditionsError;
 use crate::errors::InstructionError;
 use crate::errors::PinValidationError;
 use crate::errors::StorageError;
@@ -64,12 +65,8 @@ pub trait ChangePinStorage {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum ChangePinError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
-    #[category(expected)]
-    #[error("wallet configuration is expired")]
-    ConfigExpired,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,

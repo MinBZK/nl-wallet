@@ -28,18 +28,15 @@ use crate::storage::Storage;
 use crate::storage::UnlockData;
 pub use crate::storage::UnlockMethod;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::PinRecoverySession;
 use crate::wallet::Session;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletUnlockError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
-    #[category(expected)]
-    #[error("wallet configuration is expired")]
-    ConfigExpired,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -114,15 +111,8 @@ where
     {
         info!("Setting unlock method to: {}", method);
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(WalletUnlockError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if self.lock.is_locked() {
@@ -168,15 +158,8 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(WalletUnlockError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -220,15 +203,8 @@ where
     {
         info!("Unlocking wallet with pin");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(WalletUnlockError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if !self.lock.is_locked() {
@@ -252,15 +228,8 @@ where
         S: Storage,
         APC: AccountProviderClient,
     {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(WalletUnlockError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking pin");
         self.send_check_pin_instruction(pin).await
@@ -274,15 +243,8 @@ where
         S: Storage,
     {
         info!("Unlocking wallet without pin");
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
-
-        info!("Checking if the configuration is expired");
-        if self.is_config_expired() {
-            return Err(WalletUnlockError::ConfigExpired);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if !self.lock.is_locked() {

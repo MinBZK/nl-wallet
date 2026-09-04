@@ -204,8 +204,7 @@ impl FlutterApiErrorFields for WalletRegistrationError {
         }
 
         match self {
-            WalletRegistrationError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            WalletRegistrationError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
+            WalletRegistrationError::CheckPreconditions(error) => error.typ(),
             WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
@@ -234,8 +233,7 @@ struct RevocationErrorData {
 impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            WalletUnlockError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            WalletUnlockError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
+            WalletUnlockError::CheckPreconditions(error) => error.typ(),
             WalletUnlockError::NotRegistered
             | WalletUnlockError::NotLocked
             | WalletUnlockError::Locked
@@ -707,8 +705,7 @@ impl FlutterApiErrorFields for ResetError {
 impl FlutterApiErrorFields for ChangePinError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            Self::ConfigExpired => FlutterApiErrorType::ConfigExpired,
+            Self::CheckPreconditions(error) => error.typ(),
             Self::NotRegistered | Self::Locked | Self::ChangePinAlreadyInProgress | Self::NoChangePinInProgress => {
                 FlutterApiErrorType::WalletState
             }
@@ -739,8 +736,7 @@ impl FlutterApiErrorFields for PinRecoveryError {
         }
 
         match self {
-            PinRecoveryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            PinRecoveryError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
+            PinRecoveryError::CheckPreconditions(error) => error.typ(),
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
             PinRecoveryError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
@@ -773,8 +769,7 @@ impl FlutterApiErrorFields for TransferError {
         }
 
         match self {
-            TransferError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            TransferError::ConfigExpired => FlutterApiErrorType::ConfigExpired,
+            TransferError::CheckPreconditions(error) => error.typ(),
             TransferError::NotRegistered | TransferError::IllegalWalletState => FlutterApiErrorType::WalletState,
             TransferError::Instruction(e) => FlutterApiErrorType::from(e),
             TransferError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
@@ -796,8 +791,7 @@ impl FlutterApiErrorFields for TransferError {
 impl FlutterApiErrorFields for RevocationCodeError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            Self::ConfigExpired => FlutterApiErrorType::ConfigExpired,
+            Self::CheckPreconditions(error) => error.typ(),
             Self::NotRegistered | Self::PidPresent => FlutterApiErrorType::WalletState,
             Self::PidRetrieval(_) => FlutterApiErrorType::Generic,
             Self::Unlock(error) => error.typ(),
@@ -817,8 +811,7 @@ impl FlutterApiErrorFields for RevocationCodeError {
 impl FlutterApiErrorFields for DeleteAttestationError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            Self::ConfigExpired => FlutterApiErrorType::ConfigExpired,
+            Self::CheckPreconditions(error) => error.typ(),
             Self::NotRegistered | Self::Locked => FlutterApiErrorType::WalletState,
             Self::Instruction(e) => FlutterApiErrorType::from(e),
             Self::UpdatePolicy(e) => FlutterApiErrorType::from(e),
