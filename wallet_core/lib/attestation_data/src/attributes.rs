@@ -537,12 +537,9 @@ impl Attributes {
                 }
 
                 match (attr, behaviour) {
-                    (Attribute::Object(_), AttributesTraversalBehaviour::AllPaths) => {
-                        // Push current path after children have been processed (post-order)
-                        result.push(VecNonEmpty::try_from(path).unwrap());
-                    }
                     (Attribute::Object(_), AttributesTraversalBehaviour::OnlyLeaves) => {}
-                    (_, _) => {
+                    (Attribute::Object(_), AttributesTraversalBehaviour::AllPaths) | (_, _) => {
+                        // Push current path after children have been processed (post-order)
                         result.push(VecNonEmpty::try_from(path).unwrap());
                     }
                 }
