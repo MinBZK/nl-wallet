@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -11,7 +12,13 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::credential_format::Format;
+use attestation_types::metadata::AttestationMetadata;
+use attestation_types::pid_constants::PID_AGE_OVER_18;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_BIRTH_DATE;
+use attestation_types::pid_constants::PID_BSN;
+use attestation_types::pid_constants::PID_FAMILY_NAME;
+use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
@@ -26,12 +33,14 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use futures::future::FutureExt;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
+use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
@@ -54,7 +63,6 @@ use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use token_status_list::verification::client::mock::MockStatusListClient;
@@ -281,13 +289,29 @@ pub fn verified_sd_jwt_from_credential_payload(
     sd_jwt.into_verified()
 }
 
-/// Generates a valid [`Mdoc`] that contains a full mdoc PID.
-pub fn create_example_pid_mdoc(holder_key: &SigningKey) -> (Mdoc, NormalizedTypeMetadata) {
-    let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
-    let metadata = NormalizedTypeMetadata::nl_pid_example();
+/// Generates a valid [`Mdoc`] that contains a full mdoc PID, along with the Credential Metadata that describes it.
+pub fn create_example_pid_mdoc(holder_key: &SigningKey) -> (Mdoc, CredentialMetadata) {
+    let preview_payload = PreviewableCredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default());
+    let metadata = nl_pid_mdoc_credential_metadata_example();
 
     let mdoc = mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key, holder_key);
     (mdoc, metadata)
+}
+
+/// The Credential Metadata describing [`Attributes::nl_pid_mdoc_example()`] /
+/// [`PreviewableCredentialPayload::nl_pid_mdoc_example()`].
+pub fn nl_pid_mdoc_credential_metadata_example() -> CredentialMetadata {
+    CredentialMetadata::new_mdoc_example(
+        PID_ATTESTATION_TYPE,
+        &[
+            PID_GIVEN_NAME,
+            PID_FAMILY_NAME,
+            PID_BIRTH_DATE,
+            PID_AGE_OVER_18,
+            PID_BSN,
+            PID_RECOVERY_CODE,
+        ],
+    )
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
@@ -571,104 +595,124 @@ where
 /// This function is used to create a mock issuance session for testing purposes using the provided stored attestations.
 /// They do not need to be stored at all, we're simply reusing that type here for convenience.
 pub fn mock_issuance_session(
-    stored_attestations: impl IntoIterator<Item = (WithKeyIdentifier<StoredAttestation>, VerifiedTypeMetadataDocuments)>,
+    stored_attestations: impl IntoIterator<Item = (WithKeyIdentifier<StoredAttestation>, IssuedCredentialMetadata)>,
 ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
     let (credentials_with_metadata, attestation_presentations, issuer_registrations): (_, Vec<_>, Vec<_>) =
         stored_attestations
             .into_iter()
-            .map(|(stored_attestation, metadata_documents)| {
-                let normalized_type_metadata = metadata_documents.to_normalized().unwrap();
+            .map(|(stored_attestation, metadata)| {
+                let (
+                    copies,
+                    attestation_type,
+                    exp,
+                    nbf,
+                    issuer_registration,
+                    attestation_presentation,
+                    extended_attestation_types,
+                ) = match (stored_attestation.data, &metadata) {
+                    (
+                        StoredAttestation::MsoMdoc(mdoc),
+                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
+                    ) => {
+                        let key_identifier = stored_attestation.key_identifier;
+                        let (mso, _) = mdoc.clone().into_components();
 
-                let (copies, attestation_type, exp, nbf, issuer_registration, attestation_presentation) =
-                    match stored_attestation.data {
-                        StoredAttestation::MsoMdoc(mdoc) => {
-                            let key_identifier = stored_attestation.key_identifier;
-                            let (mso, _) = mdoc.clone().into_components();
+                        let exp = Some((&mso.validity_info.valid_until).try_into().unwrap());
+                        let nbf = Some((&mso.validity_info.valid_from).try_into().unwrap());
+                        let issuer_registration =
+                            match IssuerRegistration::from_certificate(&mdoc.issuer_leaf_certificate().unwrap()) {
+                                Ok(Some(registration)) => registration,
+                                _ => IssuerRegistration::new_mock(),
+                            };
+                        let attestation_type = mdoc.doc_type().to_string();
 
-                            let exp = Some((&mso.validity_info.valid_until).try_into().unwrap());
-                            let nbf = Some((&mso.validity_info.valid_from).try_into().unwrap());
-                            let issuer_registration =
-                                match IssuerRegistration::from_certificate(&mdoc.issuer_leaf_certificate().unwrap()) {
-                                    Ok(Some(registration)) => registration,
-                                    _ => IssuerRegistration::new_mock(),
-                                };
-
-                            let attestation_presentation = AttestationPresentation::create_from_mdoc(
-                                AttestationIdentity::Ephemeral,
-                                normalized_type_metadata.vct().to_string(),
-                                normalized_type_metadata.clone(),
-                                issuer_registration.organization.clone(),
-                                AttestationValidity {
-                                    revocation_status: None,
-                                    validity_window: ValidityWindow {
-                                        valid_from: nbf.map(Into::into),
-                                        valid_until: exp.map(Into::into),
-                                    },
+                        let attestation_presentation = AttestationPresentation::create_from_mdoc(
+                            AttestationIdentity::Ephemeral,
+                            attestation_type.clone(),
+                            credential_metadata.clone(),
+                            issuer_registration.organization.clone(),
+                            AttestationValidity {
+                                revocation_status: None,
+                                validity_window: ValidityWindow {
+                                    valid_from: nbf.map(Into::into),
+                                    valid_until: exp.map(Into::into),
                                 },
-                                mdoc.issuer_signed().clone().into_entries_by_namespace(),
-                                &EmptyPresentationConfig,
-                            )
-                            .unwrap();
+                            },
+                            mdoc.issuer_signed().clone().into_entries_by_namespace(),
+                            &EmptyPresentationConfig,
+                        )
+                        .unwrap();
 
-                            (
-                                IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
-                                    key_identifier,
-                                    mdoc: mdoc.clone(),
-                                }]),
-                                mdoc.doc_type().to_string(),
-                                exp,
-                                nbf,
-                                issuer_registration,
-                                attestation_presentation,
-                            )
-                        }
-                        StoredAttestation::SdJwt(sd_jwt) => {
-                            let key_identifier = stored_attestation.key_identifier;
-                            let claims = sd_jwt.claims();
-                            let exp = claims.exp;
-                            let nbf = claims.nbf;
-                            let attestation_type = claims.vct.clone();
-                            let issuer_registration =
-                                match IssuerRegistration::from_certificate(sd_jwt.issuer_leaf_certificate()) {
-                                    Ok(Some(registration)) => registration,
-                                    _ => IssuerRegistration::new_mock(),
-                                };
+                        (
+                            IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
+                                key_identifier,
+                                mdoc: mdoc.clone(),
+                            }]),
+                            attestation_type,
+                            exp,
+                            nbf,
+                            issuer_registration,
+                            attestation_presentation,
+                            // An mdoc's Credential Metadata has no "extends" chain of its own.
+                            Vec::<String>::new(),
+                        )
+                    }
+                    (StoredAttestation::SdJwt(sd_jwt), IssuedCredentialMetadata::TypeMetadata(metadata_documents)) => {
+                        let normalized_type_metadata = metadata_documents.clone().to_normalized().unwrap();
 
-                            let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
-                                AttestationIdentity::Ephemeral,
-                                normalized_type_metadata.vct().to_string(),
-                                normalized_type_metadata.clone(),
-                                issuer_registration.organization.clone(),
-                                AttestationValidity {
-                                    revocation_status: None,
-                                    validity_window: ValidityWindow {
-                                        valid_from: nbf.map(Into::into),
-                                        valid_until: exp.map(Into::into),
-                                    },
+                        let key_identifier = stored_attestation.key_identifier;
+                        let claims = sd_jwt.claims();
+                        let exp = claims.exp;
+                        let nbf = claims.nbf;
+                        let attestation_type = claims.vct.clone();
+                        let issuer_registration =
+                            match IssuerRegistration::from_certificate(sd_jwt.issuer_leaf_certificate()) {
+                                Ok(Some(registration)) => registration,
+                                _ => IssuerRegistration::new_mock(),
+                            };
+
+                        let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
+                            AttestationIdentity::Ephemeral,
+                            normalized_type_metadata.vct().to_string(),
+                            normalized_type_metadata.clone(),
+                            issuer_registration.organization.clone(),
+                            AttestationValidity {
+                                revocation_status: None,
+                                validity_window: ValidityWindow {
+                                    valid_from: nbf.map(Into::into),
+                                    valid_until: exp.map(Into::into),
                                 },
-                                sd_jwt.decoded_claims().unwrap(),
-                                &EmptyPresentationConfig,
-                            )
-                            .unwrap();
+                            },
+                            sd_jwt.decoded_claims().unwrap(),
+                            &EmptyPresentationConfig,
+                        )
+                        .unwrap();
 
-                            (
-                                IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
-                                attestation_type,
-                                exp,
-                                nbf,
-                                issuer_registration,
-                                attestation_presentation,
-                            )
-                        }
-                    };
+                        (
+                            IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
+                            attestation_type,
+                            exp,
+                            nbf,
+                            issuer_registration,
+                            attestation_presentation,
+                            normalized_type_metadata.extended_vcts().map(str::to_string).collect(),
+                        )
+                    }
+                    (StoredAttestation::MsoMdoc(_), IssuedCredentialMetadata::TypeMetadata(_)) => {
+                        panic!("an mdoc is described by Credential Metadata, not Type Metadata")
+                    }
+                    (StoredAttestation::SdJwt(_), IssuedCredentialMetadata::CredentialMetadata(_)) => {
+                        panic!("this mock does not support describing an SD-JWT by Credential Metadata")
+                    }
+                };
 
                 let credential_with_metadata = CredentialWithMetadata::new(
                     copies,
                     attestation_type,
                     exp,
                     nbf,
-                    normalized_type_metadata.extended_vcts(),
-                    IssuedCredentialMetadata::TypeMetadata(metadata_documents),
+                    extended_attestation_types,
+                    metadata,
                 );
 
                 (credential_with_metadata, attestation_presentation, issuer_registration)
@@ -700,6 +744,17 @@ pub fn example_stored_attestation_copy(
     )
 }
 
+// TODO (PVW-5547): remove this function. See comment below.
+fn nest_attributes_under_namespace(namespace: &str, attributes: &Attributes) -> Attributes {
+    let entries = attributes
+        .flattened()
+        .into_iter()
+        .map(|(path, value)| (path.last().to_string(), Attribute::Single(value.clone())))
+        .collect::<IndexMap<_, _>>();
+
+    IndexMap::from([(namespace.to_string(), Attribute::Nested(entries))]).into()
+}
+
 fn example_stored_attestation_copy_with_issuer_keypair(
     format: Format,
     credential_payload: CredentialPayload,
@@ -708,21 +763,48 @@ fn example_stored_attestation_copy_with_issuer_keypair(
     holder_key: &SigningKey,
 ) -> StoredAttestationCopy {
     match format {
-        Format::MsoMdoc => StoredAttestationCopy::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            ValidityWindow::new_valid_mock(),
-            WithKeyIdentifier {
-                key_identifier: crypto::utils::random_string(16),
-                data: StoredAttestation::MsoMdoc(mdoc_from_credential_payload(
-                    credential_payload.previewable_payload,
-                    issuer_keypair,
-                    holder_key,
-                )),
-            },
-            StoredAttestationMetadata::TypeMetadata(metadata),
-            None,
-        ),
+        // TODO (PVW-5547): this helper takes one flat, SD-JWT-shaped `CredentialPayload` and reuses it for both
+        // formats, which no longer fits mdoc's namespaced attributes. Nesting them under a single namespace
+        // here is a stopgap so the ~20 disclosure tests built on this helper keep working. These call sites should be
+        // split up to build/mutate format-specific attributes explicitly.
+        Format::MsoMdoc => {
+            let PreviewableCredentialPayload {
+                attestation_type,
+                issuer,
+                expires,
+                not_before,
+                attestation_qualification,
+                attributes,
+            } = credential_payload.previewable_payload;
+
+            let claim_names = metadata.claim_key_paths().map(|path| *path.last()).collect_vec();
+            let credential_metadata = CredentialMetadata::new_mdoc_example(&attestation_type, &claim_names);
+
+            let mdoc_previewable_payload = PreviewableCredentialPayload {
+                attributes: nest_attributes_under_namespace(&attestation_type, &attributes),
+                attestation_type,
+                issuer,
+                expires,
+                not_before,
+                attestation_qualification,
+            };
+
+            StoredAttestationCopy::new(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                ValidityWindow::new_valid_mock(),
+                WithKeyIdentifier {
+                    key_identifier: crypto::utils::random_string(16),
+                    data: StoredAttestation::MsoMdoc(mdoc_from_credential_payload(
+                        mdoc_previewable_payload,
+                        issuer_keypair,
+                        holder_key,
+                    )),
+                },
+                StoredAttestationMetadata::CredentialMetadata(credential_metadata),
+                None,
+            )
+        }
         Format::SdJwt => StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),

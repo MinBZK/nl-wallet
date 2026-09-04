@@ -26,8 +26,10 @@
           "format": "mso_mdoc",
           "attestation_type": "com.example.loyalty",
           "attributes": {
-            "branch": "Demodam",
-            "loyalty_number": "123456789"
+            "com.example.loyalty": {
+              "branch": "Demodam",
+              "loyalty_number": "123456789"
+            }
           }
         }
       ]

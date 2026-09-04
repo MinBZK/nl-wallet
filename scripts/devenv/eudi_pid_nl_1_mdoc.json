@@ -1,0 +1,182 @@
+{
+  "display": [
+    {
+      "name": "Personal data",
+      "locale": "en-US",
+      "description": "The Dutch personal data credential",
+      "background_color": "#C7E8EE",
+      "text_color": "#152A62"
+    },
+    {
+      "name": "Persoonsgegevens",
+      "locale": "nl-NL",
+      "description": "De Nederlandse persoonsgegevensattestatie",
+      "background_color": "#C7E8EE",
+      "text_color": "#152A62"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "family_name"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Achternaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "given_name"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Voornaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "birthdate"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Geboortedatum",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "age_over_18"
+      ],
+      "display": [
+        {
+          "name": "18+",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "nationalities"
+      ],
+      "display": [
+        {
+          "name": "Nationaliteiten",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "bsn"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "BSN",
+          "locale": "en-US"
+        },
+        {
+          "name": "BSN",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "recovery_code"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Recovery code",
+          "locale": "en-US"
+        },
+        {
+          "name": "Herstelcode",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "street_address"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Straatnaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "house_number"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Huisnummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "postal_code"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Postcode",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "locality"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Stad",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "urn:eudi:pid:nl:1",
+        "country"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Land",
+          "locale": "nl-NL"
+        }
+      ]
+    }
+  ]
+}

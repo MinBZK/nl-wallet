@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use attestation_types::metadata::AttestationMetadata;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
@@ -136,11 +135,8 @@ impl PreviewableCredentialPayload {
         Ok(SplitCredential::from_sd_jwt(sd_jwt)?.previewable)
     }
 
-    pub fn from_mdoc(
-        mdoc: Mdoc,
-        metadata: &impl AttestationMetadata,
-    ) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
-        Ok(SplitCredential::from_mdoc(mdoc, metadata)?.previewable)
+    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
+        Ok(SplitCredential::from_mdoc(mdoc)?.previewable)
     }
 }
 
@@ -194,6 +190,10 @@ pub enum CredentialPayloadIntoSignedMdocError {
     #[error("missing valid_until in mdoc validity info")]
     #[category(critical)]
     MissingValidUntil,
+
+    #[error("cannot convert attributes to mdoc: {0}")]
+    #[category(pd)]
+    InvalidAttributes(#[source] AttributesError),
 
     #[error("missing or empty NameSpace detected: {0}")]
     #[category(critical)]
@@ -274,8 +274,8 @@ impl CredentialPayload {
             .map_err(CredentialPayloadFromSdJwtError::MissingField)
     }
 
-    pub fn from_mdoc(mdoc: Mdoc, metadata: &impl AttestationMetadata) -> Result<Self, CredentialPayloadFromMdocError> {
-        SplitCredential::from_mdoc(mdoc, metadata)
+    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, CredentialPayloadFromMdocError> {
+        SplitCredential::from_mdoc(mdoc)
             .map_err(CredentialPayloadFromMdocError::PreviewableCredentialPayload)?
             .try_into_credential_payload()
             .map_err(CredentialPayloadFromMdocError::MissingField)
@@ -355,7 +355,9 @@ impl CredentialPayload {
             expected_update: None,
         };
 
-        let attributes = attributes.to_mdoc_attributes(&attestation_type);
+        let attributes = attributes
+            .to_mdoc_attributes()
+            .map_err(CredentialPayloadIntoSignedMdocError::InvalidAttributes)?;
         let attrs = IssuerNameSpaces::try_from(attributes)
             .map_err(CredentialPayloadIntoSignedMdocError::MissingOrEmptyNamespace)?;
 
@@ -453,14 +455,11 @@ impl SplitCredential {
         })
     }
 
-    fn from_mdoc(
-        mdoc: Mdoc,
-        metadata: &impl AttestationMetadata,
-    ) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
+    fn from_mdoc(mdoc: Mdoc) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
         let (mso, issuer_signed) = mdoc.into_components();
         let attributes = issuer_signed.into_entries_by_namespace();
         let attestation_type = mso.doc_type;
-        let attributes = Attributes::from_mdoc_attributes(&attestation_type, metadata, attributes)
+        let attributes = Attributes::from_mdoc_attributes(attributes)
             .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?;
 
         let issued_at = (&mso.validity_info.signed)
@@ -657,6 +656,16 @@ mod mock {
             )
         }
 
+        /// The same claims as [`CredentialPayload::nl_pid_example()`], but with mdoc-namespaced attributes.
+        pub fn nl_pid_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> (Self, SigningKey) {
+            let previewable_payload = PreviewableCredentialPayload::nl_pid_mdoc_example(time_generator);
+            let holder_key = SigningKey::generate();
+            (
+                Self::example_with_preview(previewable_payload, holder_key.verifying_key(), time_generator),
+                holder_key,
+            )
+        }
+
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             let previewable_payload = PreviewableCredentialPayload::nl_pid_address_example(time_generator);
 
@@ -671,6 +680,12 @@ mod mock {
     impl PreviewableCredentialPayload {
         pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_example(), time_generator)
+        }
+
+        /// The same claims as [`PreviewableCredentialPayload::nl_pid_example()`], but with mdoc-namespaced
+        /// attributes.
+        pub fn nl_pid_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_mdoc_example(), time_generator)
         }
 
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
@@ -780,6 +795,24 @@ mod test {
     async fn test_into_signed_mdoc() {
         let (payload_preview, credential_payload, _, metadata_integrity, ca, issuance_key) = setup_into_signed();
 
+        // The attributes of an mdoc are laid out in namespaces, as the issuer authors them.
+        let credential_payload = CredentialPayload {
+            previewable_payload: PreviewableCredentialPayload {
+                attributes: Attributes::example([
+                    (
+                        [PID_ATTESTATION_TYPE, "first_name"],
+                        AttributeValue::Text("John".to_string()),
+                    ),
+                    (
+                        [PID_ATTESTATION_TYPE, "family_name"],
+                        AttributeValue::Text("Doe".to_string()),
+                    ),
+                ]),
+                ..payload_preview.clone()
+            },
+            ..credential_payload
+        };
+
         let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
 
         // The IssuerSigned should be valid
@@ -832,25 +865,35 @@ mod test {
         assert_eq!(claims.vct_integrity, Some(metadata_integrity));
     }
 
+    /// The attributes of an mdoc are always exactly two levels deep: the namespace, then the element identifier.
     #[test]
     fn test_from_mdoc() {
         let mdoc = Mdoc::new_mock().now_or_never().unwrap();
-        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::pid_example());
 
-        let payload = CredentialPayload::from_mdoc(mdoc, &metadata)
+        let payload = CredentialPayload::from_mdoc(mdoc)
             .expect("creating and validating CredentialPayload from Mdoc should succeed");
 
         assert_eq!(
             payload
                 .previewable_payload
                 .attributes
-                .into_inner()
-                .into_values()
+                .flattened()
+                .into_iter()
+                .map(|(path, value)| (path.into_inner(), value.clone()))
                 .collect_vec(),
             vec![
-                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
-                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
-                Attribute::Single(AttributeValue::Text("999999999".to_string()))
+                (
+                    vec![PID_ATTESTATION_TYPE, "bsn"],
+                    AttributeValue::Text("999999999".to_string())
+                ),
+                (
+                    vec![PID_ATTESTATION_TYPE, "given_name"],
+                    AttributeValue::Text("Willeke Liselotte".to_string())
+                ),
+                (
+                    vec![PID_ATTESTATION_TYPE, "family_name"],
+                    AttributeValue::Text("De Bruijn".to_string())
+                ),
             ]
         );
     }

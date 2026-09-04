@@ -52,6 +52,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::pid;
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
@@ -298,6 +299,11 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             .into_nonempty_iter()
             .zip(utils::vec_at_least::repeat_n(attributes, format_count))
             .map(|(format, attributes)| {
+                let attributes = match format {
+                    Format::MsoMdoc => pid::into_mdoc_attributes(attributes),
+                    Format::SdJwt => attributes,
+                };
+
                 IssuableDocument::try_new_with_random_id(
                     CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string()),
                     attributes,

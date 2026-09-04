@@ -343,7 +343,7 @@ mod tests {
                 key_identifier: "mdoc_key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
-            StoredAttestationMetadata::TypeMetadata(metadata),
+            StoredAttestationMetadata::CredentialMetadata(metadata),
             None,
         );
 

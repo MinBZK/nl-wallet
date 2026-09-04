@@ -52,12 +52,17 @@ pub enum AttributeError {
 }
 
 pub trait AttestationPresentationConfig {
-    fn filtered_attribute(&self, attestation_type: &str) -> Option<&[String]>;
+    fn filtered_attribute(&self, format: Format, attestation_type: &str) -> Option<&[String]>;
 }
 
 impl AttestationPresentationConfig for PidAttributesConfiguration {
-    fn filtered_attribute(&self, attribute: &str) -> Option<&[String]> {
-        self.sd_jwt
+    fn filtered_attribute(&self, format: Format, attribute: &str) -> Option<&[String]> {
+        let paths_by_attestation_type = match format {
+            Format::MsoMdoc => &self.mso_mdoc,
+            Format::SdJwt => &self.sd_jwt,
+        };
+
+        paths_by_attestation_type
             .get(attribute)
             .map(|pid_paths| pid_paths.recovery_code.as_ref())
     }
@@ -168,7 +173,7 @@ pub mod mock {
     pub struct EmptyPresentationConfig;
 
     impl AttestationPresentationConfig for EmptyPresentationConfig {
-        fn filtered_attribute(&self, _attestation_type: &str) -> Option<&[String]> {
+        fn filtered_attribute(&self, _format: Format, _attestation_type: &str) -> Option<&[String]> {
             None
         }
     }

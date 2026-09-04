@@ -62,6 +62,7 @@ max_session_lifetime_in_sec = 900
 [credential_configurations."pid_nl_mdoc"]
 format = "mso_mdoc"
 attestation_type = "urn:eudi:pid:nl:1"
+credential_metadata = "eudi_pid_nl_1_mdoc.json"
 valid_days = 365
 attestation_qualification = "QEAA"
 private_key_type = "hsm"

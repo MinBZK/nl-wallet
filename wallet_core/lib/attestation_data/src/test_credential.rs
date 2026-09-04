@@ -4,7 +4,9 @@ use std::ops::Add;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
 use attestation_types::pid_constants::PID_BSN;
 use attestation_types::pid_constants::PID_FAMILY_NAME;
@@ -73,10 +75,12 @@ pub struct TestCredentials(VecNonEmpty<TestCredential>);
 #[derive(Debug, Clone)]
 pub struct TestCredential {
     payload_preview: PreviewableCredentialPayload,
+    mdoc_attributes: Attributes,
     #[debug(skip)]
     metadata_documents: TypeMetadataDocuments,
     query_id: CredentialQueryIdentifier,
     disclosure_attributes: Attributes,
+    mdoc_disclosure_attributes: Attributes,
     status: StatusClaim,
 }
 
@@ -195,32 +199,44 @@ impl Add for TestCredentials {
 }
 
 impl TestCredential {
+    #[expect(clippy::too_many_arguments, reason = "test constructor")]
     pub fn new<'a>(
         payload_preview: PreviewableCredentialPayload,
+        mdoc_attributes: Attributes,
         metadata_documents: TypeMetadataDocuments,
         query_id: CredentialQueryIdentifier,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
         status: StatusClaim,
     ) -> Self {
-        let claim_paths = query_claim_paths
-            .into_iter()
-            .map(|path| {
-                path.into_iter()
-                    .map(|element| ClaimPath::SelectByKey(element.to_string()))
-                    .collect_vec()
-                    .try_into()
-                    .expect("query path should have at least one element")
-            })
-            .collect_vec();
+        fn to_claim_paths<'a>(
+            paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        ) -> Vec<VecNonEmpty<ClaimPath>> {
+            paths
+                .into_iter()
+                .map(|path| {
+                    path.into_iter()
+                        .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                        .collect_vec()
+                        .try_into()
+                        .expect("query path should have at least one element")
+                })
+                .collect_vec()
+        }
 
         let mut disclosure_attributes = payload_preview.attributes.clone();
-        disclosure_attributes.prune(&claim_paths);
+        disclosure_attributes.prune(&to_claim_paths(query_claim_paths));
+
+        let mut mdoc_disclosure_attributes = mdoc_attributes.clone();
+        mdoc_disclosure_attributes.prune(&to_claim_paths(mdoc_query_claim_paths));
 
         Self {
             payload_preview,
+            mdoc_attributes,
             metadata_documents,
             query_id,
             disclosure_attributes,
+            mdoc_disclosure_attributes,
             status,
         }
     }
@@ -233,9 +249,10 @@ impl TestCredential {
     }
 
     fn to_mdoc_attributes(&self) -> IndexMap<String, Vec<Entry>> {
-        self.disclosure_attributes
+        self.mdoc_disclosure_attributes
             .clone()
-            .to_mdoc_attributes(&self.payload_preview.attestation_type)
+            .to_mdoc_attributes()
+            .expect("mdoc attributes of a TestCredential should be laid out in namespaces")
     }
 
     fn to_mdoc_claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
@@ -317,6 +334,15 @@ impl TestCredential {
 
     pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (Mdoc, String) {
         let (credential_payload, holder_key_identifier, _) = self.to_credential_payload(wscd);
+
+        // An mdoc addresses its attributes by namespace and element identifier, so it carries its own set.
+        let credential_payload = CredentialPayload {
+            previewable_payload: PreviewableCredentialPayload {
+                attributes: self.mdoc_attributes.clone(),
+                ..credential_payload.previewable_payload
+            },
+            ..credential_payload
+        };
 
         let (issuer_signed, mso) = credential_payload
             .into_signed_mdoc(issuer_keypair)
@@ -424,14 +450,17 @@ impl TestCredential {
     fn new_nl_pid<'a>(
         query_id: &str,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
     ) -> Self {
         let (_, metadata_documents) = TypeMetadataDocuments::nl_pid_example();
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            Attributes::nl_pid_mdoc_example(),
             metadata_documents,
             query_id.parse().unwrap(),
             query_claim_paths,
+            mdoc_query_claim_paths,
             StatusClaim::new_mock(),
         )
     }
@@ -440,36 +469,60 @@ impl TestCredential {
         Self::new_nl_pid(
             "nl_pid_all",
             [[PID_GIVEN_NAME], [PID_FAMILY_NAME], [PID_BIRTH_DATE], [PID_BSN]],
+            [
+                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
+                [PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
+                [PID_ATTESTATION_TYPE, PID_BSN],
+            ],
         )
     }
 
     pub fn new_nl_pid_full_name() -> Self {
-        Self::new_nl_pid("nl_pid_full_name", [[PID_GIVEN_NAME], [PID_FAMILY_NAME]])
+        Self::new_nl_pid(
+            "nl_pid_full_name",
+            [[PID_GIVEN_NAME], [PID_FAMILY_NAME]],
+            [
+                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
+            ],
+        )
     }
 
     pub fn new_nl_pid_given_name() -> Self {
-        Self::new_nl_pid("nl_pid_given_name", [[PID_GIVEN_NAME]])
+        Self::new_nl_pid(
+            "nl_pid_given_name",
+            [[PID_GIVEN_NAME]],
+            [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]],
+        )
     }
 
     pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> Self {
-        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]])
+        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])
     }
 
     pub fn new_nl_pid_family_name() -> Self {
-        Self::new_nl_pid("nl_pid_family_name", [[PID_FAMILY_NAME]])
+        Self::new_nl_pid(
+            "nl_pid_family_name",
+            [[PID_FAMILY_NAME]],
+            [[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]],
+        )
     }
 
     pub fn new_nl_pid_address<'a>(
         query_id: &str,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
     ) -> Self {
         let (_, metadata_documents) = TypeMetadataDocuments::nl_address_example();
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
+            Attributes::nl_pid_address_mdoc_example(),
             metadata_documents,
             query_id.parse().unwrap(),
             query_claim_paths,
+            mdoc_query_claim_paths,
             StatusClaim::new_mock(),
         )
     }
@@ -484,6 +537,13 @@ impl TestCredential {
                 [PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
                 [PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
             ],
+            [
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_STREET],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_CITY],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_COUNTRY],
+            ],
         )
     }
 
@@ -494,6 +554,11 @@ impl TestCredential {
                 [PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
                 [PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
                 [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+            ],
+            [
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_STREET],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
             ],
         )
     }

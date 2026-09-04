@@ -360,14 +360,13 @@ impl CredentialConfiguration {
         doctype: String,
         scope: Scope,
         proof_types: Vec<ProofType>,
-        vc_display: Vec<DisplayMetadata>,
-        vc_claims: Vec<ClaimMetadata>,
+        credential_metadata: CredentialMetadata,
     ) -> Self {
         Self {
             format: CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
             scope: Some(scope),
             cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types)),
-            credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
+            credential_metadata: Some(credential_metadata),
             type_metadata_uri: None,
         }
     }
@@ -376,33 +375,14 @@ impl CredentialConfiguration {
         vct: String,
         scope: Scope,
         proof_types: Vec<ProofType>,
-        vc_display: Vec<DisplayMetadata>,
-        vc_claims: Vec<ClaimMetadata>,
-        type_metadata_uri: IssuerUrl,
-    ) -> Self {
-        Self::new_ecdsa_p256_sha256(
-            CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
-            scope,
-            CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types),
-            vc_display,
-            vc_claims,
-            type_metadata_uri,
-        )
-    }
-
-    fn new_ecdsa_p256_sha256(
-        format: CredentialFormat,
-        scope: Scope,
-        cryptographic_binding: CryptographicBinding,
-        vc_display: Vec<DisplayMetadata>,
-        vc_claims: Vec<ClaimMetadata>,
+        credential_metadata: Option<CredentialMetadata>,
         type_metadata_uri: IssuerUrl,
     ) -> Self {
         Self {
-            format,
+            format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
             scope: Some(scope),
-            cryptographic_binding: Some(cryptographic_binding),
-            credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
+            cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types)),
+            credential_metadata,
             type_metadata_uri: Some(type_metadata_uri),
         }
     }
@@ -619,21 +599,45 @@ pub struct CredentialMetadata {
     pub claims: Option<VecNonEmpty<CredentialClaim>>,
 }
 
-impl CredentialMetadata {
-    fn new_from_sd_jwt_vc(display: Vec<DisplayMetadata>, claims: Vec<ClaimMetadata>) -> Self {
-        Self {
-            display: display
-                .into_iter()
-                .map(CredentialDisplay::from)
-                .collect_vec()
-                .try_into()
-                .ok(),
-            claims: claims
-                .into_iter()
-                .map(CredentialClaim::from)
-                .collect_vec()
-                .try_into()
-                .ok(),
+#[cfg(any(test, feature = "mock"))]
+mod example_constructors {
+    use attestation_types::claim_path::ClaimPath;
+    use itertools::Itertools;
+    use utils::vec_nonempty;
+
+    use super::CredentialClaim;
+    use super::CredentialDisplay;
+    use super::CredentialMetadata;
+    use super::NameLocale;
+
+    impl CredentialMetadata {
+        pub fn new_mdoc_example(name_space: &str, claim_names: &[&str]) -> Self {
+            Self {
+                display: Some(vec_nonempty![CredentialDisplay {
+                    name_locale: NameLocale {
+                        name: Some(String::from("Example credential")),
+                        locale: Some(String::from("en")),
+                    },
+                    logo: None,
+                    description: None,
+                    background_color: None,
+                    background_image: None,
+                    text_color: None,
+                }]),
+                claims: claim_names
+                    .iter()
+                    .map(|name| CredentialClaim {
+                        path: vec_nonempty![
+                            ClaimPath::SelectByKey(String::from(name_space)),
+                            ClaimPath::SelectByKey(String::from(*name)),
+                        ],
+                        mandatory: false,
+                        display: None,
+                    })
+                    .collect_vec()
+                    .try_into()
+                    .ok(),
+            }
         }
     }
 }

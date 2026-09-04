@@ -498,6 +498,7 @@ mod tests {
     use jwt::nonce::Nonce;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
+    use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -538,6 +539,7 @@ mod tests {
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
+    use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
 
     fn setup_issuer_metadata_mock(wallet: &mut TestWalletMockStorage) {
         wallet
@@ -999,14 +1001,14 @@ mod tests {
                     key_identifier: "key_id".to_string(),
                     data: StoredAttestation::MsoMdoc(mdoc),
                 },
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
+                IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
             ),
             (
                 WithKeyIdentifier {
                     key_identifier: "key_id".to_string(),
                     data: StoredAttestation::SdJwt(sd_jwt.clone()),
                 },
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
+                IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
             ),
         ]);
 

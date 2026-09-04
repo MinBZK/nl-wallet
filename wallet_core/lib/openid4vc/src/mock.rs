@@ -12,6 +12,7 @@ use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
@@ -76,18 +77,16 @@ impl IssuerMetadata {
 
                 let config = match credential_kind.format {
                     Format::MsoMdoc => CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
-                        credential_kind.attestation_type,
+                        credential_kind.attestation_type.clone(),
                         scope,
                         vec![ProofType::Jwt],
-                        vec![],
-                        vec![],
+                        CredentialMetadata::new_mdoc_example(&credential_kind.attestation_type, &[]),
                     ),
                     Format::SdJwt => CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         credential_kind.attestation_type,
                         scope,
                         vec![ProofType::Jwt],
-                        vec![],
-                        vec![],
+                        None,
                         type_metadata_uri,
                     ),
                 };

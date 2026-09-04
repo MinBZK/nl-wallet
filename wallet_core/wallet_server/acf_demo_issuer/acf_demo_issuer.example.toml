@@ -70,7 +70,7 @@ kind = "consent"
 [[usecases.insurance.documents]]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
-attributes = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" }
+attributes = { "com.example.insurance" = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" } }
 
 # Configuration fields for credential_configurations
 # * format: Credential format, either "dc+sd-jwt" or "mso_mdoc"
@@ -83,6 +83,7 @@ attributes = { product = "Health Insurance", coverage = "Basic", start_date = "2
 [credential_configurations."com.example.insurance"]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
+credential_metadata = "com.example.insurance.mdoc.json"
 valid_days = 365
 private_key_type = "software"
 private_key = "MIG..."

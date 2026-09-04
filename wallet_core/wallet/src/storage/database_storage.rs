@@ -1494,7 +1494,13 @@ pub(crate) mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::pid_constants::PID_AGE_OVER_18;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_BIRTH_DATE;
+    use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_FAMILY_NAME;
+    use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use chrono::Days;
     use chrono::Duration;
     use chrono::TimeZone;
@@ -1506,6 +1512,7 @@ pub(crate) mod tests {
     use crypto::utils::random_string;
     use itertools::Itertools;
     use mdoc::holder::Mdoc;
+    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;
     use p256::ecdsa::SigningKey;
@@ -1535,6 +1542,20 @@ pub(crate) mod tests {
 
         generate_issuer_mock_with_registration(&issuer_ca, &IssuerRegistration::new_mock()).unwrap()
     });
+
+    fn nl_pid_mdoc_credential_metadata_example() -> CredentialMetadata {
+        CredentialMetadata::new_mdoc_example(
+            PID_ATTESTATION_TYPE,
+            &[
+                PID_GIVEN_NAME,
+                PID_FAMILY_NAME,
+                PID_BIRTH_DATE,
+                PID_AGE_OVER_18,
+                PID_BSN,
+                PID_RECOVERY_CODE,
+            ],
+        )
+    }
 
     #[test]
     fn test_key_file_alias_for_name() {
@@ -1858,7 +1879,7 @@ pub(crate) mod tests {
         let issued_mdoc_copies =
             IssuedCredentialCopies::Mdoc(vec_nonempty![mdoc_copy.clone(), mdoc_copy.clone(), mdoc_copy]);
 
-        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
+        let credential_metadata = nl_pid_mdoc_credential_metadata_example();
 
         assert!(!has_any_pid_attestations(&storage, Format::MsoMdoc).await);
         assert!(!storage.has_any_attestations().await.unwrap());
@@ -1881,8 +1902,8 @@ pub(crate) mod tests {
                                 .try_into()
                                 .unwrap(),
                         ),
-                        normalized_metadata.extended_vcts(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        Vec::<String>::new(),
+                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -1913,7 +1934,7 @@ pub(crate) mod tests {
         );
         assert_eq!(
             attestation_copy1.metadata,
-            StoredAttestationMetadata::TypeMetadata(normalized_metadata.clone())
+            StoredAttestationMetadata::CredentialMetadata(credential_metadata.clone())
         );
 
         // Only one unique `AttestationCopy` should be returned when querying
@@ -2014,7 +2035,7 @@ pub(crate) mod tests {
         );
         assert_eq!(
             attestation_copy2.metadata,
-            StoredAttestationMetadata::TypeMetadata(normalized_metadata.clone())
+            StoredAttestationMetadata::CredentialMetadata(credential_metadata.clone())
         );
         assert_ne!(
             attestation_copy1.attestation_copy_id,
@@ -2049,8 +2070,9 @@ pub(crate) mod tests {
         assert_ne!(attestation_copy1.attestation_copy_id, remaning_attestation_copy_id1);
         assert_ne!(attestation_copy2.attestation_copy_id, remaning_attestation_copy_id1);
 
-        // Test that fetching extended VCTs does not return anything, as this should only work for SD-JWT.
-        let extended_vcts = normalized_metadata
+        // Test that fetching extended VCTs does not return anything, as this should only work for SD-JWT. Since an mdoc
+        // has no "extends" chain of its own, a real SD-JWT VC Type Metadata example is used.
+        let extended_vcts = NormalizedTypeMetadata::nl_pid_example()
             .extended_vcts()
             .map(ToOwned::to_owned)
             .collect::<HashSet<_>>();
@@ -2091,7 +2113,6 @@ pub(crate) mod tests {
         let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed).unwrap();
 
         let attestation_type = mdoc.doc_type().to_string();
-        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
         storage
             .insert_credentials(
@@ -2105,8 +2126,8 @@ pub(crate) mod tests {
                         attestation_type.clone(),
                         None,
                         None,
-                        normalized_metadata.extended_vcts(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        Vec::<String>::new(),
+                        IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -2153,8 +2174,8 @@ pub(crate) mod tests {
                             attestation_type.clone(),
                             None,
                             None,
-                            normalized_metadata.extended_vcts(),
-                            IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                            Vec::<String>::new(),
+                            IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                         ),
                         AttestationPresentation::new_mock(),
                     ),

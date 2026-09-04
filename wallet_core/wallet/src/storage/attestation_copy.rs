@@ -255,15 +255,11 @@ impl StoredAttestationCopy {
     }
 
     pub fn into_attributes(self) -> Attributes {
-        let attestation_type = self.attestation.data.attestation_type().to_string();
-
         match self.attestation.data {
-            StoredAttestation::MsoMdoc(mdoc) => Attributes::from_mdoc_attributes(
-                &attestation_type,
-                &self.metadata,
-                mdoc.into_issuer_signed().into_entries_by_namespace(),
-            )
-            .expect("a stored mdoc attestation should convert to Attributes without errors"),
+            StoredAttestation::MsoMdoc(mdoc) => {
+                Attributes::from_mdoc_attributes(mdoc.into_issuer_signed().into_entries_by_namespace())
+                    .expect("a stored mdoc attestation should convert to Attributes without errors")
+            }
             StoredAttestation::SdJwt(sd_jwt) => Attributes::try_from(
                 sd_jwt
                     .decoded_claims()
@@ -277,7 +273,7 @@ impl StoredAttestationCopy {
     /// preview.
     pub fn into_previewable_credential_payload(self) -> PreviewableCredentialPayload {
         match self.attestation.data {
-            StoredAttestation::MsoMdoc(mdoc) => PreviewableCredentialPayload::from_mdoc(mdoc, &self.metadata)
+            StoredAttestation::MsoMdoc(mdoc) => PreviewableCredentialPayload::from_mdoc(mdoc)
                 .expect("a stored mdoc attestation should convert to CredentialPayload without errors"),
             StoredAttestation::SdJwt(sd_jwt) => PreviewableCredentialPayload::from_sd_jwt(sd_jwt)
                 .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors"),
@@ -462,6 +458,7 @@ mod test {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -471,8 +468,13 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
+    use attestation_types::pid_constants::PID_AGE_OVER_18;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_BIRTH_DATE;
     use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_FAMILY_NAME;
+    use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::PublicKey;
@@ -481,6 +483,7 @@ mod tests {
     use futures::FutureExt;
     use itertools::Itertools;
     use mdoc::holder::Mdoc;
+    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -495,12 +498,13 @@ mod tests {
     use super::StoredAttestationCopy;
     use super::StoredAttestationMetadata;
     use super::WithKeyIdentifier;
+    use crate::attestation::AttestationAttribute;
     use crate::config::test::test_wallet_config;
 
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
 
     fn mdoc_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
-        let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let payload_preview = PreviewableCredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default());
 
         let holder_privkey = SigningKey::generate();
         let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
@@ -524,7 +528,17 @@ mod tests {
                 key_identifier: "mdoc_key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
-            metadata: StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
+            metadata: StoredAttestationMetadata::CredentialMetadata(CredentialMetadata::new_mdoc_example(
+                PID_ATTESTATION_TYPE,
+                &[
+                    PID_GIVEN_NAME,
+                    PID_FAMILY_NAME,
+                    PID_BIRTH_DATE,
+                    PID_AGE_OVER_18,
+                    PID_BSN,
+                    PID_RECOVERY_CODE,
+                ],
+            )),
             revocation_status: None,
             validity_window: ValidityWindow::new_valid_mock(),
         };
@@ -627,10 +641,23 @@ mod tests {
 
             assert_eq!(mdoc_presentation.identity, sd_jwt_presentation.identity);
             assert_eq!(mdoc_presentation.attestation_type, sd_jwt_presentation.attestation_type);
-            assert_eq!(mdoc_presentation.display_metadata, sd_jwt_presentation.display_metadata);
             assert_eq!(mdoc_presentation.issuer, sd_jwt_presentation.issuer);
             assert_eq!(mdoc_presentation.validity, sd_jwt_presentation.validity);
-            assert_eq!(mdoc_presentation.attributes, sd_jwt_presentation.attributes);
+
+            // mdoc and SD-JWT each carry their own, independently-authored Credential/Type Metadata (mdoc's claim
+            // keys are namespaced rather than flat, and the two orderings need not match), so display metadata,
+            // attribute keys and attribute order are not expected to match between formats -- only the underlying
+            // attribute values (the same real-world PID facts), keyed by their own (unnamespaced) name, are.
+            let by_leaf_key = |attributes: &[AttestationAttribute]| {
+                attributes
+                    .iter()
+                    .map(|attribute| (attribute.key.last().clone(), attribute.value.clone()))
+                    .collect::<HashMap<_, _>>()
+            };
+            assert_eq!(
+                by_leaf_key(&mdoc_presentation.attributes),
+                by_leaf_key(&sd_jwt_presentation.attributes)
+            );
         }
     }
 }

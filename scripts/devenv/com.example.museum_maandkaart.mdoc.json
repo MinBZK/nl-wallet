@@ -1,0 +1,69 @@
+{
+  "display": [
+    {
+      "name": "Museum Month Card",
+      "locale": "en-US",
+      "description": "A monthly museum pass",
+      "background_color": "3d2b8e",
+      "text_color": "#ffffff"
+    },
+    {
+      "name": "Museum Maandkaart",
+      "locale": "nl-NL",
+      "description": "Een maandelijkse museumkaart",
+      "background_color": "3d2b8e",
+      "text_color": "#ffffff"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "com.example.museum_maandkaart",
+        "name"
+      ],
+      "display": [
+        {
+          "name": "Naam",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Name",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.museum_maandkaart",
+        "member_number"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Lidnummer",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Member number",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.museum_maandkaart",
+        "valid_year"
+      ],
+      "display": [
+        {
+          "name": "Geldig jaar",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Valid year",
+          "locale": "en-US"
+        }
+      ]
+    }
+  ]
+}

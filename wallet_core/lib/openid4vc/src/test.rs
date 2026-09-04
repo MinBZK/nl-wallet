@@ -12,6 +12,7 @@ use attestation_data::x509::generate::mock::generate_issuer_mock_with_registrati
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use attestation_types::metadata::AttestationMetadata;
 use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
@@ -25,6 +26,7 @@ use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use derive_more::Constructor;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -55,6 +57,7 @@ use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
 use crate::par::PAR_TTL;
@@ -115,21 +118,30 @@ pub fn mock_type_metadata_with_required_attr(vct: &str, required_attr: &str) -> 
 }
 
 /// A single mock document for `attestation_type` carrying exactly the given attributes
-/// (typically a subset of [`MOCK_ATTRS`]).
+/// (typically a subset of [`MOCK_ATTRS`]). For an mdoc, the attributes are namespaced under
+/// `attestation_type`, matching [`CredentialMetadata::new_mdoc_example`].
 pub fn mock_issuable_document_with_attrs(
     format: Format,
     attestation_type: &str,
     attrs: &[(&str, &str)],
 ) -> IssuableDocument {
-    IssuableDocument::try_new_with_random_id(
-        CredentialKind::new(format, attestation_type.to_string()),
+    let flat_attrs = || {
         IndexMap::from_iter(attrs.iter().map(|(key, val)| {
             (
                 key.to_string(),
                 Attribute::Single(AttributeValue::Text(val.to_string())),
             )
         }))
-        .into(),
+    };
+
+    let attributes = match format {
+        Format::MsoMdoc => IndexMap::from([(attestation_type.to_string(), Attribute::Nested(flat_attrs()))]),
+        Format::SdJwt => flat_attrs(),
+    };
+
+    IssuableDocument::try_new_with_random_id(
+        CredentialKind::new(format, attestation_type.to_string()),
+        attributes.into(),
     )
     .unwrap()
 }
@@ -283,6 +295,7 @@ where
 /// are based on a list of format / attestation type combinations and the relevant SD-JWT VC Type Metadata documents.
 pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
     issuer_identifier: IssuerIdentifier,
+    // TODO (PVW-5547): use TypeMetadataDocuments only for Format::SdJwt
     attestations: Vec<(Format, String, TypeMetadataDocuments)>,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
 ) -> (
@@ -304,6 +317,16 @@ where
         .into_iter()
         .map(|(format, attestation_type, metadata_documents)| {
             let config_id = format!("{attestation_type}_{format}");
+
+            let credential_metadata = matches!(format, Format::MsoMdoc).then(|| {
+                let (normalized, _) = metadata_documents
+                    .clone()
+                    .into_normalized(&attestation_type)
+                    .expect("example type metadata should normalize");
+                let claim_names = normalized.claim_key_paths().map(|path| *path.last()).collect_vec();
+
+                CredentialMetadata::new_mdoc_example(&attestation_type, &claim_names)
+            });
 
             let status_list_uri_path = config_id.replace(':', "-");
             let status_list = MockObtainingStatusListService::new(
@@ -328,6 +351,7 @@ where
                     .into_first(),
                 attestation_qualification: AttestationQualification::default(),
                 metadata_documents,
+                credential_metadata,
             };
 
             (config_id.into(), params)

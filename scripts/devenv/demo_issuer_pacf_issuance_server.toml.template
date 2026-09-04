@@ -38,6 +38,7 @@ max_session_lifetime_in_sec = 900
 [credential_configurations."com.example.museum_maandkaart"]
 format = "mso_mdoc"
 attestation_type = "com.example.museum_maandkaart"
+credential_metadata = "com.example.museum_maandkaart.mdoc.json"
 valid_days = 30
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER}"

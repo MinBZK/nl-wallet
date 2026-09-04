@@ -141,8 +141,11 @@ pub enum IssuableDocumentError {
     #[error("credential type not offered in Credential Configurations: {0}")]
     CredentialTypeNotOffered(CredentialKind),
 
-    #[error("attributes do not match type metadata: {0}")]
+    #[error("attributes do not match metadata: {0}")]
     AttributesError(#[source] AttributesError),
+
+    #[error("no credential metadata for mdoc credential configuration: {0}")]
+    MissingCredentialMetadata(CredentialConfigurationId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -692,7 +695,7 @@ where
             batch_credential_issuance,
             display: None,
             credential_configurations_supported: credential_configs
-                .to_credential_configurations_supported(&type_metadata_base_url),
+                .to_credential_configurations_supported(&type_metadata_base_url)?,
         };
 
         let issuer_data = IssuerData::new(
@@ -769,9 +772,22 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
                     .get_by_credential_kind(&document.credential_kind)
                     .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(document.credential_kind.clone()))?;
 
-                document
-                    .validate_with_metadata(credential_config.metadata.normalized())
-                    .map_err(IssuableDocumentError::AttributesError)?;
+                match document.credential_kind {
+                    CredentialKind {
+                        format: Format::MsoMdoc,
+                        ..
+                    } => {
+                        let credential_metadata = credential_config.credential_metadata.as_ref().ok_or_else(|| {
+                            IssuableDocumentError::MissingCredentialMetadata(credential_config_id.clone())
+                        })?;
+
+                        document.validate_with_metadata(credential_metadata)
+                    }
+                    CredentialKind {
+                        format: Format::SdJwt, ..
+                    } => document.validate_with_metadata(credential_config.metadata.normalized()),
+                }
+                .map_err(IssuableDocumentError::AttributesError)?;
 
                 Ok((credential_config_id.clone(), document))
             })

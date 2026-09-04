@@ -895,6 +895,7 @@ mod tests {
     use itertools::multiunzip;
     use mockall::predicate::*;
     use openid4vc::wallet_issuance::IssuanceFlow;
+    use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
     use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
@@ -902,7 +903,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
@@ -1850,8 +1850,8 @@ mod tests {
 
     fn sd_jwt_pid() -> (
         WithKeyIdentifier<StoredAttestation>,
-        VerifiedTypeMetadataDocuments,
-        NormalizedTypeMetadata,
+        IssuedCredentialMetadata,
+        StoredAttestationMetadata,
     ) {
         let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
         let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
@@ -1861,26 +1861,25 @@ mod tests {
                 key_identifier: "key_id".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt),
             },
-            metadata_docs,
-            normalized_metadata,
+            IssuedCredentialMetadata::TypeMetadata(metadata_docs),
+            StoredAttestationMetadata::TypeMetadata(normalized_metadata),
         )
     }
 
     fn mdoc_pid() -> (
         WithKeyIdentifier<StoredAttestation>,
-        VerifiedTypeMetadataDocuments,
-        NormalizedTypeMetadata,
+        IssuedCredentialMetadata,
+        StoredAttestationMetadata,
     ) {
-        let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::generate());
-        let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
+        let (mdoc, credential_metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
         (
             WithKeyIdentifier {
                 key_identifier: "key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
-            metadata_docs,
-            normalized_metadata,
+            IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
+            StoredAttestationMetadata::CredentialMetadata(credential_metadata),
         )
     }
 
@@ -1895,8 +1894,8 @@ mod tests {
         #[case] pid_credentials: impl IntoIterator<
             Item = (
                 WithKeyIdentifier<StoredAttestation>,
-                VerifiedTypeMetadataDocuments,
-                NormalizedTypeMetadata,
+                IssuedCredentialMetadata,
+                StoredAttestationMetadata,
             ),
         >,
     ) {
@@ -1920,17 +1919,17 @@ mod tests {
 
         let (stored_attestations, stored_copies) = pid_credentials
             .into_iter()
-            .map(|(stored_attestation, metadata_docs, normalized_metadata)| {
+            .map(|(stored_attestation, issued_metadata, stored_metadata)| {
                 let stored_copy = StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     ValidityWindow::new_valid_mock(),
                     stored_attestation.clone(),
-                    StoredAttestationMetadata::TypeMetadata(normalized_metadata),
+                    stored_metadata,
                     None,
                 );
 
-                ((stored_attestation, metadata_docs), stored_copy)
+                ((stored_attestation, issued_metadata), stored_copy)
             })
             .unzip::<_, _, Vec<_>, Vec<_>>();
 

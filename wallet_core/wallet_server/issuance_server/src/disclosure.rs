@@ -271,6 +271,7 @@ mod tests {
 
         let config_params = CredentialConfigurationParameters {
             credential_kind: CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),
+            credential_metadata: None,
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
                 issuance_keypair.certificate().to_owned(),

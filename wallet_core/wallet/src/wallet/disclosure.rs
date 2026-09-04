@@ -1245,15 +1245,11 @@ mod tests {
                     (PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]]),
                     (
                         ADDRESS_ATTESTATION_TYPE,
+                        // mdoc has no nesting of its own, so the address attributes live directly in the single
+                        // namespace, unlike SD-JWT's nested "address" group below.
                         &[
-                            &[
-                                &format!("{ADDRESS_ATTESTATION_TYPE}.{PID_ADDRESS_GROUP}"),
-                                PID_RESIDENT_POSTAL_CODE,
-                            ],
-                            &[
-                                &format!("{ADDRESS_ATTESTATION_TYPE}.{PID_ADDRESS_GROUP}"),
-                                PID_RESIDENT_HOUSE_NUMBER,
-                            ],
+                            &[ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
+                            &[ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
                         ],
                     ),
                 ],
@@ -1394,7 +1390,11 @@ mod tests {
 
             let attribute = &presentation.attributes[0];
 
-            assert!(attribute.key.iter().eq([PID_GIVEN_NAME]));
+            let expected_key: Vec<&str> = match requested_format {
+                Format::MsoMdoc => vec![PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+                Format::SdJwt => vec![PID_GIVEN_NAME],
+            };
+            assert!(attribute.key.iter().eq(expected_key));
             assert_matches!(
                 &attribute.value, AttributeValue::Text(given_name) if given_name == expected_name
             );
@@ -1412,16 +1412,22 @@ mod tests {
             assert_eq!(presentation.attestation_type, ADDRESS_ATTESTATION_TYPE);
             assert_eq!(presentation.attributes.len(), 2);
 
+            // mdoc has no nesting of its own, so the "address" group only namespaces an SD-JWT claim key.
+            let namespace = match requested_format {
+                Format::MsoMdoc => ADDRESS_ATTESTATION_TYPE,
+                Format::SdJwt => PID_ADDRESS_GROUP,
+            };
+
             let attribute = &presentation.attributes[0];
 
-            assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER]));
+            assert!(attribute.key.iter().eq([namespace, PID_RESIDENT_HOUSE_NUMBER]));
             assert_matches!(
                 &attribute.value, AttributeValue::Text(house_number) if house_number == expected_house_number
             );
 
             let attribute = &presentation.attributes[1];
 
-            assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE]));
+            assert!(attribute.key.iter().eq([namespace, PID_RESIDENT_POSTAL_CODE]));
             assert_matches!(
                 &attribute.value, AttributeValue::Text(postal_code) if postal_code == expected_postal_code
             );
@@ -1486,7 +1492,7 @@ mod tests {
                             (
                                 "mdoc_1",
                                 vec![IndexMap::from([(
-                                    format!("{ADDRESS_ATTESTATION_TYPE}.{PID_ADDRESS_GROUP}"),
+                                    ADDRESS_ATTESTATION_TYPE.to_string(),
                                     vec![
                                         Entry {
                                             name: PID_RESIDENT_HOUSE_NUMBER.to_string(),
@@ -1561,14 +1567,26 @@ mod tests {
 
         // The wallet will log a single disclosure event, containing
         // `AttestationPresentation` values for those attributes disclosed.
+        // An mdoc's claim key is namespaced (and has no "address" group of its own), unlike SD-JWT's.
+        let (expected_given_name_key, expected_address_namespace): (Vec<&str>, &str) = match requested_format {
+            Format::MsoMdoc => (vec![PID_ATTESTATION_TYPE, PID_GIVEN_NAME], ADDRESS_ATTESTATION_TYPE),
+            Format::SdJwt => (vec![PID_GIVEN_NAME], PID_ADDRESS_GROUP),
+        };
+
         let mut expected_pid_presentation = pid2.into_attestation_presentation(&EmptyPresentationConfig);
         expected_pid_presentation
             .attributes
-            .retain(|attribute| attribute.key.iter().eq([PID_GIVEN_NAME]));
+            .retain(|attribute| attribute.key.iter().eq(expected_given_name_key.clone()));
         let mut expected_address_presentation = address1.into_attestation_presentation(&EmptyPresentationConfig);
         expected_address_presentation.attributes.retain(|attribute| {
-            attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER])
-                || attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE])
+            attribute
+                .key
+                .iter()
+                .eq([expected_address_namespace, PID_RESIDENT_HOUSE_NUMBER])
+                || attribute
+                    .key
+                    .iter()
+                    .eq([expected_address_namespace, PID_RESIDENT_POSTAL_CODE])
         });
         wallet
             .mut_storage()

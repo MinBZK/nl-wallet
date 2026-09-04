@@ -1166,7 +1166,7 @@ impl Credentials {
                 let mdoc = Mdoc::new(issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(WalletIssuanceError::MdocVerification)?;
 
-                let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), credential_metadata)?;
+                let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone())?;
 
                 Self::validate_credential(
                     preview,
@@ -1333,9 +1333,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::credential_payload::CredentialPayloadFromMdocError;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
-    use attestation_data::credential_payload::PreviewableCredentialPayloadFromMdocError;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -2149,7 +2147,11 @@ mod tests {
         pub trust_anchor: BorrowingTrustAnchor,
         issuer_key: Arc<KeyPair>,
         metadata_integrity: Integrity,
+        /// mdoc attributes, namespaced (namespace, element).
         previewable_payload: PreviewableCredentialPayload,
+        /// The same attributes as `previewable_payload` (without mdoc namesapce) and matching
+        /// `NormalizedTypeMetadata`.
+        sd_jwt_previewable_payload: PreviewableCredentialPayload,
         status: StatusClaim,
         normalized_metadata: NormalizedTypeMetadata,
         raw_metadata: SortedTypeMetadataDocuments,
@@ -2162,7 +2164,7 @@ mod tests {
             let preview = CredentialPreview {
                 config_id: "config_id".to_string().into(),
                 format: Format::SdJwt,
-                credential_payload: self.previewable_payload.clone(),
+                credential_payload: self.sd_jwt_previewable_payload.clone(),
                 issuer_certificate: self.issuer_key.certificate().clone(),
             };
             let metadata = OfferedCredentialMetadata::TypeMetadata {
@@ -2175,7 +2177,7 @@ mod tests {
 
         pub fn into_sd_jwt_response_from_holder_pubkey(self, holder_pubkey: &PublicKey) -> CredentialResponse {
             let credential_payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
-                self.previewable_payload,
+                self.sd_jwt_previewable_payload,
                 Utc::now(),
                 holder_pubkey,
                 Some(self.metadata_integrity),
@@ -2218,11 +2220,21 @@ mod tests {
                 TypeMetadataDocuments::from_single_example(type_metadata);
             let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(&attestation_type).unwrap();
 
+            let namespace = preview_payload.attestation_type.as_str();
+            let mdoc_preview_payload = PreviewableCredentialPayload {
+                attributes: Attributes::example([(
+                    [namespace, "family_name"],
+                    AttributeValue::Text("De Bruijn".to_string()),
+                )]),
+                ..preview_payload.clone()
+            };
+
             let signer = Self {
                 trust_anchor,
                 issuer_key: Arc::new(issuer_key),
                 metadata_integrity,
-                previewable_payload: preview_payload.clone(),
+                previewable_payload: mdoc_preview_payload.clone(),
+                sd_jwt_previewable_payload: preview_payload,
                 status: StatusClaim::new_mock(),
                 normalized_metadata: normalized_metadata.clone(),
                 raw_metadata,
@@ -2231,11 +2243,11 @@ mod tests {
             let preview = CredentialPreview {
                 config_id: "config_id".to_string().into(),
                 format: Format::MsoMdoc,
-                credential_payload: preview_payload,
+                credential_payload: mdoc_preview_payload,
                 issuer_certificate,
             };
             // The preview is for an mdoc, which is described by Credential Metadata. Note that this describes the
-            // single claim contained in `PreviewableCredentialPayload::example_family_name()`.
+            // single claim contained in `mdoc_preview_payload` above.
             let issuance_type_metadata = OfferedCredentialMetadata::CredentialMetadata(CredentialMetadata {
                 display: Some(vec_nonempty![CredentialDisplay {
                     name_locale: NameLocale {
@@ -2249,7 +2261,10 @@ mod tests {
                     text_color: None,
                 }]),
                 claims: Some(vec_nonempty![CredentialClaim {
-                    path: vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())],
+                    path: vec_nonempty![
+                        ClaimPath::SelectByKey(attestation_type.clone()),
+                        ClaimPath::SelectByKey("family_name".to_string())
+                    ],
                     mandatory: false,
                     display: Some(vec_nonempty![NameLocale {
                         name: Some("Family name".to_string()),
@@ -2725,7 +2740,10 @@ mod tests {
             claims: claim_names
                 .iter()
                 .map(|name| CredentialClaim {
-                    path: vec_nonempty![ClaimPath::SelectByKey((*name).to_string())],
+                    path: vec_nonempty![
+                        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+                        ClaimPath::SelectByKey((*name).to_string())
+                    ],
                     mandatory: mandatory_claim_names.contains(name),
                     display: None,
                 })
@@ -2810,13 +2828,11 @@ mod tests {
         );
     }
 
-    /// Note that for an mdoc an attribute that no claim describes is already rejected when the attributes are
-    /// converted from their namespaces, which happens before the attributes are validated against the metadata.
-    // TODO (PVW-5547): This should report `AttributesVerification` once that conversion no longer takes metadata.
     #[test]
     fn test_credential_response_into_mdoc_attributes_not_described_by_metadata_error() {
         let (credentials, preview, _, holder_public_key, trust_anchor) = mock_credential_response_credential();
 
+        // The Credential Metadata does not describe "family_name", which the issued mdoc does contain.
         let credential_metadata = credential_metadata_with_claims(&["given_name"], &[]);
 
         let error = credentials
@@ -2831,11 +2847,8 @@ mod tests {
 
         assert_matches!(
             error,
-            WalletIssuanceError::MdocCredentialPayload(CredentialPayloadFromMdocError::PreviewableCredentialPayload(
-                PreviewableCredentialPayloadFromMdocError::InvalidAttributes(
-                    AttributesError::SomeAttributesNotProcessed(_)
-                )
-            ))
+            WalletIssuanceError::AttributesVerification(AttributesError::AttributesWithoutClaim(paths))
+                if paths == vec![vec![PID_ATTESTATION_TYPE.to_string(), "family_name".to_string()]]
         );
     }
 
@@ -2860,7 +2873,10 @@ mod tests {
         assert_matches!(
             error,
             WalletIssuanceError::AttributesVerification(AttributesError::MissingMandatoryAttribute(paths))
-                if paths == vec![vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())]]
+                if paths == vec![vec_nonempty![
+                    ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+                    ClaimPath::SelectByKey("given_name".to_string())
+                ]]
         );
     }
 

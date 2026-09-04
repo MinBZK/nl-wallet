@@ -45,7 +45,7 @@ kind = "consent"
 [[usecases.insurance.documents]]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
-attributes = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" }
+attributes = { "com.example.insurance" = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" } }
 
 [usecases.loyalty]
 kind = "immediate"
@@ -53,11 +53,12 @@ kind = "immediate"
 [[usecases.loyalty.documents]]
 format = "mso_mdoc"
 attestation_type = "com.example.jum.bonuskaart"
-attributes = { branch = "Demodam", loyalty_number = "{{INSERT_RANDOM_VALUE}}" }
+attributes = { "com.example.jum.bonuskaart" = { branch = "Demodam", loyalty_number = "{{INSERT_RANDOM_VALUE}}" } }
 
 [credential_configurations."com.example.jum.bonuskaart"]
 format = "mso_mdoc"
 attestation_type = "com.example.jum.bonuskaart"
+credential_metadata = "com.example.jum.bonuskaart.mdoc.json"
 valid_days = 365
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_LOYALTY_ISSUER}"
@@ -74,6 +75,7 @@ certificate = "${DEMO_ISSUER_CRT_LOYALTY_TSL}"
 [credential_configurations."com.example.insurance"]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
+credential_metadata = "com.example.insurance.mdoc.json"
 valid_days = 365
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"

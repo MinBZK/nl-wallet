@@ -15,6 +15,7 @@ use crate::pid::brp::client::BrpError;
 use crate::pid::brp::data::BrpPersons;
 use crate::pid::constants::PID_ADDRESS_GROUP;
 use crate::pid::constants::PID_AGE_OVER_18;
+use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BIRTH_DATE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_FAMILY_NAME;
@@ -162,9 +163,73 @@ pub fn mock_pid_example() -> Attributes {
     ])
 }
 
+/// The same PID as [`mock_pid_example()`], laid out for an mdoc.
+pub fn mock_pid_mdoc_example() -> Attributes {
+    Attributes::example([
+        (
+            vec![PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
+            AttributeValue::Text("Jansen".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+            AttributeValue::Text("Frouke".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
+            AttributeValue::Text("2000-03-24".to_string()),
+        ),
+        (vec![PID_ATTESTATION_TYPE, PID_AGE_OVER_18], AttributeValue::Bool(true)),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_BSN],
+            AttributeValue::Text("999991772".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_NATIONALITY],
+            AttributeValue::Array(vec![
+                AttributeValue::Text("Nederlandse".to_string()),
+                AttributeValue::Text("Belgische".to_string()),
+            ]),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_RECOVERY_CODE],
+            AttributeValue::Text("1234567".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_STREET],
+            AttributeValue::Text("Van Wijngaerdenstraat".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
+            AttributeValue::Text("1".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
+            AttributeValue::Text("2596TW".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_CITY],
+            AttributeValue::Text("Toetsoog".to_string()),
+        ),
+        (
+            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_COUNTRY],
+            AttributeValue::Text("Nederland".to_string()),
+        ),
+    ])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Ensures that the two authored sets of attributes describe the same PID, so that a test using one format
+    /// cannot silently diverge from a test using the other.
+    #[test]
+    fn mock_pid_mdoc_example_matches_mock_pid_example() {
+        assert_eq!(
+            mock_pid_mdoc_example(),
+            crate::pid::into_mdoc_attributes(mock_pid_example())
+        );
+    }
 
     /// Ensures that data returned by [`MockBrpClient`] and [`mock_pid_example`] are identical, because some tests rely
     /// on this.

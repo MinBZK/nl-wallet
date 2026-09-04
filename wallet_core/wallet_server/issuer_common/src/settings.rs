@@ -30,6 +30,7 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
+use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use sea_orm::DatabaseConnection;
@@ -182,10 +183,14 @@ pub struct CredentialConfigurationSettings {
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
+
+    /// Path to the JSON file with the Credential Metadata published for this credential configuration.
+    #[debug(skip)]
+    pub credential_metadata: Option<CredentialMetadataFile>,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum TypeMetadataParseError {
+pub enum MetadataParseError {
     #[error("could not read \"{0}\": {1}")]
     Read(PathBuf, #[source] std::io::Error),
 
@@ -194,7 +199,7 @@ pub enum TypeMetadataParseError {
 }
 
 impl TryFrom<Vec<String>> for TypeMetadataByVct {
-    type Error = TypeMetadataParseError;
+    type Error = MetadataParseError;
 
     fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
         // Map the contents of each JSON file by the `vct` field by decoding the JSON and extracting just that field.
@@ -203,15 +208,45 @@ impl TryFrom<Vec<String>> for TypeMetadataByVct {
             .map(|path| {
                 let path = prefix_local_path(PathBuf::from(path));
                 let json =
-                    fs::read(&path).map_err(|error| TypeMetadataParseError::Read(path.clone().into_owned(), error))?;
+                    fs::read(&path).map_err(|error| MetadataParseError::Read(path.clone().into_owned(), error))?;
                 let metadata = serde_json::from_slice::<UncheckedTypeMetadata>(&json)
-                    .map_err(|error| TypeMetadataParseError::Deserialize(path.into_owned(), error))?;
+                    .map_err(|error| MetadataParseError::Deserialize(path.into_owned(), error))?;
 
                 Ok((metadata.vct.clone(), (metadata, json)))
             })
             .try_collect()?;
 
         Ok(Self(documents))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CredentialMetadataFile(CredentialMetadata);
+
+impl From<CredentialMetadataFile> for CredentialMetadata {
+    fn from(value: CredentialMetadataFile) -> Self {
+        value.0
+    }
+}
+
+impl<'de> Deserialize<'de> for CredentialMetadataFile {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let path = String::deserialize(deserializer)?;
+
+        Self::try_from(path).map_err(serde::de::Error::custom)
+    }
+}
+
+impl TryFrom<String> for CredentialMetadataFile {
+    type Error = MetadataParseError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let path = prefix_local_path(PathBuf::from(value));
+        let json = fs::read(&path).map_err(|error| MetadataParseError::Read(path.clone().into_owned(), error))?;
+        let metadata =
+            serde_json::from_slice(&json).map_err(|error| MetadataParseError::Deserialize(path.into_owned(), error))?;
+
+        Ok(Self(metadata))
     }
 }
 
@@ -345,6 +380,7 @@ impl CredentialConfigurationsSettings {
                             issuer_uri,
                             attestation_qualification: settings.attestation_qualification,
                             metadata_documents,
+                            credential_metadata: settings.credential_metadata.map(CredentialMetadata::from),
                         };
 
                         Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
@@ -711,6 +747,7 @@ mod tests {
                 "pid_sdjwt".to_string().into(),
                 CredentialConfigurationSettings {
                     credential_kind: CredentialKind::new(Format::SdJwt, "com.example.pid".to_string()),
+                    credential_metadata: None,
                     keypair: issuance_keypair,
                     valid_days: 365,
                     status_list: StatusListAttestationSettings {
@@ -824,6 +861,7 @@ mod tests {
             "no_registration_sdjwt".to_string().into(),
             CredentialConfigurationSettings {
                 credential_kind: CredentialKind::new(Format::SdJwt, "com.example.no_registration".to_string()),
+                credential_metadata: None,
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 status_list: StatusListAttestationSettings {
