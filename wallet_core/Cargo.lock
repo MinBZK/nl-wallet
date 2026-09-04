@@ -2888,7 +2888,6 @@ dependencies = [
  "error_category",
  "flutter_api_macros",
  "flutter_rust_bridge",
- "hex",
  "itertools 0.14.0",
  "oslog",
  "parking_lot",
