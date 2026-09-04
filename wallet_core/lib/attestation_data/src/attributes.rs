@@ -867,7 +867,7 @@ pub mod test {
                 String::from("com.example.pid"),
                 vec![Entry {
                     name: String::from("birthdate"),
-                    value: ciborium::Value::Text(String::from("1963-08-12")),
+                    value: ciborium::Value::Tag(1004, Box::new(ciborium::Value::Text("1963-08-12".to_string()))),
                 }],
             ),
             (
@@ -909,7 +909,7 @@ pub mod test {
 
         let expected_json = json!({
             "birthdate": {
-                "type": "text",
+                "type": "date",
                 "value": "1963-08-12"
             },
             "place_of_birth": {
