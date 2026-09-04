@@ -57,6 +57,7 @@ void main() {
     test('`AttributeValue_Number` should keep a fractional number intact', () {
       const core.AttributeValue input = core.AttributeValue_Number(value: 12.5);
       expect(mapper.map(input), const NumberValue(12.5));
+      expect(AttributeValueFormatter.formatWithLocale(_kSampleLocale, mapper.map(input)), '12.5');
     });
 
     test('`AttributeValue_Date` should be parsed into a `DateValue`', () {
