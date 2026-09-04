@@ -404,19 +404,24 @@ async fn attestation(
         })
         .ok_or(anyhow::Error::msg("invalid disclosure result"))?;
 
+    let Attribute::Text(attribute_text) = attribute_value else {
+        // only text attributes are supported
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
     let documents: Vec<IssuableDocument> = data
-        .get(&attribute_value.to_string())
+        .get(attribute_text.as_str())
         .map(|docs| {
             docs.iter()
                 .cloned()
                 .map(|doc| {
                     let (credential_kind, attribute) = doc.into();
                     IssuableDocument::try_new_with_random_id(credential_kind, attribute)
-                        .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
+                        .map_err(|err| anyhow::Error::from(err).into())
                 })
                 .collect::<Result<Vec<_>>>()
-                .unwrap()
         })
+        .transpose()?
         .unwrap_or_default();
 
     Ok(Json(documents).into_response())
