@@ -236,7 +236,7 @@ void main() {
       expect(summary, isNot(contains('\n')));
       expect(
         summary,
-        'vehicle_category_code: AM, issue_date: 9-8-2018, vehicle_category_code: B, issue_date: 23-2-2017',
+        'Voertuigcategorie: AM, Afgiftedatum: 9-8-2018, Voertuigcategorie: B, Afgiftedatum: 23-2-2017',
       );
     });
   });

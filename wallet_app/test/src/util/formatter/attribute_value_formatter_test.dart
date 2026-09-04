@@ -32,15 +32,20 @@ void main() {
     test('puts every entry on its own line by default', () {
       expect(
         AttributeValueFormatter.formatWithLocale(_kLocale, map),
-        'vehicle_category_code: B\nissue_date: 23-2-2017',
+        'Voertuigcategorie: B\nAfgiftedatum: 23-2-2017',
       );
     });
 
     test('is joined with a comma when inline', () {
       expect(
         AttributeValueFormatter.formatWithLocale(_kLocale, map, inline: true),
-        'vehicle_category_code: B, issue_date: 23-2-2017',
+        'Voertuigcategorie: B, Afgiftedatum: 23-2-2017',
       );
+    });
+
+    test('an unknown key is rendered as provided by the core', () {
+      const unknown = MapValue({'some_unmapped_key': StringValue('B')});
+      expect(AttributeValueFormatter.formatWithLocale(_kLocale, unknown), 'some_unmapped_key: B');
     });
   });
 

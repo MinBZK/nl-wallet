@@ -91,7 +91,10 @@ class DataAttributeRow extends StatelessWidget {
               (entry) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text.rich('${entry.key}: '.toTextSpan(context), style: context.textTheme.bodyMedium),
+                  Text.rich(
+                    '${AttributeValueFormatter.formatMapKey(context.activeLocale, entry.key)}: '.toTextSpan(context),
+                    style: context.textTheme.bodyMedium,
+                  ),
                   Expanded(child: _buildSubtitle(context, entry.value)),
                 ],
               ),

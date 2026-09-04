@@ -32,10 +32,22 @@ class AttributeValueFormatter {
     return inline ? entries.join(', ') : entries.map((it) => '  • $it').join('\n');
   }
 
+  /// Translates the keys of a [MapValue], such as the entries of an mDL driving privilege.
+  // TODO(Daan): the core does not supply display metadata for nested claim paths yet, so these keys
+  // arrive untranslated. Note that this matches on the bare key, so any attestation holding an
+  // 'issue_date' entry gets this label. Drop it once the attestation metadata declares display
+  // labels for the entries of a driving privilege.
+  static String formatMapKey(Locale locale, String key) => switch (key) {
+    'issue_date' => locale.l10n.cardValueMapKeyIssueDate,
+    'expiry_date' => locale.l10n.cardValueMapKeyExpiryDate,
+    'vehicle_category_code' => locale.l10n.cardValueMapKeyVehicleCategoryCode,
+    _ => key,
+  };
+
   static String _formatMapValue(Locale locale, MapValue attribute, bool inline) {
     if (attribute.value.isEmpty) return locale.l10n.cardValueEmptyList;
     final entries = attribute.value.entries.map(
-      (it) => '${it.key}: ${formatWithLocale(locale, it.value, inline: inline)}',
+      (it) => '${formatMapKey(locale, it.key)}: ${formatWithLocale(locale, it.value, inline: inline)}',
     );
     return entries.join(inline ? ', ' : '\n');
   }
