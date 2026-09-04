@@ -64,7 +64,7 @@ class DataAttributeRow extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: 4),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(_kImageBorderRadius),
           child: AppImage(
