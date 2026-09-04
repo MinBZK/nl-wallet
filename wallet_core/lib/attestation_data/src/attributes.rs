@@ -193,7 +193,7 @@ impl TryFrom<ClaimValue> for Attribute {
                     })
                     .try_collect()?,
             )),
-            ClaimValue::Object(object_claims) => Ok(Attribute::Object(object_claims_to_attributes(object_claims)?.0)),
+            ClaimValue::Object(object_claims) => Ok(Attribute::Object(object_claims_to_map(object_claims)?)),
         }
     }
 }
@@ -213,18 +213,16 @@ impl TryFrom<ObjectClaims> for Attributes {
     type Error = AttributesError;
 
     fn try_from(value: ObjectClaims) -> Result<Self, Self::Error> {
-        Ok(object_claims_to_attributes(value)?)
+        Ok(Attributes(object_claims_to_map(value)?))
     }
 }
 
-fn object_claims_to_attributes(object_claims: ObjectClaims) -> Result<Attributes, AttributeError> {
-    Ok(Attributes(
-        object_claims
-            .claims
-            .into_iter()
-            .map(|(k, v)| Ok((k.into_inner(), v.try_into()?)))
-            .collect::<Result<_, AttributeError>>()?,
-    ))
+fn object_claims_to_map(object_claims: ObjectClaims) -> Result<IndexMap<String, Attribute>, AttributeError> {
+    object_claims
+        .claims
+        .into_iter()
+        .map(|(k, v)| Ok((k.into_inner(), v.try_into()?)))
+        .collect::<Result<_, AttributeError>>()
 }
 
 fn map_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
