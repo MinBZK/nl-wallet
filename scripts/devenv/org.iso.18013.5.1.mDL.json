@@ -23,7 +23,7 @@
       "locale": "nl-NL",
       "name": "Rijbewijs",
       "description": "Een mobiel rijbewijs",
-      "summary": "{{driving_privileges}}",
+      "summary": "{{document_number}}",
       "rendering": {
         "simple": {
           "logo": {
