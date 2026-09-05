@@ -2087,8 +2087,6 @@ impl MdocCredential {
     where
         K: EcdsaKey,
     {
-        // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
-        // and the attestation config by signing it.
         let (issuer_signed, _mso) = credential_payload.into_signed_mdoc(key_pair, mdoc_namespace).await?;
 
         Ok(Self {
