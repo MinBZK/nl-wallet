@@ -59,7 +59,7 @@ impl AttestationPresentationConfig for PidAttributesConfiguration {
 }
 
 // TODO: Separate various concerns: PVW-4675
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub format: Format,
@@ -77,7 +77,7 @@ pub enum AttestationIdentity {
     Fixed { id: Uuid },
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
     pub key: VecNonEmpty<String>,
     pub metadata: Vec<ClaimDisplayMetadata>,

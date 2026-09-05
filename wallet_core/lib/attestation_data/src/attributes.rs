@@ -26,7 +26,7 @@ use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
-#[derive(Debug, Clone, Display, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Display, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "lowercase")]
 pub enum Attribute {
     Null,
@@ -206,7 +206,7 @@ impl TryFrom<Attributes> for ClaimValue {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, AsRef, From)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, AsRef, From)]
 pub struct Attributes(IndexMap<String, Attribute>);
 
 impl TryFrom<ObjectClaims> for Attributes {
