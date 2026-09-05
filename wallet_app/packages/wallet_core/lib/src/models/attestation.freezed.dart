@@ -398,7 +398,7 @@ return map(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( double value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,TResult Function( String value)?  date,TResult Function( Uint8List value)?  bytes,TResult Function( Image value)?  image,TResult Function( List<(String, AttributeValue)> value)?  map,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,TResult Function( String value)?  date,TResult Function( Uint8List value)?  bytes,TResult Function( Image value)?  image,TResult Function( List<(String, AttributeValue)> value)?  map,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
@@ -427,7 +427,7 @@ return map(_that.value);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( double value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,required TResult Function( String value)  date,required TResult Function( Uint8List value)  bytes,required TResult Function( Image value)  image,required TResult Function( List<(String, AttributeValue)> value)  map,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,required TResult Function( String value)  date,required TResult Function( Uint8List value)  bytes,required TResult Function( Image value)  image,required TResult Function( List<(String, AttributeValue)> value)  map,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String():
 return string(_that.value);case AttributeValue_Boolean():
@@ -452,7 +452,7 @@ return map(_that.value);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( double value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,TResult? Function( String value)?  date,TResult? Function( Uint8List value)?  bytes,TResult? Function( Image value)?  image,TResult? Function( List<(String, AttributeValue)> value)?  map,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,TResult? Function( String value)?  date,TResult? Function( Uint8List value)?  bytes,TResult? Function( Image value)?  image,TResult? Function( List<(String, AttributeValue)> value)?  map,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
@@ -610,7 +610,7 @@ class AttributeValue_Number extends AttributeValue {
   const AttributeValue_Number({required this.value}): super._();
   
 
- final  double value;
+ final  PlatformInt64 value;
 
 /// Create a copy of AttributeValue
 /// with the given fields replaced by the non-null parameter values.
@@ -642,7 +642,7 @@ abstract mixin class $AttributeValue_NumberCopyWith<$Res> implements $AttributeV
   factory $AttributeValue_NumberCopyWith(AttributeValue_Number value, $Res Function(AttributeValue_Number) _then) = _$AttributeValue_NumberCopyWithImpl;
 @useResult
 $Res call({
- double value
+ PlatformInt64 value
 });
 
 
@@ -662,7 +662,7 @@ class _$AttributeValue_NumberCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
   return _then(AttributeValue_Number(
 value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
-as double,
+as PlatformInt64,
   ));
 }
 

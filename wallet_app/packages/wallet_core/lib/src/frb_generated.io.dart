@@ -176,9 +176,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   DisplayTarget dco_decode_display_target(dynamic raw);
 
   @protected
-  double dco_decode_f_64(dynamic raw);
-
-  @protected
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw);
 
   @protected
@@ -189,6 +186,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int dco_decode_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
   IdentifyUriResult dco_decode_identify_uri_result(dynamic raw);
@@ -504,9 +504,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   DisplayTarget sse_decode_display_target(SseDeserializer deserializer);
 
   @protected
-  double sse_decode_f_64(SseDeserializer deserializer);
-
-  @protected
   FlutterConfiguration sse_decode_flutter_configuration(SseDeserializer deserializer);
 
   @protected
@@ -517,6 +514,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
   IdentifyUriResult sse_decode_identify_uri_result(SseDeserializer deserializer);
@@ -895,6 +895,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  int cst_encode_i_64(PlatformInt64 raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.toInt();
+  }
+
+  @protected
   int cst_encode_isize(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toInt();
@@ -1228,7 +1234,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is AttributeValue_Number) {
-      var pre_value = cst_encode_f_64(apiObj.value);
+      var pre_value = cst_encode_i_64(apiObj.value);
       wireObj.tag = 2;
       wireObj.kind.Number.value = pre_value;
       return;
@@ -1911,9 +1917,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_disclosure_type(DisclosureType raw);
 
   @protected
-  double cst_encode_f_64(double raw);
-
-  @protected
   int cst_encode_format(Format raw);
 
   @protected
@@ -2112,9 +2115,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_display_target(DisplayTarget self, SseSerializer serializer);
 
   @protected
-  void sse_encode_f_64(double self, SseSerializer serializer);
-
-  @protected
   void sse_encode_flutter_configuration(FlutterConfiguration self, SseSerializer serializer);
 
   @protected
@@ -2125,6 +2125,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
   void sse_encode_identify_uri_result(IdentifyUriResult self, SseSerializer serializer);
@@ -3820,8 +3823,8 @@ final class wire_cst_AttributeValue_Boolean extends ffi.Struct {
 }
 
 final class wire_cst_AttributeValue_Number extends ffi.Struct {
-  @ffi.Double()
-  external double value;
+  @ffi.Int64()
+  external int value;
 }
 
 final class wire_cst_AttributeValue_Array extends ffi.Struct {

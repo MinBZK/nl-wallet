@@ -1722,12 +1722,6 @@ impl CstDecode<crate::models::disclosure::DisclosureType> for i32 {
         }
     }
 }
-impl CstDecode<f64> for f64 {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    fn cst_decode(self) -> f64 {
-        self
-    }
-}
 impl CstDecode<crate::models::attestation::Format> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::attestation::Format {
@@ -1741,6 +1735,12 @@ impl CstDecode<crate::models::attestation::Format> for i32 {
 impl CstDecode<i32> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> i32 {
+        self
+    }
+}
+impl CstDecode<i64> for i64 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> i64 {
         self
     }
 }
@@ -2058,7 +2058,7 @@ impl SseDecode for crate::models::attestation::AttributeValue {
                 return crate::models::attestation::AttributeValue::Boolean { value: var_value };
             }
             2 => {
-                let mut var_value = <f64>::sse_decode(deserializer);
+                let mut var_value = <i64>::sse_decode(deserializer);
                 return crate::models::attestation::AttributeValue::Number { value: var_value };
             }
             3 => {
@@ -2273,13 +2273,6 @@ impl SseDecode for crate::models::notification::DisplayTarget {
     }
 }
 
-impl SseDecode for f64 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_f64::<NativeEndian>().unwrap()
-    }
-}
-
 impl SseDecode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2350,6 +2343,13 @@ impl SseDecode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i64::<NativeEndian>().unwrap()
     }
 }
 
@@ -4569,7 +4569,7 @@ impl SseEncode for crate::models::attestation::AttributeValue {
             }
             crate::models::attestation::AttributeValue::Number { value } => {
                 <i32>::sse_encode(2, serializer);
-                <f64>::sse_encode(value, serializer);
+                <i64>::sse_encode(value, serializer);
             }
             crate::models::attestation::AttributeValue::Array { value } => {
                 <i32>::sse_encode(3, serializer);
@@ -4777,13 +4777,6 @@ impl SseEncode for crate::models::notification::DisplayTarget {
     }
 }
 
-impl SseEncode for f64 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_f64::<NativeEndian>(self).unwrap();
-    }
-}
-
 impl SseEncode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4845,6 +4838,13 @@ impl SseEncode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
     }
 }
 
@@ -8043,7 +8043,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_AttributeValue_Number {
-        value: f64,
+        value: i64,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

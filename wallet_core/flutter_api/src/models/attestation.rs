@@ -201,7 +201,7 @@ impl From<wallet::AttestationAttribute> for AttestationAttribute {
 pub enum AttributeValue {
     String { value: String },
     Boolean { value: bool },
-    Number { value: f64 },
+    Number { value: i64 },
     Array { value: Vec<AttributeValue> },
     Null,
 
@@ -216,10 +216,7 @@ impl From<attestation_data::Attribute> for AttributeValue {
     fn from(value: attestation_data::Attribute) -> Self {
         match value {
             attestation_data::Attribute::Bool(value) => AttributeValue::Boolean { value },
-            attestation_data::Attribute::Number(value) => match value.as_f64() {
-                Some(value) => AttributeValue::Number { value },
-                None => unreachable!(), // `as_f64` never returns `None` without the `arbitrary_precision` feature
-            },
+            attestation_data::Attribute::Number(value) => AttributeValue::Number { value },
             attestation_data::Attribute::Text(value) => AttributeValue::String { value },
             attestation_data::Attribute::Null => AttributeValue::Null,
             attestation_data::Attribute::Array(entries) => AttributeValue::Array {

@@ -38,7 +38,7 @@ typedef struct wire_cst_AttributeValue_Boolean {
 } wire_cst_AttributeValue_Boolean;
 
 typedef struct wire_cst_AttributeValue_Number {
-  double value;
+  int64_t value;
 } wire_cst_AttributeValue_Number;
 
 typedef struct wire_cst_list_attribute_value {

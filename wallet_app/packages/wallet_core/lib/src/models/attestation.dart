@@ -107,7 +107,7 @@ sealed class AttributeValue with _$AttributeValue {
     required bool value,
   }) = AttributeValue_Boolean;
   const factory AttributeValue.number({
-    required double value,
+    required PlatformInt64 value,
   }) = AttributeValue_Number;
   const factory AttributeValue.array({
     required List<AttributeValue> value,

@@ -30,7 +30,7 @@ use utils::vec_at_least::VecNonEmpty;
 #[serde(tag = "type", content = "value", rename_all = "lowercase")]
 pub enum Attribute {
     Null,
-    Number(serde_json::Number),
+    Number(i64),
     Bool(bool),
     Text(String),
     #[display("[{}]", _0.iter().join(", "))]
@@ -98,9 +98,7 @@ pub enum ClaimValueError {
 impl From<Attribute> for ciborium::Value {
     fn from(value: Attribute) -> Self {
         match value {
-            Attribute::Number(number) if let Some(i) = number.as_i64() => ciborium::Value::Integer(i.into()),
-            Attribute::Number(number) if let Some(f) = number.as_f64() => ciborium::Value::Float(f),
-            Attribute::Number(_) => unimplemented!("number should be either i64 or f64"),
+            Attribute::Number(number) => ciborium::Value::Integer(number.into()),
             Attribute::Bool(boolean) => ciborium::Value::Bool(boolean),
             Attribute::Text(text) => ciborium::Value::Text(text),
             Attribute::Null => ciborium::Value::Null,
@@ -124,7 +122,7 @@ impl TryFrom<Attribute> for ClaimValue {
     fn try_from(value: Attribute) -> Result<Self, Self::Error> {
         match value {
             Attribute::Null => Ok(ClaimValue::Null),
-            Attribute::Number(number) => Ok(ClaimValue::Number(number)),
+            Attribute::Number(number) => Ok(ClaimValue::Number(number.into())),
             Attribute::Bool(boolean) => Ok(ClaimValue::Bool(boolean)),
             Attribute::Text(text) => Ok(ClaimValue::String(text)),
             Attribute::Array(elements) => Ok(ClaimValue::Array(
@@ -148,12 +146,7 @@ impl TryFrom<ciborium::Value> for Attribute {
             ciborium::Value::Text(text) => Ok(Attribute::Text(text)),
             ciborium::Value::Bool(bool) => Ok(Attribute::Bool(bool)),
             ciborium::Value::Integer(integer) => Ok(Attribute::Number(
-                i64::try_from(integer)
-                    .map_err(AttributeError::NumberFromCborIntegerConversion)?
-                    .into(),
-            )),
-            ciborium::Value::Float(float) => Ok(Attribute::Number(
-                Number::from_f64(float).ok_or(AttributeError::NumberFromFloatConversion(float))?,
+                i64::try_from(integer).map_err(AttributeError::NumberFromCborIntegerConversion)?,
             )),
             ciborium::Value::Null => Ok(Attribute::Null),
             ciborium::Value::Array(elements) => Ok(Attribute::Array(
@@ -193,7 +186,11 @@ impl TryFrom<ClaimValue> for Attribute {
     fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
         match value {
             ClaimValue::Null => Ok(Attribute::Null),
-            ClaimValue::Number(number) => Ok(Attribute::Number(number)),
+            ClaimValue::Number(number) => {
+                Ok(Attribute::Number(number.as_i64().ok_or_else(|| {
+                    AttributeError::NumberFromClaimValueConversion(number)
+                })?))
+            }
             ClaimValue::Bool(boolean) => Ok(Attribute::Bool(boolean)),
             ClaimValue::String(text) => Ok(Attribute::Text(text)),
             ClaimValue::Array(elements) => Ok(Attribute::Array(
