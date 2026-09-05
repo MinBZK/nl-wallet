@@ -5,7 +5,6 @@ use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
@@ -389,8 +388,6 @@ pub enum IssuerSettingsValidationError {
         attestation: CanonicalDistinguishedName,
         status_list: CanonicalDistinguishedName,
     },
-    #[error("credential configuration {config_id} uses format dc+sd-jwt, but has mdoc_namespace set")]
-    MdocNamespaceOnSdJwtFormat { config_id: CredentialConfigurationId },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -461,12 +458,6 @@ impl IssuerSettings {
                         config_id: config_id.clone(),
                     });
                 }
-            }
-
-            if attestation.mdoc_namespace.is_some() && attestation.credential_kind.format == Format::SdJwt {
-                return Err(IssuerSettingsValidationError::MdocNamespaceOnSdJwtFormat {
-                    config_id: config_id.clone(),
-                });
             }
         }
 

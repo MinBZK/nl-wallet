@@ -43,6 +43,9 @@ pub enum CredentialConfigurationsError {
             .join(" / ")
     )]
     DuplicateFormatAndAttestationType(HashMap<CredentialKind, HashSet<CredentialConfigurationId>>),
+
+    #[error("mdoc_namespace set on configuration ({0}) that uses SD-JWT format")]
+    MdocNamespaceOnSdJwtFormat(CredentialConfigurationId),
 }
 
 #[derive(Debug)]
@@ -105,10 +108,14 @@ impl<K, L> CredentialConfiguration<K, L> {
         }: CredentialConfigurationParameters<K, L>,
     ) -> Result<Self, CredentialConfigurationsError> {
         // Use the Credential Configuration ID as the scope value.
-        let scope = Scope::try_new(String::from(config_id)).map_err(CredentialConfigurationsError::Scope)?;
+        let scope = Scope::try_new(config_id.as_ref()).map_err(CredentialConfigurationsError::Scope)?;
 
         let metadata = CredentialConfigurationMetadata::try_new(&credential_kind.attestation_type, metadata_documents)
             .map_err(CredentialConfigurationsError::TypeMetadata)?;
+
+        if credential_kind.format == Format::SdJwt && mdoc_namespace.is_some() {
+            return Err(CredentialConfigurationsError::MdocNamespaceOnSdJwtFormat(config_id));
+        }
 
         let config = Self {
             credential_kind,
