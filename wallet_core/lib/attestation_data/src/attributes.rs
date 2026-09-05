@@ -246,7 +246,8 @@ impl Attributes {
         self.0
     }
 
-    /// Returns a flattened view of the attribute values
+    /// Returns a flattened view of the attributes. The keys are the attribute paths, and the values are leaf
+    /// attributes. These leafs are never object attributes.
     pub fn flattened(&self) -> IndexMap<VecNonEmpty<&str>, &Attribute> {
         /// Recursive depth first traversal helper to flatten all leaf nodes.
         ///
@@ -512,8 +513,9 @@ impl Attributes {
     pub fn claim_paths(&self, behaviour: AttributesTraversalBehaviour) -> Vec<VecNonEmpty<ClaimPath>> {
         /// Recursive depth first traversal helper to collect all claim paths from nested attributes.
         ///
-        /// Depth first is necessary because the SD-JWT conceal functionality for leaves doesn't work properly if the
-        /// parent node is already concealed (and therefore not present anymore in the resulting claims).
+        /// Depth first is necessary because the SD-JWT conceal functionality for leafs (any attribute that is not an
+        /// object) doesn't work properly if the parent node is already concealed (and therefore not present
+        /// anymore in the resulting claims).
         ///
         /// - `prefix` is the path to the current level
         /// - `attrs` are the attributes at the current nesting level
@@ -551,9 +553,7 @@ impl Attributes {
         result
     }
 
-    /// Retrieve the attribute value at the specified location, if it exists.
-    ///
-    /// NB: for now only all claim paths must be strings.
+    /// Retrieve the non-object attribute value at the specified location, if it exists.
     pub fn get(&self, claim_paths: &VecNonEmpty<ClaimPath>) -> Result<Option<&Attribute>, AttributesHandlingError> {
         let Some(mut attr) = self.as_ref().get(
             claim_paths
@@ -605,8 +605,6 @@ impl Attributes {
     }
 
     /// Insert the specified attribute at the specified location.
-    ///
-    /// NB: for now only all claim paths must be strings.
     pub fn insert(
         &mut self,
         claim_paths: &VecNonEmpty<ClaimPath>,
