@@ -399,7 +399,7 @@ impl Attributes {
 
     /// Find the root mdoc namespace. Prefer `attestation_type` itself if every namespace present is `attestation_type`
     /// or nested under it (`attestation_type.group...`), which covers the normal case where the mdoc namespace
-    /// equals the attestation_type. If `attestation_type` doesn't work as a root (e.g. attestation types whose mdoc
+    /// equals the `attestation_type`. If `attestation_type` doesn't work as a root (e.g. attestation types whose mdoc
     /// namespace was overridden to differ from `attestation_type`, such as ISO 18013-5 mDL), fall back to
     /// whichever namespace present is a common root for every other one.
     fn find_mdoc_namespace_root(
@@ -412,7 +412,9 @@ impl Attributes {
 
         attributes
             .keys()
-            .find(|candidate| Self::is_root_namespace(candidate, attributes))
+            .filter(|candidate| Self::is_root_namespace(candidate, attributes))
+            .exactly_one()
+            .ok()
             .cloned()
     }
 
