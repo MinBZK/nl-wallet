@@ -40,8 +40,8 @@
     {
       "path": ["portrait"],
       "display": [
-        { "locale": "nl-NL", "label": "Portretfoto", "description": "Foto van de rijbewijshouder (base64)" },
-        { "locale": "en-US", "label": "Portrait", "description": "Photo of the licence holder (base64)" }
+        { "locale": "nl-NL", "label": "Pasfoto", "description": "Foto van de rijbewijshouder (base64)" },
+        { "locale": "en-US", "label": "Photo", "description": "Photo of the licence holder (base64)" }
       ],
       "sd": "always",
       "mandatory": true
@@ -50,7 +50,7 @@
       "path": ["family_name"],
       "display": [
         { "locale": "nl-NL", "label": "Achternaam", "description": "Achternaam van de rijbewijshouder" },
-        { "locale": "en-US", "label": "Family name", "description": "Family name of the licence holder" }
+        { "locale": "en-US", "label": "Last name", "description": "Last name of the licence holder" }
       ],
       "sd": "always",
       "mandatory": true
@@ -58,8 +58,8 @@
     {
       "path": ["given_name"],
       "display": [
-        { "locale": "nl-NL", "label": "Voornaam", "description": "Voornaam van de rijbewijshouder" },
-        { "locale": "en-US", "label": "Given name", "description": "Given name of the licence holder" }
+        { "locale": "nl-NL", "label": "Naam", "description": "Voornaam van de rijbewijshouder" },
+        { "locale": "en-US", "label": "Name", "description": "Given name of the licence holder" }
       ],
       "sd": "always",
       "mandatory": true,
@@ -69,7 +69,7 @@
       "path": ["birth_date"],
       "display": [
         { "locale": "nl-NL", "label": "Geboortedatum", "description": "Geboortedatum van de houder" },
-        { "locale": "en-US", "label": "Date of birth", "description": "Date of birth of the holder" }
+        { "locale": "en-US", "label": "Birth date", "description": "Date of birth of the holder" }
       ],
       "sd": "always",
       "mandatory": true
@@ -77,7 +77,7 @@
     {
       "path": ["document_number"],
       "display": [
-        { "locale": "nl-NL", "label": "Documentnummer", "description": "Uniek documentnummer van het rijbewijs" },
+        { "locale": "nl-NL", "label": "Document-nummer", "description": "Uniek documentnummer van het rijbewijs" },
         { "locale": "en-US", "label": "Document number", "description": "Unique document number of the licence" }
       ],
       "sd": "always",
@@ -87,8 +87,8 @@
     {
       "path": ["issue_date"],
       "display": [
-        { "locale": "nl-NL", "label": "Afgiftedatum", "description": "Datum van afgifte van het rijbewijs" },
-        { "locale": "en-US", "label": "Issue date", "description": "Date the licence was issued" }
+        { "locale": "nl-NL", "label": "Geldig vanaf", "description": "Datum van afgifte van het rijbewijs" },
+        { "locale": "en-US", "label": "Valid from", "description": "Date the licence was issued" }
       ],
       "sd": "always",
       "mandatory": true
@@ -96,8 +96,8 @@
     {
       "path": ["expiry_date"],
       "display": [
-        { "locale": "nl-NL", "label": "Vervaldatum", "description": "Datum waarop het rijbewijs vervalt" },
-        { "locale": "en-US", "label": "Expiry date", "description": "Date the licence expires" }
+        { "locale": "nl-NL", "label": "Geldig tot", "description": "Datum waarop het rijbewijs vervalt" },
+        { "locale": "en-US", "label": "Valid until", "description": "Date the licence expires" }
       ],
       "sd": "always",
       "mandatory": true
@@ -105,8 +105,8 @@
     {
       "path": ["driving_privileges"],
       "display": [
-        { "locale": "nl-NL", "label": "Rijbevoegdheden", "description": "Toegestane rijtuigcategorieën" },
-        { "locale": "en-US", "label": "Driving privileges", "description": "Permitted vehicle categories" }
+        { "locale": "nl-NL", "label": "Rijbewijscategorieën", "description": "Toegestane rijtuigcategorieën" },
+        { "locale": "en-US", "label": "Driving license privileges", "description": "Permitted vehicle categories" }
       ],
       "sd": "always",
       "mandatory": true,
@@ -117,10 +117,10 @@
       "display": [
         {
           "locale": "nl-NL",
-          "label": "Uitgevende instantie",
+          "label": "Uitgegeven door",
           "description": "Instantie die het rijbewijs heeft afgegeven"
         },
-        { "locale": "en-US", "label": "Issuing authority", "description": "Authority that issued the licence" }
+        { "locale": "en-US", "label": "Issued by", "description": "Authority that issued the licence" }
       ],
       "sd": "always",
       "mandatory": true
@@ -128,8 +128,8 @@
     {
       "path": ["issuing_country"],
       "display": [
-        { "locale": "nl-NL", "label": "Uitgevend land", "description": "Land dat het rijbewijs heeft afgegeven" },
-        { "locale": "en-US", "label": "Issuing country", "description": "Country that issued the licence" }
+        { "locale": "nl-NL", "label": "Land van afgifte", "description": "Land dat het rijbewijs heeft afgegeven" },
+        { "locale": "en-US", "label": "Country of issuance", "description": "Country that issued the licence" }
       ],
       "sd": "always",
       "mandatory": true
