@@ -83,6 +83,18 @@ pub enum AttributesError {
     MissingMandatoryAttribute(Vec<VecNonEmpty<ClaimPath>>),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ClaimValueError {
+    #[error("claim name error: {0}")]
+    ClaimName(ClaimNameError),
+
+    #[error("Date to ClaimValue conversion not supported: {0}")]
+    DateConversion(chrono::NaiveDate),
+
+    #[error("Bytes to ClaimValue conversion not supported: {0:?}")]
+    BytesConversion(Vec<u8>),
+}
+
 impl From<Attribute> for ciborium::Value {
     fn from(value: Attribute) -> Self {
         match value {
@@ -107,7 +119,7 @@ impl From<Attribute> for ciborium::Value {
 }
 
 impl TryFrom<Attribute> for ClaimValue {
-    type Error = ClaimNameError;
+    type Error = ClaimValueError;
 
     fn try_from(value: Attribute) -> Result<Self, Self::Error> {
         match value {
@@ -122,8 +134,8 @@ impl TryFrom<Attribute> for ClaimValue {
                     .try_collect()?,
             )),
             Attribute::Object(map) => map_to_claim_value(map),
-            Attribute::Date(_) => unimplemented!("Attribute::Date to ClaimValue conversion not supported"),
-            Attribute::Bytes(_) => unimplemented!("Attribute::Bytes to ClaimValue conversion not supported"),
+            Attribute::Date(date) => Err(ClaimValueError::DateConversion(date)),
+            Attribute::Bytes(bytes) => Err(ClaimValueError::BytesConversion(bytes)),
         }
     }
 }
@@ -199,7 +211,7 @@ impl TryFrom<ClaimValue> for Attribute {
 }
 
 impl TryFrom<Attributes> for ClaimValue {
-    type Error = ClaimNameError;
+    type Error = ClaimValueError;
 
     fn try_from(value: Attributes) -> Result<Self, Self::Error> {
         map_to_claim_value(value.0)
@@ -225,13 +237,13 @@ fn object_claims_to_map(object_claims: ObjectClaims) -> Result<IndexMap<String, 
         .collect::<Result<_, AttributeError>>()
 }
 
-fn map_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
+fn map_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimValueError> {
     Ok(ClaimValue::Object(ObjectClaims {
         _sd: None,
         claims: attributes
             .into_iter()
-            .map(|(k, v)| Ok((k.parse()?, v.try_into()?)))
-            .collect::<Result<_, ClaimNameError>>()?,
+            .map(|(k, v)| Ok((k.parse().map_err(ClaimValueError::ClaimName)?, v.try_into()?)))
+            .collect::<Result<_, ClaimValueError>>()?,
     }))
 }
 
