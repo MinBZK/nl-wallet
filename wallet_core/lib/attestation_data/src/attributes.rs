@@ -499,11 +499,11 @@ impl Attributes {
     ///     }
     /// }
     /// ```
-    pub fn to_mdoc_attributes(self, attestation_type: &str) -> IndexMap<NameSpace, Vec<Entry>> {
+    pub fn to_mdoc_attributes(self, namespace: &str) -> IndexMap<NameSpace, Vec<Entry>> {
         let mut result = IndexMap::new();
         for (path, attribute) in self.flattened() {
             let (path, name) = path.into_inner_last();
-            let mut prefix = std::iter::once(attestation_type).chain(path.iter().copied());
+            let mut prefix = std::iter::once(namespace).chain(path.iter().copied());
             result.entry(prefix.join(".")).or_insert_with(Vec::new).push(Entry {
                 name: name.to_string(),
                 value: attribute.clone().into(),
