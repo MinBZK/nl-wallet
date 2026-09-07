@@ -82,6 +82,7 @@ pub const UNIVERSITY_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/univers
 pub const LOYALTY_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/loyalty.css"));
 pub const MUSEUM_MAANDKAART_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/museum_maandkaart.css"));
 pub const MDL_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mdl.css"));
+pub const MVRC_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mvrc.css"));
 
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
     let script_src = format!("'sha256-{}' 'sha256-{}'", *LANGUAGE_JS_SHA256, *WALLET_WEB_JS_SHA256);
@@ -132,6 +133,10 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         .route(
             "/static/css/mdl.css",
             get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, MDL_CSS) }),
+        )
+        .route(
+            "/static/css/mvrc.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, MVRC_CSS) }),
         );
 
     let mut app = app

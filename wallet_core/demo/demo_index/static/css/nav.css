@@ -170,3 +170,7 @@ nav a::before {
 #mdl::before {
   background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
 }
+
+#mvrc::before {
+  background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
+}

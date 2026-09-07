@@ -1,0 +1,196 @@
+{
+  "vct": "org.iso.7367.1.mVRC",
+  "name": "Vehicle Registration Certificate",
+  "description": "ISO/IEC 7367-2 mobile vehicle registration certificate (mdoc only)",
+  "display": [
+    {
+      "locale": "en-US",
+      "name": "Vehicle Registration Certificate",
+      "description": "A mobile vehicle registration certificate",
+      "summary": "{{registration_number}}",
+      "rendering": {
+        "simple": {
+          "logo": {
+            "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+            "alt_text": "EU/NL badge"
+          },
+          "background_color": "#DCEED5",
+          "text_color": "#152A62"
+        }
+      }
+    },
+    {
+      "locale": "nl-NL",
+      "name": "Kentekenbewijs",
+      "description": "Een mobiel kentekenbewijs",
+      "summary": "{{registration_number}}",
+      "rendering": {
+        "simple": {
+          "logo": {
+            "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+            "alt_text": "EU/NL badge"
+          },
+          "background_color": "#DCEED5",
+          "text_color": "#152A62"
+        }
+      }
+    }
+  ],
+  "claims": [
+    {
+      "path": ["registration_number"],
+      "display": [
+        { "locale": "nl-NL", "label": "Kenteken", "description": "Kenteken van het voertuig" },
+        { "locale": "en-US", "label": "Registration number", "description": "Registration number of the vehicle" }
+      ],
+      "sd": "always",
+      "mandatory": true,
+      "svg_id": "registration_number"
+    },
+    {
+      "path": ["issue_date"],
+      "display": [
+        { "locale": "nl-NL", "label": "Afgegeven op", "description": "Datum van afgifte van het kentekenbewijs" },
+        { "locale": "en-US", "label": "Issue date", "description": "Date the certificate was issued" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["expiry_date"],
+      "display": [
+        { "locale": "nl-NL", "label": "Geldig tot", "description": "Datum waarop het kentekenbewijs vervalt" },
+        { "locale": "en-US", "label": "Valid until", "description": "Date the certificate expires" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["issuing_authority_unicode"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Afgegeven op",
+          "description": "Instantie die het kentekenbewijs heeft afgegeven"
+        },
+        { "locale": "en-US", "label": "Issued by", "description": "Authority that issued the certificate" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issuing_authority_latin1"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Afgegeven door",
+          "description": "Instantie die het kentekenbewijs heeft afgegeven"
+        },
+        {
+          "locale": "en-US",
+          "label": "Issuing authority",
+          "description": "Authority that issued the certificate"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issuing_country"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Land van afgifte",
+          "description": "Land dat het kentekenbewijs heeft afgegeven"
+        },
+        { "locale": "en-US", "label": "Issuing country", "description": "Country that issued the certificate" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["un_distinguishing_sign"],
+      "display": [
+        { "locale": "nl-NL", "label": "Landcode", "description": "Internationaal onderscheidingsteken" },
+        { "locale": "en-US", "label": "Country code", "description": "UN distinguishing sign" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["document_number"],
+      "display": [
+        { "locale": "nl-NL", "label": "Documentnummer", "description": "Uniek documentnummer van het kentekenbewijs" },
+        { "locale": "en-US", "label": "Document number", "description": "Unique document number of the certificate" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["date_of_registration"],
+      "display": [
+        { "locale": "nl-NL", "label": "Geregistreerd op", "description": "Datum van registratie van het voertuig" },
+        { "locale": "en-US", "label": "Date of registration", "description": "Date the vehicle was registered" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["date_of_first_registration"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Voor het eerst geregistreerd op",
+          "description": "Datum van eerste registratie van het voertuig"
+        },
+        {
+          "locale": "en-US",
+          "label": "Date of first registration",
+          "description": "Date of first registration of the vehicle"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["chassis_number"],
+      "display": [
+        { "locale": "nl-NL", "label": "Chassisnummer", "description": "Voertuigidentificatienummer (VIN)" },
+        { "locale": "en-US", "label": "Chassis number", "description": "Vehicle identification number (VIN)" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["basic_vehicle_info", "vehicle_category_code"],
+      "display": [
+        { "locale": "nl-NL", "label": "Voertuigcategorie", "description": "Europese voertuigcategorie" },
+        { "locale": "en-US", "label": "Vehicle category", "description": "European vehicle category" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["basic_vehicle_info", "make"],
+      "display": [
+        { "locale": "nl-NL", "label": "Merk", "description": "Merk van het voertuig" },
+        { "locale": "en-US", "label": "Make", "description": "Make of the vehicle" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["basic_vehicle_info", "commercial_name"],
+      "display": [
+        { "locale": "nl-NL", "label": "Handelsbenaming", "description": "Handelsbenaming van het voertuig" },
+        { "locale": "en-US", "label": "Commercial name", "description": "Commercial name of the vehicle" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["owners"],
+      "display": [
+        { "locale": "nl-NL", "label": "Eigenaren", "description": "Eigenaar of eigenaren van het voertuig" },
+        { "locale": "en-US", "label": "Owners", "description": "Owner(s) of the vehicle" }
+      ],
+      "sd": "always"
+    }
+  ]
+}
