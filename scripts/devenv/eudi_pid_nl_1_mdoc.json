@@ -24,6 +24,10 @@
       "mandatory": true,
       "display": [
         {
+          "name": "Name",
+          "locale": "en-US"
+        },
+        {
           "name": "Achternaam",
           "locale": "nl-NL"
         }
@@ -36,6 +40,10 @@
       ],
       "mandatory": true,
       "display": [
+        {
+          "name": "First name",
+          "locale": "en-US"
+        },
         {
           "name": "Voornaam",
           "locale": "nl-NL"
@@ -50,6 +58,10 @@
       "mandatory": true,
       "display": [
         {
+          "name": "Birth date",
+          "locale": "en-US"
+        },
+        {
           "name": "Geboortedatum",
           "locale": "nl-NL"
         }
@@ -62,6 +74,10 @@
       ],
       "display": [
         {
+          "name": "Over 18",
+          "locale": "en-US"
+        },
+        {
           "name": "18+",
           "locale": "nl-NL"
         }
@@ -73,6 +89,10 @@
         "nationalities"
       ],
       "display": [
+        {
+          "name": "Nationalities",
+          "locale": "en-US"
+        },
         {
           "name": "Nationaliteiten",
           "locale": "nl-NL"
@@ -121,6 +141,10 @@
       "mandatory": true,
       "display": [
         {
+          "name": "Street",
+          "locale": "en-US"
+        },
+        {
           "name": "Straatnaam",
           "locale": "nl-NL"
         }
@@ -133,6 +157,10 @@
       ],
       "mandatory": true,
       "display": [
+        {
+          "name": "House number",
+          "locale": "en-US"
+        },
         {
           "name": "Huisnummer",
           "locale": "nl-NL"
@@ -147,6 +175,10 @@
       "mandatory": true,
       "display": [
         {
+          "name": "Postal code",
+          "locale": "en-US"
+        },
+        {
           "name": "Postcode",
           "locale": "nl-NL"
         }
@@ -160,6 +192,10 @@
       "mandatory": true,
       "display": [
         {
+          "name": "City",
+          "locale": "en-US"
+        },
+        {
           "name": "Stad",
           "locale": "nl-NL"
         }
@@ -172,6 +208,10 @@
       ],
       "mandatory": true,
       "display": [
+        {
+          "name": "Country",
+          "locale": "en-US"
+        },
         {
           "name": "Land",
           "locale": "nl-NL"
