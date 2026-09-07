@@ -52,7 +52,6 @@ test-ios:
   variables:
     APP_BUILD_MODE: "release"
     APP_MOCK: "false"
-    APP_ALLOW_RELEASE_LOGS: "false"
   script:
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
@@ -68,7 +67,7 @@ test-ios:
         bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        allow_release_logs:"${APP_ALLOW_RELEASE_LOGS}" \
+        allow_release_logs:"${ALLOW_RELEASE_LOGS:-true}" \
         fake_attestation:"${FAKE_ATTESTATION:-false}" \
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
@@ -94,7 +93,6 @@ build-ios-app-ont:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
-    APP_ALLOW_RELEASE_LOGS: "true"
 
 build-ios-app-adhoc-ont:
   extends: .build-ios-app
@@ -173,7 +171,6 @@ build-ios-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    APP_ALLOW_RELEASE_LOGS: "true"
 
 ## iOS Deploying
 .deploy-ios-app:

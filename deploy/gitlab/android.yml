@@ -59,7 +59,6 @@ test-android:
     APP_BUILD_MODE: "release"
     APP_FILE_FORMAT: "aab"
     APP_MOCK: "false"
-    APP_ALLOW_RELEASE_LOGS: "false"
   script:
     - set -euo pipefail
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
@@ -74,7 +73,7 @@ test-android:
         file_format:"${APP_FILE_FORMAT}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        allow_release_logs:"${APP_ALLOW_RELEASE_LOGS}" \
+        allow_release_logs:"${ALLOW_RELEASE_LOGS:-true}" \
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         show_debug_options:true \
@@ -112,7 +111,6 @@ build-android-app-ont:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
-    APP_ALLOW_RELEASE_LOGS: "true"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
     - deploy/bin/store-artifact.sh *.apk qt/quality-time/apps/nl.ictu.edi.wallet.latest-release.apk
@@ -139,7 +137,6 @@ build-android-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    APP_ALLOW_RELEASE_LOGS: "true"
 
 ### Android deploying
 .deploy-android-app:
