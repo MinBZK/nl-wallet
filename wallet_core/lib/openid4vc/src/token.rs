@@ -1,28 +1,24 @@
-use std::collections::HashSet;
-use std::time::Duration;
-
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
 use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::utils::random_string;
-use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::Debug;
-use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
+use oauth::token::AccessToken;
+use oauth::token::AuthorizationCode;
+use oauth::token::TokenRequest;
+use oauth::token::TokenResponse;
+use oauth::token::TokenType;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::DurationSeconds;
-use serde_with::StringWithSeparator;
 use serde_with::TryFromInto;
 use serde_with::base64::Base64;
-use serde_with::formats::SpaceSeparator;
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -35,50 +31,9 @@ use crate::authorization_details::IssuerAuthorizationDetailsEntries;
 use crate::authorization_details::WalletAuthorizationDetails;
 use crate::authorization_details::WalletAuthorizationDetailsEntries;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::scope::Scope;
-use crate::server_state::SessionToken;
 
-#[derive(Serialize, Deserialize, Debug, Clone, From)]
-pub struct AuthorizationCode(String);
-
-impl AsRef<str> for AuthorizationCode {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, From)]
-pub struct AccessToken(String);
-
-impl AsRef<str> for AccessToken {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl From<AuthorizationCode> for SessionToken {
-    fn from(value: AuthorizationCode) -> Self {
-        SessionToken::from(value.0)
-    }
-}
-
-impl AccessToken {
-    /// Construct a new random access token, with the specified authorization code appended to it.
-    pub(crate) fn new(code: &AuthorizationCode) -> Self {
-        Self(random_string(32) + code.as_ref())
-    }
-
-    /// Returns the authorization code appended to this access token.
-    pub(crate) fn code(&self) -> Option<AuthorizationCode> {
-        self.as_ref().get(32..).map(|code| AuthorizationCode(code.to_string()))
-    }
-
-    pub(crate) fn sha256(&self) -> Vec<u8> {
-        sha256(self.as_ref().as_bytes())
-    }
-}
-
-/// An OAuth 2.0 Token Request as defined by RFC 6749.
+/// An OAuth 2.0 Token Request as defined by RFC 6749, extended with the VCI-specific `authorization_details`
+/// parameter.
 ///
 /// Sent URL-encoded in request body to POST /token. A DPoP HTTP header may be included.
 ///
@@ -87,30 +42,15 @@ impl AccessToken {
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TokenRequest {
+pub struct VciTokenRequest {
     #[serde(flatten)]
-    pub grant_type: TokenRequestGrantType,
-
-    /// OpenID4VCI states: "For the Pre-Authorized Code Grant Type, authentication of the Client is OPTIONAL".
-    pub client_id: Option<String>,
-
-    /// MUST be the redirect URI value as passed in the Authorization Request.
-    pub redirect_uri: Option<Url>,
-
-    /// Section 3.3 of RFC 6749 states that the client may include a scope value when sending the Token Request to the
-    /// token endpoint. Note that, unlike the Authorization Request, we make a semantic distinction between this value
-    /// not being included and the scope value set being empty.
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
-    pub scope: Option<HashSet<Scope>>,
-
-    /// The PKCE code verifier as defined in RFC 7636.
-    pub code_verifier: Option<String>,
+    pub oauth_request: TokenRequest<TokenRequestGrantType>,
 
     #[serde_as(as = "Option<JsonString<TryFromInto<WalletAuthorizationDetailsEntries>>>")]
     pub authorization_details: Option<WalletAuthorizationDetails>,
 }
 
-impl TokenRequest {
+impl VciTokenRequest {
     pub fn new_authorization_code(
         authorization_code: AuthorizationCode,
         redirect_uri: Url,
@@ -126,31 +66,36 @@ impl TokenRequest {
         client_id: Option<String>,
     ) -> Self {
         Self {
-            grant_type: TokenRequestGrantType::AuthorizationCode {
-                code: authorization_code,
+            oauth_request: TokenRequest {
+                grant_type: TokenRequestGrantType::AuthorizationCode {
+                    code: authorization_code,
+                },
+                client_id,
+                redirect_uri: Some(redirect_uri),
+                scope: None,
+                code_verifier: Some(code_verifier),
             },
-            client_id,
-            redirect_uri: Some(redirect_uri),
-            scope: None,
-            code_verifier: Some(code_verifier),
             authorization_details: None,
         }
     }
 
     pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode) -> Self {
         Self {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-            client_id: None, // Not required as our implementation sends a WIA which contains the client_id in the sub
-            redirect_uri: None,
-            scope: None,
-            code_verifier: None,
+            oauth_request: TokenRequest {
+                grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+                // Not required as our implementation sends a WIA which contains the client_id in the sub
+                client_id: None,
+                redirect_uri: None,
+                scope: None,
+                code_verifier: None,
+            },
             authorization_details: None,
         }
     }
 
     /// Retrieve either the authorization code or the pre-authorized code, depending on the authorization grant type.
     pub fn code(&self) -> &AuthorizationCode {
-        match &self.grant_type {
+        match &self.oauth_request.grant_type {
             TokenRequestGrantType::AuthorizationCode { code } => code,
             TokenRequestGrantType::PreAuthorizedCode {
                 pre_authorized_code, ..
@@ -184,19 +129,9 @@ pub enum TokenRequestGrantType {
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TokenResponse {
-    pub access_token: AccessToken,
-    pub token_type: TokenType,
-    pub refresh_token: Option<String>,
-
-    /// Section 3.3 of RFC 6749 states that if the issued access token scope is different than the one requested by the
-    /// client, the server MUST include a scope response parameter to inform the client of the actual scope granted.
-    /// Conversely, this means that if the scope is absent, access token scope is what the client requested.
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
-    pub scope: Option<HashSet<Scope>>,
-
-    #[serde_as(as = "Option<DurationSeconds<u64>>")]
-    pub expires_in: Option<Duration>,
+pub struct VciTokenResponse {
+    #[serde(flatten)]
+    pub oauth_response: TokenResponse,
 
     /// REQUIRED when the authorization_details parameter, as defined in Section 5.1.1, is used in either the
     /// Authorization Request or Token Request. OPTIONAL when scope parameter was used to request issuance of a
@@ -205,18 +140,14 @@ pub struct TokenResponse {
     pub authorization_details: Option<IssuerAuthorizationDetails>,
 }
 
-impl TokenResponse {
+impl VciTokenResponse {
     pub fn new(access_token: AccessToken) -> Self {
         Self::new_vci(access_token, None)
     }
 
     pub fn new_vci(access_token: AccessToken, authorization_details: Option<IssuerAuthorizationDetails>) -> Self {
         Self {
-            access_token,
-            token_type: TokenType::DPoP,
-            expires_in: None,
-            refresh_token: None,
-            scope: None,
+            oauth_response: TokenResponse::new(access_token, TokenType::DPoP),
             authorization_details,
         }
     }
@@ -286,13 +217,6 @@ pub enum CredentialPreviewError {
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TokenType {
-    #[default]
-    Bearer,
-    DPoP,
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
@@ -302,23 +226,25 @@ mod tests {
     use serde_json::json;
     use utils::vec_nonempty;
 
-    use super::TokenRequest;
     use super::TokenRequestGrantType;
-    use super::TokenResponse;
     use super::TokenType;
+    use super::VciTokenRequest;
+    use super::VciTokenResponse;
 
     #[test]
     fn token_request_serialization() {
         #[rustfmt::skip]
         assert_eq!(
-            serde_qs::to_string(&TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
+            serde_qs::to_string(&VciTokenRequest {
+                oauth_request: oauth::token::TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
+                    client_id: Some("myclient".to_string()),
+                    redirect_uri: Some("https://example.com".parse().unwrap()),
+                    scope: None,
+                    code_verifier: Some("myverifier".to_string()),
                 },
-                client_id: Some("myclient".to_string()),
-                redirect_uri: Some("https://example.com".parse().unwrap()),
-                scope: None,
-                code_verifier: Some("myverifier".to_string()),
                 authorization_details: None,
             })
             .unwrap(),
@@ -332,17 +258,19 @@ mod tests {
 
     #[test]
     fn token_response_serialization() {
-        let token_response = TokenResponse {
-            access_token: "access_token".to_string().into(),
-            token_type: TokenType::Bearer,
-            scope: Some(HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()])),
-            expires_in: None,
-            refresh_token: None,
+        let token_response = VciTokenResponse {
+            oauth_response: oauth::token::TokenResponse {
+                access_token: "access_token".to_string().into(),
+                token_type: TokenType::Bearer,
+                scope: Some(HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()])),
+                expires_in: None,
+                refresh_token: None,
+            },
             authorization_details: None,
         };
 
         let mut json =
-            serde_json::to_value(token_response).expect("should be able to serialize TokenResponse to JSON value");
+            serde_json::to_value(token_response).expect("should be able to serialize VciTokenResponse to JSON value");
 
         // Sort scope values, as their order is not deterministic.
         json["scope"] = json
@@ -371,17 +299,17 @@ mod tests {
             "token_type": "DPoP"
         });
 
-        let token_response = serde_json::from_value::<TokenResponse>(json.clone())
-            .expect("should be able to deserialize TokenResponse from JSON value");
+        let token_response = serde_json::from_value::<VciTokenResponse>(json.clone())
+            .expect("should be able to deserialize VciTokenResponse from JSON value");
 
-        assert_eq!(token_response.access_token.as_ref(), "token");
-        assert_eq!(token_response.token_type, TokenType::DPoP);
-        assert!(token_response.refresh_token.is_none());
-        assert!(token_response.scope.is_none());
-        assert!(token_response.expires_in.is_none());
+        assert_eq!(token_response.oauth_response.access_token.as_ref(), "token");
+        assert_eq!(token_response.oauth_response.token_type, TokenType::DPoP);
+        assert!(token_response.oauth_response.refresh_token.is_none());
+        assert!(token_response.oauth_response.scope.is_none());
+        assert!(token_response.oauth_response.expires_in.is_none());
 
         let serialized_json =
-            serde_json::to_value(token_response).expect("should be able to serialize TokenResponse to JSON value");
+            serde_json::to_value(token_response).expect("should be able to serialize VciTokenResponse to JSON value");
 
         assert_eq!(json, serialized_json);
     }
@@ -395,17 +323,18 @@ mod tests {
                        22UniversityDegreeCredential%22%7D%5D";
 
         let token_request =
-            serde_qs::from_str::<TokenRequest>(example).expect("deserializing TokenRequest should succeed");
+            serde_qs::from_str::<VciTokenRequest>(example).expect("deserializing VciTokenRequest should succeed");
 
-        let TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } = &token_request.grant_type else {
+        let TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } = &token_request.oauth_request.grant_type
+        else {
             panic!("grant type should be pre-authorized");
         };
 
         assert_eq!(pre_authorized_code.as_ref(), "SplxlOBeZQQYbYS6WxSbIA");
 
-        assert!(token_request.client_id.is_none());
-        assert!(token_request.redirect_uri.is_none());
-        assert!(token_request.scope.is_none());
+        assert!(token_request.oauth_request.client_id.is_none());
+        assert!(token_request.oauth_request.redirect_uri.is_none());
+        assert!(token_request.oauth_request.scope.is_none());
 
         let authorization_details = token_request
             .authorization_details
@@ -443,17 +372,17 @@ mod tests {
             ]
         });
 
-        let token_response =
-            serde_json::from_value::<TokenResponse>(example_json).expect("deserializing TokenResponse should succeed");
+        let token_response = serde_json::from_value::<VciTokenResponse>(example_json)
+            .expect("deserializing VciTokenResponse should succeed");
 
         assert_eq!(
-            token_response.access_token.as_ref(),
+            token_response.oauth_response.access_token.as_ref(),
             "eyJhbGciOiJSUzI1NiIsInR5cCI6Ikp..sHQ"
         );
-        assert_eq!(token_response.token_type, TokenType::Bearer);
-        assert!(token_response.refresh_token.is_none());
-        assert!(token_response.scope.is_none());
-        assert_eq!(token_response.expires_in, Some(Duration::from_hours(24)));
+        assert_eq!(token_response.oauth_response.token_type, TokenType::Bearer);
+        assert!(token_response.oauth_response.refresh_token.is_none());
+        assert!(token_response.oauth_response.scope.is_none());
+        assert_eq!(token_response.oauth_response.expires_in, Some(Duration::from_hours(24)));
 
         let authorization_details = token_response
             .authorization_details

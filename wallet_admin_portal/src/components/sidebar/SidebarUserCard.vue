@@ -61,11 +61,11 @@ function logout() {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   box-sizing: border-box;
   grid-row: 3;
   border-top: 2px solid var(--color-border);
-  padding: 16px;
+  padding: 1rem;
 }
 
 .avatar {
@@ -115,10 +115,10 @@ function logout() {
   bottom: calc(100% + 16px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
   background: #fff;
   border-radius: 10px;
-  padding: 16px;
+  padding: 1rem;
   box-shadow: 0 8px 24px rgba(21, 42, 98, 0.14);
   z-index: 10;
 }
@@ -133,7 +133,7 @@ function logout() {
   display: flex;
   color: var(--color-text-primary);
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   border: none;
   background: none;
   padding: 0;

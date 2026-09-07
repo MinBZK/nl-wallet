@@ -9,29 +9,50 @@ use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
+use jwt::JwtTyp;
+use jwt::error::JwtVerifyError;
 use jwt::nonce::Nonce;
-use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
-use openid4vc::metadata::well_known;
-use openid4vc::metadata::well_known::WellKnownError;
-use openid4vc::metadata::well_known::WellKnownPath;
-use openid4vc::pkce::S256PkcePair;
-use openid4vc::scope::Scope;
-use openid4vc::token::AuthorizationCode;
-use openid4vc::token::TokenRequest;
+use oauth::authorization::AuthorizationCodeRequest;
+use oauth::authorization::OidcAuthorizationRequest;
+use oauth::errors::TokenErrorCode;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::metadata::oauth_metadata::OidcProviderMetadata;
+use oauth::metadata::well_known::WellKnownError;
+use oauth::metadata::well_known::WellKnownMetadata;
+use oauth::pkce::S256PkcePair;
+use oauth::scope::Scope;
+use oauth::token::AuthorizationCode;
+use oauth::token::AuthorizationCodeGrantType;
+use oauth::token::TokenRequest;
+use oauth::token::TokenResponse;
+use oauth::token::request_token;
+use oauth::userinfo::UserInfoDecryption;
+use oauth::userinfo::UserInfoError;
+use oauth::userinfo::request_userinfo;
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
-use crate::pid::userinfo;
-use crate::pid::userinfo::UserInfo;
-use crate::pid::userinfo::UserInfoError;
 use crate::settings::DigidClientSettings;
 
 const EXPECTED_JWE_RSA_ALGORITHM: RsaAlgorithm = RsaAlgorithm::RsaOaep;
 const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A128CbcHs256;
 
 static OPENID_SCOPE: LazyLock<Scope> = LazyLock::new(|| "openid".parse().expect("\"openid\" is a valid scope"));
+
+pub type TokenError = oauth::token::TokenEndpointError<TokenErrorCode>;
+
+#[derive(Serialize, Deserialize)]
+pub struct DigidUserInfo {
+    pub bsn: String,
+}
+
+impl JwtTyp for DigidUserInfo {
+    fn is_valid_typ(_header_typ: Option<&str>) -> Result<(), JwtVerifyError> {
+        // no `typ` field is set for JWTs provided by RDO-MAX
+        Ok(())
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -43,6 +64,9 @@ pub enum Error {
 
     #[error("upstream metadata has no authorization_endpoint")]
     NoUpstreamAuthorizationEndpoint,
+
+    #[error("error obtaining access_token: {0}")]
+    Token(#[source] TokenError),
 
     #[error("error fetching userinfo: {0}")]
     UserInfo(#[source] UserInfoError),
@@ -69,12 +93,7 @@ impl DigidMetadataClient {
     }
 
     pub async fn metadata(&self) -> Result<OidcProviderMetadata, WellKnownError> {
-        well_known::fetch_well_known::<OidcProviderMetadata>(
-            &self.http_client,
-            &self.oidc_identifier,
-            WellKnownPath::OpenidConfiguration,
-        )
-        .await
+        OidcProviderMetadata::fetch_well_known_json(&self.http_client, &self.oidc_identifier).await
     }
 
     pub fn http_client(&self) -> &HttpClient {
@@ -127,7 +146,7 @@ impl HttpDigidClient {
         let metadata = self.metadata_client.metadata().await.map_err(Error::WellKnown)?;
 
         let authorization_endpoint = metadata
-            .as_ref()
+            .oauth_metadata
             .authorization_endpoint
             .clone()
             .ok_or(Error::NoUpstreamAuthorizationEndpoint)?;
@@ -144,18 +163,16 @@ impl DigidClient for HttpDigidClient {
         state: String,
         pkce_pair: &S256PkcePair,
     ) -> Result<Url, Error> {
-        // Create a new upstream authorization request
-        let vci_request = VciAuthorizationRequest::for_auth_code(
-            client_id,
-            redirect_uri,
-            state,
-            None,
-            HashSet::from([OPENID_SCOPE.clone()]),
-            pkce_pair,
-        );
-
+        // Create a new upstream authorization request. Note that this is a plain OIDC request: the connection between
+        // the PID issuer and the DigiD connector is not an OpenID4VCI connection.
         let oidc_request = OidcAuthorizationRequest {
-            vci_request,
+            auth_request: AuthorizationCodeRequest::new(
+                client_id,
+                redirect_uri,
+                state,
+                HashSet::from([OPENID_SCOPE.clone()]),
+                pkce_pair,
+            ),
             nonce: Some(Nonce::new_random()),
         };
 
@@ -169,20 +186,29 @@ impl DigidClient for HttpDigidClient {
     async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error> {
         let metadata = self.metadata_client.metadata().await.map_err(Error::WellKnown)?;
 
-        let token_request = TokenRequest::new_authorization_code_with_client_id(
-            code,
-            redirect_uri,
-            code_verifier,
-            Some(self.client_id.clone()),
-        );
+        let token_request = TokenRequest {
+            grant_type: AuthorizationCodeGrantType::AuthorizationCode { code },
+            client_id: Some(self.client_id.clone()),
+            redirect_uri: Some(redirect_uri),
+            scope: None,
+            code_verifier: Some(code_verifier),
+        };
 
-        let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
+        let token_response: TokenResponse = request_token(self.metadata_client.http_client(), &metadata, token_request)
+            .await
+            .map_err(Error::Token)?;
+
+        let decryption = UserInfoDecryption {
+            decrypter: &self.decrypter,
+            expected_enc_algs: &[EXPECTED_JWE_ENC_ALGORITHM],
+        };
+
+        let userinfo_claims: DigidUserInfo = request_userinfo(
             self.metadata_client.http_client(),
             &metadata,
-            token_request,
+            &token_response.access_token,
             &self.client_id,
-            &self.decrypter,
-            EXPECTED_JWE_ENC_ALGORITHM,
+            Some(decryption),
         )
         .await
         .map_err(Error::UserInfo)?;
@@ -207,9 +233,6 @@ pub(crate) const TEST_RSA_JWK_JSON: &str = r#"{
 }"#;
 
 #[cfg(test)]
-pub(crate) const TEST_RSA_KEY_ID: &str = "cc34c0a0-bd5a-4a3c-a50d-a2a7db7643df";
-
-#[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
@@ -218,11 +241,10 @@ mod tests {
     use httpmock::Method::GET;
     use httpmock::MockServer;
     use jwk_simple::Key;
-    use openid4vc::issuer_identifier::IssuerIdentifier;
-    use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
-    use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
-    use openid4vc::pkce::PkcePair;
-    use openid4vc::pkce::S256PkcePair;
+    use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::metadata::oauth_metadata::OidcProviderMetadata;
+    use oauth::pkce::PkcePair;
+    use oauth::pkce::S256PkcePair;
     use url::Url;
 
     use super::DigidClient;
@@ -241,7 +263,7 @@ mod tests {
     async fn authorization_request_builds_upstream_redirect_url() {
         let server = MockServer::start_async().await;
         let issuer_identifier: IssuerIdentifier = server.base_url().parse().unwrap();
-        let metadata = OidcProviderMetadata::new(AuthorizationServerMetadata::new_mock(issuer_identifier.clone()));
+        let metadata = OidcProviderMetadata::new_mock(issuer_identifier.clone());
 
         let _mock = server
             .mock_async(|when, then| {

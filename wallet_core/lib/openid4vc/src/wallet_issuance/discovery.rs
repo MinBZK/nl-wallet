@@ -12,6 +12,9 @@ use itertools::Itertools;
 use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::metadata::well_known::WellKnownMetadata;
+use oauth::token::AuthorizationCode;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -31,17 +34,13 @@ use crate::client_auth::check_client_attestation_metadata;
 use crate::credential_offer::CredentialOffer;
 use crate::credential_offer::CredentialOfferContainer;
 use crate::credential_offer::Grants;
-use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-use crate::metadata::well_known;
-use crate::metadata::well_known::WellKnownPath;
-use crate::token::AuthorizationCode;
-use crate::token::TokenRequest;
+use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
+use crate::token::VciTokenRequest;
 
 const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
 
@@ -304,11 +303,11 @@ impl CredentialOfferFlow {
     /// OAuth metadata, while extracting the relevant portions of that metadata.
     fn try_from_offer_grant(
         offer_grant: CredentialOfferGrant,
-        oauth_metadata: AuthorizationServerMetadata,
+        oauth_metadata: IssuerAuthorizationServerMetadata,
     ) -> Result<Self, WalletIssuanceError> {
         let flow = match offer_grant {
             CredentialOfferGrant::AuthorizationCode { issuer_state } => {
-                let authorization_server = oauth_metadata.issuer.clone();
+                let authorization_server = oauth_metadata.oauth_metadata.issuer.clone();
 
                 let auth_endpoints = oauth_metadata
                     .try_into()
@@ -322,9 +321,9 @@ impl CredentialOfferFlow {
             }
             CredentialOfferGrant::PreAuthorizedCode { pre_authorized_code } => Self::PreAuthorizedCode {
                 pre_authorized_code,
-                authorization_server: oauth_metadata.issuer,
-                token_endpoint: oauth_metadata.token_endpoint,
-                challenge_endpoint: oauth_metadata.challenge_endpoint,
+                authorization_server: oauth_metadata.oauth_metadata.issuer,
+                token_endpoint: oauth_metadata.oauth_metadata.token_endpoint,
+                challenge_endpoint: oauth_metadata.client_attestation_metadata_extension.challenge_endpoint,
             },
             CredentialOfferGrant::NoKnownGrant => {
                 // According to the OpenID4VCI 1.0 specification:
@@ -336,6 +335,7 @@ impl CredentialOfferFlow {
                 // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
                 // for the Authorization Code grant type here and use that if the Authorization Server supports it.
                 if !oauth_metadata
+                    .oauth_metadata
                     .grant_types_supported
                     .as_ref()
                     .map(|grant_types| grant_types.contains("authorization_code"))
@@ -348,7 +348,7 @@ impl CredentialOfferFlow {
                     return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
                 }
 
-                let authorization_server = oauth_metadata.issuer.clone();
+                let authorization_server = oauth_metadata.oauth_metadata.issuer.clone();
 
                 let auth_endpoints = oauth_metadata
                     .try_into()
@@ -402,10 +402,10 @@ where
         &self,
         credential_offer: &NormalizedCredentialOffer,
         wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<(IssuerMetadata, AuthorizationServerMetadata), WalletIssuanceError> {
+    ) -> Result<(IssuerMetadata, IssuerAuthorizationServerMetadata), WalletIssuanceError> {
         let issuer_metadata_jwt: UnverifiedJwt<SignedIssuerMetadataPayload, HeaderWithX5c> = self
             .http_client
-            .get_jwt(WellKnownPath::CredentialIssuer.url(&credential_offer.credential_issuer))
+            .get_jwt(IssuerMetadata::well_known_url(&credential_offer.credential_issuer))
             .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataHttp)?
             .parse()?;
@@ -457,13 +457,10 @@ where
             }
         };
 
-        let oauth_metadata: AuthorizationServerMetadata = well_known::fetch_well_known(
-            &self.http_client,
-            authorization_server,
-            WellKnownPath::OauthAuthorizationServer,
-        )
-        .await
-        .map_err(WalletIssuanceError::OauthDiscovery)?;
+        let oauth_metadata =
+            IssuerAuthorizationServerMetadata::fetch_well_known_json(&self.http_client, authorization_server)
+                .await
+                .map_err(WalletIssuanceError::OauthDiscovery)?;
 
         Ok((issuer_metadata, oauth_metadata))
     }
@@ -487,7 +484,11 @@ where
 
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer, wrpac_trust_anchors).await?;
 
-        check_client_attestation_metadata(&oauth_metadata).map_err(WalletIssuanceError::ClientAttestationMetadata)?;
+        check_client_attestation_metadata(
+            &oauth_metadata.oauth_metadata,
+            &oauth_metadata.client_attestation_metadata_extension,
+        )
+        .map_err(WalletIssuanceError::ClientAttestationMetadata)?;
 
         // Limit credential copy count to a sane maximum, even if the issuer indicates it can provide more copies.
         let batch_size = std::cmp::min(issuer_metadata.batch_size(), BATCH_SIZE_MAX.into())
@@ -559,7 +560,7 @@ where
     ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
 
-        let token_request = TokenRequest::new_pre_authorized(pre_authorized_code);
+        let token_request = VciTokenRequest::new_pre_authorized(pre_authorized_code);
 
         // In the pre-authorized code flow, no PAR request was sent whose response might have included a
         // challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
@@ -615,6 +616,7 @@ mod test {
     use jwt::error::JwtVerifyError;
     use jwt::error::JwtX5cVerifyError;
     use jwt::wia::WIA_CLIENT_AUTH_METHOD;
+    use oauth::issuer_identifier::IssuerIdentifier;
     use rstest::rstest;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -634,14 +636,14 @@ mod test {
     use crate::credential_offer::GrantPreAuthorizedCode;
     use crate::credential_offer::Grants;
     use crate::credential_offer::PreAuthTransactionCode;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
+    use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
     use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
-    use crate::token::TokenResponse;
+    use crate::token::VciTokenResponse;
     use crate::wallet_issuance::AuthorizationSession;
     use crate::wallet_issuance::IssuanceFlow;
     use crate::wallet_issuance::IssuanceSession;
@@ -846,7 +848,7 @@ mod test {
             credential_previews: vec_nonempty![preview],
         };
 
-        let token_response = TokenResponse::new_vci(
+        let token_response = VciTokenResponse::new_vci(
             "mock_access_token".to_string().into(),
             Some(AuthorizationDetails::from_credential_ids_and_identifiers(
                 vec_nonempty![(LazyLock::force(&CONFIG_ID), random_string(16))],

@@ -1,0 +1,146 @@
+{
+  "vct": "org.iso.18013.5.1.mDL",
+  "name": "Mobile Driver's Licence",
+  "description": "ISO 18013-5 mobile driver's licence (mdoc only)",
+  "display": [
+    {
+      "locale": "en-US",
+      "name": "Driver's Licence",
+      "description": "A mobile driver's licence",
+      "summary": "{{driving_privileges}}",
+      "rendering": {
+        "simple": {
+          "logo": {
+            "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+            "alt_text": "EU/NL badge"
+          },
+          "background_color": "#FFC2AD",
+          "text_color": "#152A62"
+        }
+      }
+    },
+    {
+      "locale": "nl-NL",
+      "name": "Rijbewijs",
+      "description": "Een mobiel rijbewijs",
+      "summary": "{{driving_privileges}}",
+      "rendering": {
+        "simple": {
+          "logo": {
+            "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+            "alt_text": "EU/NL badge"
+          },
+          "background_color": "#FFC2AD",
+          "text_color": "#152A62"
+        }
+      }
+    }
+  ],
+  "claims": [
+    {
+      "path": ["family_name"],
+      "display": [
+        { "locale": "nl-NL", "label": "Achternaam", "description": "Achternaam van de rijbewijshouder" },
+        { "locale": "en-US", "label": "Family name", "description": "Family name of the licence holder" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["given_name"],
+      "display": [
+        { "locale": "nl-NL", "label": "Voornaam", "description": "Voornaam van de rijbewijshouder" },
+        { "locale": "en-US", "label": "Given name", "description": "Given name of the licence holder" }
+      ],
+      "sd": "always",
+      "mandatory": true,
+      "svg_id": "given_name"
+    },
+    {
+      "path": ["birth_date"],
+      "display": [
+        { "locale": "nl-NL", "label": "Geboortedatum", "description": "Geboortedatum van de houder" },
+        { "locale": "en-US", "label": "Date of birth", "description": "Date of birth of the holder" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issue_date"],
+      "display": [
+        { "locale": "nl-NL", "label": "Afgiftedatum", "description": "Datum van afgifte van het rijbewijs" },
+        { "locale": "en-US", "label": "Issue date", "description": "Date the licence was issued" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["expiry_date"],
+      "display": [
+        { "locale": "nl-NL", "label": "Vervaldatum", "description": "Datum waarop het rijbewijs vervalt" },
+        { "locale": "en-US", "label": "Expiry date", "description": "Date the licence expires" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issuing_country"],
+      "display": [
+        { "locale": "nl-NL", "label": "Uitgevend land", "description": "Land dat het rijbewijs heeft afgegeven" },
+        { "locale": "en-US", "label": "Issuing country", "description": "Country that issued the licence" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issuing_authority"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Uitgevende instantie",
+          "description": "Instantie die het rijbewijs heeft afgegeven"
+        },
+        { "locale": "en-US", "label": "Issuing authority", "description": "Authority that issued the licence" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["document_number"],
+      "display": [
+        { "locale": "nl-NL", "label": "Documentnummer", "description": "Uniek documentnummer van het rijbewijs" },
+        { "locale": "en-US", "label": "Document number", "description": "Unique document number of the licence" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["portrait"],
+      "display": [
+        { "locale": "nl-NL", "label": "Portretfoto", "description": "Foto van de rijbewijshouder (base64)" },
+        { "locale": "en-US", "label": "Portrait", "description": "Photo of the licence holder (base64)" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["driving_privileges"],
+      "display": [
+        { "locale": "nl-NL", "label": "Rijbevoegdheden", "description": "Toegestane rijtuigcategorieën" },
+        { "locale": "en-US", "label": "Driving privileges", "description": "Permitted vehicle categories" }
+      ],
+      "sd": "always",
+      "mandatory": true,
+      "svg_id": "driving_privileges"
+    },
+    {
+      "path": ["un_distinguishing_sign"],
+      "display": [
+        { "locale": "nl-NL", "label": "Landcode", "description": "Internationaal onderscheidingsteken" },
+        { "locale": "en-US", "label": "Country code", "description": "UN distinguishing sign" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    }
+  ]
+}

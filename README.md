@@ -1,14 +1,18 @@
 # NL Wallet
 
-NL Wallet is a secure app on your phone that lets you keep important personal information in one place, such as your name, age, or official documents like your ID card or driving licence.
-With the wallet, you can easily prove who you are, or show only the information a service needs.
+NL Wallet is a secure app on your phone that lets you keep important personal
+information in one place, such as your name, age, or official documents like
+your ID card or driving licence. With the wallet, you can easily prove who you
+are, or show only the information a service needs.
 
 For example:
+
 - Showing you are over 18 without sharing your full date of birth.
 - Confirming your identity when dealing with the government.
 - Sharing a digital version of a diploma when applying for a job.
 
 This is useful, because:
+
 - You no longer need to upload scans of your passport.
 - You share only what is needed, not your whole identity.
 - Your documents are harder to fake, because they are digitally signed.
@@ -16,20 +20,31 @@ This is useful, because:
 
 You stay in control: you choose what to share, with whom, and when.
 
-NL Wallet is intended for Dutch nationals. It offers convenience, stronger security, and protection against identity fraud — all while giving individuals greater control over their own information.
+NL Wallet is intended for Dutch nationals. It offers convenience, stronger
+security, and protection against identity fraud — all while giving individuals
+greater control over their own information.
 
-The app is being developed by Rijksoverheid (Dutch Government), in particular the Ministry of the Interior and Kingdom Relations (MinBZK) and is expected to be available to the public in 2027.
+The app is being developed by Rijksoverheid (Dutch Government), in particular
+the Ministry of the Interior and Kingdom Relations (MinBZK) and is expected to
+be available to the public in 2027.
 
-NL Wallet also makes things easier and safer for relying parties, which are organisations that need to check identity or personal information.
+NL Wallet also makes things easier and safer for relying parties, which are
+organisations that need to check identity or personal information.
 
 For these organisations, this means:
-- More trust – the information comes directly from trusted sources, so it is harder to fake.
-- Less sensitive data to store – no need to keep copies of passports or other documents.
-- Easier compliance with privacy rules – only the necessary information is shared.
-- Faster and smoother processes – users can identify themselves quickly, with fewer steps.
+
+- More trust – the information comes directly from trusted sources, so it is
+  harder to fake.
+- Less sensitive data to store – no need to keep copies of passports or other
+  documents.
+- Easier compliance with privacy rules – only the necessary information is
+  shared.
+- Faster and smoother processes – users can identify themselves quickly, with
+  fewer steps.
 - European coverage – the same approach can be used in all EU countries.
 
-This helps organisations to reduce fraud, protect personal data and offer a better experience to their users.
+This helps organisations to reduce fraud, protect personal data and offer a
+better experience to their users.
 
 NL Wallet is being developed in an open and transparent way. We offer the
 following channels to allow you to contribute:
@@ -39,10 +54,10 @@ following channels to allow you to contribute:
 - More information, events and discussions can be found on [Pleio][5].
 - Project documentation is available on [GitHub pages][25].
 
-This documentation reflects the current implementation and will be updated with every software update.
+This documentation reflects the current implementation and will be updated with
+every software update.
 
 Feel free to look around and share your [feedback and ideas][6].
-
 
 ## Current release
 
@@ -55,15 +70,15 @@ page.
 We have a dedicated [documentation site][25].
 
 If you want to learn more about the NL Wallet development, please read the
-background information on the [Pleio][5] hub. The development of the user flows and
-screens can be followed through [Figma][3].
+background information on the [Pleio][5] hub. The development of the user flows
+and screens can be followed through [Figma][3].
 
 ## Licensing
 
 The source code of the NL Wallet is released under the [EUPL license][8]. The
 documentation is released under the [CC0 license](./LICENSES/CC0-1.0.txt).
-Please see the [.reuse/dep5][9] file for more details, which follows the
-[Reuse specification][10].
+Please see the [.reuse/dep5][9] file for more details, which follows the [Reuse
+specification][10].
 
 ## Contributing
 
@@ -99,8 +114,8 @@ corresponding README files.
 
 The app's UI is built using Flutter, but to avoid tying the app to Flutter &
 Dart, all core business logic is built using Rust. This gives us the more
-flexibility to migrate to completely native iOS/Android apps if the need
-arises. This does mean building the app is slightly more complex than a simple
+flexibility to migrate to completely native iOS/Android apps if the need arises.
+This does mean building the app is slightly more complex than a simple
 `flutter run`. This section describes how to set up your environment.
 
 ### System requirements
@@ -122,8 +137,8 @@ requirements are low to average. Note that this is subject to change.
 #### Wallet web
 
 The wallet_web frontend helper library effectively runs in the browser of a
-person that wants to interact with a relying party that integrates with the
-NL Wallet platform. As such, wallet_web has requirements on the minimum browser
+person that wants to interact with a relying party that integrates with the NL
+Wallet platform. As such, wallet_web has requirements on the minimum browser
 version supported:
 
 - Firefox 60.9+
@@ -132,7 +147,7 @@ version supported:
 - Safari 13+
 
 Note that the above are not recommendations, but simply a statement about the
-*minimum* version we have some confidence in running correctly. We *always*
+_minimum_ version we have some confidence in running correctly. We _always_
 recommend that you run the latest stable browser your platform offers. Also note
 that the above is subject to change.
 
@@ -176,9 +191,9 @@ for development purposes you can make do with a lot less.
 - demo_issuer
 - gba_hc_converter
 
-The above Rust-based services require a regular Linux machine or container
-based on one of the aforementioned operating systems. Memory requirements of
-these services are very low (we're seeing 20 to 50 megabytes of usage on our
+The above Rust-based services require a regular Linux machine or container based
+on one of the aforementioned operating systems. Memory requirements of these
+services are very low (we're seeing 20 to 50 megabytes of usage on our
 Kubernetes clusters, but of course it depends on usage too). The storage
 requirements are effectively non-existent due to usage of PostgreSQL for state.
 
@@ -227,7 +242,8 @@ After installation, make sure to add the following targets:
 
 - For iOS: `rustup target add aarch64-apple-ios x86_64-apple-ios`
 - For iOS simulator: `rustup target add aarch64-apple-ios-sim`
-- For Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
+- For Android:
+  `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 
 Make sure `rustc`, and `cargo` are on your path and run the following commands
 to install a few additional utilities we use:
@@ -282,19 +298,19 @@ available when you read this - feel free to use that too.
 You will need to create an Android virtual device (AVD) so you can run the
 emulator. To do that, do the following:
 
-  1. Start Android Studio, open or create any project;
-  2. Click "File" pulldown menu, then "Tool Windows" -> "Device Manager";
-  3. Click on "+", then "Create Virtual Device", select "Pixel 3"
-  4. For "Name", choose something descriptive like "pixel3-x86_64-android16-api36"
-  5. For "API", select latest available, like "API 36.0"
-  6. For "Services", select "Google Play Store"
-  7. For "System Image", choose whichever latest Google Play enabled image is
-     available. For example: "Google Play <arch> System Image", "API 36.0"
-  8. Click on the "Additional Settings" tab
-  9. Set "Expanded Storage" to "Custom", "12", "GB"
- 10. Set "RAM" to "4", "GB"
- 11. Set "VM heap size" to "512", "MB"
- 12. Click on the blue "Finish" button
+1. Start Android Studio, open or create any project;
+2. Click "File" pulldown menu, then "Tool Windows" -> "Device Manager";
+3. Click on "+", then "Create Virtual Device", select "Pixel 3"
+4. For "Name", choose something descriptive like "pixel3-x86_64-android16-api36"
+5. For "API", select latest available, like "API 36.0"
+6. For "Services", select "Google Play Store"
+7. For "System Image", choose whichever latest Google Play enabled image is
+   available. For example: "Google Play <arch> System Image", "API 36.0"
+8. Click on the "Additional Settings" tab
+9. Set "Expanded Storage" to "Custom", "12", "GB"
+10. Set "RAM" to "4", "GB"
+11. Set "VM heap size" to "512", "MB"
+12. Click on the blue "Finish" button
 
 When you run `$ANDROID_HOME/emulator/emulator -list-avds` on the command-line,
 you should see your just-created virtual device show up.
@@ -369,10 +385,10 @@ adb shell cmd bluetooth_manager disable
 ```
 
 In order to connect to our locally running services from within the running
-Android emulator, some port mappings have to be made (note that this must
-be done every time the Android emulator is restarted). This is automated in
-our `map-android-ports.sh` script, which our `setup-devenv.sh` script will
-call automatically when it detects `adb` on the path.
+Android emulator, some port mappings have to be made (note that this must be
+done every time the Android emulator is restarted). This is automated in our
+`map-android-ports.sh` script, which our `setup-devenv.sh` script will call
+automatically when it detects `adb` on the path.
 
 #### Using your own PostgreSQL service (optional)
 
@@ -387,10 +403,9 @@ docker run --name postgres --volume postgres:/var/lib/postgresql/data \
 ```
 
 The above docker command will start a Docker container running the latest
-postgres image, bound to localhost on port 5432, with `verysecret` as a
-password for the `postgres` system user. There are no other users or
-databases yet, just the defaults.
-
+postgres image, bound to localhost on port 5432, with `verysecret` as a password
+for the `postgres` system user. There are no other users or databases yet, just
+the defaults.
 
 ##### Create a dedicated wallet database user (optional)
 
@@ -454,10 +469,10 @@ setting the `SENTRY_DSN` environment variable.
 Additionally, the `wallet` crate offers the `config_env` feature to aid during
 local development, which does the following:
 
-* Any constant defined in the file `data.rs` can be overridden by an
-  environment variable of the same name at compile time.
-* Additional environment variables are read from a file named `.env`
-  in the `wallet` crate directory, if present.
+- Any constant defined in the file `data.rs` can be overridden by an environment
+  variable of the same name at compile time.
+- Additional environment variables are read from a file named `.env` in the
+  `wallet` crate directory, if present.
 
 #### Starting a local development environment
 
@@ -529,8 +544,8 @@ flutter run # 🎉
 ```
 
 After a few moments, you should see the NL Wallet app appear on your (emulated
-or simulated) device. The app will interact with the backend services started
-by `start-devenv.sh`.
+or simulated) device. The app will interact with the backend services started by
+`start-devenv.sh`.
 
 #### Generate Flutter-Rust bridge code (optional)
 
@@ -582,16 +597,16 @@ VS Code (`rust-analyzer`) user or workspace settings:
 
 ```json
 {
-  "[rust]": {
-    "editor.defaultFormatter": "rust-lang.rust-analyzer",
-    "editor.formatOnSave": true
-  },
-  "rust-analyzer.rustfmt.overrideCommand": [
-    "rustup",
-    "run",
-    "nightly",
-    "rustfmt"
-  ]
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.formatOnSave": true
+    },
+    "rust-analyzer.rustfmt.overrideCommand": [
+        "rustup",
+        "run",
+        "nightly",
+        "rustfmt"
+    ]
 }
 ```
 
@@ -620,6 +635,21 @@ sub-directories.
 
 All Dart/Flutter code goes in the `wallet_app/lib/` directory and their
 appropriate sub-directories.
+
+## Using LLMs in development
+
+Using an LLM for development is acceptable, but only under the following
+conditions.
+
+- LLM output needs the same scrutiny as any hand-written change, and the
+  developer remains responsible for every committed line of code. That means
+  among others that you must fully understand what it does and how it works, and
+  be able to explain it to a reviewer, just the same as when you had written it
+  manually.
+- When reviewing a merge request LLMs can assist, but approval is a human act;
+  don't approve a merge request you only had a model read.
+- In your LLM settings, training on your conversations with it must be disabled,
+  to prevent the LLM from training on developer names in the git repository.
 
 ## Conventions
 
@@ -662,8 +692,8 @@ target the Android platform":
 
 > Use `Alpha` distribution at any time during development cycle.
 
-* Push commit of your choosing to: alpha/v{X.Y.Z}
-* After the GitHub Action has completed successfully; install the release via
+- Push commit of your choosing to: alpha/v{X.Y.Z}
+- After the GitHub Action has completed successfully; install the release via
   F-Droid repo
 
 ### Beta
@@ -671,44 +701,45 @@ target the Android platform":
 > Use `Beta` distribution at the end of a sprint cycle; to represent the sprint
 > demo version.
 
-* `$ git fetch && git pull`
-* Push `main` branch to: beta/v{X.Y.Z}
-* After the GitHub Action has completed successfully; install the release via
+- `$ git fetch && git pull`
+- Push `main` branch to: beta/v{X.Y.Z}
+- After the GitHub Action has completed successfully; install the release via
   F-Droid repo
 
 ## App build configuration
 
-The app build includes the configuration for the connection to the server that hosts the configuration file (`config-server-config.json`).
-Additionally it includes an initial configuration from the this server (`wallet-server.json`).
+The app build includes the configuration for the connection to the server that
+hosts the configuration file (`config-server-config.json`). Additionally it
+includes an initial configuration from the this server (`wallet-server.json`).
 
 Next to these configuration files the build can be configured with:
 
-| Name                          | Type        | Components                          | Description |
-|-------------------------------|-------------|-------------------------------------|-------------|
-| APPLE_ATTESTATION_ENVIRONMENT | Env         | Apple Entitlement, Cargo option_env | Attestation environment for iOS (development / production). Only used in Cargo if `fake_attestation` is set. Default is `development`, which is ignored by Testflight and App Store. See [wallet_app/README.md](wallet_app/README.md#ios-1) for more info. |
-| UL_HOSTNAME                   | Env         | Apple Entitlement                   | Universal Link hostname (iOS only). |
-| universal_link_base           | Option      | Android                             | Universal Link hostname (Android only), passed via Dart define as UL_HOSTNAME. |
-| UNIVERSAL_LINK_BASE           | Env         | Cargo option_env                    | Universal Link base URL used in Wallet Core. |
-| ALLOW_INSECURE_URL            | _Dart only_ | Cargo feature                       | Whether to allow http urls in Wallet Core (passed via Dart define as ALLOW_INSECURE_URL via Xcode / build.gradle as `wallet/allow_insecure_url`). Defaults to `false` for release builds and `true` for debug builds. |
-| ALLOW_RELEASE_LOGS              | Dart define | Flutter, Cargo option_env           | Allows profile/release builds to emit Flutter, Rust, and native platform-support device logs and forward Flutter/Rust logs to Sentry Logs when Sentry is configured. Defaults to `false`; release builds must opt in explicitly, e.g. ont/demo. Debug builds still enable logs by build mode. |
-| CONFIG_ENV                    | Env         | Cargo build                         | The configuration environment name (should match the environment in `config-server-config.json` and `wallet-config.json`). Defaults to `dev`. |
-| SENTRY_AUTH_TOKEN             | Env         | Fastlane / Flutter                  | [Sentry Auth Token](https://docs.sentry.io/account/auth-tokens/), empty if Sentry uploads are not enabled. |
-| SENTRY_PROJECT                | Env         | Fastlane / Flutter                  | [Sentry Project](https://docs.sentry.io/concepts/key-terms/key-terms/), required when `SENTRY_AUTH_TOKEN` is set. |
-| SENTRY_ORG                    | Env         | Fastlane / Flutter                  | Sentry Organization slug, required when `SENTRY_AUTH_TOKEN` is set. |
-| SENTRY_URL                    | Env         | Fastlane / Flutter                  | Sentry URL, required when `SENTRY_AUTH_TOKEN` is set. |
-| SENTRY_DSN                    | Env         | Flutter                             | [Sentry Data Source Name](https://docs.sentry.io/concepts/key-terms/dsn-explainer/), empty if not enabled (passed via Dart define as SENTRY_DSN). |
-| SENTRY_ENVIRONMENT            | Env         | Flutter                             | [Sentry Environment](https://docs.sentry.io/concepts/key-terms/environments/) (passed via Dart define as SENTRY_ENVIRONMENT). |
-| SENTRY_RELEASE                | Env         | Fastlane / Flutter                  | [Sentry Release](https://docs.sentry.io/product/releases/) (passed via Dart define as SENTRY_RELEASE and used for symbol uploads). |
-| build                         | Option      | iOS / Android build                 | The build number of the build (should be strictly increasing when submitting to App or Play Store). Defaults to `0`. |
-| version                       | Option      | iOS / Android build                 | The version of the build (should be semver). Defaults to the version in the [pubspec.yaml](wallet_app/pubspec.yaml). |
-| app_name                      | Option      | iOS / Android build                 | The app name (passed via environment as APP_NAME). Defaults to the `NL Wallet`. |
-| application_id                | Option      | Android build                       | The Android application id (passed via environment as APPLICATION_ID). Defaults to `nl.ictu.edi.wallet.latest`. |
-| bundle_id                     | Option      | iOS                                 | The iOS bundle id (changed via update_code_signing_settings lane). Defaults to `nl.ictu.edi.wallet.latest`. |
-| build_mode                    | Option      | Flutter                             | The build mode of Flutter (debug / profile / release). Defaults to `release`. |
-| file_format                   | Option      | Android build                       | File format (aab / apk)  for Android build. Defaults to `aab`. |
-| fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`. |
-| mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`. |
-| demo_index_url                | Option      | Flutter                             | The URL to launch the demo index page in Browser for tests (passed via Dart define as DEMO_INDEX_URL). |
+| Name                          | Type        | Components                          | Description                                                                                                                                                                                                                                                                                   |
+| ----------------------------- | ----------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| APPLE_ATTESTATION_ENVIRONMENT | Env         | Apple Entitlement, Cargo option_env | Attestation environment for iOS (development / production). Only used in Cargo if `fake_attestation` is set. Default is `development`, which is ignored by Testflight and App Store. See [wallet_app/README.md](wallet_app/README.md#ios-1) for more info.                                    |
+| UL_HOSTNAME                   | Env         | Apple Entitlement                   | Universal Link hostname (iOS only).                                                                                                                                                                                                                                                           |
+| universal_link_base           | Option      | Android                             | Universal Link hostname (Android only), passed via Dart define as UL_HOSTNAME.                                                                                                                                                                                                                |
+| UNIVERSAL_LINK_BASE           | Env         | Cargo option_env                    | Universal Link base URL used in Wallet Core.                                                                                                                                                                                                                                                  |
+| ALLOW_INSECURE_URL            | _Dart only_ | Cargo feature                       | Whether to allow http urls in Wallet Core (passed via Dart define as ALLOW_INSECURE_URL via Xcode / build.gradle as `wallet/allow_insecure_url`). Defaults to `false` for release builds and `true` for debug builds.                                                                         |
+| ALLOW_RELEASE_LOGS            | Dart define | Flutter, Cargo option_env           | Allows profile/release builds to emit Flutter, Rust, and native platform-support device logs and forward Flutter/Rust logs to Sentry Logs when Sentry is configured. Defaults to `false`; release builds must opt in explicitly, e.g. ont/demo. Debug builds still enable logs by build mode. |
+| CONFIG_ENV                    | Env         | Cargo build                         | The configuration environment name (should match the environment in `config-server-config.json` and `wallet-config.json`). Defaults to `dev`.                                                                                                                                                 |
+| SENTRY_AUTH_TOKEN             | Env         | Fastlane / Flutter                  | [Sentry Auth Token](https://docs.sentry.io/account/auth-tokens/), empty if Sentry uploads are not enabled.                                                                                                                                                                                    |
+| SENTRY_PROJECT                | Env         | Fastlane / Flutter                  | [Sentry Project](https://docs.sentry.io/concepts/key-terms/key-terms/), required when `SENTRY_AUTH_TOKEN` is set.                                                                                                                                                                             |
+| SENTRY_ORG                    | Env         | Fastlane / Flutter                  | Sentry Organization slug, required when `SENTRY_AUTH_TOKEN` is set.                                                                                                                                                                                                                           |
+| SENTRY_URL                    | Env         | Fastlane / Flutter                  | Sentry URL, required when `SENTRY_AUTH_TOKEN` is set.                                                                                                                                                                                                                                         |
+| SENTRY_DSN                    | Env         | Flutter                             | [Sentry Data Source Name](https://docs.sentry.io/concepts/key-terms/dsn-explainer/), empty if not enabled (passed via Dart define as SENTRY_DSN).                                                                                                                                             |
+| SENTRY_ENVIRONMENT            | Env         | Flutter                             | [Sentry Environment](https://docs.sentry.io/concepts/key-terms/environments/) (passed via Dart define as SENTRY_ENVIRONMENT).                                                                                                                                                                 |
+| SENTRY_RELEASE                | Env         | Fastlane / Flutter                  | [Sentry Release](https://docs.sentry.io/product/releases/) (passed via Dart define as SENTRY_RELEASE and used for symbol uploads).                                                                                                                                                            |
+| build                         | Option      | iOS / Android build                 | The build number of the build (should be strictly increasing when submitting to App or Play Store). Defaults to `0`.                                                                                                                                                                          |
+| version                       | Option      | iOS / Android build                 | The version of the build (should be semver). Defaults to the version in the [pubspec.yaml](wallet_app/pubspec.yaml).                                                                                                                                                                          |
+| app_name                      | Option      | iOS / Android build                 | The app name (passed via environment as APP_NAME). Defaults to the `NL Wallet`.                                                                                                                                                                                                               |
+| application_id                | Option      | Android build                       | The Android application id (passed via environment as APPLICATION_ID). Defaults to `nl.ictu.edi.wallet.latest`.                                                                                                                                                                               |
+| bundle_id                     | Option      | iOS                                 | The iOS bundle id (changed via update_code_signing_settings lane). Defaults to `nl.ictu.edi.wallet.latest`.                                                                                                                                                                                   |
+| build_mode                    | Option      | Flutter                             | The build mode of Flutter (debug / profile / release). Defaults to `release`.                                                                                                                                                                                                                 |
+| file_format                   | Option      | Android build                       | File format (aab / apk) for Android build. Defaults to `aab`.                                                                                                                                                                                                                                 |
+| fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`.                                                                                                    |
+| mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`.                                                                                                                                                                                |
+| demo_index_url                | Option      | Flutter                             | The URL to launch the demo index page in Browser for tests (passed via Dart define as DEMO_INDEX_URL).                                                                                                                                                                                        |
 
 ## Troubleshooting
 
@@ -719,65 +750,38 @@ Generate/update localisation files (to compile/run the project successfully):
     $ flutter gen-l10n
 
 <!-- References -->
-s
+
 [1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
-
-[2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
-
-[3]: https://www.figma.com/design/gPP7EowP2EgqPbnxwut4TR/20260324_Release_UI_NLWallet?node-id=51602-6&t=UQSquZsu0F5P09Dm-1
-
+[2]:
+    https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
+[3]:
+    https://www.figma.com/design/gPP7EowP2EgqPbnxwut4TR/20260324_Release_UI_NLWallet?node-id=51602-6&t=UQSquZsu0F5P09Dm-1
 [4]: https://github.com/MinBZK/nl-wallet/
-
 [5]: https://edi.pleio.nl/
-
 [6]: mailto:edi@minbzk.nl?subject=Feedback%20or%20ideas
-
 [7]: /../../releases
-
 [8]: ./LICENSES/EUPL-1.2.txt
-
 [9]: ./.reuse/dep5
-
 [10]: https://reuse.software/spec/
-
 [11]: mailto:edi@minbzk.nl?subject=Contribution%20via%20GitHub
-
 [12]: https://edi.pleio.nl/events/
-
 [13]: ./wallet_app/README.md
-
 [14]: ./wallet_core/README.md
-
 [15]: ./wallet_web/README.md
-
 [16]: ./wallet_core/wallet_provider/README.md
-
 [17]: https://flutter.dev/docs/get-started/install
-
 [18]: https://fvm.app/documentation/getting-started/installation
-
 [19]: ./wallet_app/.fvm/fvm_config.json
-
 [20]: https://www.rust-lang.org/tools/install
-
 [21]: https://developer.android.com/studio
-
 [22]: https://fvm.app/documentation/getting-started/configuration
-
 [23]: https://apps.apple.com/us/app/xcode/id497799835?mt=12
-
 [24]: https://docs.docker.com/get-started/get-docker/
-
 [25]: https://minbzk.github.io/nl-wallet/
-
 [26]: https://github.com/minvws/nl-rdo-max
-
 [27]: https://github.com/BRP-API/Haal-Centraal-BRP-bevragen
-
 [28]: https://github.com/softhsm/SoftHSMv2
-
 [29]: https://en.wikipedia.org/wiki/PKCS_11
-
 [30]: https://github.com/fzyzcjy/flutter_rust_bridge/issues/1375
-
-[31]: https://cjycode.com/flutter_rust_bridge/v1/integrate/deps.html#non-debian-linux
+[31]:
+    https://cjycode.com/flutter_rust_bridge/v1/integrate/deps.html#non-debian-linux

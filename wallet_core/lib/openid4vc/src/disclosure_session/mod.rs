@@ -23,7 +23,6 @@ pub use self::error::DisclosureError;
 pub use self::error::VpClientError;
 pub use self::error::VpSessionError;
 pub use self::error::VpVerifierError;
-pub use self::message_client::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 pub use self::message_client::HttpVpMessageClient;
 pub use self::message_client::VpMessageClient;
 pub use self::message_client::VpMessageClientError;

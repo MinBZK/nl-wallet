@@ -10,6 +10,9 @@ use derive_more::Debug;
 use http_utils::urls::HttpsUri;
 use itertools::Either;
 use itertools::Itertools;
+use oauth::issuer_identifier::IssuerUrl;
+use oauth::scope::Scope;
+use oauth::scope::ScopeInvalid;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -17,13 +20,10 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::vec_at_least::VecNonEmptyUnique;
 
-use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
-use crate::scope::Scope;
-use crate::scope::ScopeInvalid;
-
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsError {
     #[error("no credential configuration parameters provided")]

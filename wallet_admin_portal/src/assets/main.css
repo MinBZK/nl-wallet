@@ -58,6 +58,8 @@
   --color-error: #ab0065;
   --sidebar-width: 15.6875em;
 
+  --width-task-wizard: 40.5rem;
+
   font-family: 'RO Sans', sans-serif;
   /* Only the faces above are bundled, so let the browser pick a real face
      instead of synthesising the missing ones (e.g. bold italic). */

@@ -16,3 +16,4 @@
 *.snap.new
 /eudi_*.json
 /com.example.*.json
+/org.iso.18013.5.1.mDL.json

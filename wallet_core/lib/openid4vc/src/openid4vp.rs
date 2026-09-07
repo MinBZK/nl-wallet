@@ -52,6 +52,7 @@ use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
+use oauth::jose::JwsAlgorithm;
 use sd_jwt::key_binding_jwt::KbVerificationOptions;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use serde::Deserialize;
@@ -82,7 +83,6 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
-use crate::jose::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
@@ -687,7 +687,11 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
     fn from(value: NormalizedVpAuthorizationRequest) -> Self {
         Self {
             aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
+            oauth_request: AuthorizationRequestBase::new(
+                HashSet::from([ResponseType::VpToken]),
+                value.client_id.to_string(),
+                value.state,
+            ),
             nonce: Some(value.nonce),
             response_mode: Some(ResponseMode::DirectPostJwt),
             dcql_query: value.credential_requests.into(),
@@ -1176,6 +1180,7 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
+    use oauth::jose::JwsAlgorithm;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::examples::WITH_KB_SD_JWT;
@@ -1206,7 +1211,6 @@ mod tests {
     use super::VpRequestUri;
     use super::VpRequestUriObject;
     use crate::disclosure_session::VpClientError;
-    use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;

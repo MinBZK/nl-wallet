@@ -1,0 +1,66 @@
+[package]
+name = "oauth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+axum = { workspace = true, optional = true }
+base64.workspace = true
+chrono = { workspace = true, features = ["now"] }
+derive_more = { workspace = true, features = [
+    "as_ref",
+    "constructor",
+    "display",
+    "eq",
+    "from",
+    "from_str",
+    "into",
+] }
+futures = { workspace = true, features = ["async-await"] }
+http.workspace = true
+indexmap = { workspace = true, features = ["serde"] }
+p256 = { workspace = true, features = ["serde"] }
+reqwest.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+serde_with = { workspace = true, features = ["json", "chrono"] }
+strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+tracing.workspace = true
+url = { workspace = true, features = ["serde"] }
+
+crypto.path = "../crypto"
+error_category.path = "../error_category"
+http_utils = { path = "../http_utils", features = ["client"] }
+jwe.path = "../jwe"
+jwt.path = "../jwt"
+utils.path = "../utils"
+
+mockall = { workspace = true, optional = true }
+
+[features]
+# Include implementations of the axum IntoResponse trait.
+axum = ["dep:axum", "axum/json"]
+allow_insecure_url = ["http_utils/allow_insecure_url"]
+# Include mock implementations for testing
+mock = ["dep:mockall"]
+# Include miscellaneous test utilities
+test = []
+
+[dev-dependencies]
+httpmock.workspace = true
+mime.workspace = true
+josekit.workspace = true
+jsonwebtoken.workspace = true
+jwk-simple.workspace = true
+mockall.workspace = true
+rstest.workspace = true
+serde_qs.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+
+http_utils = { path = "../http_utils", features = ["httpmock"] }
+jwe = { path = "../jwe", features = ["rsa"] }
+
+[lints]
+workspace = true
