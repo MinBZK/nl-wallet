@@ -154,6 +154,31 @@ void main() {
       await screenMatchesGolden('data_attribute_row/map_value');
     });
 
+    testGoldens('Array of maps with a grouping key (mVRC owners)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Owners',
+            value: const ArrayValue([
+              MapValue({
+                'family_name': StringValue('Jansen'),
+                'given_name': StringValue('Frouke'),
+                'full_address': MapValue({
+                  'address': StringValue('Hoofdstraat 12'),
+                  'city': StringValue('Zoetermeer'),
+                  'postal_code': StringValue('2711 AB'),
+                  'country': StringValue('NL'),
+                }),
+              }),
+            ]),
+            key: 'mock_owners',
+          ),
+        ),
+        surfaceSize: const Size(260, 160),
+      );
+      await screenMatchesGolden('data_attribute_row/array_of_maps_with_grouping_key');
+    });
+
     testGoldens('Array of maps (driving_privileges)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         DataAttributeRow(

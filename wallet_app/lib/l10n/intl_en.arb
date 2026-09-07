@@ -280,7 +280,6 @@
     "cardValueMapKeyCountry": "Country",
     "cardValueMapKeyExpiryDate": "Expiry date",
     "cardValueMapKeyFamilyName": "Last name",
-    "cardValueMapKeyFullAddress": "Address",
     "cardValueMapKeyGivenName": "First name",
     "cardValueMapKeyIssueDate": "Issue date",
     "cardValueMapKeyPostalCode": "Postal code",

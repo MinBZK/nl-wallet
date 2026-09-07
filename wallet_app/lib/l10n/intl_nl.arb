@@ -276,7 +276,6 @@
     "cardValueMapKeyCountry": "Land",
     "cardValueMapKeyExpiryDate": "Vervaldatum",
     "cardValueMapKeyFamilyName": "Achternaam",
-    "cardValueMapKeyFullAddress": "Adres",
     "cardValueMapKeyGivenName": "Voornaam",
     "cardValueMapKeyIssueDate": "Afgiftedatum",
     "cardValueMapKeyPostalCode": "Postcode",
