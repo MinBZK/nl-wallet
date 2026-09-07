@@ -117,6 +117,11 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
+  Future<void> crateApiFullClearConfigExpiredStream() async {
+    // Stub only, no need to clear it on the mock
+  }
+
+  @override
   Future<void> crateApiFullClearVersionStateStream() async {
     // Stub only, no need to clear it on the mock
   }
@@ -225,6 +230,9 @@ class WalletCoreMock implements WalletCoreApi {
       ),
     );
   }
+
+  @override
+  Stream<bool> crateApiFullSetConfigExpiredStream() => Stream.value(false);
 
   @override
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream() {
