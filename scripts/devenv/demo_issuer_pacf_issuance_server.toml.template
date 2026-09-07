@@ -9,7 +9,7 @@ wia_trust_anchors = ["${WIA_CA_CRT}"]
 type_metadata = [
     "${ISSUER_METADATA_MUSEUM_MAANDKAART_PATH}",
     "${ISSUER_METADATA_MDL_PATH}",
-    "${ISSUER_METADATA_MVRC_PATH}"
+    "${ISSUER_METADATA_MVC_PATH}"
 ]
 
 [credential_metadata_keypair]
@@ -70,19 +70,19 @@ private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MDL_TSL}"
 certificate = "${DEMO_ISSUER_CRT_MDL_TSL}"
 
-[credential_configurations."org.iso.7367.1.mVRC"]
+[credential_configurations."org.iso.7367.2.1.mVC"]
 format = "mso_mdoc"
-attestation_type = "org.iso.7367.1.mVRC"
-mdoc_namespace = "org.iso.7367.1"
+attestation_type = "org.iso.7367.2.1.mVC"
+mdoc_namespace = "org.iso.7367.2.1"
 valid_days = 3650
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_MVRC_ISSUER}"
-certificate = "${DEMO_ISSUER_CRT_MVRC_ISSUER}"
+private_key = "${DEMO_ISSUER_KEY_MVC_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_MVC_ISSUER}"
 
-[credential_configurations."org.iso.7367.1.mVRC".status_list]
-group_name = "org.iso.7367.1.mVRC"
+[credential_configurations."org.iso.7367.2.1.mVC".status_list]
+group_name = "org.iso.7367.2.1.mVC"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_MVRC_TSL}"
-certificate = "${DEMO_ISSUER_CRT_MVRC_TSL}"
+private_key = "${DEMO_ISSUER_KEY_MVC_TSL}"
+certificate = "${DEMO_ISSUER_CRT_MVC_TSL}"

@@ -1,12 +1,12 @@
 {
-  "vct": "org.iso.7367.1.mVRC",
-  "name": "Vehicle Registration Certificate",
-  "description": "ISO/IEC 7367-2 mobile vehicle registration certificate (mdoc only)",
+  "vct": "org.iso.7367.2.1.mVC",
+  "name": "Vehicle Certificate",
+  "description": "ISO/IEC 7367-2 mobile vehicle certificate (mdoc only)",
   "display": [
     {
       "locale": "en-US",
-      "name": "Vehicle Registration Certificate",
-      "description": "A mobile vehicle registration certificate",
+      "name": "Vehicle Certificate",
+      "description": "A mobile vehicle certificate",
       "summary": "{{registration_number}}",
       "rendering": {
         "simple": {

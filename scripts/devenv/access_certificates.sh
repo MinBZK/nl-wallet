@@ -54,7 +54,7 @@ declare -A access_certificates=(
     [(mdl,legal_name)]='Dienst Wegverkeer'
     [(mdl,oid)]='NTRNL-99876548'
 
-    [(mvrc,name)]='RDW Demo'
-    [(mvrc,legal_name)]='Dienst Wegverkeer'
-    [(mvrc,oid)]='NTRNL-99876548'
+    [(mvc,name)]='RDW Demo'
+    [(mvc,legal_name)]='Dienst Wegverkeer'
+    [(mvc,oid)]='NTRNL-99876548'
 )

@@ -263,11 +263,11 @@
         }
       ]
     },
-    "mvrc": {
+    "mvc": {
       "data": [
         {
           "format": "mso_mdoc",
-          "attestation_type": "org.iso.7367.1.mVRC",
+          "attestation_type": "org.iso.7367.2.1.mVC",
           "attributes": {
             "registration_number": { "type": "text", "value": "AB-123-C" },
             "issue_date": { "type": "date", "value": "2023-01-10" },

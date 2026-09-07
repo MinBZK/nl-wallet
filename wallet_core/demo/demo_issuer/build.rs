@@ -75,7 +75,7 @@ fn main() {
         "loyalty",
         "museum_maandkaart",
         "mdl",
-        "mvrc",
+        "mvc",
     ] {
         combine_usecase_css(entry, profile, Path::new(&manifest_dir));
     }

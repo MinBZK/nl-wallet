@@ -4,7 +4,7 @@
     "legalName": "Dienst Wegverkeer",
     "description": {
       "nl": "RDW Demo is een voorbeeld-kentekenbewijsuitgever.",
-      "en": "RDW Demo is an example vehicle registration certificate issuer."
+      "en": "RDW Demo is an example vehicle certificate issuer."
     },
     "webUrl": "https://rdw.example.com",
     "city": {

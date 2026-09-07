@@ -56,8 +56,8 @@
                                 {{ base.trans.museum_maandkaart_index }}
                             {% when "mdl" %}
                                 {{ base.trans.mdl_index }}
-                            {% when "mvrc" %}
-                                {{ base.trans.mvrc_index }}
+                            {% when "mvc" %}
+                                {{ base.trans.mvc_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

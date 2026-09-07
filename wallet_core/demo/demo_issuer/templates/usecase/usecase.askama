@@ -18,8 +18,8 @@
     <link rel="stylesheet" href="../static/css/museum_maandkaart.css" />
 {% when "mdl" %}
     <link rel="stylesheet" href="../static/css/mdl.css" />
-{% when "mvrc" %}
-    <link rel="stylesheet" href="../static/css/mvrc.css" />
+{% when "mvc" %}
+    <link rel="stylesheet" href="../static/css/mvc.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
@@ -43,8 +43,8 @@
       {% include "museum_maandkaart.askama" %}
     {% when "mdl" %}
       {% include "mdl.askama" %}
-    {% when "mvrc" %}
-      {% include "mvrc.askama" %}
+    {% when "mvc" %}
+      {% include "mvc.askama" %}
     {% else %}
         <nl-wallet-button
             text={{ base.trans.add_to_nl_wallet }}
