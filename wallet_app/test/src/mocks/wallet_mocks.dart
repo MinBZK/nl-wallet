@@ -53,6 +53,7 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_card_usecase.dart'
 import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import 'package:wallet/src/domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
+import 'package:wallet/src/domain/usecase/configuration/observe_configuration_expired_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
@@ -239,6 +240,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<MoveToReadyStateUseCase>()])
 @GenerateNiceMocks([MockSpec<NetworkRepository>()])
 @GenerateNiceMocks([MockSpec<ObserveCloseProximityConnectionUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveConfigurationExpiredUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveDashboardNotificationsUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveMaintenanceStateUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveOsNotificationsUseCase>()])
@@ -394,6 +396,7 @@ class Mocks {
     sl.registerFactory<LockWalletUseCase>(MockLockWalletUseCase.new);
     sl.registerFactory<MoveToReadyStateUseCase>(MockMoveToReadyStateUseCase.new);
     sl.registerFactory<ObserveCloseProximityConnectionUseCase>(MockObserveCloseProximityConnectionUseCase.new);
+    sl.registerFactory<ObserveConfigurationExpiredUseCase>(MockObserveConfigurationExpiredUseCase.new);
     sl.registerFactory<ObserveDashboardNotificationsUseCase>(MockObserveDashboardNotificationsUseCase.new);
     sl.registerFactory<ObserveMaintenanceStateUseCase>(MockObserveMaintenanceStateUseCase.new);
     sl.registerFactory<ObserveOsNotificationsUseCase>(MockObserveOsNotificationsUseCase.new);
