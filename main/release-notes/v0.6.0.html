@@ -344,6 +344,9 @@ preconfigured BSN can be selected. For this, the <code class="docutils literal n
 <code class="docutils literal notranslate"><span class="pre">digid.mock_subjects</span></code> setting.</p></li>
 <li><p>All issuance binaries now require the <code class="docutils literal notranslate"><span class="pre">wia_trust_anchors</span></code> array in their
 configuration file, instead of just the PID issuer.</p></li>
+<li><p>The enum <code class="docutils literal notranslate"><span class="pre">Attribute</span></code> is now a tagged enum. Therefore, attributes configured in
+<code class="docutils literal notranslate"><span class="pre">demo-issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">acf-demo-issuer</span></code> and <code class="docutils literal notranslate"><span class="pre">pacf-issuance-server</span></code> must tag their
+values with the appropriate tag.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -432,6 +435,8 @@ sent as part of the <code class="docutils literal notranslate"><span class="pre"
 PAR and Token Request as defined in the [“OAuth 2.0 Attestation-Based Client
 Authentication” draft specification][2], in accordance with OpenID4VCI 1.0.</p></li>
 <li><p>The wallet requires signed credential issuer metadata.</p></li>
+<li><p>The wallet can now receive and render an ISO mDL. Labeling fields in nested
+objects is not supported yet.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">
