@@ -82,12 +82,6 @@ enum ConfigurationStatus {
     Expired,
 }
 
-impl ConfigurationStatus {
-    fn is_expired(self) -> bool {
-        matches!(self, Self::Expired)
-    }
-}
-
 /// Tracks whether the wallet configuration should be reported as expired to the user interface.
 ///
 /// This is only advanced after a fetch attempt, so that the user is blocked when the wallet has no valid
@@ -103,19 +97,19 @@ impl ExpiryState {
     /// Re-evaluates the status of the given configuration at `now`, reports it and returns it. Must only be called
     /// once a fetch attempt has resolved.
     fn evaluate(&self, config: &WalletConfiguration, now: DateTime<Utc>) -> ConfigurationStatus {
-        let status = if is_expired(config, now) {
+        let expired = is_expired(config, now);
+
+        self.expired.store(expired, Ordering::Relaxed);
+
+        if let Some(callback) = self.callback.lock().as_deref_mut() {
+            callback(expired);
+        }
+
+        if expired {
             ConfigurationStatus::Expired
         } else {
             ConfigurationStatus::Valid
-        };
-
-        self.expired.store(status.is_expired(), Ordering::Relaxed);
-
-        if let Some(callback) = self.callback.lock().as_deref_mut() {
-            callback(status.is_expired());
         }
-
-        status
     }
 
     fn expired(&self) -> bool {
