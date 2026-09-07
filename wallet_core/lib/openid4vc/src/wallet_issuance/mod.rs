@@ -43,6 +43,7 @@ use wscd::wscd::WiaClient;
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
+use crate::authorization_details::CredentialId;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
 use crate::client_auth::ClientAttestationMetadataError;
@@ -314,7 +315,7 @@ pub enum WalletIssuanceError {
             .join(", ")
     )]
     #[category(pd)]
-    PreviewMissingCredentials(HashSet<(CredentialConfigurationId, Option<String>)>),
+    PreviewMissingCredentials(HashSet<(CredentialConfigurationId, Option<CredentialId>)>),
 
     #[error(
         "the received credential preview contains more credentials than the issuer offered: {}",
@@ -323,7 +324,7 @@ pub enum WalletIssuanceError {
             .join(", ")
     )]
     #[category(pd)]
-    PreviewExcessCredentials(Vec<(CredentialConfigurationId, String)>),
+    PreviewExcessCredentials(Vec<(CredentialConfigurationId, CredentialId)>),
 
     #[error("missing query in credential offer URI")]
     #[category(critical)]

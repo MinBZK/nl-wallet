@@ -42,6 +42,9 @@ use utils::vec_nonempty;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+
+/// Represents a Credential Configuration Identifier as contained in the `credential_configurations_supported` section
+/// of the Issuer Metadata. This is a newtype around [`String`] that exists purely for semantic reasons.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
 #[as_ref(str)]
 pub struct CredentialConfigurationId(String);

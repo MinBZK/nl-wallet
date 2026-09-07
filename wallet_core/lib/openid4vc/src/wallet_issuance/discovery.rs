@@ -838,7 +838,7 @@ mod test {
         let credential_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let preview = CredentialPreview {
-            credential_id: CREDENTIAL_ID.to_string(),
+            credential_id: CREDENTIAL_ID.to_string().into(),
             config_id: CONFIG_ID.clone(),
             format: Format::MsoMdoc,
             credential_payload,
@@ -852,7 +852,7 @@ mod test {
         let token_response = VciTokenResponse::new_vci(
             "mock_access_token".to_string().into(),
             Some(AuthorizationDetails::from_credential_ids_and_identifiers(
-                vec_nonempty![(LazyLock::force(&CONFIG_ID), CREDENTIAL_ID.to_string())],
+                vec_nonempty![(LazyLock::force(&CONFIG_ID), CREDENTIAL_ID.to_string().into())],
             )),
         );
 

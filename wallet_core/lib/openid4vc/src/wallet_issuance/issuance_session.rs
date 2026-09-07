@@ -63,6 +63,7 @@ use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
 use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
+use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
 use crate::client_auth::ClientAttestationChallengeMechanism;
 use crate::client_auth::fetch_client_auth_challenge;
@@ -334,7 +335,7 @@ impl VcMessageClient for HttpVcMessageClient {
 #[derive(Debug)]
 enum OfferedCredentialConfigs {
     WithoutIdentifiers(HashMap<CredentialConfigurationId, CredentialConfiguration>),
-    WithIdentifiers(HashMap<CredentialConfigurationId, (CredentialConfiguration, HashSet<String>)>),
+    WithIdentifiers(HashMap<CredentialConfigurationId, (CredentialConfiguration, HashSet<CredentialId>)>),
 }
 
 #[derive(Debug)]
@@ -362,7 +363,7 @@ struct IssuanceTypeMetadata {
 /// maintains the order as received from the Credential Preview endpoint.
 #[derive(Debug)]
 enum OfferedCredentials {
-    CredentialIds(IndexMap<String, CredentialPreview>),
+    CredentialIds(IndexMap<CredentialId, CredentialPreview>),
     CredentialConfigurationIds(IndexMap<CredentialConfigurationId, CredentialPreview>),
 }
 
@@ -1483,7 +1484,12 @@ mod tests {
         ca: &Ca,
         trust_anchors: &TrustAnchors,
         issuer_metadata: IssuerMetadata,
-        preview_payloads: Vec<(String, CredentialConfigurationId, Format, PreviewableCredentialPayload)>,
+        preview_payloads: Vec<(
+            CredentialId,
+            CredentialConfigurationId,
+            Format,
+            PreviewableCredentialPayload,
+        )>,
         type_metadata: TypeMetadata,
         token_response_fields: &TokenResponseFields,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
@@ -1497,7 +1503,7 @@ mod tests {
                         credential_ids.iter().map(|credential_id| {
                             (
                                 CredentialConfigurationId::from(config_id.to_string()),
-                                credential_id.to_string(),
+                                credential_id.to_string().into(),
                             )
                         })
                     })
@@ -1643,7 +1649,7 @@ mod tests {
             &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), credential_configs),
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1686,7 +1692,7 @@ mod tests {
                 )],
             ),
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1718,7 +1724,7 @@ mod tests {
                 )],
             ),
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1746,7 +1752,7 @@ mod tests {
                 )],
             ),
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1780,7 +1786,7 @@ mod tests {
                 )],
             ),
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default()),
@@ -1814,7 +1820,7 @@ mod tests {
                 )],
             ),
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default()),
@@ -1850,7 +1856,7 @@ mod tests {
             &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 config_id.clone(),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1893,7 +1899,7 @@ mod tests {
             &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
-                "credential_id".to_string(),
+                "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -1945,13 +1951,13 @@ mod tests {
             issuer_metadata,
             vec![
                 (
-                    "pid_credential_id".to_string(),
+                    "pid_credential_id".to_string().into(),
                     pid_config_id,
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
-                    "address_credential_id".to_string(),
+                    "address_credential_id".to_string().into(),
                     address_config_id,
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
@@ -2007,7 +2013,7 @@ mod tests {
                 ],
             ),
             vec![(
-                "credential_id_1".to_string(),
+                "credential_id_1".to_string().into(),
                 CredentialConfigurationId::from("config_id_1".to_string()),
                 Format::SdJwt,
                 PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -2019,7 +2025,7 @@ mod tests {
 
         let expected_credential_id = match token_response_fields {
             TokenResponseFields::AuthorizationDetails(_) | TokenResponseFields::Both(_, _) => {
-                Some("credential_id_2".to_string())
+                Some("credential_id_2".to_string().into())
             }
             TokenResponseFields::Scope(_) | TokenResponseFields::Neither => None,
         };
@@ -2051,19 +2057,19 @@ mod tests {
             ),
             vec![
                 (
-                    "credential_id_1_1".to_string(),
+                    "credential_id_1_1".to_string().into(),
                     CredentialConfigurationId::from("config_id_1".to_string()),
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
-                    "credential_id_2_1".to_string(),
+                    "credential_id_2_1".to_string().into(),
                     CredentialConfigurationId::from("config_id_2".to_string()),
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
-                    "credential_id_1_2".to_string(),
+                    "credential_id_1_2".to_string().into(),
                     CredentialConfigurationId::from("config_id_1".to_string()),
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
@@ -2075,8 +2081,8 @@ mod tests {
         .expect_err("starting issuance session should fail");
 
         let expected_excess = vec![
-            ("config_id_2".to_string().into(), "credential_id_2_1".to_string()),
-            ("config_id_1".to_string().into(), "credential_id_1_2".to_string()),
+            ("config_id_2".to_string().into(), "credential_id_2_1".to_string().into()),
+            ("config_id_1".to_string().into(), "credential_id_1_2".to_string().into()),
         ];
         assert_matches!(error, WalletIssuanceError::PreviewExcessCredentials(excess) if excess == expected_excess);
     }
@@ -2098,9 +2104,9 @@ mod tests {
             .unwrap()
         };
 
-        let credential_id_mdoc = "credential_id_mdoc".to_string();
+        let credential_id_mdoc = CredentialId::from("credential_id_mdoc".to_string());
         let config_id_mdoc: CredentialConfigurationId = "config_id_mdoc".to_string().into();
-        let credential_id_sd_jwt = "credential_id_sd_jwt".to_string();
+        let credential_id_sd_jwt = CredentialId::from("credential_id_sd_jwt".to_string());
         let config_id_sd_jwt: CredentialConfigurationId = "config_id_sd_jwt".to_string().into();
         let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
         let issuer_metadata = IssuerMetadata::new_mock(
@@ -2251,7 +2257,7 @@ mod tests {
 
     #[derive(Debug, Clone)]
     struct MockCredentialSigner {
-        formats_by_credential_id: HashMap<String, Format>,
+        formats_by_credential_id: HashMap<CredentialId, Format>,
         pub trust_anchors: TrustAnchors,
         issuer_key: KeyPair,
         metadata_integrity: Integrity,
@@ -2262,7 +2268,7 @@ mod tests {
 
     impl MockCredentialSigner {
         pub fn new_with_preview_and_type_metadata(
-            formats_by_credential_id: HashMap<String, Format>,
+            formats_by_credential_id: HashMap<CredentialId, Format>,
         ) -> (Self, Vec<CredentialPreview>, IssuanceTypeMetadata) {
             let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
             let type_metadata = TypeMetadata::example_with_claim_name(&preview_payload.attestation_type, "family_name");
@@ -2271,7 +2277,7 @@ mod tests {
         }
 
         pub fn from_metadata_and_preview(
-            formats_by_credential_id: HashMap<String, Format>,
+            formats_by_credential_id: HashMap<CredentialId, Format>,
             type_metadata: TypeMetadata,
             preview_payload: PreviewableCredentialPayload,
         ) -> (Self, Vec<CredentialPreview>, IssuanceTypeMetadata) {
@@ -2350,7 +2356,7 @@ mod tests {
 
         pub fn response_from_holder_pubkeys<'a>(
             &self,
-            credential_id: &str,
+            credential_id: &CredentialId,
             holder_pubkeys: impl IntoNonEmptyIterator<Item = &'a PublicKey>,
         ) -> CredentialResponse {
             let credential_payloads = holder_pubkeys
@@ -2499,10 +2505,10 @@ mod tests {
             AcceptIssuanceTestFormats::CredentialId(formats) => formats
                 .into_iter()
                 .enumerate()
-                .map(|(index, format)| (format!("credential_id_{index}"), format))
+                .map(|(index, format)| (format!("credential_id_{index}").into(), format))
                 .collect(),
             AcceptIssuanceTestFormats::CredentialConfigurationId(format) => {
-                HashMap::from([("credential_id".to_string(), format)])
+                HashMap::from([("credential_id".to_string().into(), format)])
             }
         };
 
@@ -2564,9 +2570,9 @@ mod tests {
     fn test_accept_issuance_error_accept_selection_out_of_bounds() {
         let (signer, previews, type_metadata) =
             MockCredentialSigner::new_with_preview_and_type_metadata(HashMap::from([
-                ("credential_id_1".to_string(), Format::SdJwt),
-                ("credential_id_2".to_string(), Format::SdJwt),
-                ("credential_id_3".to_string(), Format::SdJwt),
+                ("credential_id_1".to_string().into(), Format::SdJwt),
+                ("credential_id_2".to_string().into(), Format::SdJwt),
+                ("credential_id_3".to_string().into(), Format::SdJwt),
             ]));
 
         let error = HttpIssuanceSession {
@@ -2591,7 +2597,7 @@ mod tests {
     #[test]
     fn test_accept_issuance_error_metadata_integrity_inconsistent() {
         let (mut signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
-            HashMap::from([("credential_id_1".to_string(), Format::SdJwt)]),
+            HashMap::from([("credential_id_1".to_string().into(), Format::SdJwt)]),
         );
         let trust_anchors = signer.trust_anchors.clone();
 
@@ -2627,7 +2633,7 @@ mod tests {
     #[test]
     fn test_accept_issuance_error_metadata_integrity_verification() {
         let (mut signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
-            HashMap::from([("credential_id".to_string(), Format::SdJwt)]),
+            HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
         );
         let trust_anchors = signer.trust_anchors.clone();
 
@@ -2666,7 +2672,7 @@ mod tests {
     #[rstest]
     fn test_accept_issuance_error_deferred_issuance_unsupported() {
         let (signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
-            HashMap::from([("credential_id".to_string(), Format::SdJwt)]),
+            HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
         );
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
@@ -2708,11 +2714,11 @@ mod tests {
         TrustAnchors,
     ) {
         let (signer, previews, type_metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
-            HashMap::from([("credential_id".to_string(), format)]),
+            HashMap::from([("credential_id".to_string().into(), format)]),
         );
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
         let credential_response = signer
-            .response_from_holder_pubkeys("credential_id", vec_nonempty![&holder_pubkey])
+            .response_from_holder_pubkeys(&"credential_id".to_string().into(), vec_nonempty![&holder_pubkey])
             .into_immediate_credentials()
             .unwrap();
 

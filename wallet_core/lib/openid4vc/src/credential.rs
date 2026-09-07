@@ -21,6 +21,7 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::authorization_details::CredentialId;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -64,7 +65,7 @@ impl CredentialRequest {
 pub enum CredentialRequestIdentifier {
     /// REQUIRED when an Authorization Details of type `openid_credential` was returned from the Token Response. It MUST
     /// NOT be used otherwise. A string that identifies a Credential Dataset that is requested for issuance.
-    CredentialIdentifier(String),
+    CredentialIdentifier(CredentialId),
 
     /// REQUIRED if a credential_identifiers parameter was not returned from the Token Response as part of the
     /// `authorization_details` parameter. It MUST NOT be used otherwise. String that uniquely identifies one of the
@@ -302,7 +303,7 @@ mod tests {
         let CredentialRequestIdentifier::CredentialIdentifier(credential_id) = &credential_request.identifier else {
             panic!("identifier in CredentialRequest should be Credential ID");
         };
-        assert_eq!(credential_id, "CivilEngineeringDegree-2023");
+        assert_eq!(credential_id.as_ref(), "CivilEngineeringDegree-2023");
 
         let proof_count = credential_request
             .proofs

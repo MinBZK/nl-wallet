@@ -71,6 +71,7 @@ use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 use crate::authorization_details::AuthorizationDetails;
+use crate::authorization_details::CredentialId;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
 use crate::credential::CredentialRequest;
@@ -262,7 +263,7 @@ pub enum CredentialRequestError {
     InvalidNonce,
 
     #[error("requested credential identifier is not known: {0}")]
-    UnknownCredentialIdentifier(String),
+    UnknownCredentialIdentifier(CredentialId),
 
     #[error(
         "use of the \"credential_configuration_id\" field in the Credential Request is not allowed, expected \
@@ -912,7 +913,7 @@ where
             })?;
 
         let preview = CredentialPreview {
-            credential_id: credential.id.to_string(),
+            credential_id: credential.id.to_string().into(),
             config_id: credential.credential_configuration_id.clone(),
             format: credential.format,
             credential_payload: credential.credential_payload.clone(),
@@ -1376,7 +1377,7 @@ fn build_token_response<K, L>(
     let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(
         credential_ids_and_documents
             .nonempty_iter()
-            .map(|(config_id, document)| (config_id, document.id.to_string())),
+            .map(|(config_id, document)| (config_id, document.id.to_string().into())),
     );
 
     let prepared_credentials = credential_ids_and_documents
@@ -1499,7 +1500,7 @@ impl Session<AccessTokenIssued> {
             CredentialRequestIdentifier::CredentialIdentifier(credential_id) => {
                 // Convert the received ID to a UUID in order to find the matching credential. If this fails, the ID
                 // will never match any of the to be issued credentials.
-                Uuid::parse_str(&credential_id)
+                Uuid::parse_str(credential_id.as_ref())
                     .ok()
                     .and_then(|id| {
                         session_data
@@ -2517,9 +2518,9 @@ mod tests {
             )
         } else {
             let identifier = if failure == CredentialRequestFailure::UnknownCredentialIdentifier {
-                "unknown_credential_id".to_string()
+                "unknown_credential_id".to_string().into()
             } else {
-                prepared_credential.id.to_string()
+                prepared_credential.id.to_string().into()
             };
 
             CredentialRequest::new(CredentialRequestIdentifier::CredentialIdentifier(identifier), proofs)
