@@ -47,6 +47,29 @@ void main() {
       const unknown = MapValue({'some_unmapped_key': StringValue('B')});
       expect(AttributeValueFormatter.formatWithLocale(_kLocale, unknown), 'some_unmapped_key: B');
     });
+
+    test('translates the keys of an mVRC vehicle owner, nested address included', () {
+      const owner = MapValue({
+        'family_name': StringValue('Jansen'),
+        'given_name': StringValue('Frouke'),
+        'full_address': MapValue({
+          'address': StringValue('Hoofdstraat 12'),
+          'city': StringValue('Zoetermeer'),
+          'postal_code': StringValue('2711 AB'),
+          'country': StringValue('NL'),
+        }),
+      });
+      expect(
+        AttributeValueFormatter.formatWithLocale(_kLocale, owner, inline: true),
+        'Achternaam: Jansen, '
+        'Voornaam: Frouke, '
+        'Adres: '
+        'Straat: Hoofdstraat 12, '
+        'Plaats: Zoetermeer, '
+        'Postcode: 2711 AB, '
+        'Land: NL',
+      );
+    });
   });
 
   group('nesting', () {
