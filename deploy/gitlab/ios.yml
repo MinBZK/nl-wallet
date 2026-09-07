@@ -95,20 +95,11 @@ build-ios-app-ont:
     APP_NAME: "NL Wallet (latest)"
 
 build-ios-app-adhoc-ont:
-  extends: .build-ios-app
-  rules: !reference [.default-or-merge-request-manual, rules]
-  needs:
-    - !reference [.build-ios-app, needs]
-    - job: build-env-ont
-      artifacts: true
-    - job: wallet-config-ont
-      artifacts: true
+  extends: build-ios-app-ont
   variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
-    APP_NAME: "NL Wallet (latest)"
     APP_STORE_DISTRIBUTION: "false"
   after_script:
-    - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
+    - !reference [.build-ios-app, after_script]
     - deploy/bin/store-artifact.sh *.ipa qt/quality-time/apps/nl.ictu.edi.wallet.latest.ipa
 
 build-ios-simulator-app-ont:
@@ -131,7 +122,6 @@ build-ios-simulator-app-ont:
     APP_NAME: "NL Wallet (latest)"
   script:
     - set -euo pipefail
-    - git config --global url.https://gitlab-ci-token:${CI_JOB_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
     - bundle install
     - |
       bundle exec fastlane ios build_simulator \
@@ -145,7 +135,7 @@ build-ios-simulator-app-ont:
         show_debug_options:true \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
   after_script:
-    - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
+    - !reference [.build-ios-app, after_script]
     - (cd wallet_app/build/ios/iphonesimulator && zip -r "Runner.app.zip" Runner.app)
     - deploy/bin/store-artifact.sh "wallet_app/build/ios/iphonesimulator/Runner.app.zip" qt/quality-time/apps/
 

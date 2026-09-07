@@ -112,7 +112,7 @@ build-android-app-ont:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
   after_script:
-    - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
+    - !reference [.build-android-app, after_script]
     - deploy/bin/store-artifact.sh *.apk qt/quality-time/apps/nl.ictu.edi.wallet.latest-release.apk
 
 build-android-app-mock:
