@@ -162,6 +162,18 @@ build-ios-app-demo:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
 
+build-ios-app-pub:
+  extends: .build-ios-app
+  rules: !reference [.on-pub-build, rules]
+  needs:
+    - job: build-env-pub
+      artifacts: true
+    - job: wallet-config-pub
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"
+    APP_NAME: "NL Wallet (pub)"
+
 ## iOS Deploying
 .deploy-ios-app:
   extends: [.env-k8s, .env-macos-runner, .ruby-cache-macos]
@@ -199,3 +211,12 @@ deploy-ios-app-demo:
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+deploy-ios-app-pub:
+  extends: .deploy-ios-app
+  rules: !reference [.on-pub-build, rules]
+  needs:
+    - job: build-ios-app-pub
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"

@@ -27,6 +27,10 @@ build-env-demo:
   extends: .build-env
   rules: !reference [.on-demo-build, rules]
 
+build-env-pub:
+  extends: .build-env
+  rules: !reference [.on-pub-build, rules]
+
 .sentry-env:
   before_script:
     - if [[ -z ${SENTRY_ENVIRONMENT:-} ]]; then export SENTRY_ENVIRONMENT="$CONFIG_ENV"; fi

@@ -33,3 +33,8 @@ build-demo-trigger:
   extends: .build-app-trigger
   variables:
     BUILD: 'demo'
+
+build-pub-trigger:
+  extends: .build-app-trigger
+  variables:
+    BUILD: 'pub'

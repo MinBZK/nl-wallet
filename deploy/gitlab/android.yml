@@ -138,6 +138,18 @@ build-android-app-demo:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
 
+build-android-app-pub:
+  extends: [.env-k8s, .build-android-app]
+  rules: !reference [.on-pub-build, rules]
+  needs:
+    - job: build-env-pub
+      artifacts: true
+    - job: wallet-config-pub
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"
+    APP_NAME: "NL Wallet (pub)"
+
 ### Android deploying
 .deploy-android-app:
   extends: [.env-k8s, .ruby-cache]
@@ -178,3 +190,12 @@ deploy-android-app-demo:
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+deploy-android-app-pub:
+  extends: .deploy-android-app
+  rules: !reference [.on-pub-build, rules]
+  needs:
+    - job: build-android-app-pub
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"
