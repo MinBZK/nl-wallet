@@ -15,12 +15,18 @@ use derive_more::Constructor;
 use futures::join;
 use itertools::Itertools;
 use jwt::wia::WiaDisclosure;
+use oauth::authorization::PushedAuthorizationResponse;
+use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::BoxedErrorWithCode;
+use oauth::errors::RedirectError;
+use oauth::par::PAR_TTL;
+use oauth::par::generate_request_uri;
+use oauth::token::AuthorizationCode;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
@@ -29,9 +35,6 @@ use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::cleanup::PeriodicCleanup;
 use crate::cleanup::log_cleanup_error;
 use crate::credential_offer::CredentialOffer;
-use crate::errors::AuthorizationErrorCode;
-use crate::errors::BoxedErrorWithCode;
-use crate::errors::RedirectError;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthCodeIssued;
 use crate::issuer::AuthRequestValues;
@@ -41,13 +44,9 @@ use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::issuer::WiaVerificationError;
 use crate::nonce::store::NonceStore;
-use crate::par;
-use crate::par::PAR_TTL;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::store::Store;
-use crate::token::AuthorizationCode;
-
 /// Errors that can occur during processing of a Pushed Authorization Request.
 #[derive(Debug, thiserror::Error)]
 pub enum ParError {
@@ -184,15 +183,15 @@ where
         if !self
             .issuer
             .accepted_wallet_client_ids()
-            .contains(request.oauth_request.client_id.as_str())
+            .contains(request.auth_request.oauth_request.client_id.as_str())
         {
-            return Err(ParError::UnknownClient(request.oauth_request.client_id));
+            return Err(ParError::UnknownClient(request.auth_request.oauth_request.client_id));
         }
 
         // `verify_wia()` checks that the WIA's `sub` matches `client_id`.
         // <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.1-2.7.1>
         self.issuer
-            .verify_wia(wia_disclosure, Some(&request.oauth_request.client_id))
+            .verify_wia(wia_disclosure, Some(&request.auth_request.oauth_request.client_id))
             .await
             .map_err(ParError::Wia)?;
 
@@ -201,11 +200,17 @@ where
         }
 
         // Exact-match the wallet's redirect_uri against the configured allowlist.
-        if !self.wallet_redirect_uris.iter().contains(request.redirect_uri.as_ref()) {
-            return Err(ParError::InvalidRedirectUri(request.redirect_uri.into_inner()));
+        if !self
+            .wallet_redirect_uris
+            .iter()
+            .contains(request.auth_request.redirect_uri.as_ref())
+        {
+            return Err(ParError::InvalidRedirectUri(
+                request.auth_request.redirect_uri.into_inner(),
+            ));
         }
 
-        let request_uri = par::generate_request_uri();
+        let request_uri = generate_request_uri();
 
         self.par_store
             .store(request_uri.clone(), request)
@@ -241,9 +246,9 @@ where
             .live()
             .ok_or_else(|| AuthorizeError::UnknownRequestUri(request_uri.to_string()))?;
 
-        if authorization_request.oauth_request.client_id != client_id {
+        if authorization_request.auth_request.oauth_request.client_id != client_id {
             return Err(AuthorizeError::MismatchedClient {
-                expected: authorization_request.oauth_request.client_id,
+                expected: authorization_request.auth_request.oauth_request.client_id,
                 actual: client_id.to_string(),
             });
         }
@@ -266,8 +271,8 @@ where
         &self,
         authorization_request: VciAuthorizationRequest,
     ) -> Result<Url, RedirectError<AuthorizationRequestError>> {
-        let redirect_uri = authorization_request.redirect_uri.as_ref().clone();
-        let state = authorization_request.oauth_request.state.clone();
+        let redirect_uri = authorization_request.auth_request.redirect_uri.as_ref().clone();
+        let state = authorization_request.auth_request.oauth_request.state.clone();
 
         // Extract the wallet-side parameters the flow must retain (rejecting an unsupported
         // code_challenge_method here, for every flow at once). Keep the redirect_uri + state so we
@@ -401,6 +406,14 @@ mod tests {
     use futures::FutureExt;
     use jwt::nonce::Nonce;
     use jwt::wia::WiaDisclosure;
+    use oauth::errors::AuthorizationErrorCode;
+    use oauth::errors::ErrorWithCode;
+    use oauth::errors::RedirectError;
+    use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::par::PAR_TTL;
+    use oauth::pkce::PkcePair;
+    use oauth::pkce::S256PkcePair;
+    use oauth::token::AuthorizationCode;
     use p256::ecdsa::SigningKey;
     use url::Url;
     use utils::vec_at_least::VecNonEmpty;
@@ -419,19 +432,12 @@ mod tests {
     use crate::authorization_code_flow::InvalidAuthorizationRequest;
     use crate::authorization_code_flow::WalletAuthorizationContext;
     use crate::authorization_details::EntryContainer;
-    use crate::errors::AuthorizationErrorCode;
-    use crate::errors::ErrorWithCode;
-    use crate::errors::RedirectError;
     use crate::issuer::AuthRequestValues;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
     use crate::issuer::WiaVerificationError;
-    use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::nonce::memory_store::MemoryNonceStore;
-    use crate::par::PAR_TTL;
-    use crate::pkce::PkcePair;
-    use crate::pkce::S256PkcePair;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
@@ -442,8 +448,6 @@ mod tests {
     use crate::test::MockObtainingStatusListService;
     use crate::test::mock_issuable_documents;
     use crate::test::setup_mock_issuer;
-    use crate::token::AuthorizationCode;
-
     const OTHER_CLIENT_ID: &str = "definitely-not-the-wallet";
     const REQUEST_URI: &str = "urn:ietf:params:oauth:request_uri:test";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
@@ -577,7 +581,7 @@ mod tests {
             .unwrap()
             .live()
             .expect("request should be stored under the returned request_uri");
-        assert_eq!(stored.oauth_request.client_id, MOCK_WALLET_CLIENT_ID);
+        assert_eq!(stored.auth_request.oauth_request.client_id, MOCK_WALLET_CLIENT_ID);
     }
 
     #[tokio::test]
@@ -830,7 +834,7 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_propagates_invalid_authorization_request() {
         let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
-        request.scope = HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]);
+        request.auth_request.scope = HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()]);
         let (authorizing_issuer, _sessions, _) = create_authorizing_issuer(
             vec![(REQUEST_URI.to_string(), request)],
             AuthorizeOutcome::RedirectTo(upstream_url()),

@@ -3,16 +3,12 @@ pub mod authorization;
 pub mod authorization_details;
 pub mod credential;
 pub mod credential_offer;
-pub mod issuer_identifier;
 pub mod metadata;
 pub mod par;
-pub mod scope;
 pub mod token;
 
 // Cryptographic tools.
-pub mod dpop;
 pub mod jwe;
-pub mod pkce;
 
 // Issuance code for the server and client.
 pub mod authorization_code_flow;
@@ -34,7 +30,6 @@ pub mod verifier;
 pub mod errors;
 
 pub mod cleanup;
-pub mod jose;
 pub mod nonce;
 pub mod server_state;
 pub mod store;

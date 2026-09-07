@@ -28,7 +28,7 @@ impl Encrypter<VerifyingKey> for Pkcs11Hsm {
         data: VerifyingKey,
     ) -> std::result::Result<Encrypted<VerifyingKey>, Self::Error> {
         let bytes: Vec<u8> = data.to_sec1_bytes().to_vec();
-        Hsm::encrypt(self, key_identifier, bytes).await
+        Hsm::encrypt_gcm(self, key_identifier, bytes).await
     }
 }
 
@@ -40,7 +40,7 @@ impl Decrypter<VerifyingKey> for Pkcs11Hsm {
         key_identifier: &str,
         encrypted: Encrypted<VerifyingKey>,
     ) -> std::result::Result<VerifyingKey, Self::Error> {
-        let decrypted = Hsm::decrypt(self, key_identifier, encrypted).await?;
+        let decrypted = Hsm::decrypt_gcm(self, key_identifier, encrypted).await?;
         Ok(VerifyingKey::from_sec1_bytes(&decrypted)?)
     }
 }

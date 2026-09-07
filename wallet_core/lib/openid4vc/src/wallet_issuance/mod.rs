@@ -23,6 +23,12 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
 use mdoc::utils::cose::CoseError;
+use oauth::dpop::DpopError;
+use oauth::errors::RemoteErrorResponse;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::issuer_identifier::IssuerUrl;
+use oauth::metadata::well_known::WellKnownError;
+use oauth::scope::Scope;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -42,16 +48,10 @@ use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
 use crate::client_auth::ClientAttestationMetadataError;
 use crate::credential::Credentials;
-use crate::dpop::DpopError;
 use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
-use crate::errors::RemoteErrorResponse;
-use crate::errors::TokenErrorCode;
-use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_identifier::IssuerUrl;
+use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::metadata::well_known::WellKnownError;
-use crate::scope::Scope;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 
@@ -114,7 +114,7 @@ pub enum WalletIssuanceError {
 
     #[error("retrieving access token from issuer reported an error: {0:?}")]
     #[category(pd)]
-    TokenRequest(Box<RemoteErrorResponse<TokenErrorCode>>),
+    VciTokenRequest(Box<RemoteErrorResponse<VciTokenErrorCode>>),
 
     #[error("pre-authorized code is no longer valid: it has expired or was already used")]
     #[category(expected)]

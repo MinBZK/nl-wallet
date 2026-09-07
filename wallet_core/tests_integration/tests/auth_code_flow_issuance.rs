@@ -9,17 +9,18 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::UnverifiedJwt;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
-use openid4vc::authorization::PushedAuthorizationResponse;
+use oauth::authorization::PushedAuthorizationRequest;
+use oauth::authorization::PushedAuthorizationResponse;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::pkce::PkcePair;
+use oauth::pkce::S256PkcePair;
+use oauth::scope::Scope;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::client_auth::fetch_client_auth_challenge;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
-use openid4vc::pkce::PkcePair;
-use openid4vc::pkce::S256PkcePair;
-use openid4vc::scope::Scope;
 use reqwest::StatusCode;
 use reqwest::header;
 use reqwest::redirect::Policy;
@@ -108,15 +109,9 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
         .redirect(Policy::none())
         .build()
         .unwrap();
-    let authorize_response = no_redirect_client
-        .get(acf.public.as_base_url().join("issuance/authorize"))
-        .query(&[
-            ("request_uri", par_response.request_uri.as_str()),
-            ("client_id", MOCK_WALLET_CLIENT_ID),
-        ])
-        .send()
-        .await
-        .unwrap();
+    let authorize_url = PushedAuthorizationRequest::from_par_response(MOCK_WALLET_CLIENT_ID.to_string(), &par_response)
+        .into_authorization_url(acf.public.as_base_url().join("issuance/authorize"));
+    let authorize_response = no_redirect_client.get(authorize_url).send().await.unwrap();
 
     assert_eq!(
         authorize_response.status(),

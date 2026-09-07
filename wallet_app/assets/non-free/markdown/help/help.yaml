@@ -3,431 +3,307 @@ structure:
     icon: start
     subcategories:
       - subcategoryId: introduction
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_continue_demo
-              - dont_know_wallet
-              - dont_understand_login
-              - dont_understand_sharing
-              - dont_understand_privacy
-          - groupId: information
-            topicIds:
-              - what_is_wallet
-              - is_demo_real
-              - what_is_secure_login
-              - how_sharing_works
-              - how_privacy_protected
-              - what_is_wallet_used_for
+        topicIds:
+          - cannot_continue_demo
+          - dont_know_wallet
+          - dont_understand_login
+          - dont_understand_sharing
+          - dont_understand_privacy
+          - what_is_wallet
+          - is_demo_real
+          - what_is_secure_login
+          - how_sharing_works
+          - how_privacy_protected
+          - what_is_wallet_used_for
       - subcategoryId: digid
-        topics:
-          - groupId: help
-            topicIds:
-              - digid_does_not_open
-              - cannot_continue_with_digid
-              - do_not_have_digid
-              - stopped_creating_wallet
-          - groupId: information
-            topicIds:
-              - why_digid_needed_to_start
-              - what_happens_after_digid
+        topicIds:
+          - digid_does_not_open
+          - cannot_continue_with_digid
+          - do_not_have_digid
+          - stopped_creating_wallet
+          - why_digid_needed_to_start
+          - what_happens_after_digid
       - subcategoryId: app_overview
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_know_where_to_start
-              - do_not_understand_activities_today
-          - groupId: information
-            topicIds:
-              - what_is_app_overview
-              - what_can_you_do_from_app_overview
-              - what_is_activities_today
+        topicIds:
+          - do_not_know_where_to_start
+          - do_not_understand_activities_today
+          - what_is_app_overview
+          - what_can_you_do_from_app_overview
+          - what_is_activities_today
 
   - categoryId: action
     icon: qr_code
     subcategories:
       - subcategoryId: scan_qr
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_scan_qr
-              - camera_access_blocked
-          - groupId: information
-            topicIds:
-              - how_scan_qr
-              - why_camera_access_needed
-              - what_happens_after_scanning_qr
+        topicIds:
+          - cannot_scan_qr
+          - camera_access_blocked
+          - how_scan_qr
+          - why_camera_access_needed
+          - what_happens_after_scanning_qr
       - subcategoryId: show_qr
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_show_qr
-              - qr_not_scanned
-              - show_qr_connection_lost
-          - groupId: information
-            topicIds:
-              - what_is_qr_for
-              - what_happens_after_qr_scanned
+        topicIds:
+          - cannot_show_qr
+          - qr_not_scanned
+          - show_qr_connection_lost
+          - what_is_qr_for
+          - what_happens_after_qr_scanned
       - subcategoryId: contactless
-        topics:
-          - groupId: help
-            topicIds:
-              - contactless_not_working
-              - contactless_connection_lost
-          - groupId: information
-            topicIds:
-              - how_does_contactless_work
-              - what_needed_for_contactless
-              - what_happens_after_contactless
+        topicIds:
+          - contactless_not_working
+          - contactless_connection_lost
+          - how_does_contactless_work
+          - what_needed_for_contactless
+          - what_happens_after_contactless
 
   - categoryId: sharing_login
     icon: mobile_screen_share
     subcategories:
       - subcategoryId: sharing
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_share_details
-              - do_not_know_what_shared
-              - do_not_know_who_gets_details
-              - sharing_website_not_safe
-              - do_not_want_to_share
-              - not_sure_sharing_worked
-          - groupId: information
-            topicIds:
-              - check_before_sharing
-              - which_details_shared
-              - what_does_sharing_completed_mean
-              - what_happens_after_sharing
+        topicIds:
+          - cannot_share_details
+          - do_not_know_what_shared
+          - do_not_know_who_gets_details
+          - sharing_website_not_safe
+          - do_not_want_to_share
+          - not_sure_sharing_worked
+          - check_before_sharing
+          - which_details_shared
+          - what_does_sharing_completed_mean
+          - what_happens_after_sharing
       - subcategoryId: logging_in
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_log_in
-              - do_not_know_what_shared_for_login
-              - not_sure_login_request_safe
-              - do_not_want_to_continue_login
-              - not_sure_login_worked
-          - groupId: information
-            topicIds:
-              - how_login_works
-              - check_before_login
-              - which_details_shared_for_login
-              - what_does_login_successful_mean
-              - what_happens_after_login
+        topicIds:
+          - cannot_log_in
+          - do_not_know_what_shared_for_login
+          - not_sure_login_request_safe
+          - do_not_want_to_continue_login
+          - not_sure_login_worked
+          - how_login_works
+          - check_before_login
+          - which_details_shared_for_login
+          - what_does_login_successful_mean
+          - what_happens_after_login
       - subcategoryId: website_address
-        topics:
-          - groupId: help
-            topicIds:
-              - website_address_does_not_match
-              - website_not_safe
-          - groupId: information
-            topicIds:
-              - why_check_address
-              - what_happens_address_not_match
-              - where_is_website_address_shown
-              - when_check_website_address
+        topicIds:
+          - website_address_does_not_match
+          - website_not_safe
+          - why_check_address
+          - what_happens_address_not_match
+          - where_is_website_address_shown
+          - when_check_website_address
       - subcategoryId: organisation
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_trust_organisation
-              - do_not_recognise_organisation
-          - groupId: information
-            topicIds:
-              - why_check_organisation_details
-              - what_organisation_details_checked
+        topicIds:
+          - do_not_trust_organisation
+          - do_not_recognise_organisation
+          - why_check_organisation_details
+          - what_organisation_details_checked
       - subcategoryId: agreement
-        topics:
-          - groupId: help
-            topicIds:
-              - agreement_not_clear
-              - do_not_agree_with_agreement
-          - groupId: information
-            topicIds:
-              - what_does_agreement_mean
-              - what_agreements_organisation_has
-              - why_agreement_important
+        topicIds:
+          - agreement_not_clear
+          - do_not_agree_with_agreement
+          - what_does_agreement_mean
+          - what_agreements_organisation_has
+          - why_agreement_important
       - subcategoryId: missing_details
-        topics:
-          - groupId: help
-            topicIds:
-              - missing_details_for_request
-              - details_not_correct
-              - cannot_continue_because_of_details
-          - groupId: information
-            topicIds:
-              - what_does_missing_data_mean
-              - what_happens_details_incorrect
-              - why_some_details_not_available
+        topicIds:
+          - missing_details_for_request
+          - details_not_correct
+          - cannot_continue_because_of_details
+          - what_does_missing_data_mean
+          - what_happens_details_incorrect
+          - why_some_details_not_available
 
   - categoryId: cards
     icon: credit_card
     subcategories:
       - subcategoryId: add
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_add_card
-              - cannot_find_cards
-              - not_sure_right_card
-              - why_share_details_to_get_cards
-              - do_not_know_which_card_to_add
-          - groupId: information
-            topicIds:
-              - why_share_details_for_cards
-              - how_are_cards_chosen
-              - what_does_check_details_mean
-              - what_does_no_cards_found_mean
-              - what_happens_after_adding_card
+        topicIds:
+          - cannot_add_card
+          - cannot_find_cards
+          - not_sure_right_card
+          - why_share_details_to_get_cards
+          - do_not_know_which_card_to_add
+          - why_share_details_for_cards
+          - how_are_cards_chosen
+          - what_does_check_details_mean
+          - what_does_no_cards_found_mean
+          - what_happens_after_adding_card
       - subcategoryId: renew
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_renew_cards
-              - stopped_renewing_cards
-              - digid_not_open_during_renewal
-              - something_wrong_after_replacement
-          - groupId: information
-            topicIds:
-              - when_do_cards_need_renewal
-              - what_happens_after_renewal
-              - what_happens_when_renewal_stops
-              - why_do_cards_need_renewal
+        topicIds:
+          - cannot_renew_cards
+          - stopped_renewing_cards
+          - digid_not_open_during_renewal
+          - something_wrong_after_replacement
+          - when_do_cards_need_renewal
+          - what_happens_after_renewal
+          - what_happens_when_renewal_stops
+          - why_do_cards_need_renewal
       - subcategoryId: status
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_understand_card_status
-              - card_not_yet_valid
-              - card_expires_soon
-              - card_is_expired
-              - card_is_withdrawn
-              - card_status_invalid
-              - card_status_unknown
-          - groupId: information
-            topicIds:
-              - what_does_not_yet_valid_mean
-              - what_does_valid_mean
-              - what_does_valid_for_few_more_days_mean
-              - what_does_expired_mean
-              - what_does_withdrawn_mean
-              - what_does_invalid_mean
-              - what_does_validity_unknown_mean
+        topicIds:
+          - do_not_understand_card_status
+          - card_not_yet_valid
+          - card_expires_soon
+          - card_is_expired
+          - card_is_withdrawn
+          - card_status_invalid
+          - card_status_unknown
+          - what_does_not_yet_valid_mean
+          - what_does_valid_mean
+          - what_does_valid_for_few_more_days_mean
+          - what_does_expired_mean
+          - what_does_withdrawn_mean
+          - what_does_invalid_mean
+          - what_does_validity_unknown_mean
       - subcategoryId: overview
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_recognise_card
-              - do_not_recognise_issuer
-          - groupId: information
-            topicIds:
-              - what_can_be_done_in_card_overview
-              - what_does_valid_until_mean
+        topicIds:
+          - do_not_recognise_card
+          - do_not_recognise_issuer
+          - what_can_be_done_in_card_overview
+          - what_does_valid_until_mean
       - subcategoryId: details
-        topics:
-          - groupId: help
-            topicIds:
-              - card_details_not_correct
-              - do_not_understand_details
-          - groupId: information
-            topicIds:
-              - what_is_in_card_details
-              - why_details_show_list
-              - why_details_look_different
+        topicIds:
+          - card_details_not_correct
+          - do_not_understand_details
+          - what_is_in_card_details
+          - why_details_show_list
+          - why_details_look_different
       - subcategoryId: delete
-        topics:
-          - groupId: help
-            topicIds:
-              - want_to_delete_card
-              - deleted_wrong_card
-              - not_sure_card_deleted
-          - groupId: information
-            topicIds:
-              - what_happens_card_deleted
-              - can_deleted_card_be_added
-              - when_useful_to_delete_card
+        topicIds:
+          - want_to_delete_card
+          - deleted_wrong_card
+          - not_sure_card_deleted
+          - what_happens_card_deleted
+          - can_deleted_card_be_added
+          - when_useful_to_delete_card
 
   - categoryId: activities
     icon: history
     subcategories:
       - subcategoryId: card_activities
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_recognise_card_activity
-              - do_not_understand_card_changed
-              - card_activity_looks_wrong
-          - groupId: information
-            topicIds:
-              - what_does_card_created_mean
-              - what_does_card_added_mean
-              - what_does_card_renewed_mean
-              - what_does_card_deleted_mean
-              - what_does_card_expired_mean
-              - what_does_card_not_valid_mean
-              - what_does_card_invalid_mean
+        topicIds:
+          - do_not_recognise_card_activity
+          - do_not_understand_card_changed
+          - card_activity_looks_wrong
+          - what_does_card_created_mean
+          - what_does_card_added_mean
+          - what_does_card_renewed_mean
+          - what_does_card_deleted_mean
+          - what_does_card_expired_mean
+          - what_does_card_not_valid_mean
+          - what_does_card_invalid_mean
       - subcategoryId: wallet_security
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_recognise_wallet_activity
-              - do_not_understand_security_change
-              - wallet_activity_looks_wrong
-          - groupId: information
-            topicIds:
-              - what_does_wallet_stopped_mean
-              - what_does_new_pin_mean
-              - what_does_wallet_moved_mean
+        topicIds:
+          - do_not_recognise_wallet_activity
+          - do_not_understand_security_change
+          - wallet_activity_looks_wrong
+          - what_does_wallet_stopped_mean
+          - what_does_new_pin_mean
+          - what_does_wallet_moved_mean
       - subcategoryId: sharing_login_activities
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_recognise_sharing_activity
-              - do_not_recognise_login_activity
-              - activity_looks_wrong
-              - do_not_recognise_organisation_in_activity
-          - groupId: information
-            topicIds:
-              - what_does_shared_mean
-              - what_does_logged_in_mean
-              - how_see_what_shared
-              - how_check_organisation_in_activity
+        topicIds:
+          - do_not_recognise_sharing_activity
+          - do_not_recognise_login_activity
+          - activity_looks_wrong
+          - do_not_recognise_organisation_in_activity
+          - what_does_shared_mean
+          - what_does_logged_in_mean
+          - how_see_what_shared
+          - how_check_organisation_in_activity
 
   - categoryId: security
     icon: lock_outline
     subcategories:
       - subcategoryId: pin
-        topics:
-          - groupId: help
-            topicIds:
-              - forgot_pin
-              - cannot_use_pin
-              - did_not_know_which_pin
-              - digid_not_open_new_pin
-              - waiting_too_long_pin_setup
-              - stopped_setting_pin
-              - entered_wrong_pin_too_many_times
-          - groupId: information
-            topicIds:
-              - why_digid_needed_for_new_pin
-              - why_confirm_with_pin
-              - what_happens_after_wrong_pin
-              - what_happens_pin_setup_stops
+        topicIds:
+          - forgot_pin
+          - cannot_use_pin
+          - did_not_know_which_pin
+          - digid_not_open_new_pin
+          - waiting_too_long_pin_setup
+          - stopped_setting_pin
+          - entered_wrong_pin_too_many_times
+          - why_digid_needed_for_new_pin
+          - why_confirm_with_pin
+          - what_happens_after_wrong_pin
+          - what_happens_pin_setup_stops
       - subcategoryId: biometric
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_use_biometric
-              - cannot_turn_on_biometric
-              - cannot_turn_off_biometric
-          - groupId: information
-            topicIds:
-              - how_does_biometric_work
-              - when_is_pin_still_used
-              - is_biometric_safe
+        topicIds:
+          - cannot_use_biometric
+          - cannot_turn_on_biometric
+          - cannot_turn_off_biometric
+          - how_does_biometric_work
+          - when_is_pin_still_used
+          - is_biometric_safe
       - subcategoryId: deletion_code
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_know_what_to_do_with_deletion_code
-              - cannot_find_deletion_code
-              - cannot_use_deletion_code
-          - groupId: information
-            topicIds:
-              - how_use_deletion_code
-              - what_is_deletion_code_for
-              - why_write_down_deletion_code_on_paper
-              - where_find_deletion_code
-              - when_deletion_code_needed
+        topicIds:
+          - do_not_know_what_to_do_with_deletion_code
+          - cannot_find_deletion_code
+          - cannot_use_deletion_code
+          - how_use_deletion_code
+          - what_is_deletion_code_for
+          - why_write_down_deletion_code_on_paper
+          - where_find_deletion_code
+          - when_deletion_code_needed
       - subcategoryId: wallet_blocked
-        topics:
-          - groupId: help
-            topicIds:
-              - locked_out_10_minutes
-              - someone_tried_pin
-              - blocked_from_wallet
-              - why_must_delete_wallet
-          - groupId: information
-            topicIds:
-              - why_wallet_temporarily_blocked
-              - what_happens_after_temporary_block
-              - why_wallet_blocked
-              - what_happens_data_wallet_blocked
+        topicIds:
+          - locked_out_10_minutes
+          - someone_tried_pin
+          - blocked_from_wallet
+          - why_must_delete_wallet
+          - why_wallet_temporarily_blocked
+          - what_happens_after_temporary_block
+          - why_wallet_blocked
+          - what_happens_data_wallet_blocked
 
   - categoryId: move
     icon: move_up
     subcategories:
       - subcategoryId: move_scan_qr
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_scan_qr_during_move
-          - groupId: information
-            topicIds:
-              - why_scan_qr_to_move
-              - what_happens_after_scanning_during_move
+        topicIds:
+          - cannot_scan_qr_during_move
+          - why_scan_qr_to_move
+          - what_happens_after_scanning_during_move
       - subcategoryId: confirm
-        topics:
-          - groupId: help
-            topicIds:
-              - not_sure_which_device_to_confirm
-              - cannot_continue_other_device
-          - groupId: information
-            topicIds:
-              - how_confirmation_other_device_works
-              - which_device_has_wallet
+        topicIds:
+          - not_sure_which_device_to_confirm
+          - cannot_continue_other_device
+          - how_confirmation_other_device_works
+          - which_device_has_wallet
       - subcategoryId: stopped
-        topics:
-          - groupId: help
-            topicIds:
-              - stopped_move_to_other_device
-              - stopped_move_from_new_device
-          - groupId: information
-            topicIds:
-              - what_happens_move_stops_this_device
-              - what_happens_move_stops_other_device
+        topicIds:
+          - stopped_move_to_other_device
+          - stopped_move_from_new_device
+          - what_happens_move_stops_this_device
+          - what_happens_move_stops_other_device
       - subcategoryId: completed
-        topics:
-          - groupId: help
-            topicIds:
-              - not_sure_move_worked
-              - cannot_find_wallet_after_move
-          - groupId: information
-            topicIds:
-              - what_happens_after_moving_wallet
-              - where_is_wallet_after_moving
+        topicIds:
+          - not_sure_move_worked
+          - cannot_find_wallet_after_move
+          - what_happens_after_moving_wallet
+          - where_is_wallet_after_moving
 
   - categoryId: settings
     icon: settings
     subcategories:
       - subcategoryId: updates
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_use_wallet_until_update
-              - cannot_update_wallet_on_phone
-              - do_not_know_how_to_update
-              - do_not_understand_recommended_update
-          - groupId: information
-            topicIds:
-              - what_does_update_urgently_needed_mean
-              - why_update_needed
-              - what_happens_after_updating
+        topicIds:
+          - cannot_use_wallet_until_update
+          - cannot_update_wallet_on_phone
+          - do_not_know_how_to_update
+          - do_not_understand_recommended_update
+          - what_does_update_urgently_needed_mean
+          - why_update_needed
+          - what_happens_after_updating
       - subcategoryId: notifications
-        topics:
-          - groupId: help
-            topicIds:
-              - do_not_see_push_notifications
-              - turned_off_push_notifications
-              - do_not_understand_banner
-              - cannot_remove_banner
-          - groupId: information
-            topicIds:
-              - difference_push_notification_banner
-              - why_see_banner
-              - what_important_messages_wallet_show
-              - why_push_notifications_useful
+        topicIds:
+          - do_not_see_push_notifications
+          - turned_off_push_notifications
+          - do_not_understand_banner
+          - cannot_remove_banner
+          - difference_push_notification_banner
+          - why_see_banner
+          - what_important_messages_wallet_show
+          - why_push_notifications_useful
 
 translations:
   en:

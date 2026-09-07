@@ -19,6 +19,8 @@ use serde::de;
 
 use crate::utils;
 
+const AES_GCM_IV_BYTES_SIZE: usize = 12;
+
 #[derive(Debug, thiserror::Error)]
 pub enum PublicKeyError {
     #[error("invalid RSA key size: {0}")]
@@ -143,7 +145,7 @@ impl EncryptionKey for Aes256Gcm {
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Generate a random nonce
-        let nonce_bytes = utils::random_bytes(12);
+        let nonce_bytes = utils::random_bytes(AES_GCM_IV_BYTES_SIZE);
         let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
 
         // Encrypt the provided message
@@ -157,10 +159,10 @@ impl EncryptionKey for Aes256Gcm {
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Re-create the nonce from the first 12 bytes
-        let nonce = Nonce::from_slice(&msg[..12]);
+        let nonce = Nonce::from_slice(&msg[..AES_GCM_IV_BYTES_SIZE]);
 
         // Decrypt the provided message with the retrieved nonce
-        <Aes256Gcm as Aead>::decrypt(self, nonce, &msg[12..])
+        <Aes256Gcm as Aead>::decrypt(self, nonce, &msg[AES_GCM_IV_BYTES_SIZE..])
     }
 }
 

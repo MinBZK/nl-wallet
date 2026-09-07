@@ -12,11 +12,9 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
-              - topic_b
+        topicIds:
+          - topic_a
+          - topic_b
 translations:
   en:
     categories:
@@ -175,10 +173,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 ''';
       final c = _TempCorpus.create(yaml: yaml);
       try {
@@ -199,10 +195,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -231,10 +225,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories: {}
@@ -266,10 +258,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -308,10 +298,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -343,10 +331,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -381,10 +367,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -423,10 +407,8 @@ structure:
     icon: qr_code
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -460,10 +442,8 @@ structure:
     icon: not_a_real_icon
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -498,10 +478,8 @@ structure:
   - categoryId: cat1
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -547,10 +525,8 @@ structure:
     icon: $name
     subcategories:
       - subcategoryId: sub1
-        topics:
-          - groupId: help
-            topicIds:
-              - topic_a
+        topicIds:
+          - topic_a
 translations:
   en:
     categories:
@@ -578,82 +554,6 @@ translations:
         } finally {
           c.dispose();
         }
-      }
-    });
-  });
-
-  group('errors — group ids', () {
-    test('unknown groupId is flagged against help.yaml', () {
-      const yaml = '''
-structure:
-  - categoryId: cat1
-    icon: qr_code
-    subcategories:
-      - subcategoryId: sub1
-        topics:
-          - groupId: nonsense
-            topicIds:
-              - topic_a
-translations:
-  en:
-    categories:
-      cat1: {title: Cat1, subtitle: Subtitle}
-    subcategories:
-      sub1: Sub1
-    topics:
-      topic_a: Topic A
-  nl:
-    categories:
-      cat1: {title: Cat1 NL, subtitle: Ondertitel}
-    subcategories:
-      sub1: Sub1 NL
-    topics:
-      topic_a: Topic A NL
-''';
-      final c = _TempCorpus.create(yaml: yaml);
-      try {
-        final result = validateHelpContent(helpDir: c.path);
-        final groupError = result.issues.where((e) => e.message.contains("groupId 'nonsense'")).single;
-        expect(groupError.file, 'help.yaml');
-        expect(groupError.message, contains("subcategory 'sub1'"));
-      } finally {
-        c.dispose();
-      }
-    });
-
-    test("the 'information' group id is accepted", () {
-      const yaml = '''
-structure:
-  - categoryId: cat1
-    icon: qr_code
-    subcategories:
-      - subcategoryId: sub1
-        topics:
-          - groupId: information
-            topicIds:
-              - topic_a
-translations:
-  en:
-    categories:
-      cat1: {title: Cat1, subtitle: Subtitle}
-    subcategories:
-      sub1: Sub1
-    topics:
-      topic_a: Topic A
-  nl:
-    categories:
-      cat1: {title: Cat1 NL, subtitle: Ondertitel}
-    subcategories:
-      sub1: Sub1 NL
-    topics:
-      topic_a: Topic A NL
-''';
-      final c = _TempCorpus.create(yaml: yaml);
-      try {
-        final result = validateHelpContent(helpDir: c.path);
-        expect(result.issues.where((e) => e.message.contains('groupId')), isEmpty);
-      } finally {
-        c.dispose();
       }
     });
   });
