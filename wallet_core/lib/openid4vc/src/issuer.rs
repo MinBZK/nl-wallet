@@ -2056,7 +2056,7 @@ mod tests {
                 .process_reject_issuance(
                     self.access_token(access_token),
                     self.dpop_header(dpop_header),
-                    "batch_credential",
+                    "credentials",
                 )
                 .await
                 .map_err(|error| {
