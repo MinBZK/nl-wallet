@@ -14,7 +14,7 @@ class CardAttributeValueMapper extends Mapper<core.AttributeValue, AttributeValu
     return switch (input) {
       core.AttributeValue_String(:final value) => StringValue(value),
       core.AttributeValue_Boolean(:final value) => BooleanValue(value),
-      core.AttributeValue_Number(:final value) => NumberValue(_simplify(value)),
+      core.AttributeValue_Number(:final value) => NumberValue(value),
       core.AttributeValue_Array(:final value) => ArrayValue(value.map(map).toList()),
       core.AttributeValue_Null() => NullValue(),
       core.AttributeValue_Date(:final value) => DateValue(DateTime.parse(value)),
@@ -23,8 +23,4 @@ class CardAttributeValueMapper extends Mapper<core.AttributeValue, AttributeValu
       core.AttributeValue_Map(:final value) => MapValue({for (final (key, value) in value) key: map(value)}),
     };
   }
-
-  /// The core provides every number as a [double], whole numbers included. Narrow those back to an
-  /// [int] so that e.g. a mileage renders as '123' instead of '123.0'.
-  num _simplify(double value) => value.isFinite && value % 1 == 0 ? value.toInt() : value;
 }

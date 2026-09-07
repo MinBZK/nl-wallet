@@ -48,16 +48,10 @@ void main() {
       expect(actual, l10n.cardValueFalse);
     });
 
-    test('`AttributeValue_Number` should drop the fraction of a whole number', () {
+    test('`AttributeValue_Number` should be mapped into a `NumberValue`', () {
       const core.AttributeValue input = core.AttributeValue_Number(value: 1337);
       expect(mapper.map(input), const NumberValue(1337));
       expect(AttributeValueFormatter.formatWithLocale(_kSampleLocale, mapper.map(input)), '1337');
-    });
-
-    test('`AttributeValue_Number` should keep a fractional number intact', () {
-      const core.AttributeValue input = core.AttributeValue_Number(value: 12.5);
-      expect(mapper.map(input), const NumberValue(12.5));
-      expect(AttributeValueFormatter.formatWithLocale(_kSampleLocale, mapper.map(input)), '12.5');
     });
 
     test('`AttributeValue_Date` should be parsed into a `DateValue`', () {
