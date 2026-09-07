@@ -135,7 +135,6 @@ audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 http_utils = { path = "../../lib/http_utils", features = ["httpmock"] }
 jwt = { path = "../../lib/jwt", features = ["test", "mock"] }
-oauth.path = "../../lib/oauth"
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }
