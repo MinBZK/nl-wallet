@@ -156,7 +156,6 @@ pub mod test {
     use std::collections::HashSet;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
     use attestation_data::validity::ValidityWindow;
@@ -227,11 +226,11 @@ pub mod test {
             [
                 (
                     vec_nonempty![String::from("example_attestation_type"), String::from("entry1")],
-                    AttributeValue::Text(String::from("value1"))
+                    Attribute::Text(String::from("value1"))
                 ),
                 (
                     vec_nonempty![String::from("example_attestation_type"), String::from("entry2")],
-                    AttributeValue::Bool(true)
+                    Attribute::Bool(true)
                 ),
             ],
             attrs.as_slice()
@@ -309,22 +308,13 @@ pub mod test {
 
     fn example_attributes() -> Attributes {
         IndexMap::from([
-            (
-                "name".to_string(),
-                Attribute::Single(AttributeValue::Text("Wallet".to_string())),
-            ),
-            (
-                "birth_date".to_string(),
-                Attribute::Single(AttributeValue::Text("1996-06-16".to_string())),
-            ),
+            ("name".to_string(), Attribute::Text("Wallet".to_string())),
+            ("birth_date".to_string(), Attribute::Text("1996-06-16".to_string())),
             (
                 "address".to_string(),
-                Attribute::Nested(IndexMap::from([
-                    (
-                        "street".to_string(),
-                        Attribute::Single(AttributeValue::Text("Gracht".to_string())),
-                    ),
-                    ("number".to_string(), Attribute::Single(AttributeValue::Integer(123))),
+                Attribute::Object(IndexMap::from([
+                    ("street".to_string(), Attribute::Text("Gracht".to_string())),
+                    ("number".to_string(), Attribute::Number(123.into())),
                 ])),
             ),
         ])
@@ -389,7 +379,7 @@ pub mod test {
                         label: "name".to_string(),
                         description: None
                     }],
-                    value: AttributeValue::Text("Wallet".to_string()),
+                    value: Attribute::Text("Wallet".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -399,7 +389,7 @@ pub mod test {
                         label: "birth date".to_string(),
                         description: None
                     }],
-                    value: AttributeValue::Text("1996-06-16".to_owned()),
+                    value: Attribute::Text("1996-06-16".to_owned()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -409,7 +399,7 @@ pub mod test {
                         label: "address street".to_string(),
                         description: None
                     }],
-                    value: AttributeValue::Text("Gracht".to_string()),
+                    value: Attribute::Text("Gracht".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -419,7 +409,7 @@ pub mod test {
                         label: "address number".to_string(),
                         description: None
                     }],
-                    value: AttributeValue::Integer(123),
+                    value: Attribute::Number(123.into()),
                     svg_id: None
                 },
             ]
@@ -509,7 +499,7 @@ pub mod test {
         assert_eq!(
             [(
                 vec_nonempty![String::from(PID_ATTESTATION_TYPE), String::from(PID_BSN)],
-                AttributeValue::Text(String::from("999991772"))
+                Attribute::Text(String::from("999991772"))
             ),],
             attrs.as_slice()
         );

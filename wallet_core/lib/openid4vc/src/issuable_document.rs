@@ -93,7 +93,6 @@ impl IssuableDocument {
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_types::credential_format::Format;
     use indexmap::IndexMap;
 
@@ -106,21 +105,12 @@ pub mod mock {
                 IndexMap::from([
                     (
                         "university".to_string(),
-                        Attribute::Single(AttributeValue::Text("Example university".to_string())),
+                        Attribute::Text("Example university".to_string()),
                     ),
-                    (
-                        "education".to_string(),
-                        Attribute::Single(AttributeValue::Text(education)),
-                    ),
-                    (
-                        "graduation_date".to_string(),
-                        Attribute::Single(AttributeValue::Text("1970-01-01".to_string())),
-                    ),
-                    (
-                        "grade".to_string(),
-                        Attribute::Single(AttributeValue::Text("A".to_string())),
-                    ),
-                    ("cum_laude".to_string(), Attribute::Single(AttributeValue::Bool(true))),
+                    ("education".to_string(), Attribute::Text(education)),
+                    ("graduation_date".to_string(), Attribute::Text("1970-01-01".to_string())),
+                    ("grade".to_string(), Attribute::Text("A".to_string())),
+                    ("cum_laude".to_string(), Attribute::Bool(true)),
                 ])
                 .into(),
             )
@@ -132,19 +122,10 @@ pub mod mock {
                 CredentialKind::new(Format::MsoMdoc, "com.example.museum_maandkaart".to_string()),
                 IndexMap::from([(
                     "com.example.museum_maandkaart".to_string(),
-                    Attribute::Nested(IndexMap::from([
-                        (
-                            "name".to_string(),
-                            Attribute::Single(AttributeValue::Text("Jan de Vries".to_string())),
-                        ),
-                        (
-                            "member_number".to_string(),
-                            Attribute::Single(AttributeValue::Text("1234567890".to_string())),
-                        ),
-                        (
-                            "valid_year".to_string(),
-                            Attribute::Single(AttributeValue::Text("2026".to_string())),
-                        ),
+                    Attribute::Object(IndexMap::from([
+                        ("name".to_string(), Attribute::Text("Jan de Vries".to_string())),
+                        ("member_number".to_string(), Attribute::Text("1234567890".to_string())),
+                        ("valid_year".to_string(), Attribute::Text("2026".to_string())),
                     ])),
                 )])
                 .into(),

@@ -526,6 +526,7 @@ impl IssuerSignedItem {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
+
     use indexmap::IndexMap;
 
     use super::Attributes;

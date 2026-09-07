@@ -1329,7 +1329,6 @@ mod tests {
     use std::vec;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -1675,7 +1674,7 @@ mod tests {
         let preview = &session.credential_previews()[0];
         assert_matches!(
                 &preview.credential_payload.attributes.as_ref()["family_name"],
-                Attribute::Single(AttributeValue::Text(v)) if v == "De Bruijn");
+                Attribute::Text(v) if v == "De Bruijn");
 
         let Some(OfferedCredentialMetadata::TypeMetadata { normalized, .. }) =
             session.metadata().get(&preview.config_id)
@@ -2235,7 +2234,7 @@ mod tests {
             let mdoc_preview_payload = PreviewableCredentialPayload {
                 attributes: Attributes::example([(
                     [namespace, "family_name"],
-                    AttributeValue::Text("De Bruijn".to_string()),
+                    Attribute::Text("De Bruijn".to_string()),
                 )]),
                 ..preview_payload.clone()
             };
@@ -2901,8 +2900,8 @@ mod tests {
         let attributes = PreviewableCredentialPayload::example_with_attributes(
             PID_ATTESTATION_TYPE,
             Attributes::example([
-                (["new"], AttributeValue::Bool(true)),
-                (["family_name"], AttributeValue::Text(String::from("De Bruijn"))),
+                (["new"], Attribute::Bool(true)),
+                (["family_name"], Attribute::Text(String::from("De Bruijn"))),
             ]),
             &MockTimeGenerator::default(),
         )

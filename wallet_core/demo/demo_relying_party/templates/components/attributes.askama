@@ -5,7 +5,7 @@
         <dt>{{ base.trans[key.into_last()] }}</dt>
         <dd>
         {% match value %}
-        {% when AttributeValue::Bool(bool) %}
+        {% when Attribute::Bool(bool) %}
             {{ base.trans[format!("{bool:?}").as_str()] }}
         {% else %}
             {{ value }}

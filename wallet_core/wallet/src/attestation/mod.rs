@@ -2,7 +2,7 @@ mod attribute;
 
 use std::collections::HashSet;
 
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::Organization;
 use attestation_data::validity::ValidityWindow;
@@ -44,7 +44,7 @@ pub enum AttestationError {
 pub enum AttributeError {
     #[error("attribute conversion failed: {0:?}")]
     #[category(pd)]
-    AttributeConversion(AttributeValue),
+    AttributeConversion(Attribute),
 
     #[error("unable to parse attribute value into date: {0:?}")]
     #[category(pd)]
@@ -69,7 +69,7 @@ impl AttestationPresentationConfig for PidAttributesConfiguration {
 }
 
 // TODO: Separate various concerns: PVW-4675
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub format: Format,
@@ -87,11 +87,11 @@ pub enum AttestationIdentity {
     Fixed { id: Uuid },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
     pub key: VecNonEmpty<String>,
     pub metadata: Vec<ClaimDisplayMetadata>,
-    pub value: AttributeValue,
+    pub value: Attribute,
     pub svg_id: Option<String>,
 }
 

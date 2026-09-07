@@ -1,0 +1,215 @@
+{
+  "display": [
+    {
+      "name": "Driver's Licence",
+      "locale": "en-US",
+      "description": "A mobile driver's licence",
+      "logo": {
+        "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+        "alt_text": "EU/NL badge"
+      },
+      "background_color": "#FFC2AD",
+      "text_color": "#152A62"
+    },
+    {
+      "name": "Rijbewijs",
+      "locale": "nl-NL",
+      "description": "Een mobiel rijbewijs",
+      "logo": {
+        "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+        "alt_text": "EU/NL badge"
+      },
+      "background_color": "#FFC2AD",
+      "text_color": "#152A62"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "family_name"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Family name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Achternaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "given_name"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Given name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Voornaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "birth_date"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Date of birth",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboortedatum",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "issue_date"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issue date",
+          "locale": "en-US"
+        },
+        {
+          "name": "Afgiftedatum",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "expiry_date"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Expiry date",
+          "locale": "en-US"
+        },
+        {
+          "name": "Vervaldatum",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "issuing_country"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issuing country",
+          "locale": "en-US"
+        },
+        {
+          "name": "Uitgevend land",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "issuing_authority"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issuing authority",
+          "locale": "en-US"
+        },
+        {
+          "name": "Uitgevende instantie",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "document_number"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Document number",
+          "locale": "en-US"
+        },
+        {
+          "name": "Documentnummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "portrait"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Portrait",
+          "locale": "en-US"
+        },
+        {
+          "name": "Portretfoto",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "driving_privileges"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Driving privileges",
+          "locale": "en-US"
+        },
+        {
+          "name": "Rijbevoegdheden",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.18013.5.1",
+        "un_distinguishing_sign"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Country code",
+          "locale": "en-US"
+        },
+        {
+          "name": "Landcode",
+          "locale": "nl-NL"
+        }
+      ]
+    }
+  ]
+}

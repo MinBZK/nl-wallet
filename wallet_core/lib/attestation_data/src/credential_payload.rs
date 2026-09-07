@@ -90,7 +90,7 @@ pub enum PreviewableCredentialPayloadFromMdocError {
 
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PreviewableCredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
@@ -226,7 +226,7 @@ pub enum CredentialPayloadIntoSignedMdocError {
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct CredentialPayload {
     #[serde(rename = "iat")]
     pub issued_at: DateTimeSeconds,
@@ -539,7 +539,7 @@ mod examples {
     use utils::generator::Generator;
 
     use super::*;
-    use crate::attributes::AttributeValue;
+    use crate::attributes::Attribute;
     use crate::attributes::Attributes;
 
     impl CredentialPayload {
@@ -614,7 +614,7 @@ mod examples {
         pub fn example_family_name(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             Self::example_with_attributes(
                 PID_ATTESTATION_TYPE,
-                Attributes::example([(["family_name"], AttributeValue::Text(String::from("De Bruijn")))]),
+                Attributes::example([(["family_name"], Attribute::Text(String::from("De Bruijn")))]),
                 time_generator,
             )
         }
@@ -740,7 +740,6 @@ mod test {
 
     use super::*;
     use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
@@ -760,8 +759,8 @@ mod test {
         let payload_preview = PreviewableCredentialPayload::example_with_attributes(
             PID_ATTESTATION_TYPE,
             Attributes::example([
-                (["first_name"], AttributeValue::Text("John".to_string())),
-                (["family_name"], AttributeValue::Text("Doe".to_string())),
+                (["first_name"], Attribute::Text("John".to_string())),
+                (["family_name"], Attribute::Text("Doe".to_string())),
             ]),
             &MockTimeGenerator::default(),
         );
@@ -801,11 +800,11 @@ mod test {
                 attributes: Attributes::example([
                     (
                         [PID_ATTESTATION_TYPE, "first_name"],
-                        AttributeValue::Text("John".to_string()),
+                        Attribute::Text("John".to_string()),
                     ),
                     (
                         [PID_ATTESTATION_TYPE, "family_name"],
-                        AttributeValue::Text("Doe".to_string()),
+                        Attribute::Text("Doe".to_string()),
                     ),
                 ]),
                 ..payload_preview.clone()
@@ -884,15 +883,15 @@ mod test {
             vec![
                 (
                     vec![PID_ATTESTATION_TYPE, "bsn"],
-                    AttributeValue::Text("999999999".to_string())
+                    Attribute::Text("999999999".to_string())
                 ),
                 (
                     vec![PID_ATTESTATION_TYPE, "given_name"],
-                    AttributeValue::Text("Willeke Liselotte".to_string())
+                    Attribute::Text("Willeke Liselotte".to_string())
                 ),
                 (
                     vec![PID_ATTESTATION_TYPE, "family_name"],
-                    AttributeValue::Text("De Bruijn".to_string())
+                    Attribute::Text("De Bruijn".to_string())
                 ),
             ]
         );
@@ -932,18 +931,48 @@ mod test {
             "cnf": {
                 "jwk": confirmation_key
             },
-            "birth_date": "1963-08-12",
+            "birth_date": {
+                "type": "text",
+                "value": "1963-08-12"
+            },
             "place_of_birth": {
-                "locality": "The Hague",
-                "country": {
-                    "name": "The Netherlands",
-                    "area_code": 33
+                "type": "object",
+                "value": {
+                    "locality": {
+                        "type": "text",
+                        "value": "The Hague"
+                    },
+                    "country": {
+                        "type": "object",
+                        "value": {
+                            "name": {
+                                "type": "text",
+                                "value": "The Netherlands"
+                            },
+                            "area_code": {
+                                "type": "number",
+                                "value": 33
+                            }
+                        }
+                    }
                 }
             },
             "financial": {
-                "has_debt": true,
-                "has_job": false,
-                "debt_amount": -10000
+                "type": "object",
+                "value": {
+                    "has_debt": {
+                        "type": "bool",
+                        "value": true
+                    },
+                    "has_job": {
+                        "type": "bool",
+                        "value": false
+                    },
+                    "debt_amount": {
+                        "type": "number",
+                        "value": -10000
+                    }
+                }
             }
         });
 
@@ -1047,7 +1076,7 @@ mod test {
 
         let credential_payload = CredentialPayload::example_with_attributes(
             PID_ATTESTATION_TYPE,
-            Attributes::example([(["family_name"], AttributeValue::Text(String::from("De Bruijn")))]),
+            Attributes::example([(["family_name"], Attribute::Text(String::from("De Bruijn")))]),
             holder_key.verifying_key(),
             &time_generator,
         );
@@ -1105,11 +1134,7 @@ mod test {
             expires: Some(Utc.with_ymd_and_hms(2000, 1, 1, 0, 1, 1).unwrap().into()),
             not_before: Some(Utc.with_ymd_and_hms(1969, 1, 1, 0, 1, 1).unwrap().into()),
             attestation_qualification: AttestationQualification::PubEAA,
-            attributes: IndexMap::from([(
-                String::from("attr1"),
-                Attribute::Single(AttributeValue::Text(String::from("val1"))),
-            )])
-            .into(),
+            attributes: IndexMap::from([(String::from("attr1"), Attribute::Text(String::from("val1")))]).into(),
         };
 
         let mut existing = new.clone();
@@ -1127,11 +1152,7 @@ mod test {
         assert!(!new.matches_existing(&existing, &epoch_generator));
 
         let mut existing = new.clone();
-        existing.attributes = IndexMap::from([(
-            String::from("attr1"),
-            Attribute::Single(AttributeValue::Text(String::from("val2"))),
-        )])
-        .into();
+        existing.attributes = IndexMap::from([(String::from("attr1"), Attribute::Text(String::from("val2")))]).into();
         assert!(!new.matches_existing(&existing, &epoch_generator));
 
         let mut existing = new.clone();

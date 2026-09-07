@@ -21,13 +21,13 @@ pub(crate) fn into_mdoc_attributes(attributes: Attributes) -> Attributes {
         .into_inner()
         .into_iter()
         .flat_map(|(name, attribute)| match attribute {
-            Attribute::Single(value) => Either::Left(std::iter::once((name, Attribute::Single(value)))),
-            Attribute::Nested(group) => Either::Right(group.into_iter()),
+            Attribute::Object(group) => Either::Right(group.into_iter()),
+            value => Either::Left(std::iter::once((name, value))),
         })
         .collect::<IndexMap<_, _>>();
 
     Attributes::from(IndexMap::from([(
         String::from(PID_ATTESTATION_TYPE),
-        Attribute::Nested(entries),
+        Attribute::Object(entries),
     )]))
 }

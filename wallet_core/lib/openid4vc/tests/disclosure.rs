@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::test_credential::TestCredentials;
@@ -135,17 +135,14 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
         .expect("disclosed attributes should include PID");
 
     assert_eq!(name_space.len(), 3);
-    assert_eq!(
-        name_space.get("bsn"),
-        Some(&AttributeValue::Text("999999999".to_string()))
-    );
+    assert_eq!(name_space.get("bsn"), Some(&Attribute::Text("999999999".to_string())));
     assert_eq!(
         name_space.get("given_name"),
-        Some(&AttributeValue::Text("Willeke Liselotte".to_string()))
+        Some(&Attribute::Text("Willeke Liselotte".to_string()))
     );
     assert_eq!(
         name_space.get("family_name"),
-        Some(&AttributeValue::Text("De Bruijn".to_string()))
+        Some(&Attribute::Text("De Bruijn".to_string()))
     );
 }
 

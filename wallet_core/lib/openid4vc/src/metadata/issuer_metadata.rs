@@ -929,7 +929,7 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
 
-    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_types::claim_path::ClaimPath;
@@ -1786,7 +1786,7 @@ mod tests {
         );
         assert!(claims.is_empty());
 
-        let error = Attributes::example([(["birth_date"], AttributeValue::Text(String::from("1963-08-12")))])
+        let error = Attributes::example([(["birth_date"], Attribute::Text(String::from("1963-08-12")))])
             .validate(&metadata)
             .expect_err("attributes should not validate against metadata without claims");
 
@@ -1798,10 +1798,10 @@ mod tests {
         let metadata = example_metadata();
 
         Attributes::example([
-            (vec!["birth_date"], AttributeValue::Text(String::from("1963-08-12"))),
+            (vec!["birth_date"], Attribute::Text(String::from("1963-08-12"))),
             (
                 vec!["place_of_birth", "locality"],
-                AttributeValue::Text(String::from("The Hague")),
+                Attribute::Text(String::from("The Hague")),
             ),
         ])
         .validate(&metadata)
@@ -1809,7 +1809,7 @@ mod tests {
 
         let error = Attributes::example([(
             vec!["place_of_birth", "locality"],
-            AttributeValue::Text(String::from("The Hague")),
+            Attribute::Text(String::from("The Hague")),
         )])
         .validate(&metadata)
         .expect_err("attributes missing a mandatory claim should not validate");

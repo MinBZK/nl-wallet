@@ -27,8 +27,11 @@
           "attestation_type": "com.example.loyalty",
           "attributes": {
             "com.example.loyalty": {
-              "branch": "Demodam",
-              "loyalty_number": "123456789"
+              "type": "object",
+              "value": {
+                "branch": { "type": "text", "value": "Demodam" },
+                "loyalty_number": { "type": "text", "value": "123456789" }
+              }
             }
           }
         }
@@ -42,11 +45,11 @@
             "format": "dc+sd-jwt",
             "attestation_type": "com.example.degree",
             "attributes": {
-              "university": "Holland University",
-              "education": "MSc Economics",
-              "graduation_date": "1970-01-01",
-              "grade": null,
-              "cum_laude": false
+              "university": { "type": "text", "value": "Holland University" },
+              "education": { "type": "text", "value": "MSc Economics" },
+              "graduation_date": { "type": "text", "value": "1970-01-01" },
+              "grade": { "type": "null" },
+              "cum_laude": { "type": "bool", "value": false }
             }
           }
         ]

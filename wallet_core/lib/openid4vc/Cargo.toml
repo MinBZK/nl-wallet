@@ -28,9 +28,9 @@ mock = [
     "crypto/mock",
     "dep:mockall",
     "oauth/mock",
+    "sd_jwt_vc_metadata/example_constructors",
     "token_status_list/mock",
     "wscd/mock",
-    "sd_jwt_vc_metadata/example_constructors",
 ]
 # Include miscellaneous test utilities
 test = ["dep:parking_lot", "jwt/test", "oauth/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]

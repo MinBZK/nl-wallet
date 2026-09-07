@@ -4,7 +4,6 @@ use std::sync::LazyLock;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
@@ -185,11 +184,11 @@ pub fn create_example_credential_payload(
     let credential_payload = CredentialPayload::example_with_attributes(
         attestation_type,
         Attributes::example([
-            (["family_name"], AttributeValue::Text("De Bruijn".to_string())),
-            (["given_name"], AttributeValue::Text("Willeke Liselotte".to_string())),
-            (["birth_date"], AttributeValue::Text("1997-05-10".to_string())),
-            (["age_over_18"], AttributeValue::Bool(true)),
-            ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+            (["family_name"], Attribute::Text("De Bruijn".to_string())),
+            (["given_name"], Attribute::Text("Willeke Liselotte".to_string())),
+            (["birth_date"], Attribute::Text("1997-05-10".to_string())),
+            (["age_over_18"], Attribute::Bool(true)),
+            ([PID_RECOVERY_CODE], Attribute::Text("123".to_string())),
         ]),
         SigningKey::generate().verifying_key(),
         time_generator,
@@ -749,10 +748,10 @@ fn nest_attributes_under_namespace(namespace: &str, attributes: &Attributes) -> 
     let entries = attributes
         .flattened()
         .into_iter()
-        .map(|(path, value)| (path.last().to_string(), Attribute::Single(value.clone())))
+        .map(|(path, value)| (path.last().to_string(), value.clone()))
         .collect::<IndexMap<_, _>>();
 
-    IndexMap::from([(namespace.to_string(), Attribute::Nested(entries))]).into()
+    IndexMap::from([(namespace.to_string(), Attribute::Object(entries))]).into()
 }
 
 fn example_stored_attestation_copy_with_issuer_keypair(
