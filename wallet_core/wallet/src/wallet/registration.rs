@@ -49,7 +49,7 @@ use crate::wallet::CheckPreconditionsError;
 #[category(defer)]
 pub enum WalletRegistrationError {
     #[error("preconditions failed: {0}")]
-    CheckPreconditions(CheckPreconditionsError),
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is already registered")]
     #[category(expected)]
     AlreadyRegistered,

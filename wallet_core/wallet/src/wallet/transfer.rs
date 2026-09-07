@@ -54,7 +54,7 @@ use crate::wallet::notifications::NotificationsError;
 #[category(defer)]
 pub enum TransferError {
     #[error("preconditions failed: {0}")]
-    CheckPreconditions(CheckPreconditionsError),
+    CheckPreconditions(#[source] CheckPreconditionsError),
 
     #[error("wallet is not registered")]
     #[category(expected)]

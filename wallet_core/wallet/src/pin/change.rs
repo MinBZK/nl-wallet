@@ -66,7 +66,7 @@ pub trait ChangePinStorage {
 #[category(defer)]
 pub enum ChangePinError {
     #[error("preconditions failed: {0}")]
-    CheckPreconditions(CheckPreconditionsError),
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,

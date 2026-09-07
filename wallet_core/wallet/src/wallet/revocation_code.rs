@@ -29,7 +29,7 @@ use crate::wallet::CheckPreconditionsError;
 #[category(defer)]
 pub enum RevocationCodeError {
     #[error("preconditions failed: {0}")]
-    CheckPreconditions(CheckPreconditionsError),
+    CheckPreconditions(#[source] CheckPreconditionsError),
 
     #[error("wallet is not registered, no revocation code present")]
     #[category(expected)]

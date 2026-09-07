@@ -36,7 +36,7 @@ use crate::wallet::Session;
 #[category(defer)]
 pub enum WalletUnlockError {
     #[error("preconditions failed: {0}")]
-    CheckPreconditions(CheckPreconditionsError),
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
