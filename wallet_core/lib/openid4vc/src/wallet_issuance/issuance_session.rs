@@ -519,16 +519,17 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             )
         )?;
 
-        let issuer_registration = credential_previews
-            .iter()
+        let issuer_registrations = credential_previews
+            .nonempty_iter()
             .map(|preview| preview.issuer_registration())
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(WalletIssuanceError::PreviewIssuerRegistration)?
+            .collect::<Result<VecNonEmpty<_>, _>>()
+            .map_err(WalletIssuanceError::PreviewIssuerRegistration)?;
+        let issuer_registration = issuer_registrations
             .into_iter()
             // Use `dedup()` instead of `unique()`, as `IssuerRegistration` does not implement Hash. The end result is
             // the same when followed by `.exactly_one()`.
             .dedup()
-            // Note that this iterator resulting in 0 values will never happen because `credential_previews` is
+            // Note that this iterator resulting in 0 values will never happen because `issuer_registrations` is
             // non-empty, so this error only occurs when there are multiple `IssuerRegistration` values.
             .exactly_one()
             .map_err(|_| WalletIssuanceError::DifferentIssuers)?;
