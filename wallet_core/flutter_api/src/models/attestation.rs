@@ -209,6 +209,8 @@ pub enum AttributeValue {
     Date { value: String },
     Bytes { value: Vec<u8> },
     Image { value: Image }, // bytes that represent an image
+
+    // TODO this should probably be `Map { value: Vec<AttestationAttribute> }`, for it to contain metadata (PVW-6241)
     Map { value: Vec<(String, Box<AttributeValue>)> },
 }
 
