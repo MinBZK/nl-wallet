@@ -1,4 +1,4 @@
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -22,8 +22,8 @@ pub enum RecoveryCodeError {
     #[error("incorrect recovery code: expected {expected}, received {received}")]
     #[category(pd)]
     IncorrectRecoveryCode {
-        expected: AttributeValue,
-        received: AttributeValue,
+        expected: Box<Attribute>,
+        received: Box<Attribute>,
     },
 
     #[error("could not query attestations in database: {0}")]
@@ -79,8 +79,8 @@ where
 
         if stored_recovery_code != received_recovery_code {
             Err(RecoveryCodeError::IncorrectRecoveryCode {
-                expected: stored_recovery_code.clone(),
-                received: received_recovery_code,
+                expected: Box::new(stored_recovery_code.clone()),
+                received: Box::new(received_recovery_code),
             })
         } else {
             Ok(())
@@ -90,7 +90,7 @@ where
     async fn stored_recovery_code(
         &self,
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<Option<AttributeValue>, RecoveryCodeError> {
+    ) -> Result<Option<Attribute>, RecoveryCodeError> {
         // The recovery code is only present in the PID in the SD-JWT format.
         self.storage
             .read()

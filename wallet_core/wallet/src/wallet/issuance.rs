@@ -884,7 +884,7 @@ mod tests {
     use std::ops::Add;
     use std::sync::LazyLock;
 
-    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Attribute;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
@@ -1301,7 +1301,7 @@ mod tests {
         assert_eq!(attestation.attributes.len(), 4);
         assert_eq!(attestation.attributes[0].key, vec_nonempty!["family_name".to_string()]);
         assert_matches!(
-            &attestation.attributes[0].value, AttributeValue::Text(string) if string == "De Bruijn"
+            &attestation.attributes[0].value, Attribute::Text(string) if string == "De Bruijn"
         );
     }
 

@@ -1628,6 +1628,7 @@ impl Session<AccessTokenIssued> {
             credential_config.metadata.normalized(),
             &credential_config.key_pair,
             &credential_config.status_list,
+            credential_config.mdoc_namespace.as_deref(),
         )
         .await?;
 
@@ -1761,6 +1762,7 @@ impl Session<AccessTokenIssued> {
                     credential_config.metadata.normalized(),
                     &credential_config.key_pair,
                     &credential_config.status_list,
+                    credential_config.mdoc_namespace.as_deref(),
                 )
             },
         ))
@@ -1868,6 +1870,7 @@ impl Session<AccessTokenIssued> {
             credential_config.metadata.normalized(),
             &credential_config.key_pair,
             &credential_config.status_list,
+            credential_config.mdoc_namespace.as_deref(),
         )
         .await?;
 
@@ -1995,6 +1998,7 @@ impl Credentials {
         type_metadata: &NormalizedTypeMetadata,
         key_pair: &KeyPair<K>,
         status_list: &L,
+        mdoc_namespace: Option<&str>,
     ) -> Result<Self, CredentialRequestError>
     where
         K: EcdsaKey,
@@ -2047,14 +2051,13 @@ impl Credentials {
         // Convert all of these `CredentialPayload` values into actual credentials by signing them.
         let credentials = match format {
             Format::MsoMdoc => {
-                let mdoc_credentials =
-                    try_join_all(payloads.into_iter().map(|credential_payload| {
-                        MdocCredential::from_credential_payload(credential_payload, key_pair)
-                    }))
-                    .await
-                    .map_err(CredentialRequestError::MdocConversion)?
-                    .try_into()
-                    .expect("source iterator is non-empty");
+                let mdoc_credentials = try_join_all(payloads.into_iter().map(|credential_payload| {
+                    MdocCredential::from_credential_payload(credential_payload, key_pair, mdoc_namespace)
+                }))
+                .await
+                .map_err(CredentialRequestError::MdocConversion)?
+                .try_into()
+                .expect("source iterator is non-empty");
 
                 Self::MsoMdoc(mdoc_credentials)
             }
@@ -2079,11 +2082,12 @@ impl MdocCredential {
     async fn from_credential_payload<K>(
         credential_payload: CredentialPayload,
         key_pair: &KeyPair<K>,
+        mdoc_namespace: Option<&str>,
     ) -> Result<Self, CredentialPayloadIntoSignedMdocError>
     where
         K: EcdsaKey,
     {
-        let (issuer_signed, _mso) = credential_payload.into_signed_mdoc(key_pair).await?;
+        let (issuer_signed, _mso) = credential_payload.into_signed_mdoc(key_pair, mdoc_namespace).await?;
 
         Ok(Self {
             credential: issuer_signed,
