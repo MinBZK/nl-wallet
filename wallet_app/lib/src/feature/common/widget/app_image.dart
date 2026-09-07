@@ -10,12 +10,18 @@ class AppImage extends StatelessWidget {
   final Alignment alignment;
   final String? altText;
 
+  /// Optional dimensions. When only one of them is provided the other is derived
+  /// from the image's aspect ratio, which keeps the widget snug around the image.
+  final double? width, height;
+
   const AppImage({
     super.key,
     required this.asset,
     this.fit = BoxFit.contain,
     this.alignment = Alignment.center,
     this.altText,
+    this.width,
+    this.height,
   });
 
   @override
@@ -24,11 +30,32 @@ class AppImage extends StatelessWidget {
     final Widget result;
     switch (object) {
       case SvgImage():
-        result = SvgPicture.string(object.data, fit: fit, alignment: alignment, semanticsLabel: altText);
+        result = SvgPicture.string(
+          object.data,
+          fit: fit,
+          alignment: alignment,
+          semanticsLabel: altText,
+          width: width,
+          height: height,
+        );
       case AppAssetImage():
-        result = Image(image: AssetImage(object.name), fit: fit, alignment: alignment, semanticLabel: altText);
+        result = Image(
+          image: AssetImage(object.name),
+          fit: fit,
+          alignment: alignment,
+          semanticLabel: altText,
+          width: width,
+          height: height,
+        );
       case AppMemoryImage():
-        result = Image.memory(object.data, fit: fit, alignment: alignment, semanticLabel: altText);
+        result = Image.memory(
+          object.data,
+          fit: fit,
+          alignment: alignment,
+          semanticLabel: altText,
+          width: width,
+          height: height,
+        );
     }
     return ExcludeSemantics(
       excluding: altText == null,

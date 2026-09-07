@@ -32,7 +32,7 @@ void main() {
     core = Mocks.create<TypedWalletCore>() as MockTypedWalletCore;
     when(core.observeConfig()).thenAnswer((_) => Stream.value(CoreMockData.flutterConfiguration));
     cardMapper = CardMapper(
-      CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
+      CardAttributeMapper(CardAttributeValueMapper(ImageMapper()), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
       DisplayMetadataMapper(ImageMapper()),
       CardStatusMapper(),

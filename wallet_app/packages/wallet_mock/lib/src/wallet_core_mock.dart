@@ -457,6 +457,9 @@ class WalletCoreMock implements WalletCoreApi {
   String crateModelsImageSanitizedSvgXml({required SanitizedSvg that}) => '<svg></svg>';
 
   @override
+  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value}) async => throw UnimplementedError();
+
+  @override
   // ignore: non_constant_identifier_names
   RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_SanitizedSvg => throw UnimplementedError();
 

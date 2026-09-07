@@ -29,7 +29,6 @@ use mdoc::utils::serialization::TaggedBytes;
 use p256::ecdsa::VerifyingKey;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
-use sd_jwt::claims::ClaimNameError;
 use sd_jwt::sd_jwt::SdJwtVcClaims;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -45,6 +44,7 @@ use utils::generator::Generator;
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
 use crate::attributes::AttributesTraversalBehaviour;
+use crate::attributes::ClaimValueError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum PreviewableCredentialPayloadFromSdJwtError {
@@ -90,7 +90,7 @@ pub enum PreviewableCredentialPayloadFromMdocError {
 
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PreviewableCredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
@@ -163,7 +163,7 @@ pub enum CredentialPayloadFromSdJwtError {
 pub enum CredentialPayloadIntoSignedSdJwtError {
     #[error("error converting AttributeName to ClaimName: {0}")]
     #[category(pd)]
-    InvalidClaimName(#[source] ClaimNameError),
+    InvalidClaimValue(#[source] ClaimValueError),
 
     #[error("error converting to SD-JWT: {0}")]
     #[category(pd)]
@@ -226,7 +226,7 @@ pub enum CredentialPayloadIntoSignedMdocError {
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CredentialPayload {
     #[serde(rename = "iat")]
     pub issued_at: DateTimeSeconds,
@@ -300,7 +300,7 @@ impl CredentialPayload {
             .try_fold(
                 SdJwtBuilder::new(
                     self.try_into()
-                        .map_err(CredentialPayloadIntoSignedSdJwtError::InvalidClaimName)?,
+                        .map_err(CredentialPayloadIntoSignedSdJwtError::InvalidClaimValue)?,
                 ),
                 |builder, claims| {
                     let should_be_selectively_disclosable = match sd_by_claims.get(&claims) {
@@ -505,7 +505,7 @@ impl SplitCredential {
 }
 
 impl TryFrom<CredentialPayload> for SdJwtVcClaims {
-    type Error = ClaimNameError;
+    type Error = ClaimValueError;
 
     fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
         Ok(SdJwtVcClaims {

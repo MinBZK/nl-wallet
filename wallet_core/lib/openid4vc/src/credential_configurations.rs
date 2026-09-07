@@ -58,6 +58,9 @@ pub struct CredentialConfigurationParameters<K, L> {
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
+    /// Overrides the root mdoc namespace used when issuing this attestation as `MsoMdoc`. This exists for attestation
+    /// types whose mdoc namespace is mandated by an external specification and differs from their doctype, e.g. ISO
+    /// 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace `org.iso.18013.5.1`. Must be `None` for `SdJwt`.
     #[debug(skip)]
     pub metadata_documents: TypeMetadataDocuments,
     pub credential_metadata: Option<CredentialMetadata>,
@@ -106,7 +109,7 @@ impl<K, L> CredentialConfiguration<K, L> {
         }: CredentialConfigurationParameters<K, L>,
     ) -> Result<Self, CredentialConfigurationsError> {
         // Use the Credential Configuration ID as the scope value.
-        let scope = Scope::try_new(String::from(config_id.clone())).map_err(CredentialConfigurationsError::Scope)?;
+        let scope = Scope::try_new(config_id.as_ref()).map_err(CredentialConfigurationsError::Scope)?;
 
         let metadata = CredentialConfigurationMetadata::try_new(&credential_kind.attestation_type, metadata_documents)
             .map_err(CredentialConfigurationsError::TypeMetadata)?;

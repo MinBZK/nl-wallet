@@ -201,40 +201,40 @@ impl From<wallet::AttestationAttribute> for AttestationAttribute {
 pub enum AttributeValue {
     String { value: String },
     Boolean { value: bool },
-    Number { value: i64 }, // TODO replace with f64
+    Number { value: i64 },
     Array { value: Vec<AttributeValue> },
     Null,
-    // Number { value: f64 },
-    // Date { value: DateTime<Utc> },
-    // Bytes { value: Vec<u8> },
-    // Map { value: HashMap<String, AttributeValue> },
+
+    // only available for mdocs
+    Date { value: String },
+    Bytes { value: Vec<u8> },
+    Image { value: Image }, // bytes that represent an image
+
+    // TODO this should probably be `Map { value: Vec<AttestationAttribute> }`, for it to contain metadata (PVW-6241)
+    Map { value: Vec<(String, Box<AttributeValue>)> },
 }
 
 impl From<attestation_data::Attribute> for AttributeValue {
     fn from(value: attestation_data::Attribute) -> Self {
         match value {
             attestation_data::Attribute::Bool(value) => AttributeValue::Boolean { value },
-            attestation_data::Attribute::Number(value) => AttributeValue::Number {
-                value: value.as_i64().unwrap(), // TODO this should be a f64
-            },
+            attestation_data::Attribute::Number(value) => AttributeValue::Number { value },
             attestation_data::Attribute::Text(value) => AttributeValue::String { value },
             attestation_data::Attribute::Null => AttributeValue::Null,
             attestation_data::Attribute::Array(entries) => AttributeValue::Array {
                 value: entries.into_iter().map(AttributeValue::from).collect(),
             },
-            // TODO these should get their own types
-            attestation_data::Attribute::Date(date_time) => AttributeValue::String {
-                value: date_time.to_string(),
+            attestation_data::Attribute::Date(date) => AttributeValue::Date {
+                value: date.format("%Y-%m-%d").to_string(),
             },
-            attestation_data::Attribute::Bytes(bytes) => AttributeValue::String {
-                value: hex::encode(bytes),
+            attestation_data::Attribute::Bytes(bytes) => match Image::try_jpeg_from_bytes(bytes) {
+                Ok(value) => AttributeValue::Image { value },
+                Err(value) => AttributeValue::Bytes { value },
             },
-            attestation_data::Attribute::Object(entries) => AttributeValue::Array {
+            attestation_data::Attribute::Object(entries) => AttributeValue::Map {
                 value: entries
                     .into_iter()
-                    .map(|(key, value)| AttributeValue::String {
-                        value: format!("{}: {}", key, value),
-                    })
+                    .map(|(key, value)| (key, Box::new(value.into())))
                     .collect(),
             },
         }

@@ -26,11 +26,11 @@ use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
-#[derive(Debug, Clone, Display, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Display, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "lowercase")]
 pub enum Attribute {
     Null,
-    Number(serde_json::Number),
+    Number(i64),
     Bool(bool),
     Text(String),
     #[display("[{}]", _0.iter().join(", "))]
@@ -51,9 +51,6 @@ pub enum AttributeError {
 
     #[error("unable to convert integer to cbor: {0}")]
     NumberFromCborIntegerConversion(#[source] TryFromIntError),
-
-    #[error("unable to convert float {0} to cbor")]
-    NumberFromFloatConversion(f64),
 
     #[error("unable to convert claim value: {0:?}")]
     FromClaimValueConversion(Box<ClaimValue>),
@@ -86,12 +83,22 @@ pub enum AttributesError {
     NestedWithinNamespace(String, String),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ClaimValueError {
+    #[error("claim name error: {0}")]
+    ClaimName(ClaimNameError),
+
+    #[error("Date to ClaimValue conversion not supported: {0}")]
+    DateConversion(chrono::NaiveDate),
+
+    #[error("Bytes to ClaimValue conversion not supported: {0:?}")]
+    BytesConversion(Vec<u8>),
+}
+
 impl From<Attribute> for ciborium::Value {
     fn from(value: Attribute) -> Self {
         match value {
-            Attribute::Number(number) if let Some(i) = number.as_i64() => ciborium::Value::Integer(i.into()),
-            Attribute::Number(number) if let Some(f) = number.as_f64() => ciborium::Value::Float(f),
-            Attribute::Number(_) => unimplemented!("number should be either i64 or f64"),
+            Attribute::Number(number) => ciborium::Value::Integer(number.into()),
             Attribute::Bool(boolean) => ciborium::Value::Bool(boolean),
             Attribute::Text(text) => ciborium::Value::Text(text),
             Attribute::Null => ciborium::Value::Null,
@@ -110,12 +117,12 @@ impl From<Attribute> for ciborium::Value {
 }
 
 impl TryFrom<Attribute> for ClaimValue {
-    type Error = ClaimNameError;
+    type Error = ClaimValueError;
 
     fn try_from(value: Attribute) -> Result<Self, Self::Error> {
         match value {
             Attribute::Null => Ok(ClaimValue::Null),
-            Attribute::Number(number) => Ok(ClaimValue::Number(number)),
+            Attribute::Number(number) => Ok(ClaimValue::Number(number.into())),
             Attribute::Bool(boolean) => Ok(ClaimValue::Bool(boolean)),
             Attribute::Text(text) => Ok(ClaimValue::String(text)),
             Attribute::Array(elements) => Ok(ClaimValue::Array(
@@ -125,8 +132,8 @@ impl TryFrom<Attribute> for ClaimValue {
                     .try_collect()?,
             )),
             Attribute::Object(map) => map_to_claim_value(map),
-            Attribute::Date(_) => unimplemented!("Attribute::Date to ClaimValue conversion not supported"),
-            Attribute::Bytes(_) => unimplemented!("Attribute::Bytes to ClaimValue conversion not supported"),
+            Attribute::Date(date) => Err(ClaimValueError::DateConversion(date)),
+            Attribute::Bytes(bytes) => Err(ClaimValueError::BytesConversion(bytes)),
         }
     }
 }
@@ -139,12 +146,7 @@ impl TryFrom<ciborium::Value> for Attribute {
             ciborium::Value::Text(text) => Ok(Attribute::Text(text)),
             ciborium::Value::Bool(bool) => Ok(Attribute::Bool(bool)),
             ciborium::Value::Integer(integer) => Ok(Attribute::Number(
-                i64::try_from(integer)
-                    .map_err(AttributeError::NumberFromCborIntegerConversion)?
-                    .into(),
-            )),
-            ciborium::Value::Float(float) => Ok(Attribute::Number(
-                Number::from_f64(float).ok_or(AttributeError::NumberFromFloatConversion(float))?,
+                i64::try_from(integer).map_err(AttributeError::NumberFromCborIntegerConversion)?,
             )),
             ciborium::Value::Null => Ok(Attribute::Null),
             ciborium::Value::Array(elements) => Ok(Attribute::Array(
@@ -184,7 +186,11 @@ impl TryFrom<ClaimValue> for Attribute {
     fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
         match value {
             ClaimValue::Null => Ok(Attribute::Null),
-            ClaimValue::Number(number) => Ok(Attribute::Number(number)),
+            ClaimValue::Number(number) => {
+                Ok(Attribute::Number(number.as_i64().ok_or_else(|| {
+                    AttributeError::NumberFromClaimValueConversion(number)
+                })?))
+            }
             ClaimValue::Bool(boolean) => Ok(Attribute::Bool(boolean)),
             ClaimValue::String(text) => Ok(Attribute::Text(text)),
             ClaimValue::Array(elements) => Ok(Attribute::Array(
@@ -196,47 +202,45 @@ impl TryFrom<ClaimValue> for Attribute {
                     })
                     .try_collect()?,
             )),
-            ClaimValue::Object(object_claims) => Ok(Attribute::Object(object_claims_to_attributes(object_claims)?.0)),
+            ClaimValue::Object(object_claims) => Ok(Attribute::Object(object_claims_to_map(object_claims)?)),
         }
     }
 }
 
 impl TryFrom<Attributes> for ClaimValue {
-    type Error = ClaimNameError;
+    type Error = ClaimValueError;
 
     fn try_from(value: Attributes) -> Result<Self, Self::Error> {
         map_to_claim_value(value.0)
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize, AsRef, From)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, AsRef, From)]
 pub struct Attributes(IndexMap<String, Attribute>);
 
 impl TryFrom<ObjectClaims> for Attributes {
     type Error = AttributesError;
 
     fn try_from(value: ObjectClaims) -> Result<Self, Self::Error> {
-        Ok(object_claims_to_attributes(value)?)
+        Ok(Attributes(object_claims_to_map(value)?))
     }
 }
 
-fn object_claims_to_attributes(object_claims: ObjectClaims) -> Result<Attributes, AttributeError> {
-    Ok(Attributes(
-        object_claims
-            .claims
-            .into_iter()
-            .map(|(k, v)| Ok((k.into_inner(), v.try_into()?)))
-            .collect::<Result<_, AttributeError>>()?,
-    ))
+fn object_claims_to_map(object_claims: ObjectClaims) -> Result<IndexMap<String, Attribute>, AttributeError> {
+    object_claims
+        .claims
+        .into_iter()
+        .map(|(k, v)| Ok((k.into_inner(), v.try_into()?)))
+        .collect::<Result<_, AttributeError>>()
 }
 
-fn map_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
+fn map_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimValueError> {
     Ok(ClaimValue::Object(ObjectClaims {
         _sd: None,
         claims: attributes
             .into_iter()
-            .map(|(k, v)| Ok((k.parse()?, v.try_into()?)))
-            .collect::<Result<_, ClaimNameError>>()?,
+            .map(|(k, v)| Ok((k.parse().map_err(ClaimValueError::ClaimName)?, v.try_into()?)))
+            .collect::<Result<_, ClaimValueError>>()?,
     }))
 }
 
@@ -251,7 +255,8 @@ impl Attributes {
         self.0
     }
 
-    /// Returns a flattened view of the attribute values
+    /// Returns a flattened view of the attributes. The keys are the attribute paths, and the values are leaf
+    /// attributes. These leafs are never object attributes.
     pub fn flattened(&self) -> IndexMap<VecNonEmpty<&str>, &Attribute> {
         /// Recursive depth first traversal helper to flatten all leaf nodes.
         ///
@@ -396,8 +401,9 @@ impl Attributes {
     pub fn claim_paths(&self, behaviour: AttributesTraversalBehaviour) -> Vec<VecNonEmpty<ClaimPath>> {
         /// Recursive depth first traversal helper to collect all claim paths from nested attributes.
         ///
-        /// Depth first is necessary because the SD-JWT conceal functionality for leaves doesn't work properly if the
-        /// parent node is already concealed (and therefore not present anymore in the resulting claims).
+        /// Depth first is necessary because the SD-JWT conceal functionality for leafs (any attribute that is not an
+        /// object) doesn't work properly if the parent node is already concealed (and therefore not present
+        /// anymore in the resulting claims).
         ///
         /// - `prefix` is the path to the current level
         /// - `attrs` are the attributes at the current nesting level
@@ -421,12 +427,9 @@ impl Attributes {
                 }
 
                 match (attr, behaviour) {
-                    (Attribute::Object(_), AttributesTraversalBehaviour::AllPaths) => {
-                        // Push current path after children have been processed (post-order)
-                        result.push(VecNonEmpty::try_from(path).unwrap());
-                    }
                     (Attribute::Object(_), AttributesTraversalBehaviour::OnlyLeaves) => {}
-                    (_, _) => {
+                    (Attribute::Object(_), AttributesTraversalBehaviour::AllPaths) | (_, _) => {
+                        // Push current path after children have been processed (post-order)
                         result.push(VecNonEmpty::try_from(path).unwrap());
                     }
                 }
@@ -438,9 +441,7 @@ impl Attributes {
         result
     }
 
-    /// Retrieve the attribute value at the specified location, if it exists.
-    ///
-    /// NB: for now only all claim paths must be strings.
+    /// Retrieve the non-object attribute value at the specified location, if it exists.
     pub fn get(&self, claim_paths: &VecNonEmpty<ClaimPath>) -> Result<Option<&Attribute>, AttributesHandlingError> {
         let Some(mut attr) = self.as_ref().get(
             claim_paths
@@ -492,8 +493,6 @@ impl Attributes {
     }
 
     /// Insert the specified attribute at the specified location.
-    ///
-    /// NB: for now only all claim paths must be strings.
     pub fn insert(
         &mut self,
         claim_paths: &VecNonEmpty<ClaimPath>,
