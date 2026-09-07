@@ -191,6 +191,243 @@
         { "locale": "en-US", "label": "Owners", "description": "Owner(s) of the vehicle" }
       ],
       "sd": "always"
+    },
+    {
+      "path": ["users"],
+      "display": [
+        { "locale": "nl-NL", "label": "Gebruikers", "description": "Geregistreerde gebruiker(s) van het voertuig" },
+        { "locale": "en-US", "label": "Users", "description": "Registered user(s) of the vehicle" }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["mass_info", "techn_perm_max_laden_mass"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Max. technisch toelaatbare massa",
+          "description": "Technisch toelaatbare maximum massa in bedrijf (kg)"
+        },
+        {
+          "locale": "en-US",
+          "label": "Technically permissible maximum laden mass",
+          "description": "Maximum technically permissible laden mass, in kg"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["mass_info", "vehicle_max_mass"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Toegestane maximum massa",
+          "description": "Maximum toegestane massa van het voertuig in bedrijf (kg)"
+        },
+        {
+          "locale": "en-US",
+          "label": "Vehicle maximum mass",
+          "description": "Maximum permissible laden mass of the vehicle in service, in kg"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["mass_info", "mass_in_running_order"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Massa rijklaar",
+          "description": "Massa van het voertuig in bedrijf, inclusief carrosserie (kg)"
+        },
+        {
+          "locale": "en-US",
+          "label": "Mass in running order",
+          "description": "Mass of the vehicle in service with bodywork, in kg"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["mass_info", "mass_in_running_order_variable_min"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Massa rijklaar (min.)",
+          "description": "Minimale variabele massa rijklaar (kg)"
+        },
+        {
+          "locale": "en-US",
+          "label": "Mass in running order (min)",
+          "description": "Minimum variable mass in running order, in kg"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["mass_info", "mass_in_running_order_variable_max"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Massa rijklaar (max.)",
+          "description": "Maximale variabele massa rijklaar (kg)"
+        },
+        {
+          "locale": "en-US",
+          "label": "Mass in running order (max)",
+          "description": "Maximum variable mass in running order, in kg"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["towed_trailer_mass_info", "tech_perm_max_tow_mass"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Max. massa aanhangwagen",
+          "description": "Technisch toelaatbare maximum massa van de aanhangwagen (kg)"
+        },
+        {
+          "locale": "en-US",
+          "label": "Technically permissible max. towable mass",
+          "description": "Technically permissible maximum towable mass of the trailer, in kg"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["towed_trailer_mass_info", "technically_permissible_maximum_combination_mass"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Max. massa combinatie",
+          "description": "Technisch toelaatbare maximum massa van de samenstelling (kg)"
+        },
+        {
+          "locale": "en-US",
+          "label": "Technically permissible maximum combination mass",
+          "description": "Technically permissible maximum combination mass, in kg"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["towed_trailer_mass_info", "braked_type_trail_code"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Remtype aanhangwagen",
+          "description": "Classificatie van het remtype van de aanhangwagen"
+        },
+        {
+          "locale": "en-US",
+          "label": "Trailer brake type",
+          "description": "Brake type classification of the trailer"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["towed_trailer_mass_info", "type_trailer_code"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Type aanhangwagen",
+          "description": "Classificatie van het type aanhangwagen"
+        },
+        { "locale": "en-US", "label": "Trailer type", "description": "Trailer type classification" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["engine_info", "engine_number"],
+      "display": [
+        { "locale": "nl-NL", "label": "Motornummer", "description": "Identificatienummer van de motor" },
+        { "locale": "en-US", "label": "Engine number", "description": "Engine identification number" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["engine_info", "engine_capacity"],
+      "display": [
+        { "locale": "nl-NL", "label": "Cilinderinhoud", "description": "Cilinderinhoud van de motor (cm3)" },
+        { "locale": "en-US", "label": "Engine capacity", "description": "Engine capacity, in cm3" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["engine_info", "engine_power"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Motorvermogen",
+          "description": "Maximum netto vermogen van de motor (kW)"
+        },
+        { "locale": "en-US", "label": "Engine power", "description": "Maximum net power, in kW" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["engine_info", "class_of_hybrid_vehicle_code"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Hybrideklasse",
+          "description": "Classificatie van het type hybride voertuig"
+        },
+        {
+          "locale": "en-US",
+          "label": "Class of hybrid vehicle",
+          "description": "Class of hybrid vehicle classification"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["engine_info", "energy_sources"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Brandstof/energiebron",
+          "description": "Type brandstof of energiebron van het voertuig"
+        },
+        { "locale": "en-US", "label": "Energy sources", "description": "Type of fuel or power source" }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["seating_info", "number_of_seating_positions_including_driver"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Aantal zitplaatsen",
+          "description": "Aantal zitplaatsen, inclusief de bestuurdersplaats"
+        },
+        {
+          "locale": "en-US",
+          "label": "Number of seating positions",
+          "description": "Number of seats, including the driver's seat"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["seating_info", "number_of_standing_places"],
+      "display": [
+        {
+          "locale": "nl-NL",
+          "label": "Aantal staanplaatsen",
+          "description": "Aantal staanplaatsen, indien van toepassing"
+        },
+        {
+          "locale": "en-US",
+          "label": "Number of standing places",
+          "description": "Number of standing places, where appropriate"
+        }
+      ],
+      "sd": "always"
     }
   ]
 }

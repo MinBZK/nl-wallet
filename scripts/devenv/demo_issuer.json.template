@@ -308,6 +308,53 @@
                   }
                 }
               ]
+            },
+            "users": {
+              "type": "object",
+              "value": {
+                "family_name": { "type": "text", "value": "Jansen" },
+                "given_name": { "type": "text", "value": "Frouke" },
+                "full_address": {
+                  "type": "object",
+                  "value": {
+                    "address": { "type": "text", "value": "Hoofdstraat 12" },
+                    "city": { "type": "text", "value": "Zoetermeer" },
+                    "postal_code": { "type": "text", "value": "2711 AB" },
+                    "country": { "type": "text", "value": "NL" }
+                  }
+                }
+              }
+            },
+            "mass_info": {
+              "type": "object",
+              "value": {
+                "techn_perm_max_laden_mass": { "type": "number", "value": 1900 },
+                "vehicle_max_mass": { "type": "number", "value": 1900 },
+                "mass_in_running_order": { "type": "number", "value": 1320 }
+              }
+            },
+            "towed_trailer_mass_info": {
+              "type": "object",
+              "value": {
+                "tech_perm_max_tow_mass": { "type": "number", "value": 1500 },
+                "braked_type_trail_code": { "type": "text", "value": "braked" }
+              }
+            },
+            "engine_info": {
+              "type": "object",
+              "value": {
+                "engine_number": { "type": "text", "value": "CJZ123456" },
+                "engine_capacity": { "type": "number", "value": 1968 },
+                "engine_power": { "type": "number", "value": 110 },
+                "energy_sources": { "type": "text", "value": "diesel" }
+              }
+            },
+            "seating_info": {
+              "type": "object",
+              "value": {
+                "number_of_seating_positions_including_driver": { "type": "number", "value": 5 },
+                "number_of_standing_places": { "type": "number", "value": 0 }
+              }
             }
           }
         }
