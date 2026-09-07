@@ -52,9 +52,6 @@ pub enum AttributeError {
     #[error("unable to convert integer to cbor: {0}")]
     NumberFromCborIntegerConversion(#[source] TryFromIntError),
 
-    #[error("unable to convert float {0} to cbor")]
-    NumberFromFloatConversion(f64),
-
     #[error("unable to convert claim value: {0:?}")]
     FromClaimValueConversion(Box<ClaimValue>),
 
