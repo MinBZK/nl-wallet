@@ -279,7 +279,12 @@
             "un_distinguishing_sign": { "type": "text", "value": "NL" },
             "date_of_registration": { "type": "date", "value": "2023-01-10" },
             "date_of_first_registration": { "type": "date", "value": "2023-01-10" },
-            "chassis_number": { "type": "text", "value": "WVWZZZ1JZXW000001" },
+            "chassis_number_info": {
+              "type": "object",
+              "value": {
+                "vehicle_identification_number": { "type": "text", "value": "WVWZZZ1JZXW000001" }
+              }
+            },
             "basic_vehicle_info": {
               "type": "object",
               "value": {
@@ -310,20 +315,25 @@
               ]
             },
             "users": {
-              "type": "object",
-              "value": {
-                "family_name": { "type": "text", "value": "Jansen" },
-                "given_name": { "type": "text", "value": "Frouke" },
-                "full_address": {
+              "type": "array",
+              "value": [
+                {
                   "type": "object",
                   "value": {
-                    "address": { "type": "text", "value": "Hoofdstraat 12" },
-                    "city": { "type": "text", "value": "Zoetermeer" },
-                    "postal_code": { "type": "text", "value": "2711 AB" },
-                    "country": { "type": "text", "value": "NL" }
+                    "family_name": { "type": "text", "value": "Jansen" },
+                    "given_name": { "type": "text", "value": "Frouke" },
+                    "full_address": {
+                      "type": "object",
+                      "value": {
+                        "address": { "type": "text", "value": "Hoofdstraat 12" },
+                        "city": { "type": "text", "value": "Zoetermeer" },
+                        "postal_code": { "type": "text", "value": "2711 AB" },
+                        "country": { "type": "text", "value": "NL" }
+                      }
+                    }
                   }
                 }
-              }
+              ]
             },
             "mass_info": {
               "type": "object",

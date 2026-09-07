@@ -151,7 +151,7 @@
       "mandatory": true
     },
     {
-      "path": ["chassis_number"],
+      "path": ["chassis_number_info", "vehicle_identification_number"],
       "display": [
         { "locale": "nl-NL", "label": "Chassisnummer", "description": "Voertuigidentificatienummer (VIN)" },
         { "locale": "en-US", "label": "Chassis number", "description": "Vehicle identification number (VIN)" }
