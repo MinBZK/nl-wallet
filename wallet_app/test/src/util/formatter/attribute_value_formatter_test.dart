@@ -65,7 +65,7 @@ void main() {
         AttributeValueFormatter.formatWithLocale(_kLocale, _kVehicleOwner, inline: true),
         'Achternaam: Jansen, '
         'Voornaam: Frouke, '
-        'Straat: Hoofdstraat 12, '
+        'Adres: Hoofdstraat 12, '
         'Plaats: Zoetermeer, '
         'Postcode: 2711 AB, '
         'Land: NL',
@@ -78,7 +78,7 @@ void main() {
         AttributeValueFormatter.formatWithLocale(_kLocale, _kVehicleOwner),
         'Achternaam: Jansen\n'
         'Voornaam: Frouke\n'
-        'Straat: Hoofdstraat 12\n'
+        'Adres: Hoofdstraat 12\n'
         'Plaats: Zoetermeer\n'
         'Postcode: 2711 AB\n'
         'Land: NL',

@@ -275,7 +275,7 @@
     "cardValueEmptyList": "Left empty",
     "cardValueFalse": "No",
     "cardValueImage": "Photo",
-    "cardValueMapKeyAddress": "Street",
+    "cardValueMapKeyAddress": "Address",
     "cardValueMapKeyCity": "City",
     "cardValueMapKeyCountry": "Country",
     "cardValueMapKeyExpiryDate": "Expiry date",
