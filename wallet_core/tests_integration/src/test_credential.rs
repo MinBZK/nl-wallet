@@ -27,7 +27,7 @@ fn new_nl_pid<'a>(
     query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
     mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
 ) -> TestCredential {
-    let (_, metadata_documents) = eudi_nl_pid_type_metadata_documents();
+    let (_, type_metadata_documents) = eudi_nl_pid_type_metadata_documents();
 
     TestCredential::new(
         PreviewableCredentialPayload {
@@ -39,7 +39,7 @@ fn new_nl_pid<'a>(
             )
         },
         mock_pid_mdoc_example(),
-        metadata_documents,
+        Some(type_metadata_documents),
         query_id.parse().unwrap(),
         query_claim_paths,
         mdoc_query_claim_paths,

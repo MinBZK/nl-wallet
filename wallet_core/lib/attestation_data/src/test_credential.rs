@@ -37,7 +37,6 @@ use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::generator::mock::MockTimeGenerator;
@@ -60,7 +59,8 @@ pub struct TestCredentials(VecNonEmpty<TestCredential>);
 
 /// This type can be used when testing disclosure of credentials. It contains the following:
 ///
-/// * A source credential and its metadata.
+/// * A source credential.
+/// * Type metadata for SD-JWT credentials. For mdoc disclosure, no metadata is needed.
 /// * A subset of the the attributes of this credential, to be disclosed.
 /// * An identifier for a generated credential query.
 ///
@@ -77,7 +77,7 @@ pub struct TestCredential {
     payload_preview: PreviewableCredentialPayload,
     mdoc_attributes: Attributes,
     #[debug(skip)]
-    metadata_documents: TypeMetadataDocuments,
+    type_metadata_documents: Option<TypeMetadataDocuments>,
     query_id: CredentialQueryIdentifier,
     disclosure_attributes: Attributes,
     mdoc_disclosure_attributes: Attributes,
@@ -203,7 +203,7 @@ impl TestCredential {
     pub fn new<'a>(
         payload_preview: PreviewableCredentialPayload,
         mdoc_attributes: Attributes,
-        metadata_documents: TypeMetadataDocuments,
+        type_metadata_documents: Option<TypeMetadataDocuments>,
         query_id: CredentialQueryIdentifier,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
         mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
@@ -233,7 +233,7 @@ impl TestCredential {
         Self {
             payload_preview,
             mdoc_attributes,
-            metadata_documents,
+            type_metadata_documents,
             query_id,
             disclosure_attributes,
             mdoc_disclosure_attributes,
@@ -305,44 +305,32 @@ impl TestCredential {
         }
     }
 
-    fn metadata_integrity(&self) -> Integrity {
-        Integrity::from(self.metadata_documents.as_ref().first())
-    }
-
     fn to_credential_payload(
         &self,
         wscd: &impl AsRef<MockRemoteWscd>,
-    ) -> (CredentialPayload, String, NormalizedTypeMetadata) {
+        attributes: Attributes,
+        vct_integrity: Option<Integrity>,
+    ) -> (CredentialPayload, String) {
         let holder_key = wscd.as_ref().create_random_key();
-        let (normalized_metadata, _) = self
-            .metadata_documents
-            .clone()
-            .into_normalized(&self.payload_preview.attestation_type)
-            .expect("TestCredential metadata documents should normalize");
 
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
-            self.payload_preview.clone(),
+            PreviewableCredentialPayload {
+                attributes,
+                ..self.payload_preview.clone()
+            },
             Utc::now(),
             &PublicKey::from(*holder_key.verifying_key()),
-            Some(self.metadata_integrity()),
+            vct_integrity,
             self.status.clone(),
         )
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
-        (credential_payload, holder_key.identifier, normalized_metadata)
+        (credential_payload, holder_key.identifier)
     }
 
     pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (Mdoc, String) {
-        let (credential_payload, holder_key_identifier, _) = self.to_credential_payload(wscd);
-
-        // An mdoc addresses its attributes by namespace and element identifier, so it carries its own set.
-        let credential_payload = CredentialPayload {
-            previewable_payload: PreviewableCredentialPayload {
-                attributes: self.mdoc_attributes.clone(),
-                ..credential_payload.previewable_payload
-            },
-            ..credential_payload
-        };
+        let (credential_payload, holder_key_identifier) =
+            self.to_credential_payload(wscd, self.mdoc_attributes.clone(), None);
 
         let (issuer_signed, mso) = credential_payload
             .into_signed_mdoc(issuer_keypair)
@@ -354,7 +342,18 @@ impl TestCredential {
     }
 
     pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
-        let (credential_payload, holder_key_identifier, normalized_metadata) = self.to_credential_payload(wscd);
+        let type_metadata_documents = self
+            .type_metadata_documents
+            .clone()
+            .expect("TestCredential should carry Type Metadata documents to be issued as an SD-JWT");
+
+        let vct_integrity = Integrity::from(type_metadata_documents.as_ref().first());
+        let (normalized_metadata, _) = type_metadata_documents
+            .into_normalized(&self.payload_preview.attestation_type)
+            .expect("TestCredential Type Metadata documents should normalize");
+
+        let (credential_payload, holder_key_identifier) =
+            self.to_credential_payload(wscd, self.payload_preview.attributes.clone(), Some(vct_integrity));
 
         let sd_jwt = credential_payload
             .into_signed_sd_jwt(&normalized_metadata, issuer_keypair)
@@ -452,12 +451,12 @@ impl TestCredential {
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
         mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
     ) -> Self {
-        let (_, metadata_documents) = TypeMetadataDocuments::nl_pid_example();
+        let (_, type_metadata_documents) = TypeMetadataDocuments::nl_pid_example();
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             Attributes::nl_pid_mdoc_example(),
-            metadata_documents,
+            Some(type_metadata_documents),
             query_id.parse().unwrap(),
             query_claim_paths,
             mdoc_query_claim_paths,
@@ -514,12 +513,12 @@ impl TestCredential {
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
         mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
     ) -> Self {
-        let (_, metadata_documents) = TypeMetadataDocuments::nl_address_example();
+        let (_, type_metadata_documents) = TypeMetadataDocuments::nl_address_example();
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
             Attributes::nl_pid_address_mdoc_example(),
-            metadata_documents,
+            Some(type_metadata_documents),
             query_id.parse().unwrap(),
             query_claim_paths,
             mdoc_query_claim_paths,
