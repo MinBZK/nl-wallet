@@ -332,7 +332,7 @@ fn create_wallet_configuration() -> WalletConfiguration {
 
 /// Generates a valid certificate for the `Wallet`.
 pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
-    SignedJwt::sign_with_sub(
+    SignedJwt::sign_with_sub_and_kid(
         valid_certificate_claims(wallet_id, hw_pubkey),
         &ACCOUNT_SERVER_KEYS.certificate_signing_key,
     )

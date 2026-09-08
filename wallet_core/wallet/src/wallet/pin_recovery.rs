@@ -542,7 +542,7 @@ mod tests {
     use uuid::Uuid;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
-    use wallet_account::messages::registration::WalletCertificateClaims;
+    use wallet_account::messages::registration::WalletCertificate;
     use wscd::wscd::IssuanceWscd;
 
     use super::PinRecoveryError;
@@ -1075,7 +1075,7 @@ mod tests {
     }
 
     impl PinRecoveryWscd for MockPinWscd {
-        fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>> {
+        fn certificates(self) -> Vec<WalletCertificate> {
             vec![UnverifiedJwt::from_str("a.b.c").unwrap()]
         }
     }
