@@ -8,6 +8,8 @@ use std::time::Duration;
 use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
+use chrono::DateTime;
+use chrono::Utc;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
@@ -39,15 +41,16 @@ use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_provider_persistence::database::ConnectionOptions;
+use wallet_provider_service::keys::Kid;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
-    pub certificate_signing_key_identifier: String,
+    pub current_certificate_kid: Kid,
+    pub previous_certificate_kids: Option<HashMap<Kid, DateTime<Utc>>>,
     pub instruction_result_signing_key_identifier: String,
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
-    pub pin_public_disclosure_protection_key_identifier: String,
     pub revocation_code_key_identifier: String,
     pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
     pub database: DatabaseSettings,
@@ -181,17 +184,12 @@ fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Resu
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
-            .set_default("certificate_signing_key_identifier", "certificate_signing_key")?
             .set_default(
                 "instruction_result_signing_key_identifier",
                 "instruction_result_signing_key",
             )?
             .set_default("attestation_wrapping_key_identifier", "attestation_wrapping_key")?
             .set_default("pin_pubkey_encryption_key_identifier", "pin_pubkey_encryption_key")?
-            .set_default(
-                "pin_public_disclosure_protection_key_identifier",
-                "pin_public_disclosure_protection_key",
-            )?
             .set_default("revocation_code_key_identifier", "revocation_code_key")?
             .set_default("wia_status_list.list_size", 100_000)?
             .set_default("wia_status_list.create_threshold_ratio", 0.01)?

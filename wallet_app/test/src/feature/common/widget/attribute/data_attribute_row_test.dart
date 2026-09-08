@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/attribute/data_attribute_row.dart';
 
@@ -92,6 +93,115 @@ void main() {
         surfaceSize: kGoldenSize,
       );
       await screenMatchesGolden('data_attribute_row/date_value');
+    });
+
+    testGoldens('Image', (tester) async {
+      // Portrait aspect ratio, so that the width derived from the bounded height is visible.
+      const portraitSvg = '''
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+          <rect width="300" height="400" fill="#E4EBFB"/>
+          <circle cx="150" cy="150" r="70" fill="#0E47CB"/>
+          <path d="M30 400c0-70 54-120 120-120s120 50 120 120z" fill="#0E47CB"/>
+        </svg>
+      ''';
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Portrait',
+            value: const ImageValue(SvgImage(portraitSvg)),
+            key: 'mock_image',
+          ),
+        ),
+        surfaceSize: const Size(220, 212),
+      );
+      await screenMatchesGolden('data_attribute_row/image_value');
+    });
+
+    testGoldens('Image (ultra wide)', (tester) async {
+      const ultraWideSvg = '''
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 100" width="1200" height="100">
+          <rect width="1200" height="100" fill="#E4EBFB"/>
+          <circle cx="600" cy="50" r="40" fill="#0E47CB"/>
+        </svg>
+      ''';
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Ultra wide',
+            value: const ImageValue(SvgImage(ultraWideSvg)),
+            key: 'mock_image',
+          ),
+        ),
+        surfaceSize: const Size(220, 60),
+      );
+      await screenMatchesGolden('data_attribute_row/image_value_ultra_wide');
+    });
+
+    testGoldens('Map', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Driving privilege',
+            value: MapValue({
+              'vehicle_category_code': const StringValue('B'),
+              'issue_date': DateValue(DateTime(2017, 2, 23)),
+            }),
+            key: 'mock_map',
+          ),
+        ),
+        surfaceSize: const Size(220, 72),
+      );
+      await screenMatchesGolden('data_attribute_row/map_value');
+    });
+
+    testGoldens('Array of maps with a grouping key (mVRC owners)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Owners',
+            value: const ArrayValue([
+              MapValue({
+                'family_name': StringValue('Jansen'),
+                'given_name': StringValue('Frouke'),
+                'full_address': MapValue({
+                  'address': StringValue('Hoofdstraat 12'),
+                  'city': StringValue('Zoetermeer'),
+                  'postal_code': StringValue('2711 AB'),
+                  'country': StringValue('NL'),
+                }),
+              }),
+            ]),
+            key: 'mock_owners',
+          ),
+        ),
+        surfaceSize: const Size(260, 160),
+      );
+      await screenMatchesGolden('data_attribute_row/array_of_maps_with_grouping_key');
+    });
+
+    testGoldens('Array of maps (driving_privileges)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Driving privileges',
+            value: ArrayValue([
+              MapValue({
+                'vehicle_category_code': const StringValue('AM'),
+                'issue_date': DateValue(DateTime(2018, 8, 9)),
+                'expiry_date': DateValue(DateTime(2024, 10, 20)),
+              }),
+              MapValue({
+                'vehicle_category_code': const StringValue('B'),
+                'issue_date': DateValue(DateTime(2017, 2, 23)),
+                'expiry_date': DateValue(DateTime(2024, 10, 20)),
+              }),
+            ]),
+            key: 'mock_driving_privileges',
+          ),
+        ),
+        surfaceSize: const Size(260, 180),
+      );
+      await screenMatchesGolden('data_attribute_row/array_of_maps');
     });
 
     testGoldens('Null', (tester) async {

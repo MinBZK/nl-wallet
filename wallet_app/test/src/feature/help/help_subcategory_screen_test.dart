@@ -18,24 +18,11 @@ void main() {
       // Title appears in the app bar and as the hero heading — just assert >=1.
       expect(find.text(WalletMockData.helpIntroductionSubcategory.title), findsWidgets);
 
-      final expectedTopics = WalletMockData.helpIntroductionSubcategory.groups
-          .expand((g) => g.topics)
-          .map((t) => t.title)
-          .toList();
+      final expectedTopics = WalletMockData.helpIntroductionSubcategory.topics.map((t) => t.title).toList();
       for (final title in expectedTopics) {
         expect(find.text(title), findsOneWidget);
       }
       expect(find.byType(MenuItem), findsNWidgets(expectedTopics.length));
-    });
-
-    testWidgets('renders localized group headings for each topic group', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        HelpSubcategoryScreen(subcategory: WalletMockData.helpIntroductionSubcategory),
-      );
-
-      // The introduction fixture has both a 'help' and an 'information' group.
-      expect(find.text('Help'), findsOneWidget);
-      expect(find.text('Information'), findsOneWidget);
     });
 
     testWidgets('tapping a topic pushes the helpTopicRoute', (tester) async {
@@ -43,7 +30,7 @@ void main() {
         HelpSubcategoryScreen(subcategory: WalletMockData.helpIntroductionSubcategory),
       );
 
-      final firstTopic = WalletMockData.helpIntroductionSubcategory.groups.first.topics.first;
+      final firstTopic = WalletMockData.helpIntroductionSubcategory.topics.first;
       await tester.tap(find.text(firstTopic.title));
       await tester.pumpAndSettle();
 

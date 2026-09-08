@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
@@ -176,11 +176,11 @@ pub fn create_example_credential_payload(
     let credential_payload = CredentialPayload::example_with_attributes(
         attestation_type,
         Attributes::example([
-            (["family_name"], AttributeValue::Text("De Bruijn".to_string())),
-            (["given_name"], AttributeValue::Text("Willeke Liselotte".to_string())),
-            (["birth_date"], AttributeValue::Text("1997-05-10".to_string())),
-            (["age_over_18"], AttributeValue::Bool(true)),
-            ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+            (["family_name"], Attribute::Text("De Bruijn".to_string())),
+            (["given_name"], Attribute::Text("Willeke Liselotte".to_string())),
+            (["birth_date"], Attribute::Text("1997-05-10".to_string())),
+            (["age_over_18"], Attribute::Bool(true)),
+            ([PID_RECOVERY_CODE], Attribute::Text("123".to_string())),
         ]),
         SigningKey::generate().verifying_key(),
         time_generator,
@@ -303,7 +303,7 @@ pub fn mdoc_from_credential_payload(
         StatusClaim::new_mock(),
     )
     .unwrap()
-    .into_signed_mdoc(issuer_keypair)
+    .into_signed_mdoc(issuer_keypair, None)
     .now_or_never()
     .unwrap()
     .unwrap();
@@ -338,7 +338,7 @@ fn create_wallet_configuration() -> WalletConfiguration {
 
 /// Generates a valid certificate for the `Wallet`.
 pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
-    SignedJwt::sign_with_sub(
+    SignedJwt::sign_with_sub_and_kid(
         valid_certificate_claims(wallet_id, hw_pubkey),
         &ACCOUNT_SERVER_KEYS.certificate_signing_key,
     )

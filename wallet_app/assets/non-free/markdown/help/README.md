@@ -16,15 +16,15 @@ help/
 ## Add a topic
 
 1. Pick a `topicId` — short, descriptive, e.g. `what_does_expired_mean`.
-2. List it under the right group in `help.yaml`:
+2. List it under the right subcategory in `help.yaml`:
 
    ```yaml
    - subcategoryId: status
-     topics:
-       - groupId: help            # 'help' or 'information'
-         topicIds:
-           - what_does_expired_mean
+     topicIds:
+       - what_does_expired_mean
    ```
+
+   Topics appear on screen in the order they are listed here.
 
 3. Add the title in both languages under `translations:`:
 

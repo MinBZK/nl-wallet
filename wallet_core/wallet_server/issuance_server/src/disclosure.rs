@@ -159,7 +159,6 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
@@ -232,11 +231,7 @@ mod tests {
             Ok(vec![
                 IssuableDocument::try_new_with_random_id(
                     CredentialKind::new(Format::SdJwt, attestation.attestation_type.clone()),
-                    IndexMap::from([(
-                        "university".to_string(),
-                        Attribute::Single(AttributeValue::Text("University".to_string())),
-                    )])
-                    .into(),
+                    IndexMap::from([("university".to_string(), Attribute::Text("University".to_string()))]).into(),
                 )
                 .expect("creating an IssuableDocument should not fail"),
             ])
@@ -280,6 +275,7 @@ mod tests {
             valid_days: Days::new(1),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),
+            mdoc_namespace: None,
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
 

@@ -342,11 +342,11 @@ mod tests {
                     "id": "mdl",
                     "format": "mso_mdoc",
                     "meta": {
-                        "doctype_value": "org.iso.7367.1.mVRC"
+                        "doctype_value": "org.iso.7367.2.1.mVC"
                     },
                     "multiple": true,
                     "claims": [
-                        { "path": [ "org.iso.7367.1", "vehicle_holder" ], "intent_to_retain": true },
+                        { "path": [ "org.iso.7367.2.1", "vehicle_holder" ], "intent_to_retain": true },
                         { "path": [ "org.iso.18013.5.1", "first_name" ], "values": [ "John" ] }
                     ]
                 }

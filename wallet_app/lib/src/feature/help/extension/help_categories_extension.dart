@@ -31,10 +31,8 @@ extension HelpCategoriesFindTopic on Iterable<HelpCategory> {
   String? findTopicTitle(String topicId) {
     for (final category in this) {
       for (final subcategory in category.subcategories) {
-        for (final group in subcategory.groups) {
-          for (final topic in group.topics) {
-            if (topic.id == topicId) return topic.title;
-          }
+        for (final topic in subcategory.topics) {
+          if (topic.id == topicId) return topic.title;
         }
       }
     }

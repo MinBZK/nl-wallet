@@ -113,6 +113,18 @@ sealed class AttributeValue with _$AttributeValue {
     required List<AttributeValue> value,
   }) = AttributeValue_Array;
   const factory AttributeValue.null_() = AttributeValue_Null;
+  const factory AttributeValue.date({
+    required String value,
+  }) = AttributeValue_Date;
+  const factory AttributeValue.bytes({
+    required Uint8List value,
+  }) = AttributeValue_Bytes;
+  const factory AttributeValue.image({
+    required Image value,
+  }) = AttributeValue_Image;
+  const factory AttributeValue.map({
+    required List<(String, AttributeValue)> value,
+  }) = AttributeValue_Map;
 }
 
 class ClaimDisplayMetadata {

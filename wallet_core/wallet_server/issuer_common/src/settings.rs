@@ -182,6 +182,13 @@ pub struct CredentialConfigurationSettings {
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
+
+    /// Overrides the root mdoc namespace used when issuing this attestation as `MsoMdoc`. This exists for attestation
+    /// types whose mdoc namespace is mandated by an external specification and differs from their doctype, e.g. ISO
+    /// 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace `org.iso.18013.5.1`. Must be left unset for
+    /// `SdJwt`.
+    #[serde(default)]
+    pub mdoc_namespace: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -344,6 +351,7 @@ impl CredentialConfigurationsSettings {
                             valid_days: Days::new(settings.valid_days),
                             issuer_uri,
                             attestation_qualification: settings.attestation_qualification,
+                            mdoc_namespace: settings.mdoc_namespace,
                             metadata_documents,
                         };
 
@@ -722,6 +730,7 @@ mod tests {
                     },
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(ISSUANCE_CERT_SAN_URI.as_ref().to_string().parse().unwrap()),
+                    mdoc_namespace: None,
                 },
             )])
             .into(),
@@ -835,6 +844,7 @@ mod tests {
                 },
                 attestation_qualification: Default::default(),
                 certificate_san: None,
+                mdoc_namespace: None,
             },
         )])
         .into();

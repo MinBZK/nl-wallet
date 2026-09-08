@@ -22,7 +22,7 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_types::claim_path::ClaimPath;
@@ -44,15 +44,16 @@ use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
-use jwt::JwtDecodingKey;
 use jwt::JwtSub;
 use jwt::JwtTyp;
+use jwt::PublicKeyByKid;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
+use jwt::headers::HeaderWithKid;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
@@ -127,6 +128,7 @@ use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
+use crate::keys::Kid;
 use crate::keys::WalletCertificateSigningKey;
 use crate::pin_policy::PinRecoveryPinPolicy;
 use crate::revocation::RevocationError;
@@ -506,14 +508,57 @@ pub struct AndroidAttestationConfiguration {
 }
 
 pub struct AccountServerKeys {
-    pub wallet_certificate_signing_pubkey: JwtDecodingKey,
+    pub wallet_certificate_signing_pubkeys: HashMap<Kid, CertificateSigningKeys>,
     pub pin_keys: AccountServerPinKeys,
     pub revocation_code_key_identifier: String,
 }
 
+/// View of certificate signing keys by KID, with expired keys filtered out.
+pub struct CertificateSigningKeysByKid<'a> {
+    keys: &'a HashMap<Kid, CertificateSigningKeys>,
+    now: DateTime<Utc>,
+}
+
+impl<'a> CertificateSigningKeysByKid<'a> {
+    pub fn new(keys: &'a HashMap<Kid, CertificateSigningKeys>, time: &impl Generator<DateTime<Utc>>) -> Self {
+        let now = time.generate();
+        Self { keys, now }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("public key expired: {0}")]
+pub struct KeyExpired(DateTime<Utc>);
+
+impl<'a> PublicKeyByKid for CertificateSigningKeysByKid<'a> {
+    type Error = KeyExpired;
+
+    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
+        let kid = match Kid::try_from(kid) {
+            Ok(kid) => kid,
+            Err(_) => return Ok(None),
+        };
+
+        let key = self.keys.get(&kid);
+        match key {
+            Some(key) if key.exp.is_none_or(|e| e > self.now) => Ok(Some(key.certificate_public_key.clone())),
+            Some(key) if let Some(exp) = key.exp => Err(KeyExpired(exp)),
+            // only reached if key.exp is `None`
+            _ => Ok(None),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CertificateSigningKeys {
+    pub exp: Option<DateTime<Utc>>,
+    pub certificate_public_key: PublicKey,
+    pub pin_hmac_key_identifier: String,
+}
+
 pub struct AccountServerPinKeys {
     pub encryption_key_identifier: String,
-    pub public_disclosure_protection_key_identifier: String,
+    pub hmac_key_identifier: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, From)]
@@ -537,7 +582,7 @@ impl RecoveryCodeConfig {
             .map(|path| {
                 let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
                 match disclosed_attributes.get(path).expect("constructed claim_path invalid") {
-                    Some(AttributeValue::Text(recovery_code)) => Ok(recovery_code.to_owned().into()),
+                    Some(Attribute::Text(recovery_code)) => Ok(recovery_code.to_owned().into()),
                     _ => Err(InstructionError::MissingRecoveryCode),
                 }
             })
@@ -591,7 +636,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             return Err(ChallengeError::WalletSolutionRevoked);
         }
 
-        let challenge = SignedJwt::sign_with_sub(
+        let challenge = SignedJwt::sign_with_sub_and_kid(
             RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32).into(),
                 random: crypto::utils::random_bytes(32),
@@ -613,6 +658,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         certificate_signing_key: &impl WalletCertificateSigningKey,
         registration_message: ChallengeResponse<Registration>,
         user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(WalletCertificate, RevocationCode), RegistrationError>
     where
         GRC: GoogleCrlProvider,
@@ -641,8 +687,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         // violation when writing the registration to the database below, should the Wallet Provider receive any
         // subsequent registration using the exact same challenge.
         let challenge = &unverified.challenge;
-        let wallet_id =
-            Self::verify_registration_challenge(&self.keys.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
+        let wallet_id = Self::verify_registration_challenge(
+            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, time),
+            challenge,
+        )?
+        .wallet_id;
 
         debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
 
@@ -852,7 +901,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.public_disclosure_protection_key_identifier,
+            &self.keys.pin_keys.hmac_key_identifier,
             certificate_signing_key,
             wallet_id,
             hw_pubkey,
@@ -893,7 +942,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &challenge_request.certificate,
-            &self.keys.wallet_certificate_signing_pubkey,
+            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, time_generator),
             allow_blocked,
             &user_state.repositories,
         )
@@ -1034,7 +1083,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &instruction.certificate,
-            &self.keys.wallet_certificate_signing_pubkey,
+            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, generators),
             false,
             &user_state.repositories,
         )
@@ -1166,7 +1215,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.public_disclosure_protection_key_identifier,
+            &self.keys.pin_keys.hmac_key_identifier,
             signing_keys.1,
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
@@ -1329,7 +1378,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.public_disclosure_protection_key_identifier,
+            &self.keys.pin_keys.hmac_key_identifier,
             certificate_signing_key,
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
@@ -1374,7 +1423,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, pin_pubkey) = verify_wallet_certificate(
             &instruction.certificate,
-            &self.keys.wallet_certificate_signing_pubkey,
+            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, generators),
             &self.keys.pin_keys,
             I::pin_checks_options(),
             pin_pubkey,
@@ -1540,14 +1589,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     }
 
     fn verify_registration_challenge(
-        certificate_signing_pubkey: &JwtDecodingKey,
+        certificate_signing_pubkeys: &CertificateSigningKeysByKid,
         challenge: &[u8],
     ) -> Result<RegistrationChallengeClaims, RegistrationError> {
-        let jwt: UnverifiedJwt<RegistrationChallengeClaims> = String::from_utf8(challenge.to_owned())
+        let jwt: UnverifiedJwt<RegistrationChallengeClaims, HeaderWithKid> = String::from_utf8(challenge.to_owned())
             .map_err(RegistrationError::ChallengeDecoding)?
             .parse()
             .map_err(RegistrationError::ChallengeParsing)?;
-        jwt.parse_and_verify_with_sub(certificate_signing_pubkey)
+        jwt.parse_and_verify_with_sub_by_kid(certificate_signing_pubkeys)
             .map_err(RegistrationError::ChallengeValidation)
             .map(|(_, claims)| claims)
     }
@@ -1750,6 +1799,8 @@ pub mod mock {
     use super::mock_play_integrity::MockPlayIntegrityClient;
     use super::*;
     use crate::flags::mock::StubWalletFlags;
+    use crate::keys::Kid;
+    use crate::keys::pin_hmac_key_identifier;
     use crate::wallet_certificate;
     use crate::wia_issuer::mock::MockWiaIssuer;
 
@@ -1799,6 +1850,7 @@ pub mod mock {
 
     pub fn setup_account_server(
         certificate_signing_pubkey: &VerifyingKey,
+        certificate_signing_kid: Kid,
         crl: RevocationStatusList,
     ) -> MockAccountServer {
         let integrity_client = MockPlayIntegrityClient::new(
@@ -1806,15 +1858,23 @@ pub mod mock {
             HashSet::from([crypto::utils::random_bytes(16)]),
         );
 
+        let hmac_key_identifier = pin_hmac_key_identifier(&certificate_signing_kid);
+
         AccountServer::new(
             "mock_account_server".into(),
             Duration::from_millis(15000),
             AccountServerKeys {
-                wallet_certificate_signing_pubkey: PublicKey::from(*certificate_signing_pubkey).into(),
+                wallet_certificate_signing_pubkeys: HashMap::from([(
+                    certificate_signing_kid,
+                    CertificateSigningKeys {
+                        exp: None,
+                        certificate_public_key: PublicKey::from(*certificate_signing_pubkey),
+                        pin_hmac_key_identifier: hmac_key_identifier.clone(),
+                    },
+                )]),
                 pin_keys: AccountServerPinKeys {
                     encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
-                    public_disclosure_protection_key_identifier:
-                        wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                    hmac_key_identifier,
                 },
                 revocation_code_key_identifier: wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER.to_string(),
             },
@@ -1997,6 +2057,7 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::collections::HashMap;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::Mutex;
@@ -2027,6 +2088,7 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
+    use jwt::KeyWithKid;
     use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -2096,7 +2158,9 @@ mod tests {
     use crate::flags::WalletFlags;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
+    use crate::keys::Kid;
     use crate::keys::WalletCertificateSigningKey;
+    use crate::keys::pin_hmac_key_identifier;
     use crate::wallet_certificate;
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -2240,7 +2304,12 @@ mod tests {
         };
 
         account_server
-            .register(certificate_signing_key, registration_message, &user_state)
+            .register(
+                certificate_signing_key,
+                registration_message,
+                &user_state,
+                &MockTimeGenerator::epoch(),
+            )
             .await
             .map(|(wallet_certificate, revocation_code)| {
                 let UserState {
@@ -2280,7 +2349,11 @@ mod tests {
         let wrapping_key_identifier = "my_wrapping_key_identifier".to_string();
 
         let setup = WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
+        let account_server = mock::setup_account_server(
+            &setup.signing_pubkey,
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
+            Default::default(),
+        );
 
         let attestation_ca = match attestation_type {
             AttestationType::Apple => AttestationCa::Apple(&MOCK_APPLE_CA),
@@ -2505,17 +2578,22 @@ mod tests {
             setup_and_do_registration(attestation_type).await;
 
         let (_, cert_data) = cert
-            .parse_and_verify_with_sub(&PublicKey::from(*setup.signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub_by_kid(&HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(*setup.signing_key.verifying_key()),
+            )]))
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.as_inner(), hw_privkey.verifying_key());
 
         let (wallet_user, _pin_pubkey) = verify_wallet_certificate(
             &cert,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -2542,7 +2620,11 @@ mod tests {
     async fn test_register_invalid_apple_attestation() {
         let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
+        let account_server = mock::setup_account_server(
+            &setup.signing_pubkey,
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
+            Default::default(),
+        );
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
         let other_apple_mock_ca = MockAttestationCa::generate();
@@ -2567,7 +2649,11 @@ mod tests {
     async fn test_register_invalid_android_key_attestation() {
         let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
+        let account_server = mock::setup_account_server(
+            &setup.signing_pubkey,
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
+            Default::default(),
+        );
 
         // Generate the Google certificate chain using a different set of CAs to make the attestation validation fail.
         let other_android_mock_ca_chain = MockCaChain::generate(1);
@@ -2592,7 +2678,11 @@ mod tests {
     async fn test_register_android_play_integrity_client_error() {
         let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
-        let mut account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
+        let mut account_server = mock::setup_account_server(
+            &setup.signing_pubkey,
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
+            Default::default(),
+        );
 
         // Have the Play Integrity client return an error.
         account_server.play_integrity_client.has_error = true;
@@ -2620,7 +2710,11 @@ mod tests {
     async fn test_register_invalid_android_integrity_verdict() {
         let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
-        let mut account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
+        let mut account_server = mock::setup_account_server(
+            &setup.signing_pubkey,
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
+            Default::default(),
+        );
 
         // Have the Play Integrity API expect a different package name.
         account_server.play_integrity_client = MockPlayIntegrityClient::new(
@@ -3123,10 +3217,12 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3140,10 +3236,12 @@ mod tests {
 
         verify_wallet_certificate(
             &new_cert,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3535,10 +3633,12 @@ mod tests {
 
         verify_wallet_certificate(
             &result.certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier:
-                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -3760,7 +3860,11 @@ mod tests {
             status_list_service: MockStatusListService::default(),
         };
         let setup = WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
+        let account_server = mock::setup_account_server(
+            &setup.signing_pubkey,
+            Kid::try_from(setup.pin_privkey.kid()).unwrap(),
+            Default::default(),
+        );
 
         (user_state, setup, account_server)
     }
@@ -3807,7 +3911,12 @@ mod tests {
 
         // Test register
         let err = account_server
-            .register(&setup.signing_key, registration_message, &user_state)
+            .register(
+                &setup.signing_key,
+                registration_message,
+                &user_state,
+                &MockTimeGenerator::epoch(),
+            )
             .await
             .expect_err("register should fail due to wallet solution revoked");
 
