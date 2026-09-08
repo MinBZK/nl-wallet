@@ -42,12 +42,12 @@
       "data": {
         "900253022": [
           {
-            "format": "dc+sd-jwt",
+            "format": "mso_mdoc",
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": { "type": "text", "value": "Holland University" },
               "education": { "type": "text", "value": "MSc Mathematics" },
-              "graduation_date": { "type": "text", "value": "1995-10-10" },
+              "graduation_date": { "type": "date", "value": "1995-10-10" },
               "grade": { "type": "number", "value": 9 },
               "cum_laude": { "type": "bool", "value": true }
             }
@@ -55,23 +55,23 @@
         ],
         "999991772": [
           {
-            "format": "dc+sd-jwt",
+            "format": "mso_mdoc",
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": { "type": "text", "value": "Holland University" },
               "education": { "type": "text", "value": "BSc Economics" },
-              "graduation_date": { "type": "text", "value": "2001-07-12" },
+              "graduation_date": { "type": "date", "value": "2001-07-12" },
               "grade": { "type": "number", "value": 8 },
               "cum_laude": { "type": "bool", "value": false }
             }
           },
           {
-            "format": "dc+sd-jwt",
+            "format": "mso_mdoc",
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": { "type": "text", "value": "Holland University" },
               "education": { "type": "text", "value": "MSc Economics" },
-              "graduation_date": { "type": "text", "value": "2004-07-01" },
+              "graduation_date": { "type": "date", "value": "2004-07-01" },
               "grade": { "type": "number", "value": 7 },
               "cum_laude": { "type": "bool", "value": false }
             }
@@ -79,12 +79,12 @@
         ],
         "999991905": [
           {
-            "format": "dc+sd-jwt",
+            "format": "mso_mdoc",
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": { "type": "text", "value": "Zealand University" },
               "education": { "type": "text", "value": "Leisure management" },
-              "graduation_date": { "type": "text", "value": "2010-08-31" },
+              "graduation_date": { "type": "date", "value": "2010-08-31" },
               "grade": { "type": "number", "value": 9 },
               "cum_laude": { "type": "bool", "value": true }
             }
