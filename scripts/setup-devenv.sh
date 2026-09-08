@@ -138,44 +138,16 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
 
   # Check for existing nl-rdo-max, re-use if existing, clone if not.
   if [[ -d "${DIGID_CONNECTOR_PATH}" ]]; then
-    echo -e "${INFO}Using existing nl-rdo-max repository, making sure we're at the requested version tag/branch${NC}"
+    echo -e "${INFO}Using existing nl-rdo-max repository, discarding changes and making sure we're at the requested version tag/branch${NC}"
 
-    # Git fetch first, so we have the latest available
+    # Git fetch first, so we have the latest available.
     git -C "${DIGID_CONNECTOR_PATH}" fetch
 
-    # Undo any changes to package.json and package-lock.json we know to be discardable.
-    DIGID_CONNECTOR_PACKAGE_CHANGES_HASH=aec3870a1961fe429ffc00e171c48e58e6607be988698b1921a5d3d715fca155
-    DIGID_CONNECTOR_PACKAGE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff package.json package-lock.json | sha256sum | awk '{print $1}')
-    if [[ "$DIGID_CONNECTOR_PACKAGE_CHANGES_HASH" == "$DIGID_CONNECTOR_PACKAGE_CHANGES_COMMAND" ]]; then
-        echo -e "${INFO}Reverting known package.json, package-lock.json changes${NC}"
-        git -C "${DIGID_CONNECTOR_PATH}" checkout -- package.json package-lock.json
-    fi
-
-    # Undo any changes to resources/css/app.scss and resources/js/app.js we know to be discardable.
-    DIGID_CONNECTOR_CODE_CHANGES_HASH=3df338dfbafd21c15fbab77d2e72188cc1be1e8f0bb3a1a1667ed11d14fcbb26
-    DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff resources/css/app.scss resources/js/app.js | sha256sum | awk '{print $1}')
-    if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
-        echo -e "${INFO}Reverting known resources/css/app.scss, resources/js/app.js changes${NC}"
-        git -C "${DIGID_CONNECTOR_PATH}" checkout -- resources/css/app.scss resources/js/app.js
-    fi
-
-    # Undo any changes to docker/Dockerfile we know to be discardable.
-    DIGID_CONNECTOR_CODE_CHANGES_HASH=5688d205ace5b775026f0fb4cbec24441811e53e84e6d9c66ac0d1c1fb20f488
-    DIGID_CONNECTOR_CODE_CHANGES_COMMAND=$(git -C "${DIGID_CONNECTOR_PATH}" diff docker/Dockerfile | sha256sum | awk '{print $1}')
-    if [[ "$DIGID_CONNECTOR_CODE_CHANGES_HASH" == "$DIGID_CONNECTOR_CODE_CHANGES_COMMAND" ]]; then
-        echo -e "${INFO}Reverting known docker/Dockerfile changes${NC}"
-        git -C "${DIGID_CONNECTOR_PATH}" checkout -- docker/Dockerfile
-    fi
-
-    # Warn user if any changes remain.
-    if [[ -n "$(git status --porcelain)" ]]; then
-        echo -e "${WARN}There are unknown changes in your nl-rdo-max repository, will attempt switch to ${DIGID_CONNECTOR_VERSION} anyway, but this might fail...${NC}"
-    fi
-
-    # Regardless any remaining changes, attempt to switch, catch error.
-    git -C "${DIGID_CONNECTOR_PATH}" checkout "${DIGID_CONNECTOR_VERSION}"
+    # Git switch to target branch forcibly, discarding any tracked changes.
+    git -C "${DIGID_CONNECTOR_PATH}" checkout -f "${DIGID_CONNECTOR_VERSION}"
 
   else
+    # Do a fresh git clone to DIGID_CONNECTOR_PATH.
     echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
     git clone -b "${DIGID_CONNECTOR_VERSION}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
   fi
@@ -183,14 +155,18 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   # Enter nl-rdo-max git repository.
   cd "${DIGID_CONNECTOR_PATH}"
 
+  # Brings v4.0.3 up to dockerfile-stage-fixes branch.
+  # Commits: v4.0.3 (c2b5915), main (70d1e46), current (d72ee52), fixes (5b28537).
+  echo -e "${INFO}Applying nl-rdo-max patches to ${DIGID_CONNECTOR_PATH} (${DIGID_CONNECTOR_VERSION})"
+  apply_patches_once "${DIGID_CONNECTOR_PATH}" \
+    "${DEVENV}/digid-connector/from-v403-to-main.patch" \
+    "${DEVENV}/digid-connector/from-main-to-current.patch" \
+    "${DEVENV}/digid-connector/from-current-to-fixes.patch" \
+    2> /dev/null
+
   # Don't use the rijksoverheid ui-theme.
+  echo -e "${INFO}Uninstalling rijksoverheid ui-theme"
   npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
-
-  # Workaround for groupadd existing group.
-  ${SED} -i 's|^RUN groupadd --system|RUN groupadd -f --system|' docker/Dockerfile
-
-  # Workaround for charset-normalizer Cython ABI mismatch in 3.4.x: force pure-Python reinstall.
-  ${SED} -i 's|pip3 install --no-cache-dir "charset-normalizer|pip3 install --no-cache-dir --no-binary charset-normalizer "charset-normalizer|' docker/Dockerfile
 
   # Make sure we use our single ca if USE_SINGLE_CA is set. This works because setup-secrets.sh, which is indirectly
   # called by make setup-remote later, will not replace a previously existing set of ca certificate files.

@@ -1,0 +1,335 @@
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+deleted file mode 100644
+index 404a7f1..0000000
+--- a/.github/dependabot.yml
++++ /dev/null
+@@ -1,38 +0,0 @@
+-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+-
+-version: 2
+-
+-registries:
+-  npm-github:
+-    type: npm-registry
+-    url: https://npm.pkg.github.com
+-    token: "${{ secrets.REPO_READ_ONLY_TOKEN }}"
+-
+-updates:
+-  # Maintain dependencies for GitHub Actions
+-  - package-ecosystem: "github-actions"
+-    directory: "/"
+-    schedule:
+-      interval: "weekly"
+-
+-  # Maintain dependencies for npm
+-  - package-ecosystem: "npm"
+-    directory: "/"
+-    registries:
+-      - npm-github
+-    schedule:
+-      interval: "weekly"
+-    groups:
+-      version-updates:
+-        update-types: ["patch", "minor"]
+-        patterns:
+-          - "*"
+-
+-  # Maintain dependencies for pip
+-  - package-ecosystem: "pip"
+-    directory: "/"
+-    schedule:
+-      interval: "weekly"
+-    groups:
+-      development-dependencies:
+-        dependency-type: "development"
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index bdc86da..fb05828 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -3,8 +3,8 @@ name: CI
+ on:
+   workflow_dispatch:
+   push:
+-    branches: [ main ]
+-    tags: [ v* ]
++    branches: [main]
++    tags: [v*]
+   pull_request:
+ 
+ concurrency:
+@@ -12,13 +12,13 @@ concurrency:
+   cancel-in-progress: true
+ 
+ env:
+-  CURRENTLY_USED_PYTHON_VERSION: '3.11.2'
++  CURRENTLY_USED_PYTHON_VERSION: "3.11.2"
+ 
+ jobs:
+   validate:
+     strategy:
+       matrix:
+-        python_version: ['3.10','3.11.2']
++        python_version: ["3.10", "3.11.2"]
+ 
+     runs-on: ubuntu-22.04
+ 
+@@ -44,10 +44,10 @@ jobs:
+           node-version: "22"
+           registry-url: "https://npm.pkg.github.com"
+           cache: "npm"
+-      
++
+       - name: npm audit
+         run: npm audit
+-    
++
+       - name: npm ci
+         run: npm ci --ignore-scripts
+         env:
+@@ -79,3 +79,66 @@ jobs:
+         uses: minvws/action-sonarqube@v1
+         with:
+           sonar-token: ${{ secrets.SONAR_TOKEN }}
++
++  detect_modified_files:
++    name: Modified files
++    runs-on: ubuntu-latest
++    outputs:
++      dockerfiles_changed: ${{ steps.changed-files.outputs.any_changed }}
++      all_modified_files: ${{ steps.changed-files.outputs.all_modified_files }}
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v5
++      - name: Get changed files
++        id: changed-files
++        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
++        with:
++          files: |
++            docker/**
++            .github/workflows/ci.yml
++  push_container:
++    if: |
++      github.ref == 'refs/heads/main' ||
++      startsWith(github.ref, 'refs/tags/v') ||
++      needs.detect_modified_files.outputs.dockerfiles_changed == 'true'
++    name: Create and publish Docker image to the Github Package Registry
++    runs-on: ubuntu-latest
++    needs: [validate, detect_modified_files]
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v5
++
++      - name: Set env
++        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
++
++      - name: Add version file
++        run: 'echo "{ \"version\": \"${{ env.RELEASE_VERSION }}\", \"git_ref\": \"$GITHUB_SHA\"}" > static/version.json'
++
++      - name: Log in to the Container registry
++        uses: docker/login-action@v3
++        with:
++          registry: ghcr.io
++          username: ${{ github.actor }}
++          password: ${{ secrets.GITHUB_TOKEN }}
++
++      - name: Extract metadata (tags, labels) for Docker
++        id: meta
++        uses: docker/metadata-action@v5
++        with:
++          images: ghcr.io/${{ github.repository }}
++
++      - name: Build and push Docker image
++        uses: docker/build-push-action@v6
++        env:
++          NEW_UID: 1000
++          NEW_GID: 1000
++        with:
++          context: .
++          file: docker/Dockerfile
++          push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
++          tags: ${{ steps.meta.outputs.tags }}
++          labels: ${{ steps.meta.outputs.labels }}
++          build-args: |
++            NEW_UID=${{ env.NEW_UID }}
++            NEW_GID=${{ env.NEW_GID }}
++            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+diff --git a/package-lock.json b/package-lock.json
+index 0774ce7..ebb46a2 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -32,7 +32,6 @@
+       "version": "1.2.2",
+       "resolved": "https://registry.npmjs.org/@emotion/is-prop-valid/-/is-prop-valid-1.2.2.tgz",
+       "integrity": "sha512-uNsoYd37AFmaCdXlg6EYD1KaPOaRWRByMCYzbKUX4+hhMfrxdVSelShywL4JVaAeM/eHUOSprYBQls+/neX3pw==",
+-      "peer": true,
+       "dependencies": {
+         "@emotion/memoize": "^0.8.1"
+       }
+@@ -40,14 +39,12 @@
+     "node_modules/@emotion/memoize": {
+       "version": "0.8.1",
+       "resolved": "https://registry.npmjs.org/@emotion/memoize/-/memoize-0.8.1.tgz",
+-      "integrity": "sha512-W2P2c/VRW1/1tLox0mVUalvnWXxavmv/Oum2aPsRcoDJuob75FC3Y8FbpfLwUegRcxINtGUMPq0tFCvYNTBXNA==",
+-      "peer": true
++      "integrity": "sha512-W2P2c/VRW1/1tLox0mVUalvnWXxavmv/Oum2aPsRcoDJuob75FC3Y8FbpfLwUegRcxINtGUMPq0tFCvYNTBXNA=="
+     },
+     "node_modules/@emotion/unitless": {
+       "version": "0.8.1",
+       "resolved": "https://registry.npmjs.org/@emotion/unitless/-/unitless-0.8.1.tgz",
+-      "integrity": "sha512-KOEGMu6dmJZtpadb476IsZBclKvILjopjUii3V+7MnXIQCYh8W3NgNcgwo21n9LXZX6EDIKvqfjYxXebDwxKmQ==",
+-      "peer": true
++      "integrity": "sha512-KOEGMu6dmJZtpadb476IsZBclKvILjopjUii3V+7MnXIQCYh8W3NgNcgwo21n9LXZX6EDIKvqfjYxXebDwxKmQ=="
+     },
+     "node_modules/@esbuild/aix-ppc64": {
+       "version": "0.25.1",
+@@ -1095,8 +1092,7 @@
+     "node_modules/@types/stylis": {
+       "version": "4.2.5",
+       "resolved": "https://registry.npmjs.org/@types/stylis/-/stylis-4.2.5.tgz",
+-      "integrity": "sha512-1Xve+NMN7FWjY14vLoY5tL3BVEQ/n42YLwaqJIPYhotZ9uBHt87VceMwWQpzmdEt2TNXIorIFG+YeCUUW7RInw==",
+-      "peer": true
++      "integrity": "sha512-1Xve+NMN7FWjY14vLoY5tL3BVEQ/n42YLwaqJIPYhotZ9uBHt87VceMwWQpzmdEt2TNXIorIFG+YeCUUW7RInw=="
+     },
+     "node_modules/@types/trusted-types": {
+       "version": "2.0.7",
+@@ -1192,7 +1188,6 @@
+       "version": "1.0.1",
+       "resolved": "https://registry.npmjs.org/camelize/-/camelize-1.0.1.tgz",
+       "integrity": "sha512-dU+Tx2fsypxTgtLoE36npi3UqcjSSMNYfkqgmoEhtZrraP5VWq0K7FkWVTYa8eMPtnU/G2txVsfdCJTn9uzpuQ==",
+-      "peer": true,
+       "funding": {
+         "url": "https://github.com/sponsors/ljharb"
+       }
+@@ -1283,7 +1278,6 @@
+       "version": "1.0.0",
+       "resolved": "https://registry.npmjs.org/css-color-keywords/-/css-color-keywords-1.0.0.tgz",
+       "integrity": "sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==",
+-      "peer": true,
+       "engines": {
+         "node": ">=4"
+       }
+@@ -1292,7 +1286,6 @@
+       "version": "3.2.0",
+       "resolved": "https://registry.npmjs.org/css-to-react-native/-/css-to-react-native-3.2.0.tgz",
+       "integrity": "sha512-e8RKaLXMOFii+02mOlqwjbD00KSEKqblnpO9e++1aXS1fPQOpS1YoqdVHBqPjHNoxeF2mimzVqawm2KCbEdtHQ==",
+-      "peer": true,
+       "dependencies": {
+         "camelize": "^1.0.0",
+         "css-color-keywords": "^1.0.0",
+@@ -1302,8 +1295,7 @@
+     "node_modules/csstype": {
+       "version": "3.1.3",
+       "resolved": "https://registry.npmjs.org/csstype/-/csstype-3.1.3.tgz",
+-      "integrity": "sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==",
+-      "peer": true
++      "integrity": "sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw=="
+     },
+     "node_modules/decko": {
+       "version": "1.2.0",
+@@ -1551,9 +1543,10 @@
+       "integrity": "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="
+     },
+     "node_modules/js-yaml": {
+-      "version": "4.1.0",
+-      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.1.0.tgz",
+-      "integrity": "sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==",
++      "version": "4.1.1",
++      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.1.1.tgz",
++      "integrity": "sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==",
++      "license": "MIT",
+       "dependencies": {
+         "argparse": "^2.0.1"
+       },
+@@ -1954,7 +1947,6 @@
+           "url": "https://github.com/sponsors/ai"
+         }
+       ],
+-      "peer": true,
+       "dependencies": {
+         "nanoid": "^3.3.7",
+         "picocolors": "^1.0.0",
+@@ -1967,8 +1959,7 @@
+     "node_modules/postcss-value-parser": {
+       "version": "4.2.0",
+       "resolved": "https://registry.npmjs.org/postcss-value-parser/-/postcss-value-parser-4.2.0.tgz",
+-      "integrity": "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==",
+-      "peer": true
++      "integrity": "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ=="
+     },
+     "node_modules/prismjs": {
+       "version": "1.30.0",
+@@ -2212,7 +2203,6 @@
+       "version": "0.23.2",
+       "resolved": "https://registry.npmjs.org/scheduler/-/scheduler-0.23.2.tgz",
+       "integrity": "sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==",
+-      "peer": true,
+       "dependencies": {
+         "loose-envify": "^1.1.0"
+       }
+@@ -2220,8 +2210,7 @@
+     "node_modules/shallowequal": {
+       "version": "1.1.0",
+       "resolved": "https://registry.npmjs.org/shallowequal/-/shallowequal-1.1.0.tgz",
+-      "integrity": "sha512-y0m1JoUZSlPAjXVtPPW70aZWfIL/dSP7AFkRnniLCrK/8MDKog3TySTBmckD+RObVxH0v4Tox67+F14PdED2oQ==",
+-      "peer": true
++      "integrity": "sha512-y0m1JoUZSlPAjXVtPPW70aZWfIL/dSP7AFkRnniLCrK/8MDKog3TySTBmckD+RObVxH0v4Tox67+F14PdED2oQ=="
+     },
+     "node_modules/should": {
+       "version": "13.2.3",
+@@ -2359,8 +2348,7 @@
+     "node_modules/stylis": {
+       "version": "4.3.2",
+       "resolved": "https://registry.npmjs.org/stylis/-/stylis-4.3.2.tgz",
+-      "integrity": "sha512-bhtUjWd/z6ltJiQwg0dUfxEJ+W+jdqQd8TbWLWyeIJHlnsqmGLRFFd8e5mA0AZi/zx90smXRlN66YMTcaSFifg==",
+-      "peer": true
++      "integrity": "sha512-bhtUjWd/z6ltJiQwg0dUfxEJ+W+jdqQd8TbWLWyeIJHlnsqmGLRFFd8e5mA0AZi/zx90smXRlN66YMTcaSFifg=="
+     },
+     "node_modules/swagger-ui-dist": {
+       "version": "5.30.1",
+@@ -2446,6 +2434,7 @@
+       "integrity": "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==",
+       "dev": true,
+       "license": "MIT",
++      "peer": true,
+       "engines": {
+         "node": ">=12"
+       },
+@@ -2473,8 +2462,7 @@
+     "node_modules/tslib": {
+       "version": "2.6.2",
+       "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.6.2.tgz",
+-      "integrity": "sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==",
+-      "peer": true
++      "integrity": "sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q=="
+     },
+     "node_modules/uri-js": {
+       "version": "4.4.1",
+@@ -2616,6 +2604,7 @@
+       "integrity": "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==",
+       "dev": true,
+       "license": "MIT",
++      "peer": true,
+       "engines": {
+         "node": ">=12"
+       },
+@@ -2689,20 +2678,6 @@
+         "node": ">=10"
+       }
+     },
+-    "node_modules/yaml": {
+-      "version": "2.7.0",
+-      "resolved": "https://registry.npmjs.org/yaml/-/yaml-2.7.0.tgz",
+-      "integrity": "sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==",
+-      "dev": true,
+-      "optional": true,
+-      "peer": true,
+-      "bin": {
+-        "yaml": "bin.mjs"
+-      },
+-      "engines": {
+-        "node": ">= 14"
+-      }
+-    },
+     "node_modules/yaml-ast-parser": {
+       "version": "0.0.43",
+       "resolved": "https://registry.npmjs.org/yaml-ast-parser/-/yaml-ast-parser-0.0.43.tgz",

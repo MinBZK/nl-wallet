@@ -532,10 +532,24 @@ function encrypt_gba_v_responses {
 # Emit a base64-encoded heredoc that recreates file $1 at path $2.
 #
 # $1 - The file to be encoded
-# $2 - The target path
+# $2 - The target file
 function emit_base64_decode_command() {
     printf 'mkdir -p "%s"\n' "$(dirname "$2")"
     printf "base64 -d > '%s' <<',EOF'\n" "$2"
     ${BASE64} < "$1"
     printf '\n,EOF\n'
+}
+
+# Apply multiple patches as one unit, unless already applied.
+#
+# $1 - The target directory
+# $2..$n - The patch files, in order
+function apply_patches_once() {
+    local target=$1
+    shift
+    if cat "$@" | git -C "$target" apply --reverse --check 2>/dev/null; then
+        return 0
+    fi
+    cat "$@" | git -C "$target" apply --check
+    cat "$@" | git -C "$target" apply
 }

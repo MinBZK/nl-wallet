@@ -1,0 +1,2515 @@
+diff --git a/.github/CODEOWNERS b/.github/CODEOWNERS
+index e0dab41..95c549c 100644
+--- a/.github/CODEOWNERS
++++ b/.github/CODEOWNERS
+@@ -1,3 +1,3 @@
+-* @minvws/icore-codeowners-max
++* @minvws/icore-codeowners-python
+ # Last match takes precedence
+ .github/CODEOWNERS @minvws/irealisatie-operations
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+new file mode 100644
+index 0000000..19ab322
+--- /dev/null
++++ b/.github/dependabot.yml
+@@ -0,0 +1,30 @@
++# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
++
++version: 2
++
++updates:
++  # Maintain dependencies for GitHub Actions
++  - package-ecosystem: "github-actions"
++    directory: "/"
++    schedule:
++      interval: "weekly"
++
++  # Maintain dependencies for npm
++  - package-ecosystem: "npm"
++    directory: "/"
++    schedule:
++      interval: "weekly"
++    groups:
++      version-updates:
++        update-types: ["patch", "minor"]
++        patterns:
++          - "*"
++
++  # Maintain dependencies for pip
++  - package-ecosystem: "pip"
++    directory: "/"
++    schedule:
++      interval: "weekly"
++    groups:
++      development-dependencies:
++        dependency-type: "development"
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index fb05828..4d9443b 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -24,7 +24,7 @@ jobs:
+ 
+     steps:
+       - name: Checkout
+-        uses: actions/checkout@v5
++        uses: actions/checkout@v6
+         with:
+           fetch-depth: 0
+ 
+@@ -44,37 +44,35 @@ jobs:
+           node-version: "22"
+           registry-url: "https://npm.pkg.github.com"
+           cache: "npm"
+-
+-      - name: npm audit
+-        run: npm audit
+-
+-      - name: npm ci
+-        run: npm ci --ignore-scripts
++      
++      - name: NPM setup
++        run: make setup-npm
+         env:
+-          NODE_AUTH_TOKEN: ${{ secrets.REPO_READ_ONLY_TOKEN }}
++          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ 
+-      - name: npm run build
+-        run: npm run build
++      - name: NPM build
++        run: make build-npm
+ 
+-      - name: Setup config
++      - name: Configuration
+         run: |
++          touch ~/.npmrc # Create empty .npmrc file for docker-compose.yml
+           make setup-config
+           make setup-saml
+           make setup-secrets
+ 
+       - name: Linting (pylint & black)
+-        run: make check
+-
+-      - name: Typing (mypy)
+-        run: make type-check
++        run: make check-pylint check-black
+ 
+-      - name: Audit (bandit)
++      - name: Audit (bandit & npm)
+         run: make audit
+ 
++      - name: Typing (mypy)
++        run: make check-mypy
++
+       - name: Unit testing (pytest)
+         run: make test
+ 
+-      - name: Run SonarQube scan
++      - name: SonarQube
+         if: ${{ matrix.python_version == env.CURRENTLY_USED_PYTHON_VERSION }}
+         uses: minvws/action-sonarqube@v1
+         with:
+@@ -88,10 +86,10 @@ jobs:
+       all_modified_files: ${{ steps.changed-files.outputs.all_modified_files }}
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v5
++        uses: actions/checkout@v6
+       - name: Get changed files
+         id: changed-files
+-        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
++        uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323 # v47
+         with:
+           files: |
+             docker/**
+@@ -106,7 +104,7 @@ jobs:
+     needs: [validate, detect_modified_files]
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v5
++        uses: actions/checkout@v6
+ 
+       - name: Set env
+         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+@@ -115,7 +113,7 @@ jobs:
+         run: 'echo "{ \"version\": \"${{ env.RELEASE_VERSION }}\", \"git_ref\": \"$GITHUB_SHA\"}" > static/version.json'
+ 
+       - name: Log in to the Container registry
+-        uses: docker/login-action@v3
++        uses: docker/login-action@v4
+         with:
+           registry: ghcr.io
+           username: ${{ github.actor }}
+@@ -123,7 +121,7 @@ jobs:
+ 
+       - name: Extract metadata (tags, labels) for Docker
+         id: meta
+-        uses: docker/metadata-action@v5
++        uses: docker/metadata-action@v6
+         with:
+           images: ghcr.io/${{ github.repository }}
+ 
+diff --git a/.github/workflows/documentation-linter.yml b/.github/workflows/documentation-linter.yml
+index 1069d50..cdc41bc 100644
+--- a/.github/workflows/documentation-linter.yml
++++ b/.github/workflows/documentation-linter.yml
+@@ -8,8 +8,8 @@ jobs:
+     name: lint markDown file
+     runs-on: ubuntu-latest
+     steps:
+-    - uses: actions/checkout@v5
+-    - uses: DavidAnson/markdownlint-cli2-action@v20
++    - uses: actions/checkout@v6
++    - uses: DavidAnson/markdownlint-cli2-action@v22
+       with:
+         globs: '**/*.md'
+ 
+diff --git a/.github/workflows/notifyconfig.yml b/.github/workflows/notifyconfig.yml
+index 2769782..254c69f 100644
+--- a/.github/workflows/notifyconfig.yml
++++ b/.github/workflows/notifyconfig.yml
+@@ -9,7 +9,7 @@ jobs:
+   build:
+     runs-on: ubuntu-22.04
+     steps:
+-      - uses: actions/checkout@v5
++      - uses: actions/checkout@v6
+         with:
+           fetch-depth: 0
+ 
+@@ -18,7 +18,7 @@ jobs:
+       - name: Diff configfiles
+         run: git diff main~1:clients.json.example clients.json.example > clients.json.diff
+       - name: Send mail
+-        uses: dawidd6/action-send-mail@v6
++        uses: dawidd6/action-send-mail@v16
+         with:
+           server_address: smtp.prolocation.net
+           server_port: 587
+diff --git a/.github/workflows/rdo-package-venv.yml b/.github/workflows/rdo-package-venv.yml
+index 3b8e4a5..b6ec1d1 100644
+--- a/.github/workflows/rdo-package-venv.yml
++++ b/.github/workflows/rdo-package-venv.yml
+@@ -17,7 +17,7 @@ jobs:
+           echo "PIP_NO_BINARY=xmlsec,lxml" >> $GITHUB_ENV
+ 
+       - name: Checkout
+-        uses: actions/checkout@v5
++        uses: actions/checkout@v6
+ 
+       - name: Prepare environment
+         run: |
+diff --git a/.github/workflows/rdo-package.yml b/.github/workflows/rdo-package.yml
+index 9fa7e43..dffcff2 100644
+--- a/.github/workflows/rdo-package.yml
++++ b/.github/workflows/rdo-package.yml
+@@ -13,7 +13,7 @@ jobs:
+         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV &&
+           echo "PKG_NAME=max" >> $GITHUB_ENV
+ 
+-      - uses: actions/checkout@v5
++      - uses: actions/checkout@v6
+ 
+       - name: list files
+         run: ls -alR
+@@ -40,7 +40,7 @@ jobs:
+         run: tar --exclude='*.example' -czf ${{ env.PKG_NAME }}_${{ env.RELEASE_VERSION }}.tar.gz ./app ./static ./jinja2 ./saml ./lang
+ 
+       - name: Upload release tar
+-        uses: actions/upload-artifact@v5
++        uses: actions/upload-artifact@v7
+         with:
+           name: ${{ env.PKG_NAME }}_${{ env.RELEASE_VERSION }}
+           path: ${{ env.PKG_NAME }}_${{ env.RELEASE_VERSION }}.tar.gz
+diff --git a/Makefile b/Makefile
+index e2d89ac..b3f3625 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,67 +1,102 @@
+ UID = $(shell id -u)
+ GID = $(shell id -g)
+ PYTHON_VERSION=3.10
++TARGET_IMAGE=rdo-max:latest
++
++clean-poetry:
++	@if [ -n "$$(poetry env list)" ]; then \
++		poetry env remove python; \
++	fi
++
++clean-remote: stop-remote
++	@if [ -n "$$(docker images -q ${TARGET_IMAGE})" ]; then \
++		docker image rm ${TARGET_IMAGE}; \
++	fi
++
++clean-local: stop-local
++	@items=".coverage .pytest_cache/ clients.json json_schema.json \
++	login_methods.json max.conf node_modules/ resources/css/app.scss.orig \
++	resources/js/app.js.orig saml/tvs/certs/*.crt saml/tvs/certs/*.key \
++	saml/tvs/certs/*.pub saml/tvs/settings.json secrets/ static/version.json \
++	tests/resources/idp_metadata.xml tests/resources/secrets/"; \
++	for item in $$items; do \
++		if [ -e $$item ]; then rm -rfv "$$item"; fi; \
++	done
++
++clean: clean-remote clean-local clean-poetry
++
++setup-poetry:
++	@if [ -z "$$(poetry env list)" ]; then \
++		poetry install 1>&2; \
++	else \
++		poetry env use python 1>&2; \
++	fi
+ 
+-venv: ## Create virtual environment
+-	poetry install
+-
+-clean_venv: ## Remove virtual environment
+-	poetry env remove python
+-
+-setup-secrets:
+-	scripts/setup-secrets.sh
++setup-config:
++	scripts/setup-config.sh
+ 
+ setup-saml:
+ 	scripts/setup-saml.sh
+ 
+-setup-config:
+-	scripts/setup-config.sh
++setup-secrets:
++	scripts/setup-secrets.sh
+ 
+ setup-npm:
+ 	scripts/setup-npm.sh
+ 
+ setup-remote: setup-config setup-saml setup-secrets setup-npm
+-	docker compose build --build-arg="NEW_UID=${UID}" --build-arg="NEW_GID=${GID}" --build-arg="PYTHON_VERSION=${PYTHON_VERSION}" --build-arg="GITHUB_TOKEN=${GITHUB_TOKEN}"
+-
+-setup-local: venv setup-config setup-saml setup-secrets setup-npm
++	@if [ -z "$$(docker images -q ${TARGET_IMAGE})" ]; then \
++		docker compose build --build-arg="NEW_UID=${UID}" --build-arg="NEW_GID=${GID}" --build-arg="PYTHON_VERSION=${PYTHON_VERSION}" --build-arg="GITHUB_TOKEN=${GITHUB_TOKEN}"; \
++	else \
++		echo "${TARGET_IMAGE} exists, skipping build.."; \
++	fi
+ 
+-run-remote:
+-	docker compose up -d
++setup-local: setup-poetry setup-config setup-saml setup-secrets setup-npm
+ 
+-run-local:
+-	docker compose up -d redis redis-init
++build-npm: setup-npm
+ 	npm run build
++	
++run-remote: setup-remote
++	docker compose up -d --remove-orphans --no-build 
++
++run-local: setup-local build-npm
++	docker compose up -d --remove-orphans redis redis-init
+ 	poetry run python -m app.main
+ 
+ stop-remote:
+-	docker compose down
++	@docker compose down
+ 
+ stop-local:
+-	docker compose down
++	@docker compose down
+ 
+-check:
+-	poetry run pylint app
+-	poetry run black --check app tests
++test: setup-local stop-local ## When testing locally, stop-local first because test brings up its own redis and max'es
++	@echo "note: initial test might take a while if supportive containers for pytest-docker need to be built first.."
++	poetry run pytest --cov --cov-report=term --cov-report=xml
+ 
+-audit:
+-	poetry run bandit -r app
++test-remote: run-remote
++	docker compose exec -T max poetry run pytest --cov --cov-report=term --docker --redis-host=redis
+ 
+-fix:
+-	poetry run black app tests
++audit-python: setup-poetry
++	poetry run bandit -r app
+ 
+-test:
+-	poetry run pytest --cov --cov-report=term --cov-report=xml
++audit-node:
++	npm audit
+ 
+-setup-remote-test:
+-	docker compose -p max-test -f docker-compose.testing.yml build --build-arg="NEW_UID=${UID}" --build-arg="NEW_GID=${GID}" --build-arg="PYTHON_VERSION=${PYTHON_VERSION}" --build-arg="GITHUB_TOKEN=${GITHUB_TOKEN}"
++audit: audit-python audit-node
+ 
+-test-remote:
+-	docker compose -p max-test -f docker-compose.testing.yml up
++check-black: setup-poetry
++	poetry run black --check app tests
+ 
+-type-check:
++check-mypy: setup-poetry
+ 	poetry run mypy
+ 
+-check-all: fix check type-check test audit
++check-pylint: setup-poetry
++	poetry run pylint app
++
++check: check-black check-pylint check-mypy audit-python audit-node
++
++fix: setup-poetry
++	poetry run black app tests
+ 
+-create-jwk: setup-secrets
++create-jwk: setup-poetry setup-secrets
+ 	poetry run python tools/create-jwk.py secrets/clients/test_client/test_client.key
+diff --git a/docker-compose.testing.yml b/docker-compose.testing.yml
+deleted file mode 100644
+index cfdb3be..0000000
+--- a/docker-compose.testing.yml
++++ /dev/null
+@@ -1,34 +0,0 @@
+-services:
+-  app:
+-    build:
+-      context: .
+-      dockerfile: ./docker/Dockerfile
+-      args:
+-        NEW_UID: ${UID:-1000}
+-        NEW_GID: ${GID:-1000}
+-      secrets:
+-        - npmrc
+-    volumes:
+-      - '.:/src'
+-      - '/src/.venv'
+-      - '/src/node_modules'
+-      - '/src/static/assets'
+-    depends_on: [ 'redis' ]
+-    command: pytest tests --redis-host=redis --docker
+-
+-  redis:
+-    image: redis:7.2.4
+-    restart: 'no'
+-    ports:
+-      - '6379'
+-    command: ["redis-server", "--port", "6379"]
+-
+-  redis-init:
+-    depends_on: [ 'redis' ]
+-    image: redis:7.2.4
+-    restart: 'no'
+-    command: 'redis-cli -h redis -p 6379 set max:primary_identity_provider tvs'
+-
+-secrets:
+-  npmrc:
+-    file: ~/.npmrc
+diff --git a/docker-compose.yml b/docker-compose.yml
+index b3b579a..2fde6d6 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -1,5 +1,8 @@
+ services:
+-  app:
++  max:
++    container_name: max
++    image: rdo-max
++    depends_on: ["redis"]
+     build:
+       context: .
+       dockerfile: ./docker/Dockerfile
+@@ -9,37 +12,44 @@ services:
+       secrets:
+         - npmrc
+     volumes:
+-      - '.:/src'
+-      - '/src/node_modules'
+-      - '/src/static/assets'
+-    ports:
+-      - '8006:8006'
+-    depends_on: [ 'redis' ]
++      - ".:/src"
+     networks:
+-      - default
++      - private
++    ports:
++      - "8006:8006"
+ 
+   redis:
++    container_name: redis
+     image: redis:7.2.4
+-    restart: 'no'
++    restart: "no"
++    volumes:
++      - redis:/data
++    networks:
++      - private
+     ports:
+-      - '6379:6379'
++      - "6379:6379"
+     command: ["redis-server", "--port", "6379"]
+-    networks:
+-      - default
+ 
+   redis-init:
+-    depends_on: [ 'redis' ]
++    container_name: redis-init
+     image: redis:7.2.4
+-    restart: 'no'
+-    command: 'redis-cli -h redis -p 6379 set max:primary_identity_provider tvs'
++    depends_on: ["redis"]
++    restart: "no"
++    volumes:
++      - redis:/data
+     networks:
+-      - default
++      - private
++    command: "redis-cli -h redis -p 6379 set max:primary_identity_provider tvs"
+ 
+ secrets:
+   npmrc:
+     file: ~/.npmrc
+ 
++volumes:
++  redis:
++    name: redis
+ 
+ networks:
+-    default:
+-        driver: bridge
++  private:
++    name: private
++    driver: bridge
+diff --git a/docker/Dockerfile b/docker/Dockerfile
+index cfbfaff..12e6268 100644
+--- a/docker/Dockerfile
++++ b/docker/Dockerfile
+@@ -19,7 +19,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
+     POETRY_VIRTUALENVS_CREATE=false
+ 
+ # Create a non-privileged user that the app will run under.
+-RUN groupadd --system ${APP_GROUP} --gid=${NEW_GID} && \
++RUN groupadd --force --system ${APP_GROUP} --gid=${NEW_GID} && \
+   adduser \
+   --disabled-password \
+   --gecos "" \
+@@ -64,20 +64,18 @@ RUN --mount=type=cache,target=${POETRY_CACHE_DIR} poetry install --no-interactio
+ 
+ FROM base AS final
+ 
+-COPY --chown=${APP_USER}:${APP_GROUP} --from=builder /usr/local /usr/local
++COPY --chown=${NEW_UID}:${NEW_GID} --from=builder /usr/local /usr/local
+ 
+ ENV PATH="/usr/local/bin:$PATH"
+ 
+ WORKDIR ${PROJECT_DIR}
+ EXPOSE 8006
+ 
+-COPY --chown=${APP_USER}:${APP_GROUP} ${LOCAL_SOURCE_DIR}/ ${PROJECT_DIR}
+-COPY --from=builder --chown=${APP_USER}:${APP_GROUP} ${PROJECT_DIR}/node_modules ${PROJECT_DIR}/node_modules
+-COPY --from=builder --chown=${APP_USER}:${APP_GROUP} ${PROJECT_DIR}/static/assets ${PROJECT_DIR}/static/assets
++COPY --chown=${NEW_UID}:${NEW_GID} ${LOCAL_SOURCE_DIR}/ ${PROJECT_DIR}
++COPY --from=builder --chown=${NEW_UID}:${NEW_GID} ${PROJECT_DIR}/node_modules ${PROJECT_DIR}/node_modules
++COPY --from=builder --chown=${NEW_UID}:${NEW_GID} ${PROJECT_DIR}/static/assets ${PROJECT_DIR}/static/assets
+ 
+ USER ${APP_USER}
+ ENV PYTHONPATH=${PROJECT_DIR}
+ 
+-RUN chmod +x docker/entrypoint.sh
+-ENTRYPOINT ["docker/entrypoint.sh"]
+ CMD ["python", "-m", "app.main"]
+diff --git a/docker/entrypoint.sh b/docker/entrypoint.sh
+deleted file mode 100755
+index c029303..0000000
+--- a/docker/entrypoint.sh
++++ /dev/null
+@@ -1,5 +0,0 @@
+-#!/usr/bin/env bash
+-
+-set -e
+-
+-exec "$@"
+diff --git a/docs/setup.md b/docs/setup.md
+index 81f2bd5..70a1dc3 100644
+--- a/docs/setup.md
++++ b/docs/setup.md
+@@ -66,7 +66,7 @@ In short:
+ 2. [Generate a GitHub token](https://github.com/settings/tokens/new?scopes=read:packages&description=GitHub+Packages+token) with, - at least - the `read:packages` scope.
+ 3. Open your `.npmrc` file and replace `<YOUR_GITHUB_TOKEN>` with your GitHub token.
+ 
+-Note: When you run the various `make` commands later on, they will in turn eventually run `scripts/setup-npm.sh` which is a helper script that adds the necessary GitHub NPM registry and token line. That script will run non-interactively when you set a `GITHUB_TOKEN` environment variable. This is necessary when using `docker buildx`, not sure about regular `docker build`. If you don't set that, then the script will attempt to run interactively and prompt you for a token.
++Note: When you run the various `make` commands later on, they will in turn eventually run `scripts/setup-npm.sh` which is a helper script that adds the necessary GitHub NPM registry and token line. That script will run non-interactively when you set a `GITHUB_TOKEN` environment variable. This is necessary when using `docker buildx`, not sure about regular `docker build`. If you don't set that, then the script will attempt to run interactively and prompt you for a token. You can also avoid having to configure a GitHub token by building without a ui-theme.
+ 
+ ### Building without a ui-theme
+ 
+@@ -83,30 +83,36 @@ The `scripts/setup-npm.sh` script will then detect that this package is not a pa
+ There are two different setup methods available to run this project:
+ 
+ 1. **Docker**: Use a preconfigured Docker container for development. This includes Python, Node JS and npm.
+-2. **Local**: Install tools like Python and npm directly from your local machine. This requires manual setup of Python, Node JS and npm.
++2. **Local**: Install tools like Python and npm directly from your local machine. This requires manual setup of Python, Node JS and npm, and uses Poetry.
++
++**Note:** When you do **not** configure a `clients.json` configuration file, the build system will use `clients.json.example` as a basis for a `clients.json` and you will probably see errors in the log output of the MAX server related to missing certificates. Make sure to configure your own `clients.json` when you need to. Same goes for `max.conf`.
+ 
+ ### Requirements
+ 
+-An exact overview of tools per setup method can be found below:
++An exact overview of tools required on your host (development machine) per type of setup (dockerized or local) can be found in the following table:
+ 
+-| Tool             | docker            | local               |
+-|------------------|-------------------|---------------------|
+-| docker           | ✔️                | ✔️                  |
+-| docker compose   | ✔️                | ✔️                  |
+-| openssl          | ✔️                | ✔️                  |
+-| gnu make         | ✔️                | ✔️                  |
+-| python           |                   | ✔️                  |
+-| npm              |                   | ✔️                  |
+-| nodejs           |                   | ✔️                  |
+-| curl             | ✔️                | ✔️                  |
++| Tool             | docker            | local          |
++|------------------|------------------|-----------------|
++| curl             | ✓                | ✓               |
++| docker           | ✓                | ✓               |
++| docker compose   | ✓                | ✓               |
++| gnu make         | ✓                | ✓               |
++| nodejs           |                  | ✓               |
++| npm              |                  | ✓               |
++| openssl          | ✓                | ✓               |
++| poetry           |                  | ✓               |
++| python           |                  | ✓               |
+ 
+ ### 1. Docker Container
+ 
+ #### Steps
+ 
+-1. Prepare the `.npmrc` file with the instructions described earlier in this document.
+-2. Build the project: `make setup-remote`
+-3. Run the service: `make run-remote`
++1. Choose to run [with](#building-with-minvwsnl-rdo-rijksoverheid-ui-theme), or [without](#building-without-a-ui-theme) ui-theme
++2. Configure/build the project: `make setup-remote`
++3. Run tests (optional): `make test-remote`
++4. Run the service: `make run-remote`
++5. Stop the service: `make stop-remote`
++6. Cleanup created image: `make clean-remote`
+ 
+ ### 2. Local Installation
+ 
+@@ -120,18 +126,16 @@ sudo apt-get update && sudo apt-get install libxmlsec1-dev
+ 
+ #### Steps
+ 
+-1. Prepare the `.npmrc` file with the instructions described earlier in this document.
+-2. Set up the project: `make setup-local`
+-3. Run the service: `make run-local`
++1. Choose to run [with](#building-with-minvwsnl-rdo-rijksoverheid-ui-theme), or [without](#building-without-a-ui-theme) ui-theme
++2. Configure/build the project: `make setup-local`
++3. Run tests (optional): `make test`
++4. Run the service: `make run-local`
++5. Stop the service: `make stop-local`
++6. Cleanup local artifacts: `make clean`
+ 
+ ## Contributions
+ 
+ When contributing to MAX, a few `make` commands should be considered to make sure linting, type-checking (MyPy) and tests are still valid:
+ 
+-- `make lint`, check linting using pylint.
+-- `make check-type`, check that typing is done correctly.
+-- `make test`, run the tests
+-
+-or
+-
+-- `make check-all`, to check all the above
++- `make check`, check using black, pylint, mypy, audit python and node.
++- `make fix`, run black (and actually reformat code)
+diff --git a/package-lock.json b/package-lock.json
+index ebb46a2..75ca7da 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -8,11 +8,11 @@
+       "dependencies": {
+         "@minvws/nl-rdo-rijksoverheid-ui-theme": "^0.0.18",
+         "redoc": "^2.5.2",
+-        "swagger-ui-dist": "^5.30.1"
++        "swagger-ui-dist": "^5.31.0"
+       },
+       "devDependencies": {
+-        "sass": "^1.93.3",
+-        "vite": "^7.1.12",
++        "sass": "^1.97.1",
++        "vite": "^7.3.0",
+         "vite-plugin-static-copy": "^3.1.4"
+       }
+     },
+@@ -32,6 +32,7 @@
+       "version": "1.2.2",
+       "resolved": "https://registry.npmjs.org/@emotion/is-prop-valid/-/is-prop-valid-1.2.2.tgz",
+       "integrity": "sha512-uNsoYd37AFmaCdXlg6EYD1KaPOaRWRByMCYzbKUX4+hhMfrxdVSelShywL4JVaAeM/eHUOSprYBQls+/neX3pw==",
++      "peer": true,
+       "dependencies": {
+         "@emotion/memoize": "^0.8.1"
+       }
+@@ -39,17 +40,19 @@
+     "node_modules/@emotion/memoize": {
+       "version": "0.8.1",
+       "resolved": "https://registry.npmjs.org/@emotion/memoize/-/memoize-0.8.1.tgz",
+-      "integrity": "sha512-W2P2c/VRW1/1tLox0mVUalvnWXxavmv/Oum2aPsRcoDJuob75FC3Y8FbpfLwUegRcxINtGUMPq0tFCvYNTBXNA=="
++      "integrity": "sha512-W2P2c/VRW1/1tLox0mVUalvnWXxavmv/Oum2aPsRcoDJuob75FC3Y8FbpfLwUegRcxINtGUMPq0tFCvYNTBXNA==",
++      "peer": true
+     },
+     "node_modules/@emotion/unitless": {
+       "version": "0.8.1",
+       "resolved": "https://registry.npmjs.org/@emotion/unitless/-/unitless-0.8.1.tgz",
+-      "integrity": "sha512-KOEGMu6dmJZtpadb476IsZBclKvILjopjUii3V+7MnXIQCYh8W3NgNcgwo21n9LXZX6EDIKvqfjYxXebDwxKmQ=="
++      "integrity": "sha512-KOEGMu6dmJZtpadb476IsZBclKvILjopjUii3V+7MnXIQCYh8W3NgNcgwo21n9LXZX6EDIKvqfjYxXebDwxKmQ==",
++      "peer": true
+     },
+     "node_modules/@esbuild/aix-ppc64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.25.1.tgz",
+-      "integrity": "sha512-kfYGy8IdzTGy+z0vFGvExZtxkFlA4zAxgKEahG9KE1ScBjpQnFsNOX8KTU5ojNru5ed5CVoJYXFtoxaq5nFbjQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.27.2.tgz",
++      "integrity": "sha512-GZMB+a0mOMZs4MpDbj8RJp4cw+w1WV5NYD6xzgvzUJ5Ek2jerwfO2eADyI6ExDSUED+1X8aMbegahsJi+8mgpw==",
+       "cpu": [
+         "ppc64"
+       ],
+@@ -64,9 +67,9 @@
+       }
+     },
+     "node_modules/@esbuild/android-arm": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.25.1.tgz",
+-      "integrity": "sha512-dp+MshLYux6j/JjdqVLnMglQlFu+MuVeNrmT5nk6q07wNhCdSnB7QZj+7G8VMUGh1q+vj2Bq8kRsuyA00I/k+Q==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.27.2.tgz",
++      "integrity": "sha512-DVNI8jlPa7Ujbr1yjU2PfUSRtAUZPG9I1RwW4F4xFB1Imiu2on0ADiI/c3td+KmDtVKNbi+nffGDQMfcIMkwIA==",
+       "cpu": [
+         "arm"
+       ],
+@@ -81,9 +84,9 @@
+       }
+     },
+     "node_modules/@esbuild/android-arm64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.25.1.tgz",
+-      "integrity": "sha512-50tM0zCJW5kGqgG7fQ7IHvQOcAn9TKiVRuQ/lN0xR+T2lzEFvAi1ZcS8DiksFcEpf1t/GYOeOfCAgDHFpkiSmA==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.27.2.tgz",
++      "integrity": "sha512-pvz8ZZ7ot/RBphf8fv60ljmaoydPU12VuXHImtAs0XhLLw+EXBi2BLe3OYSBslR4rryHvweW5gmkKFwTiFy6KA==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -98,9 +101,9 @@
+       }
+     },
+     "node_modules/@esbuild/android-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.25.1.tgz",
+-      "integrity": "sha512-GCj6WfUtNldqUzYkN/ITtlhwQqGWu9S45vUXs7EIYf+7rCiiqH9bCloatO9VhxsL0Pji+PF4Lz2XXCES+Q8hDw==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.27.2.tgz",
++      "integrity": "sha512-z8Ank4Byh4TJJOh4wpz8g2vDy75zFL0TlZlkUkEwYXuPSgX8yzep596n6mT7905kA9uHZsf/o2OJZubl2l3M7A==",
+       "cpu": [
+         "x64"
+       ],
+@@ -115,9 +118,9 @@
+       }
+     },
+     "node_modules/@esbuild/darwin-arm64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.25.1.tgz",
+-      "integrity": "sha512-5hEZKPf+nQjYoSr/elb62U19/l1mZDdqidGfmFutVUjjUZrOazAtwK+Kr+3y0C/oeJfLlxo9fXb1w7L+P7E4FQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.27.2.tgz",
++      "integrity": "sha512-davCD2Zc80nzDVRwXTcQP/28fiJbcOwvdolL0sOiOsbwBa72kegmVU0Wrh1MYrbuCL98Omp5dVhQFWRKR2ZAlg==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -132,9 +135,9 @@
+       }
+     },
+     "node_modules/@esbuild/darwin-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.25.1.tgz",
+-      "integrity": "sha512-hxVnwL2Dqs3fM1IWq8Iezh0cX7ZGdVhbTfnOy5uURtao5OIVCEyj9xIzemDi7sRvKsuSdtCAhMKarxqtlyVyfA==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.27.2.tgz",
++      "integrity": "sha512-ZxtijOmlQCBWGwbVmwOF/UCzuGIbUkqB1faQRf5akQmxRJ1ujusWsb3CVfk/9iZKr2L5SMU5wPBi1UWbvL+VQA==",
+       "cpu": [
+         "x64"
+       ],
+@@ -149,9 +152,9 @@
+       }
+     },
+     "node_modules/@esbuild/freebsd-arm64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.25.1.tgz",
+-      "integrity": "sha512-1MrCZs0fZa2g8E+FUo2ipw6jw5qqQiH+tERoS5fAfKnRx6NXH31tXBKI3VpmLijLH6yriMZsxJtaXUyFt/8Y4A==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.27.2.tgz",
++      "integrity": "sha512-lS/9CN+rgqQ9czogxlMcBMGd+l8Q3Nj1MFQwBZJyoEKI50XGxwuzznYdwcav6lpOGv5BqaZXqvBSiB/kJ5op+g==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -166,9 +169,9 @@
+       }
+     },
+     "node_modules/@esbuild/freebsd-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.25.1.tgz",
+-      "integrity": "sha512-0IZWLiTyz7nm0xuIs0q1Y3QWJC52R8aSXxe40VUxm6BB1RNmkODtW6LHvWRrGiICulcX7ZvyH6h5fqdLu4gkww==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.27.2.tgz",
++      "integrity": "sha512-tAfqtNYb4YgPnJlEFu4c212HYjQWSO/w/h/lQaBK7RbwGIkBOuNKQI9tqWzx7Wtp7bTPaGC6MJvWI608P3wXYA==",
+       "cpu": [
+         "x64"
+       ],
+@@ -183,9 +186,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-arm": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.25.1.tgz",
+-      "integrity": "sha512-NdKOhS4u7JhDKw9G3cY6sWqFcnLITn6SqivVArbzIaf3cemShqfLGHYMx8Xlm/lBit3/5d7kXvriTUGa5YViuQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.27.2.tgz",
++      "integrity": "sha512-vWfq4GaIMP9AIe4yj1ZUW18RDhx6EPQKjwe7n8BbIecFtCQG4CfHGaHuh7fdfq+y3LIA2vGS/o9ZBGVxIDi9hw==",
+       "cpu": [
+         "arm"
+       ],
+@@ -200,9 +203,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-arm64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.25.1.tgz",
+-      "integrity": "sha512-jaN3dHi0/DDPelk0nLcXRm1q7DNJpjXy7yWaWvbfkPvI+7XNSc/lDOnCLN7gzsyzgu6qSAmgSvP9oXAhP973uQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.27.2.tgz",
++      "integrity": "sha512-hYxN8pr66NsCCiRFkHUAsxylNOcAQaxSSkHMMjcpx0si13t1LHFphxJZUiGwojB1a/Hd5OiPIqDdXONia6bhTw==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -217,9 +220,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-ia32": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.25.1.tgz",
+-      "integrity": "sha512-OJykPaF4v8JidKNGz8c/q1lBO44sQNUQtq1KktJXdBLn1hPod5rE/Hko5ugKKZd+D2+o1a9MFGUEIUwO2YfgkQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.27.2.tgz",
++      "integrity": "sha512-MJt5BRRSScPDwG2hLelYhAAKh9imjHK5+NE/tvnRLbIqUWa+0E9N4WNMjmp/kXXPHZGqPLxggwVhz7QP8CTR8w==",
+       "cpu": [
+         "ia32"
+       ],
+@@ -234,9 +237,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-loong64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.25.1.tgz",
+-      "integrity": "sha512-nGfornQj4dzcq5Vp835oM/o21UMlXzn79KobKlcs3Wz9smwiifknLy4xDCLUU0BWp7b/houtdrgUz7nOGnfIYg==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.27.2.tgz",
++      "integrity": "sha512-lugyF1atnAT463aO6KPshVCJK5NgRnU4yb3FUumyVz+cGvZbontBgzeGFO1nF+dPueHD367a2ZXe1NtUkAjOtg==",
+       "cpu": [
+         "loong64"
+       ],
+@@ -251,9 +254,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-mips64el": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.25.1.tgz",
+-      "integrity": "sha512-1osBbPEFYwIE5IVB/0g2X6i1qInZa1aIoj1TdL4AaAb55xIIgbg8Doq6a5BzYWgr+tEcDzYH67XVnTmUzL+nXg==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.27.2.tgz",
++      "integrity": "sha512-nlP2I6ArEBewvJ2gjrrkESEZkB5mIoaTswuqNFRv/WYd+ATtUpe9Y09RnJvgvdag7he0OWgEZWhviS1OTOKixw==",
+       "cpu": [
+         "mips64el"
+       ],
+@@ -268,9 +271,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-ppc64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.25.1.tgz",
+-      "integrity": "sha512-/6VBJOwUf3TdTvJZ82qF3tbLuWsscd7/1w+D9LH0W/SqUgM5/JJD0lrJ1fVIfZsqB6RFmLCe0Xz3fmZc3WtyVg==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.27.2.tgz",
++      "integrity": "sha512-C92gnpey7tUQONqg1n6dKVbx3vphKtTHJaNG2Ok9lGwbZil6DrfyecMsp9CrmXGQJmZ7iiVXvvZH6Ml5hL6XdQ==",
+       "cpu": [
+         "ppc64"
+       ],
+@@ -285,9 +288,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-riscv64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.25.1.tgz",
+-      "integrity": "sha512-nSut/Mx5gnilhcq2yIMLMe3Wl4FK5wx/o0QuuCLMtmJn+WeWYoEGDN1ipcN72g1WHsnIbxGXd4i/MF0gTcuAjQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.27.2.tgz",
++      "integrity": "sha512-B5BOmojNtUyN8AXlK0QJyvjEZkWwy/FKvakkTDCziX95AowLZKR6aCDhG7LeF7uMCXEJqwa8Bejz5LTPYm8AvA==",
+       "cpu": [
+         "riscv64"
+       ],
+@@ -302,9 +305,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-s390x": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.25.1.tgz",
+-      "integrity": "sha512-cEECeLlJNfT8kZHqLarDBQso9a27o2Zd2AQ8USAEoGtejOrCYHNtKP8XQhMDJMtthdF4GBmjR2au3x1udADQQQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.27.2.tgz",
++      "integrity": "sha512-p4bm9+wsPwup5Z8f4EpfN63qNagQ47Ua2znaqGH6bqLlmJ4bx97Y9JdqxgGZ6Y8xVTixUnEkoKSHcpRlDnNr5w==",
+       "cpu": [
+         "s390x"
+       ],
+@@ -319,9 +322,9 @@
+       }
+     },
+     "node_modules/@esbuild/linux-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.25.1.tgz",
+-      "integrity": "sha512-xbfUhu/gnvSEg+EGovRc+kjBAkrvtk38RlerAzQxvMzlB4fXpCFCeUAYzJvrnhFtdeyVCDANSjJvOvGYoeKzFA==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.27.2.tgz",
++      "integrity": "sha512-uwp2Tip5aPmH+NRUwTcfLb+W32WXjpFejTIOWZFw/v7/KnpCDKG66u4DLcurQpiYTiYwQ9B7KOeMJvLCu/OvbA==",
+       "cpu": [
+         "x64"
+       ],
+@@ -336,9 +339,9 @@
+       }
+     },
+     "node_modules/@esbuild/netbsd-arm64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.25.1.tgz",
+-      "integrity": "sha512-O96poM2XGhLtpTh+s4+nP7YCCAfb4tJNRVZHfIE7dgmax+yMP2WgMd2OecBuaATHKTHsLWHQeuaxMRnCsH8+5g==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.27.2.tgz",
++      "integrity": "sha512-Kj6DiBlwXrPsCRDeRvGAUb/LNrBASrfqAIok+xB0LxK8CHqxZ037viF13ugfsIpePH93mX7xfJp97cyDuTZ3cw==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -353,9 +356,9 @@
+       }
+     },
+     "node_modules/@esbuild/netbsd-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.25.1.tgz",
+-      "integrity": "sha512-X53z6uXip6KFXBQ+Krbx25XHV/NCbzryM6ehOAeAil7X7oa4XIq+394PWGnwaSQ2WRA0KI6PUO6hTO5zeF5ijA==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.27.2.tgz",
++      "integrity": "sha512-HwGDZ0VLVBY3Y+Nw0JexZy9o/nUAWq9MlV7cahpaXKW6TOzfVno3y3/M8Ga8u8Yr7GldLOov27xiCnqRZf0tCA==",
+       "cpu": [
+         "x64"
+       ],
+@@ -370,9 +373,9 @@
+       }
+     },
+     "node_modules/@esbuild/openbsd-arm64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.25.1.tgz",
+-      "integrity": "sha512-Na9T3szbXezdzM/Kfs3GcRQNjHzM6GzFBeU1/6IV/npKP5ORtp9zbQjvkDJ47s6BCgaAZnnnu/cY1x342+MvZg==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.27.2.tgz",
++      "integrity": "sha512-DNIHH2BPQ5551A7oSHD0CKbwIA/Ox7+78/AWkbS5QoRzaqlev2uFayfSxq68EkonB+IKjiuxBFoV8ESJy8bOHA==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -387,9 +390,9 @@
+       }
+     },
+     "node_modules/@esbuild/openbsd-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.25.1.tgz",
+-      "integrity": "sha512-T3H78X2h1tszfRSf+txbt5aOp/e7TAz3ptVKu9Oyir3IAOFPGV6O9c2naym5TOriy1l0nNf6a4X5UXRZSGX/dw==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.27.2.tgz",
++      "integrity": "sha512-/it7w9Nb7+0KFIzjalNJVR5bOzA9Vay+yIPLVHfIQYG/j+j9VTH84aNB8ExGKPU4AzfaEvN9/V4HV+F+vo8OEg==",
+       "cpu": [
+         "x64"
+       ],
+@@ -403,10 +406,27 @@
+         "node": ">=18"
+       }
+     },
++    "node_modules/@esbuild/openharmony-arm64": {
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.27.2.tgz",
++      "integrity": "sha512-LRBbCmiU51IXfeXk59csuX/aSaToeG7w48nMwA6049Y4J4+VbWALAuXcs+qcD04rHDuSCSRKdmY63sruDS5qag==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openharmony"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
+     "node_modules/@esbuild/sunos-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.25.1.tgz",
+-      "integrity": "sha512-2H3RUvcmULO7dIE5EWJH8eubZAI4xw54H1ilJnRNZdeo8dTADEZ21w6J22XBkXqGJbe0+wnNJtw3UXRoLJnFEg==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.27.2.tgz",
++      "integrity": "sha512-kMtx1yqJHTmqaqHPAzKCAkDaKsffmXkPHThSfRwZGyuqyIeBvf08KSsYXl+abf5HDAPMJIPnbBfXvP2ZC2TfHg==",
+       "cpu": [
+         "x64"
+       ],
+@@ -421,9 +441,9 @@
+       }
+     },
+     "node_modules/@esbuild/win32-arm64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.25.1.tgz",
+-      "integrity": "sha512-GE7XvrdOzrb+yVKB9KsRMq+7a2U/K5Cf/8grVFRAGJmfADr/e/ODQ134RK2/eeHqYV5eQRFxb1hY7Nr15fv1NQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.27.2.tgz",
++      "integrity": "sha512-Yaf78O/B3Kkh+nKABUF++bvJv5Ijoy9AN1ww904rOXZFLWVc5OLOfL56W+C8F9xn5JQZa3UX6m+IktJnIb1Jjg==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -438,9 +458,9 @@
+       }
+     },
+     "node_modules/@esbuild/win32-ia32": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.25.1.tgz",
+-      "integrity": "sha512-uOxSJCIcavSiT6UnBhBzE8wy3n0hOkJsBOzy7HDAuTDE++1DJMRRVCPGisULScHL+a/ZwdXPpXD3IyFKjA7K8A==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.27.2.tgz",
++      "integrity": "sha512-Iuws0kxo4yusk7sw70Xa2E2imZU5HoixzxfGCdxwBdhiDgt9vX9VUCBhqcwY7/uh//78A1hMkkROMJq9l27oLQ==",
+       "cpu": [
+         "ia32"
+       ],
+@@ -455,9 +475,9 @@
+       }
+     },
+     "node_modules/@esbuild/win32-x64": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.25.1.tgz",
+-      "integrity": "sha512-Y1EQdcfwMSeQN/ujR5VayLOJ1BHaK+ssyk0AEzPjC+t1lITgsnccPqFjb6V+LsTp/9Iov4ysfjxLaGJ9RPtkVg==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.27.2.tgz",
++      "integrity": "sha512-sRdU18mcKf7F+YgheI/zGf5alZatMUTKj/jNS6l744f9u3WFu4v7twcUI9vu4mknF4Y9aDlblIie0IM+5xxaqQ==",
+       "cpu": [
+         "x64"
+       ],
+@@ -812,260 +832,350 @@
+       }
+     },
+     "node_modules/@rollup/rollup-android-arm-eabi": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.44.1.tgz",
+-      "integrity": "sha512-JAcBr1+fgqx20m7Fwe1DxPUl/hPkee6jA6Pl7n1v2EFiktAHenTaXl5aIFjUIEsfn9w3HE4gK1lEgNGMzBDs1w==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.60.1.tgz",
++      "integrity": "sha512-d6FinEBLdIiK+1uACUttJKfgZREXrF0Qc2SmLII7W2AD8FfiZ9Wjd+rD/iRuf5s5dWrr1GgwXCvPqOuDquOowA==",
+       "cpu": [
+         "arm"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "android"
+       ]
+     },
+     "node_modules/@rollup/rollup-android-arm64": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.44.1.tgz",
+-      "integrity": "sha512-RurZetXqTu4p+G0ChbnkwBuAtwAbIwJkycw1n6GvlGlBuS4u5qlr5opix8cBAYFJgaY05TWtM+LaoFggUmbZEQ==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.60.1.tgz",
++      "integrity": "sha512-YjG/EwIDvvYI1YvYbHvDz/BYHtkY4ygUIXHnTdLhG+hKIQFBiosfWiACWortsKPKU/+dUwQQCKQM3qrDe8c9BA==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "android"
+       ]
+     },
+     "node_modules/@rollup/rollup-darwin-arm64": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.44.1.tgz",
+-      "integrity": "sha512-fM/xPesi7g2M7chk37LOnmnSTHLG/v2ggWqKj3CCA1rMA4mm5KVBT1fNoswbo1JhPuNNZrVwpTvlCVggv8A2zg==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.60.1.tgz",
++      "integrity": "sha512-mjCpF7GmkRtSJwon+Rq1N8+pI+8l7w5g9Z3vWj4T7abguC4Czwi3Yu/pFaLvA3TTeMVjnu3ctigusqWUfjZzvw==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "darwin"
+       ]
+     },
+     "node_modules/@rollup/rollup-darwin-x64": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.44.1.tgz",
+-      "integrity": "sha512-gDnWk57urJrkrHQ2WVx9TSVTH7lSlU7E3AFqiko+bgjlh78aJ88/3nycMax52VIVjIm3ObXnDL2H00e/xzoipw==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.60.1.tgz",
++      "integrity": "sha512-haZ7hJ1JT4e9hqkoT9R/19XW2QKqjfJVv+i5AGg57S+nLk9lQnJ1F/eZloRO3o9Scy9CM3wQ9l+dkXtcBgN5Ew==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "darwin"
+       ]
+     },
+     "node_modules/@rollup/rollup-freebsd-arm64": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.44.1.tgz",
+-      "integrity": "sha512-wnFQmJ/zPThM5zEGcnDcCJeYJgtSLjh1d//WuHzhf6zT3Md1BvvhJnWoy+HECKu2bMxaIcfWiu3bJgx6z4g2XA==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.60.1.tgz",
++      "integrity": "sha512-czw90wpQq3ZsAVBlinZjAYTKduOjTywlG7fEeWKUA7oCmpA8xdTkxZZlwNJKWqILlq0wehoZcJYfBvOyhPTQ6w==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "freebsd"
+       ]
+     },
+     "node_modules/@rollup/rollup-freebsd-x64": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.44.1.tgz",
+-      "integrity": "sha512-uBmIxoJ4493YATvU2c0upGz87f99e3wop7TJgOA/bXMFd2SvKCI7xkxY/5k50bv7J6dw1SXT4MQBQSLn8Bb/Uw==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.60.1.tgz",
++      "integrity": "sha512-KVB2rqsxTHuBtfOeySEyzEOB7ltlB/ux38iu2rBQzkjbwRVlkhAGIEDiiYnO2kFOkJp+Z7pUXKyrRRFuFUKt+g==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "freebsd"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-arm-gnueabihf": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.44.1.tgz",
+-      "integrity": "sha512-n0edDmSHlXFhrlmTK7XBuwKlG5MbS7yleS1cQ9nn4kIeW+dJH+ExqNgQ0RrFRew8Y+0V/x6C5IjsHrJmiHtkxQ==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.60.1.tgz",
++      "integrity": "sha512-L+34Qqil+v5uC0zEubW7uByo78WOCIrBvci69E7sFASRl0X7b/MB6Cqd1lky/CtcSVTydWa2WZwFuWexjS5o6g==",
+       "cpu": [
+         "arm"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-arm-musleabihf": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.44.1.tgz",
+-      "integrity": "sha512-8WVUPy3FtAsKSpyk21kV52HCxB+me6YkbkFHATzC2Yd3yuqHwy2lbFL4alJOLXKljoRw08Zk8/xEj89cLQ/4Nw==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.60.1.tgz",
++      "integrity": "sha512-n83O8rt4v34hgFzlkb1ycniJh7IR5RCIqt6mz1VRJD6pmhRi0CXdmfnLu9dIUS6buzh60IvACM842Ffb3xd6Gg==",
+       "cpu": [
+         "arm"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-arm64-gnu": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.44.1.tgz",
+-      "integrity": "sha512-yuktAOaeOgorWDeFJggjuCkMGeITfqvPgkIXhDqsfKX8J3jGyxdDZgBV/2kj/2DyPaLiX6bPdjJDTu9RB8lUPQ==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.60.1.tgz",
++      "integrity": "sha512-Nql7sTeAzhTAja3QXeAI48+/+GjBJ+QmAH13snn0AJSNL50JsDqotyudHyMbO2RbJkskbMbFJfIJKWA6R1LCJQ==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-arm64-musl": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.44.1.tgz",
+-      "integrity": "sha512-W+GBM4ifET1Plw8pdVaecwUgxmiH23CfAUj32u8knq0JPFyK4weRy6H7ooxYFD19YxBulL0Ktsflg5XS7+7u9g==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.60.1.tgz",
++      "integrity": "sha512-+pUymDhd0ys9GcKZPPWlFiZ67sTWV5UU6zOJat02M1+PiuSGDziyRuI/pPue3hoUwm2uGfxdL+trT6Z9rxnlMA==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ]
++    },
++    "node_modules/@rollup/rollup-linux-loong64-gnu": {
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-gnu/-/rollup-linux-loong64-gnu-4.60.1.tgz",
++      "integrity": "sha512-VSvgvQeIcsEvY4bKDHEDWcpW4Yw7BtlKG1GUT4FzBUlEKQK0rWHYBqQt6Fm2taXS+1bXvJT6kICu5ZwqKCnvlQ==",
++      "cpu": [
++        "loong64"
++      ],
++      "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+-    "node_modules/@rollup/rollup-linux-loongarch64-gnu": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-loongarch64-gnu/-/rollup-linux-loongarch64-gnu-4.44.1.tgz",
+-      "integrity": "sha512-1zqnUEMWp9WrGVuVak6jWTl4fEtrVKfZY7CvcBmUUpxAJ7WcSowPSAWIKa/0o5mBL/Ij50SIf9tuirGx63Ovew==",
++    "node_modules/@rollup/rollup-linux-loong64-musl": {
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-musl/-/rollup-linux-loong64-musl-4.60.1.tgz",
++      "integrity": "sha512-4LqhUomJqwe641gsPp6xLfhqWMbQV04KtPp7/dIp0nzPxAkNY1AbwL5W0MQpcalLYk07vaW9Kp1PBhdpZYYcEw==",
+       "cpu": [
+         "loong64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+-    "node_modules/@rollup/rollup-linux-powerpc64le-gnu": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-powerpc64le-gnu/-/rollup-linux-powerpc64le-gnu-4.44.1.tgz",
+-      "integrity": "sha512-Rl3JKaRu0LHIx7ExBAAnf0JcOQetQffaw34T8vLlg9b1IhzcBgaIdnvEbbsZq9uZp3uAH+JkHd20Nwn0h9zPjA==",
++    "node_modules/@rollup/rollup-linux-ppc64-gnu": {
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-gnu/-/rollup-linux-ppc64-gnu-4.60.1.tgz",
++      "integrity": "sha512-tLQQ9aPvkBxOc/EUT6j3pyeMD6Hb8QF2BTBnCQWP/uu1lhc9AIrIjKnLYMEroIz/JvtGYgI9dF3AxHZNaEH0rw==",
+       "cpu": [
+         "ppc64"
+       ],
+       "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ]
++    },
++    "node_modules/@rollup/rollup-linux-ppc64-musl": {
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-musl/-/rollup-linux-ppc64-musl-4.60.1.tgz",
++      "integrity": "sha512-RMxFhJwc9fSXP6PqmAz4cbv3kAyvD1etJFjTx4ONqFP9DkTkXsAMU4v3Vyc5BgzC+anz7nS/9tp4obsKfqkDHg==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-riscv64-gnu": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.44.1.tgz",
+-      "integrity": "sha512-j5akelU3snyL6K3N/iX7otLBIl347fGwmd95U5gS/7z6T4ftK288jKq3A5lcFKcx7wwzb5rgNvAg3ZbV4BqUSw==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.60.1.tgz",
++      "integrity": "sha512-QKgFl+Yc1eEk6MmOBfRHYF6lTxiiiV3/z/BRrbSiW2I7AFTXoBFvdMEyglohPj//2mZS4hDOqeB0H1ACh3sBbg==",
+       "cpu": [
+         "riscv64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-riscv64-musl": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-musl/-/rollup-linux-riscv64-musl-4.44.1.tgz",
+-      "integrity": "sha512-ppn5llVGgrZw7yxbIm8TTvtj1EoPgYUAbfw0uDjIOzzoqlZlZrLJ/KuiE7uf5EpTpCTrNt1EdtzF0naMm0wGYg==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-musl/-/rollup-linux-riscv64-musl-4.60.1.tgz",
++      "integrity": "sha512-RAjXjP/8c6ZtzatZcA1RaQr6O1TRhzC+adn8YZDnChliZHviqIjmvFwHcxi4JKPSDAt6Uhf/7vqcBzQJy0PDJg==",
+       "cpu": [
+         "riscv64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-s390x-gnu": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.44.1.tgz",
+-      "integrity": "sha512-Hu6hEdix0oxtUma99jSP7xbvjkUM/ycke/AQQ4EC5g7jNRLLIwjcNwaUy95ZKBJJwg1ZowsclNnjYqzN4zwkAw==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.60.1.tgz",
++      "integrity": "sha512-wcuocpaOlaL1COBYiA89O6yfjlp3RwKDeTIA0hM7OpmhR1Bjo9j31G1uQVpDlTvwxGn2nQs65fBFL5UFd76FcQ==",
+       "cpu": [
+         "s390x"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-x64-gnu": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.44.1.tgz",
+-      "integrity": "sha512-EtnsrmZGomz9WxK1bR5079zee3+7a+AdFlghyd6VbAjgRJDbTANJ9dcPIPAi76uG05micpEL+gPGmAKYTschQw==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.60.1.tgz",
++      "integrity": "sha512-77PpsFQUCOiZR9+LQEFg9GClyfkNXj1MP6wRnzYs0EeWbPcHs02AXu4xuUbM1zhwn3wqaizle3AEYg5aeoohhg==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
+     "node_modules/@rollup/rollup-linux-x64-musl": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.44.1.tgz",
+-      "integrity": "sha512-iAS4p+J1az6Usn0f8xhgL4PaU878KEtutP4hqw52I4IO6AGoyOkHCxcc4bqufv1tQLdDWFx8lR9YlwxKuv3/3g==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.60.1.tgz",
++      "integrity": "sha512-5cIATbk5vynAjqqmyBjlciMJl1+R/CwX9oLk/EyiFXDWd95KpHdrOJT//rnUl4cUcskrd0jCCw3wpZnhIHdD9w==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ]
+     },
++    "node_modules/@rollup/rollup-openbsd-x64": {
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-openbsd-x64/-/rollup-openbsd-x64-4.60.1.tgz",
++      "integrity": "sha512-cl0w09WsCi17mcmWqqglez9Gk8isgeWvoUZ3WiJFYSR3zjBQc2J5/ihSjpl+VLjPqjQ/1hJRcqBfLjssREQILw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ]
++    },
++    "node_modules/@rollup/rollup-openharmony-arm64": {
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-openharmony-arm64/-/rollup-openharmony-arm64-4.60.1.tgz",
++      "integrity": "sha512-4Cv23ZrONRbNtbZa37mLSueXUCtN7MXccChtKpUnQNgF010rjrjfHx3QxkS2PI7LqGT5xXyYs1a7LbzAwT0iCA==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openharmony"
++      ]
++    },
+     "node_modules/@rollup/rollup-win32-arm64-msvc": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.44.1.tgz",
+-      "integrity": "sha512-NtSJVKcXwcqozOl+FwI41OH3OApDyLk3kqTJgx8+gp6On9ZEt5mYhIsKNPGuaZr3p9T6NWPKGU/03Vw4CNU9qg==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.60.1.tgz",
++      "integrity": "sha512-i1okWYkA4FJICtr7KpYzFpRTHgy5jdDbZiWfvny21iIKky5YExiDXP+zbXzm3dUcFpkEeYNHgQ5fuG236JPq0g==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "win32"
+       ]
+     },
+     "node_modules/@rollup/rollup-win32-ia32-msvc": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.44.1.tgz",
+-      "integrity": "sha512-JYA3qvCOLXSsnTR3oiyGws1Dm0YTuxAAeaYGVlGpUsHqloPcFjPg+X0Fj2qODGLNwQOAcCiQmHub/V007kiH5A==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.60.1.tgz",
++      "integrity": "sha512-u09m3CuwLzShA0EYKMNiFgcjjzwqtUMLmuCJLeZWjjOYA3IT2Di09KaxGBTP9xVztWyIWjVdsB2E9goMjZvTQg==",
+       "cpu": [
+         "ia32"
+       ],
+       "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ]
++    },
++    "node_modules/@rollup/rollup-win32-x64-gnu": {
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-win32-x64-gnu/-/rollup-win32-x64-gnu-4.60.1.tgz",
++      "integrity": "sha512-k+600V9Zl1CM7eZxJgMyTUzmrmhB/0XZnF4pRypKAlAgxmedUA+1v9R+XOFv56W4SlHEzfeMtzujLJD22Uz5zg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "win32"
+       ]
+     },
+     "node_modules/@rollup/rollup-win32-x64-msvc": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.44.1.tgz",
+-      "integrity": "sha512-J8o22LuF0kTe7m+8PvW9wk3/bRq5+mRo5Dqo6+vXb7otCm3TPhYOJqOaQtGU9YMWQSL3krMnoOxMr0+9E6F3Ug==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.60.1.tgz",
++      "integrity": "sha512-lWMnixq/QzxyhTV6NjQJ4SFo1J6PvOX8vUx5Wb4bBPsEb+8xZ89Bz6kOXpfXj9ak9AHTQVQzlgzBEc1SyM27xQ==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
++      "license": "MIT",
+       "optional": true,
+       "os": [
+         "win32"
+@@ -1092,7 +1202,8 @@
+     "node_modules/@types/stylis": {
+       "version": "4.2.5",
+       "resolved": "https://registry.npmjs.org/@types/stylis/-/stylis-4.2.5.tgz",
+-      "integrity": "sha512-1Xve+NMN7FWjY14vLoY5tL3BVEQ/n42YLwaqJIPYhotZ9uBHt87VceMwWQpzmdEt2TNXIorIFG+YeCUUW7RInw=="
++      "integrity": "sha512-1Xve+NMN7FWjY14vLoY5tL3BVEQ/n42YLwaqJIPYhotZ9uBHt87VceMwWQpzmdEt2TNXIorIFG+YeCUUW7RInw==",
++      "peer": true
+     },
+     "node_modules/@types/trusted-types": {
+       "version": "2.0.7",
+@@ -1159,9 +1270,9 @@
+       }
+     },
+     "node_modules/brace-expansion": {
+-      "version": "2.0.2",
+-      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.0.2.tgz",
+-      "integrity": "sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==",
++      "version": "2.0.3",
++      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.0.3.tgz",
++      "integrity": "sha512-MCV/fYJEbqx68aE58kv2cA/kiky1G8vux3OR6/jbS+jIMe/6fJWa0DTzJU7dqijOWYwHi1t29FlfYI9uytqlpA==",
+       "license": "MIT",
+       "dependencies": {
+         "balanced-match": "^1.0.0"
+@@ -1188,6 +1299,7 @@
+       "version": "1.0.1",
+       "resolved": "https://registry.npmjs.org/camelize/-/camelize-1.0.1.tgz",
+       "integrity": "sha512-dU+Tx2fsypxTgtLoE36npi3UqcjSSMNYfkqgmoEhtZrraP5VWq0K7FkWVTYa8eMPtnU/G2txVsfdCJTn9uzpuQ==",
++      "peer": true,
+       "funding": {
+         "url": "https://github.com/sponsors/ljharb"
+       }
+@@ -1278,6 +1390,7 @@
+       "version": "1.0.0",
+       "resolved": "https://registry.npmjs.org/css-color-keywords/-/css-color-keywords-1.0.0.tgz",
+       "integrity": "sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==",
++      "peer": true,
+       "engines": {
+         "node": ">=4"
+       }
+@@ -1286,6 +1399,7 @@
+       "version": "3.2.0",
+       "resolved": "https://registry.npmjs.org/css-to-react-native/-/css-to-react-native-3.2.0.tgz",
+       "integrity": "sha512-e8RKaLXMOFii+02mOlqwjbD00KSEKqblnpO9e++1aXS1fPQOpS1YoqdVHBqPjHNoxeF2mimzVqawm2KCbEdtHQ==",
++      "peer": true,
+       "dependencies": {
+         "camelize": "^1.0.0",
+         "css-color-keywords": "^1.0.0",
+@@ -1295,7 +1409,8 @@
+     "node_modules/csstype": {
+       "version": "3.1.3",
+       "resolved": "https://registry.npmjs.org/csstype/-/csstype-3.1.3.tgz",
+-      "integrity": "sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw=="
++      "integrity": "sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==",
++      "peer": true
+     },
+     "node_modules/decko": {
+       "version": "1.2.0",
+@@ -1316,9 +1431,9 @@
+       }
+     },
+     "node_modules/dompurify": {
+-      "version": "3.2.4",
+-      "resolved": "https://registry.npmjs.org/dompurify/-/dompurify-3.2.4.tgz",
+-      "integrity": "sha512-ysFSFEDVduQpyhzAob/kkuJjf5zWkZD8/A9ywSp1byueyuCfHamrCBa14/Oc2iiB0e51B+NpxSl5gmzn+Ms/mg==",
++      "version": "3.3.3",
++      "resolved": "https://registry.npmjs.org/dompurify/-/dompurify-3.3.3.tgz",
++      "integrity": "sha512-Oj6pzI2+RqBfFG+qOaOLbFXLQ90ARpcGG6UePL82bJLtdsa6CYJD7nmiU8MW9nQNOtCHV3lZ/Bzq1X0QYbBZCA==",
+       "license": "(MPL-2.0 OR Apache-2.0)",
+       "optionalDependencies": {
+         "@types/trusted-types": "^2.0.7"
+@@ -1335,9 +1450,9 @@
+       "integrity": "sha512-SOp9Phqvqn7jtEUxPWdWfWoLmyt2VaJ6MpvP9Comy1MceMXqE6bxvaTu4iaxpYYPzhny28Lc+M87/c2cPK6lDg=="
+     },
+     "node_modules/esbuild": {
+-      "version": "0.25.1",
+-      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.1.tgz",
+-      "integrity": "sha512-BGO5LtrGC7vxnqucAe/rmvKdJllfGaYWdyABvyMoXQlfYMb2bbRuReWR5tEGE//4LcNJj9XrkovTqNYRFZHAMQ==",
++      "version": "0.27.2",
++      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.27.2.tgz",
++      "integrity": "sha512-HyNQImnsOC7X9PMNaCIeAm4ISCQXs5a5YasTXVliKv4uuBo1dKrG0A+uQS8M5eXjVMnLg3WgXaKvprHlFJQffw==",
+       "dev": true,
+       "hasInstallScript": true,
+       "license": "MIT",
+@@ -1348,31 +1463,32 @@
+         "node": ">=18"
+       },
+       "optionalDependencies": {
+-        "@esbuild/aix-ppc64": "0.25.1",
+-        "@esbuild/android-arm": "0.25.1",
+-        "@esbuild/android-arm64": "0.25.1",
+-        "@esbuild/android-x64": "0.25.1",
+-        "@esbuild/darwin-arm64": "0.25.1",
+-        "@esbuild/darwin-x64": "0.25.1",
+-        "@esbuild/freebsd-arm64": "0.25.1",
+-        "@esbuild/freebsd-x64": "0.25.1",
+-        "@esbuild/linux-arm": "0.25.1",
+-        "@esbuild/linux-arm64": "0.25.1",
+-        "@esbuild/linux-ia32": "0.25.1",
+-        "@esbuild/linux-loong64": "0.25.1",
+-        "@esbuild/linux-mips64el": "0.25.1",
+-        "@esbuild/linux-ppc64": "0.25.1",
+-        "@esbuild/linux-riscv64": "0.25.1",
+-        "@esbuild/linux-s390x": "0.25.1",
+-        "@esbuild/linux-x64": "0.25.1",
+-        "@esbuild/netbsd-arm64": "0.25.1",
+-        "@esbuild/netbsd-x64": "0.25.1",
+-        "@esbuild/openbsd-arm64": "0.25.1",
+-        "@esbuild/openbsd-x64": "0.25.1",
+-        "@esbuild/sunos-x64": "0.25.1",
+-        "@esbuild/win32-arm64": "0.25.1",
+-        "@esbuild/win32-ia32": "0.25.1",
+-        "@esbuild/win32-x64": "0.25.1"
++        "@esbuild/aix-ppc64": "0.27.2",
++        "@esbuild/android-arm": "0.27.2",
++        "@esbuild/android-arm64": "0.27.2",
++        "@esbuild/android-x64": "0.27.2",
++        "@esbuild/darwin-arm64": "0.27.2",
++        "@esbuild/darwin-x64": "0.27.2",
++        "@esbuild/freebsd-arm64": "0.27.2",
++        "@esbuild/freebsd-x64": "0.27.2",
++        "@esbuild/linux-arm": "0.27.2",
++        "@esbuild/linux-arm64": "0.27.2",
++        "@esbuild/linux-ia32": "0.27.2",
++        "@esbuild/linux-loong64": "0.27.2",
++        "@esbuild/linux-mips64el": "0.27.2",
++        "@esbuild/linux-ppc64": "0.27.2",
++        "@esbuild/linux-riscv64": "0.27.2",
++        "@esbuild/linux-s390x": "0.27.2",
++        "@esbuild/linux-x64": "0.27.2",
++        "@esbuild/netbsd-arm64": "0.27.2",
++        "@esbuild/netbsd-x64": "0.27.2",
++        "@esbuild/openbsd-arm64": "0.27.2",
++        "@esbuild/openbsd-x64": "0.27.2",
++        "@esbuild/openharmony-arm64": "0.27.2",
++        "@esbuild/sunos-x64": "0.27.2",
++        "@esbuild/win32-arm64": "0.27.2",
++        "@esbuild/win32-ia32": "0.27.2",
++        "@esbuild/win32-x64": "0.27.2"
+       }
+     },
+     "node_modules/escalade": {
+@@ -1399,9 +1515,9 @@
+       "integrity": "sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA=="
+     },
+     "node_modules/fast-xml-parser": {
+-      "version": "4.5.3",
+-      "resolved": "https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-4.5.3.tgz",
+-      "integrity": "sha512-RKihhV+SHsIUGXObeVy9AXiBbFwkVk7Syp8XgwN5U3JV416+Gwp/GO9i0JYKmikykgz/UHRrrV4ROuZEo/T0ig==",
++      "version": "4.5.6",
++      "resolved": "https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-4.5.6.tgz",
++      "integrity": "sha512-Yd4vkROfJf8AuJrDIVMVmYfULKmIJszVsMv7Vo71aocsKgFxpdlpSHXSaInvyYfgw2PRuObQSW2GFpVMUjxu9A==",
+       "funding": [
+         {
+           "type": "github",
+@@ -1410,7 +1526,7 @@
+       ],
+       "license": "MIT",
+       "dependencies": {
+-        "strnum": "^1.1.1"
++        "strnum": "^1.0.5"
+       },
+       "bin": {
+         "fxparser": "src/cli/cli.js"
+@@ -1474,10 +1590,11 @@
+       "integrity": "sha512-EC2utToWl4RKfs5zd36Mxq7nzHHBuomZboI0yYL6Y0RmBgT7Sgkq4rQ0ezFTYoIsSs7Tm9SJe+o2FcAg6GBhGA=="
+     },
+     "node_modules/immutable": {
+-      "version": "5.0.2",
+-      "resolved": "https://registry.npmjs.org/immutable/-/immutable-5.0.2.tgz",
+-      "integrity": "sha512-1NU7hWZDkV7hJ4PJ9dur9gTNQ4ePNPN4k9/0YhwjzykTi/+3Q5pF93YU5QoVj8BuOnhLgaY8gs0U2pj4kSYVcw==",
+-      "dev": true
++      "version": "5.1.5",
++      "resolved": "https://registry.npmjs.org/immutable/-/immutable-5.1.5.tgz",
++      "integrity": "sha512-t7xcm2siw+hlUM68I+UEOK+z84RzmN59as9DZ7P1l0994DKUWV7UXBMQZVxaoMSRQ+PBZbHCOoBt7a2wxOMt+A==",
++      "dev": true,
++      "license": "MIT"
+     },
+     "node_modules/is-binary-path": {
+       "version": "2.1.0",
+@@ -1620,9 +1737,10 @@
+       }
+     },
+     "node_modules/minimatch": {
+-      "version": "5.1.6",
+-      "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-5.1.6.tgz",
+-      "integrity": "sha512-lKwV/1brpG6mBUFHtb7NUmtABCb2WZZmm2wNiOA5hAb8VdCS4B3dtMWyvcoViccwAW/COERjXLt0zP1zXUN26g==",
++      "version": "5.1.9",
++      "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-5.1.9.tgz",
++      "integrity": "sha512-7o1wEA2RyMP7Iu7GNba9vc0RWWGACJOCZBJX2GJWip0ikV+wcOsgVuY9uE8CPiyQhkGFSlhuSkZPavN7u1c2Fw==",
++      "license": "ISC",
+       "dependencies": {
+         "brace-expansion": "^2.0.1"
+       },
+@@ -1784,9 +1902,10 @@
+       }
+     },
+     "node_modules/oas-linter/node_modules/yaml": {
+-      "version": "1.10.2",
+-      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.2.tgz",
+-      "integrity": "sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==",
++      "version": "1.10.3",
++      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.3.tgz",
++      "integrity": "sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==",
++      "license": "ISC",
+       "engines": {
+         "node": ">= 6"
+       }
+@@ -1810,9 +1929,10 @@
+       }
+     },
+     "node_modules/oas-resolver/node_modules/yaml": {
+-      "version": "1.10.2",
+-      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.2.tgz",
+-      "integrity": "sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==",
++      "version": "1.10.3",
++      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.3.tgz",
++      "integrity": "sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==",
++      "license": "ISC",
+       "engines": {
+         "node": ">= 6"
+       }
+@@ -1844,9 +1964,10 @@
+       }
+     },
+     "node_modules/oas-validator/node_modules/yaml": {
+-      "version": "1.10.2",
+-      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.2.tgz",
+-      "integrity": "sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==",
++      "version": "1.10.3",
++      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.3.tgz",
++      "integrity": "sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==",
++      "license": "ISC",
+       "engines": {
+         "node": ">= 6"
+       }
+@@ -1899,10 +2020,11 @@
+       "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="
+     },
+     "node_modules/picomatch": {
+-      "version": "2.3.1",
+-      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz",
+-      "integrity": "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==",
++      "version": "2.3.2",
++      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-2.3.2.tgz",
++      "integrity": "sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==",
+       "dev": true,
++      "license": "MIT",
+       "engines": {
+         "node": ">=8.6"
+       },
+@@ -1947,6 +2069,7 @@
+           "url": "https://github.com/sponsors/ai"
+         }
+       ],
++      "peer": true,
+       "dependencies": {
+         "nanoid": "^3.3.7",
+         "picocolors": "^1.0.0",
+@@ -1959,7 +2082,8 @@
+     "node_modules/postcss-value-parser": {
+       "version": "4.2.0",
+       "resolved": "https://registry.npmjs.org/postcss-value-parser/-/postcss-value-parser-4.2.0.tgz",
+-      "integrity": "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ=="
++      "integrity": "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==",
++      "peer": true
+     },
+     "node_modules/prismjs": {
+       "version": "1.30.0",
+@@ -2112,10 +2236,11 @@
+       }
+     },
+     "node_modules/rollup": {
+-      "version": "4.44.1",
+-      "resolved": "https://registry.npmjs.org/rollup/-/rollup-4.44.1.tgz",
+-      "integrity": "sha512-x8H8aPvD+xbl0Do8oez5f5o8eMS3trfCghc4HhLAnCkj7Vl0d1JWGs0UF/D886zLW2rOj2QymV/JcSSsw+XDNg==",
++      "version": "4.60.1",
++      "resolved": "https://registry.npmjs.org/rollup/-/rollup-4.60.1.tgz",
++      "integrity": "sha512-VmtB2rFU/GroZ4oL8+ZqXgSA38O6GR8KSIvWmEFv63pQ0G6KaBH9s07PO8XTXP4vI+3UJUEypOfjkGfmSBBR0w==",
+       "dev": true,
++      "license": "MIT",
+       "dependencies": {
+         "@types/estree": "1.0.8"
+       },
+@@ -2127,33 +2252,38 @@
+         "npm": ">=8.0.0"
+       },
+       "optionalDependencies": {
+-        "@rollup/rollup-android-arm-eabi": "4.44.1",
+-        "@rollup/rollup-android-arm64": "4.44.1",
+-        "@rollup/rollup-darwin-arm64": "4.44.1",
+-        "@rollup/rollup-darwin-x64": "4.44.1",
+-        "@rollup/rollup-freebsd-arm64": "4.44.1",
+-        "@rollup/rollup-freebsd-x64": "4.44.1",
+-        "@rollup/rollup-linux-arm-gnueabihf": "4.44.1",
+-        "@rollup/rollup-linux-arm-musleabihf": "4.44.1",
+-        "@rollup/rollup-linux-arm64-gnu": "4.44.1",
+-        "@rollup/rollup-linux-arm64-musl": "4.44.1",
+-        "@rollup/rollup-linux-loongarch64-gnu": "4.44.1",
+-        "@rollup/rollup-linux-powerpc64le-gnu": "4.44.1",
+-        "@rollup/rollup-linux-riscv64-gnu": "4.44.1",
+-        "@rollup/rollup-linux-riscv64-musl": "4.44.1",
+-        "@rollup/rollup-linux-s390x-gnu": "4.44.1",
+-        "@rollup/rollup-linux-x64-gnu": "4.44.1",
+-        "@rollup/rollup-linux-x64-musl": "4.44.1",
+-        "@rollup/rollup-win32-arm64-msvc": "4.44.1",
+-        "@rollup/rollup-win32-ia32-msvc": "4.44.1",
+-        "@rollup/rollup-win32-x64-msvc": "4.44.1",
++        "@rollup/rollup-android-arm-eabi": "4.60.1",
++        "@rollup/rollup-android-arm64": "4.60.1",
++        "@rollup/rollup-darwin-arm64": "4.60.1",
++        "@rollup/rollup-darwin-x64": "4.60.1",
++        "@rollup/rollup-freebsd-arm64": "4.60.1",
++        "@rollup/rollup-freebsd-x64": "4.60.1",
++        "@rollup/rollup-linux-arm-gnueabihf": "4.60.1",
++        "@rollup/rollup-linux-arm-musleabihf": "4.60.1",
++        "@rollup/rollup-linux-arm64-gnu": "4.60.1",
++        "@rollup/rollup-linux-arm64-musl": "4.60.1",
++        "@rollup/rollup-linux-loong64-gnu": "4.60.1",
++        "@rollup/rollup-linux-loong64-musl": "4.60.1",
++        "@rollup/rollup-linux-ppc64-gnu": "4.60.1",
++        "@rollup/rollup-linux-ppc64-musl": "4.60.1",
++        "@rollup/rollup-linux-riscv64-gnu": "4.60.1",
++        "@rollup/rollup-linux-riscv64-musl": "4.60.1",
++        "@rollup/rollup-linux-s390x-gnu": "4.60.1",
++        "@rollup/rollup-linux-x64-gnu": "4.60.1",
++        "@rollup/rollup-linux-x64-musl": "4.60.1",
++        "@rollup/rollup-openbsd-x64": "4.60.1",
++        "@rollup/rollup-openharmony-arm64": "4.60.1",
++        "@rollup/rollup-win32-arm64-msvc": "4.60.1",
++        "@rollup/rollup-win32-ia32-msvc": "4.60.1",
++        "@rollup/rollup-win32-x64-gnu": "4.60.1",
++        "@rollup/rollup-win32-x64-msvc": "4.60.1",
+         "fsevents": "~2.3.2"
+       }
+     },
+     "node_modules/sass": {
+-      "version": "1.93.3",
+-      "resolved": "https://registry.npmjs.org/sass/-/sass-1.93.3.tgz",
+-      "integrity": "sha512-elOcIZRTM76dvxNAjqYrucTSI0teAF/L2Lv0s6f6b7FOwcwIuA357bIE871580AjHJuSvLIRUosgV+lIWx6Rgg==",
++      "version": "1.97.1",
++      "resolved": "https://registry.npmjs.org/sass/-/sass-1.97.1.tgz",
++      "integrity": "sha512-uf6HoO8fy6ClsrShvMgaKUn14f2EHQLQRtpsZZLeU/Mv0Q1K5P0+x2uvH6Cub39TVVbWNSrraUhDAoFph6vh0A==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
+@@ -2203,6 +2333,7 @@
+       "version": "0.23.2",
+       "resolved": "https://registry.npmjs.org/scheduler/-/scheduler-0.23.2.tgz",
+       "integrity": "sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==",
++      "peer": true,
+       "dependencies": {
+         "loose-envify": "^1.1.0"
+       }
+@@ -2210,7 +2341,8 @@
+     "node_modules/shallowequal": {
+       "version": "1.1.0",
+       "resolved": "https://registry.npmjs.org/shallowequal/-/shallowequal-1.1.0.tgz",
+-      "integrity": "sha512-y0m1JoUZSlPAjXVtPPW70aZWfIL/dSP7AFkRnniLCrK/8MDKog3TySTBmckD+RObVxH0v4Tox67+F14PdED2oQ=="
++      "integrity": "sha512-y0m1JoUZSlPAjXVtPPW70aZWfIL/dSP7AFkRnniLCrK/8MDKog3TySTBmckD+RObVxH0v4Tox67+F14PdED2oQ==",
++      "peer": true
+     },
+     "node_modules/should": {
+       "version": "13.2.3",
+@@ -2348,12 +2480,13 @@
+     "node_modules/stylis": {
+       "version": "4.3.2",
+       "resolved": "https://registry.npmjs.org/stylis/-/stylis-4.3.2.tgz",
+-      "integrity": "sha512-bhtUjWd/z6ltJiQwg0dUfxEJ+W+jdqQd8TbWLWyeIJHlnsqmGLRFFd8e5mA0AZi/zx90smXRlN66YMTcaSFifg=="
++      "integrity": "sha512-bhtUjWd/z6ltJiQwg0dUfxEJ+W+jdqQd8TbWLWyeIJHlnsqmGLRFFd8e5mA0AZi/zx90smXRlN66YMTcaSFifg==",
++      "peer": true
+     },
+     "node_modules/swagger-ui-dist": {
+-      "version": "5.30.1",
+-      "resolved": "https://registry.npmjs.org/swagger-ui-dist/-/swagger-ui-dist-5.30.1.tgz",
+-      "integrity": "sha512-4mNAUM31sr52K3JcK9qiGbfsFKNh/dm3PkEe+F9FAM31YY/NoRYUgsR/L6d7LLFn6PgZXtBG2ygp8+7UnpUIPg==",
++      "version": "5.31.0",
++      "resolved": "https://registry.npmjs.org/swagger-ui-dist/-/swagger-ui-dist-5.31.0.tgz",
++      "integrity": "sha512-zSUTIck02fSga6rc0RZP3b7J7wgHXwLea8ZjgLA3Vgnb8QeOl3Wou2/j5QkzSGeoz6HusP/coYuJl33aQxQZpg==",
+       "license": "Apache-2.0",
+       "dependencies": {
+         "@scarf/scarf": "=1.4.0"
+@@ -2386,9 +2519,10 @@
+       }
+     },
+     "node_modules/swagger2openapi/node_modules/yaml": {
+-      "version": "1.10.2",
+-      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.2.tgz",
+-      "integrity": "sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==",
++      "version": "1.10.3",
++      "resolved": "https://registry.npmjs.org/yaml/-/yaml-1.10.3.tgz",
++      "integrity": "sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==",
++      "license": "ISC",
+       "engines": {
+         "node": ">= 6"
+       }
+@@ -2429,12 +2563,11 @@
+       }
+     },
+     "node_modules/tinyglobby/node_modules/picomatch": {
+-      "version": "4.0.3",
+-      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.3.tgz",
+-      "integrity": "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==",
++      "version": "4.0.4",
++      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.4.tgz",
++      "integrity": "sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=12"
+       },
+@@ -2462,7 +2595,8 @@
+     "node_modules/tslib": {
+       "version": "2.6.2",
+       "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.6.2.tgz",
+-      "integrity": "sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q=="
++      "integrity": "sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==",
++      "peer": true
+     },
+     "node_modules/uri-js": {
+       "version": "4.4.1",
+@@ -2487,13 +2621,13 @@
+       }
+     },
+     "node_modules/vite": {
+-      "version": "7.1.12",
+-      "resolved": "https://registry.npmjs.org/vite/-/vite-7.1.12.tgz",
+-      "integrity": "sha512-ZWyE8YXEXqJrrSLvYgrRP7p62OziLW7xI5HYGWFzOvupfAlrLvURSzv/FyGyy0eidogEM3ujU+kUG1zuHgb6Ug==",
++      "version": "7.3.2",
++      "resolved": "https://registry.npmjs.org/vite/-/vite-7.3.2.tgz",
++      "integrity": "sha512-Bby3NOsna2jsjfLVOHKes8sGwgl4TT0E6vvpYgnAYDIF/tie7MRaFthmKuHx1NSXjiTueXH3do80FMQgvEktRg==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
+-        "esbuild": "^0.25.0",
++        "esbuild": "^0.27.0",
+         "fdir": "^6.5.0",
+         "picomatch": "^4.0.3",
+         "postcss": "^8.5.6",
+@@ -2599,12 +2733,11 @@
+       }
+     },
+     "node_modules/vite/node_modules/picomatch": {
+-      "version": "4.0.3",
+-      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.3.tgz",
+-      "integrity": "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==",
++      "version": "4.0.4",
++      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.4.tgz",
++      "integrity": "sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=12"
+       },
+@@ -2678,6 +2811,24 @@
+         "node": ">=10"
+       }
+     },
++    "node_modules/yaml": {
++      "version": "2.8.3",
++      "resolved": "https://registry.npmjs.org/yaml/-/yaml-2.8.3.tgz",
++      "integrity": "sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg==",
++      "dev": true,
++      "license": "ISC",
++      "optional": true,
++      "peer": true,
++      "bin": {
++        "yaml": "bin.mjs"
++      },
++      "engines": {
++        "node": ">= 14.6"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/eemeli"
++      }
++    },
+     "node_modules/yaml-ast-parser": {
+       "version": "0.0.43",
+       "resolved": "https://registry.npmjs.org/yaml-ast-parser/-/yaml-ast-parser-0.0.43.tgz",
+diff --git a/package.json b/package.json
+index 657198b..e393bc0 100644
+--- a/package.json
++++ b/package.json
+@@ -9,11 +9,11 @@
+   "dependencies": {
+     "@minvws/nl-rdo-rijksoverheid-ui-theme": "^0.0.18",
+     "redoc": "^2.5.2",
+-    "swagger-ui-dist": "^5.30.1"
++    "swagger-ui-dist": "^5.31.0"
+   },
+   "devDependencies": {
+-    "sass": "^1.93.3",
+-    "vite": "^7.1.12",
++    "sass": "^1.97.1",
++    "vite": "^7.3.0",
+     "vite-plugin-static-copy": "^3.1.4"
+   }
+ }
+diff --git a/poetry.lock b/poetry.lock
+index 54cf0a3..faadb07 100644
+--- a/poetry.lock
++++ b/poetry.lock
+@@ -211,87 +211,6 @@ files = [
+     {file = "certifi-2025.4.26.tar.gz", hash = "sha256:0a816057ea3cdefcef70270d2c515e4506bbc954f417fa5ade2021213bb8f0c6"},
+ ]
+ 
+-[[package]]
+-name = "cffi"
+-version = "1.17.1"
+-description = "Foreign Function Interface for Python calling C code."
+-optional = false
+-python-versions = ">=3.8"
+-groups = ["main", "dev"]
+-markers = "platform_python_implementation != \"PyPy\" and python_version < \"3.14\""
+-files = [
+-    {file = "cffi-1.17.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:df8b1c11f177bc2313ec4b2d46baec87a5f3e71fc8b45dab2ee7cae86d9aba14"},
+-    {file = "cffi-1.17.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:8f2cdc858323644ab277e9bb925ad72ae0e67f69e804f4898c070998d50b1a67"},
+-    {file = "cffi-1.17.1-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:edae79245293e15384b51f88b00613ba9f7198016a5948b5dddf4917d4d26382"},
+-    {file = "cffi-1.17.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:45398b671ac6d70e67da8e4224a065cec6a93541bb7aebe1b198a61b58c7b702"},
+-    {file = "cffi-1.17.1-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:ad9413ccdeda48c5afdae7e4fa2192157e991ff761e7ab8fdd8926f40b160cc3"},
+-    {file = "cffi-1.17.1-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:5da5719280082ac6bd9aa7becb3938dc9f9cbd57fac7d2871717b1feb0902ab6"},
+-    {file = "cffi-1.17.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2bb1a08b8008b281856e5971307cc386a8e9c5b625ac297e853d36da6efe9c17"},
+-    {file = "cffi-1.17.1-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:045d61c734659cc045141be4bae381a41d89b741f795af1dd018bfb532fd0df8"},
+-    {file = "cffi-1.17.1-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:6883e737d7d9e4899a8a695e00ec36bd4e5e4f18fabe0aca0efe0a4b44cdb13e"},
+-    {file = "cffi-1.17.1-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:6b8b4a92e1c65048ff98cfe1f735ef8f1ceb72e3d5f0c25fdb12087a23da22be"},
+-    {file = "cffi-1.17.1-cp310-cp310-win32.whl", hash = "sha256:c9c3d058ebabb74db66e431095118094d06abf53284d9c81f27300d0e0d8bc7c"},
+-    {file = "cffi-1.17.1-cp310-cp310-win_amd64.whl", hash = "sha256:0f048dcf80db46f0098ccac01132761580d28e28bc0f78ae0d58048063317e15"},
+-    {file = "cffi-1.17.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:a45e3c6913c5b87b3ff120dcdc03f6131fa0065027d0ed7ee6190736a74cd401"},
+-    {file = "cffi-1.17.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:30c5e0cb5ae493c04c8b42916e52ca38079f1b235c2f8ae5f4527b963c401caf"},
+-    {file = "cffi-1.17.1-cp311-cp311-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f75c7ab1f9e4aca5414ed4d8e5c0e303a34f4421f8a0d47a4d019ceff0ab6af4"},
+-    {file = "cffi-1.17.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a1ed2dd2972641495a3ec98445e09766f077aee98a1c896dcb4ad0d303628e41"},
+-    {file = "cffi-1.17.1-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:46bf43160c1a35f7ec506d254e5c890f3c03648a4dbac12d624e4490a7046cd1"},
+-    {file = "cffi-1.17.1-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:a24ed04c8ffd54b0729c07cee15a81d964e6fee0e3d4d342a27b020d22959dc6"},
+-    {file = "cffi-1.17.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:610faea79c43e44c71e1ec53a554553fa22321b65fae24889706c0a84d4ad86d"},
+-    {file = "cffi-1.17.1-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:a9b15d491f3ad5d692e11f6b71f7857e7835eb677955c00cc0aefcd0669adaf6"},
+-    {file = "cffi-1.17.1-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:de2ea4b5833625383e464549fec1bc395c1bdeeb5f25c4a3a82b5a8c756ec22f"},
+-    {file = "cffi-1.17.1-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:fc48c783f9c87e60831201f2cce7f3b2e4846bf4d8728eabe54d60700b318a0b"},
+-    {file = "cffi-1.17.1-cp311-cp311-win32.whl", hash = "sha256:85a950a4ac9c359340d5963966e3e0a94a676bd6245a4b55bc43949eee26a655"},
+-    {file = "cffi-1.17.1-cp311-cp311-win_amd64.whl", hash = "sha256:caaf0640ef5f5517f49bc275eca1406b0ffa6aa184892812030f04c2abf589a0"},
+-    {file = "cffi-1.17.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:805b4371bf7197c329fcb3ead37e710d1bca9da5d583f5073b799d5c5bd1eee4"},
+-    {file = "cffi-1.17.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:733e99bc2df47476e3848417c5a4540522f234dfd4ef3ab7fafdf555b082ec0c"},
+-    {file = "cffi-1.17.1-cp312-cp312-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1257bdabf294dceb59f5e70c64a3e2f462c30c7ad68092d01bbbfb1c16b1ba36"},
+-    {file = "cffi-1.17.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:da95af8214998d77a98cc14e3a3bd00aa191526343078b530ceb0bd710fb48a5"},
+-    {file = "cffi-1.17.1-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:d63afe322132c194cf832bfec0dc69a99fb9bb6bbd550f161a49e9e855cc78ff"},
+-    {file = "cffi-1.17.1-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:f79fc4fc25f1c8698ff97788206bb3c2598949bfe0fef03d299eb1b5356ada99"},
+-    {file = "cffi-1.17.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b62ce867176a75d03a665bad002af8e6d54644fad99a3c70905c543130e39d93"},
+-    {file = "cffi-1.17.1-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:386c8bf53c502fff58903061338ce4f4950cbdcb23e2902d86c0f722b786bbe3"},
+-    {file = "cffi-1.17.1-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:4ceb10419a9adf4460ea14cfd6bc43d08701f0835e979bf821052f1805850fe8"},
+-    {file = "cffi-1.17.1-cp312-cp312-win32.whl", hash = "sha256:a08d7e755f8ed21095a310a693525137cfe756ce62d066e53f502a83dc550f65"},
+-    {file = "cffi-1.17.1-cp312-cp312-win_amd64.whl", hash = "sha256:51392eae71afec0d0c8fb1a53b204dbb3bcabcb3c9b807eedf3e1e6ccf2de903"},
+-    {file = "cffi-1.17.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:f3a2b4222ce6b60e2e8b337bb9596923045681d71e5a082783484d845390938e"},
+-    {file = "cffi-1.17.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0984a4925a435b1da406122d4d7968dd861c1385afe3b45ba82b750f229811e2"},
+-    {file = "cffi-1.17.1-cp313-cp313-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d01b12eeeb4427d3110de311e1774046ad344f5b1a7403101878976ecd7a10f3"},
+-    {file = "cffi-1.17.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:706510fe141c86a69c8ddc029c7910003a17353970cff3b904ff0686a5927683"},
+-    {file = "cffi-1.17.1-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:de55b766c7aa2e2a3092c51e0483d700341182f08e67c63630d5b6f200bb28e5"},
+-    {file = "cffi-1.17.1-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:c59d6e989d07460165cc5ad3c61f9fd8f1b4796eacbd81cee78957842b834af4"},
+-    {file = "cffi-1.17.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dd398dbc6773384a17fe0d3e7eeb8d1a21c2200473ee6806bb5e6a8e62bb73dd"},
+-    {file = "cffi-1.17.1-cp313-cp313-musllinux_1_1_aarch64.whl", hash = "sha256:3edc8d958eb099c634dace3c7e16560ae474aa3803a5df240542b305d14e14ed"},
+-    {file = "cffi-1.17.1-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:72e72408cad3d5419375fc87d289076ee319835bdfa2caad331e377589aebba9"},
+-    {file = "cffi-1.17.1-cp313-cp313-win32.whl", hash = "sha256:e03eab0a8677fa80d646b5ddece1cbeaf556c313dcfac435ba11f107ba117b5d"},
+-    {file = "cffi-1.17.1-cp313-cp313-win_amd64.whl", hash = "sha256:f6a16c31041f09ead72d69f583767292f750d24913dadacf5756b966aacb3f1a"},
+-    {file = "cffi-1.17.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:636062ea65bd0195bc012fea9321aca499c0504409f413dc88af450b57ffd03b"},
+-    {file = "cffi-1.17.1-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c7eac2ef9b63c79431bc4b25f1cd649d7f061a28808cbc6c47b534bd789ef964"},
+-    {file = "cffi-1.17.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e221cf152cff04059d011ee126477f0d9588303eb57e88923578ace7baad17f9"},
+-    {file = "cffi-1.17.1-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:31000ec67d4221a71bd3f67df918b1f88f676f1c3b535a7eb473255fdc0b83fc"},
+-    {file = "cffi-1.17.1-cp38-cp38-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:6f17be4345073b0a7b8ea599688f692ac3ef23ce28e5df79c04de519dbc4912c"},
+-    {file = "cffi-1.17.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0e2b1fac190ae3ebfe37b979cc1ce69c81f4e4fe5746bb401dca63a9062cdaf1"},
+-    {file = "cffi-1.17.1-cp38-cp38-win32.whl", hash = "sha256:7596d6620d3fa590f677e9ee430df2958d2d6d6de2feeae5b20e82c00b76fbf8"},
+-    {file = "cffi-1.17.1-cp38-cp38-win_amd64.whl", hash = "sha256:78122be759c3f8a014ce010908ae03364d00a1f81ab5c7f4a7a5120607ea56e1"},
+-    {file = "cffi-1.17.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:b2ab587605f4ba0bf81dc0cb08a41bd1c0a5906bd59243d56bad7668a6fc6c16"},
+-    {file = "cffi-1.17.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:28b16024becceed8c6dfbc75629e27788d8a3f9030691a1dbf9821a128b22c36"},
+-    {file = "cffi-1.17.1-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1d599671f396c4723d016dbddb72fe8e0397082b0a77a4fab8028923bec050e8"},
+-    {file = "cffi-1.17.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ca74b8dbe6e8e8263c0ffd60277de77dcee6c837a3d0881d8c1ead7268c9e576"},
+-    {file = "cffi-1.17.1-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:f7f5baafcc48261359e14bcd6d9bff6d4b28d9103847c9e136694cb0501aef87"},
+-    {file = "cffi-1.17.1-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:98e3969bcff97cae1b2def8ba499ea3d6f31ddfdb7635374834cf89a1a08ecf0"},
+-    {file = "cffi-1.17.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cdf5ce3acdfd1661132f2a9c19cac174758dc2352bfe37d98aa7512c6b7178b3"},
+-    {file = "cffi-1.17.1-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:9755e4345d1ec879e3849e62222a18c7174d65a6a92d5b346b1863912168b595"},
+-    {file = "cffi-1.17.1-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:f1e22e8c4419538cb197e4dd60acc919d7696e5ef98ee4da4e01d3f8cfa4cc5a"},
+-    {file = "cffi-1.17.1-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:c03e868a0b3bc35839ba98e74211ed2b05d2119be4e8a0f224fba9384f1fe02e"},
+-    {file = "cffi-1.17.1-cp39-cp39-win32.whl", hash = "sha256:e31ae45bc2e29f6b2abd0de1cc3b9d5205aa847cafaecb8af1476a609a2f6eb7"},
+-    {file = "cffi-1.17.1-cp39-cp39-win_amd64.whl", hash = "sha256:d016c76bdd850f3c626af19b0542c9677ba156e4ee4fccfdd7848803533ef662"},
+-    {file = "cffi-1.17.1.tar.gz", hash = "sha256:1c39c6016c32bc48dd54561950ebd6836e1670f2ae46128f67cf49e789c52824"},
+-]
+-
+-[package.dependencies]
+-pycparser = "*"
+-
+ [[package]]
+ name = "cffi"
+ version = "2.0.0"
+@@ -299,7 +218,7 @@ description = "Foreign Function Interface for Python calling C code."
+ optional = false
+ python-versions = ">=3.9"
+ groups = ["main", "dev"]
+-markers = "platform_python_implementation != \"PyPy\" and python_version >= \"3.14\""
++markers = "platform_python_implementation != \"PyPy\""
+ files = [
+     {file = "cffi-2.0.0-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:0cf2d91ecc3fcc0625c2c530fe004f82c110405f101548512cce44322fa8ac44"},
+     {file = "cffi-2.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f73b96c41e3b2adedc34a7356e64c8eb96e03a3782b535e043a986276ce12a49"},
+@@ -1040,144 +959,152 @@ typing-extensions = ">=4.5.0"
+ 
+ [[package]]
+ name = "lxml"
+-version = "5.4.0"
++version = "6.0.2"
+ description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
+ optional = false
+-python-versions = ">=3.6"
++python-versions = ">=3.8"
+ groups = ["main"]
+ files = [
+-    {file = "lxml-5.4.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:e7bc6df34d42322c5289e37e9971d6ed114e3776b45fa879f734bded9d1fea9c"},
+-    {file = "lxml-5.4.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:6854f8bd8a1536f8a1d9a3655e6354faa6406621cf857dc27b681b69860645c7"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:696ea9e87442467819ac22394ca36cb3d01848dad1be6fac3fb612d3bd5a12cf"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6ef80aeac414f33c24b3815ecd560cee272786c3adfa5f31316d8b349bfade28"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:3b9c2754cef6963f3408ab381ea55f47dabc6f78f4b8ebb0f0b25cf1ac1f7609"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:7a62cc23d754bb449d63ff35334acc9f5c02e6dae830d78dab4dd12b78a524f4"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8f82125bc7203c5ae8633a7d5d20bcfdff0ba33e436e4ab0abc026a53a8960b7"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:b67319b4aef1a6c56576ff544b67a2a6fbd7eaee485b241cabf53115e8908b8f"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_28_ppc64le.whl", hash = "sha256:a8ef956fce64c8551221f395ba21d0724fed6b9b6242ca4f2f7beb4ce2f41997"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_28_s390x.whl", hash = "sha256:0a01ce7d8479dce84fc03324e3b0c9c90b1ece9a9bb6a1b6c9025e7e4520e78c"},
+-    {file = "lxml-5.4.0-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:91505d3ddebf268bb1588eb0f63821f738d20e1e7f05d3c647a5ca900288760b"},
+-    {file = "lxml-5.4.0-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:a3bcdde35d82ff385f4ede021df801b5c4a5bcdfb61ea87caabcebfc4945dc1b"},
+-    {file = "lxml-5.4.0-cp310-cp310-musllinux_1_2_ppc64le.whl", hash = "sha256:aea7c06667b987787c7d1f5e1dfcd70419b711cdb47d6b4bb4ad4b76777a0563"},
+-    {file = "lxml-5.4.0-cp310-cp310-musllinux_1_2_s390x.whl", hash = "sha256:a7fb111eef4d05909b82152721a59c1b14d0f365e2be4c742a473c5d7372f4f5"},
+-    {file = "lxml-5.4.0-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:43d549b876ce64aa18b2328faff70f5877f8c6dede415f80a2f799d31644d776"},
+-    {file = "lxml-5.4.0-cp310-cp310-win32.whl", hash = "sha256:75133890e40d229d6c5837b0312abbe5bac1c342452cf0e12523477cd3aa21e7"},
+-    {file = "lxml-5.4.0-cp310-cp310-win_amd64.whl", hash = "sha256:de5b4e1088523e2b6f730d0509a9a813355b7f5659d70eb4f319c76beea2e250"},
+-    {file = "lxml-5.4.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:98a3912194c079ef37e716ed228ae0dcb960992100461b704aea4e93af6b0bb9"},
+-    {file = "lxml-5.4.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:0ea0252b51d296a75f6118ed0d8696888e7403408ad42345d7dfd0d1e93309a7"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b92b69441d1bd39f4940f9eadfa417a25862242ca2c396b406f9272ef09cdcaa"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:20e16c08254b9b6466526bc1828d9370ee6c0d60a4b64836bc3ac2917d1e16df"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:7605c1c32c3d6e8c990dd28a0970a3cbbf1429d5b92279e37fda05fb0c92190e"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:ecf4c4b83f1ab3d5a7ace10bafcb6f11df6156857a3c418244cef41ca9fa3e44"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0cef4feae82709eed352cd7e97ae062ef6ae9c7b5dbe3663f104cd2c0e8d94ba"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:df53330a3bff250f10472ce96a9af28628ff1f4efc51ccba351a8820bca2a8ba"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_28_ppc64le.whl", hash = "sha256:aefe1a7cb852fa61150fcb21a8c8fcea7b58c4cb11fbe59c97a0a4b31cae3c8c"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_28_s390x.whl", hash = "sha256:ef5a7178fcc73b7d8c07229e89f8eb45b2908a9238eb90dcfc46571ccf0383b8"},
+-    {file = "lxml-5.4.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:d2ed1b3cb9ff1c10e6e8b00941bb2e5bb568b307bfc6b17dffbbe8be5eecba86"},
+-    {file = "lxml-5.4.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:72ac9762a9f8ce74c9eed4a4e74306f2f18613a6b71fa065495a67ac227b3056"},
+-    {file = "lxml-5.4.0-cp311-cp311-musllinux_1_2_ppc64le.whl", hash = "sha256:f5cb182f6396706dc6cc1896dd02b1c889d644c081b0cdec38747573db88a7d7"},
+-    {file = "lxml-5.4.0-cp311-cp311-musllinux_1_2_s390x.whl", hash = "sha256:3a3178b4873df8ef9457a4875703488eb1622632a9cee6d76464b60e90adbfcd"},
+-    {file = "lxml-5.4.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:e094ec83694b59d263802ed03a8384594fcce477ce484b0cbcd0008a211ca751"},
+-    {file = "lxml-5.4.0-cp311-cp311-win32.whl", hash = "sha256:4329422de653cdb2b72afa39b0aa04252fca9071550044904b2e7036d9d97fe4"},
+-    {file = "lxml-5.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:fd3be6481ef54b8cfd0e1e953323b7aa9d9789b94842d0e5b142ef4bb7999539"},
+-    {file = "lxml-5.4.0-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:b5aff6f3e818e6bdbbb38e5967520f174b18f539c2b9de867b1e7fde6f8d95a4"},
+-    {file = "lxml-5.4.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:942a5d73f739ad7c452bf739a62a0f83e2578afd6b8e5406308731f4ce78b16d"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:460508a4b07364d6abf53acaa0a90b6d370fafde5693ef37602566613a9b0779"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:529024ab3a505fed78fe3cc5ddc079464e709f6c892733e3f5842007cec8ac6e"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:7ca56ebc2c474e8f3d5761debfd9283b8b18c76c4fc0967b74aeafba1f5647f9"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:a81e1196f0a5b4167a8dafe3a66aa67c4addac1b22dc47947abd5d5c7a3f24b5"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:00b8686694423ddae324cf614e1b9659c2edb754de617703c3d29ff568448df5"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:c5681160758d3f6ac5b4fea370495c48aac0989d6a0f01bb9a72ad8ef5ab75c4"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_28_ppc64le.whl", hash = "sha256:2dc191e60425ad70e75a68c9fd90ab284df64d9cd410ba8d2b641c0c45bc006e"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_28_s390x.whl", hash = "sha256:67f779374c6b9753ae0a0195a892a1c234ce8416e4448fe1e9f34746482070a7"},
+-    {file = "lxml-5.4.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:79d5bfa9c1b455336f52343130b2067164040604e41f6dc4d8313867ed540079"},
+-    {file = "lxml-5.4.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:3d3c30ba1c9b48c68489dc1829a6eede9873f52edca1dda900066542528d6b20"},
+-    {file = "lxml-5.4.0-cp312-cp312-musllinux_1_2_ppc64le.whl", hash = "sha256:1af80c6316ae68aded77e91cd9d80648f7dd40406cef73df841aa3c36f6907c8"},
+-    {file = "lxml-5.4.0-cp312-cp312-musllinux_1_2_s390x.whl", hash = "sha256:4d885698f5019abe0de3d352caf9466d5de2baded00a06ef3f1216c1a58ae78f"},
+-    {file = "lxml-5.4.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:aea53d51859b6c64e7c51d522c03cc2c48b9b5d6172126854cc7f01aa11f52bc"},
+-    {file = "lxml-5.4.0-cp312-cp312-win32.whl", hash = "sha256:d90b729fd2732df28130c064aac9bb8aff14ba20baa4aee7bd0795ff1187545f"},
+-    {file = "lxml-5.4.0-cp312-cp312-win_amd64.whl", hash = "sha256:1dc4ca99e89c335a7ed47d38964abcb36c5910790f9bd106f2a8fa2ee0b909d2"},
+-    {file = "lxml-5.4.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:773e27b62920199c6197130632c18fb7ead3257fce1ffb7d286912e56ddb79e0"},
+-    {file = "lxml-5.4.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:ce9c671845de9699904b1e9df95acfe8dfc183f2310f163cdaa91a3535af95de"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9454b8d8200ec99a224df8854786262b1bd6461f4280064c807303c642c05e76"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cccd007d5c95279e529c146d095f1d39ac05139de26c098166c4beb9374b0f4d"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:0fce1294a0497edb034cb416ad3e77ecc89b313cff7adbee5334e4dc0d11f422"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:24974f774f3a78ac12b95e3a20ef0931795ff04dbb16db81a90c37f589819551"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:497cab4d8254c2a90bf988f162ace2ddbfdd806fce3bda3f581b9d24c852e03c"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:e794f698ae4c5084414efea0f5cc9f4ac562ec02d66e1484ff822ef97c2cadff"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_28_ppc64le.whl", hash = "sha256:2c62891b1ea3094bb12097822b3d44b93fc6c325f2043c4d2736a8ff09e65f60"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_28_s390x.whl", hash = "sha256:142accb3e4d1edae4b392bd165a9abdee8a3c432a2cca193df995bc3886249c8"},
+-    {file = "lxml-5.4.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:1a42b3a19346e5601d1b8296ff6ef3d76038058f311902edd574461e9c036982"},
+-    {file = "lxml-5.4.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:4291d3c409a17febf817259cb37bc62cb7eb398bcc95c1356947e2871911ae61"},
+-    {file = "lxml-5.4.0-cp313-cp313-musllinux_1_2_ppc64le.whl", hash = "sha256:4f5322cf38fe0e21c2d73901abf68e6329dc02a4994e483adbcf92b568a09a54"},
+-    {file = "lxml-5.4.0-cp313-cp313-musllinux_1_2_s390x.whl", hash = "sha256:0be91891bdb06ebe65122aa6bf3fc94489960cf7e03033c6f83a90863b23c58b"},
+-    {file = "lxml-5.4.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:15a665ad90054a3d4f397bc40f73948d48e36e4c09f9bcffc7d90c87410e478a"},
+-    {file = "lxml-5.4.0-cp313-cp313-win32.whl", hash = "sha256:d5663bc1b471c79f5c833cffbc9b87d7bf13f87e055a5c86c363ccd2348d7e82"},
+-    {file = "lxml-5.4.0-cp313-cp313-win_amd64.whl", hash = "sha256:bcb7a1096b4b6b24ce1ac24d4942ad98f983cd3810f9711bcd0293f43a9d8b9f"},
+-    {file = "lxml-5.4.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:7be701c24e7f843e6788353c055d806e8bd8466b52907bafe5d13ec6a6dbaecd"},
+-    {file = "lxml-5.4.0-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:fb54f7c6bafaa808f27166569b1511fc42701a7713858dddc08afdde9746849e"},
+-    {file = "lxml-5.4.0-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:97dac543661e84a284502e0cf8a67b5c711b0ad5fb661d1bd505c02f8cf716d7"},
+-    {file = "lxml-5.4.0-cp36-cp36m-manylinux_2_28_x86_64.whl", hash = "sha256:c70e93fba207106cb16bf852e421c37bbded92acd5964390aad07cb50d60f5cf"},
+-    {file = "lxml-5.4.0-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:9c886b481aefdf818ad44846145f6eaf373a20d200b5ce1a5c8e1bc2d8745410"},
+-    {file = "lxml-5.4.0-cp36-cp36m-musllinux_1_2_x86_64.whl", hash = "sha256:fa0e294046de09acd6146be0ed6727d1f42ded4ce3ea1e9a19c11b6774eea27c"},
+-    {file = "lxml-5.4.0-cp36-cp36m-win32.whl", hash = "sha256:61c7bbf432f09ee44b1ccaa24896d21075e533cd01477966a5ff5a71d88b2f56"},
+-    {file = "lxml-5.4.0-cp36-cp36m-win_amd64.whl", hash = "sha256:7ce1a171ec325192c6a636b64c94418e71a1964f56d002cc28122fceff0b6121"},
+-    {file = "lxml-5.4.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:795f61bcaf8770e1b37eec24edf9771b307df3af74d1d6f27d812e15a9ff3872"},
+-    {file = "lxml-5.4.0-cp37-cp37m-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:29f451a4b614a7b5b6c2e043d7b64a15bd8304d7e767055e8ab68387a8cacf4e"},
+-    {file = "lxml-5.4.0-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:891f7f991a68d20c75cb13c5c9142b2a3f9eb161f1f12a9489c82172d1f133c0"},
+-    {file = "lxml-5.4.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4aa412a82e460571fad592d0f93ce9935a20090029ba08eca05c614f99b0cc92"},
+-    {file = "lxml-5.4.0-cp37-cp37m-manylinux_2_28_aarch64.whl", hash = "sha256:ac7ba71f9561cd7d7b55e1ea5511543c0282e2b6450f122672a2694621d63b7e"},
+-    {file = "lxml-5.4.0-cp37-cp37m-manylinux_2_28_x86_64.whl", hash = "sha256:c5d32f5284012deaccd37da1e2cd42f081feaa76981f0eaa474351b68df813c5"},
+-    {file = "lxml-5.4.0-cp37-cp37m-musllinux_1_2_aarch64.whl", hash = "sha256:ce31158630a6ac85bddd6b830cffd46085ff90498b397bd0a259f59d27a12188"},
+-    {file = "lxml-5.4.0-cp37-cp37m-musllinux_1_2_x86_64.whl", hash = "sha256:31e63621e073e04697c1b2d23fcb89991790eef370ec37ce4d5d469f40924ed6"},
+-    {file = "lxml-5.4.0-cp37-cp37m-win32.whl", hash = "sha256:be2ba4c3c5b7900246a8f866580700ef0d538f2ca32535e991027bdaba944063"},
+-    {file = "lxml-5.4.0-cp37-cp37m-win_amd64.whl", hash = "sha256:09846782b1ef650b321484ad429217f5154da4d6e786636c38e434fa32e94e49"},
+-    {file = "lxml-5.4.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:eaf24066ad0b30917186420d51e2e3edf4b0e2ea68d8cd885b14dc8afdcf6556"},
+-    {file = "lxml-5.4.0-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2b31a3a77501d86d8ade128abb01082724c0dfd9524f542f2f07d693c9f1175f"},
+-    {file = "lxml-5.4.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0e108352e203c7afd0eb91d782582f00a0b16a948d204d4dec8565024fafeea5"},
+-    {file = "lxml-5.4.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a11a96c3b3f7551c8a8109aa65e8594e551d5a84c76bf950da33d0fb6dfafab7"},
+-    {file = "lxml-5.4.0-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:ca755eebf0d9e62d6cb013f1261e510317a41bf4650f22963474a663fdfe02aa"},
+-    {file = "lxml-5.4.0-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:4cd915c0fb1bed47b5e6d6edd424ac25856252f09120e3e8ba5154b6b921860e"},
+-    {file = "lxml-5.4.0-cp38-cp38-musllinux_1_2_aarch64.whl", hash = "sha256:226046e386556a45ebc787871d6d2467b32c37ce76c2680f5c608e25823ffc84"},
+-    {file = "lxml-5.4.0-cp38-cp38-musllinux_1_2_x86_64.whl", hash = "sha256:b108134b9667bcd71236c5a02aad5ddd073e372fb5d48ea74853e009fe38acb6"},
+-    {file = "lxml-5.4.0-cp38-cp38-win32.whl", hash = "sha256:1320091caa89805df7dcb9e908add28166113dcd062590668514dbd510798c88"},
+-    {file = "lxml-5.4.0-cp38-cp38-win_amd64.whl", hash = "sha256:073eb6dcdf1f587d9b88c8c93528b57eccda40209cf9be549d469b942b41d70b"},
+-    {file = "lxml-5.4.0-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:bda3ea44c39eb74e2488297bb39d47186ed01342f0022c8ff407c250ac3f498e"},
+-    {file = "lxml-5.4.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:9ceaf423b50ecfc23ca00b7f50b64baba85fb3fb91c53e2c9d00bc86150c7e40"},
+-    {file = "lxml-5.4.0-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:664cdc733bc87449fe781dbb1f309090966c11cc0c0cd7b84af956a02a8a4729"},
+-    {file = "lxml-5.4.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:67ed8a40665b84d161bae3181aa2763beea3747f748bca5874b4af4d75998f87"},
+-    {file = "lxml-5.4.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9b4a3bd174cc9cdaa1afbc4620c049038b441d6ba07629d89a83b408e54c35cd"},
+-    {file = "lxml-5.4.0-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:b0989737a3ba6cf2a16efb857fb0dfa20bc5c542737fddb6d893fde48be45433"},
+-    {file = "lxml-5.4.0-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:dc0af80267edc68adf85f2a5d9be1cdf062f973db6790c1d065e45025fa26140"},
+-    {file = "lxml-5.4.0-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:639978bccb04c42677db43c79bdaa23785dc7f9b83bfd87570da8207872f1ce5"},
+-    {file = "lxml-5.4.0-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:5a99d86351f9c15e4a901fc56404b485b1462039db59288b203f8c629260a142"},
+-    {file = "lxml-5.4.0-cp39-cp39-win32.whl", hash = "sha256:3e6d5557989cdc3ebb5302bbdc42b439733a841891762ded9514e74f60319ad6"},
+-    {file = "lxml-5.4.0-cp39-cp39-win_amd64.whl", hash = "sha256:a8c9b7f16b63e65bbba889acb436a1034a82d34fa09752d754f88d708eca80e1"},
+-    {file = "lxml-5.4.0-pp310-pypy310_pp73-macosx_10_15_x86_64.whl", hash = "sha256:1b717b00a71b901b4667226bba282dd462c42ccf618ade12f9ba3674e1fabc55"},
+-    {file = "lxml-5.4.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:27a9ded0f0b52098ff89dd4c418325b987feed2ea5cc86e8860b0f844285d740"},
+-    {file = "lxml-5.4.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4b7ce10634113651d6f383aa712a194179dcd496bd8c41e191cec2099fa09de5"},
+-    {file = "lxml-5.4.0-pp310-pypy310_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:53370c26500d22b45182f98847243efb518d268374a9570409d2e2276232fd37"},
+-    {file = "lxml-5.4.0-pp310-pypy310_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:c6364038c519dffdbe07e3cf42e6a7f8b90c275d4d1617a69bb59734c1a2d571"},
+-    {file = "lxml-5.4.0-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:b12cb6527599808ada9eb2cd6e0e7d3d8f13fe7bbb01c6311255a15ded4c7ab4"},
+-    {file = "lxml-5.4.0-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:5f11a1526ebd0dee85e7b1e39e39a0cc0d9d03fb527f56d8457f6df48a10dc0c"},
+-    {file = "lxml-5.4.0-pp37-pypy37_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:48b4afaf38bf79109bb060d9016fad014a9a48fb244e11b94f74ae366a64d252"},
+-    {file = "lxml-5.4.0-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:de6f6bb8a7840c7bf216fb83eec4e2f79f7325eca8858167b68708b929ab2172"},
+-    {file = "lxml-5.4.0-pp37-pypy37_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:5cca36a194a4eb4e2ed6be36923d3cffd03dcdf477515dea687185506583d4c9"},
+-    {file = "lxml-5.4.0-pp37-pypy37_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:b7c86884ad23d61b025989d99bfdd92a7351de956e01c61307cb87035960bcb1"},
+-    {file = "lxml-5.4.0-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:53d9469ab5460402c19553b56c3648746774ecd0681b1b27ea74d5d8a3ef5590"},
+-    {file = "lxml-5.4.0-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:56dbdbab0551532bb26c19c914848d7251d73edb507c3079d6805fa8bba5b706"},
+-    {file = "lxml-5.4.0-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:14479c2ad1cb08b62bb941ba8e0e05938524ee3c3114644df905d2331c76cd57"},
+-    {file = "lxml-5.4.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:32697d2ea994e0db19c1df9e40275ffe84973e4232b5c274f47e7c1ec9763cdd"},
+-    {file = "lxml-5.4.0-pp38-pypy38_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:24f6df5f24fc3385f622c0c9d63fe34604893bc1a5bdbb2dbf5870f85f9a404a"},
+-    {file = "lxml-5.4.0-pp38-pypy38_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:151d6c40bc9db11e960619d2bf2ec5829f0aaffb10b41dcf6ad2ce0f3c0b2325"},
+-    {file = "lxml-5.4.0-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:4025bf2884ac4370a3243c5aa8d66d3cb9e15d3ddd0af2d796eccc5f0244390e"},
+-    {file = "lxml-5.4.0-pp39-pypy39_pp73-macosx_10_15_x86_64.whl", hash = "sha256:9459e6892f59ecea2e2584ee1058f5d8f629446eab52ba2305ae13a32a059530"},
+-    {file = "lxml-5.4.0-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:47fb24cc0f052f0576ea382872b3fc7e1f7e3028e53299ea751839418ade92a6"},
+-    {file = "lxml-5.4.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:50441c9de951a153c698b9b99992e806b71c1f36d14b154592580ff4a9d0d877"},
+-    {file = "lxml-5.4.0-pp39-pypy39_pp73-manylinux_2_28_aarch64.whl", hash = "sha256:ab339536aa798b1e17750733663d272038bf28069761d5be57cb4a9b0137b4f8"},
+-    {file = "lxml-5.4.0-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:9776af1aad5a4b4a1317242ee2bea51da54b2a7b7b48674be736d463c999f37d"},
+-    {file = "lxml-5.4.0-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:63e7968ff83da2eb6fdda967483a7a023aa497d85ad8f05c3ad9b1f2e8c84987"},
+-    {file = "lxml-5.4.0.tar.gz", hash = "sha256:d12832e1dbea4be280b22fd0ea7c9b87f0d8fc51ba06e92dc62d52f804f78ebd"},
++    {file = "lxml-6.0.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:e77dd455b9a16bbd2a5036a63ddbd479c19572af81b624e79ef422f929eef388"},
++    {file = "lxml-6.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5d444858b9f07cefff6455b983aea9a67f7462ba1f6cbe4a21e8bf6791bf2153"},
++    {file = "lxml-6.0.2-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f952dacaa552f3bb8834908dddd500ba7d508e6ea6eb8c52eb2d28f48ca06a31"},
++    {file = "lxml-6.0.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:71695772df6acea9f3c0e59e44ba8ac50c4f125217e84aab21074a1a55e7e5c9"},
++    {file = "lxml-6.0.2-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:17f68764f35fd78d7c4cc4ef209a184c38b65440378013d24b8aecd327c3e0c8"},
++    {file = "lxml-6.0.2-cp310-cp310-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:058027e261afed589eddcfe530fcc6f3402d7fd7e89bfd0532df82ebc1563dba"},
++    {file = "lxml-6.0.2-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a8ffaeec5dfea5881d4c9d8913a32d10cfe3923495386106e4a24d45300ef79c"},
++    {file = "lxml-6.0.2-cp310-cp310-manylinux_2_31_armv7l.whl", hash = "sha256:f2e3b1a6bb38de0bc713edd4d612969dd250ca8b724be8d460001a387507021c"},
++    {file = "lxml-6.0.2-cp310-cp310-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:d6690ec5ec1cce0385cb20896b16be35247ac8c2046e493d03232f1c2414d321"},
++    {file = "lxml-6.0.2-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:f2a50c3c1d11cad0ebebbac357a97b26aa79d2bcaf46f256551152aa85d3a4d1"},
++    {file = "lxml-6.0.2-cp310-cp310-musllinux_1_2_armv7l.whl", hash = "sha256:3efe1b21c7801ffa29a1112fab3b0f643628c30472d507f39544fd48e9549e34"},
++    {file = "lxml-6.0.2-cp310-cp310-musllinux_1_2_riscv64.whl", hash = "sha256:59c45e125140b2c4b33920d21d83681940ca29f0b83f8629ea1a2196dc8cfe6a"},
++    {file = "lxml-6.0.2-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:452b899faa64f1805943ec1c0c9ebeaece01a1af83e130b69cdefeda180bb42c"},
++    {file = "lxml-6.0.2-cp310-cp310-win32.whl", hash = "sha256:1e786a464c191ca43b133906c6903a7e4d56bef376b75d97ccbb8ec5cf1f0a4b"},
++    {file = "lxml-6.0.2-cp310-cp310-win_amd64.whl", hash = "sha256:dacf3c64ef3f7440e3167aa4b49aa9e0fb99e0aa4f9ff03795640bf94531bcb0"},
++    {file = "lxml-6.0.2-cp310-cp310-win_arm64.whl", hash = "sha256:45f93e6f75123f88d7f0cfd90f2d05f441b808562bf0bc01070a00f53f5028b5"},
++    {file = "lxml-6.0.2-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:13e35cbc684aadf05d8711a5d1b5857c92e5e580efa9a0d2be197199c8def607"},
++    {file = "lxml-6.0.2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:3b1675e096e17c6fe9c0e8c81434f5736c0739ff9ac6123c87c2d452f48fc938"},
++    {file = "lxml-6.0.2-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:8ac6e5811ae2870953390452e3476694196f98d447573234592d30488147404d"},
++    {file = "lxml-6.0.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:5aa0fc67ae19d7a64c3fe725dc9a1bb11f80e01f78289d05c6f62545affec438"},
++    {file = "lxml-6.0.2-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:de496365750cc472b4e7902a485d3f152ecf57bd3ba03ddd5578ed8ceb4c5964"},
++    {file = "lxml-6.0.2-cp311-cp311-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:200069a593c5e40b8f6fc0d84d86d970ba43138c3e68619ffa234bc9bb806a4d"},
++    {file = "lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:7d2de809c2ee3b888b59f995625385f74629707c9355e0ff856445cdcae682b7"},
++    {file = "lxml-6.0.2-cp311-cp311-manylinux_2_31_armv7l.whl", hash = "sha256:b2c3da8d93cf5db60e8858c17684c47d01fee6405e554fb55018dd85fc23b178"},
++    {file = "lxml-6.0.2-cp311-cp311-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:442de7530296ef5e188373a1ea5789a46ce90c4847e597856570439621d9c553"},
++    {file = "lxml-6.0.2-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:2593c77efde7bfea7f6389f1ab249b15ed4aa5bc5cb5131faa3b843c429fbedb"},
++    {file = "lxml-6.0.2-cp311-cp311-musllinux_1_2_armv7l.whl", hash = "sha256:3e3cb08855967a20f553ff32d147e14329b3ae70ced6edc2f282b94afbc74b2a"},
++    {file = "lxml-6.0.2-cp311-cp311-musllinux_1_2_riscv64.whl", hash = "sha256:2ed6c667fcbb8c19c6791bbf40b7268ef8ddf5a96940ba9404b9f9a304832f6c"},
++    {file = "lxml-6.0.2-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:b8f18914faec94132e5b91e69d76a5c1d7b0c73e2489ea8929c4aaa10b76bbf7"},
++    {file = "lxml-6.0.2-cp311-cp311-win32.whl", hash = "sha256:6605c604e6daa9e0d7f0a2137bdc47a2e93b59c60a65466353e37f8272f47c46"},
++    {file = "lxml-6.0.2-cp311-cp311-win_amd64.whl", hash = "sha256:e5867f2651016a3afd8dd2c8238baa66f1e2802f44bc17e236f547ace6647078"},
++    {file = "lxml-6.0.2-cp311-cp311-win_arm64.whl", hash = "sha256:4197fb2534ee05fd3e7afaab5d8bfd6c2e186f65ea7f9cd6a82809c887bd1285"},
++    {file = "lxml-6.0.2-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:a59f5448ba2ceccd06995c95ea59a7674a10de0810f2ce90c9006f3cbc044456"},
++    {file = "lxml-6.0.2-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:e8113639f3296706fbac34a30813929e29247718e88173ad849f57ca59754924"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:a8bef9b9825fa8bc816a6e641bb67219489229ebc648be422af695f6e7a4fa7f"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:65ea18d710fd14e0186c2f973dc60bb52039a275f82d3c44a0e42b43440ea534"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:c371aa98126a0d4c739ca93ceffa0fd7a5d732e3ac66a46e74339acd4d334564"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:700efd30c0fa1a3581d80a748157397559396090a51d306ea59a70020223d16f"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux_2_26_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:c33e66d44fe60e72397b487ee92e01da0d09ba2d66df8eae42d77b6d06e5eba0"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:90a345bbeaf9d0587a3aaffb7006aa39ccb6ff0e96a57286c0cb2fd1520ea192"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux_2_31_armv7l.whl", hash = "sha256:064fdadaf7a21af3ed1dcaa106b854077fbeada827c18f72aec9346847cd65d0"},
++    {file = "lxml-6.0.2-cp312-cp312-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:fbc74f42c3525ac4ffa4b89cbdd00057b6196bcefe8bce794abd42d33a018092"},
++    {file = "lxml-6.0.2-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:6ddff43f702905a4e32bc24f3f2e2edfe0f8fde3277d481bffb709a4cced7a1f"},
++    {file = "lxml-6.0.2-cp312-cp312-musllinux_1_2_armv7l.whl", hash = "sha256:6da5185951d72e6f5352166e3da7b0dc27aa70bd1090b0eb3f7f7212b53f1bb8"},
++    {file = "lxml-6.0.2-cp312-cp312-musllinux_1_2_ppc64le.whl", hash = "sha256:57a86e1ebb4020a38d295c04fc79603c7899e0df71588043eb218722dabc087f"},
++    {file = "lxml-6.0.2-cp312-cp312-musllinux_1_2_riscv64.whl", hash = "sha256:2047d8234fe735ab77802ce5f2297e410ff40f5238aec569ad7c8e163d7b19a6"},
++    {file = "lxml-6.0.2-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:6f91fd2b2ea15a6800c8e24418c0775a1694eefc011392da73bc6cef2623b322"},
++    {file = "lxml-6.0.2-cp312-cp312-win32.whl", hash = "sha256:3ae2ce7d6fedfb3414a2b6c5e20b249c4c607f72cb8d2bb7cc9c6ec7c6f4e849"},
++    {file = "lxml-6.0.2-cp312-cp312-win_amd64.whl", hash = "sha256:72c87e5ee4e58a8354fb9c7c84cbf95a1c8236c127a5d1b7683f04bed8361e1f"},
++    {file = "lxml-6.0.2-cp312-cp312-win_arm64.whl", hash = "sha256:61cb10eeb95570153e0c0e554f58df92ecf5109f75eacad4a95baa709e26c3d6"},
++    {file = "lxml-6.0.2-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:9b33d21594afab46f37ae58dfadd06636f154923c4e8a4d754b0127554eb2e77"},
++    {file = "lxml-6.0.2-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:6c8963287d7a4c5c9a432ff487c52e9c5618667179c18a204bdedb27310f022f"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1941354d92699fb5ffe6ed7b32f9649e43c2feb4b97205f75866f7d21aa91452"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:bb2f6ca0ae2d983ded09357b84af659c954722bbf04dea98030064996d156048"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:eb2a12d704f180a902d7fa778c6d71f36ceb7b0d317f34cdc76a5d05aa1dd1df"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:6ec0e3f745021bfed19c456647f0298d60a24c9ff86d9d051f52b509663feeb1"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux_2_26_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:846ae9a12d54e368933b9759052d6206a9e8b250291109c48e350c1f1f49d916"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ef9266d2aa545d7374938fb5c484531ef5a2ec7f2d573e62f8ce722c735685fd"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux_2_31_armv7l.whl", hash = "sha256:4077b7c79f31755df33b795dc12119cb557a0106bfdab0d2c2d97bd3cf3dffa6"},
++    {file = "lxml-6.0.2-cp313-cp313-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:a7c5d5e5f1081955358533be077166ee97ed2571d6a66bdba6ec2f609a715d1a"},
++    {file = "lxml-6.0.2-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:8f8d0cbd0674ee89863a523e6994ac25fd5be9c8486acfc3e5ccea679bad2679"},
++    {file = "lxml-6.0.2-cp313-cp313-musllinux_1_2_armv7l.whl", hash = "sha256:2cbcbf6d6e924c28f04a43f3b6f6e272312a090f269eff68a2982e13e5d57659"},
++    {file = "lxml-6.0.2-cp313-cp313-musllinux_1_2_ppc64le.whl", hash = "sha256:dfb874cfa53340009af6bdd7e54ebc0d21012a60a4e65d927c2e477112e63484"},
++    {file = "lxml-6.0.2-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:fb8dae0b6b8b7f9e96c26fdd8121522ce5de9bb5538010870bd538683d30e9a2"},
++    {file = "lxml-6.0.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:358d9adae670b63e95bc59747c72f4dc97c9ec58881d4627fe0120da0f90d314"},
++    {file = "lxml-6.0.2-cp313-cp313-win32.whl", hash = "sha256:e8cd2415f372e7e5a789d743d133ae474290a90b9023197fd78f32e2dc6873e2"},
++    {file = "lxml-6.0.2-cp313-cp313-win_amd64.whl", hash = "sha256:b30d46379644fbfc3ab81f8f82ae4de55179414651f110a1514f0b1f8f6cb2d7"},
++    {file = "lxml-6.0.2-cp313-cp313-win_arm64.whl", hash = "sha256:13dcecc9946dca97b11b7c40d29fba63b55ab4170d3c0cf8c0c164343b9bfdcf"},
++    {file = "lxml-6.0.2-cp314-cp314-macosx_10_13_universal2.whl", hash = "sha256:b0c732aa23de8f8aec23f4b580d1e52905ef468afb4abeafd3fec77042abb6fe"},
++    {file = "lxml-6.0.2-cp314-cp314-macosx_10_13_x86_64.whl", hash = "sha256:4468e3b83e10e0317a89a33d28f7aeba1caa4d1a6fd457d115dd4ffe90c5931d"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:abd44571493973bad4598a3be7e1d807ed45aa2adaf7ab92ab7c62609569b17d"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:370cd78d5855cfbffd57c422851f7d3864e6ae72d0da615fca4dad8c45d375a5"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:901e3b4219fa04ef766885fb40fa516a71662a4c61b80c94d25336b4934b71c0"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:a4bf42d2e4cf52c28cc1812d62426b9503cdb0c87a6de81442626aa7d69707ba"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux_2_26_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:b2c7fdaa4d7c3d886a42534adec7cfac73860b89b4e5298752f60aa5984641a0"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:98a5e1660dc7de2200b00d53fa00bcd3c35a3608c305d45a7bbcaf29fa16e83d"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux_2_31_armv7l.whl", hash = "sha256:dc051506c30b609238d79eda75ee9cab3e520570ec8219844a72a46020901e37"},
++    {file = "lxml-6.0.2-cp314-cp314-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:8799481bbdd212470d17513a54d568f44416db01250f49449647b5ab5b5dccb9"},
++    {file = "lxml-6.0.2-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:9261bb77c2dab42f3ecd9103951aeca2c40277701eb7e912c545c1b16e0e4917"},
++    {file = "lxml-6.0.2-cp314-cp314-musllinux_1_2_armv7l.whl", hash = "sha256:65ac4a01aba353cfa6d5725b95d7aed6356ddc0a3cd734de00124d285b04b64f"},
++    {file = "lxml-6.0.2-cp314-cp314-musllinux_1_2_ppc64le.whl", hash = "sha256:b22a07cbb82fea98f8a2fd814f3d1811ff9ed76d0fc6abc84eb21527596e7cc8"},
++    {file = "lxml-6.0.2-cp314-cp314-musllinux_1_2_riscv64.whl", hash = "sha256:d759cdd7f3e055d6bc8d9bec3ad905227b2e4c785dc16c372eb5b5e83123f48a"},
++    {file = "lxml-6.0.2-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:945da35a48d193d27c188037a05fec5492937f66fb1958c24fc761fb9d40d43c"},
++    {file = "lxml-6.0.2-cp314-cp314-win32.whl", hash = "sha256:be3aaa60da67e6153eb15715cc2e19091af5dc75faef8b8a585aea372507384b"},
++    {file = "lxml-6.0.2-cp314-cp314-win_amd64.whl", hash = "sha256:fa25afbadead523f7001caf0c2382afd272c315a033a7b06336da2637d92d6ed"},
++    {file = "lxml-6.0.2-cp314-cp314-win_arm64.whl", hash = "sha256:063eccf89df5b24e361b123e257e437f9e9878f425ee9aae3144c77faf6da6d8"},
++    {file = "lxml-6.0.2-cp314-cp314t-macosx_10_13_universal2.whl", hash = "sha256:6162a86d86893d63084faaf4ff937b3daea233e3682fb4474db07395794fa80d"},
++    {file = "lxml-6.0.2-cp314-cp314t-macosx_10_13_x86_64.whl", hash = "sha256:414aaa94e974e23a3e92e7ca5b97d10c0cf37b6481f50911032c69eeb3991bba"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:48461bd21625458dd01e14e2c38dd0aea69addc3c4f960c30d9f59d7f93be601"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:25fcc59afc57d527cfc78a58f40ab4c9b8fd096a9a3f964d2781ffb6eb33f4ed"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:5179c60288204e6ddde3f774a93350177e08876eaf3ab78aa3a3649d43eb7d37"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:967aab75434de148ec80597b75062d8123cadf2943fb4281f385141e18b21338"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux_2_26_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:d100fcc8930d697c6561156c6810ab4a508fb264c8b6779e6e61e2ed5e7558f9"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:2ca59e7e13e5981175b8b3e4ab84d7da57993eeff53c07764dcebda0d0e64ecd"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux_2_31_armv7l.whl", hash = "sha256:957448ac63a42e2e49531b9d6c0fa449a1970dbc32467aaad46f11545be9af1d"},
++    {file = "lxml-6.0.2-cp314-cp314t-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:b7fc49c37f1786284b12af63152fe1d0990722497e2d5817acfe7a877522f9a9"},
++    {file = "lxml-6.0.2-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:e19e0643cc936a22e837f79d01a550678da8377d7d801a14487c10c34ee49c7e"},
++    {file = "lxml-6.0.2-cp314-cp314t-musllinux_1_2_armv7l.whl", hash = "sha256:1db01e5cf14345628e0cbe71067204db658e2fb8e51e7f33631f5f4735fefd8d"},
++    {file = "lxml-6.0.2-cp314-cp314t-musllinux_1_2_ppc64le.whl", hash = "sha256:875c6b5ab39ad5291588aed6925fac99d0097af0dd62f33c7b43736043d4a2ec"},
++    {file = "lxml-6.0.2-cp314-cp314t-musllinux_1_2_riscv64.whl", hash = "sha256:cdcbed9ad19da81c480dfd6dd161886db6096083c9938ead313d94b30aadf272"},
++    {file = "lxml-6.0.2-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:80dadc234ebc532e09be1975ff538d154a7fa61ea5031c03d25178855544728f"},
++    {file = "lxml-6.0.2-cp314-cp314t-win32.whl", hash = "sha256:da08e7bb297b04e893d91087df19638dc7a6bb858a954b0cc2b9f5053c922312"},
++    {file = "lxml-6.0.2-cp314-cp314t-win_amd64.whl", hash = "sha256:252a22982dca42f6155125ac76d3432e548a7625d56f5a273ee78a5057216eca"},
++    {file = "lxml-6.0.2-cp314-cp314t-win_arm64.whl", hash = "sha256:bb4c1847b303835d89d785a18801a883436cdfd5dc3d62947f9c49e24f0f5a2c"},
++    {file = "lxml-6.0.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:a656ca105115f6b766bba324f23a67914d9c728dafec57638e2b92a9dcd76c62"},
++    {file = "lxml-6.0.2-cp38-cp38-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:c54d83a2188a10ebdba573f16bd97135d06c9ef60c3dc495315c7a28c80a263f"},
++    {file = "lxml-6.0.2-cp38-cp38-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:1ea99340b3c729beea786f78c38f60f4795622f36e305d9c9be402201efdc3b7"},
++    {file = "lxml-6.0.2-cp38-cp38-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:af85529ae8d2a453feee4c780d9406a5e3b17cee0dd75c18bd31adcd584debc3"},
++    {file = "lxml-6.0.2-cp38-cp38-musllinux_1_2_x86_64.whl", hash = "sha256:fe659f6b5d10fb5a17f00a50eb903eb277a71ee35df4615db573c069bcf967ac"},
++    {file = "lxml-6.0.2-cp38-cp38-win32.whl", hash = "sha256:5921d924aa5468c939d95c9814fa9f9b5935a6ff4e679e26aaf2951f74043512"},
++    {file = "lxml-6.0.2-cp38-cp38-win_amd64.whl", hash = "sha256:0aa7070978f893954008ab73bb9e3c24a7c56c054e00566a21b553dc18105fca"},
++    {file = "lxml-6.0.2-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:2c8458c2cdd29589a8367c09c8f030f1d202be673f0ca224ec18590b3b9fb694"},
++    {file = "lxml-6.0.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:3fee0851639d06276e6b387f1c190eb9d7f06f7f53514e966b26bae46481ec90"},
++    {file = "lxml-6.0.2-cp39-cp39-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:b2142a376b40b6736dfc214fd2902409e9e3857eff554fed2d3c60f097e62a62"},
++    {file = "lxml-6.0.2-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:a6b5b39cc7e2998f968f05309e666103b53e2edd01df8dc51b90d734c0825444"},
++    {file = "lxml-6.0.2-cp39-cp39-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:d4aec24d6b72ee457ec665344a29acb2d35937d5192faebe429ea02633151aad"},
++    {file = "lxml-6.0.2-cp39-cp39-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:b42f4d86b451c2f9d06ffb4f8bbc776e04df3ba070b9fe2657804b1b40277c48"},
++    {file = "lxml-6.0.2-cp39-cp39-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6cdaefac66e8b8f30e37a9b4768a391e1f8a16a7526d5bc77a7928408ef68e93"},
++    {file = "lxml-6.0.2-cp39-cp39-manylinux_2_31_armv7l.whl", hash = "sha256:b738f7e648735714bbb82bdfd030203360cfeab7f6e8a34772b3c8c8b820568c"},
++    {file = "lxml-6.0.2-cp39-cp39-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:daf42de090d59db025af61ce6bdb2521f0f102ea0e6ea310f13c17610a97da4c"},
++    {file = "lxml-6.0.2-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:66328dabea70b5ba7e53d94aa774b733cf66686535f3bc9250a7aab53a91caaf"},
++    {file = "lxml-6.0.2-cp39-cp39-musllinux_1_2_armv7l.whl", hash = "sha256:e237b807d68a61fc3b1e845407e27e5eb8ef69bc93fe8505337c1acb4ee300b6"},
++    {file = "lxml-6.0.2-cp39-cp39-musllinux_1_2_riscv64.whl", hash = "sha256:ac02dc29fd397608f8eb15ac1610ae2f2f0154b03f631e6d724d9e2ad4ee2c84"},
++    {file = "lxml-6.0.2-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:817ef43a0c0b4a77bd166dc9a09a555394105ff3374777ad41f453526e37f9cb"},
++    {file = "lxml-6.0.2-cp39-cp39-win32.whl", hash = "sha256:bc532422ff26b304cfb62b328826bd995c96154ffd2bac4544f37dbb95ecaa8f"},
++    {file = "lxml-6.0.2-cp39-cp39-win_amd64.whl", hash = "sha256:995e783eb0374c120f528f807443ad5a83a656a8624c467ea73781fc5f8a8304"},
++    {file = "lxml-6.0.2-cp39-cp39-win_arm64.whl", hash = "sha256:08b9d5e803c2e4725ae9e8559ee880e5328ed61aa0935244e0515d7d9dbec0aa"},
++    {file = "lxml-6.0.2-pp310-pypy310_pp73-macosx_10_15_x86_64.whl", hash = "sha256:e748d4cf8fef2526bb2a589a417eba0c8674e29ffcb570ce2ceca44f1e567bf6"},
++    {file = "lxml-6.0.2-pp310-pypy310_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:4ddb1049fa0579d0cbd00503ad8c58b9ab34d1254c77bc6a5576d96ec7853dba"},
++    {file = "lxml-6.0.2-pp310-pypy310_pp73-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:cb233f9c95f83707dae461b12b720c1af9c28c2d19208e1be03387222151daf5"},
++    {file = "lxml-6.0.2-pp310-pypy310_pp73-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bc456d04db0515ce3320d714a1eac7a97774ff0849e7718b492d957da4631dd4"},
++    {file = "lxml-6.0.2-pp310-pypy310_pp73-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:2613e67de13d619fd283d58bda40bff0ee07739f624ffee8b13b631abf33083d"},
++    {file = "lxml-6.0.2-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:24a8e756c982c001ca8d59e87c80c4d9dcd4d9b44a4cbeb8d9be4482c514d41d"},
++    {file = "lxml-6.0.2-pp311-pypy311_pp73-macosx_10_15_x86_64.whl", hash = "sha256:1c06035eafa8404b5cf475bb37a9f6088b0aca288d4ccc9d69389750d5543700"},
++    {file = "lxml-6.0.2-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:c7d13103045de1bdd6fe5d61802565f1a3537d70cd3abf596aa0af62761921ee"},
++    {file = "lxml-6.0.2-pp311-pypy311_pp73-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:0a3c150a95fbe5ac91de323aa756219ef9cf7fde5a3f00e2281e30f33fa5fa4f"},
++    {file = "lxml-6.0.2-pp311-pypy311_pp73-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:60fa43be34f78bebb27812ed90f1925ec99560b0fa1decdb7d12b84d857d31e9"},
++    {file = "lxml-6.0.2-pp311-pypy311_pp73-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:21c73b476d3cfe836be731225ec3421fa2f048d84f6df6a8e70433dff1376d5a"},
++    {file = "lxml-6.0.2-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:27220da5be049e936c3aca06f174e8827ca6445a4353a1995584311487fc4e3e"},
++    {file = "lxml-6.0.2.tar.gz", hash = "sha256:cd79f3367bd74b317dda655dc8fcfa304d9eb6e4fb06b7168c5cf27f96e0cd62"},
+ ]
+ 
+ [package.extras]
+@@ -1185,7 +1112,6 @@ cssselect = ["cssselect (>=0.7)"]
+ html-clean = ["lxml_html_clean"]
+ html5 = ["html5lib"]
+ htmlsoup = ["BeautifulSoup4"]
+-source = ["Cython (>=3.0.11,<3.1.0)"]
+ 
+ [[package]]
+ name = "mako"
+@@ -1561,7 +1487,7 @@ description = "C parser in Python"
+ optional = false
+ python-versions = ">=3.8"
+ groups = ["main", "dev"]
+-markers = "platform_python_implementation != \"PyPy\" and (python_version < \"3.14\" or implementation_name != \"PyPy\")"
++markers = "platform_python_implementation != \"PyPy\" and implementation_name != \"PyPy\""
+ files = [
+     {file = "pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"},
+     {file = "pycparser-2.22.tar.gz", hash = "sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6"},
+@@ -1852,46 +1778,41 @@ testutils = ["gitpython (>3)"]
+ 
+ [[package]]
+ name = "pynacl"
+-version = "1.6.0"
++version = "1.6.2"
+ description = "Python binding to the Networking and Cryptography (NaCl) library"
+ optional = false
+ python-versions = ">=3.8"
+ groups = ["main"]
+ files = [
+-    {file = "pynacl-1.6.0-cp314-cp314t-macosx_10_10_universal2.whl", hash = "sha256:f46386c24a65383a9081d68e9c2de909b1834ec74ff3013271f1bca9c2d233eb"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:dea103a1afcbc333bc0e992e64233d360d393d1e63d0bc88554f572365664348"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:04f20784083014e265ad58c1b2dd562c3e35864b5394a14ab54f5d150ee9e53e"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bbcc4452a1eb10cd5217318c822fde4be279c9de8567f78bad24c773c21254f8"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:51fed9fe1bec9e7ff9af31cd0abba179d0e984a2960c77e8e5292c7e9b7f7b5d"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-manylinux_2_34_aarch64.whl", hash = "sha256:10d755cf2a455d8c0f8c767a43d68f24d163b8fe93ccfaabfa7bafd26be58d73"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-manylinux_2_34_x86_64.whl", hash = "sha256:536703b8f90e911294831a7fbcd0c062b837f3ccaa923d92a6254e11178aaf42"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:6b08eab48c9669d515a344fb0ef27e2cbde847721e34bba94a343baa0f33f1f4"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:5789f016e08e5606803161ba24de01b5a345d24590a80323379fc4408832d290"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-win32.whl", hash = "sha256:4853c154dc16ea12f8f3ee4b7e763331876316cc3a9f06aeedf39bcdca8f9995"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-win_amd64.whl", hash = "sha256:347dcddce0b4d83ed3f32fd00379c83c425abee5a9d2cd0a2c84871334eaff64"},
+-    {file = "pynacl-1.6.0-cp314-cp314t-win_arm64.whl", hash = "sha256:2d6cd56ce4998cb66a6c112fda7b1fdce5266c9f05044fa72972613bef376d15"},
+-    {file = "pynacl-1.6.0-cp38-abi3-macosx_10_10_universal2.whl", hash = "sha256:f4b3824920e206b4f52abd7de621ea7a44fd3cb5c8daceb7c3612345dfc54f2e"},
+-    {file = "pynacl-1.6.0-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:16dd347cdc8ae0b0f6187a2608c0af1c8b7ecbbe6b4a06bff8253c192f696990"},
+-    {file = "pynacl-1.6.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:16c60daceee88d04f8d41d0a4004a7ed8d9a5126b997efd2933e08e93a3bd850"},
+-    {file = "pynacl-1.6.0-cp38-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:25720bad35dfac34a2bcdd61d9e08d6bfc6041bebc7751d9c9f2446cf1e77d64"},
+-    {file = "pynacl-1.6.0-cp38-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8bfaa0a28a1ab718bad6239979a5a57a8d1506d0caf2fba17e524dbb409441cf"},
+-    {file = "pynacl-1.6.0-cp38-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:ef214b90556bb46a485b7da8258e59204c244b1b5b576fb71848819b468c44a7"},
+-    {file = "pynacl-1.6.0-cp38-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:49c336dd80ea54780bcff6a03ee1a476be1612423010472e60af83452aa0f442"},
+-    {file = "pynacl-1.6.0-cp38-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:f3482abf0f9815e7246d461fab597aa179b7524628a4bc36f86a7dc418d2608d"},
+-    {file = "pynacl-1.6.0-cp38-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:140373378e34a1f6977e573033d1dd1de88d2a5d90ec6958c9485b2fd9f3eb90"},
+-    {file = "pynacl-1.6.0-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:6b393bc5e5a0eb86bb85b533deb2d2c815666665f840a09e0aa3362bb6088736"},
+-    {file = "pynacl-1.6.0-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:4a25cfede801f01e54179b8ff9514bd7b5944da560b7040939732d1804d25419"},
+-    {file = "pynacl-1.6.0-cp38-abi3-win32.whl", hash = "sha256:dcdeb41c22ff3c66eef5e63049abf7639e0db4edee57ba70531fc1b6b133185d"},
+-    {file = "pynacl-1.6.0-cp38-abi3-win_amd64.whl", hash = "sha256:cf831615cc16ba324240de79d925eacae8265b7691412ac6b24221db157f6bd1"},
+-    {file = "pynacl-1.6.0-cp38-abi3-win_arm64.whl", hash = "sha256:84709cea8f888e618c21ed9a0efdb1a59cc63141c403db8bf56c469b71ad56f2"},
+-    {file = "pynacl-1.6.0.tar.gz", hash = "sha256:cb36deafe6e2bce3b286e5d1f3e1c246e0ccdb8808ddb4550bb2792f2df298f2"},
++    {file = "pynacl-1.6.2-cp314-cp314t-macosx_10_10_universal2.whl", hash = "sha256:622d7b07cc5c02c666795792931b50c91f3ce3c2649762efb1ef0d5684c81594"},
++    {file = "pynacl-1.6.2-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:d071c6a9a4c94d79eb665db4ce5cedc537faf74f2355e4d502591d850d3913c0"},
++    {file = "pynacl-1.6.2-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:fe9847ca47d287af41e82be1dd5e23023d3c31a951da134121ab02e42ac218c9"},
++    {file = "pynacl-1.6.2-cp314-cp314t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:04316d1fc625d860b6c162fff704eb8426b1a8bcd3abacea11142cbd99a6b574"},
++    {file = "pynacl-1.6.2-cp314-cp314t-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:44081faff368d6c5553ccf55322ef2819abb40e25afaec7e740f159f74813634"},
++    {file = "pynacl-1.6.2-cp314-cp314t-manylinux_2_34_aarch64.whl", hash = "sha256:a9f9932d8d2811ce1a8ffa79dcbdf3970e7355b5c8eb0c1a881a57e7f7d96e88"},
++    {file = "pynacl-1.6.2-cp314-cp314t-manylinux_2_34_x86_64.whl", hash = "sha256:bc4a36b28dd72fb4845e5d8f9760610588a96d5a51f01d84d8c6ff9849968c14"},
++    {file = "pynacl-1.6.2-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:3bffb6d0f6becacb6526f8f42adfb5efb26337056ee0831fb9a7044d1a964444"},
++    {file = "pynacl-1.6.2-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:2fef529ef3ee487ad8113d287a593fa26f48ee3620d92ecc6f1d09ea38e0709b"},
++    {file = "pynacl-1.6.2-cp314-cp314t-win32.whl", hash = "sha256:a84bf1c20339d06dc0c85d9aea9637a24f718f375d861b2668b2f9f96fa51145"},
++    {file = "pynacl-1.6.2-cp314-cp314t-win_amd64.whl", hash = "sha256:320ef68a41c87547c91a8b58903c9caa641ab01e8512ce291085b5fe2fcb7590"},
++    {file = "pynacl-1.6.2-cp314-cp314t-win_arm64.whl", hash = "sha256:d29bfe37e20e015a7d8b23cfc8bd6aa7909c92a1b8f41ee416bbb3e79ef182b2"},
++    {file = "pynacl-1.6.2-cp38-abi3-macosx_10_10_universal2.whl", hash = "sha256:c949ea47e4206af7c8f604b8278093b674f7c79ed0d4719cc836902bf4517465"},
++    {file = "pynacl-1.6.2-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:8845c0631c0be43abdd865511c41eab235e0be69c81dc66a50911594198679b0"},
++    {file = "pynacl-1.6.2-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:22de65bb9010a725b0dac248f353bb072969c94fa8d6b1f34b87d7953cf7bbe4"},
++    {file = "pynacl-1.6.2-cp38-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:46065496ab748469cdd999246d17e301b2c24ae2fdf739132e580a0e94c94a87"},
++    {file = "pynacl-1.6.2-cp38-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8a66d6fb6ae7661c58995f9c6435bda2b1e68b54b598a6a10247bfcdadac996c"},
++    {file = "pynacl-1.6.2-cp38-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:26bfcd00dcf2cf160f122186af731ae30ab120c18e8375684ec2670dccd28130"},
++    {file = "pynacl-1.6.2-cp38-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:c8a231e36ec2cab018c4ad4358c386e36eede0319a0c41fed24f840b1dac59f6"},
++    {file = "pynacl-1.6.2-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:68be3a09455743ff9505491220b64440ced8973fe930f270c8e07ccfa25b1f9e"},
++    {file = "pynacl-1.6.2-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:8b097553b380236d51ed11356c953bf8ce36a29a3e596e934ecabe76c985a577"},
++    {file = "pynacl-1.6.2-cp38-abi3-win32.whl", hash = "sha256:5811c72b473b2f38f7e2a3dc4f8642e3a3e9b5e7317266e4ced1fba85cae41aa"},
++    {file = "pynacl-1.6.2-cp38-abi3-win_amd64.whl", hash = "sha256:62985f233210dee6548c223301b6c25440852e13d59a8b81490203c3227c5ba0"},
++    {file = "pynacl-1.6.2-cp38-abi3-win_arm64.whl", hash = "sha256:834a43af110f743a754448463e8fd61259cd4ab5bbedcf70f9dabad1d28a394c"},
++    {file = "pynacl-1.6.2.tar.gz", hash = "sha256:018494d6d696ae03c7e656e5e74cdfd8ea1326962cc401bcf018f1ed8436811c"},
+ ]
+ 
+ [package.dependencies]
+-cffi = [
+-    {version = ">=1.4.1", markers = "platform_python_implementation != \"PyPy\" and python_version < \"3.14\""},
+-    {version = ">=2.0.0", markers = "platform_python_implementation != \"PyPy\" and python_version >= \"3.14\""},
+-]
++cffi = {version = ">=2.0.0", markers = "platform_python_implementation != \"PyPy\" and python_version >= \"3.9\""}
+ 
+ [package.extras]
+ docs = ["sphinx (<7)", "sphinx_rtd_theme"]
+@@ -2551,21 +2472,21 @@ typing-extensions = ">=4.12.0"
+ 
+ [[package]]
+ name = "urllib3"
+-version = "2.5.0"
++version = "2.6.3"
+ description = "HTTP library with thread-safe connection pooling, file post, and more."
+ optional = false
+ python-versions = ">=3.9"
+ groups = ["main", "dev"]
+ files = [
+-    {file = "urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"},
+-    {file = "urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760"},
++    {file = "urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4"},
++    {file = "urllib3-2.6.3.tar.gz", hash = "sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed"},
+ ]
+ 
+ [package.extras]
+-brotli = ["brotli (>=1.0.9) ; platform_python_implementation == \"CPython\"", "brotlicffi (>=0.8.0) ; platform_python_implementation != \"CPython\""]
++brotli = ["brotli (>=1.2.0) ; platform_python_implementation == \"CPython\"", "brotlicffi (>=1.2.0.0) ; platform_python_implementation != \"CPython\""]
+ h2 = ["h2 (>=4,<5)"]
+ socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
+-zstd = ["zstandard (>=0.18.0)"]
++zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
+ 
+ [[package]]
+ name = "uvicorn"
+@@ -2626,4 +2547,4 @@ lxml = ">=3.8"
+ [metadata]
+ lock-version = "2.1"
+ python-versions = ">=3.10,<4.0"
+-content-hash = "86030a43a20bea8b35f4e066a89032a5b4dcdf1e87c261a7a5cf771b2254db62"
++content-hash = "6be951a27f75caa9b79df2435fe18b5ddc4809bfd56d97a6e3857509756a1afc"
+diff --git a/pyproject.toml b/pyproject.toml
+index 56478f3..39ae0d4 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -17,7 +17,7 @@ dependencies = [
+     "pyopenssl (>=25.0.0,<26.0.0)",
+     "pynacl (>=1.5.0,<2.0.0)",
+     "xmlsec (==1.3.15)",
+-    "lxml (==5.4.0)",
++    "lxml (>=6.0.0)",
+     "python3-saml (==1.16.0)",
+     "python-dateutil (>=2.9.0.post0,<3.0.0)",
+     "python-multipart (>=0.0.20,<0.0.21)",
+diff --git a/resources/js/mock_redirect.js b/resources/js/mock_redirect.js
+index 5a565f1..f98c294 100644
+--- a/resources/js/mock_redirect.js
++++ b/resources/js/mock_redirect.js
+@@ -26,9 +26,6 @@ function mock_form_submit_listener(e) {
+     if (!form) return;
+ 
+     const action = form.getAttribute('action');
+-    const url = new URL(action, window.location.origin);
+     const params = new URLSearchParams(new FormData(form)).toString();
+-
+-    url.search = params.toString();
+-    window.location.href = url.toString();
+-}
+\ No newline at end of file
++    window.location.href = action + '?' + params.toString();
++}
+diff --git a/tests/docker-compose.yml b/tests/docker-compose.yml
+deleted file mode 100644
+index 704649e..0000000
+--- a/tests/docker-compose.yml
++++ /dev/null
+@@ -1,6 +0,0 @@
+-services:
+-  redis:
+-    image: redis:7.2.4
+-    restart: 'no'
+-    ports:
+-      - '6379:6379'
+diff --git a/tests/itests/conftest.py b/tests/itests/conftest.py
+index d354d28..0608574 100644
+--- a/tests/itests/conftest.py
++++ b/tests/itests/conftest.py
+@@ -1,4 +1,5 @@
+ import nacl
++import os
+ import pytest
+ import random
+ 
+@@ -81,6 +82,23 @@ def redis_mock(prepare_docker_services, redis):
+     yield redis
+ 
+ 
++# Pin the project name to avoid creating multiple stacks
++@pytest.fixture(scope="session")
++def docker_compose_project_name() -> str:
++    return "max-ci"
++
++
++# Stop the stack before starting a new one
++@pytest.fixture(scope="session")
++def docker_setup():
++    return ["down -v", "up redis --wait"]
++
++
++@pytest.fixture(scope="session")
++def docker_compose_file(pytestconfig):
++    return os.path.join(str(pytestconfig.rootdir), "docker-compose.yml")
++
++
+ @pytest.fixture(scope=containers_scope)
+ def prepare_docker_services(
+     inside_docker,
+diff --git a/tests/itests/storage/redis/test_redis_debugger_integration.py b/tests/itests/storage/redis/test_redis_debugger_integration.py
+index 9b1715a..acab12b 100644
+--- a/tests/itests/storage/redis/test_redis_debugger_integration.py
++++ b/tests/itests/storage/redis/test_redis_debugger_integration.py
+@@ -17,6 +17,7 @@ def redis_caplog(caplog):
+ def debuggable_redis_cache_fast_expire(redis_mock):
+     rgdf = RedisGetDebuggerFactory(redis_mock, "info", 1, "debug_namespace")
+     rgd = rgdf.create()
++    rgd.daemon = True
+     rgd.start()
+ 
+ 
