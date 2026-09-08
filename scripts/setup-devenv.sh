@@ -679,12 +679,12 @@ export WALLET_PROVIDER_SERVER_CERT
 WALLET_PROVIDER_SERVER_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.key.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_KEY
 
-generate_wp_signing_key certificate_signing
-WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
+generate_wp_signing_key wallet_certificate_signing_0
+WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_certificate_signing_0.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
-generate_wp_signing_key instruction_result_signing
-WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" ${BASE64})
+generate_wp_signing_key instruction_result_signing_key
+WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing_key.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 generate_wp_aes_key attestation_wrapping
@@ -723,7 +723,7 @@ softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM
 p11tool --login --write \
   --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
   --set-pin "${HSM_USER_PIN}" \
-  --label="pin_public_disclosure_protection_key" \
+  --label="pin_hmac_0" \
   --provider="${HSM_LIBRARY_PATH}" \
   "${HSM_TOKEN_URL}"
 

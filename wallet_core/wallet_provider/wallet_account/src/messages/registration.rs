@@ -5,6 +5,7 @@ use crypto::p256_der::DerVerifyingKey;
 use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithKid;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DisplayFromStr;
@@ -56,7 +57,7 @@ pub struct Certificate {
     pub revocation_code: RevocationCode,
 }
 
-pub type WalletCertificate = UnverifiedJwt<WalletCertificateClaims>;
+pub type WalletCertificate = UnverifiedJwt<WalletCertificateClaims, HeaderWithKid>;
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

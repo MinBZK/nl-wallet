@@ -260,7 +260,7 @@ function generate_hsm_key_pair {
 function generate_wp_signing_key {
     echo -e "${INFO}Generating HSM private key${NC}"
 
-    generate_hsm_key_pair "$1_key" "wallet_provider/$1.pub.pem"
+    generate_hsm_key_pair "$1" "wallet_provider/$1.pub.pem"
 
     openssl pkey -in "${TARGET_DIR}/wallet_provider/$1.pub.pem" -pubin \
         -outform DER -out "${TARGET_DIR}/wallet_provider/$1.pub.der"

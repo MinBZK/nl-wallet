@@ -1,8 +1,8 @@
 # The commented out lines show optional configuration with their default value.
 # All key material should be replaced with secret values.
 
-# Identifier for key used to sign JWT's sent from wallet_provider to wallet
-certificate_signing_key_identifier = "certificate_signing_key"
+# key identifier for the current certificate signing key and PIN HMAC key
+current_certificate_kid = "0"
 
 # Identifier for key used to sign instruction results sent from wallet_provider to wallet
 instruction_result_signing_key_identifier = "instruction_result_signing_key"
@@ -12,9 +12,6 @@ attestation_wrapping_key_identifier = "attestation_wrapping_key"
 
 # Identifier for key used to encrypt the pin public key
 pin_pubkey_encryption_key_identifier = "pin_pubkey_encryption_key"
-
-# Identifier for key used to sign the hash of the pin public key for use in the wallet certificate
-pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protection_key"
 
 # Identifier for key used to generate revocation code HMACs that are stored in the database
 revocation_code_key_identifier = "revocation_code_key"
