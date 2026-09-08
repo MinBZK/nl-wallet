@@ -134,6 +134,11 @@
 - The enum `Attribute` is now a tagged enum. Therefore, attributes configured in
   `demo-issuer`, `acf-demo-issuer` and `pacf-issuance-server` must tag their
   values with the appropriate tag.
+- The Wallet Provider settings now requires a `current_certificate_kid`
+  and optionally `previous_certificate_kids`. The
+  `current_certificate_kid` is used to identify the current certificate
+  signing key, and `previous_certificate_kids` is used to accept certificates
+  signed with previous signing keys after key rollover.
 
 [1]:
     https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p
@@ -182,6 +187,10 @@
   administrative tasks such as (de)blocking and revocation, served by NGINX.
   The service ships with a Helm chart (`deploy/helm-charts/admin-portal`),
   and a Docker image built in CI (`nl-wallet-admin-portal`).
+- The Wallet Provider now supports key rollover for the wallet certificate
+  related keys (wallet certificate signing key and PIN HMAC key). This is done
+  by updating the `current_certificate_kid` and
+  `previous_certificate_kids` fields in the Wallet Provider settings.
 
 ## Interoperability improvements
 
