@@ -110,7 +110,7 @@ mod tests {
         )
     }
 
-    async fn client(modify: impl FnOnce(&mut OidcProviderMetadata)) -> OidcHttpClient {
+    async fn client(modify: impl FnOnce(&mut OidcProviderMetadata)) -> (MockServer, OidcHttpClient) {
         let server = MockServer::start_async().await;
         let issuer: IssuerIdentifier = server.base_url().parse().unwrap();
         let mut metadata = metadata(&issuer);
@@ -122,10 +122,10 @@ mod tests {
             })
             .await;
         let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
-        OidcHttpClient::new(http_client, issuer)
+        (server, OidcHttpClient::new(http_client, issuer))
     }
 
-    async fn jwks_client(status: u16) -> (OidcHttpClient, OidcProviderMetadata) {
+    async fn jwks_client(status: u16) -> (MockServer, OidcHttpClient, OidcProviderMetadata) {
         let server = MockServer::start_async().await;
         let issuer: IssuerIdentifier = server.base_url().parse().unwrap();
         let metadata = metadata(&issuer);
@@ -136,26 +136,26 @@ mod tests {
             })
             .await;
         let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
-        (OidcHttpClient::new(http_client, issuer), metadata)
+        (server, OidcHttpClient::new(http_client, issuer), metadata)
     }
 
     #[tokio::test]
     async fn fetch_metadata_returns_valid_metadata() {
-        let client = client(|_| {}).await;
+        let (_server, client) = client(|_| {}).await;
         let metadata = client.fetch_metadata().await.expect("should succeed");
         assert_eq!(&metadata.oauth_metadata.issuer, &client.expected_issuer);
     }
 
     #[tokio::test]
     async fn fetch_metadata_rejects_missing_authorization_endpoint() {
-        let client = client(|metadata| metadata.oauth_metadata.authorization_endpoint = None).await;
+        let (_server, client) = client(|metadata| metadata.oauth_metadata.authorization_endpoint = None).await;
         let error = client.fetch_metadata().await.expect_err("should fail");
         assert!(matches!(error, OidcHttpClientError::AuthorizationEndpointMissing));
     }
 
     #[tokio::test]
     async fn fetch_metadata_rejects_issuer_mismatch() {
-        let client =
+        let (_server, client) =
             client(|metadata| metadata.oauth_metadata.issuer = "https://other.example.com".parse().unwrap()).await;
         let error = client.fetch_metadata().await.expect_err("should fail");
         assert!(matches!(
@@ -166,35 +166,37 @@ mod tests {
 
     #[tokio::test]
     async fn fetch_metadata_rejects_missing_jwks_uri() {
-        let client = client(|metadata| metadata.oauth_metadata.jwks_uri = None).await;
+        let (_server, client) = client(|metadata| metadata.oauth_metadata.jwks_uri = None).await;
         let error = client.fetch_metadata().await.expect_err("should fail");
         assert!(matches!(error, OidcHttpClientError::JwksUriMissing));
     }
 
     #[tokio::test]
     async fn fetch_metadata_rejects_missing_code_response_type() {
-        let client = client(|metadata| metadata.oauth_metadata.response_types_supported = IndexSet::new()).await;
+        let (_server, client) =
+            client(|metadata| metadata.oauth_metadata.response_types_supported = IndexSet::new()).await;
         let error = client.fetch_metadata().await.expect_err("should fail");
         assert!(matches!(error, OidcHttpClientError::AuthorizationCodeNotSupported));
     }
 
     #[tokio::test]
     async fn fetch_metadata_rejects_missing_s256() {
-        let client = client(|metadata| metadata.oauth_metadata.code_challenge_methods_supported = None).await;
+        let (_server, client) =
+            client(|metadata| metadata.oauth_metadata.code_challenge_methods_supported = None).await;
         let error = client.fetch_metadata().await.expect_err("should fail");
         assert!(matches!(error, OidcHttpClientError::S256NotSupported));
     }
 
     #[tokio::test]
     async fn fetch_jwks_returns_provider_keys() {
-        let (client, metadata) = jwks_client(200).await;
+        let (_server, client, metadata) = jwks_client(200).await;
         let jwks = client.fetch_jwks(&metadata).await.expect("should succeed");
         assert_eq!(jwks, JwkSet { keys: vec![] });
     }
 
     #[tokio::test]
     async fn fetch_jwks_rejects_missing_jwks_uri() {
-        let (client, mut metadata) = jwks_client(200).await;
+        let (_server, client, mut metadata) = jwks_client(200).await;
         metadata.oauth_metadata.jwks_uri = None;
         let error = client.fetch_jwks(&metadata).await.expect_err("should fail");
         assert!(matches!(error, OidcHttpClientError::JwksUriMissing));
@@ -202,7 +204,7 @@ mod tests {
 
     #[tokio::test]
     async fn fetch_jwks_reports_provider_errors() {
-        let (client, metadata) = jwks_client(500).await;
+        let (_server, client, metadata) = jwks_client(500).await;
         let error = client.fetch_jwks(&metadata).await.expect_err("should fail");
         assert!(matches!(error, OidcHttpClientError::Jwks(_)));
     }
