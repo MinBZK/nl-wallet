@@ -52,9 +52,6 @@ pub enum AttributeError {
     #[error("unable to convert integer to cbor: {0}")]
     NumberFromCborIntegerConversion(#[source] TryFromIntError),
 
-    #[error("unable to convert claim value: {0:?}")]
-    FromClaimValueConversion(Box<ClaimValue>),
-
     #[error("unable to convert number from claim value: {0}")]
     NumberFromClaimValueConversion(Number),
 
@@ -186,11 +183,11 @@ impl TryFrom<ClaimValue> for Attribute {
     fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
         match value {
             ClaimValue::Null => Ok(Attribute::Null),
-            ClaimValue::Number(number) => {
-                Ok(Attribute::Number(number.as_i64().ok_or_else(|| {
-                    AttributeError::NumberFromClaimValueConversion(number)
-                })?))
-            }
+            ClaimValue::Number(number) => Ok(Attribute::Number(
+                number
+                    .as_i64()
+                    .ok_or(AttributeError::NumberFromClaimValueConversion(number))?,
+            )),
             ClaimValue::Bool(boolean) => Ok(Attribute::Bool(boolean)),
             ClaimValue::String(text) => Ok(Attribute::Text(text)),
             ClaimValue::Array(elements) => Ok(Attribute::Array(
