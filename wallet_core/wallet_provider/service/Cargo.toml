@@ -75,8 +75,6 @@ futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 parking_lot.workspace = true
-getrandom.workspace = true
-rand_core.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 semver.workspace = true
@@ -121,11 +119,9 @@ anyhow.workspace = true
 httpmock.workspace = true
 indexmap.workspace = true
 mockall.workspace = true
-rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing-test.workspace = true
-url.workspace = true
 
 android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
