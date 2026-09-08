@@ -19,7 +19,6 @@ use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
-use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -645,11 +644,7 @@ where
 
         info!("Signing nonce using Wallet Provider");
         let issuance_result = protocol_state
-            .accept_issuance(
-                &AcceptIssuanceSelection::All,
-                config.issuer_trust_anchors(),
-                &remote_wscd,
-            )
+            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 
@@ -2141,7 +2136,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|_| Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(key_error))));
+                .return_once(|| Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(key_error))));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -2236,7 +2231,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|_| Err(WalletIssuanceError::IssuerMismatch));
+                .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -2512,7 +2507,7 @@ mod tests {
 
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|_| {
+            client.expect_accept().return_once(|| {
                 Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(
                     RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
                         revocation_reason: RevocationReason::AdminRequest,

@@ -67,7 +67,6 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::VciTokenRequest;
 use openid4vc::token::VciTokenResponse;
-use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -358,10 +357,7 @@ async fn authorization_code_flow(
     assert_eq!(session.previews_with_metadata().count(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session
-        .accept_issuance(&AcceptIssuanceSelection::All, &server.trust_anchors, &wscd)
-        .await
-        .unwrap();
+    let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
@@ -399,7 +395,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
-        .accept_issuance(&AcceptIssuanceSelection::All, &server.trust_anchors, &wscd)
+        .accept_issuance(&server.trust_anchors, &wscd)
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
@@ -458,10 +454,7 @@ async fn pre_authorized_code_flow(
 
     let copy_count = 4;
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session
-        .accept_issuance(&AcceptIssuanceSelection::All, &trust_anchors, &wscd)
-        .await
-        .unwrap();
+    let issued_creds = session.accept_issuance(&trust_anchors, &wscd).await.unwrap();
 
     verify_issued_credentials(
         issued_creds,

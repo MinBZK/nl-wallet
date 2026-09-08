@@ -85,7 +85,6 @@ use crate::token::CredentialPreview;
 use crate::token::TokenRequestGrantType;
 use crate::token::VciTokenRequest;
 use crate::token::VciTokenResponse;
-use crate::wallet_issuance::AcceptIssuanceSelection;
 
 #[derive(Debug)]
 pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
@@ -368,13 +367,6 @@ enum OfferedCredentials {
 }
 
 impl OfferedCredentials {
-    pub fn credential_count(&self) -> usize {
-        match self {
-            OfferedCredentials::CredentialIds(previews_by_credential_id) => previews_by_credential_id.len(),
-            OfferedCredentials::CredentialConfigurationIds(previews_by_config_id) => previews_by_config_id.len(),
-        }
-    }
-
     pub fn credential_previews(&self) -> impl Iterator<Item = &CredentialPreview> {
         match self {
             Self::CredentialIds(previews_by_credential_id) => Either::Left(previews_by_credential_id.values()),
@@ -382,12 +374,11 @@ impl OfferedCredentials {
         }
     }
 
-    pub fn select_identifiers_and_previews(
+    pub fn to_request_identifiers_and_previews(
         &self,
-        selection: &AcceptIssuanceSelection,
     ) -> impl Iterator<Item = (CredentialRequestIdentifier, &CredentialPreview)> {
         // Iterate over all of the offered credentials, creating the appropriate `CredentialRequestIdentifier` value.
-        let all_credentials = match self {
+        match self {
             Self::CredentialIds(previews_by_credential_id) => {
                 Either::Left(previews_by_credential_id.iter().map(|(credential_id, preview)| {
                     (
@@ -404,17 +395,6 @@ impl OfferedCredentials {
                     )
                 }))
             }
-        };
-
-        // If the caller specified indices of credentials to be accepted, select only those for fetching.
-        match selection {
-            AcceptIssuanceSelection::All => Either::Left(all_credentials),
-            AcceptIssuanceSelection::PreviewIndices(indices) => Either::Right(
-                all_credentials
-                    .enumerate()
-                    .filter(|(index, _credential)| indices.contains(index))
-                    .map(|(_index, credential)| credential),
-            ),
         }
     }
 }
@@ -976,31 +956,17 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn accept_issuance<W>(
         &mut self,
-        selection: &AcceptIssuanceSelection,
         trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd,
     {
-        // Check if any passed indices are actually valid.
-        if let AcceptIssuanceSelection::PreviewIndices(indices) = selection {
-            let out_of_bounds = indices
-                .iter()
-                .copied()
-                .filter(|index| *index >= self.session_state.offered_credentials.credential_count())
-                .collect::<HashSet<_>>();
-
-            if !out_of_bounds.is_empty() {
-                return Err(WalletIssuanceError::AcceptSelectionOutOfBounds(out_of_bounds));
-            }
-        }
-
         // Fetch a set of credential copies for each credential in parallel.
         let credentials = try_join_all(
             self.session_state
                 .offered_credentials
-                .select_identifiers_and_previews(selection)
+                .to_request_identifiers_and_previews()
                 .map(|(identifier, preview)| self.fetch_credential(identifier, preview, trust_anchors, wscd)),
         )
         .await?;
@@ -2458,41 +2424,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::credential_id_single_mdoc(
-        AcceptIssuanceTestFormats::CredentialId(vec![Format::MsoMdoc]),
-        AcceptIssuanceSelection::All
-    )]
-    #[case::config_id_single_mdoc(
-        AcceptIssuanceTestFormats::CredentialConfigurationId(Format::MsoMdoc),
-        AcceptIssuanceSelection::All
-    )]
+    #[case::credential_id_single_mdoc(AcceptIssuanceTestFormats::CredentialId(vec![Format::MsoMdoc]))]
+    #[case::config_id_single_mdoc(AcceptIssuanceTestFormats::CredentialConfigurationId(Format::MsoMdoc))]
     #[case::multi_mdoc(
-        AcceptIssuanceTestFormats::CredentialId(vec![Format::MsoMdoc, Format::MsoMdoc, Format::MsoMdoc]),
-        AcceptIssuanceSelection::All
+        AcceptIssuanceTestFormats::CredentialId(vec![Format::MsoMdoc, Format::MsoMdoc, Format::MsoMdoc])
     )]
-    #[case::credential_id_single_sd_jwt(
-        AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt]),
-        AcceptIssuanceSelection::All
-    )]
-    #[case::config_id_single_sd_jwt(
-        AcceptIssuanceTestFormats::CredentialConfigurationId(Format::SdJwt),
-        AcceptIssuanceSelection::All
-    )]
-    #[case::multi_sd_jwt(
-        AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt, Format::SdJwt, Format::SdJwt]),
-        AcceptIssuanceSelection::All
-    )]
+    #[case::credential_id_single_sd_jwt(AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt]))]
+    #[case::config_id_single_sd_jwt(AcceptIssuanceTestFormats::CredentialConfigurationId(Format::SdJwt))]
+    #[case::multi_sd_jwt(AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt, Format::SdJwt, Format::SdJwt]))]
     #[case::mixed(
         AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt, Format::MsoMdoc, Format::MsoMdoc, Format::SdJwt]),
-        AcceptIssuanceSelection::All
-    )]
-    #[case::mixed_selection(
-        AcceptIssuanceTestFormats::CredentialId(vec![Format::SdJwt, Format::MsoMdoc, Format::MsoMdoc, Format::SdJwt]),
-        AcceptIssuanceSelection::PreviewIndices(HashSet::from([1, 3]))
     )]
     fn test_accept_issuance(
         #[case] formats: AcceptIssuanceTestFormats,
-        #[case] selection: AcceptIssuanceSelection,
         #[values(NonZeroU8::MIN, 4.try_into().unwrap())] batch_size: NonZeroU8,
         #[values(
             TestNonceEndpoint::Absent,
@@ -2511,11 +2455,7 @@ mod tests {
                 HashMap::from([("credential_id".to_string().into(), format)])
             }
         };
-
-        let credential_count = match &selection {
-            AcceptIssuanceSelection::All => formats_by_credential_id.len(),
-            AcceptIssuanceSelection::PreviewIndices(indices) => indices.len(),
-        };
+        let credential_count = formats_by_credential_id.len();
 
         let (signer, previews, type_metadata) =
             MockCredentialSigner::new_with_preview_and_type_metadata(formats_by_credential_id);
@@ -2558,40 +2498,12 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&selection, &trust_anchors, &wscd)
+        .accept_issuance(&trust_anchors, &wscd)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
 
         assert_eq!(credential_copies.len(), credential_count);
-    }
-
-    #[test]
-    fn test_accept_issuance_error_accept_selection_out_of_bounds() {
-        let (signer, previews, type_metadata) =
-            MockCredentialSigner::new_with_preview_and_type_metadata(HashMap::from([
-                ("credential_id_1".to_string().into(), Format::SdJwt),
-                ("credential_id_2".to_string().into(), Format::SdJwt),
-                ("credential_id_3".to_string().into(), Format::SdJwt),
-            ]));
-
-        let error = HttpIssuanceSession {
-            message_client: MockVcMessageClient::new(),
-            session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
-        }
-        .accept_issuance(
-            &AcceptIssuanceSelection::PreviewIndices(HashSet::from([2, 3, 42])),
-            &signer.trust_anchors,
-            &MockRemoteWscd::default(),
-        )
-        .now_or_never()
-        .unwrap()
-        .expect_err("accepting issuance should not succeed");
-
-        assert_matches!(
-            error,
-            WalletIssuanceError::AcceptSelectionOutOfBounds(indices) if indices == HashSet::from([3, 42])
-        );
     }
 
     #[test]
@@ -2618,11 +2530,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, vec![type_metadata], 4.try_into().unwrap(), true),
         }
-        .accept_issuance(
-            &AcceptIssuanceSelection::All,
-            &trust_anchors,
-            &MockRemoteWscd::default(),
-        )
+        .accept_issuance(&trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -2654,11 +2562,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
         }
-        .accept_issuance(
-            &AcceptIssuanceSelection::All,
-            &trust_anchors,
-            &MockRemoteWscd::default(),
-        )
+        .accept_issuance(&trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -2692,11 +2596,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
         }
-        .accept_issuance(
-            &AcceptIssuanceSelection::All,
-            &signer.trust_anchors,
-            &MockRemoteWscd::default(),
-        )
+        .accept_issuance(&signer.trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");

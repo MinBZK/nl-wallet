@@ -1811,7 +1811,6 @@ mod tests {
     use crate::test::setup_mock_issuer_attestation_types_and_metadata;
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
-    use crate::wallet_issuance::AcceptIssuanceSelection;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
@@ -2126,10 +2125,7 @@ mod tests {
         .unwrap();
 
         let wscd = MockRemoteWscd::new(vec![]);
-        session
-            .accept_issuance(&AcceptIssuanceSelection::All, &trust_anchors, &wscd)
-            .await
-            .unwrap_err()
+        session.accept_issuance(&trust_anchors, &wscd).await.unwrap_err()
     }
 
     /// Like [`start_and_accept_err`] but for errors that happen at token request time (inside

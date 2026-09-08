@@ -33,7 +33,6 @@ use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
-use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::MdocCopy;
@@ -672,20 +671,7 @@ pub fn mock_issuance_session(
 
     let mut client = MockIssuanceSession::new();
     client.expect_issuer().return_const(issuer_registration);
-    client.expect_accept().return_once(|selection| {
-        // Actually perform index filtering to mimic `HttpIssuanceSession` behaviour.
-        let credentials_with_metadata = match selection {
-            AcceptIssuanceSelection::All => credentials_with_metadata,
-            AcceptIssuanceSelection::PreviewIndices(indices) => credentials_with_metadata
-                .into_iter()
-                .enumerate()
-                .filter(|(index, _credential)| indices.contains(index))
-                .map(|(_index, credential)| credential)
-                .collect(),
-        };
-
-        Ok(credentials_with_metadata)
-    });
+    client.expect_accept().return_once(|| Ok(credentials_with_metadata));
 
     (client, attestation_presentations.try_into().unwrap())
 }

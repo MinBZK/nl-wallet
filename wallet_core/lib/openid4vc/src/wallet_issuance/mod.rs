@@ -145,10 +145,6 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     CredentialRejection(Box<RemoteErrorResponse<CredentialErrorCode>>),
 
-    #[error("accepted credential preview indices are out of bounds: {}", .0.iter().join(", "))]
-    #[category(critical)]
-    AcceptSelectionOutOfBounds(HashSet<usize>),
-
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -487,17 +483,10 @@ pub trait AuthorizationSession {
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
-#[derive(Debug, Clone)]
-pub enum AcceptIssuanceSelection {
-    All,
-    PreviewIndices(HashSet<usize>),
-}
-
 /// Represents an active credential issuance session for which previews are available.
 pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
-        selection: &AcceptIssuanceSelection,
         trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>

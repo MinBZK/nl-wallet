@@ -21,7 +21,6 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use crate::token::CredentialPreview;
-use crate::wallet_issuance::AcceptIssuanceSelection;
 
 /// A [`WiaClient`] that records the challenge it was given, delegating the actual WIA issuance to a
 /// [`MockWiaClient`].
@@ -154,10 +153,7 @@ pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, Norma
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceSession {
-        pub fn accept(
-            &self,
-            selection: &AcceptIssuanceSelection,
-        ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
+        pub fn accept(&self) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
 
         pub fn reject(&self) -> Result<(), WalletIssuanceError>;
 
@@ -170,11 +166,10 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
-        selection: &AcceptIssuanceSelection,
         _: &TrustAnchors,
         _: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
-        self.accept(selection)
+        self.accept()
     }
 
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
