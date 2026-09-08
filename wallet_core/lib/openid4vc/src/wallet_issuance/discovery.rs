@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::num::NonZeroU8;
 
 use crypto::trust_anchor::TrustAnchors;
@@ -23,6 +22,7 @@ use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
+use super::IssuanceDiscoveryParameters;
 use super::IssuanceFlow;
 use super::WalletIssuanceError;
 use super::authorization::HttpAuthorizationSession;
@@ -41,6 +41,7 @@ use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 use crate::token::VciTokenRequest;
+use crate::wallet_issuance::CredentialSelection;
 
 const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
 
@@ -65,17 +66,25 @@ where
     type Authorization = HttpAuthorizationSession;
     type Issuance = HttpIssuanceSession;
 
-    async fn start(
+    async fn start<'a, W>(
         &self,
-        offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         client_id: String,
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
-        wia_client: &impl WiaClient,
-        wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
+    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        let IssuanceDiscoveryParameters {
+            offer_uri,
+            selection,
+            wia_client,
+            wrpac_trust_anchors,
+        } = common_parameters;
+
         let (credential_configurations, credential_issuer, issuer_endpoints, batch_size, flow) = self
-            .resolve_credential_offer_flow(offer_uri, wrpac_trust_anchors)
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors)
             .await?;
 
         let issuance_flow = match flow {
@@ -129,16 +138,24 @@ where
         Ok(issuance_flow)
     }
 
-    async fn start_authorization_code_flow(
+    async fn start_authorization_code_flow<'a, W>(
         &self,
-        offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         client_id: String,
         redirect_uri: Url,
-        wia_client: &impl WiaClient,
-        wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<Self::Authorization, WalletIssuanceError> {
+    ) -> Result<Self::Authorization, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        let IssuanceDiscoveryParameters {
+            offer_uri,
+            selection,
+            wia_client,
+            wrpac_trust_anchors,
+        } = common_parameters;
+
         let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
-            .resolve_credential_offer_flow(offer_uri, wrpac_trust_anchors)
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors)
             .await?;
 
         let CredentialOfferFlow::AuthorizationCode {
@@ -166,15 +183,23 @@ where
         .await
     }
 
-    async fn start_pre_authorized_code_flow(
+    async fn start_pre_authorized_code_flow<'a, W>(
         &self,
-        offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         issuer_trust_anchors: &TrustAnchors,
-        wia_client: &impl WiaClient,
-        wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<Self::Issuance, WalletIssuanceError> {
+    ) -> Result<Self::Issuance, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        let IssuanceDiscoveryParameters {
+            offer_uri,
+            selection,
+            wia_client,
+            wrpac_trust_anchors,
+        } = common_parameters;
+
         let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
-            .resolve_credential_offer_flow(offer_uri, wrpac_trust_anchors)
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors)
             .await?;
 
         let CredentialOfferFlow::PreAuthorizedCode {
@@ -470,6 +495,7 @@ where
     async fn resolve_credential_offer_flow(
         &self,
         offer_uri: &Url,
+        selection: &CredentialSelection,
         wrpac_trust_anchors: &TrustAnchors,
     ) -> Result<
         (
@@ -506,16 +532,14 @@ where
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
         // error.
-        let (credential_configs, missing_ids): (HashMap<_, _>, HashSet<_>) = credential_offer
+        let (credential_configs, missing_ids): (Vec<_>, Vec<_>) = credential_offer
             .credential_configuration_ids
             .into_iter()
             .enumerate()
-            .partition_map(
-                move |(_index, id)| match credential_configurations_supported.remove(&id) {
-                    Some(config) => Either::Left((id, config)),
-                    None => Either::Right(id),
-                },
-            );
+            .partition_map(|(_index, id)| match credential_configurations_supported.remove(&id) {
+                Some(config) => Either::Left((id, config)),
+                None => Either::Right(id),
+            });
 
         if !missing_ids.is_empty() {
             return Err(WalletIssuanceError::MissingCredentialConfigId(missing_ids));
@@ -528,16 +552,47 @@ where
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
         if issuer_endpoints.nonce_endpoint.is_none()
             && credential_configs
-                .values()
-                .any(|config| config.cryptographic_binding.is_some())
+                .iter()
+                .any(|(_id, config)| config.cryptographic_binding.is_some())
         {
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
+        // Now that we have all the Credential Configurations that were part of the Credential Offer extracted from the
+        // Issuer Metadata, select only those whose `CredentialKind` was requested.
+        let selected_credential_configs = match selection {
+            CredentialSelection::All => credential_configs,
+            CredentialSelection::ByCredentialKind(credential_kinds) => {
+                let (selected_credential_configs, other_credential_kinds): (Vec<_>, Vec<_>) =
+                    credential_configs.into_iter().partition_map(|(id, config)| {
+                        let credential_kind = config.format.credential_kind();
+
+                        if credential_kind
+                            .as_ref()
+                            .is_some_and(|credential_kind| credential_kinds.contains(credential_kind))
+                        {
+                            Either::Left((id, config))
+                        } else {
+                            Either::Right(credential_kind)
+                        }
+                    });
+
+                // It is an error if none of the requested `CredentialKind`s match the configurations on offer.
+                if selected_credential_configs.is_empty() {
+                    return Err(WalletIssuanceError::CredentialKindsNotOffered {
+                        requested: credential_kinds.clone(),
+                        offered: other_credential_kinds.into_iter().flatten().collect(),
+                    });
+                }
+
+                selected_credential_configs
+            }
+        };
+
         let flow = CredentialOfferFlow::try_from_offer_grant(credential_offer.grant, oauth_metadata)?;
 
         Ok((
-            credential_configs,
+            selected_credential_configs.into_iter().collect(),
             credential_issuer,
             issuer_endpoints,
             batch_size,
@@ -590,12 +645,14 @@ mod test {
     use std::assert_matches;
     use std::borrow::Cow;
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::DateTime;
     use crypto::server_keys::generate::Ca;
@@ -627,8 +684,10 @@ mod test {
     use utils::vec_nonempty;
     use wscd::mock_remote::MockWiaClient;
 
+    use super::CredentialSelection;
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
+    use super::IssuanceDiscoveryParameters;
     use crate::authorization_details::AuthorizationDetails;
     use crate::client_auth::ClientAttestationMetadataError;
     use crate::credential_offer::CredentialOffer;
@@ -652,7 +711,8 @@ mod test {
     use crate::wallet_issuance::discovery::BATCH_SIZE_MAX;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
 
-    static CONFIG_ID: LazyLock<CredentialConfigurationId> = LazyLock::new(|| "pid".to_string().into());
+    static CONFIG_ID_MDOC: LazyLock<CredentialConfigurationId> = LazyLock::new(|| "pid_mdoc".to_string().into());
+    static CONFIG_ID_SD_JWT: LazyLock<CredentialConfigurationId> = LazyLock::new(|| "pid_sd_jwt".to_string().into());
     const CREDENTIAL_ID: &str = "credential_id";
 
     const DEFAULT_GRANT_TYPES_SUPPORTED: &[&str] = &[
@@ -721,19 +781,28 @@ mod test {
                 "batch_size": 1000,
             },
             "credential_configurations_supported": {
-                CONFIG_ID.as_ref(): {
+                CONFIG_ID_MDOC.as_ref(): {
                     "format": "mso_mdoc",
                     "doctype": PID_ATTESTATION_TYPE,
-                    "scope": "pid_scope",
+                    "scope": "pid_mdoc_scope",
                     "type_metadata_uri": issuer_identifier
                                             .as_issuer_url()
                                             .join_issuer_url("/issuance/type_metadata")
-                                            .join_config_id(&CONFIG_ID),
+                                            .join_config_id(&CONFIG_ID_MDOC),
+                },
+                CONFIG_ID_SD_JWT.as_ref(): {
+                    "format": "dc+sd-jwt",
+                    "vct": PID_ATTESTATION_TYPE,
+                    "scope": "pid_sd_jwt_scope",
+                    "type_metadata_uri": issuer_identifier
+                                            .as_issuer_url()
+                                            .join_issuer_url("/issuance/type_metadata")
+                                            .join_config_id(&CONFIG_ID_SD_JWT),
                 }
             },
         });
         if options.requires_key_binding {
-            let config = &mut issuer_metadata_json["credential_configurations_supported"][CONFIG_ID.as_ref()];
+            let config = &mut issuer_metadata_json["credential_configurations_supported"][CONFIG_ID_MDOC.as_ref()];
             config["cryptographic_binding_methods_supported"] = json!(["jwk"]);
             config["proof_types_supported"] = json!({
                 "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
@@ -839,7 +908,7 @@ mod test {
 
         let preview = CredentialPreview {
             credential_id: CREDENTIAL_ID.to_string().into(),
-            config_id: CONFIG_ID.clone(),
+            config_id: CONFIG_ID_MDOC.clone(),
             format: Format::MsoMdoc,
             credential_payload,
             issuer_certificate: issuance_keypair.certificate().clone(),
@@ -852,7 +921,7 @@ mod test {
         let token_response = VciTokenResponse::new_vci(
             "mock_access_token".to_string().into(),
             Some(AuthorizationDetails::from_credential_ids_and_identifiers(
-                vec_nonempty![(LazyLock::force(&CONFIG_ID), CREDENTIAL_ID.to_string().into())],
+                vec_nonempty![(LazyLock::force(&CONFIG_ID_MDOC), CREDENTIAL_ID.to_string().into())],
             )),
         );
 
@@ -862,7 +931,7 @@ mod test {
         server
             .mock_async(|when, then| {
                 when.method(GET)
-                    .path(format!("/issuance/type_metadata/{}", CONFIG_ID.as_ref()));
+                    .path(format!("/issuance/type_metadata/{}", CONFIG_ID_MDOC.as_ref()));
                 then.status(200)
                     .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
                     .json_body(json!(type_metadata_documents));
@@ -961,7 +1030,7 @@ mod test {
         };
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
+            credential_configuration_ids: vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             grants,
         };
 
@@ -991,12 +1060,15 @@ mod test {
         );
         let flow = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &issuer_trust_anchors,
-                &MockWiaClient::new(),
-                &wrpac_trust_anchors,
             )
             .await
             .expect("starting issuance should succeed");
@@ -1023,11 +1095,14 @@ mod test {
                 // Start issuance again, this time directly expecting the Authorization Code flow.
                 let second_auth_session = discovery
                     .start_authorization_code_flow(
-                        &offer_url,
+                        IssuanceDiscoveryParameters::new(
+                            &offer_url,
+                            &CredentialSelection::All,
+                            &MockWiaClient::new(),
+                            &wrpac_trust_anchors,
+                        ),
                         MOCK_WALLET_CLIENT_ID.to_string(),
                         REDIRECT_URI.clone(),
-                        &MockWiaClient::new(),
-                        &wrpac_trust_anchors,
                     )
                     .await
                     .expect("starting authorization code issuance should succeed");
@@ -1035,10 +1110,13 @@ mod test {
                 // Staring issuance while expecting a Pre-Authorized Code flow results in an error.
                 let error = discovery
                     .start_pre_authorized_code_flow(
-                        &offer_url,
+                        IssuanceDiscoveryParameters::new(
+                            &offer_url,
+                            &CredentialSelection::All,
+                            &MockWiaClient::new(),
+                            &wrpac_trust_anchors,
+                        ),
                         &issuer_trust_anchors,
-                        &MockWiaClient::new(),
-                        &wrpac_trust_anchors,
                     )
                     .await
                     .expect_err("staring pre-authorized code issuance should fail");
@@ -1081,10 +1159,13 @@ mod test {
                 // Start issuance again, this time directly expecting the Pre-Authorized Code flow.
                 let second_issuance_session = discovery
                     .start_pre_authorized_code_flow(
-                        &offer_url,
+                        IssuanceDiscoveryParameters::new(
+                            &offer_url,
+                            &CredentialSelection::All,
+                            &MockWiaClient::new(),
+                            &wrpac_trust_anchors,
+                        ),
                         &issuer_trust_anchors,
-                        &MockWiaClient::new(),
-                        &wrpac_trust_anchors,
                     )
                     .await
                     .expect("staring pre-authorized code issuance should succeed");
@@ -1092,11 +1173,14 @@ mod test {
                 // Staring issuance while expecting an Authorization Code flow results in an error.
                 let error = discovery
                     .start_authorization_code_flow(
-                        &offer_url,
+                        IssuanceDiscoveryParameters::new(
+                            &offer_url,
+                            &CredentialSelection::All,
+                            &MockWiaClient::new(),
+                            &wrpac_trust_anchors,
+                        ),
                         MOCK_WALLET_CLIENT_ID.to_string(),
                         REDIRECT_URI.clone(),
-                        &MockWiaClient::new(),
-                        &wrpac_trust_anchors,
                     )
                     .await
                     .expect_err("staring authorization code issuance should fail");
@@ -1130,11 +1214,14 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
-                &MockWiaClient::new(),
                 &TrustAnchors::empty(),
             )
             .await;
@@ -1149,11 +1236,14 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
-                &MockWiaClient::new(),
                 &TrustAnchors::empty(),
             )
             .await;
@@ -1173,11 +1263,14 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
-                &MockWiaClient::new(),
                 &TrustAnchors::empty(),
             )
             .await;
@@ -1193,7 +1286,7 @@ mod test {
         // Construct a Credential Offer URL with only unknown grant types.
         let credential_offer = json!({
             "credential_issuer": credential_issuer.as_ref(),
-            "credential_configuration_ids": [CONFIG_ID.as_ref()],
+            "credential_configuration_ids": [CONFIG_ID_MDOC.as_ref()],
             "grants": {
                 "foo": {
                     "key": "value"
@@ -1212,11 +1305,14 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
-                &MockWiaClient::new(),
                 &TrustAnchors::empty(),
             )
             .await;
@@ -1246,7 +1342,7 @@ mod test {
         // Construct a Credential Offer that contains no grants.
         let credential_offer = CredentialOffer {
             credential_issuer,
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
+            credential_configuration_ids: vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             grants: None,
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
@@ -1258,12 +1354,15 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
-                &MockWiaClient::new(),
-                &wrpac_trust_anchors,
             )
             .await;
 
@@ -1278,7 +1377,7 @@ mod test {
         // Construct a Pre-Authorized Code Credential Offer with a Transaction Code.
         let credential_offer = CredentialOffer {
             credential_issuer,
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
+            credential_configuration_ids: vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             grants: Some(Grants {
                 pre_authorized_code: Some(GrantPreAuthorizedCode {
                     pre_authorized_code: "code".to_string().into(),
@@ -1294,11 +1393,14 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
-                &MockWiaClient::new(),
                 &TrustAnchors::empty(),
             )
             .await;
@@ -1333,7 +1435,7 @@ mod test {
         // Construct a Credential Offer
         let credential_offer = CredentialOffer {
             credential_issuer: credential_issuer.clone(),
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
+            credential_configuration_ids: vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             grants: None,
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
@@ -1347,12 +1449,15 @@ mod test {
         };
         let result = HttpIssuanceDiscovery::new(http_client, mock_crl_verifier)
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &TrustAnchors::empty(),
-                &MockWiaClient::new(),
-                &trust_anchors,
             )
             .await;
         (credential_issuer, result)
@@ -1438,7 +1543,7 @@ mod test {
         // Construct a Pre-Authorized Code Credential Offer with an unknown Authorization Server.
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier.clone(),
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
+            credential_configuration_ids: vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             grants: Some(Grants {
                 pre_authorized_code: Some(GrantPreAuthorizedCode {
                     pre_authorized_code: "code".to_string().into(),
@@ -1457,12 +1562,15 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &issuer_trust_anchors,
-                &MockWiaClient::new(),
-                &wrpac_trust_anchors,
             )
             .await;
 
@@ -1485,7 +1593,7 @@ mod test {
             credential_issuer: issuer_identifier,
             credential_configuration_ids: vec_nonempty![
                 "other_id".to_string().into(),
-                CONFIG_ID.clone(),
+                CONFIG_ID_MDOC.clone(),
                 "another_id".to_string().into()
             ]
             .into(),
@@ -1500,12 +1608,15 @@ mod test {
 
         let result = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &issuer_trust_anchors,
-                &MockWiaClient::new(),
-                &wrpac_trust_anchors,
             )
             .await;
 
@@ -1529,7 +1640,7 @@ mod test {
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![CONFIG_ID.clone()].into(),
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();
@@ -1541,12 +1652,15 @@ mod test {
 
         let error = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &issuer_trust_anchors,
-                &MockWiaClient::new(),
-                &wrpac_trust_anchors,
             )
             .await
             .expect_err("starting issuance should fail");
@@ -1564,7 +1678,7 @@ mod test {
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![CONFIG_ID.clone()].into(),
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();
@@ -1575,12 +1689,80 @@ mod test {
         );
         let _flow = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &issuer_trust_anchors,
-                &MockWiaClient::new(),
-                &wrpac_trust_anchors,
+            )
+            .await
+            .expect("starting issuance should succeed");
+    }
+
+    #[tokio::test]
+    async fn start_credential_kind_not_offered_error() {
+        // Starting issuance when the caller requests credential kinds that are not offered should fail.
+        let (_server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
+            start_httpmock_issuer(IssuerMetadataOptions::default()).await;
+
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_SD_JWT.clone(), CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+        );
+
+        let requested_kinds = HashSet::from([
+            CredentialKind::new(Format::MsoMdoc, "unknown_doc_type".to_string()),
+            CredentialKind::new(Format::SdJwt, "unknown_vct".to_string()),
+        ]);
+        let error = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::ByCredentialKind(requested_kinds.clone()),
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &issuer_trust_anchors,
+            )
+            .await
+            .expect_err("starting issuance should fail");
+
+        let offered_kinds = vec![
+            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+        ];
+        assert_matches!(
+            error,
+            WalletIssuanceError::CredentialKindsNotOffered { requested, offered }
+                if requested == requested_kinds && offered == offered_kinds
+        );
+
+        // Requesting at least one credential kind that is offered should succeed.
+        let requested_kinds = HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string())]);
+        let _flow = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::ByCredentialKind(requested_kinds),
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &issuer_trust_anchors,
             )
             .await
             .expect("starting issuance should succeed");
@@ -1599,7 +1781,7 @@ mod test {
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![CONFIG_ID.clone()].into(),
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();
@@ -1611,12 +1793,15 @@ mod test {
 
         let error = discovery
             .start(
-                &offer_url,
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
                 &trust_anchor,
-                &MockWiaClient::new(),
-                &wrpac_trust_anchors,
             )
             .await
             .expect_err("starting issuance should fail");

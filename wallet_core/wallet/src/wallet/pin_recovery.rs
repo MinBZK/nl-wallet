@@ -1,8 +1,9 @@
-use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::Arc;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -11,7 +12,9 @@ use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -99,6 +102,10 @@ pub enum PinRecoveryError {
     #[category(critical)]
     NoPidPresent,
 
+    #[error("the issuer offered {0} previews for an SD-JWT PID credential, expected only 1")]
+    #[category(expected)]
+    MultiplePidCredentials(usize),
+
     #[error("recovery code error: {0}")]
     RecoveryCode(#[from] RecoveryCodeError),
 
@@ -114,7 +121,6 @@ pub enum PinRecoverySession<AS, IS> {
     Issuance {
         recovery_code_path: VecNonEmpty<ClaimPath>,
         pid_attestation_type: String,
-        pid_preview_index: usize,
         issuance_session: IS,
     },
 }
@@ -171,14 +177,23 @@ where
             .ok_or_else(|| PinRecoveryError::NotRegistered)?;
 
         info!("Fetching issuer metadata to discover authorization server");
+        let credential_kinds = config
+            .pid_attributes
+            .sd_jwt
+            .keys()
+            .map(|vct| CredentialKind::new(Format::SdJwt, vct.clone()))
+            .collect();
         let authorization_session = self
             .issuance_discovery
             .start_authorization_code_flow(
-                &config.pid_credential_offer,
+                IssuanceDiscoveryParameters::new(
+                    &config.pid_credential_offer,
+                    &CredentialSelection::ByCredentialKind(credential_kinds),
+                    &self.new_remote_wia_client(attested_key.to_owned(), registration_data, config),
+                    config.wrpac_trust_anchors(),
+                ),
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
-                &self.new_remote_wia_client(attested_key.to_owned(), registration_data, config),
-                config.wrpac_trust_anchors(),
             )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
@@ -253,11 +268,20 @@ where
 
         info!("successfully received token and previews from issuer");
 
+        // Because the `StartPinRecovery` instruction is sent inside the `perform_issuance()` implementation of
+        // `PinRecoveryRemoteEcdsaWscd` and `perform_isuance()` is called for each credential, it is essential that the
+        // issuer offers only one credential.
+        // TODO (PVW-6266): Remove this check when proof signing coalescing is implemented.
+        let previews_with_metadata = issuance_session.previews_with_metadata().collect_vec();
+        if previews_with_metadata.len() > 1 {
+            return Err(PinRecoveryError::MultiplePidCredentials(previews_with_metadata.len()));
+        }
+
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
         let pid_config = &config.pid_attributes;
-        let (pid_preview_index, pid_preview) = Self::pid_preview(
-            issuance_session.previews_with_metadata().map(|(preview, _)| preview),
+        let pid_preview = Self::pid_preview(
+            previews_with_metadata.into_iter().map(|(preview, _)| preview),
             pid_config,
         )?;
 
@@ -270,7 +294,6 @@ where
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
             recovery_code_path,
             pid_attestation_type,
-            pid_preview_index,
             issuance_session,
         }));
 
@@ -334,7 +357,6 @@ where
         let Some(Session::PinRecovery(PinRecoverySession::Issuance {
             recovery_code_path,
             pid_attestation_type,
-            pid_preview_index,
             mut issuance_session,
         })) = self.session.take()
         else {
@@ -382,7 +404,7 @@ where
 
         let issuance_result = issuance_session
             .accept_issuance(
-                &AcceptIssuanceSelection::PreviewIndices(HashSet::from([pid_preview_index])),
+                &AcceptIssuanceSelection::All,
                 config.issuer_trust_anchors(),
                 &pin_recovery_wscd,
             )
@@ -493,6 +515,7 @@ where
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::collections::HashSet;
     use std::convert::Infallible;
     use std::num::NonZeroUsize;
     use std::str::FromStr;
@@ -504,10 +527,12 @@ mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
+    use openid4vc::wallet_issuance::CredentialSelection;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
@@ -554,7 +579,17 @@ mod tests {
         wallet
             .issuance_discovery
             .expect_start_authorization_code_flow_sync()
-            .return_once(|| {
+            .withf(|selection| {
+                let expected_credential_kinds =
+                    HashSet::from([CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())]);
+
+                matches!(
+                    selection,
+                    CredentialSelection::ByCredentialKind(credential_kinds)
+                        if *credential_kinds == expected_credential_kinds
+                )
+            })
+            .return_once(|_| {
                 let mut authorization_session = MockAuthorizationSession::new();
 
                 authorization_session
@@ -1026,7 +1061,6 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             recovery_code_path: vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
             pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
-            pid_preview_index: 1,
             issuance_session: pid_issuer,
         }));
     }

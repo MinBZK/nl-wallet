@@ -21,7 +21,9 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
@@ -344,11 +346,14 @@ where
         let authorization_session = self
             .issuance_discovery
             .start_authorization_code_flow(
-                &config.pid_credential_offer,
+                IssuanceDiscoveryParameters::new(
+                    &config.pid_credential_offer,
+                    &CredentialSelection::All,
+                    &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                    config.wrpac_trust_anchors(),
+                ),
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
-                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
-                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -426,12 +431,15 @@ where
         let flow = self
             .issuance_discovery
             .start(
-                &offer_uri,
+                IssuanceDiscoveryParameters::new(
+                    &offer_uri,
+                    &CredentialSelection::All,
+                    &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
+                    config.wrpac_trust_anchors(),
+                ),
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
                 config.issuer_trust_anchors(),
-                &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
-                config.wrpac_trust_anchors(),
             )
             .await?;
 
@@ -536,7 +544,7 @@ where
 
         let config = self.config_repository.get();
         if pid_purpose.is_some() {
-            let (_index, pid_preview) = Self::pid_preview(
+            let pid_preview = Self::pid_preview(
                 issuance_session.previews_with_metadata().map(|(preview, _)| preview),
                 &config.pid_attributes,
             )?;
@@ -947,7 +955,8 @@ mod tests {
         wallet
             .issuance_discovery
             .expect_start_authorization_code_flow_sync()
-            .return_once(|| {
+            .withf(|selection| matches!(selection, CredentialSelection::All))
+            .return_once(|_| {
                 let mut authorization_session = MockAuthorizationSession::new();
 
                 authorization_session
@@ -1716,16 +1725,20 @@ mod tests {
             .expect_upsert_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
             .return_once(move |_| Ok(()));
 
-        wallet.issuance_discovery.expect_start_sync().return_once(|| {
-            let mut session = MockAuthorizationSession::new();
-            session
-                .expect_get_auth_url()
-                .return_const(Url::parse(AUTH_URL).unwrap());
-            session.expect_get_state().return_const("some_state".to_string());
-            Ok(IssuanceFlow::AuthorizationCode {
-                authorization_session: session,
-            })
-        });
+        wallet
+            .issuance_discovery
+            .expect_start_sync()
+            .withf(|selection| matches!(selection, CredentialSelection::All))
+            .return_once(|_| {
+                let mut session = MockAuthorizationSession::new();
+                session
+                    .expect_get_auth_url()
+                    .return_const(Url::parse(AUTH_URL).unwrap());
+                session.expect_get_state().return_const("some_state".to_string());
+                Ok(IssuanceFlow::AuthorizationCode {
+                    authorization_session: session,
+                })
+            });
 
         let result = wallet
             .start_issuance_from_offer(Url::parse(OFFER_URI).unwrap())
@@ -1748,16 +1761,20 @@ mod tests {
             "some_config_id".to_string().into(),
         );
 
-        wallet.issuance_discovery.expect_start_sync().return_once(move || {
-            let mut session = MockIssuanceSession::new();
-            session
-                .expect_previews_with_metadata()
-                .return_const(vec![(preview, normalized_metadata)].into());
-            session.expect_issuer().return_const(IssuerRegistration::new_mock());
-            Ok(IssuanceFlow::PreAuthorizedCode {
-                issuance_session: session,
-            })
-        });
+        wallet
+            .issuance_discovery
+            .expect_start_sync()
+            .withf(|selection| matches!(selection, CredentialSelection::All))
+            .return_once(move |_| {
+                let mut session = MockIssuanceSession::new();
+                session
+                    .expect_previews_with_metadata()
+                    .return_const(vec![(preview, normalized_metadata)].into());
+                session.expect_issuer().return_const(IssuerRegistration::new_mock());
+                Ok(IssuanceFlow::PreAuthorizedCode {
+                    issuance_session: session,
+                })
+            });
 
         wallet
             .mut_storage()

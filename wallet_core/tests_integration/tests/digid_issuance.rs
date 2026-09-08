@@ -10,7 +10,9 @@ use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
@@ -133,12 +135,15 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wia_client = MockWiaClient::new_with_wia_keypair(wia_keypair.clone());
     let issuance_flow = credential_issuer_discovery
         .start(
-            &credential_offer,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer,
+                &CredentialSelection::All,
+                &wia_client,
+                wallet_config.wrpac_trust_anchors(),
+            ),
             String::from(MOCK_WALLET_CLIENT_ID),
             redirect_uri,
             wallet_config.issuer_trust_anchors(),
-            &wia_client,
-            wallet_config.wrpac_trust_anchors(),
         )
         .await
         .unwrap();

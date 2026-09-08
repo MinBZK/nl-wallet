@@ -13,7 +13,9 @@ use wscd::mock_remote::MockWiaClient;
 use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
+use super::CredentialSelection;
 use super::IssuanceDiscovery;
+use super::IssuanceDiscoveryParameters;
 use super::IssuanceFlow;
 use super::IssuanceSession;
 use super::WalletIssuanceError;
@@ -48,11 +50,12 @@ mockall::mock! {
     pub IssuanceDiscovery {
         pub fn start_sync(
             &self,
+            selection: &CredentialSelection,
         ) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
 
-        pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
+        pub fn start_authorization_code_flow_sync(&self, selection: &CredentialSelection) -> Result<MockAuthorizationSession, WalletIssuanceError>;
 
-        pub fn start_pre_authorized_code_flow_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
+        pub fn start_pre_authorized_code_flow_sync(&self, selection: &CredentialSelection) -> Result<MockIssuanceSession, WalletIssuanceError>;
 
         pub fn restore_authorization_session_sync(&self, data: MockAuthorizationSessionData) -> MockAuthorizationSession;
     }
@@ -62,37 +65,40 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     type Authorization = MockAuthorizationSession;
     type Issuance = MockIssuanceSession;
 
-    async fn start(
+    async fn start<'a, W>(
         &self,
-        _offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _client_id: String,
         _redirect_uri: Url,
         _issuer_trust_anchors: &TrustAnchors,
-        _wia_client: &impl WiaClient,
-        _wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        self.start_sync()
+    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        self.start_sync(common_parameters.selection)
     }
 
-    async fn start_authorization_code_flow(
+    async fn start_authorization_code_flow<'a, W>(
         &self,
-        _offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _client_id: String,
         _redirect_uri: Url,
-        _wia_client: &impl WiaClient,
-        _wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<Self::Authorization, WalletIssuanceError> {
-        self.start_authorization_code_flow_sync()
+    ) -> Result<Self::Authorization, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        self.start_authorization_code_flow_sync(common_parameters.selection)
     }
 
-    async fn start_pre_authorized_code_flow(
+    async fn start_pre_authorized_code_flow<'a, W>(
         &self,
-        _offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _issuer_trust_anchors: &TrustAnchors,
-        _wia_client: &impl WiaClient,
-        _wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<Self::Issuance, WalletIssuanceError> {
-        self.start_pre_authorized_code_flow_sync()
+    ) -> Result<Self::Issuance, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        self.start_pre_authorized_code_flow_sync(common_parameters.selection)
     }
 
     fn restore_authorization_session(

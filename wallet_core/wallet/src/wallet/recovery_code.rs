@@ -1,7 +1,6 @@
 use attestation_data::attributes::AttributeValue;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
-use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -48,9 +47,12 @@ where
     pub(super) fn pid_preview<'a>(
         mut previews: impl Iterator<Item = &'a CredentialPreview>,
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<(usize, &'a CredentialPreview), RecoveryCodeError> {
+    ) -> Result<&'a CredentialPreview, RecoveryCodeError> {
+        // Find the first preview that is in SD-JWT format and has one of the required `vct` values. In theory there
+        // could be more credentials in the preview that match, but we assume the caller just needs a single PID
+        // preview, so simply ignore any subsequent matches.
         previews
-            .find_position(|preview| {
+            .find(|preview| {
                 preview.format == Format::SdJwt
                     && pid_config
                         .sd_jwt

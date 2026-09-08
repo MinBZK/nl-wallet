@@ -69,7 +69,9 @@ use openid4vc::token::VciTokenRequest;
 use openid4vc::token::VciTokenResponse;
 use openid4vc::wallet_issuance::AcceptIssuanceSelection;
 use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
@@ -273,11 +275,14 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     // Start authorization code flow — fetches metadata and creates an auth session.
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
+                &server.trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
-            &server.trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
             &server.trust_anchors,
         )
         .await
@@ -431,11 +436,14 @@ async fn pre_authorized_code_flow(
 
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(wia_keypair),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &trust_anchors,
         )
         .await
@@ -486,11 +494,14 @@ async fn reject_issuance() {
 
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(wia_keypair),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &trust_anchors,
         )
         .await
@@ -531,11 +542,14 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     // with the `invalid_client_attestation` error code.
     let error = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
             &trust_anchors,
         )
         .await

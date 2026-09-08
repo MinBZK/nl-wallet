@@ -11,7 +11,9 @@ use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::errors::PostAuthResponseErrorCode;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -127,10 +129,13 @@ where
         let issuance_session = self
             .issuance_discovery
             .start_pre_authorized_code_flow(
-                &redirect_uri,
+                IssuanceDiscoveryParameters::new(
+                    &redirect_uri,
+                    &CredentialSelection::All,
+                    &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                    config.wrpac_trust_anchors(),
+                ),
                 config.issuer_trust_anchors(),
-                &self.new_remote_wia_client(attested_key, &registration_data, &config),
-                config.wrpac_trust_anchors(),
             )
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
@@ -189,6 +194,7 @@ mod tests {
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::wallet_issuance::CredentialSelection;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
@@ -293,7 +299,8 @@ mod tests {
         wallet
             .issuance_discovery
             .expect_start_pre_authorized_code_flow_sync()
-            .return_once(move || {
+            .withf(|selection| matches!(selection, CredentialSelection::All))
+            .return_once(move |_| {
                 let mut issuance_session = MockIssuanceSession::new();
 
                 issuance_session
