@@ -674,6 +674,17 @@ mod mock {
                 time_generator,
             )
         }
+
+        /// The same claims as [`CredentialPayload::nl_pid_address_example()`], but with mdoc-namespaced attributes.
+        pub fn nl_pid_address_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            let previewable_payload = PreviewableCredentialPayload::nl_pid_address_mdoc_example(time_generator);
+
+            Self::example_with_preview(
+                previewable_payload,
+                SigningKey::generate().verifying_key(),
+                time_generator,
+            )
+        }
     }
 
     impl PreviewableCredentialPayload {
@@ -691,6 +702,16 @@ mod mock {
             Self::example_with_attributes(
                 ADDRESS_ATTESTATION_TYPE,
                 Attributes::nl_pid_address_example(),
+                time_generator,
+            )
+        }
+
+        /// The same claims as [`PreviewableCredentialPayload::nl_pid_address_example()`], but with mdoc-namespaced
+        /// attributes. Note that the address is not grouped, as an mdoc has no nesting of its own.
+        pub fn nl_pid_address_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(
+                ADDRESS_ATTESTATION_TYPE,
+                Attributes::nl_pid_address_mdoc_example(),
                 time_generator,
             )
         }

@@ -613,6 +613,27 @@ mod examples {
                     attributes
                 })
         }
+
+        /// Replaces the attribute at `claim_path`, which is expected to be present already. Note that the path
+        /// depends on the format: mdoc attributes are exactly one level deep, under its name space, while
+        /// SD-JWT attributes are nested according to its Type Metadata.
+        pub fn overwrite<'a>(&mut self, claim_path: impl IntoIterator<Item = &'a str>, value: Attribute) {
+            let path = claim_path.into_iter().collect_vec();
+            let (last, parents) = path
+                .split_last()
+                .expect("claim path should contain at least one path element");
+
+            let leaf_map = parents.iter().fold(&mut self.0, |map, key| {
+                match map.get_mut(*key).expect("attribute should be present at claim path") {
+                    Attribute::Object(child_map) => child_map,
+                    _ => panic!("claim path should not traverse a leaf attribute"),
+                }
+            });
+
+            *leaf_map
+                .get_mut(*last)
+                .expect("attribute should be present at claim path") = value;
+        }
     }
 }
 

@@ -11,7 +11,7 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::credential_format::Format;
-use attestation_types::metadata::AttestationMetadata;
+use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_AGE_OVER_18;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
@@ -19,6 +19,11 @@ use attestation_types::pid_constants::PID_BSN;
 use attestation_types::pid_constants::PID_FAMILY_NAME;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
+use attestation_types::pid_constants::PID_RESIDENT_CITY;
+use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
+use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
@@ -32,7 +37,6 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use futures::future::FutureExt;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
@@ -728,10 +732,12 @@ pub fn mock_issuance_session(
     (client, attestation_presentations.try_into().unwrap())
 }
 
+/// Creates a [`StoredAttestationCopy`] of `format`, whose `credential_payload` is expected to hold the attributes
+/// in the shape that format requires: an mdoc namespaces them, while SD-JWT attributes can be nested arbitrarily.
 pub fn example_stored_attestation_copy(
     format: Format,
     credential_payload: CredentialPayload,
-    metadata: NormalizedTypeMetadata,
+    metadata: StoredAttestationMetadata,
     holder_key: &SigningKey,
 ) -> StoredAttestationCopy {
     example_stored_attestation_copy_with_issuer_keypair(
@@ -743,95 +749,105 @@ pub fn example_stored_attestation_copy(
     )
 }
 
-// TODO (PVW-5547): remove this function. See comment below.
-fn nest_attributes_under_namespace(namespace: &str, attributes: &Attributes) -> Attributes {
-    let entries = attributes
-        .flattened()
-        .into_iter()
-        .map(|(path, value)| (path.last().to_string(), value.clone()))
-        .collect::<IndexMap<_, _>>();
-
-    IndexMap::from([(namespace.to_string(), Attribute::Object(entries))]).into()
-}
-
 fn example_stored_attestation_copy_with_issuer_keypair(
     format: Format,
     credential_payload: CredentialPayload,
-    metadata: NormalizedTypeMetadata,
+    metadata: StoredAttestationMetadata,
     issuer_keypair: &KeyPair,
     holder_key: &SigningKey,
 ) -> StoredAttestationCopy {
+    let attestation = match (format, &metadata) {
+        (Format::MsoMdoc, StoredAttestationMetadata::CredentialMetadata(_)) => StoredAttestation::MsoMdoc(
+            mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair, holder_key),
+        ),
+        (Format::SdJwt, StoredAttestationMetadata::TypeMetadata(type_metadata)) => StoredAttestation::SdJwt(
+            verified_sd_jwt_from_credential_payload(credential_payload, type_metadata, issuer_keypair),
+        ),
+        (Format::MsoMdoc, StoredAttestationMetadata::TypeMetadata(_)) => {
+            panic!("an mdoc is described by Credential Metadata, not Type Metadata")
+        }
+        // TODO (PVW-5547): support this once an SD-JWT can fall back to Credential Metadata.
+        (Format::SdJwt, StoredAttestationMetadata::CredentialMetadata(_)) => {
+            panic!("this mock does not support describing an SD-JWT by Credential Metadata")
+        }
+    };
+
+    StoredAttestationCopy::new(
+        Uuid::new_v4(),
+        Uuid::new_v4(),
+        ValidityWindow::new_valid_mock(),
+        WithKeyIdentifier {
+            key_identifier: crypto::utils::random_string(16),
+            data: attestation,
+        },
+        metadata,
+        None,
+    )
+}
+
+/// An example PID [`CredentialPayload`] and the metadata that describes it, both in the shape `format` requires.
+pub fn example_pid_payload_and_metadata(format: Format) -> (CredentialPayload, StoredAttestationMetadata, SigningKey) {
+    let time_generator = MockTimeGenerator::default();
+
     match format {
-        // TODO (PVW-5547): this helper takes one flat, SD-JWT-shaped `CredentialPayload` and reuses it for both
-        // formats, which no longer fits mdoc's namespaced attributes. Nesting them under a single namespace
-        // here is a stopgap so the ~20 disclosure tests built on this helper keep working. These call sites should be
-        // split up to build/mutate format-specific attributes explicitly.
         Format::MsoMdoc => {
-            let PreviewableCredentialPayload {
-                attestation_type,
-                issuer,
-                expires,
-                not_before,
-                attestation_qualification,
-                attributes,
-            } = credential_payload.previewable_payload;
+            let (credential_payload, holder_key) = CredentialPayload::nl_pid_mdoc_example(&time_generator);
 
-            let claim_names = metadata.claim_key_paths().map(|path| *path.last()).collect_vec();
-            let credential_metadata = CredentialMetadata::new_mdoc_example(&attestation_type, &claim_names);
-
-            let mdoc_previewable_payload = PreviewableCredentialPayload {
-                attributes: nest_attributes_under_namespace(&attestation_type, &attributes),
-                attestation_type,
-                issuer,
-                expires,
-                not_before,
-                attestation_qualification,
-            };
-
-            StoredAttestationCopy::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                ValidityWindow::new_valid_mock(),
-                WithKeyIdentifier {
-                    key_identifier: crypto::utils::random_string(16),
-                    data: StoredAttestation::MsoMdoc(mdoc_from_credential_payload(
-                        mdoc_previewable_payload,
-                        issuer_keypair,
-                        holder_key,
-                    )),
-                },
-                StoredAttestationMetadata::CredentialMetadata(credential_metadata),
-                None,
+            (
+                credential_payload,
+                StoredAttestationMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
+                holder_key,
             )
         }
-        Format::SdJwt => StoredAttestationCopy::new(
-            Uuid::new_v4(),
-            Uuid::new_v4(),
-            ValidityWindow::new_valid_mock(),
-            WithKeyIdentifier {
-                key_identifier: crypto::utils::random_string(16),
-                data: StoredAttestation::SdJwt(verified_sd_jwt_from_credential_payload(
-                    credential_payload,
-                    &metadata,
-                    issuer_keypair,
-                )),
-            },
-            StoredAttestationMetadata::TypeMetadata(metadata),
-            None,
+        Format::SdJwt => {
+            let (credential_payload, holder_key) = CredentialPayload::nl_pid_example(&time_generator);
+
+            (
+                credential_payload,
+                StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
+                holder_key,
+            )
+        }
+    }
+}
+
+/// An example PID address [`CredentialPayload`] and the metadata that describes it, both in the shape `format`
+/// requires.
+pub fn example_pid_address_payload_and_metadata(format: Format) -> (CredentialPayload, StoredAttestationMetadata) {
+    let time_generator = MockTimeGenerator::default();
+
+    match format {
+        Format::MsoMdoc => (
+            CredentialPayload::nl_pid_address_mdoc_example(&time_generator),
+            StoredAttestationMetadata::CredentialMetadata(nl_pid_address_mdoc_credential_metadata_example()),
+        ),
+        Format::SdJwt => (
+            CredentialPayload::nl_pid_address_example(&time_generator),
+            StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_address_example()),
         ),
     }
 }
 
+/// The Credential Metadata describing [`Attributes::nl_pid_address_mdoc_example()`] /
+/// [`PreviewableCredentialPayload::nl_pid_address_mdoc_example()`].
+pub fn nl_pid_address_mdoc_credential_metadata_example() -> CredentialMetadata {
+    CredentialMetadata::new_mdoc_example(
+        ADDRESS_ATTESTATION_TYPE,
+        &[
+            PID_RESIDENT_STREET,
+            PID_RESIDENT_HOUSE_NUMBER,
+            PID_RESIDENT_POSTAL_CODE,
+            PID_RESIDENT_CITY,
+            PID_RESIDENT_COUNTRY,
+        ],
+    )
+}
+
 pub fn example_pid_stored_attestation_copy(format: Format) -> (StoredAttestationCopy, SigningKey) {
-    let (credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let (credential_payload, metadata, holder_key) = example_pid_payload_and_metadata(format);
 
     (
-        example_stored_attestation_copy(
-            format,
-            credential_payload,
-            NormalizedTypeMetadata::nl_pid_example(),
-            &holder_key,
-        ),
+        example_stored_attestation_copy(format, credential_payload, metadata, &holder_key),
         holder_key,
     )
 }
@@ -840,12 +856,12 @@ pub fn example_pid_stored_attestation_copy_with_issuer_keypair(
     format: Format,
     issuer_keypair: &KeyPair,
 ) -> StoredAttestationCopy {
-    let (credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let (credential_payload, metadata, holder_key) = example_pid_payload_and_metadata(format);
 
     example_stored_attestation_copy_with_issuer_keypair(
         format,
         credential_payload,
-        NormalizedTypeMetadata::nl_pid_example(),
+        metadata,
         issuer_keypair,
         &holder_key,
     )

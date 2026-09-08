@@ -1085,10 +1085,13 @@ mod tests {
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::StoredAttestationMetadata;
     use crate::wallet::state::CancelSessionError;
     use crate::wallet::state::CheckPreconditionsError;
     use crate::wallet::test::ISSUER_KEY;
     use crate::wallet::test::WRPAC_CA;
+    use crate::wallet::test::example_pid_address_payload_and_metadata;
+    use crate::wallet::test::example_pid_payload_and_metadata;
     use crate::wallet::test::example_pid_stored_attestation_copy;
     use crate::wallet::test::example_pid_stored_attestation_copy_with_issuer_keypair;
     use crate::wallet::test::example_stored_attestation_copy;
@@ -1268,50 +1271,55 @@ mod tests {
 
         let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
-        // Create three PID attestations.
-        let (mut pid_credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
-        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("Andere Naam".to_string());
-        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let (given_name_path, address_group_path): (&[&str], &[&str]) = match requested_format {
+            Format::MsoMdoc => (&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME], &[ADDRESS_ATTESTATION_TYPE]),
+            Format::SdJwt => (&[PID_GIVEN_NAME], &[PID_ADDRESS_GROUP]),
+        };
+
+        // Create three PID attestations, which differ only in their given name.
+        let (mut pid_credential_payload, pid_metadata, holder_key) = example_pid_payload_and_metadata(requested_format);
+        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        attributes.overwrite(
+            given_name_path.iter().copied(),
+            Attribute::Text("Andere Naam".to_string()),
+        );
         let pid1 = example_stored_attestation_copy(
             requested_format,
             pid_credential_payload.clone(),
-            NormalizedTypeMetadata::nl_pid_example(),
+            pid_metadata.clone(),
             &holder_key,
         );
 
         let (pid2, _) = example_pid_stored_attestation_copy(requested_format);
 
-        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("Iemand Anders".to_string());
-        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
-        let pid3 = example_stored_attestation_copy(
-            requested_format,
-            pid_credential_payload,
-            NormalizedTypeMetadata::nl_pid_example(),
-            &holder_key,
+        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        attributes.overwrite(
+            given_name_path.iter().copied(),
+            Attribute::Text("Iemand Anders".to_string()),
         );
+        let pid3 = example_stored_attestation_copy(requested_format, pid_credential_payload, pid_metadata, &holder_key);
 
-        // Create two address attestations.
-        let mut address_credential_payload = CredentialPayload::nl_pid_address_example(&MockTimeGenerator::default());
+        // Create two address attestations, which differ in their house number and postal code.
+        let (mut address_credential_payload, address_metadata) =
+            example_pid_address_payload_and_metadata(requested_format);
         let address1 = example_stored_attestation_copy(
             requested_format,
             address_credential_payload.clone(),
-            NormalizedTypeMetadata::nl_address_example(),
+            address_metadata.clone(),
             &SigningKey::generate(),
         );
 
-        let mut attributes_root = address_credential_payload.previewable_payload.attributes.into_inner();
-        let Attribute::Object(address_group) = attributes_root.get_mut(PID_ADDRESS_GROUP).unwrap() else {
-            panic!("");
-        };
-        *address_group.get_mut(PID_RESIDENT_HOUSE_NUMBER).unwrap() = Attribute::Text("68".to_string());
-        *address_group.get_mut(PID_RESIDENT_POSTAL_CODE).unwrap() = Attribute::Text("2514 GL".to_string());
-        address_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let attributes = &mut address_credential_payload.previewable_payload.attributes;
+        for (claim, value) in [(PID_RESIDENT_HOUSE_NUMBER, "68"), (PID_RESIDENT_POSTAL_CODE, "2514 GL")] {
+            attributes.overwrite(
+                address_group_path.iter().copied().chain([claim]),
+                Attribute::Text(value.to_string()),
+            );
+        }
         let address2 = example_stored_attestation_copy(
             requested_format,
             address_credential_payload,
-            NormalizedTypeMetadata::nl_address_example(),
+            address_metadata,
             &SigningKey::generate(),
         );
 
@@ -3101,7 +3109,7 @@ mod tests {
         let attestation = example_stored_attestation_copy(
             Format::SdJwt,
             previewable_payload,
-            type_metadata_with_non_selectively_disclocable_claim,
+            StoredAttestationMetadata::TypeMetadata(type_metadata_with_non_selectively_disclocable_claim),
             &holder_key,
         );
 

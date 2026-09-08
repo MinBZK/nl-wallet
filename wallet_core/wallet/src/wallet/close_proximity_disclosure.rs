@@ -865,7 +865,6 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::auth::Organization;
-    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -911,7 +910,6 @@ mod tests {
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use serial_test::serial;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -953,6 +951,7 @@ mod tests {
     use crate::wallet::test::WRPAC_CA;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_wp_result;
+    use crate::wallet::test::example_pid_payload_and_metadata;
     use crate::wallet::test::example_pid_stored_attestation_copy;
     use crate::wallet::test::example_stored_attestation_copy;
 
@@ -1280,27 +1279,31 @@ mod tests {
 
         let verifier_certificate = setup_close_proximity_disclosure_session(&mut wallet, items_request).await;
 
-        // Create three PID attestations.
-        let mut pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default()).0;
-        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("Jane".to_string());
-        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
+        // Create three PID attestations, which differ only in their given name.
+        let (mut pid_credential_payload, pid_metadata, _) = example_pid_payload_and_metadata(Format::MsoMdoc);
+        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        attributes.overwrite(
+            [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+            Attribute::Text("Jane".to_string()),
+        );
         let pid1 = example_stored_attestation_copy(
             Format::MsoMdoc,
             pid_credential_payload.clone(),
-            NormalizedTypeMetadata::nl_pid_example(),
+            pid_metadata.clone(),
             &SigningKey::generate(),
         );
 
         let (pid2, _) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
-        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("John".to_string());
-        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        attributes.overwrite(
+            [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+            Attribute::Text("John".to_string()),
+        );
         let pid3 = example_stored_attestation_copy(
             Format::MsoMdoc,
             pid_credential_payload,
-            NormalizedTypeMetadata::nl_pid_example(),
+            pid_metadata,
             &SigningKey::generate(),
         );
 
@@ -1821,11 +1824,11 @@ mod tests {
         let key_pair = WRPAC_CA.generate_wrpac_verifier_mock_with_crl().unwrap();
         let verifier_certificate = key_pair.certificate().clone();
 
-        let (pid_credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let (pid_credential_payload, pid_metadata, holder_key) = example_pid_payload_and_metadata(Format::MsoMdoc);
         let pid = example_stored_attestation_copy(
             Format::MsoMdoc,
             pid_credential_payload.clone(),
-            NormalizedTypeMetadata::nl_pid_example(),
+            pid_metadata,
             &holder_key,
         );
 
