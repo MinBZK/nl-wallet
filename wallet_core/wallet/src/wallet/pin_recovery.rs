@@ -517,7 +517,6 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
@@ -941,7 +940,7 @@ mod tests {
                 attributes
                     .insert(
                         &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-                        Attribute::Single(AttributeValue::Text("wrong recovery code".to_string())),
+                        Attribute::Text("wrong recovery code".to_string()),
                     )
                     .unwrap();
 

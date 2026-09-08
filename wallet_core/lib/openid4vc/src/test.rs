@@ -6,7 +6,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
@@ -123,12 +122,11 @@ pub fn mock_issuable_document_with_attrs(
 ) -> IssuableDocument {
     IssuableDocument::try_new_with_random_id(
         CredentialKind::new(format, attestation_type.to_string()),
-        IndexMap::from_iter(attrs.iter().map(|(key, val)| {
-            (
-                key.to_string(),
-                Attribute::Single(AttributeValue::Text(val.to_string())),
-            )
-        }))
+        IndexMap::from_iter(
+            attrs
+                .iter()
+                .map(|(key, val)| (key.to_string(), Attribute::Text(val.to_string()))),
+        )
         .into(),
     )
     .unwrap()
@@ -327,6 +325,7 @@ where
                     .unwrap()
                     .into_first(),
                 attestation_qualification: AttestationQualification::default(),
+                mdoc_namespace: None,
                 metadata_documents,
             };
 

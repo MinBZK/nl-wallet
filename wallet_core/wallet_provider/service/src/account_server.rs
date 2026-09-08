@@ -22,7 +22,7 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_types::claim_path::ClaimPath;
@@ -537,7 +537,7 @@ impl RecoveryCodeConfig {
             .map(|path| {
                 let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
                 match disclosed_attributes.get(path).expect("constructed claim_path invalid") {
-                    Some(AttributeValue::Text(recovery_code)) => Ok(recovery_code.to_owned().into()),
+                    Some(Attribute::Text(recovery_code)) => Ok(recovery_code.to_owned().into()),
                     _ => Err(InstructionError::MissingRecoveryCode),
                 }
             })

@@ -826,7 +826,7 @@ mod tests {
     use serde_json::json;
     use wallet::AccountRevokedData;
     use wallet::RevocationReason;
-    use wallet::attestation_data::AttributeValue;
+    use wallet::attestation_data::Attribute;
     use wallet::errors::CancelSessionError;
     use wallet::errors::ChangePinError;
     use wallet::errors::CheckPreconditionsError;
@@ -923,8 +923,8 @@ mod tests {
     )]
     #[case::issuance::recoverycode(
         IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode {
-            expected: AttributeValue::Text("a".to_string()),
-            received: AttributeValue::Text("b".to_string())
+            expected: Box::new(Attribute::Text("a".to_string())),
+            received: Box::new(Attribute::Text("b".to_string()))
         }),
         FlutterApiErrorType::WrongDigid,
         serde_json::Value::Null

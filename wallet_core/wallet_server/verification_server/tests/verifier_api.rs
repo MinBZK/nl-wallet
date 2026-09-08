@@ -824,7 +824,7 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Mdoc, St
     let (credential_payload, issuer_keypair, holder_privkey_identifier, _) =
         prepare_example_credential_payload(issuer_ca, wscd);
     let (issuer_signed, mso) = credential_payload
-        .into_signed_mdoc(&issuer_keypair)
+        .into_signed_mdoc(&issuer_keypair, None)
         .now_or_never()
         .unwrap()
         .unwrap();
