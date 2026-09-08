@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
@@ -356,9 +357,15 @@ impl CredentialConfigurationsSettings {
                             }
                         };
 
-                        let metadata_documents = metadata_by_vct
-                            .to_metadata_documents(&settings.credential_kind.attestation_type)
-                            .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
+                        // An mdoc is described by its CredentialMetadata, so no chain needs to be configured for it.
+                        let type_metadata = match settings.credential_kind.format {
+                            Format::SdJwt => Some(
+                                metadata_by_vct
+                                    .to_metadata_documents(&settings.credential_kind.attestation_type)
+                                    .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?,
+                            ),
+                            Format::MsoMdoc => None,
+                        };
 
                         let key_pair = settings
                             .keypair
@@ -379,7 +386,7 @@ impl CredentialConfigurationsSettings {
                             valid_days: Days::new(settings.valid_days),
                             issuer_uri,
                             attestation_qualification: settings.attestation_qualification,
-                            metadata_documents,
+                            type_metadata,
                             credential_metadata: settings.credential_metadata.map(CredentialMetadata::from),
                         };
 

@@ -59,7 +59,6 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
-use ssri::Integrity;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
@@ -86,6 +85,7 @@ use crate::credential::UnverifiedJwtProof;
 use crate::credential::draft;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::credential_configurations::CredentialConfigurationTypeMetadata;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::credential_configurations::CredentialConfigurationsError;
 use crate::credential_offer::CredentialOffer;
@@ -149,6 +149,9 @@ pub enum IssuableDocumentError {
 
     #[error("no credential metadata for mdoc credential configuration: {0}")]
     MissingCredentialMetadata(CredentialConfigurationId),
+
+    #[error("no type metadata for SD-JWT credential configuration: {0}")]
+    MissingTypeMetadata(CredentialConfigurationId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -626,7 +629,8 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
         self.issuer_data
             .credential_configs
             .get_by_configuration_id(id)
-            .map(|config| config.metadata.documents().clone().into())
+            .and_then(|config| config.type_metadata.as_ref())
+            .map(|metadata| metadata.documents().clone().into())
     }
 }
 
@@ -788,7 +792,14 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
                     }
                     CredentialKind {
                         format: Format::SdJwt, ..
-                    } => document.validate_with_metadata(credential_config.metadata.normalized()),
+                    } => {
+                        let type_metadata = credential_config
+                            .type_metadata
+                            .as_ref()
+                            .ok_or_else(|| IssuableDocumentError::MissingTypeMetadata(credential_config_id.clone()))?;
+
+                        document.validate_with_metadata(type_metadata.normalized())
+                    }
                 }
                 .map_err(IssuableDocumentError::AttributesError)?;
 
@@ -1640,8 +1651,7 @@ impl Session<AccessTokenIssued> {
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             vec_nonempty![&holder_pubkey],
-            credential_config.metadata.first_document_integrity().clone(),
-            credential_config.metadata.normalized(),
+            credential_config.type_metadata.as_ref(),
             &credential_config.key_pair,
             &credential_config.status_list,
         )
@@ -1773,8 +1783,7 @@ impl Session<AccessTokenIssued> {
                     credential.credential_payload.clone(),
                     issued_at,
                     format_pubkeys.nonempty_iter().collect(),
-                    credential_config.metadata.first_document_integrity().clone(),
-                    credential_config.metadata.normalized(),
+                    credential_config.type_metadata.as_ref(),
                     &credential_config.key_pair,
                     &credential_config.status_list,
                 )
@@ -1880,8 +1889,7 @@ impl Session<AccessTokenIssued> {
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             public_keys.nonempty_iter().collect(),
-            credential_config.metadata.first_document_integrity().clone(),
-            credential_config.metadata.normalized(),
+            credential_config.type_metadata.as_ref(),
             &credential_config.key_pair,
             &credential_config.status_list,
         )
@@ -2007,8 +2015,7 @@ impl Credentials {
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_public_keys: VecNonEmpty<&PublicKey>,
-        metadata_integrity: Integrity,
-        type_metadata: &NormalizedTypeMetadata,
+        type_metadata: Option<&CredentialConfigurationTypeMetadata>,
         key_pair: &KeyPair<K>,
         status_list: &L,
     ) -> Result<Self, CredentialRequestError>
@@ -2020,7 +2027,9 @@ impl Credentials {
 
         // Type Metadata describes an SD-JWT; an mdoc is described by its Credential Metadata and therefore carries no
         // integrity digest for a Type Metadata document.
-        let metadata_integrity = matches!(format, Format::SdJwt).then_some(metadata_integrity);
+        let metadata_integrity = matches!(format, Format::SdJwt)
+            .then(|| type_metadata.map(|metadata| metadata.first_document_integrity().clone()))
+            .flatten();
 
         // Obtain a status claim for each holder public key, i.e. for each credential copy.
         let status_claims = status_list
@@ -2079,6 +2088,11 @@ impl Credentials {
                 Self::MsoMdoc(mdoc_credentials)
             }
             Format::SdJwt => {
+                // Guaranteed by `CredentialConfiguration::try_new()`, which requires Type Metadata for an SD-JWT.
+                let type_metadata = type_metadata
+                    .expect("SD-JWT credential configuration should have Type Metadata")
+                    .normalized();
+
                 let sd_jwt_credentials = try_join_all(payloads.into_iter().map(|credential_payload| {
                     SdJwtCredential::from_credential_payload(credential_payload, key_pair, type_metadata)
                 }))

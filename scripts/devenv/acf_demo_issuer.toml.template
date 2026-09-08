@@ -8,10 +8,8 @@ wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 wia_trust_anchors = ["${WIA_CA_CRT}"]
 
-type_metadata = [
-    "${ISSUER_METADATA_INSURANCE_PATH}",
-    "${ISSUER_METADATA_LOYALTY_PATH}",
-]
+# Only an SD-JWT is described by Type Metadata; this server issues mdocs only.
+type_metadata = []
 
 [credential_metadata_keypair]
 private_key_type = "software"

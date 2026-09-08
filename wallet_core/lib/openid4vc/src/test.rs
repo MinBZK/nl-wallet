@@ -291,9 +291,9 @@ where
 
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
 /// are based on a list of format / attestation type combinations and the relevant SD-JWT VC Type Metadata documents.
+/// The Type Metadata is also used to generate Credential Metadata from, ensuring the claim names are identical.
 pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
     issuer_identifier: IssuerIdentifier,
-    // TODO (PVW-5547): use TypeMetadataDocuments only for Format::SdJwt
     attestations: Vec<(Format, String, TypeMetadataDocuments)>,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
 ) -> (
@@ -326,6 +326,8 @@ where
                 CredentialMetadata::new_mdoc_example(&attestation_type, &claim_names)
             });
 
+            let type_metadata = matches!(format, Format::SdJwt).then_some(metadata_documents);
+
             let status_list_uri_path = config_id.replace(':', "-");
             let status_list = MockObtainingStatusListService::new(
                 format!("https://tsl.example.com/{status_list_uri_path}")
@@ -348,7 +350,7 @@ where
                     .unwrap()
                     .into_first(),
                 attestation_qualification: AttestationQualification::default(),
-                metadata_documents,
+                type_metadata,
                 credential_metadata,
             };
 

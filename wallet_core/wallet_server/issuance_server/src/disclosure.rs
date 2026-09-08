@@ -276,7 +276,7 @@ mod tests {
             valid_days: Days::new(1),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),
-            metadata_documents: TypeMetadataDocuments::degree_example().1,
+            type_metadata: Some(TypeMetadataDocuments::degree_example().1),
         };
 
         // Normally this is its own CA; here we just reuse the ca we have.
