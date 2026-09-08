@@ -25,3 +25,12 @@ wallet-config-demo:
   artifacts:
     expire_in: 3 month
   rules: !reference [.on-demo-build, rules]
+
+wallet-config-pub:
+  extends: .wallet-config
+  needs:
+    - job: build-env-pub
+      artifacts: true
+  artifacts:
+    expire_in: 3 month
+  rules: !reference [.on-pub-build, rules]
