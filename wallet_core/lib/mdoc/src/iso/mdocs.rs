@@ -25,7 +25,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
-use ssri::Integrity;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -281,9 +280,6 @@ pub struct MobileSecurityObject {
 
     /// Optional because it is not in the spec.
     pub attestation_qualification: Option<AttestationQualification>,
-
-    /// Optional because it is not in the spec.
-    pub type_metadata_integrity: Option<Integrity>,
 }
 
 /// Version of the [`MobileSecurityObject`] structure

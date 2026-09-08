@@ -2018,6 +2018,10 @@ impl Credentials {
     {
         let copy_count = holder_public_keys.len();
 
+        // Type Metadata describes an SD-JWT; an mdoc is described by its Credential Metadata and therefore carries no
+        // integrity digest for a Type Metadata document.
+        let metadata_integrity = matches!(format, Format::SdJwt).then_some(metadata_integrity);
+
         // Obtain a status claim for each holder public key, i.e. for each credential copy.
         let status_claims = status_list
             .obtain_status_claims(batch_id, preview_credential_payload.expires, copy_count)
@@ -2052,7 +2056,7 @@ impl Credentials {
                         preview_credential_payload,
                         issued_at,
                         public_key,
-                        Some(metadata_integrity),
+                        metadata_integrity,
                         status_claim,
                     )
                     .map_err(CredentialRequestError::JwkConversion)
@@ -2986,9 +2990,11 @@ mod tests {
                         .into_claims();
 
                     let issued_at = DateTime::<Utc>::from(sd_jwt_claims.iat);
-                    let vct_integrity = sd_jwt_claims
-                        .vct_integrity
-                        .expect("issued SD-JWT should contain vct#integrity");
+                    let vct_integrity = Some(
+                        sd_jwt_claims
+                            .vct_integrity
+                            .expect("issued SD-JWT should contain vct#integrity"),
+                    );
                     let status_claim = sd_jwt_claims.status.expect("issued SD-JWT should contain status claim");
                     let public_key = sd_jwt_claims.cnf.try_to_public_key().unwrap();
 
@@ -3004,9 +3010,8 @@ mod tests {
                         .expect("issued mdoc should verify correctly");
 
                     let issued_at = DateTime::<Utc>::try_from(&mso.validity_info.signed).unwrap();
-                    let vct_integrity = mso
-                        .type_metadata_integrity
-                        .expect("issued mdoc should contain type_metadata_integrity");
+                    // An mdoc is described by Credential Metadata, so it carries no Type Metadata integrity digest.
+                    let vct_integrity = None;
                     let status_claim = mso.status.expect("issued mdoc should contain status claim");
                     let public_key = VerifyingKey::try_from(mso.device_key_info).unwrap().into();
 

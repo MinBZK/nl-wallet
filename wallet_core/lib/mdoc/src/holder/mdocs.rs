@@ -4,12 +4,9 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use ssri::Integrity;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
-use super::HolderError;
-use crate::errors::Error;
 use crate::iso::*;
 use crate::utils::cose::CoseError;
 use crate::utils::serialization::TaggedBytes;
@@ -77,16 +74,6 @@ impl Mdoc {
     pub fn issuer_leaf_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_certificate_chain().map(VecNonEmpty::into_first)
     }
-
-    pub fn type_metadata_integrity(&self) -> Result<&Integrity, Error> {
-        let integrity = self
-            .mso
-            .type_metadata_integrity
-            .as_ref()
-            .ok_or(HolderError::MissingMetadataIntegrity)?;
-
-        Ok(integrity)
-    }
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -100,7 +87,6 @@ mod test {
     use futures::FutureExt;
     use http_utils::urls::HttpsUri;
     use indexmap::IndexMap;
-    use ssri::Integrity;
     use utils::generator::Generator;
 
     use super::Mdoc;
@@ -121,12 +107,10 @@ mod test {
             Self { mso, issuer_signed }
         }
 
-        #[expect(clippy::too_many_arguments)]
         pub async fn new_unverified_from_data(
             doc_type: String,
             issuer_uri: HttpsUri,
             name_spaces: IndexMap<String, Vec<Entry>>,
-            metadata_integrity: Integrity,
             ca: &Ca,
             device_key: &impl CredentialEcdsaKey,
             time_generator: &impl Generator<DateTime<Utc>>,
@@ -155,7 +139,6 @@ mod test {
                 issuer_uri: Some(issuer_uri),
                 attestation_qualification: Some(Default::default()),
                 status: Some(StatusClaim::new_mock()),
-                type_metadata_integrity: Some(metadata_integrity),
             };
 
             let mso_tagged = TaggedBytes(mso);
@@ -197,7 +180,6 @@ pub mod mock {
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
-    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -243,8 +225,6 @@ pub mod mock {
             device_key: &impl CredentialEcdsaKey,
             time_generator: &impl Generator<DateTime<Utc>>,
         ) -> Self {
-            let (metadata_integrity, _) = TypeMetadataDocuments::nl_pid_example();
-
             Self::new_unverified_from_data(
                 PID_ATTESTATION_TYPE.to_string(),
                 ISSUANCE_CERT_SAN_URI.clone().into(),
@@ -265,7 +245,6 @@ pub mod mock {
                         },
                     ],
                 )]),
-                metadata_integrity,
                 ca,
                 device_key,
                 time_generator,

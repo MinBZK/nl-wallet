@@ -2,7 +2,6 @@ use cose::CoseKeyConversionError;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 
-use crate::holder::HolderError;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::KeysError;
 use crate::utils::crypto::CryptoError;
@@ -26,9 +25,6 @@ pub enum Error {
 
     #[error("CBOR error: {0}")]
     Cbor(#[from] CborError),
-
-    #[error("holder error: {0}")]
-    Holder(#[from] HolderError),
 
     #[error("verification error: {0}")]
     #[category(unexpected)]

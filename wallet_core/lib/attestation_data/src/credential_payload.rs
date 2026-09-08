@@ -331,9 +331,9 @@ impl CredentialPayload {
         let CredentialPayload {
             issued_at,
             confirmation_key,
-            vct_integrity,
             status,
             previewable_payload,
+            ..
         } = self;
         let PreviewableCredentialPayload {
             not_before,
@@ -388,7 +388,6 @@ impl CredentialPayload {
             issuer_uri: Some(issuer),
             attestation_qualification: Some(attestation_qualification),
             status: Some(status),
-            type_metadata_integrity: vct_integrity,
         };
 
         let mso = TaggedBytes(mso);
@@ -498,7 +497,7 @@ impl SplitCredential {
             previewable,
             issued_at,
             key_info,
-            vct_integrity: mso.type_metadata_integrity,
+            vct_integrity: None,
             status: mso.status,
         })
     }
@@ -792,7 +791,7 @@ mod test {
 
     #[tokio::test]
     async fn test_into_signed_mdoc() {
-        let (payload_preview, credential_payload, _, metadata_integrity, ca, issuance_key) = setup_into_signed();
+        let (payload_preview, credential_payload, _, _, ca, issuance_key) = setup_into_signed();
 
         // The attributes of an mdoc are laid out in namespaces, as the issuer authors them.
         let credential_payload = CredentialPayload {
@@ -835,7 +834,6 @@ mod test {
             payload_preview.expires.unwrap(),
             (&cose_payload.validity_info.valid_until).try_into().unwrap(),
         );
-        assert_eq!(cose_payload.type_metadata_integrity, Some(metadata_integrity));
     }
 
     #[tokio::test]
