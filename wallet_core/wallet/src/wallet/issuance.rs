@@ -1548,28 +1548,31 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let time_generator = MockTimeGenerator::default();
 
-        let (payload, issuance_metadata) = create_example_credential_payload(&time_generator, attestation_type);
-        let OfferedCredentialMetadata::TypeMetadata {
-            normalized: type_metadata,
-            ..
-        } = &issuance_metadata
-        else {
-            panic!("example credential payload should come with type metadata");
-        };
         let preview_count = preview_formats.len();
-        let previews = std::iter::repeat_n(payload, preview_count)
-            .zip_eq(preview_formats.into_iter())
-            .map(move |(payload, format)| {
-                modifier(create_preview_from_payload(payload, format, format.to_string().into()))
+        let previews_and_metadata = preview_formats
+            .into_iter()
+            .map(|format| {
+                let (payload, metadata) = create_example_credential_payload(&time_generator, format, attestation_type);
+                let preview = modifier(create_preview_from_payload(payload, format, format.to_string().into()));
+
+                (preview, metadata)
             })
             .collect_vec();
 
         let ca = Ca::generate_mock();
         let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
 
-        let (payload, _) = create_example_credential_payload(&time_generator, attestation_type);
+        let (payload, stored_metadata) =
+            create_example_credential_payload(&time_generator, Format::SdJwt, attestation_type);
+        let OfferedCredentialMetadata::TypeMetadata {
+            normalized: type_metadata,
+            ..
+        } = stored_metadata
+        else {
+            panic!("an SD-JWT should be described by Type Metadata");
+        };
         let sd_jwt = payload
-            .into_signed_sd_jwt(type_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(&type_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1583,7 +1586,7 @@ mod tests {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
             },
-            StoredAttestationMetadata::TypeMetadata(type_metadata.clone()),
+            StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,
         );
 
@@ -1599,12 +1602,16 @@ mod tests {
         // Set up the `MockIssuanceSession` directly.
         let mut issuance_session = MockIssuanceSession::new();
         issuance_session.expect_metadata().return_const(
-            previews
+            previews_and_metadata
                 .iter()
-                .map(|preview| preview.config_id.clone())
-                .zip_eq(std::iter::repeat_n(issuance_metadata, preview_count))
-                .collect(),
+                .map(|(preview, metadata)| (preview.config_id.clone(), metadata.clone()))
+                .collect::<HashMap<_, _>>(),
         );
+
+        let previews = previews_and_metadata
+            .into_iter()
+            .map(|(preview, _)| preview)
+            .collect_vec();
         issuance_session
             .expect_credential_previews()
             .return_const(previews.try_into().unwrap());
@@ -2361,13 +2368,13 @@ mod tests {
 
         let time_generator = MockTimeGenerator::default();
 
-        let (payload, type_metadata) = create_example_pid_credential_payload(&time_generator);
+        let (payload, metadata) = create_example_pid_credential_payload(&time_generator, Format::SdJwt);
         let OfferedCredentialMetadata::TypeMetadata {
             normalized: type_metadata,
             ..
-        } = type_metadata
+        } = metadata
         else {
-            panic!("example credential payload should come with type metadata");
+            panic!("an SD-JWT should be described by Type Metadata");
         };
         let sd_jwt = payload
             .into_signed_sd_jwt(&type_metadata, &issuer_key_pair)

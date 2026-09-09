@@ -619,7 +619,9 @@ pub struct CredentialMetadata {
 #[cfg(any(test, feature = "mock"))]
 mod example_constructors {
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::metadata::AttestationMetadata;
     use itertools::Itertools;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::vec_nonempty;
 
     use super::CredentialClaim;
@@ -628,6 +630,15 @@ mod example_constructors {
     use super::NameLocale;
 
     impl CredentialMetadata {
+        /// Example mdoc Credential Metadata describing the same claims as `type_metadata`. This lets a test that
+        /// covers both formats derive the mdoc metadata from the Type Metadata it already has, instead of maintaining a
+        /// second list of claim names by hand.
+        pub fn new_mdoc_example_from_type_metadata(name_space: &str, type_metadata: &NormalizedTypeMetadata) -> Self {
+            let claim_names = type_metadata.claim_key_paths().map(|path| *path.last()).collect_vec();
+
+            Self::new_mdoc_example(name_space, &claim_names)
+        }
+
         pub fn new_mdoc_example(name_space: &str, claim_names: &[&str]) -> Self {
             Self {
                 display: Some(vec_nonempty![CredentialDisplay {

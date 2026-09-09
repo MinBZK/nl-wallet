@@ -183,42 +183,49 @@ pub static WRPAC_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_wrpac_mock_ca(
 /// Generates a valid `CredentialPayload` along with its metadata `OfferedCredentialMetadata`.
 pub fn create_example_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
+    format: Format,
     attestation_type: &str,
 ) -> (CredentialPayload, OfferedCredentialMetadata) {
+    let attribute_values = [
+        ("family_name", Attribute::Text("De Bruijn".to_string())),
+        ("given_name", Attribute::Text("Willeke Liselotte".to_string())),
+        ("birth_date", Attribute::Text("1997-05-10".to_string())),
+        ("age_over_18", Attribute::Bool(true)),
+        (PID_RECOVERY_CODE, Attribute::Text("123".to_string())),
+    ];
+
+    let type_metadata =
+        TypeMetadata::example_with_claim_names(attestation_type, &attribute_values.each_ref().map(|(name, _)| *name));
+    let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(type_metadata);
+    let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(attestation_type).unwrap();
+
+    let (attributes, metadata) = match format {
+        Format::MsoMdoc => {
+            let credential_metadata =
+                CredentialMetadata::new_mdoc_example_from_type_metadata(attestation_type, &normalized_metadata);
+
+            (
+                Attributes::example(attribute_values.map(|(name, value)| ([attestation_type, name], value))),
+                OfferedCredentialMetadata::CredentialMetadata(credential_metadata),
+            )
+        }
+        Format::SdJwt => (
+            Attributes::example(attribute_values.map(|(name, value)| ([name], value))),
+            OfferedCredentialMetadata::TypeMetadata {
+                normalized: normalized_metadata,
+                raw: raw_metadata,
+            },
+        ),
+    };
+
     let credential_payload = CredentialPayload::example_with_attributes(
         attestation_type,
-        Attributes::example([
-            (["family_name"], Attribute::Text("De Bruijn".to_string())),
-            (["given_name"], Attribute::Text("Willeke Liselotte".to_string())),
-            (["birth_date"], Attribute::Text("1997-05-10".to_string())),
-            (["age_over_18"], Attribute::Bool(true)),
-            ([PID_RECOVERY_CODE], Attribute::Text("123".to_string())),
-        ]),
+        attributes,
         SigningKey::generate().verifying_key(),
         time_generator,
     );
 
-    let metadata = TypeMetadata::example_with_claim_names(
-        attestation_type,
-        &[
-            "family_name",
-            "given_name",
-            "birth_date",
-            "age_over_18",
-            PID_RECOVERY_CODE,
-        ],
-    );
-
-    let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-    let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(attestation_type).unwrap();
-
-    (
-        credential_payload,
-        OfferedCredentialMetadata::TypeMetadata {
-            normalized: normalized_metadata,
-            raw: raw_metadata,
-        },
-    )
+    (credential_payload, metadata)
 }
 
 pub fn create_preview_from_payload(
@@ -236,8 +243,9 @@ pub fn create_preview_from_payload(
 
 pub fn create_example_pid_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
+    format: Format,
 ) -> (CredentialPayload, OfferedCredentialMetadata) {
-    create_example_credential_payload(time_generator, PID_ATTESTATION_TYPE)
+    create_example_credential_payload(time_generator, format, PID_ATTESTATION_TYPE)
 }
 
 /// Generate valid `CredentialPreview`.
@@ -247,10 +255,10 @@ pub fn create_example_preview_data(
     attestation_type: &str,
     config_id: CredentialConfigurationId,
 ) -> (CredentialPreview, OfferedCredentialMetadata) {
-    let (credential_payload, type_metadata) = create_example_credential_payload(time_generator, attestation_type);
+    let (credential_payload, metadata) = create_example_credential_payload(time_generator, format, attestation_type);
     (
         create_preview_from_payload(credential_payload, format, config_id),
-        type_metadata,
+        metadata,
     )
 }
 

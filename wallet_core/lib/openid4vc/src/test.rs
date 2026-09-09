@@ -11,7 +11,6 @@ use attestation_data::x509::generate::mock::generate_issuer_mock_with_registrati
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::metadata::AttestationMetadata;
 use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
@@ -25,7 +24,6 @@ use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use derive_more::Constructor;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::ErrorWithCode;
 use oauth::issuer_identifier::IssuerIdentifier;
@@ -321,9 +319,8 @@ where
                     .clone()
                     .into_normalized(&attestation_type)
                     .expect("example type metadata should normalize");
-                let claim_names = normalized.claim_key_paths().map(|path| *path.last()).collect_vec();
 
-                CredentialMetadata::new_mdoc_example(&attestation_type, &claim_names)
+                CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized)
             });
 
             let type_metadata = matches!(format, Format::SdJwt).then_some(metadata_documents);
