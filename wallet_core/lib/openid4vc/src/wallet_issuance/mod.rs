@@ -137,14 +137,6 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     CredentialRequest(Box<RemoteErrorResponse<CredentialErrorCode>>),
 
-    #[error("could not reject credential(s) from issuer: {0:?}")]
-    #[category(expected)]
-    CredentialRejectionHttp(#[source] reqwest::Error),
-
-    #[error("rejecting credential(s) from issuer reported an error: {0:?}")]
-    #[category(pd)]
-    CredentialRejection(Box<RemoteErrorResponse<CredentialErrorCode>>),
-
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -492,8 +484,6 @@ pub trait IssuanceSession {
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd;
-
-    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
     fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)>;
 

@@ -313,10 +313,7 @@ impl FlutterApiErrorFields for IssuanceError {
 
             IssuanceError::IssuanceSession(WalletIssuanceError::VciTokenRequest(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialPreview(_))
-            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_))
-            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRejection(_)) => {
-                FlutterApiErrorType::Server
-            }
+            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_)) => FlutterApiErrorType::Server,
 
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }

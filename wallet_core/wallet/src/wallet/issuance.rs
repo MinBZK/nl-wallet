@@ -379,31 +379,21 @@ where
     #[sentry_capture_error]
     pub(super) async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
-        let reject_result = {
-            let Some(Session::Issuance(session)) = self.session.as_ref() else {
-                return Err(IssuanceError::SessionState);
-            };
 
-            self.storage
-                .write()
-                .await
-                .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
-                .await
-                .map_err(IssuanceError::SessionStorage)?;
-
-            if let SessionState::Issuance { protocol_state, .. } = session.session_state() {
-                let organization = protocol_state.issuer_registration().organization.clone();
-                info!("Rejecting issuance");
-                protocol_state
-                    .reject_issuance()
-                    .await
-                    .map_err(|error| IssuanceError::IssuerServer { organization, error })
-            } else {
-                Ok(())
-            }
+        if !matches!(self.session, Some(Session::Issuance(_))) {
+            return Err(IssuanceError::SessionState);
         };
+
+        self.storage
+            .write()
+            .await
+            .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+            .await
+            .map_err(IssuanceError::SessionStorage)?;
+
         self.session = None;
-        reject_result
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -1177,7 +1167,6 @@ mod tests {
         // Set up the `PidIssuerClient`
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client.expect_reject().return_once(|| Ok(()));
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client
         };
@@ -1666,44 +1655,6 @@ mod tests {
                 .iter()
                 .all(|attestation| matches!(attestation.identity, AttestationIdentity::Ephemeral))
         );
-    }
-
-    #[tokio::test]
-    async fn test_cancel_pid_issuance_error_pid_issuer() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // Set up a mock OpenID4VCI session that expects to be rejected, which returns an error.
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client
-                .expect_reject()
-                .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
-
-            client.expect_issuer().return_const(IssuerRegistration::new_mock());
-
-            client
-        };
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
-            purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Issuance {
-                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-                protocol_state: pid_issuer,
-            },
-        }));
-        wallet
-            .mut_storage()
-            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
-            .return_once(|| Ok(()));
-
-        // Canceling PID issuance on a wallet should forward this error.
-        let error = wallet
-            .cancel_session()
-            .await
-            .expect_err("Rejecting PID issuance should have resulted in an error");
-
-        assert_matches!(error, CancelSessionError::Issuance(IssuanceError::IssuerServer { .. }));
-        assert_matches!(wallet.session, None);
     }
 
     const OFFER_URI: &str =
