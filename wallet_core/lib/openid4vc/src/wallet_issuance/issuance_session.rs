@@ -543,7 +543,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             );
 
         if !unknown_config_ids.is_empty() {
-            return Err(WalletIssuanceError::TokenResponseUnknownCredentialConfigIds(
+            return Err(WalletIssuanceError::AuthorizationDetailsUnknownCredentialConfigIds(
                 unknown_config_ids,
             ));
         }
@@ -1593,7 +1593,7 @@ mod tests {
     }
 
     #[test]
-    fn test_start_issuance_token_response_unknown_credential_config_ids() {
+    fn test_start_issuance_authorization_details_unknown_credential_config_ids() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         let error = test_start_issuance(
@@ -1619,7 +1619,7 @@ mod tests {
 
         assert_matches!(
             error,
-            WalletIssuanceError::TokenResponseUnknownCredentialConfigIds(config_ids)
+            WalletIssuanceError::AuthorizationDetailsUnknownCredentialConfigIds(config_ids)
                 if config_ids == vec![CredentialConfigurationId::from("unknown_config_id".to_string())]
         );
     }

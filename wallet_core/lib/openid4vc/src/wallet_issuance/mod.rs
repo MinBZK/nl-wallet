@@ -166,9 +166,12 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     DpopNonce(#[source] DpopNonceInvalid),
 
-    #[error("unknown Credential Configuration ID(s) received in Token Response: {}", .0.iter().join(", "))]
-    #[category(critical)]
-    TokenResponseUnknownCredentialConfigIds(Vec<CredentialConfigurationId>),
+    #[error(
+        "unknown Credential Configuration ID(s) received in Token Response authorization_details: {}",
+        .0.iter().join(", ")
+    )]
+    #[category(pd)]
+    AuthorizationDetailsUnknownCredentialConfigIds(Vec<CredentialConfigurationId>),
 
     #[error("empty scope set received in Token Response")]
     #[category(critical)]
