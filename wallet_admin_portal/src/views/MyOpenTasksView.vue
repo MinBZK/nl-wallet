@@ -1,5 +1,7 @@
 <template>
+  <LoadingState v-if="loading" />
   <TasksTable
+    v-else
     :columns="columns"
     :tasks="tasks"
     empty-title="Geen open taken gevonden"
@@ -8,7 +10,11 @@
 </template>
 
 <script setup lang="ts">
-import TasksTable, { type Task } from '../components/tasks/TasksTable.vue'
+import { onMounted, ref } from 'vue'
+import { fetchMyOpenTasks } from '@/api/tasks.ts'
+import type { Task } from '@/types/task.ts'
+import TasksTable from '@/components/tasks/TasksTable.vue'
+import LoadingState from '@/components/LoadingState.vue'
 
 const columns = [
   { label: 'TAAK-ID' },
@@ -19,5 +25,15 @@ const columns = [
   { label: 'VOLGENDE STAP', width: '8.125rem' },
 ]
 
-const tasks: Task[] = []
+const tasks = ref<Task[]>([])
+const loading = ref(true)
+
+// TODO: handle a rejected fetch once the ErrorState component lands together with [PVW-6183].
+onMounted(async () => {
+  try {
+    tasks.value = await fetchMyOpenTasks()
+  } finally {
+    loading.value = false
+  }
+})
 </script>
