@@ -666,6 +666,9 @@ WP_INSTRUCTION_RESULT_KID=0
 export WP_INSTRUCTION_RESULT_KID
 
 generate_wp_signing_key instruction_result_signing_${WP_INSTRUCTION_RESULT_KID}
+
+# Generate a second instruction result signing key to support rollover testing
+generate_wp_signing_key instruction_result_signing_1
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing_${WP_INSTRUCTION_RESULT_KID}.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 

@@ -104,6 +104,11 @@ name = "auth_code_flow_issuance"
 path = "tests/auth_code_flow_issuance.rs"
 required-features = ["integration_test"]
 
+[[test]]
+name = "key_rollover"
+path = "tests/key_rollover.rs"
+required-features = ["integration_test"]
+
 [features]
 # Test credentials for integration tests
 test_credentials = [
