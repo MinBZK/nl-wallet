@@ -9,7 +9,6 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use derive_more::Constructor;
-use jwt::UnverifiedJwt;
 use jwt::nonce::Nonce;
 use jwt::wia::WiaDisclosure;
 use p256::ecdsa::VerifyingKey;
@@ -21,7 +20,7 @@ use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
-use wallet_account::messages::registration::WalletCertificateClaims;
+use wallet_account::messages::registration::WalletCertificate;
 use wscd::Poa;
 use wscd::wscd::IssuanceResult;
 use wscd::wscd::IssuanceWscd;
@@ -186,7 +185,7 @@ pub struct PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
     pin_key: VerifyingKey,
 
     /// Stores the new wallet certificate that the WP replies with in [`StartPinRecoveryResult`].
-    certificates: Mutex<Vec<UnverifiedJwt<WalletCertificateClaims>>>,
+    certificates: Mutex<Vec<WalletCertificate>>,
 }
 
 impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
@@ -200,7 +199,7 @@ impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
 }
 
 pub trait PinRecoveryWscd: IssuanceWscd {
-    fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>>;
+    fn certificates(self) -> Vec<WalletCertificate>;
 }
 
 impl<S, AK, GK, A> IssuanceWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
@@ -243,7 +242,7 @@ where
     GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
-    fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>> {
+    fn certificates(self) -> Vec<WalletCertificate> {
         self.certificates.into_inner()
     }
 }

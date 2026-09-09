@@ -27,9 +27,13 @@ build-env-demo:
   extends: .build-env
   rules: !reference [.on-demo-build, rules]
 
+build-env-pub:
+  extends: .build-env
+  rules: !reference [.on-pub-build, rules]
+
 .sentry-env:
   before_script:
     - if [[ -z ${SENTRY_ENVIRONMENT:-} ]]; then export SENTRY_ENVIRONMENT="$CONFIG_ENV"; fi
-    - SENTRY_VARS=$(kubectl get secret nl-wallet-sentry-${SENTRY_ENVIRONMENT} -o json | jq -r '.data | to_entries |
+    - SENTRY_VARS=$(kubectl get secret nl-wallet-sentry -o json | jq -r '.data | to_entries |
       map("export SENTRY_\(.key | ascii_upcase)=\(.value | @base64d)") | .[]')
     - eval $SENTRY_VARS

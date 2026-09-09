@@ -5,6 +5,18 @@ import 'package:wallet/src/util/formatter/attribute_value_formatter.dart';
 
 const _kLocale = Locale('nl');
 
+/// The owner of the mVRC issued by the demo issuer.
+const _kVehicleOwner = MapValue({
+  'family_name': StringValue('Jansen'),
+  'given_name': StringValue('Frouke'),
+  'full_address': MapValue({
+    'address': StringValue('Hoofdstraat 12'),
+    'city': StringValue('Zoetermeer'),
+    'postal_code': StringValue('2711 AB'),
+    'country': StringValue('NL'),
+  }),
+});
+
 void main() {
   setUp(() async {
     /// Needed for [DateFormat] to work
@@ -46,6 +58,31 @@ void main() {
     test('an unknown key is rendered as provided by the core', () {
       const unknown = MapValue({'some_unmapped_key': StringValue('B')});
       expect(AttributeValueFormatter.formatWithLocale(_kLocale, unknown), 'some_unmapped_key: B');
+    });
+
+    test('translates the keys of an mVRC vehicle owner, nested address included', () {
+      expect(
+        AttributeValueFormatter.formatWithLocale(_kLocale, _kVehicleOwner, inline: true),
+        'Achternaam: Jansen, '
+        'Voornaam: Frouke, '
+        'Adres: Hoofdstraat 12, '
+        'Plaats: Zoetermeer, '
+        'Postcode: 2711 AB, '
+        'Land: NL',
+      );
+    });
+
+    test('a key that only groups its entries is rendered without a label', () {
+      expect(AttributeValueFormatter.formatMapKey(_kLocale, 'full_address'), isNull);
+      expect(
+        AttributeValueFormatter.formatWithLocale(_kLocale, _kVehicleOwner),
+        'Achternaam: Jansen\n'
+        'Voornaam: Frouke\n'
+        'Adres: Hoofdstraat 12\n'
+        'Plaats: Zoetermeer\n'
+        'Postcode: 2711 AB\n'
+        'Land: NL',
+      );
     });
   });
 

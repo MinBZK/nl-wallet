@@ -75,9 +75,6 @@ pub enum AttributesError {
 
     #[error("attribute \"{0}\" is not an mdoc namespace")]
     NotNamespaced(String),
-
-    #[error("attribute \"{1}\" within mdoc namespace \"{0}\" is nested")]
-    NestedWithinNamespace(String, String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -379,16 +376,15 @@ impl Attributes {
                     return Err(AttributesError::NotNamespaced(name_space));
                 };
 
+                // An attribute below the name space is a data element value, which ISO 18013-5 allows to be any CBOR
+                // value, including a map. ISO 7367-2 mVC relies on this for e.g. `chassis_number_info`.
                 let entries = entries
                     .into_iter()
-                    .map(|(name, attribute)| match attribute {
-                        Attribute::Object(_) => Err(AttributesError::NestedWithinNamespace(name_space.clone(), name)),
-                        value => Ok(Entry {
-                            name,
-                            value: value.into(),
-                        }),
+                    .map(|(name, attribute)| Entry {
+                        name,
+                        value: attribute.into(),
                     })
-                    .collect::<Result<Vec<_>, AttributesError>>()?;
+                    .collect_vec();
 
                 Ok((name_space, entries))
             })
@@ -912,20 +908,54 @@ pub mod test {
         assert_matches!(error, AttributesError::NotNamespaced(name) if name == "city");
     }
 
-    /// An mdoc has no nesting within a namespace.
+    /// A data element value may be any CBOR value, including a map, which ISO 7367-2 mVC relies on for e.g.
+    /// `chassis_number_info`.
     #[test]
-    fn test_attributes_to_mdoc_attributes_error_nested_within_namespace() {
-        let attributes =
-            Attributes::example([(["com.example.address", "house", "number"], Attribute::Number(1.into()))]);
+    fn test_attributes_map_valued_data_element_round_trip() {
+        let mdoc_attributes = IndexMap::from([(
+            String::from("com.example.address"),
+            vec![
+                Entry {
+                    name: String::from("city"),
+                    value: ciborium::Value::Text(String::from("Den Haag")),
+                },
+                Entry {
+                    name: String::from("house"),
+                    value: ciborium::Value::Map(vec![(
+                        ciborium::Value::Text(String::from("number")),
+                        ciborium::Value::Integer(1.into()),
+                    )]),
+                },
+            ],
+        )]);
 
-        let error = attributes
-            .to_mdoc_attributes()
-            .expect_err("attributes nested within a namespace should not convert to mdoc attributes");
+        let attributes = Attributes::from_mdoc_attributes(mdoc_attributes.clone())
+            .expect("a map-valued data element should convert from mdoc attributes");
 
-        assert_matches!(
-            error,
-            AttributesError::NestedWithinNamespace(name_space, name)
-                if name_space == "com.example.address" && name == "house"
+        let expected_json = json!({
+            "com.example.address": {
+                "type": "object",
+                "value": {
+                    "city": { "type": "text", "value": "Den Haag" },
+                    "house": { "type": "object", "value": { "number": { "type": "number", "value": 1 } } },
+                },
+            },
+        });
+
+        assert_eq!(
+            serde_json::to_value(&attributes)
+                .unwrap()
+                .to_json_string_pretty()
+                .unwrap(),
+            expected_json.to_json_string_pretty().unwrap(),
+        );
+
+        // Converting back should yield exactly the input again, with the map still a map.
+        assert_eq!(
+            attributes
+                .to_mdoc_attributes()
+                .expect("a map-valued data element should convert to mdoc attributes"),
+            mdoc_attributes
         );
     }
 

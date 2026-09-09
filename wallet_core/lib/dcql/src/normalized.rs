@@ -577,9 +577,9 @@ pub mod mock {
             vec![NormalizedCredentialRequest::new_mock_from_slices(
                 "my_credential",
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                &["org.iso.7367.1.mVRC"],
+                &["org.iso.7367.2.1.mVC"],
                 &[
-                    &["org.iso.7367.1", "vehicle_holder"],
+                    &["org.iso.7367.2.1", "vehicle_holder"],
                     &["org.iso.18013.5.1", "first_name"],
                 ],
             )]
@@ -614,9 +614,9 @@ pub mod mock {
                 NormalizedCredentialRequest::new_mock_from_slices(
                     "mdl",
                     MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                    &["org.iso.7367.1.mVRC"],
+                    &["org.iso.7367.2.1.mVC"],
                     &[
-                        &["org.iso.7367.1", "vehicle_holder"],
+                        &["org.iso.7367.2.1", "vehicle_holder"],
                         &["org.iso.18013.5.1", "first_name"],
                     ],
                 ),

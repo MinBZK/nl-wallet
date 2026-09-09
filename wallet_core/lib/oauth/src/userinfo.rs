@@ -181,7 +181,7 @@ fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     // using `Header` make the `typ` optional, but it will still be validated against `C::TYP`, if present
     let jwt: UnverifiedJwt<C, HeaderWithKid<Header>> = token.parse()?;
 
-    let (_, claims) = jwt.parse_and_verify_with_jwkset(jwks, validation)?;
+    let (_, claims) = jwt.parse_and_verify_by_kid(jwks, validation)?;
 
     Ok(claims)
 }

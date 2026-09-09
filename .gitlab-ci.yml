@@ -119,6 +119,10 @@ variables:
   rules:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $BUILD == "demo"
 
+.on-pub-build:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $BUILD == "pub"
+
 .ruby-cache:
   cache:
     key: ruby-${CI_COMMIT_REF_SLUG}

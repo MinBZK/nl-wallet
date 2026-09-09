@@ -61,6 +61,9 @@ spec:
             - name: metadata
               mountPath: /org.iso.18013.5.1.mDL.json
               subPath: org.iso.18013.5.1.mDL.json
+            - name: metadata
+              mountPath: /org.iso.7367.2.1.mVC.json
+              subPath: org.iso.7367.2.1.mVC.json
             - name: status-lists
               mountPath: /status-lists
           env:
@@ -71,7 +74,7 @@ spec:
             - name: PACF_ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
             - name: PACF_ISSUANCE_SERVER__TYPE_METADATA
-              value: "com.example.museum_maandkaart.json,org.iso.18013.5.1.mDL.json"
+              value: "com.example.museum_maandkaart.json,org.iso.18013.5.1.mDL.json,org.iso.7367.2.1.mVC.json"
             - name: PACF_ISSUANCE_SERVER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:

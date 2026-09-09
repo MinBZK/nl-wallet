@@ -1,0 +1,571 @@
+{
+  "display": [
+    {
+      "name": "Vehicle Certificate",
+      "locale": "en-US",
+      "description": "A mobile vehicle certificate",
+      "logo": {
+        "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+        "alt_text": "EU/NL badge"
+      },
+      "background_color": "#DCEED5",
+      "text_color": "#152A62"
+    },
+    {
+      "name": "Kentekenbewijs",
+      "locale": "nl-NL",
+      "description": "Een mobiel kentekenbewijs",
+      "logo": {
+        "uri": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDQwIj48cGF0aCBmaWxsPSIjMGU0N2NiIiBkPSJNMCAwaDU2djQwSDB6Ii8+PHBhdGggZmlsbD0iI2ZjMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMjUuODEgNS42MDMgMS4zNTMuOTktLjUxNiAxLjYwMUwyOCA3LjIwNGwxLjM1Mi45OS0uNTE2LTEuNiAxLjM1My0uOTktMS42NzMtLjAwMUwyOCA0LjAwMmwtLjUxNyAxLjZ6bS00LjcxNiAyNC4zNDQuNTE3IDEuNiAxLjY3Mi4wMDEtMS4zNTMuOTkuNTE2IDEuNjAxLTEuMzUzLS45OS0xLjM1My45OS41MTctMS42MDEtMS4zNTMtLjk5aDEuNjczem0tNS4wNTUtNS4wODkuNTE3IDEuNiAxLjY3MS4wMDEtMS4zNTIuOTkuNTE2IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk5LjUxNi0xLjYwMi0xLjM1My0uOTloMS42NzN6bTI1LjI1NC01LjM1MS41MTctMS42MDEuNTE3IDEuNiAxLjY3My4wMDEtMS4zNTQuOTkuNTE3IDEuNi0xLjM1Mi0uOTg4LTEuMzUzLjk4OS41MTctMS42LTEuMzU0LS45OXpNMTYuODggMTMuNTQ2bC41MTcgMS42MDItMS4zNDgtLjk4Ny0xLjM1NC45OS41MTYtMS42MDItMS4zNTYtLjk5MmgxLjY3M2wuNTE3LTEuNjAyLjUxNyAxLjYwMmgxLjY3MXptNC4yMTMtNC40NzgtMS4zNTMuOTkuNTE3LTEuNjAyLTEuMzUyLS45OWgxLjY3M2wuNTE3LTEuNjAxLjUxNiAxLjYwMWgxLjY3MmwtMS4zNTMuOTkuNTE2IDEuNjAxem02LjM5IDI0LjM0M0wyOCAzMS44MWwuNTE2IDEuNmgxLjY3M2wtMS4zNTMuOTkxLjUxNiAxLjYwMS0xLjM1Mi0uOTktMS4zNTMuOTkuNTE3LTEuNi0xLjM1NC0uOTl6bTcuNDIyLTMuNDY0LS41MTcgMS42MDFoLTEuNjcybDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTQtLjk5IDEuMzUzLjk5LS41MTctMS42IDEuMzUzLS45OWgtMS42NzN6bTcuMjQ0LTMuNDg4aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNmgtMS42NzJsMS4zNTIuOTktLjUxNyAxLjYwMiAxLjM1NC0uOTkgMS4zNTMuOTktLjUxNy0xLjYwMnptLTI3LjQ0My02Ljk1Mi0uNTE3LTEuNjAxLS41MTcgMS42LTEuNjcyLjAwMSAxLjM1NC45OS0uNTE3IDEuNjAxIDEuMzUzLS45OSAxLjM1Mi45OS0uNTE3LTEuNjAxIDEuMzUzLS45OXptMjMuMDY1LTYuOTUyIDEuMzUzLjk5LS41MTcgMS42MDEgMS4zNTMtLjk5IDEuMzUzLjk5LS41MTctMS42MDEgMS4zNTMtLjk5aC0xLjY3MmwtLjUxNy0xLjYwMS0uNTE3IDEuNjAxem0tMi44NjYtMy40ODggMS4zNTMuOTktLjUxNy0xLjYwMiAxLjM1My0uOTloLTEuNjczbC0uNTE3LTEuNi0uNTE2IDEuNmgtMS42NzJsMS4zNTMuOTktLjUxNyAxLjYwMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNmY2ZjZmMiIGQ9Ik0yMCAyNC41ODN2LTkuNTgxaDEuODY4TDI1Ljc2IDIxLjR2LTYuMzk4aDEuNzgzdjkuNTgxaC0xLjkyNmwtMy44MzMtNi4yNDh2Ni4yNDh6TTI5LjY0MiAyNC41ODNWMTUuMDhoMS45MnY3Ljg4OWg0Ljc3M3YxLjYxNHoiLz48L3N2Zz4=",
+        "alt_text": "EU/NL badge"
+      },
+      "background_color": "#DCEED5",
+      "text_color": "#152A62"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "registration_number"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Kenteken",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Registration number",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "issue_date"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Afgegeven op",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Issue date",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "expiry_date"
+      ],
+      "display": [
+        {
+          "name": "Geldig tot",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Valid until",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "issuing_authority_unicode"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Afgegeven op",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Issued by",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "issuing_authority_latin1"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Afgegeven door",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Issuing authority",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "issuing_country"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Land van afgifte",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Issuing country",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "un_distinguishing_sign"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Landcode",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Country code",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "document_number"
+      ],
+      "display": [
+        {
+          "name": "Documentnummer",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Document number",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "date_of_registration"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Geregistreerd op",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Date of registration",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "date_of_first_registration"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Voor het eerst geregistreerd op",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Date of first registration",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "chassis_number_info",
+        "vehicle_identification_number"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Chassisnummer",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Chassis number",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "basic_vehicle_info",
+        "vehicle_category_code"
+      ],
+      "display": [
+        {
+          "name": "Voertuigcategorie",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Vehicle category",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "basic_vehicle_info",
+        "make"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Merk",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Make",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "basic_vehicle_info",
+        "commercial_name"
+      ],
+      "display": [
+        {
+          "name": "Handelsbenaming",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Commercial name",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "owners"
+      ],
+      "display": [
+        {
+          "name": "Eigenaren",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Owners",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "users"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Gebruikers",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Users",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "mass_info",
+        "techn_perm_max_laden_mass"
+      ],
+      "display": [
+        {
+          "name": "Max. technisch toelaatbare massa",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Technically permissible maximum laden mass",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "mass_info",
+        "vehicle_max_mass"
+      ],
+      "display": [
+        {
+          "name": "Toegestane maximum massa",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Vehicle maximum mass",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "mass_info",
+        "mass_in_running_order"
+      ],
+      "display": [
+        {
+          "name": "Massa rijklaar",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Mass in running order",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "mass_info",
+        "mass_in_running_order_variable_min"
+      ],
+      "display": [
+        {
+          "name": "Massa rijklaar (min.)",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Mass in running order (min)",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "mass_info",
+        "mass_in_running_order_variable_max"
+      ],
+      "display": [
+        {
+          "name": "Massa rijklaar (max.)",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Mass in running order (max)",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "towed_trailer_mass_info",
+        "tech_perm_max_tow_mass"
+      ],
+      "display": [
+        {
+          "name": "Max. massa aanhangwagen",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Technically permissible max. towable mass",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "towed_trailer_mass_info",
+        "technically_permissible_maximum_combination_mass"
+      ],
+      "display": [
+        {
+          "name": "Max. massa combinatie",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Technically permissible maximum combination mass",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "towed_trailer_mass_info",
+        "braked_type_trail_code"
+      ],
+      "display": [
+        {
+          "name": "Remtype aanhangwagen",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Trailer brake type",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "towed_trailer_mass_info",
+        "type_trailer_code"
+      ],
+      "display": [
+        {
+          "name": "Type aanhangwagen",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Trailer type",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "engine_info",
+        "engine_number"
+      ],
+      "display": [
+        {
+          "name": "Motornummer",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Engine number",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "engine_info",
+        "engine_capacity"
+      ],
+      "display": [
+        {
+          "name": "Cilinderinhoud",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Engine capacity",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "engine_info",
+        "engine_power"
+      ],
+      "display": [
+        {
+          "name": "Motorvermogen",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Engine power",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "engine_info",
+        "class_of_hybrid_vehicle_code"
+      ],
+      "display": [
+        {
+          "name": "Hybrideklasse",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Class of hybrid vehicle",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "engine_info",
+        "energy_sources"
+      ],
+      "display": [
+        {
+          "name": "Brandstof/energiebron",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Energy sources",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "seating_info",
+        "number_of_seating_positions_including_driver"
+      ],
+      "display": [
+        {
+          "name": "Aantal zitplaatsen",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Number of seating positions",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "org.iso.7367.2.1",
+        "seating_info",
+        "number_of_standing_places"
+      ],
+      "display": [
+        {
+          "name": "Aantal staanplaatsen",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Number of standing places",
+          "locale": "en-US"
+        }
+      ]
+    }
+  ]
+}

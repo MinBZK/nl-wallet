@@ -89,20 +89,20 @@ class DataAttributeRow extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: mapValue.value.entries
-            .map(
-              (entry) => Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text.rich(
-                    '${AttributeValueFormatter.formatMapKey(context.activeLocale, entry.key)}: '.toTextSpan(context),
-                    style: context.textTheme.bodyMedium,
-                  ),
-                  Expanded(child: _buildSubtitle(context, entry.value)),
-                ],
-              ),
-            )
-            .toList(),
+        children: mapValue.value.entries.map((entry) {
+          final label = AttributeValueFormatter.formatMapKey(context.activeLocale, entry.key);
+          final value = _buildSubtitle(context, entry.value);
+          // A grouping key such as the 'full_address' of an mVRC owner has no label of its own, so
+          // its entries line up with their siblings instead of being indented behind an empty one.
+          if (label == null) return value;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text.rich('$label: '.toTextSpan(context), style: context.textTheme.bodyMedium),
+              Expanded(child: value),
+            ],
+          );
+        }).toList(),
       ),
     );
   }

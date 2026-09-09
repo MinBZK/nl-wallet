@@ -6,7 +6,9 @@
 
 :root {
   font-family: "RO Sans", sans-serif;
-  font-feature-settings: "clig" off, "liga" off;
+  font-feature-settings:
+    "clig" off,
+    "liga" off;
   font-size: 16px;
   line-height: 1.5;
 }
@@ -168,5 +170,9 @@ nav a::before {
 }
 
 #mdl::before {
+  background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
+}
+
+#mvc::before {
   background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
 }

@@ -352,7 +352,7 @@ mod test {
             iat: Utc::now(),
         };
 
-        let wallet_certificate = SignedJwt::sign_with_sub(certificate_claims, &certificate_signing_key)
+        let wallet_certificate = SignedJwt::sign_with_sub_and_kid(certificate_claims, &certificate_signing_key)
             .await
             .unwrap()
             .into();
