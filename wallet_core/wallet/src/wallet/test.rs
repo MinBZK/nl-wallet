@@ -657,7 +657,6 @@ pub fn mock_issuance_session(
     let mut client = MockIssuanceSession::new();
 
     if let Some(expected_max_copy_count) = expected_max_copy_count {
-        // client.expect_issuer().times(1).return_const(issuer_registration);
         client
             .expect_accept()
             .with(eq(expected_max_copy_count))
