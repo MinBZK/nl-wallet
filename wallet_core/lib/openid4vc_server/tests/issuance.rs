@@ -2,7 +2,6 @@ use std::assert_matches;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroUsize;
-use std::slice::Iter;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -41,13 +40,14 @@ use oauth::token::TokenType;
 use openid4vc::authorization_details::EntryContainer;
 use openid4vc::client_auth::fetch_client_auth_challenge;
 use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialRequestIdentifier;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::Credentials;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
-use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
+use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::response::NonceResponse;
@@ -68,7 +68,9 @@ use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::VciTokenRequest;
 use openid4vc::token::VciTokenResponse;
 use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
@@ -222,9 +224,9 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
     }
 }
 
-fn verify_issued_credentials(
+fn verify_issued_credentials<'a>(
     issued_creds: Vec<CredentialWithMetadata>,
-    credential_previews: Iter<CredentialPreview>,
+    credential_previews: impl Iterator<Item = &'a CredentialPreview>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -272,11 +274,14 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     // Start authorization code flow — fetches metadata and creates an auth session.
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
+                &server.trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
-            &server.trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
             &server.trust_anchors,
         )
         .await
@@ -349,7 +354,7 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.credential_previews().len(), attestation_count);
+    assert_eq!(session.previews_with_metadata().count(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
@@ -357,7 +362,7 @@ async fn authorization_code_flow(
     let copy_count = 4;
     verify_issued_credentials(
         issued_creds,
-        session.credential_previews().iter(),
+        session.previews_with_metadata().map(|(preview, _)| preview),
         attestation_count.get(),
         copy_count,
     );
@@ -380,9 +385,11 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server).await;
 
-    let previews = session.credential_previews();
-    assert_eq!(previews.len().get(), 1);
-    let attributes = previews[0].credential_payload.attributes.as_ref();
+    let Ok((preview, _)) = session.previews_with_metadata().exactly_one() else {
+        panic!("issuance session should contain exactly one preview");
+    };
+
+    let attributes = preview.credential_payload.attributes.as_ref();
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
@@ -392,7 +399,12 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
-    verify_issued_credentials(issued_creds, session.credential_previews().iter(), 1, 4);
+    verify_issued_credentials(
+        issued_creds,
+        session.previews_with_metadata().map(|(preview, _)| preview),
+        1,
+        4,
+    );
 }
 
 #[rstest]
@@ -420,11 +432,14 @@ async fn pre_authorized_code_flow(
 
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(wia_keypair),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &trust_anchors,
         )
         .await
@@ -443,7 +458,7 @@ async fn pre_authorized_code_flow(
 
     verify_issued_credentials(
         issued_creds,
-        session.credential_previews().iter(),
+        session.previews_with_metadata().map(|(preview, _)| preview),
         attestation_count.get(),
         copy_count,
     );
@@ -472,11 +487,14 @@ async fn reject_issuance() {
 
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(wia_keypair),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &trust_anchors,
         )
         .await
@@ -517,11 +535,14 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     // with the `invalid_client_attestation` error code.
     let error = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
             &trust_anchors,
         )
         .await
@@ -1685,9 +1706,12 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap()
         .into();
-    let credential_request = CredentialRequest::new_credential_id(credential_id.clone(), vec_nonempty![proof]);
+    let credential_request = CredentialRequest::new(
+        CredentialRequestIdentifier::CredentialIdentifier(credential_id.clone()),
+        vec_nonempty![proof],
+    );
 
-    let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_V1_PATH}",)
+    let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_PATH}",)
         .parse::<Url>()
         .unwrap();
 
@@ -1696,7 +1720,7 @@ async fn pre_authorized_code_flow_credential_request() {
         credential_url.clone(),
         &Method::POST,
         Some(&token_response.oauth_response.access_token),
-        Some(dpop_nonce.clone()),
+        Some(dpop_nonce.parse().unwrap()),
     )
     .unwrap()
     .to_string();
@@ -1748,14 +1772,17 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap()
         .into();
-    let credential_request = CredentialRequest::new_credential_id(credential_id, vec_nonempty![proof]);
+    let credential_request = CredentialRequest::new(
+        CredentialRequestIdentifier::CredentialIdentifier(credential_id),
+        vec_nonempty![proof],
+    );
 
     let dpop_header = Dpop::new(
         &dpop_key,
         credential_url.clone(),
         &Method::POST,
         Some(&token_response.oauth_response.access_token),
-        Some(dpop_nonce),
+        Some(dpop_nonce.parse().unwrap()),
     )
     .unwrap()
     .to_string();

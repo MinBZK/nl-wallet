@@ -4,5 +4,4 @@ ${PID_ISSUER_URL}issuance/token
 ${PID_ISSUER_URL}issuance/credential_preview
 ${PID_ISSUER_URL}issuance/nonce
 ${PID_ISSUER_URL}issuance/credential
-${PID_ISSUER_URL}issuance/batch_credential
 ${INTERNAL_PID_ISSUER_URL}revoke/
