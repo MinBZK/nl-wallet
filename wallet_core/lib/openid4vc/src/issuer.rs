@@ -2062,7 +2062,10 @@ mod tests {
         .unwrap();
 
         let wscd = MockRemoteWscd::new(vec![]);
-        session.accept_issuance(&trust_anchors, &wscd).await.unwrap_err()
+        session
+            .accept_issuance(NonZeroU8::MIN, &trust_anchors, &wscd)
+            .await
+            .unwrap_err()
     }
 
     /// Like [`start_and_accept_err`] but for errors that happen at token request time (inside

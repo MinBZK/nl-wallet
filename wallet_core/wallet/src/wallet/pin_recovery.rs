@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::num::NonZeroU8;
 use std::sync::Arc;
 
 use attestation_types::claim_path::ClaimPath;
@@ -395,8 +396,9 @@ where
         // PIN recovery will have to start again from the start.
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
+        // Since all we need is to extract the recovery code, request just a single copy of the SD-JWT PID credential.
         let issuance_result = issuance_session
-            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd)
+            .accept_issuance(NonZeroU8::MIN, config.issuer_trust_anchors(), &pin_recovery_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
@@ -506,6 +508,7 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashSet;
     use std::convert::Infallible;
+    use std::num::NonZeroU8;
     use std::num::NonZeroUsize;
     use std::str::FromStr;
     use std::sync::Arc;
@@ -747,7 +750,7 @@ mod tests {
             .returning(|| Ok(()));
 
         // Setup the issuance session
-        setup_issuance_session(&mut wallet);
+        setup_issuance_session(&mut wallet, true);
 
         wallet
             .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
@@ -759,7 +762,7 @@ mod tests {
     async fn cancel_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        setup_issuance_session(&mut wallet);
+        setup_issuance_session(&mut wallet, false);
 
         assert_matches!(
             &wallet.session,
@@ -811,7 +814,7 @@ mod tests {
     async fn continue_pin_recovery_has_issuance_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        setup_issuance_session(&mut wallet);
+        setup_issuance_session(&mut wallet, false);
 
         let err = wallet
             .continue_pin_recovery(AUTH_URL.parse().unwrap())
@@ -1012,7 +1015,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup the issuance session
-        setup_issuance_session(&mut wallet);
+        setup_issuance_session(&mut wallet, false);
 
         let err = wallet
             .complete_pin_recovery_internal(|_, _| MockPinWscd, "111111".into())
@@ -1025,26 +1028,29 @@ mod tests {
         );
     }
 
-    fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
+    fn setup_issuance_session(wallet: &mut TestWalletMockStorage, expect_accept_issuance: bool) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
         let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
-        let (pid_issuer, _) = mock_issuance_session([
-            (
-                WithKeyIdentifier {
-                    key_identifier: "key_id".to_string(),
-                    data: StoredAttestation::MsoMdoc(mdoc),
-                },
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
-            ),
-            (
-                WithKeyIdentifier {
-                    key_identifier: "key_id".to_string(),
-                    data: StoredAttestation::SdJwt(sd_jwt.clone()),
-                },
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
-            ),
-        ]);
+        let (pid_issuer, _) = mock_issuance_session(
+            [
+                (
+                    WithKeyIdentifier {
+                        key_identifier: "key_id".to_string(),
+                        data: StoredAttestation::MsoMdoc(mdoc),
+                    },
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
+                ),
+                (
+                    WithKeyIdentifier {
+                        key_identifier: "key_id".to_string(),
+                        data: StoredAttestation::SdJwt(sd_jwt.clone()),
+                    },
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
+                ),
+            ],
+            expect_accept_issuance.then_some(NonZeroU8::MIN),
+        );
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             recovery_code_path: vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],

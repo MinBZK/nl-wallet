@@ -8,6 +8,7 @@ pub mod issuance_session;
 pub mod mock;
 
 use std::collections::HashSet;
+use std::num::NonZeroU8;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -477,8 +478,11 @@ pub trait AuthorizationSession {
 
 /// Represents an active credential issuance session for which previews are available.
 pub trait IssuanceSession {
+    /// Accept all of the credentials the issuer offered. Cap the amount of copies of each credential the issuer offers
+    /// to `max_copy_count`.
     async fn accept_issuance<W>(
         &mut self,
+        max_copy_count: NonZeroU8,
         trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>

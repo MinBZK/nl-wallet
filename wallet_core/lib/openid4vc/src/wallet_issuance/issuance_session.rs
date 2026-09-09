@@ -791,14 +791,15 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         identifier: CredentialRequestIdentifier,
         credential_preview: &CredentialPreview,
+        max_copy_count: NonZeroU8,
         trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<CredentialWithMetadata, WalletIssuanceError>
     where
         W: IssuanceWscd,
     {
-        // Request as many copies as the Issuer Metadata will allow, capped at BATCH_SIZE_MAX.
-        let copy_count = self.session_state.batch_size.into();
+        // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
+        let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count).into();
 
         // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata. Use the DPoP nonce if it returns
         // one.
@@ -921,6 +922,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn accept_issuance<W>(
         &mut self,
+        max_copy_count: NonZeroU8,
         trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
@@ -932,7 +934,9 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             self.session_state
                 .offered_credentials
                 .to_request_identifiers_and_previews()
-                .map(|(identifier, preview)| self.fetch_credential(identifier, preview, trust_anchors, wscd)),
+                .map(|(identifier, preview)| {
+                    self.fetch_credential(identifier, preview, max_copy_count, trust_anchors, wscd)
+                }),
         )
         .await?;
 
@@ -2383,6 +2387,7 @@ mod tests {
     fn test_accept_issuance(
         #[case] formats: AcceptIssuanceTestFormats,
         #[values(NonZeroU8::MIN, 4.try_into().unwrap())] batch_size: NonZeroU8,
+        #[values(NonZeroU8::MIN, 5.try_into().unwrap())] max_copy_count: NonZeroU8,
         #[values(
             TestNonceEndpoint::Absent,
             TestNonceEndpoint::Present,
@@ -2439,16 +2444,26 @@ mod tests {
                 Ok(signer.response_from_request(credential_request))
             });
 
-        let credential_copies = HttpIssuanceSession {
+        let credentials = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&trust_anchors, &wscd)
+        .accept_issuance(max_copy_count, &trust_anchors, &wscd)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
 
-        assert_eq!(credential_copies.len(), credential_count);
+        assert_eq!(credentials.len(), credential_count);
+
+        let expected_copy_count = std::cmp::min(batch_size, max_copy_count).into();
+        for credential in &credentials {
+            let copy_count = match &credential.copies {
+                IssuedCredentialCopies::Mdoc(mdoc_copies) => mdoc_copies.len(),
+                IssuedCredentialCopies::SdJwt(sd_jwt_copies) => sd_jwt_copies.len(),
+            };
+
+            assert_eq!(copy_count, expected_copy_count);
+        }
     }
 
     #[test]
@@ -2475,7 +2490,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, vec![type_metadata], 4.try_into().unwrap(), true),
         }
-        .accept_issuance(&trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -2507,7 +2522,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
         }
-        .accept_issuance(&trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -2541,7 +2556,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, vec![type_metadata], NonZeroU8::MIN, true),
         }
-        .accept_issuance(&signer.trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &signer.trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
