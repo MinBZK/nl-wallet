@@ -49,6 +49,7 @@
 import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePageTitle } from '@/composables/pageTitle.ts'
+import { useAuth } from '@/composables/authentication.ts'
 import TaskStepHeader from '@/components/create-task/TaskStepHeader.vue'
 import TaskWizardCard from '@/components/create-task/TaskWizardCard.vue'
 import TaskWizardFooter from '@/components/create-task/TaskWizardFooter.vue'
@@ -69,6 +70,7 @@ const NUMBERED_STEPS: WizardStep[] = ['intro', 'reason', 'check']
 const route = useRoute()
 const router = useRouter()
 const { setPageTitle, resetPageTitle } = usePageTitle()
+const { loggedInUser } = useAuth()
 
 const step = ref<WizardStep>('intro')
 const reason = ref('')
@@ -120,12 +122,15 @@ async function handleNext() {
     if (isCreatingTask.value) return
     isCreatingTask.value = true
     try {
-      const task = await createTask()
+      const task = await createTask(
+        action.value.title,
+        loggedInUser.value?.displayName ?? 'Onbekend',
+      )
       taskId.value = task.id
       step.value = 'done'
     } catch {
-      // TODO: show the error inline on this step instead of redirecting, once in-page
-      // error state lands (tracked on a different branch).
+      // TODO: show the error inline on this step instead of redirecting, once the
+      // in-page error state lands together with [PVW-6183].
       router.push({ name: 'error' })
     } finally {
       isCreatingTask.value = false
