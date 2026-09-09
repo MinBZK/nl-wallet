@@ -308,6 +308,9 @@ enum OfferedCredentials {
     /// The result of a Token Response that did contain `authorization_details`, where each Credential Configuration
     /// has at least one Credential Identifier of an offered credential. The holder then uses these Credential
     /// Identifiers when fetching the credentials using the Credential Endpoint.
+    ///
+    /// The Credential Identifiers are unique across Credential Configurations, as this is required in order to identify
+    /// credentials at the Credential Endpoint.
     WithIdentifiers(HashMap<CredentialConfigurationId, (CredentialConfiguration, HashSet<CredentialId>)>),
 }
 
@@ -375,6 +378,35 @@ impl OfferedCredentials {
         if !unknown_config_ids.is_empty() {
             return Err(WalletIssuanceError::AuthorizationDetailsUnknownCredentialConfigIds(
                 unknown_config_ids,
+            ));
+        }
+
+        // Finally, check that all of the Credential Identifiers are unique amongst the Credential Configurations, as
+        // this is required for identifying credentials at the Credential Endpoint.
+        let duplicate_credential_ids = offered_configs
+            .values()
+            .flat_map(|(_config, credential_ids)| credential_ids)
+            .duplicates()
+            .collect::<HashSet<_>>();
+
+        if !duplicate_credential_ids.is_empty() {
+            let duplicates = duplicate_credential_ids
+                .into_iter()
+                .map(|credential_id| {
+                    let config_ids = offered_configs
+                        .iter()
+                        .filter_map(|(config_id, (_config, credential_ids))| {
+                            credential_ids.contains(credential_id).then_some(config_id)
+                        })
+                        .cloned()
+                        .collect();
+
+                    (credential_id.clone(), config_ids)
+                })
+                .collect();
+
+            return Err(WalletIssuanceError::AuthorizationDetailsDuplicateCredentialIds(
+                duplicates,
             ));
         }
 
@@ -1672,6 +1704,62 @@ mod tests {
         .expect("starting issuance session should succeed");
 
         assert_eq!(session.previews_with_metadata().count(), 2);
+    }
+
+    #[test]
+    fn test_start_issuance_authorization_details_duplicate_credential_ids() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let error = test_start_issuance(
+            &ca,
+            &TrustAnchors::from(&ca),
+            IssuerMetadata::new_mock(
+                "https://example.com".parse().unwrap(),
+                vec![
+                    (
+                        CredentialConfigurationId::from("mdoc_config_id".to_string()),
+                        CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                    ),
+                    (
+                        CredentialConfigurationId::from("sd_jwt_config_id".to_string()),
+                        CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                    ),
+                ],
+            ),
+            vec![
+                (
+                    "credential_id".to_string().into(),
+                    CredentialConfigurationId::from("mdoc_config_id".to_string()),
+                    Format::MsoMdoc,
+                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                ),
+                (
+                    "credential_id".to_string().into(),
+                    CredentialConfigurationId::from("sd_jwt_config_id".to_string()),
+                    Format::SdJwt,
+                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                ),
+            ],
+            TypeMetadata::pid_example(),
+            &TokenResponseFields::AuthorizationDetails(vec![
+                ("mdoc_config_id", vec!["credential_id"]),
+                ("sd_jwt_config_id", vec!["credential_id"]),
+            ]),
+        )
+        .expect_err("starting issuance session should fail");
+
+        let expected_duplicates = HashMap::from([(
+            "credential_id".to_string().into(),
+            HashSet::from([
+                CredentialConfigurationId::from("mdoc_config_id".to_string()),
+                CredentialConfigurationId::from("sd_jwt_config_id".to_string()),
+            ]),
+        )]);
+        assert_matches!(
+            error,
+            WalletIssuanceError::AuthorizationDetailsDuplicateCredentialIds(duplicates)
+                if duplicates == expected_duplicates
+        );
     }
 
     #[test]
