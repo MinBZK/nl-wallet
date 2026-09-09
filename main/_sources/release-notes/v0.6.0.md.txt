@@ -222,6 +222,10 @@
       provides copies of a single credential, necessitating the Wallet to call
       this endpoint as many times as there are distinct credentials in a
       session.
+    - Sending a DELETE to the `Issuer` Credential Endpoint in order to reject
+      an offered credential has been removed. This is not part of the
+      OpenID4VCI specification, the Notitication Endpoint should be used for
+      this instead. Currently the `Issuer` does not support this endpoint.
 - The well-known path is now derived according to spec for Credential Issuer
   Metadata and Oauth 2.0 Authorization Server Metadata when a subpath is
   involved.

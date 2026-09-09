@@ -437,6 +437,10 @@ issuing copies of all credentials offered in the session at once, it only
 provides copies of a single credential, necessitating the Wallet to call
 this endpoint as many times as there are distinct credentials in a
 session.</p></li>
+<li><p>Sending a DELETE to the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> Credential Endpoint in order to reject
+an offered credential has been removed. This is not part of the
+OpenID4VCI specification, the Notitication Endpoint should be used for
+this instead. Currently the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> does not support this endpoint.</p></li>
 </ul>
 </li>
 <li><p>The well-known path is now derived according to spec for Credential Issuer
