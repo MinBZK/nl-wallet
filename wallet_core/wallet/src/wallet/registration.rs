@@ -43,13 +43,13 @@ use crate::storage::KeyData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
+use crate::wallet::CheckPreconditionsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletRegistrationError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is already registered")]
     #[category(expected)]
     AlreadyRegistered,
@@ -169,10 +169,8 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletRegistrationError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletRegistrationError::CheckPreconditions)?;
 
         info!("Checking if already registered");
         // Registration is only allowed if we do not currently have a registration on record.

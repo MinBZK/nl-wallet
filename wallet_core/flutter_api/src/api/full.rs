@@ -150,6 +150,22 @@ pub async fn clear_configuration_stream() {
     wallet().read().await.clear_config_callback();
 }
 
+/// Reports whether the wallet configuration is expired and could not be refreshed. While this is `true` the app
+/// should block all interaction, as the key material and trust anchors it holds can no longer be trusted. It reverts to
+/// `false` as soon as a fresh, valid configuration has been received.
+pub async fn set_config_expired_stream(sink: StreamSink<bool>) {
+    wallet()
+        .read()
+        .await
+        .set_config_expired_callback(Box::new(move |expired| {
+            let _ = sink.add(expired);
+        }));
+}
+
+pub async fn clear_config_expired_stream() {
+    wallet().read().await.clear_config_expired_callback();
+}
+
 pub async fn set_version_state_stream(sink: StreamSink<FlutterVersionState>) {
     wallet().read().await.set_version_state_callback(Box::new(move |state| {
         let _ = sink.add(state.into());
