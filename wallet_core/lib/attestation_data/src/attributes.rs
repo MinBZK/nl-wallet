@@ -1525,13 +1525,26 @@ pub mod test {
     // relies on SD-JWT VC Type Metadata.
     #[test]
     fn test_mvc_chassis_number_info_is_map_valued_data_element() {
-        let attributes: Attributes = IndexMap::from([(
-            MVC_CHASSIS_NUMBER_INFO.to_string(),
-            Attribute::Object(IndexMap::from([(
-                "vehicle_identification_number".to_string(),
-                Attribute::Text("WVWZZZ1JZXW000001".to_string()),
-            )])),
-        )])
+        let attributes: Attributes = IndexMap::from([
+            (
+                "registration_number".to_string(),
+                Attribute::Text("AB-CD-12".to_string()),
+            ),
+            (
+                MVC_CHASSIS_NUMBER_INFO.to_string(),
+                Attribute::Object(IndexMap::from([(
+                    "vehicle_identification_number".to_string(),
+                    Attribute::Text("WVWZZZ1JZXW000001".to_string()),
+                )])),
+            ),
+            (
+                "basic_vehicle_info".to_string(),
+                Attribute::Object(IndexMap::from([(
+                    "make".to_string(),
+                    Attribute::Text("Volkswagen".to_string()),
+                )])),
+            ),
+        ])
         .into();
 
         let mdoc_attributes = attributes.clone().to_mdoc_attributes(MVC_NAMESPACE);
@@ -1540,9 +1553,13 @@ pub mod test {
             serde_json::to_value(readable_mdoc_attributes(mdoc_attributes.clone())).unwrap(),
             json!({
                 MVC_NAMESPACE: {
+                    "registration_number": "AB-CD-12",
                     MVC_CHASSIS_NUMBER_INFO: {
                         "vehicle_identification_number": "WVWZZZ1JZXW000001",
                     },
+                },
+                "org.iso.7367.2.1.basic_vehicle_info": {
+                    "make": "Volkswagen",
                 },
             })
         );
@@ -1550,10 +1567,20 @@ pub mod test {
         let metadata_json = json!({
             "vct": MVC_DOCUMENT_TYPE,
             "display": [{"locale": "en", "name": "Mobile Vehicle Registration Certificate"}],
-            "claims": [{
-                "path": [MVC_CHASSIS_NUMBER_INFO, "vehicle_identification_number"],
-                "display": [{"locale": "en", "label": "Chassis number"}],
-            }],
+            "claims": [
+                {
+                    "path": ["registration_number"],
+                    "display": [{"locale": "en", "label": "Registration number"}],
+                },
+                {
+                    "path": [MVC_CHASSIS_NUMBER_INFO, "vehicle_identification_number"],
+                    "display": [{"locale": "en", "label": "Chassis number"}],
+                },
+                {
+                    "path": ["basic_vehicle_info", "make"],
+                    "display": [{"locale": "en", "label": "Make"}],
+                },
+            ],
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
