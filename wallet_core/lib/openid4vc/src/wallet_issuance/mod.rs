@@ -8,6 +8,7 @@ pub mod issuance_session;
 pub mod mock;
 
 use std::collections::HashSet;
+use std::num::NonZeroU8;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -479,6 +480,7 @@ pub trait AuthorizationSession {
 pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
+        max_copy_count: NonZeroU8,
         trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>

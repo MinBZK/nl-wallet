@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::num::NonZeroU8;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
@@ -153,7 +154,10 @@ pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, Norma
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceSession {
-        pub fn accept(&self) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
+        pub fn accept(
+            &self,
+            max_copy_count: NonZeroU8,
+        ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
 
         pub fn previews_with_metadata(&self) -> &MockIssuanceSessionPreviewsWithMetadata;
 
@@ -164,10 +168,11 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
+        max_copy_count: NonZeroU8,
         _: &TrustAnchors,
         _: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
-        self.accept()
+        self.accept(max_copy_count)
     }
 
     fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {

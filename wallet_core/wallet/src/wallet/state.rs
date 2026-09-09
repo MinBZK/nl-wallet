@@ -733,13 +733,16 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session([(
-            WithKeyIdentifier {
-                key_identifier: "key_id".to_string(),
-                data: StoredAttestation::SdJwt(sd_jwt.clone()),
-            },
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        )]);
+        let (pid_issuer, attestations) = mock_issuance_session(
+            [(
+                WithKeyIdentifier {
+                    key_identifier: "key_id".to_string(),
+                    data: StoredAttestation::SdJwt(sd_jwt.clone()),
+                },
+                VerifiedTypeMetadataDocuments::nl_pid_example(),
+            )],
+            None,
+        );
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
