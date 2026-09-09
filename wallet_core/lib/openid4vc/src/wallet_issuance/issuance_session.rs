@@ -309,7 +309,7 @@ struct IssuanceState {
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
     type_metadata: HashMap<String, IssuanceTypeMetadata>,
-    offered_credentials: OfferedCredentials,
+    offered_credential_previews: OfferedCredentialPreviews,
     issuer_registration: IssuerRegistration,
     #[debug(skip)]
     dpop_signing_key: SigningKey,
@@ -326,12 +326,12 @@ struct IssuanceTypeMetadata {
 /// Configuration Identifier, depending on whether the Token Response contained `authorization_details`. Note that this
 /// maintains the order as received from the Credential Preview endpoint.
 #[derive(Debug)]
-enum OfferedCredentials {
+enum OfferedCredentialPreviews {
     CredentialIds(IndexMap<CredentialId, CredentialPreview>),
     CredentialConfigurationIds(IndexMap<CredentialConfigurationId, CredentialPreview>),
 }
 
-impl OfferedCredentials {
+impl OfferedCredentialPreviews {
     pub fn credential_previews(&self) -> impl Iterator<Item = &CredentialPreview> {
         match self {
             Self::CredentialIds(previews_by_credential_id) => Either::Left(previews_by_credential_id.values()),
@@ -480,7 +480,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .exactly_one()
             .map_err(|_| WalletIssuanceError::DifferentIssuers)?;
 
-        let offered_credentials =
+        let offered_credential_previews =
             Self::match_preview_against_offered_credentials(credential_previews, offered_credential_configs)?;
 
         let session_state = IssuanceState {
@@ -488,7 +488,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             credential_issuer,
             issuer_endpoints,
             batch_size,
-            offered_credentials,
+            offered_credential_previews,
             type_metadata,
             issuer_registration,
             dpop_signing_key,
@@ -713,8 +713,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     fn match_preview_against_offered_credentials(
         credential_previews: VecNonEmpty<CredentialPreview>,
         offered_credential_configs: OfferedCredentialConfigs,
-    ) -> Result<OfferedCredentials, WalletIssuanceError> {
-        let (offered_credentials, excess_identifiers): (_, Vec<_>) = match offered_credential_configs {
+    ) -> Result<OfferedCredentialPreviews, WalletIssuanceError> {
+        let (offered_credential_previews, excess_identifiers): (_, Vec<_>) = match offered_credential_configs {
             // If the offered credential configurations did not contain credential identifiers because the issuer did
             // not send `authorization_details`, match every preview against its `config_id` value only.
             OfferedCredentialConfigs::WithoutIdentifiers(mut configs) => {
@@ -735,7 +735,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 }
 
                 (
-                    OfferedCredentials::CredentialConfigurationIds(previews_by_config_id),
+                    OfferedCredentialPreviews::CredentialConfigurationIds(previews_by_config_id),
                     excess_identifiers,
                 )
             }
@@ -773,7 +773,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 }
 
                 (
-                    OfferedCredentials::CredentialIds(previews_by_credential_id),
+                    OfferedCredentialPreviews::CredentialIds(previews_by_credential_id),
                     excess_identifiers,
                 )
             }
@@ -784,7 +784,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             return Err(WalletIssuanceError::PreviewExcessCredentials(excess_identifiers));
         }
 
-        Ok(offered_credentials)
+        Ok(offered_credential_previews)
     }
 
     async fn fetch_credential<W>(
@@ -932,7 +932,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         // Fetch a set of credential copies for each credential in parallel.
         let credentials = try_join_all(
             self.session_state
-                .offered_credentials
+                .offered_credential_previews
                 .to_request_identifiers_and_previews()
                 .map(|(identifier, preview)| {
                     self.fetch_credential(identifier, preview, max_copy_count, trust_anchors, wscd)
@@ -945,7 +945,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
 
     fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {
         self.session_state
-            .offered_credentials
+            .offered_credential_previews
             .credential_previews()
             .map(|preview| {
                 let metadata = self
@@ -2143,7 +2143,7 @@ mod tests {
             credential_issuer: issuer_identifier,
             issuer_endpoints,
             batch_size,
-            offered_credentials: OfferedCredentials::CredentialIds(previews_by_credential_id),
+            offered_credential_previews: OfferedCredentialPreviews::CredentialIds(previews_by_credential_id),
             type_metadata,
             issuer_registration: IssuerRegistration::new_mock(),
             dpop_signing_key: SigningKey::generate(),
