@@ -42,6 +42,13 @@ Stream<FlutterConfiguration> setConfigurationStream() => WalletCore.instance.api
 
 Future<void> clearConfigurationStream() => WalletCore.instance.api.crateApiFullClearConfigurationStream();
 
+/// Reports whether the wallet configuration is expired and could not be refreshed. While this is `true` the app
+/// should block all interaction, as the key material and trust anchors it holds can no longer be trusted. It reverts to
+/// `false` as soon as a fresh, valid configuration has been received.
+Stream<bool> setConfigExpiredStream() => WalletCore.instance.api.crateApiFullSetConfigExpiredStream();
+
+Future<void> clearConfigExpiredStream() => WalletCore.instance.api.crateApiFullClearConfigExpiredStream();
+
 Stream<FlutterVersionState> setVersionStateStream() => WalletCore.instance.api.crateApiFullSetVersionStateStream();
 
 Future<void> clearVersionStateStream() => WalletCore.instance.api.crateApiFullClearVersionStateStream();

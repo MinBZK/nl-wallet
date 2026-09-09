@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use http_utils::reqwest::IntoReqwestClient;
-use jwt::ESP256_ONLY_VALIDATION;
 use jwt::JwtDecodingKey;
 use parking_lot::RwLock;
 use tracing::info;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::WALLET_CONFIG_VALIDATION;
 use super::WalletConfigJwt;
 use super::file_repository::RawJwtProvider;
 use crate::config::ConfigurationError;
@@ -72,7 +72,7 @@ where
         match response {
             HttpResponse::Parsed(parsed_response) => {
                 let (_, new_config) =
-                    parsed_response.parse_and_verify(&self.signing_public_key, &*ESP256_ONLY_VALIDATION)?;
+                    parsed_response.parse_and_verify(&self.signing_public_key, &*WALLET_CONFIG_VALIDATION)?;
 
                 {
                     let current_config = self.config.read();

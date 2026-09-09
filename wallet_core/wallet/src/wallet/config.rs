@@ -4,9 +4,13 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
+use crate::config::ObservableConfigExpiry;
+use crate::config::is_expired;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
@@ -20,6 +24,24 @@ where
 {
     pub fn is_blocked(&self) -> bool {
         self.update_policy_repository.get() == VersionState::Block
+    }
+}
+
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
+where
+    CR: Repository<Arc<WalletConfiguration>>,
+    AKH: AttestedKeyHolder,
+    CID: IssuanceDiscovery,
+    DCC: DisclosureClient,
+{
+    /// Whether the wallet configuration currently held has expired. Operations that rely on the key material or trust
+    /// anchors it contains should refuse to run when this is the case, until a fresh configuration has been fetched.
+    ///
+    /// Note that this includes unlocking the wallet, so that its contents cannot be reached at all while the
+    /// configuration is expired. Resetting the wallet is deliberately left available, so that a user whose
+    /// configuration cannot be refreshed still has a way out.
+    pub fn is_config_expired(&self) -> bool {
+        is_expired(&self.config_repository.get(), TimeGenerator.generate())
     }
 }
 
@@ -53,6 +75,27 @@ where
 
     pub fn clear_version_state_callback(&self) -> Option<RepositoryCallback<VersionState>> {
         self.update_policy_repository.clear_callback()
+    }
+}
+
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
+where
+    CR: ObservableConfigExpiry,
+    AKH: AttestedKeyHolder,
+    CID: IssuanceDiscovery,
+    DCC: DisclosureClient,
+{
+    /// Registers a callback that reports whether the wallet configuration should be considered expired.
+    pub fn set_config_expired_callback(
+        &self,
+        mut callback: RepositoryCallback<bool>,
+    ) -> Option<RepositoryCallback<bool>> {
+        callback(self.config_repository.config_expired());
+        self.config_repository.register_config_expiry_callback(callback)
+    }
+
+    pub fn clear_config_expired_callback(&self) -> Option<RepositoryCallback<bool>> {
+        self.config_repository.clear_config_expiry_callback()
     }
 }
 

@@ -33,6 +33,8 @@ import '../domain/usecase/close_proximity/impl/observe_close_proximity_usecase_i
 import '../domain/usecase/close_proximity/impl/start_close_proximity_disclosure_usecase_impl.dart';
 import '../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import '../domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
+import '../domain/usecase/configuration/impl/observe_configuration_expired_usecase_impl.dart';
+import '../domain/usecase/configuration/observe_configuration_expired_usecase.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
@@ -480,6 +482,9 @@ class WalletUseCaseProvider extends StatelessWidget {
   List<RepositoryProvider> _buildSystemUseCases(BuildContext context) => [
     RepositoryProvider<ObserveMaintenanceStateUseCase>(
       create: (context) => ObserveMaintenanceStateUseCaseImpl(context.read()),
+    ),
+    RepositoryProvider<ObserveConfigurationExpiredUseCase>(
+      create: (context) => ObserveConfigurationExpiredUseCaseImpl(context.read()),
     ),
     RepositoryProvider<CheckNavigationPrerequisitesUseCase>(
       create: (context) => CheckNavigationPrerequisitesUseCaseImpl(context.read()),

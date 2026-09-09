@@ -687,6 +687,10 @@ export WALLET_VERSION
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
+# Exported once, so that every wallet configuration rendered below is given exactly the same expiry.
+WALLET_CONFIG_EXP="$(wallet_config_exp)"
+export WALLET_CONFIG_EXP
+
 render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
 
 ########################################################################

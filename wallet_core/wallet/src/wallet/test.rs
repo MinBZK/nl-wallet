@@ -315,7 +315,7 @@ pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKe
     }
 }
 
-fn create_wallet_configuration() -> WalletConfiguration {
+pub fn create_wallet_configuration() -> WalletConfiguration {
     // Override public key material in the `Configuration`.
     let keys = LazyLock::force(&ACCOUNT_SERVER_KEYS);
 
@@ -392,12 +392,14 @@ where
 
     /// Creates an unregistered `Wallet` with mock dependencies.
     pub async fn new_unregistered(vendor: WalletDeviceVendor) -> Self {
+        Self::new_unregistered_with_config(vendor, create_wallet_configuration()).await
+    }
+
+    /// Creates an unregistered `Wallet` with mock dependencies, holding the provided configuration.
+    pub async fn new_unregistered_with_config(vendor: WalletDeviceVendor, config: WalletConfiguration) -> Self {
         let config_server_config = default_config_server_config();
-        let config_repository = UpdatingConfigurationRepository::new(
-            LocalConfigurationRepository::new(create_wallet_configuration()),
-            config_server_config,
-        )
-        .await;
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), config_server_config).await;
 
         Wallet::new(
             S::init().await,
