@@ -798,7 +798,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     where
         W: IssuanceWscd,
     {
-        // Request as many copies as the Issuer Metadata will allow, capped at BATCH_SIZE_MAX.
+        // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
         let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count).into();
 
         // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata. Use the DPoP nonce if it returns
