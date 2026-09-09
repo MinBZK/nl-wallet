@@ -183,7 +183,6 @@ impl<T: EcdsaKey> WithVerifyingKey for T {
 /// Contract for ECDSA private keys suitable for credentials.
 /// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
 pub trait CredentialEcdsaKey: WithVerifyingKey {
-    // from WithIdentifier: identifier()
     // from WithVerifyingKey: verifying_key()
 }
 
