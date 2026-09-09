@@ -431,6 +431,12 @@ values.</p></li>
 its Token Response, containing both the Credential Configuration
 Identifiers and the Credential Identifiers. These values are processed by
 the wallet.</p></li>
+<li><p>The separate Credential Endpoint and Batch Credential Endpoint on the
+<code class="docutils literal notranslate"><span class="pre">Issuer</span></code> have been replaced by a new Credential Endpoint. Instead of
+issuing copies of all credentials offered in the session at once, it only
+provides copies of a single credential, necessitating the Wallet to call
+this endpoint as many times as there are distinct credentials in a
+session.</p></li>
 </ul>
 </li>
 <li><p>The well-known path is now derived according to spec for Credential Issuer

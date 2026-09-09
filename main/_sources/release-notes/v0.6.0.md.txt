@@ -216,6 +216,12 @@
       its Token Response, containing both the Credential Configuration
       Identifiers and the Credential Identifiers. These values are processed by
       the wallet.
+    - The separate Credential Endpoint and Batch Credential Endpoint on the
+      `Issuer` have been replaced by a new Credential Endpoint. Instead of
+      issuing copies of all credentials offered in the session at once, it only
+      provides copies of a single credential, necessitating the Wallet to call
+      this endpoint as many times as there are distinct credentials in a
+      session.
 - The well-known path is now derived according to spec for Credential Issuer
   Metadata and Oauth 2.0 Authorization Server Metadata when a subpath is
   involved.
