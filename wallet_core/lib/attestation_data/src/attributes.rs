@@ -25,8 +25,8 @@ use serde_with::formats::Unpadded;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 
-// Temporary workaround for nested chassis_number_info, to be removed after
-// nested object handling has been properly implemented.
+// TODO(PVW-5547): Remove this workaround when mdoc attribute handling no longer
+// relies on SD-JWT VC Type Metadata.
 const MVC_DOCUMENT_TYPE: &str = "org.iso.7367.2.1.mVC";
 const MVC_NAMESPACE: &str = "org.iso.7367.2.1";
 const MVC_CHASSIS_NUMBER_INFO: &str = "chassis_number_info";
@@ -388,6 +388,8 @@ impl Attributes {
         // Only proceed if a root namespace can be found; if not, the loop below is skipped and `attributes` is left
         // untouched, which is reported below as `SomeAttributesNotProcessed`.
         if let Some(namespace_root) = Self::find_mdoc_namespace_root(type_metadata.vct(), &attributes) {
+            // TODO(PVW-5547): Remove this workaround when mdoc attribute handling no longer
+            // relies on SD-JWT VC Type Metadata.
             Self::expand_mvc_chassis_number_info_for_metadata(type_metadata, &namespace_root, &mut attributes)?;
 
             // The key paths of the claims determines the order of the attributes result
@@ -406,6 +408,8 @@ impl Attributes {
     /// Convert the map-valued mVC `chassis_number_info` data element to the dotted namespace representation expected
     /// by the generic metadata traversal. The original issuer-signed mdoc remains unchanged; this only affects its
     /// conversion to the wallet's internal [`Attributes`] representation.
+    // TODO(PVW-5547): Remove this workaround when mdoc attribute handling no longer
+    // relies on SD-JWT VC Type Metadata.
     fn expand_mvc_chassis_number_info_for_metadata(
         type_metadata: &NormalizedTypeMetadata,
         namespace_root: &str,
@@ -569,6 +573,8 @@ impl Attributes {
     /// }
     /// ```
     pub fn to_mdoc_attributes(self, namespace: &str) -> IndexMap<NameSpace, Vec<Entry>> {
+        // TODO(PVW-5547): Remove this workaround when mdoc attribute handling no longer
+        // relies on SD-JWT VC Type Metadata.
         let mvc_chassis_number_info = (namespace == MVC_NAMESPACE)
             .then(|| self.0.get(MVC_CHASSIS_NUMBER_INFO))
             .flatten()
@@ -1515,6 +1521,8 @@ pub mod test {
         );
     }
 
+    // TODO(PVW-5547): Remove this workaround when mdoc attribute handling no longer
+    // relies on SD-JWT VC Type Metadata.
     #[test]
     fn test_mvc_chassis_number_info_is_map_valued_data_element() {
         let attributes: Attributes = IndexMap::from([(
