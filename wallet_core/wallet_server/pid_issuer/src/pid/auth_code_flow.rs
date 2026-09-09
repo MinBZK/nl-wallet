@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
 use attestation_types::claim_path::ClaimPath;
@@ -514,18 +513,18 @@ async fn insert_recovery_code(mut attributes: Attributes, secret_key: &SecretKey
         .map_err(Error::RetrievingBsn)?
         .ok_or(Error::NoBsnFound)?
     {
-        AttributeValue::Text(str) => str,
+        Attribute::Text(str) => str,
         _ => return Err(Error::BsnUnexpectedType),
     };
 
-    let recovery_code = AttributeValue::Text(hex::encode(
+    let recovery_code = Attribute::Text(hex::encode(
         secret_key.sign_hmac(bsn.as_bytes()).await.map_err(Error::Hmac)?,
     ));
 
     attributes
         .insert(
             &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-            Attribute::Single(recovery_code),
+            recovery_code,
         )
         .map_err(Error::InsertingRecoveryCode)?;
 
@@ -543,7 +542,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -726,11 +724,7 @@ mod tests {
         let bsn = "123";
         let key: Vec<_> = (0..32).collect();
 
-        let attrs: Attributes = IndexMap::from_iter([(
-            "bsn".to_string(),
-            Attribute::Single(AttributeValue::Text(bsn.to_string())),
-        )])
-        .into();
+        let attrs: Attributes = IndexMap::from_iter([("bsn".to_string(), Attribute::Text(bsn.to_string()))]).into();
 
         let secret_key = SecretKeyVariant::from_settings(
             SecretKey::Software {
@@ -746,14 +740,8 @@ mod tests {
         let expected_hmac = hex::encode(hmac::sign(hmac_key, bsn.as_bytes()));
 
         let expected_attrs = Attributes::from(IndexMap::from_iter([
-            (
-                "bsn".to_string(),
-                Attribute::Single(AttributeValue::Text(bsn.to_string())),
-            ),
-            (
-                "recovery_code".to_string(),
-                Attribute::Single(AttributeValue::Text(expected_hmac)),
-            ),
+            ("bsn".to_string(), Attribute::Text(bsn.to_string())),
+            ("recovery_code".to_string(), Attribute::Text(expected_hmac)),
         ]));
 
         assert_eq!(

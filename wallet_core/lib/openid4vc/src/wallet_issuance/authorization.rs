@@ -327,7 +327,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.credential_issuer,
             self.issuer_endpoints,
             self.batch_size,
-            &self.token_endpoint,
+            self.token_endpoint,
             self.client_attestation_challenge,
             token_request,
             wia_client,

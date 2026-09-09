@@ -1,4 +1,4 @@
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -22,8 +22,8 @@ pub enum RecoveryCodeError {
     #[error("incorrect recovery code: expected {expected}, received {received}")]
     #[category(pd)]
     IncorrectRecoveryCode {
-        expected: AttributeValue,
-        received: AttributeValue,
+        expected: Box<Attribute>,
+        received: Box<Attribute>,
     },
 
     #[error("could not query attestations in database: {0}")]
@@ -45,11 +45,13 @@ where
     DCC: DisclosureClient,
 {
     pub(super) fn pid_preview<'a>(
-        previews: &'a [CredentialPreview],
+        mut previews: impl Iterator<Item = &'a CredentialPreview>,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<&'a CredentialPreview, RecoveryCodeError> {
+        // Find the first preview that is in SD-JWT format and has one of the required `vct` values. In theory there
+        // could be more credentials in the preview that match, but we assume the caller just needs a single PID
+        // preview, so simply ignore any subsequent matches.
         previews
-            .iter()
             .find(|preview| {
                 preview.format == Format::SdJwt
                     && pid_config
@@ -79,8 +81,8 @@ where
 
         if stored_recovery_code != received_recovery_code {
             Err(RecoveryCodeError::IncorrectRecoveryCode {
-                expected: stored_recovery_code.clone(),
-                received: received_recovery_code,
+                expected: Box::new(stored_recovery_code.clone()),
+                received: Box::new(received_recovery_code),
             })
         } else {
             Ok(())
@@ -90,7 +92,7 @@ where
     async fn stored_recovery_code(
         &self,
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<Option<AttributeValue>, RecoveryCodeError> {
+    ) -> Result<Option<Attribute>, RecoveryCodeError> {
         // The recovery code is only present in the PID in the SD-JWT format.
         self.storage
             .read()

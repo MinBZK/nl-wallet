@@ -42,6 +42,9 @@ use utils::vec_nonempty;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+
+/// Represents a Credential Configuration Identifier as contained in the `credential_configurations_supported` section
+/// of the Issuer Metadata. This is a newtype around [`String`] that exists purely for semantic reasons.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
 #[as_ref(str)]
 pub struct CredentialConfigurationId(String);
@@ -143,9 +146,6 @@ pub struct IssuerEndpoints {
     /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 8.2. This URL MUST use the https
     /// scheme and MAY contain port, path, and query parameter components.
     pub credential_endpoint: IssuerUrl,
-
-    // TODO (PVW-5554): Remove this field when removing the batch credential endpoint.
-    pub batch_credential_endpoint: Option<IssuerUrl>,
 
     /// URL of the Credential Issuer's Nonce Endpoint, as defined in Section 7. This URL MUST use the https scheme and
     /// MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not require the

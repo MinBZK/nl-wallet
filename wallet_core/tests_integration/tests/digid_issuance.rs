@@ -1,5 +1,4 @@
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::crl::CertificateCrlVerifier;
 use db_test::DbSetup;
@@ -10,7 +9,9 @@ use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
@@ -133,12 +134,15 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wia_client = MockWiaClient::new_with_wia_keypair(wia_keypair.clone());
     let issuance_flow = credential_issuer_discovery
         .start(
-            &credential_offer,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer,
+                &CredentialSelection::All,
+                &wia_client,
+                wallet_config.wrpac_trust_anchors(),
+            ),
             String::from(MOCK_WALLET_CLIENT_ID),
             redirect_uri,
             wallet_config.issuer_trust_anchors(),
-            &wia_client,
-            wallet_config.wrpac_trust_anchors(),
         )
         .await
         .unwrap();
@@ -168,8 +172,11 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .await
         .unwrap();
 
-    let previews = issuance_session.credential_previews();
-    assert_eq!(previews.len().get(), 2);
+    let previews = issuance_session
+        .previews_with_metadata()
+        .map(|(preview, _)| preview)
+        .collect_vec();
+    assert_eq!(previews.len(), 2);
 
     let payload = &previews[0].credential_payload;
     assert_eq!(payload.attestation_type, PID_ATTESTATION_TYPE);
@@ -179,13 +186,13 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let bsn = attributes
         .get(PID_BSN)
         .unwrap_or_else(|| panic!("preview is missing {PID_BSN} attribute"));
-    assert_eq!(bsn, &Attribute::Single(AttributeValue::Text("999991772".to_string())));
+    assert_eq!(bsn, &Attribute::Text("999991772".to_string()));
 
     for key in [PID_GIVEN_NAME, PID_FAMILY_NAME] {
         let attr = attributes
             .get(key)
             .unwrap_or_else(|| panic!("preview is missing {key} attribute"));
-        let Attribute::Single(AttributeValue::Text(value)) = attr else {
+        let Attribute::Text(value) = attr else {
             panic!("{key} is not a text value: {attr:?}");
         };
         assert!(!value.is_empty(), "{key} is empty");
@@ -194,14 +201,11 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let address = attributes
         .get(PID_ADDRESS_GROUP)
         .unwrap_or_else(|| panic!("preview is missing {PID_ADDRESS_GROUP} group"));
-    let Attribute::Nested(address_fields) = address else {
+    let Attribute::Object(address_fields) = address else {
         panic!("{PID_ADDRESS_GROUP} is not a nested group: {address:?}");
     };
     let country = address_fields
         .get(PID_RESIDENT_COUNTRY)
         .unwrap_or_else(|| panic!("address is missing {PID_RESIDENT_COUNTRY}"));
-    assert_eq!(
-        country,
-        &Attribute::Single(AttributeValue::Text("Nederland".to_string()))
-    );
+    assert_eq!(country, &Attribute::Text("Nederland".to_string()));
 }

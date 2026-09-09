@@ -21,97 +21,10 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::authorization_details::CredentialId;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-
-pub mod draft {
-    use std::fmt;
-    use std::fmt::Display;
-    use std::fmt::Formatter;
-
-    use attestation_types::credential_format::Format;
-    use serde::Deserialize;
-    use serde::Serialize;
-    use serde_with::skip_serializing_none;
-    use utils::spec::SpecOptional;
-    use utils::vec_at_least::VecNonEmpty;
-
-    use super::CredentialResponse;
-    use super::UnverifiedJwtProof;
-
-    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
-    /// Sent JSON-encoded to `POST /batch_credential`.
-    #[skip_serializing_none]
-    #[derive(Clone, Debug, Serialize, Deserialize)]
-    pub struct CredentialRequests {
-        pub credential_requests: VecNonEmpty<CredentialRequest>,
-    }
-
-    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
-    /// Sent JSON-encoded to `POST /credential`.
-    #[skip_serializing_none]
-    #[derive(Clone, Debug, Serialize, Deserialize)]
-    pub struct CredentialRequest {
-        #[serde(flatten)]
-        pub credential_type: SpecOptional<CredentialRequestType>,
-        pub proof: Option<CredentialRequestProof>,
-    }
-
-    #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-    #[serde(tag = "format", rename_all = "snake_case")]
-    pub enum CredentialRequestType {
-        MsoMdoc {
-            doctype: String,
-        },
-
-        #[serde(rename = "dc+sd-jwt")]
-        SdJwt {
-            vct: String,
-        },
-    }
-
-    impl CredentialRequestType {
-        pub fn format(&self) -> Format {
-            match self {
-                CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
-                CredentialRequestType::SdJwt { .. } => Format::SdJwt,
-            }
-        }
-    }
-
-    impl Display for CredentialRequestType {
-        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            match self {
-                CredentialRequestType::MsoMdoc { doctype } => write!(f, "MsoMdoc({doctype})"),
-                CredentialRequestType::SdJwt { vct } => write!(f, "SdJwt({vct})"),
-            }
-        }
-    }
-
-    impl CredentialRequestType {
-        pub fn from_format(format: Format, attestation_type: String) -> Self {
-            match format {
-                Format::MsoMdoc => CredentialRequestType::MsoMdoc {
-                    doctype: attestation_type,
-                },
-                Format::SdJwt => CredentialRequestType::SdJwt { vct: attestation_type },
-            }
-        }
-    }
-
-    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-endpoint>
-    #[derive(Clone, Debug, Serialize, Deserialize)]
-    #[serde(tag = "proof_type", rename_all = "snake_case")]
-    pub enum CredentialRequestProof {
-        Jwt { jwt: UnverifiedJwtProof },
-    }
-
-    #[derive(Clone, Debug, Serialize, Deserialize)]
-    pub struct CredentialResponses {
-        pub credential_responses: Vec<CredentialResponse>,
-    }
-}
 
 /// A request sent to the issuer's Credential Endpoint.
 ///
@@ -138,17 +51,9 @@ pub struct CredentialRequest {
 }
 
 impl CredentialRequest {
-    pub fn new_credential_id(credential_id: String, proofs: VecNonEmpty<UnverifiedJwtProof>) -> Self {
+    pub fn new(identifier: CredentialRequestIdentifier, proofs: VecNonEmpty<UnverifiedJwtProof>) -> Self {
         Self {
-            identifier: CredentialRequestIdentifier::CredentialIdentifier(credential_id),
-            proofs: Some(CredentialRequestProofs::Jwt(proofs)),
-            credential_response_encryption: None,
-        }
-    }
-
-    pub fn new_config_id(config_id: CredentialConfigurationId, proofs: VecNonEmpty<UnverifiedJwtProof>) -> Self {
-        Self {
-            identifier: CredentialRequestIdentifier::CredentialConfigurationId(config_id),
+            identifier,
             proofs: Some(CredentialRequestProofs::Jwt(proofs)),
             credential_response_encryption: None,
         }
@@ -160,7 +65,7 @@ impl CredentialRequest {
 pub enum CredentialRequestIdentifier {
     /// REQUIRED when an Authorization Details of type `openid_credential` was returned from the Token Response. It MUST
     /// NOT be used otherwise. A string that identifies a Credential Dataset that is requested for issuance.
-    CredentialIdentifier(String),
+    CredentialIdentifier(CredentialId),
 
     /// REQUIRED if a credential_identifiers parameter was not returned from the Token Response as part of the
     /// `authorization_details` parameter. It MUST NOT be used otherwise. String that uniquely identifies one of the
@@ -398,7 +303,7 @@ mod tests {
         let CredentialRequestIdentifier::CredentialIdentifier(credential_id) = &credential_request.identifier else {
             panic!("identifier in CredentialRequest should be Credential ID");
         };
-        assert_eq!(credential_id, "CivilEngineeringDegree-2023");
+        assert_eq!(credential_id.as_ref(), "CivilEngineeringDegree-2023");
 
         let proof_count = credential_request
             .proofs

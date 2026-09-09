@@ -263,7 +263,7 @@ mod tests {
     use std::sync::Arc;
     use std::sync::LazyLock;
 
-    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Attribute;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
@@ -551,7 +551,7 @@ mod tests {
                             .iter()
                             .filter_map(|(key, value)| {
                                 match value {
-                                    AttributeValue::Text(text) => Some(text),
+                                    Attribute::Text(text) => Some(text),
                                     _ => None,
                                 }
                                 .map(|text| (key.as_str(), text.as_str()))
@@ -563,7 +563,7 @@ mod tests {
                         .flattened()
                         .into_iter()
                         .flat_map(|(path, value)| match (path.iter().exactly_one().ok(), value) {
-                            (Some(path), AttributeValue::Text(text)) => Some((*path, text.as_str())),
+                            (Some(path), Attribute::Text(text)) => Some((*path, text.as_str())),
                             _ => None,
                         })
                         .collect(),

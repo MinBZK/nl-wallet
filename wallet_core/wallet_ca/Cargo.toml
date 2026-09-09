@@ -18,12 +18,12 @@ clio = { workspace = true, features = ["clap-parse"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-tokio = { workspace = true, features = ["rt"] }
 p256 = { workspace = true, features = ["pem"] }
 pem.workspace = true
 rcgen = { workspace = true, features = ["pem"] }
 serde_json.workspace = true
 time.workspace = true
+tokio = { workspace = true, features = ["rt"] }
 url.workspace = true
 x509-parser.workspace = true
 

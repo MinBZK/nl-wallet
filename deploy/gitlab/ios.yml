@@ -52,7 +52,6 @@ test-ios:
   variables:
     APP_BUILD_MODE: "release"
     APP_MOCK: "false"
-    APP_ALLOW_RELEASE_LOGS: "false"
   script:
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
@@ -68,7 +67,7 @@ test-ios:
         bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        allow_release_logs:"${APP_ALLOW_RELEASE_LOGS}" \
+        allow_release_logs:"${ALLOW_RELEASE_LOGS:-true}" \
         fake_attestation:"${FAKE_ATTESTATION:-false}" \
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
@@ -94,23 +93,13 @@ build-ios-app-ont:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
-    APP_ALLOW_RELEASE_LOGS: "true"
 
 build-ios-app-adhoc-ont:
-  extends: .build-ios-app
-  rules: !reference [.default-or-merge-request-manual, rules]
-  needs:
-    - !reference [.build-ios-app, needs]
-    - job: build-env-ont
-      artifacts: true
-    - job: wallet-config-ont
-      artifacts: true
+  extends: build-ios-app-ont
   variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
-    APP_NAME: "NL Wallet (latest)"
     APP_STORE_DISTRIBUTION: "false"
   after_script:
-    - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
+    - !reference [.build-ios-app, after_script]
     - deploy/bin/store-artifact.sh *.ipa qt/quality-time/apps/nl.ictu.edi.wallet.latest.ipa
 
 build-ios-simulator-app-ont:
@@ -133,7 +122,6 @@ build-ios-simulator-app-ont:
     APP_NAME: "NL Wallet (latest)"
   script:
     - set -euo pipefail
-    - git config --global url.https://gitlab-ci-token:${CI_JOB_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
     - bundle install
     - |
       bundle exec fastlane ios build_simulator \
@@ -147,7 +135,7 @@ build-ios-simulator-app-ont:
         show_debug_options:true \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
   after_script:
-    - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
+    - !reference [.build-ios-app, after_script]
     - (cd wallet_app/build/ios/iphonesimulator && zip -r "Runner.app.zip" Runner.app)
     - deploy/bin/store-artifact.sh "wallet_app/build/ios/iphonesimulator/Runner.app.zip" qt/quality-time/apps/
 
@@ -173,7 +161,18 @@ build-ios-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    APP_ALLOW_RELEASE_LOGS: "true"
+
+build-ios-app-pub:
+  extends: .build-ios-app
+  rules: !reference [.on-pub-build, rules]
+  needs:
+    - job: build-env-pub
+      artifacts: true
+    - job: wallet-config-pub
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"
+    APP_NAME: "NL Wallet (pub)"
 
 ## iOS Deploying
 .deploy-ios-app:
@@ -212,3 +211,12 @@ deploy-ios-app-demo:
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+deploy-ios-app-pub:
+  extends: .deploy-ios-app
+  rules: !reference [.on-pub-build, rules]
+  needs:
+    - job: build-ios-app-pub
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"

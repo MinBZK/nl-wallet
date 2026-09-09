@@ -4,7 +4,7 @@ use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
-use jwt::JwtDecodingKey;
+use jwt::PublicKeyByKid;
 use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
@@ -30,7 +30,7 @@ const WALLET_CERTIFICATE_VERSION: u32 = 0;
 #[expect(clippy::too_many_arguments, reason = "Constructor of WalletCertificate")]
 pub async fn new_wallet_certificate<H>(
     issuer: String,
-    pin_public_disclosure_protection_key_identifier: &str,
+    pin_hmac_key_identifier: &str,
     wallet_certificate_signing_key: &impl WalletCertificateSigningKey,
     wallet_id: WalletId,
     wallet_hw_pubkey: VerifyingKey,
@@ -40,8 +40,7 @@ pub async fn new_wallet_certificate<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_hash =
-        sign_pin_pubkey(wallet_pin_pubkey, pin_public_disclosure_protection_key_identifier, hsm).await?;
+    let pin_pubkey_hash = sign_pin_pubkey(wallet_pin_pubkey, pin_hmac_key_identifier, hsm).await?;
 
     let cert = WalletCertificateClaims {
         wallet_id: wallet_id.into(),
@@ -53,7 +52,7 @@ where
         iat: Utc::now(),
     };
 
-    SignedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
+    SignedJwt::sign_with_sub_and_kid(cert, wallet_certificate_signing_key)
         .await
         .map(Into::into)
         .map_err(WalletCertificateError::JwtSigning)
@@ -61,7 +60,7 @@ where
 
 async fn parse_claims_and_retrieve_wallet_user<T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &JwtDecodingKey,
+    certificate_signing_pubkeys: &impl PublicKeyByKid,
     wallet_user_repository: &R,
     include_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
@@ -72,7 +71,7 @@ where
     debug!("Parsing and verifying the provided certificate");
 
     let (_, claims) = certificate
-        .parse_and_verify_with_sub(certificate_signing_pubkey)
+        .parse_and_verify_with_sub_by_kid(certificate_signing_pubkeys)
         .map_err(WalletCertificateError::Validation)?;
 
     debug!("Starting database transaction");
@@ -135,13 +134,8 @@ where
 
     let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
 
-    let pin_hash_verification = verify_pin_pubkey(
-        &pin_pubkey,
-        claims.pin_pubkey_hash,
-        &pin_keys.public_disclosure_protection_key_identifier,
-        hsm,
-    )
-    .await;
+    let pin_hash_verification =
+        verify_pin_pubkey(&pin_pubkey, claims.pin_pubkey_hash, &pin_keys.hmac_key_identifier, hsm).await;
 
     debug!("Verifying the pin and hardware public keys matches those in the provided certificate");
 
@@ -159,7 +153,7 @@ where
 /// - Return the [`WalletUser`].
 pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &JwtDecodingKey,
+    certificate_signing_pubkeys: &impl PublicKeyByKid,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
@@ -175,7 +169,7 @@ where
 
     let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
         certificate,
-        certificate_signing_pubkey,
+        certificate_signing_pubkeys,
         pin_checks.allow_for_blocked_users,
         &user_state.repositories,
     )
@@ -201,7 +195,7 @@ where
 /// - Returns a tuple of the [`WalletUser`] and [`WalletCertificateClaims`].
 pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkey: &JwtDecodingKey,
+    certificate_signing_pubkeys: &impl PublicKeyByKid,
     allow_for_blocked_users: bool,
     repositories: &R,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
@@ -213,7 +207,7 @@ where
 
     let (user, claims) = parse_claims_and_retrieve_wallet_user(
         certificate,
-        certificate_signing_pubkey,
+        certificate_signing_pubkeys,
         repositories,
         allow_for_blocked_users,
     )
@@ -264,6 +258,8 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use std::sync::LazyLock;
+
     use hsm::model::TestHsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
@@ -273,16 +269,21 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
 
-    pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";
-    pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
-        "pin_public_disclosure_protection_key_identifier_1";
+    use crate::keys::Kid;
+    use crate::keys::certificate_signing_key_identifier;
+    use crate::keys::pin_hmac_key_identifier;
+
+    pub static CERTIFICATE_KID: LazyLock<Kid> = LazyLock::new(|| Kid::try_new("0".to_owned()).unwrap());
+
     pub const ENCRYPTION_KEY_IDENTIFIER: &str = "encryption_key_1";
     pub const REVOCATION_CODE_KEY_IDENTIFIER: &str = "revocation_code_key_identifier_1";
 
     pub async fn setup_hsm() -> MockPkcs11Client<HsmError> {
         let hsm = MockPkcs11Client::default();
-        hsm.generate_generic_secret_key(SIGNING_KEY_IDENTIFIER).await.unwrap();
-        hsm.generate_generic_secret_key(PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER)
+        hsm.generate_generic_secret_key(&certificate_signing_key_identifier(&CERTIFICATE_KID))
+            .await
+            .unwrap();
+        hsm.generate_generic_secret_key(&pin_hmac_key_identifier(&CERTIFICATE_KID))
             .await
             .unwrap();
         hsm.generate_generic_secret_key(REVOCATION_CODE_KEY_IDENTIFIER)
@@ -329,6 +330,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use crypto::PublicKey;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -336,6 +339,7 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
+    use jwt::KeyWithKid;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
@@ -348,6 +352,7 @@ mod tests {
     use crate::account_server::mock::user_state;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
+    use crate::keys::pin_hmac_key_identifier;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::new_wallet_certificate;
@@ -390,13 +395,22 @@ mod tests {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
 
-        let signed = sign_pin_pubkey(&setup.signing_pubkey, mock::SIGNING_KEY_IDENTIFIER, &hsm)
-            .await
-            .unwrap();
+        let signed = sign_pin_pubkey(
+            &setup.signing_pubkey,
+            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
+            &hsm,
+        )
+        .await
+        .unwrap();
 
-        verify_pin_pubkey(&setup.signing_pubkey, signed, mock::SIGNING_KEY_IDENTIFIER, &hsm)
-            .await
-            .unwrap();
+        verify_pin_pubkey(
+            &setup.signing_pubkey,
+            signed,
+            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
+            &hsm,
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
@@ -407,7 +421,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -421,10 +435,12 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
-                    .to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
                 encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -443,7 +459,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -455,10 +471,12 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
-                    .to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
                 encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -481,7 +499,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -507,10 +525,12 @@ mod tests {
 
         verify_wallet_certificate(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             &AccountServerPinKeys {
-                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
-                    .to_string(),
+                hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
                 encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
             PinCheckOptions::default(),
@@ -529,7 +549,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -543,7 +563,10 @@ mod tests {
 
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             false,
             &user_state.repositories,
         )
@@ -559,7 +582,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -577,7 +600,10 @@ mod tests {
 
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
-            &PublicKey::from(setup.signing_pubkey).into(),
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
             false,
             &user_state.repositories,
         )

@@ -1,22 +1,23 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
+use derive_more::From;
 use jwt::nonce::Nonce;
 use jwt::wia::WiaDisclosure;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-use utils::vec_at_least::VecNonEmpty;
 use wscd::mock_remote::MockWiaClient;
 use wscd::wscd::WiaClient;
 
 use super::AuthorizationSession;
+use super::CredentialSelection;
 use super::IssuanceDiscovery;
+use super::IssuanceDiscoveryParameters;
 use super::IssuanceFlow;
 use super::IssuanceSession;
-use super::IssuanceTypeMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use crate::token::CredentialPreview;
@@ -48,11 +49,12 @@ mockall::mock! {
     pub IssuanceDiscovery {
         pub fn start_sync(
             &self,
+            selection: &CredentialSelection,
         ) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
 
-        pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
+        pub fn start_authorization_code_flow_sync(&self, selection: &CredentialSelection) -> Result<MockAuthorizationSession, WalletIssuanceError>;
 
-        pub fn start_pre_authorized_code_flow_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
+        pub fn start_pre_authorized_code_flow_sync(&self, selection: &CredentialSelection) -> Result<MockIssuanceSession, WalletIssuanceError>;
 
         pub fn restore_authorization_session_sync(&self, data: MockAuthorizationSessionData) -> MockAuthorizationSession;
     }
@@ -62,37 +64,40 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     type Authorization = MockAuthorizationSession;
     type Issuance = MockIssuanceSession;
 
-    async fn start(
+    async fn start<'a, W>(
         &self,
-        _offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _client_id: String,
         _redirect_uri: Url,
         _issuer_trust_anchors: &TrustAnchors,
-        _wia_client: &impl WiaClient,
-        _wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        self.start_sync()
+    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        self.start_sync(common_parameters.selection)
     }
 
-    async fn start_authorization_code_flow(
+    async fn start_authorization_code_flow<'a, W>(
         &self,
-        _offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _client_id: String,
         _redirect_uri: Url,
-        _wia_client: &impl WiaClient,
-        _wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<Self::Authorization, WalletIssuanceError> {
-        self.start_authorization_code_flow_sync()
+    ) -> Result<Self::Authorization, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        self.start_authorization_code_flow_sync(common_parameters.selection)
     }
 
-    async fn start_pre_authorized_code_flow(
+    async fn start_pre_authorized_code_flow<'a, W>(
         &self,
-        _offer_uri: &Url,
+        common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _issuer_trust_anchors: &TrustAnchors,
-        _wia_client: &impl WiaClient,
-        _wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<Self::Issuance, WalletIssuanceError> {
-        self.start_pre_authorized_code_flow_sync()
+    ) -> Result<Self::Issuance, WalletIssuanceError>
+    where
+        W: WiaClient,
+    {
+        self.start_pre_authorized_code_flow_sync(common_parameters.selection)
     }
 
     fn restore_authorization_session(
@@ -141,18 +146,16 @@ impl AuthorizationSession for MockAuthorizationSession {
     }
 }
 
+/// Helper type that allows `mockall` to return references from a mocked method.
+#[derive(From)]
+pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, NormalizedTypeMetadata)>);
+
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceSession {
-        pub fn accept(
-            &self,
-        ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
+        pub fn accept(&self) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
 
-        pub fn reject(&self) -> Result<(), WalletIssuanceError>;
-
-        pub fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview>;
-
-        pub fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
+        pub fn previews_with_metadata(&self) -> &MockIssuanceSessionPreviewsWithMetadata;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
@@ -167,16 +170,10 @@ impl IssuanceSession for MockIssuanceSession {
         self.accept()
     }
 
-    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
-        self.reject()
-    }
+    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {
+        let MockIssuanceSessionPreviewsWithMetadata(inner) = self.previews_with_metadata();
 
-    fn credential_previews(&self) -> &VecNonEmpty<CredentialPreview> {
-        self.credential_previews()
-    }
-
-    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata> {
-        self.type_metadata()
+        inner.iter().map(|(preview, metadata)| (preview, metadata))
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {

@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
@@ -37,7 +37,6 @@ use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
-use openid4vc::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use openid4vc::wallet_issuance::mock::MockIssuanceSession;
 use p256::ecdsa::SigningKey;
@@ -172,15 +171,15 @@ pub static WRPAC_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_wrpac_mock_ca(
 pub fn create_example_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
     attestation_type: &str,
-) -> (CredentialPayload, IssuanceTypeMetadata) {
+) -> (CredentialPayload, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::example_with_attributes(
         attestation_type,
         Attributes::example([
-            (["family_name"], AttributeValue::Text("De Bruijn".to_string())),
-            (["given_name"], AttributeValue::Text("Willeke Liselotte".to_string())),
-            (["birth_date"], AttributeValue::Text("1997-05-10".to_string())),
-            (["age_over_18"], AttributeValue::Bool(true)),
-            ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+            (["family_name"], Attribute::Text("De Bruijn".to_string())),
+            (["given_name"], Attribute::Text("Willeke Liselotte".to_string())),
+            (["birth_date"], Attribute::Text("1997-05-10".to_string())),
+            (["age_over_18"], Attribute::Bool(true)),
+            ([PID_RECOVERY_CODE], Attribute::Text("123".to_string())),
         ]),
         SigningKey::generate().verifying_key(),
         time_generator,
@@ -198,15 +197,9 @@ pub fn create_example_credential_payload(
     );
 
     let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-    let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(attestation_type).unwrap();
+    let (normalized_metadata, _) = metadata_documents.into_normalized(attestation_type).unwrap();
 
-    (
-        credential_payload,
-        IssuanceTypeMetadata {
-            normalized_metadata,
-            raw_metadata,
-        },
-    )
+    (credential_payload, normalized_metadata)
 }
 
 pub fn create_preview_from_payload(
@@ -215,6 +208,7 @@ pub fn create_preview_from_payload(
     config_id: CredentialConfigurationId,
 ) -> CredentialPreview {
     CredentialPreview {
+        credential_id: "credential_id".to_string().into(),
         config_id,
         format,
         credential_payload: credential_payload.previewable_payload,
@@ -224,7 +218,7 @@ pub fn create_preview_from_payload(
 
 pub fn create_example_pid_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
-) -> (CredentialPayload, IssuanceTypeMetadata) {
+) -> (CredentialPayload, NormalizedTypeMetadata) {
     create_example_credential_payload(time_generator, PID_ATTESTATION_TYPE)
 }
 
@@ -234,11 +228,11 @@ pub fn create_example_preview_data(
     format: Format,
     attestation_type: &str,
     config_id: CredentialConfigurationId,
-) -> (CredentialPreview, IssuanceTypeMetadata) {
-    let (credential_payload, type_metadata) = create_example_credential_payload(time_generator, attestation_type);
+) -> (CredentialPreview, NormalizedTypeMetadata) {
+    let (credential_payload, normalized_metadata) = create_example_credential_payload(time_generator, attestation_type);
     (
         create_preview_from_payload(credential_payload, format, config_id),
-        type_metadata,
+        normalized_metadata,
     )
 }
 
@@ -246,7 +240,7 @@ pub fn create_example_preview_data(
 pub fn create_example_pid_preview_data(
     time_generator: &impl Generator<DateTime<Utc>>,
     format: Format,
-) -> (CredentialPreview, IssuanceTypeMetadata) {
+) -> (CredentialPreview, NormalizedTypeMetadata) {
     create_example_preview_data(
         time_generator,
         format,
@@ -303,7 +297,7 @@ pub fn mdoc_from_credential_payload(
         StatusClaim::new_mock(),
     )
     .unwrap()
-    .into_signed_mdoc(issuer_keypair)
+    .into_signed_mdoc(issuer_keypair, None)
     .now_or_never()
     .unwrap()
     .unwrap();
@@ -338,7 +332,7 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
 
 /// Generates a valid certificate for the `Wallet`.
 pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
-    SignedJwt::sign_with_sub(
+    SignedJwt::sign_with_sub_and_kid(
         valid_certificate_claims(wallet_id, hw_pubkey),
         &ACCOUNT_SERVER_KEYS.certificate_signing_key,
     )
@@ -574,7 +568,7 @@ where
 pub fn mock_issuance_session(
     stored_attestations: impl IntoIterator<Item = (WithKeyIdentifier<StoredAttestation>, VerifiedTypeMetadataDocuments)>,
 ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
-    let (credentials_with_metadata, attestation_presentations, issuer_registrations): (_, Vec<_>, Vec<_>) =
+    let (credentials_with_metadata, attestation_presentations, issuer_registrations): (Vec<_>, Vec<_>, Vec<_>) =
         stored_attestations
             .into_iter()
             .map(|(stored_attestation, metadata_documents)| {

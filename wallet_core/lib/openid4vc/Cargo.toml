@@ -28,9 +28,9 @@ mock = [
     "crypto/mock",
     "dep:mockall",
     "oauth/mock",
+    "sd_jwt_vc_metadata/example_constructors",
     "token_status_list/mock",
     "wscd/mock",
-    "sd_jwt_vc_metadata/example_constructors",
 ]
 # Include miscellaneous test utilities
 test = ["dep:parking_lot", "jwt/test", "oauth/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
@@ -135,7 +135,7 @@ http.workspace = true
 http_utils = { path = "../http_utils", features = ["httpmock"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }
-oauth = { path = "../oauth", features = ["mock"] }
+oauth = { path = "../oauth", features = ["mock", "test"] }
 sd_jwt = { path = "../sd_jwt", features = ["examples", "test"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 token_status_list = { path = "../token_status_list", features = ["mock"] }

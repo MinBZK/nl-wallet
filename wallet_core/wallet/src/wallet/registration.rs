@@ -813,12 +813,14 @@ mod tests {
                 let other_account_server_key = SigningKey::generate();
                 let random_pubkey = *SigningKey::generate().verifying_key();
 
-                let certificate =
-                    SignedJwt::sign_with_sub(valid_certificate_claims(None, random_pubkey), &other_account_server_key)
-                        .now_or_never()
-                        .unwrap()
-                        .unwrap()
-                        .into();
+                let certificate = SignedJwt::sign_with_sub_and_kid(
+                    valid_certificate_claims(None, random_pubkey),
+                    &other_account_server_key,
+                )
+                .now_or_never()
+                .unwrap()
+                .unwrap()
+                .into();
 
                 let revocation_code = RevocationCode::new_random();
 
