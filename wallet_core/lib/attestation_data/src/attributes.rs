@@ -25,6 +25,13 @@ use serde_with::formats::Unpadded;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 
+// Temporary workaround for nested chassis_number_info, to be removed after
+// nested object handling has been properly implemented.
+const MVC_DOCUMENT_TYPE: &str = "org.iso.7367.2.1.mVC";
+const MVC_NAMESPACE: &str = "org.iso.7367.2.1";
+const MVC_CHASSIS_NUMBER_INFO: &str = "chassis_number_info";
+const MVC_CHASSIS_NUMBER_INFO_NAMESPACE: &str = "org.iso.7367.2.1.chassis_number_info";
+
 #[serde_as]
 #[derive(Debug, Clone, Display, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "lowercase")]
@@ -381,6 +388,8 @@ impl Attributes {
         // Only proceed if a root namespace can be found; if not, the loop below is skipped and `attributes` is left
         // untouched, which is reported below as `SomeAttributesNotProcessed`.
         if let Some(namespace_root) = Self::find_mdoc_namespace_root(type_metadata.vct(), &attributes) {
+            Self::expand_mvc_chassis_number_info_for_metadata(type_metadata, &namespace_root, &mut attributes)?;
+
             // The key paths of the claims determines the order of the attributes result
             for key_path in key_paths {
                 Self::traverse_attributes_by_claim(&namespace_root, key_path.as_slice(), &mut attributes, &mut result)?;
@@ -392,6 +401,58 @@ impl Attributes {
         }
 
         Ok(Self(result))
+    }
+
+    /// Convert the map-valued mVC `chassis_number_info` data element to the dotted namespace representation expected
+    /// by the generic metadata traversal. The original issuer-signed mdoc remains unchanged; this only affects its
+    /// conversion to the wallet's internal [`Attributes`] representation.
+    fn expand_mvc_chassis_number_info_for_metadata(
+        type_metadata: &NormalizedTypeMetadata,
+        namespace_root: &str,
+        attributes: &mut IndexMap<NameSpace, Vec<Entry>>,
+    ) -> Result<(), AttributesError> {
+        if type_metadata.vct() != MVC_DOCUMENT_TYPE
+            || namespace_root != MVC_NAMESPACE
+            || attributes.contains_key(MVC_CHASSIS_NUMBER_INFO_NAMESPACE)
+        {
+            return Ok(());
+        }
+
+        let Some(root_entries) = attributes.get_mut(MVC_NAMESPACE) else {
+            return Ok(());
+        };
+        let Some(index) = root_entries
+            .iter()
+            .position(|entry| entry.name == MVC_CHASSIS_NUMBER_INFO && matches!(&entry.value, ciborium::Value::Map(_)))
+        else {
+            return Ok(());
+        };
+
+        let Entry { name, value } = root_entries.remove(index);
+        let ciborium::Value::Map(chassis_number_info) = value else {
+            root_entries.insert(index, Entry { name, value });
+            return Ok(());
+        };
+        let chassis_number_info = chassis_number_info
+            .into_iter()
+            .map(|(name, value)| {
+                let ciborium::Value::Text(name) = name else {
+                    return Err(AttributeError::MapKeyConversion(Box::new(name)));
+                };
+
+                Ok(Entry { name, value })
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| {
+                AttributesError::AttributeAtPath(format!("{MVC_NAMESPACE}.{MVC_CHASSIS_NUMBER_INFO}"), error)
+            })?;
+
+        if root_entries.is_empty() {
+            attributes.swap_remove(MVC_NAMESPACE);
+        }
+        attributes.insert(MVC_CHASSIS_NUMBER_INFO_NAMESPACE.to_string(), chassis_number_info);
+
+        Ok(())
     }
 
     fn is_root_namespace(candidate: &str, attributes: &IndexMap<NameSpace, Vec<Entry>>) -> bool {
@@ -508,6 +569,12 @@ impl Attributes {
     /// }
     /// ```
     pub fn to_mdoc_attributes(self, namespace: &str) -> IndexMap<NameSpace, Vec<Entry>> {
+        let mvc_chassis_number_info = (namespace == MVC_NAMESPACE)
+            .then(|| self.0.get(MVC_CHASSIS_NUMBER_INFO))
+            .flatten()
+            .filter(|attribute| matches!(attribute, Attribute::Object(_)))
+            .cloned();
+
         let mut result = IndexMap::new();
         for (path, attribute) in self.flattened() {
             let (path, name) = path.into_inner_last();
@@ -517,6 +584,23 @@ impl Attributes {
                 value: attribute.clone().into(),
             })
         }
+
+        if let Some(chassis_number_info) = mvc_chassis_number_info {
+            result.retain(|attribute_namespace, _| {
+                attribute_namespace != MVC_CHASSIS_NUMBER_INFO_NAMESPACE
+                    && !attribute_namespace
+                        .strip_prefix(MVC_CHASSIS_NUMBER_INFO_NAMESPACE)
+                        .is_some_and(|rest| rest.starts_with('.'))
+            });
+            result
+                .entry(namespace.to_string())
+                .or_insert_with(Vec::new)
+                .push(Entry {
+                    name: MVC_CHASSIS_NUMBER_INFO.to_string(),
+                    value: chassis_number_info.into(),
+                });
+        }
+
         result
     }
 
@@ -815,6 +899,9 @@ pub mod test {
     use super::AttributesError;
     use super::AttributesHandlingError;
     use super::AttributesTraversalBehaviour;
+    use super::MVC_CHASSIS_NUMBER_INFO;
+    use super::MVC_DOCUMENT_TYPE;
+    use super::MVC_NAMESPACE;
 
     pub fn complex_attributes() -> IndexMap<String, Attribute> {
         IndexMap::from([
@@ -1425,6 +1512,46 @@ pub mod test {
                     "number": 1
                 }
             })
+        );
+    }
+
+    #[test]
+    fn test_mvc_chassis_number_info_is_map_valued_data_element() {
+        let attributes: Attributes = IndexMap::from([(
+            MVC_CHASSIS_NUMBER_INFO.to_string(),
+            Attribute::Object(IndexMap::from([(
+                "vehicle_identification_number".to_string(),
+                Attribute::Text("WVWZZZ1JZXW000001".to_string()),
+            )])),
+        )])
+        .into();
+
+        let mdoc_attributes = attributes.clone().to_mdoc_attributes(MVC_NAMESPACE);
+
+        assert_eq!(
+            serde_json::to_value(readable_mdoc_attributes(mdoc_attributes.clone())).unwrap(),
+            json!({
+                MVC_NAMESPACE: {
+                    MVC_CHASSIS_NUMBER_INFO: {
+                        "vehicle_identification_number": "WVWZZZ1JZXW000001",
+                    },
+                },
+            })
+        );
+
+        let metadata_json = json!({
+            "vct": MVC_DOCUMENT_TYPE,
+            "display": [{"locale": "en", "name": "Mobile Vehicle Registration Certificate"}],
+            "claims": [{
+                "path": [MVC_CHASSIS_NUMBER_INFO, "vehicle_identification_number"],
+                "display": [{"locale": "en", "label": "Chassis number"}],
+            }],
+        });
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
+
+        assert_eq!(
+            Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap(),
+            attributes
         );
     }
 
