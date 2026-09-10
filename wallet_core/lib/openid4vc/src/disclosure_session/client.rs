@@ -37,8 +37,7 @@ use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
-use crate::registration_certificate::RegistrationCertificateError;
-use crate::registration_certificate::validate_registration_certificate;
+use crate::registration_certificate::validate_registration_certificate_and_query;
 use crate::verifier::SessionType;
 
 #[derive(Debug)]
@@ -192,7 +191,7 @@ where
             .await?;
 
         let (vp_auth_request, certificate) =
-            VpAuthorizationRequest::try_new(&jws, wrpac_trust_anchors, &self.crl_verifier).await?;
+            VpAuthorizationRequest::authenticate_request(&jws, wrpac_trust_anchors, &self.crl_verifier).await?;
         let response_uri = vp_auth_request.response_uri.clone();
         let state = vp_auth_request.oauth_request.state.clone();
 
@@ -214,23 +213,19 @@ where
 
         let dcql_query = vp_auth_request.dcql_query.clone();
         let auth_request_result = vp_auth_request
-            .validate(&certificate, request_nonce.as_deref())
+            .normalize_request(&certificate, request_nonce.as_deref())
             .map_err(VpVerifierError::AuthRequestValidation);
 
         let auth_request_result = match auth_request_result {
-            Ok((auth_request, selected_encryption_algorithm)) => validate_registration_certificate(
+            Ok((auth_request, selected_encryption_algorithm)) => validate_registration_certificate_and_query(
                 &auth_request.registration_certificate,
+                &dcql_query,
                 &certificate,
                 wrprc_trust_anchors,
                 &self.registration_certificate_revocation_verifier,
                 &TimeGenerator,
             )
             .await
-            .and_then(|registration_certificate| {
-                registration_certificate
-                    .validate_query_authorization(&dcql_query)
-                    .map_err(RegistrationCertificateError::Authorization)
-            })
             .map(|()| (auth_request, selected_encryption_algorithm))
             .map_err(|error| {
                 VpVerifierError::AuthRequestValidation(AuthRequestValidationError::RegistrationCertificate(Box::new(

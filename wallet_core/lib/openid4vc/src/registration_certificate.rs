@@ -3,13 +3,13 @@ use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
 use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
 use attestation_data::registration_certificate::RegistrationCertificateValidationError;
-use attestation_data::registration_certificate::StatusValidatedRegistrationCertificate;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use attestation_data::x509::RelyingPartyError;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::DistinguishedNameError;
+use dcql::Query;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
@@ -34,13 +34,15 @@ pub enum RegistrationCertificateError {
     Authorization(#[source] RegistrationCertificateAuthorizationError),
 }
 
-pub async fn validate_registration_certificate<C>(
+/// Validate a registration certificate and ensure that it authorizes the DCQL query.
+pub async fn validate_registration_certificate_and_query<C>(
     registration_certificate: &RegistrationCertificateEnvelope,
+    query: &Query,
     access_certificate: &BorrowingCertificate,
     registration_certificate_trust_anchors: &TrustAnchors,
     revocation_verifier: &RevocationVerifier<C>,
     time: &impl Generator<chrono::DateTime<chrono::Utc>>,
-) -> Result<StatusValidatedRegistrationCertificate, RegistrationCertificateError>
+) -> Result<(), RegistrationCertificateError>
 where
     C: StatusListClient,
 {
@@ -60,7 +62,7 @@ where
     let certificate = payload
         .validate_structure(&access_subject, time.generate())
         .map_err(RegistrationCertificateError::Structure)?;
-    certificate
+    let certificate = certificate
         .validate_status(
             revocation_verifier,
             registration_certificate_trust_anchors,
@@ -68,7 +70,11 @@ where
             time,
         )
         .await
-        .map_err(RegistrationCertificateError::Status)
+        .map_err(RegistrationCertificateError::Status)?;
+
+    certificate
+        .validate_query_authorization(query)
+        .map_err(RegistrationCertificateError::Authorization)
 }
 
 #[cfg(test)]
@@ -95,7 +101,7 @@ mod tests {
     use utils::generator::TimeGenerator;
 
     use super::RegistrationCertificateError;
-    use super::validate_registration_certificate;
+    use super::validate_registration_certificate_and_query;
 
     enum EnvelopeFormat {
         Jwt,
@@ -124,18 +130,15 @@ mod tests {
     ) -> Result<(), RegistrationCertificateError> {
         let revocation_verifier = RevocationVerifier::new_without_caching(Arc::new(status_list_client));
 
-        let certificate = validate_registration_certificate(
+        validate_registration_certificate_and_query(
             registration_certificate,
+            query,
             access_certificate,
             trust_anchors,
             &revocation_verifier,
             &TimeGenerator,
         )
-        .await?;
-
-        certificate
-            .validate_query_authorization(query)
-            .map_err(RegistrationCertificateError::Authorization)
+        .await
     }
 
     #[rstest]

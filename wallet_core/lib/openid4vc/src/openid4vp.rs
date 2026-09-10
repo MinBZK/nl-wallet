@@ -463,7 +463,7 @@ static VP_AUTH_REQUEST_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
 
 impl VpAuthorizationRequest {
     /// Construct and authenticate an Authorization Request, requiring a valid CRL for its WRPAC chain.
-    pub async fn try_new(
+    pub async fn authenticate_request(
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &TrustAnchors,
         crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
@@ -481,13 +481,15 @@ impl VpAuthorizationRequest {
         Ok((auth_request, header.x5c.into_first()))
     }
 
-    /// Validate that an Authorization Request satisfies the following:
-    /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` uses the `x509_hash` scheme and matches the leaf X.509 certificate.
+    /// Normalize an Authorization Request into the representation used by the wallet.
     ///
-    /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
-    /// contains only the fields we need and use.
-    pub fn validate(
+    /// Checks the supported request fields, binds the `x509_hash` client ID to `rp_cert`, checks
+    /// the wallet nonce, and selects the response encryption key and algorithm.
+    ///
+    /// Call after [`Self::authenticate_request`], using the request and certificate it returns.
+    /// Registration-certificate trust, status, and DCQL authorization must still be checked using
+    /// [`crate::registration_certificate::validate_registration_certificate_and_query`].
+    pub fn normalize_request(
         self,
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
@@ -528,12 +530,16 @@ impl VpAuthorizationRequest {
     }
 }
 
-/// An OpenID4VP Authorization Request that has been validated to conform to the OpenID4VP specification:
-/// a subset of [`VpAuthorizationRequest`] that always contains fields we require, and no fields we don't.
+/// Internal Authorization Request representation shared by the wallet and verifier, with required
+/// fields represented directly and credential queries normalized.
 ///
-/// Note that this data type is internal to both the wallet and verifier, and not part of the OpenID4VP protocol,
-/// so it is never sent over the wire. It implements (De)serialize so that the verifier can persist it to
-/// the session store.
+/// The verifier constructs this from its own request data using [`Self::new_for_verifier`]. The wallet
+/// obtains it through [`VpAuthorizationRequest::normalize_request`] before completing its acceptance checks.
+/// This type does not establish request authentication or registration-certificate authorization.
+/// [`crate::disclosure_session::VpDisclosureClient`] completes the wallet's checks before returning a session.
+///
+/// This representation is not sent over the wire as an OpenID4VP message. It implements (De)serialize
+/// so that the verifier can persist it to the session store.
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1464,10 +1470,10 @@ mod tests {
                 .unwrap();
 
         let (auth_request, cert) =
-            VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor, &crl_verifier)
+            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &crl_verifier)
                 .await
                 .unwrap();
-        let (auth_request, _) = auth_request.validate(&cert, None).unwrap();
+        let (auth_request, _) = auth_request.normalize_request(&cert, None).unwrap();
         assert_eq!(auth_request.state.as_deref(), Some("authorization_state"));
     }
 
@@ -1481,7 +1487,8 @@ mod tests {
                 .unwrap();
 
         let verifier = CertificateCrlVerifier::<MockCrlFetcher>::default();
-        let result = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
+        let result =
+            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
 
         assert_matches!(
             result,
@@ -1499,7 +1506,9 @@ mod tests {
 
         auth_request.oauth_request.client_id = "x509_hash:wrong-hash".to_string();
 
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let err = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(
             err,
             AuthRequestValidationError::UnauthorizedClientIdHash { client_id, certificate_hash }
@@ -1514,7 +1523,9 @@ mod tests {
         let certificate_hash = ClientId::x509_hash_value(rp_keypair.certificate());
         auth_request.oauth_request.client_id = format!("redirect_uri:{certificate_hash}");
 
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let err = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(
             err,
             AuthRequestValidationError::UnsupportedClientIdScheme {
@@ -1529,7 +1540,9 @@ mod tests {
         let mut auth_request = authorization_request_from_normalized(auth_request);
         auth_request.oauth_request.client_id = ClientId::x509_hash_value(rp_keypair.certificate());
 
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let err = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
     }
 
@@ -1751,7 +1764,7 @@ mod tests {
             EncryptionAlgorithm::A256Gcm.into()
         ]);
 
-        let (_, encryption_algorithm) = auth_request.validate(rp_keypair.certificate(), None).unwrap();
+        let (_, encryption_algorithm) = auth_request.normalize_request(rp_keypair.certificate(), None).unwrap();
 
         assert_eq!(encryption_algorithm, EncryptionAlgorithm::A256Gcm);
     }
@@ -1827,7 +1840,9 @@ mod tests {
             .unwrap()
             .encrypted_response_enc_values_supported = Some(enc_values.clone());
 
-        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let error = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(
             error,
             AuthRequestValidationError::NoSupportedEncryptedResponseEnc(received_enc_values)

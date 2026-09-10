@@ -226,11 +226,11 @@ async fn disclosure_jwe(
     )];
     let encryption_nonce = "encryption_nonce".to_string();
 
-    // Verify the Authorization Request JWE and read the requested attributes.
-    let (auth_request, cert) = VpAuthorizationRequest::try_new(auth_request, trust_anchors, crl_verifier)
+    // Authenticate the signed Authorization Request and normalize its fields.
+    let (auth_request, cert) = VpAuthorizationRequest::authenticate_request(auth_request, trust_anchors, crl_verifier)
         .await
         .unwrap();
-    let (auth_request, encryption_algorithm) = auth_request.validate(&cert, None).unwrap();
+    let (auth_request, encryption_algorithm) = auth_request.normalize_request(&cert, None).unwrap();
 
     // Compute the disclosure.
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
@@ -940,10 +940,10 @@ async fn test_verifier_auth_request_metadata_contract() {
         .await
         .unwrap();
 
-    let (auth_request, cert) = VpAuthorizationRequest::try_new(&jws, &trust_anchor, &crl_verifier)
+    let (auth_request, cert) = VpAuthorizationRequest::authenticate_request(&jws, &trust_anchor, &crl_verifier)
         .await
         .unwrap();
-    let _ = auth_request.validate(&cert, None).unwrap();
+    let _ = auth_request.normalize_request(&cert, None).unwrap();
 
     let (_, payload): (_, serde_json::Value) = jws
         .serialization()
