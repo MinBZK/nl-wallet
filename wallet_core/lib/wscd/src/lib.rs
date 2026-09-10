@@ -2,7 +2,7 @@ pub mod error;
 pub mod poa;
 pub mod wscd;
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(feature = "mock")]
 pub mod mock_remote;
 
 pub use error::PoaError;
