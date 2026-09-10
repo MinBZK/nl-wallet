@@ -1,6 +1,6 @@
+use std::collections::HashMap;
 use std::future::Future;
 
-use crypto::PublicKey;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
@@ -9,6 +9,7 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use wallet_account::messages::registration::WalletCertificate;
+use wallet_configuration::wallet_config::CertificatePublicKey;
 
 use crate::errors::CheckPreconditionsError;
 use crate::errors::InstructionError;
@@ -105,7 +106,7 @@ pub struct BeginChangePinOperation<'a, C, S> {
     client: &'a C,
     storage: &'a S,
     registration_data: &'a RegistrationData,
-    certificate_public_key: &'a VerifyingKey,
+    certificate_public_keys: &'a HashMap<String, CertificatePublicKey>,
     hw_pubkey: &'a VerifyingKey,
 }
 
@@ -114,14 +115,14 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
         client: &'a C,
         storage: &'a S,
         registration_data: &'a RegistrationData,
-        certificate_public_key: &'a VerifyingKey,
+        certificate_public_keys: &'a HashMap<String, CertificatePublicKey>,
         hw_pubkey: &'a VerifyingKey,
     ) -> Self {
         Self {
             client,
             storage,
             registration_data,
-            certificate_public_key,
+            certificate_public_keys,
             hw_pubkey,
         }
     }
@@ -129,7 +130,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
     // Perform the same sanity checks as during registration, with the addition of checking the received wallet_id.
     pub fn validate_certificate(&self, certificate: &WalletCertificate) -> ChangePinResult<()> {
         let (_, cert_claims) = certificate
-            .parse_and_verify_with_sub(&PublicKey::from(*self.certificate_public_key).into())
+            .parse_and_verify_with_sub_by_kid(self.certificate_public_keys)
             .map_err(ChangePinError::CertificateValidation)?;
 
         if cert_claims.hw_pubkey.as_inner() != self.hw_pubkey {
@@ -315,6 +316,7 @@ mod test {
     use std::assert_matches;
 
     use chrono::Utc;
+    use jwt::KeyWithKid;
     use jwt::SignedJwt;
     use mockall::predicate::eq;
     use p256::ecdsa::SigningKey;
@@ -332,10 +334,17 @@ mod test {
 
     const CHANGE_PIN_RETRIES: u8 = 2;
 
-    async fn create_registration_data() -> (RegistrationData, VerifyingKey, VerifyingKey) {
+    async fn create_registration_data() -> (RegistrationData, HashMap<String, CertificatePublicKey>, VerifyingKey) {
         let certificate_signing_key = SigningKey::generate();
         let hw_privkey = SigningKey::generate();
-        let certificate_public_key = *certificate_signing_key.verifying_key();
+        let certificate_public_keys = HashMap::from([(
+            certificate_signing_key.kid().to_owned(),
+            CertificatePublicKey {
+                key: (*certificate_signing_key.verifying_key()).into(),
+                created_at: Utc::now().into(),
+            },
+        )]);
+
         let hw_pubkey = *hw_privkey.verifying_key();
 
         let attested_key_identifier = crypto::utils::random_string(16);
@@ -367,12 +376,12 @@ mod test {
             revocation_code,
         };
 
-        (registration_data, certificate_public_key, hw_pubkey)
+        (registration_data, certificate_public_keys, hw_pubkey)
     }
 
     #[tokio::test]
     async fn begin_change_pin_success() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
+        let (registration_data, certificate_public_keys, hw_pubkey) = create_registration_data().await;
         let returned_certificate = registration_data.wallet_certificate.clone();
 
         let mut change_pin_client = MockChangePinClient::new();
@@ -398,7 +407,7 @@ mod test {
             &change_pin_client,
             &change_pin_storage,
             &registration_data,
-            &certificate_public_key,
+            &certificate_public_keys,
             &hw_pubkey,
         );
 
@@ -413,7 +422,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_network_error() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
+        let (registration_data, certificate_public_keys, hw_pubkey) = create_registration_data().await;
 
         let mut change_pin_client = MockChangePinClient::new();
         // return a network error
@@ -439,7 +448,7 @@ mod test {
             &change_pin_client,
             &change_pin_storage,
             &registration_data,
-            &certificate_public_key,
+            &certificate_public_keys,
             &hw_pubkey,
         );
 
@@ -457,7 +466,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_instruction_error() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
+        let (registration_data, certificate_public_keys, hw_pubkey) = create_registration_data().await;
 
         let mut change_pin_client = MockChangePinClient::new();
         change_pin_client
@@ -482,7 +491,7 @@ mod test {
             &change_pin_client,
             &change_pin_storage,
             &registration_data,
-            &certificate_public_key,
+            &certificate_public_keys,
             &hw_pubkey,
         );
 
@@ -498,7 +507,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_error_already_in_progress() {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
+        let (registration_data, certificate_public_keys, hw_pubkey) = create_registration_data().await;
 
         let change_pin_client = MockChangePinClient::new();
 
@@ -512,7 +521,7 @@ mod test {
             &change_pin_client,
             &change_pin_storage,
             &registration_data,
-            &certificate_public_key,
+            &certificate_public_keys,
             &hw_pubkey,
         );
 
@@ -527,10 +536,10 @@ mod test {
         MockChangePinClient,
         MockChangePinStorage,
         RegistrationData,
-        VerifyingKey,
+        HashMap<String, CertificatePublicKey>,
         VerifyingKey,
     ) {
-        let (registration_data, certificate_public_key, hw_pubkey) = create_registration_data().await;
+        let (registration_data, certificate_public_keys, hw_pubkey) = create_registration_data().await;
         let returned_certificate = registration_data.wallet_certificate.clone();
 
         let mut change_pin_client = MockChangePinClient::new();
@@ -556,7 +565,7 @@ mod test {
             change_pin_client,
             change_pin_storage,
             registration_data,
-            certificate_public_key,
+            certificate_public_keys,
             hw_pubkey,
         )
     }
@@ -565,13 +574,20 @@ mod test {
     async fn begin_change_pin_certificate_validation_error() {
         let (change_pin_client, change_pin_storage, registration_data, _, hw_pubkey) =
             setup_change_pin_certificate_sanity_check_test().await;
-        let other_certificate_public_key = *SigningKey::generate().verifying_key();
+        let other_key = SigningKey::generate();
+        let other_certificate_public_keys = HashMap::from([(
+            other_key.kid().to_owned(), // same kid, different key
+            CertificatePublicKey {
+                key: (*other_key.verifying_key()).into(),
+                created_at: Utc::now().into(),
+            },
+        )]);
 
         let change_pin_session = BeginChangePinOperation::new(
             &change_pin_client,
             &change_pin_storage,
             &registration_data,
-            &other_certificate_public_key,
+            &other_certificate_public_keys,
             &hw_pubkey,
         );
 
@@ -586,7 +602,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_public_key_mismatch_error() {
-        let (change_pin_client, change_pin_storage, registration_data, certificate_public_key, _) =
+        let (change_pin_client, change_pin_storage, registration_data, certificate_public_keys, _) =
             setup_change_pin_certificate_sanity_check_test().await;
         let other_hw_pubkey = *SigningKey::generate().verifying_key();
 
@@ -594,7 +610,7 @@ mod test {
             &change_pin_client,
             &change_pin_storage,
             &registration_data,
-            &certificate_public_key,
+            &certificate_public_keys,
             &other_hw_pubkey,
         );
 
@@ -609,7 +625,7 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_wallet_id_mismatch_error() {
-        let (change_pin_client, change_pin_storage, registration_data, certificate_public_key, hw_pubkey) =
+        let (change_pin_client, change_pin_storage, registration_data, certificate_public_keys, hw_pubkey) =
             setup_change_pin_certificate_sanity_check_test().await;
 
         let registration_data = RegistrationData {
@@ -621,7 +637,7 @@ mod test {
             &change_pin_client,
             &change_pin_storage,
             &registration_data,
-            &certificate_public_key,
+            &certificate_public_keys,
             &hw_pubkey,
         );
 

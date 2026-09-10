@@ -8,6 +8,7 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::PublicKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
@@ -102,13 +103,29 @@ impl Default for LockTimeoutConfiguration {
 pub struct AccountServerConfiguration {
     pub http_config: TlsPinningConfig,
     #[debug(skip)]
-    #[serde_as(as = "Base64")]
-    pub certificate_public_key: DerVerifyingKey,
+    pub certificate_public_keys: HashMap<String, CertificatePublicKey>,
     #[debug(skip)]
     #[serde_as(as = "HashMap<_, Base64>")]
     pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
     pub wia_trust_anchors: TrustAnchors,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CertificatePublicKey {
+    #[serde_as(as = "Base64")]
+    pub key: DerVerifyingKey,
+
+    /// The moment at which this key was created and added to the wallet configuration. Used to determine whether the
+    /// wallet should actively update its certificate to the newest available key.
+    pub created_at: DateTimeSeconds,
+}
+
+impl From<CertificatePublicKey> for PublicKey {
+    fn from(value: CertificatePublicKey) -> Self {
+        PublicKey::from(*value.key.as_inner())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
