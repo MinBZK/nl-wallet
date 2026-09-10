@@ -54,6 +54,7 @@ use mdoc::holder::disclosure::PartialMdoc;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureTrustAnchors;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -309,8 +310,10 @@ async fn disclosure_using_message_client(
         .start(
             &request_uri,
             DisclosureUriSource::Link,
-            &TrustAnchors::from(&ca),
-            &registration_certificate_trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &TrustAnchors::from(&ca),
+                wrprc: &registration_certificate_trust_anchors,
+            },
         )
         .await
         .unwrap();
@@ -1264,8 +1267,10 @@ where
         .start(
             request_uri,
             uri_source,
-            &access_certificate_trust_anchors,
-            &registration_certificate_trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &access_certificate_trust_anchors,
+                wrprc: &registration_certificate_trust_anchors,
+            },
         )
         .await
 }

@@ -45,6 +45,7 @@ use mdoc::holder::disclosure::PartialMdoc;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureTrustAnchors;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -917,8 +918,10 @@ async fn perform_full_disclosure(
         .start(
             &request_uri_query,
             uri_source,
-            &rp_trust_anchor,
-            &registration_certificate_trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &rp_trust_anchor,
+                wrprc: &registration_certificate_trust_anchors,
+            },
         )
         .await
         .expect("disclosure session should start at client side");
@@ -1127,8 +1130,10 @@ async fn test_disclosed_attributes_failed_session() {
         .start(
             &request_uri_query,
             DisclosureUriSource::QrCode,
-            &rp_trust_anchor,
-            &registration_certificate_trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &rp_trust_anchor,
+                wrprc: &registration_certificate_trust_anchors,
+            },
         )
         .await
         .expect("disclosure session should start at client side");

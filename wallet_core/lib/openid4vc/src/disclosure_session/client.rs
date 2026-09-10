@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use attestation_types::credential_format::Format;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::utils as crypto_utils;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -19,6 +18,7 @@ use utils::single_unique::NonEmptySingleUnique;
 use utils::vec_at_least::NonEmptyIterator;
 
 use super::DisclosureClient;
+use super::DisclosureTrustAnchors;
 use super::error::UnsupportedRequestUriVariant;
 use super::error::VpClientError;
 use super::error::VpSessionError;
@@ -120,8 +120,7 @@ where
         &self,
         uri_query: &str,
         uri_source: DisclosureUriSource,
-        wrpac_trust_anchors: &TrustAnchors,
-        wrprc_trust_anchors: &TrustAnchors,
+        trust_anchors: DisclosureTrustAnchors<'_>,
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
@@ -191,7 +190,7 @@ where
             .await?;
 
         let (vp_auth_request, certificate) =
-            VpAuthorizationRequest::authenticate_request(&jws, wrpac_trust_anchors, &self.crl_verifier).await?;
+            VpAuthorizationRequest::authenticate_request(&jws, trust_anchors.wrpac, &self.crl_verifier).await?;
         let response_uri = vp_auth_request.response_uri.clone();
         let state = vp_auth_request.oauth_request.state.clone();
 
@@ -221,7 +220,7 @@ where
                 &auth_request.registration_certificate,
                 &dcql_query,
                 &certificate,
-                wrprc_trust_anchors,
+                trust_anchors.wrprc,
                 &self.registration_certificate_revocation_verifier,
                 &TimeGenerator,
             )
@@ -342,6 +341,7 @@ mod tests {
     use super::super::DisclosableAttestations;
     use super::super::DisclosureClient;
     use super::super::DisclosureSession;
+    use super::super::DisclosureTrustAnchors;
     use super::super::DisclosureUriSource;
     use super::super::error::UnsupportedRequestUriVariant;
     use super::super::error::VpClientError;
@@ -458,8 +458,10 @@ mod tests {
             .start(
                 &verifier_session.request_uri_query(),
                 uri_source,
-                &verifier_session.trust_anchors,
-                &registration_certificate_trust_anchors,
+                DisclosureTrustAnchors {
+                    wrpac: &verifier_session.trust_anchors,
+                    wrprc: &registration_certificate_trust_anchors,
+                },
             )
             .now_or_never()
             .unwrap();
@@ -750,8 +752,10 @@ mod tests {
             .start(
                 &verifier_session.request_uri_query(),
                 DisclosureUriSource::Link,
-                &verifier_session.trust_anchors,
-                &registration_certificate_trust_anchors,
+                DisclosureTrustAnchors {
+                    wrpac: &verifier_session.trust_anchors,
+                    wrprc: &registration_certificate_trust_anchors,
+                },
             )
             .now_or_never()
             .unwrap()
@@ -810,8 +814,10 @@ mod tests {
             .start(
                 "",
                 DisclosureUriSource::Link,
-                &TrustAnchors::empty(),
-                &TrustAnchors::empty(),
+                DisclosureTrustAnchors {
+                    wrpac: &TrustAnchors::empty(),
+                    wrprc: &TrustAnchors::empty(),
+                },
             )
             .now_or_never()
             .unwrap()
@@ -840,8 +846,10 @@ mod tests {
             .start(
                 &query,
                 DisclosureUriSource::Link,
-                &TrustAnchors::empty(),
-                &TrustAnchors::empty(),
+                DisclosureTrustAnchors {
+                    wrpac: &TrustAnchors::empty(),
+                    wrprc: &TrustAnchors::empty(),
+                },
             )
             .now_or_never()
             .unwrap()
@@ -878,8 +886,10 @@ mod tests {
             .start(
                 &query,
                 DisclosureUriSource::Link,
-                &TrustAnchors::empty(),
-                &TrustAnchors::empty(),
+                DisclosureTrustAnchors {
+                    wrpac: &TrustAnchors::empty(),
+                    wrprc: &TrustAnchors::empty(),
+                },
             )
             .now_or_never()
             .unwrap()
@@ -1027,8 +1037,10 @@ mod tests {
             .start(
                 &request_query,
                 DisclosureUriSource::Link,
-                &TrustAnchors::empty(),
-                &TrustAnchors::empty(),
+                DisclosureTrustAnchors {
+                    wrpac: &TrustAnchors::empty(),
+                    wrprc: &TrustAnchors::empty(),
+                },
             )
             .now_or_never()
             .unwrap()
