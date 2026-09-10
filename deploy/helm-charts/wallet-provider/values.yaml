@@ -167,10 +167,12 @@ hsm:
 ## @section Key identifiers
 ## @param keyIdentifiers.currentCertificateKid The KID of the current certificate signing key and pin HMAC key combination
 ## @param keyIdentifiers.previousCertificateKids A map of previous KIDs with expiry dates to be used for wallet certificate validation
+## @param keyIdentifiers.currentInstructionResultKid The KID of the current instruction result signing key
 ##
 keyIdentifiers:
   currentCertificateKid: 0
   previousCertificateKids: {}
+  currentInstructionResultKid: 0
 
 ## @section Android parameters
 ## Parameters for the Android configuration

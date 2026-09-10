@@ -106,6 +106,9 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
 
+            - name: WALLET_PROVIDER__CURRENT_INSTRUCTION_RESULT_KID
+              value: {{ .Values.keyIdentifiers.currentInstructionResultKid | quote }}
+
             - name: WALLET_PROVIDER__PID_ISSUER_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
