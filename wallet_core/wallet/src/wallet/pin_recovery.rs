@@ -101,10 +101,6 @@ pub enum PinRecoveryError {
     #[category(critical)]
     NoPidPresent,
 
-    #[error("the issuer offered {0} previews for an SD-JWT PID credential, expected only 1")]
-    #[category(expected)]
-    MultiplePidCredentials(usize),
-
     #[error("recovery code error: {0}")]
     RecoveryCode(#[from] RecoveryCodeError),
 
@@ -263,20 +259,15 @@ where
 
         info!("successfully received token and previews from issuer");
 
-        // Because the `StartPinRecovery` instruction is sent inside the `perform_issuance()` implementation of
-        // `PinRecoveryRemoteEcdsaWscd` and `perform_isuance()` is called for each credential, it is essential that the
-        // issuer offers only one credential.
-        // TODO (PVW-6266): Remove this check when proof signing coalescing is implemented.
-        let previews_with_metadata = issuance_session.previews_with_metadata().collect_vec();
-        if previews_with_metadata.len() > 1 {
-            return Err(PinRecoveryError::MultiplePidCredentials(previews_with_metadata.len()));
-        }
-
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
         let pid_config = &config.pid_attributes;
         let pid_preview = Self::pid_preview(
-            previews_with_metadata.into_iter().map(|(preview, _)| preview),
+            issuance_session
+                .previews_with_metadata()
+                .collect_vec()
+                .into_iter()
+                .map(|(preview, _)| preview),
             pid_config,
         )?;
 
