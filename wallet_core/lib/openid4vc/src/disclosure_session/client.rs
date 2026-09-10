@@ -708,8 +708,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_vp_disclosure_client_does_not_report_malformed_registration_certificate() {
+    #[rstest]
+    #[case::not_an_envelope(b"not a registration certificate")]
+    #[case::missing_jwt_part(b"header.payload")]
+    #[case::extra_jwt_part(b"header.payload.signature.extra")]
+    #[case::invalid_utf8(b"\xff")]
+    fn test_vp_disclosure_client_does_not_report_malformed_registration_certificate(
+        #[case] malformed_certificate: &[u8],
+    ) {
         let verifier_session = MockVerifierSession::new(
             &VERIFIER_URL,
             SessionType::SameDevice,
@@ -725,7 +731,7 @@ mod tests {
         ))
         .unwrap();
         auth_request["verifier_info"][0]["data"] =
-            serde_json::Value::String(BASE64_URL_SAFE_NO_PAD.encode(b"not a registration certificate"));
+            serde_json::Value::String(BASE64_URL_SAFE_NO_PAD.encode(malformed_certificate));
         let signed_auth_request = SignedJwt::<_, HeaderWithX5c>::sign_with_certificate(
             &MalformedVpAuthorizationRequest(auth_request),
             &verifier_session.key_pair,

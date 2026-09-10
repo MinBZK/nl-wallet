@@ -19,13 +19,22 @@ use utils::generator::Generator;
 use super::UncheckedRegistrationCertificate;
 
 #[derive(Debug, thiserror::Error)]
+pub enum RegistrationCertificateJwtParseError {
+    #[error("not valid UTF-8: {0}")]
+    Utf8(#[from] str::Utf8Error),
+    #[error(transparent)]
+    Jwt(#[from] JwtParseError),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateEnvelopeParseError {
     #[error("could not decode registration certificate as Base64: {0}")]
     Base64(#[source] DecodeError),
-    #[error("could not parse registration certificate JWT: {0}")]
-    Jwt(#[source] JwtParseError),
-    #[error("could not parse registration certificate CWT: {0}")]
-    Cwt(#[source] WrprcCwtError),
+    #[error("could not parse registration certificate as JWT ({jwt}) or CWT ({cwt})")]
+    NeitherFormat {
+        jwt: RegistrationCertificateJwtParseError,
+        cwt: Box<WrprcCwtError>,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -49,16 +58,15 @@ impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
     type Error = RegistrationCertificateEnvelopeParseError;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        match str::from_utf8(bytes) {
-            Ok(compact_jwt) if compact_jwt.split('.').count() == 3 => compact_jwt
-                .parse()
-                .map(Self::Jwt)
-                .map_err(RegistrationCertificateEnvelopeParseError::Jwt),
-            _ => UnverifiedWrprcCwt::from_slice(bytes)
+        Self::parse_jwt(bytes).or_else(|jwt| {
+            UnverifiedWrprcCwt::from_slice(bytes)
                 .map(Box::new)
                 .map(Self::Cwt)
-                .map_err(RegistrationCertificateEnvelopeParseError::Cwt),
-        }
+                .map_err(|cwt| RegistrationCertificateEnvelopeParseError::NeitherFormat {
+                    jwt,
+                    cwt: Box::new(cwt),
+                })
+        })
     }
 }
 
@@ -83,6 +91,17 @@ impl TryFrom<&RegistrationCertificateEnvelope> for String {
 }
 
 impl RegistrationCertificateEnvelope {
+    fn parse_jwt(bytes: &[u8]) -> Result<Self, RegistrationCertificateJwtParseError> {
+        let compact_jwt = str::from_utf8(bytes)?;
+        let parts = compact_jwt.split('.').count();
+
+        if parts != 3 {
+            return Err(JwtParseError::UnexpectedNumberOfParts(parts).into());
+        }
+
+        Ok(Self::Jwt(compact_jwt.parse()?))
+    }
+
     pub fn to_vec(&self) -> Result<Vec<u8>, WrprcCwtError> {
         match self {
             Self::Jwt(jwt) => Ok(jwt.serialization().as_bytes().to_vec()),

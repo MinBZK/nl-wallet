@@ -2206,19 +2206,40 @@ mod tests {
     }
 
     #[test]
-    fn registration_certificate_verifier_info_should_reject_malformed_data() {
-        serde_json::from_value::<VerifierInfo>(json!({
+    fn registration_certificate_verifier_info_should_reject_malformed_base64() {
+        let error = serde_json::from_value::<VerifierInfo>(json!({
             "format": REGISTRATION_CERTIFICATE_FORMAT,
             "data": "***",
         }))
         .unwrap_err();
 
-        let invalid_envelope = BASE64_URL_SAFE_NO_PAD.encode(b"not a registration certificate");
-        serde_json::from_value::<VerifierInfo>(json!({
+        assert!(
+            error
+                .to_string()
+                .contains("could not decode registration certificate as Base64")
+        );
+    }
+
+    #[rstest]
+    #[case::not_an_envelope(b"not a registration certificate", "expected 3, found 1")]
+    #[case::missing_jwt_part(b"header.payload", "expected 3, found 2")]
+    #[case::extra_jwt_part(b"header.payload.signature.extra", "expected 3, found 4")]
+    #[case::invalid_utf8(b"\xff", "not valid UTF-8")]
+    fn registration_certificate_verifier_info_should_report_both_parse_errors(
+        #[case] malformed_certificate: &[u8],
+        #[case] jwt_error: &str,
+    ) {
+        let invalid_envelope = BASE64_URL_SAFE_NO_PAD.encode(malformed_certificate);
+        let error = serde_json::from_value::<VerifierInfo>(json!({
             "format": REGISTRATION_CERTIFICATE_FORMAT,
             "data": invalid_envelope,
         }))
         .unwrap_err();
+
+        let error = error.to_string();
+        assert!(error.contains("as JWT ("));
+        assert!(error.contains(jwt_error));
+        assert!(error.contains("or CWT ("));
     }
 
     #[test]
