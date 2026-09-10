@@ -195,7 +195,7 @@ pub enum CertificateVerificationError {
 pub struct VerifierUseCase<'a> {
     pub id: &'a str,
     pub key_pair: &'a KeyPair,
-    pub registration_certificate: Option<&'a [u8]>,
+    pub registration_certificate: &'a RegistrationCertificateEnvelope,
     pub dcql_query: Option<&'a Query>,
 }
 
@@ -203,8 +203,6 @@ pub struct VerifierUseCase<'a> {
 pub enum VerifierUseCasesValidationError {
     #[error("{0}")]
     Certificate(#[source] CertificateVerificationError),
-    #[error("missing registration certificate for use case `{use_case_id}`")]
-    MissingRegistrationCertificate { use_case_id: String },
     #[error("invalid registration certificate for use case `{use_case_id}`: {source}")]
     InvalidRegistrationCertificate {
         use_case_id: String,
@@ -271,14 +269,8 @@ pub fn validate_verifier_use_cases(
         .map_err(VerifierUseCasesValidationError::Certificate)?;
 
     for use_case in use_cases {
-        let registration_certificate = use_case.registration_certificate.ok_or_else(|| {
-            VerifierUseCasesValidationError::MissingRegistrationCertificate {
-                use_case_id: use_case.id.to_string(),
-            }
-        })?;
-
         let registration_certificate = validate_registration_certificate(
-            registration_certificate,
+            use_case.registration_certificate,
             &use_case.key_pair.certificate,
             wrprc_trust_anchors,
             time,
@@ -304,16 +296,15 @@ pub fn validate_verifier_use_cases(
 }
 
 fn validate_registration_certificate(
-    registration_certificate: &[u8],
+    registration_certificate: &RegistrationCertificateEnvelope,
     access_certificate: &BorrowingCertificate,
     trust_anchors: &TrustAnchors,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<StructurallyValidatedRegistrationCertificate, anyhow::Error> {
     let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
 
-    let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate)?;
     let payload =
-        verify_registration_certificate_envelope(&registration_certificate, trust_anchors, time)?.into_payload();
+        verify_registration_certificate_envelope(registration_certificate, trust_anchors, time)?.into_payload();
 
     payload
         .validate_structure(&access_subject, time.generate())

@@ -2,6 +2,7 @@ use std::assert_matches;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::x509::RelyingParty;
 use chrono::Duration;
 use chrono::Utc;
@@ -96,7 +97,10 @@ fn registration_certificate(
     }
 }
 
-fn to_use_case(key_pair: KeyPair, registration_certificate: Option<Vec<u8>>) -> UseCaseSettings {
+fn to_use_case(key_pair: KeyPair, registration_certificate: &[u8]) -> UseCaseSettings {
+    let registration_certificate =
+        RegistrationCertificateEnvelope::try_from(registration_certificate).expect("valid registration certificate");
+
     UseCaseSettings {
         session_type_return_url: SessionTypeReturnUrl::Both,
         key_pair: key_pair.into(),
@@ -172,7 +176,7 @@ fn test_settings_success() {
     let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
     usecases.insert(
         "valid".to_string(),
-        to_use_case(wrpac_cert_valid, Some(registration_certificate)),
+        to_use_case(wrpac_cert_valid, &registration_certificate),
     );
 
     settings.usecases = usecases.into();
@@ -197,7 +201,7 @@ fn test_settings_no_wrpac_trust_anchors() {
     let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
     usecases.insert(
         "valid".to_string(),
-        to_use_case(wrpac_cert_valid, Some(registration_certificate)),
+        to_use_case(wrpac_cert_valid, &registration_certificate),
     );
 
     settings.usecases = usecases.into();
@@ -227,7 +231,7 @@ fn test_settings_wrong_wrpac_ca() {
     let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
     usecases.insert(
         "wrong_ca".to_string(),
-        to_use_case(wrpac_cert_wrong, Some(registration_certificate)),
+        to_use_case(wrpac_cert_wrong, &registration_certificate),
     );
 
     settings.usecases = usecases.into();
@@ -252,28 +256,11 @@ fn test_settings_accepts_cwt_registration_certificate() {
     let registration_certificate =
         registration_certificate(&wrpac, &wrprc_ca, RegistrationCertificateFormat::Cwt, None);
 
-    settings.usecases =
-        HashMap::from([("valid".to_string(), to_use_case(wrpac, Some(registration_certificate)))]).into();
+    settings.usecases = HashMap::from([("valid".to_string(), to_use_case(wrpac, &registration_certificate))]).into();
     settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
     settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
 
     settings.validate().expect("should succeed");
-}
-
-#[test]
-fn test_settings_requires_registration_certificate() {
-    let mut settings = default_settings();
-    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
-    let wrpac = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
-
-    settings.usecases = HashMap::from([("missing".to_string(), to_use_case(wrpac, None))]).into();
-    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
-
-    assert_matches!(
-        settings.validate(),
-        Err(VerifierSettingsValidationError::MissingRegistrationCertificate { usecase_id })
-            if usecase_id == "missing"
-    );
 }
 
 #[test]
@@ -289,11 +276,7 @@ fn test_settings_rejects_registration_certificate_for_other_access_certificate()
         Some("NTRNL-00000000"),
     );
 
-    settings.usecases = HashMap::from([(
-        "mismatch".to_string(),
-        to_use_case(wrpac, Some(registration_certificate)),
-    )])
-    .into();
+    settings.usecases = HashMap::from([("mismatch".to_string(), to_use_case(wrpac, &registration_certificate))]).into();
     settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
     settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
 
@@ -312,7 +295,7 @@ fn test_settings_rejects_dcql_query_not_authorized_by_registration_certificate()
     let wrprc_ca = Ca::generate_mock();
     let registration_certificate =
         registration_certificate(&wrpac, &wrprc_ca, RegistrationCertificateFormat::Jwt, None);
-    let mut use_case = to_use_case(wrpac, Some(registration_certificate));
+    let mut use_case = to_use_case(wrpac, &registration_certificate);
     use_case.dcql_query = Some(unauthorized_query());
 
     settings.usecases = HashMap::from([("unauthorized".to_string(), use_case)]).into();

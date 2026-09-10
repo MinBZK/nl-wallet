@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Context;
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use config::Config;
@@ -29,9 +28,7 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCaseData;
 use ring::hmac;
 use serde::Deserialize;
-use serde_with::base64::Base64;
-use serde_with::base64::UrlSafe;
-use serde_with::formats::Unpadded;
+use serde_with::TryFromIntoRef;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeyVariant;
@@ -96,8 +93,8 @@ pub struct UseCaseSettings {
     pub key_pair: KeyPair,
 
     /// Base64url-encoded Wallet Relying Party Registration Certificate (WRPRC).
-    #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
-    pub registration_certificate: Option<Vec<u8>>,
+    #[serde_as(as = "TryFromIntoRef<String>")]
+    pub registration_certificate: RegistrationCertificateEnvelope,
 
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
@@ -134,15 +131,11 @@ impl UseCasesSettings {
 
 impl UseCaseSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
-        let registration_certificate = self
-            .registration_certificate
-            .context("registration certificate should have been validated at startup")?;
-        let registration_certificate = RegistrationCertificateEnvelope::try_from(registration_certificate.as_slice())?;
         let use_case = RpInitiatedUseCase::new(
             UseCaseData::new(
                 self.key_pair.parse(hsm).await?,
                 self.session_type_return_url,
-                registration_certificate,
+                self.registration_certificate,
             ),
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
@@ -158,8 +151,6 @@ impl UseCaseSettings {
 pub enum VerifierSettingsValidationError {
     #[error("{0}")]
     Certificate(#[source] CertificateVerificationError),
-    #[error("missing registration certificate for use case `{usecase_id}`")]
-    MissingRegistrationCertificate { usecase_id: String },
     #[error("invalid registration certificate for use case `{usecase_id}`: {source}")]
     InvalidRegistrationCertificate {
         usecase_id: String,
@@ -178,11 +169,6 @@ impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
     fn from(value: VerifierUseCasesValidationError) -> Self {
         match value {
             VerifierUseCasesValidationError::Certificate(error) => Self::Certificate(error),
-            VerifierUseCasesValidationError::MissingRegistrationCertificate { use_case_id } => {
-                Self::MissingRegistrationCertificate {
-                    usecase_id: use_case_id,
-                }
-            }
             VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
                 Self::InvalidRegistrationCertificate {
                     usecase_id: use_case_id,
@@ -268,7 +254,7 @@ impl ServerSettings for VerifierSettings {
             .map(|(use_case_id, use_case)| VerifierUseCase {
                 id: use_case_id,
                 key_pair: &use_case.key_pair,
-                registration_certificate: use_case.registration_certificate.as_deref(),
+                registration_certificate: &use_case.registration_certificate,
                 dcql_query: use_case.dcql_query.as_ref(),
             })
             .collect::<Vec<_>>();

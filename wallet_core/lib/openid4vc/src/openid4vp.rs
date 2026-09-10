@@ -65,6 +65,7 @@ use serde_with::DeserializeAs;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
+use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use token_status_list::verification::client::StatusListClient;
@@ -176,7 +177,7 @@ pub struct VpAuthorizationRequest {
 pub enum VerifierInfo {
     #[serde(rename = "registration_cert")]
     RegistrationCertificate {
-        #[serde_as(as = "RegistrationCertificateEnvelopeBase64")]
+        #[serde_as(as = "TryFromIntoRef<String>")]
         data: RegistrationCertificateEnvelope,
     },
 
@@ -230,33 +231,6 @@ where
             .map_err(|error| serde::de::Error::custom(format!("error parsing entry as JSON: {error}")))?;
 
         Ok(value)
-    }
-}
-
-/// A registration-certificate envelope encoded as a URL-safe-no-pad Base64 string.
-pub struct RegistrationCertificateEnvelopeBase64;
-
-impl SerializeAs<RegistrationCertificateEnvelope> for RegistrationCertificateEnvelopeBase64 {
-    fn serialize_as<S>(source: &RegistrationCertificateEnvelope, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let bytes = source.to_vec().map_err(serde::ser::Error::custom)?;
-        BASE64_URL_SAFE_NO_PAD.encode(bytes).serialize(serializer)
-    }
-}
-
-impl<'de> DeserializeAs<'de, RegistrationCertificateEnvelope> for RegistrationCertificateEnvelopeBase64 {
-    fn deserialize_as<D>(deserializer: D) -> Result<RegistrationCertificateEnvelope, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let base64 = String::deserialize(deserializer)?;
-        let bytes = BASE64_URL_SAFE_NO_PAD
-            .decode(base64)
-            .map_err(serde::de::Error::custom)?;
-
-        RegistrationCertificateEnvelope::try_from(bytes.as_slice()).map_err(serde::de::Error::custom)
     }
 }
 
@@ -572,7 +546,7 @@ pub struct NormalizedVpAuthorizationRequest {
     pub client_metadata: VpClientMetadata,
     pub state: Option<String>,
     pub wallet_nonce: Option<String>,
-    #[serde_as(as = "RegistrationCertificateEnvelopeBase64")]
+    #[serde_as(as = "TryFromIntoRef<String>")]
     pub registration_certificate: RegistrationCertificateEnvelope,
 }
 

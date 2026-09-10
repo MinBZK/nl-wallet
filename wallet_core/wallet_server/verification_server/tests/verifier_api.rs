@@ -12,6 +12,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_data::registration_certificate::mock::StaticStatusListClient;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
@@ -158,7 +159,10 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
-            registration_certificate: Some(registration_certificate.certificate),
+            registration_certificate: RegistrationCertificateEnvelope::try_from(
+                registration_certificate.certificate.as_slice(),
+            )
+            .unwrap(),
             dcql_query: None,
             return_url_template: None,
             disclosure_base_deep_link: None,

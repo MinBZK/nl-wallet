@@ -1,6 +1,8 @@
 use std::fmt;
 use std::str;
 
+use base64::DecodeError;
+use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
@@ -19,6 +21,8 @@ use super::UncheckedRegistrationCertificate;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateEnvelopeParseError {
+    #[error("could not decode registration certificate as Base64: {0}")]
+    Base64(#[source] DecodeError),
     #[error("could not parse registration certificate JWT: {0}")]
     Jwt(#[source] JwtParseError),
     #[error("could not parse registration certificate CWT: {0}")]
@@ -65,6 +69,26 @@ impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
                 .map(Self::Cwt)
                 .map_err(RegistrationCertificateEnvelopeParseError::Cwt),
         }
+    }
+}
+
+impl TryFrom<String> for RegistrationCertificateEnvelope {
+    type Error = RegistrationCertificateEnvelopeParseError;
+
+    fn try_from(base64: String) -> Result<Self, Self::Error> {
+        let bytes = BASE64_URL_SAFE_NO_PAD
+            .decode(base64)
+            .map_err(RegistrationCertificateEnvelopeParseError::Base64)?;
+
+        Self::try_from(bytes.as_slice())
+    }
+}
+
+impl TryFrom<&RegistrationCertificateEnvelope> for String {
+    type Error = WrprcCwtError;
+
+    fn try_from(envelope: &RegistrationCertificateEnvelope) -> Result<Self, Self::Error> {
+        Ok(BASE64_URL_SAFE_NO_PAD.encode(envelope.to_vec()?))
     }
 }
 

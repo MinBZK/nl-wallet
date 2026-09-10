@@ -21,28 +21,6 @@ fn test_settings_success() {
 }
 
 #[test]
-fn test_settings_requires_registration_certificate() {
-    let mut settings = settings();
-    settings
-        .verifier_settings
-        .disclosure_settings
-        .retain(|use_case_id, _| use_case_id == UNIVERSITY_USE_CASE_ID);
-    settings
-        .verifier_settings
-        .disclosure_settings
-        .get_mut(UNIVERSITY_USE_CASE_ID)
-        .unwrap()
-        .registration_certificate = None;
-
-    assert_matches!(
-        settings.validate(),
-        Err(IssuanceServerSettingsValidationError::Verifier(
-            VerifierSettingsValidationError::MissingRegistrationCertificate { use_case_id }
-        )) if use_case_id == UNIVERSITY_USE_CASE_ID
-    );
-}
-
-#[test]
 fn test_settings_rejects_dcql_query_not_authorized_by_registration_certificate() {
     let mut settings = settings();
     settings

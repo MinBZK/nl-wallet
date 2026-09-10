@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
-use attestation_data::registration_certificate::RegistrationCertificateEnvelopeParseError;
 use axum::Router;
 use config::Config;
 use config::ConfigError;
@@ -32,9 +31,7 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::verifier::VerifierFactory;
 use serde::Deserialize;
-use serde_with::base64::Base64;
-use serde_with::base64::UrlSafe;
-use serde_with::formats::Unpadded;
+use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::settings::CertificateVerificationError;
@@ -93,9 +90,9 @@ pub struct AttestationSettings {
     pub key_pair: KeyPair,
 
     /// Base64url-encoded Wallet Relying Party Registration Certificate (WRPRC).
-    #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
+    #[serde_as(as = "TryFromIntoRef<String>")]
     #[debug(skip)]
-    pub registration_certificate: Option<Vec<u8>>,
+    pub registration_certificate: RegistrationCertificateEnvelope,
 
     pub dcql_query: Query,
 
@@ -210,9 +207,6 @@ pub enum VerifierSettingsValidationError {
     #[error("{0}")]
     Certificate(#[source] CertificateVerificationError),
 
-    #[error("missing registration certificate for disclosure setting `{use_case_id}`")]
-    MissingRegistrationCertificate { use_case_id: String },
-
     #[error("invalid registration certificate for disclosure setting `{use_case_id}`: {source}")]
     InvalidRegistrationCertificate {
         use_case_id: String,
@@ -234,9 +228,6 @@ impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
     fn from(value: VerifierUseCasesValidationError) -> Self {
         match value {
             VerifierUseCasesValidationError::Certificate(error) => Self::Certificate(error),
-            VerifierUseCasesValidationError::MissingRegistrationCertificate { use_case_id } => {
-                Self::MissingRegistrationCertificate { use_case_id }
-            }
             VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
                 Self::InvalidRegistrationCertificate { use_case_id, source }
             }
@@ -257,16 +248,6 @@ pub enum VerifierSettingsError {
 
     #[error("could not initialize attributes fetcher: {0}")]
     AttributesFetcher(#[source] reqwest::Error),
-
-    #[error("missing registration certificate for disclosure setting `{use_case_id}`")]
-    MissingRegistrationCertificate { use_case_id: String },
-
-    #[error("invalid registration certificate for disclosure setting `{use_case_id}`: {source}")]
-    InvalidRegistrationCertificate {
-        use_case_id: String,
-        #[source]
-        source: RegistrationCertificateEnvelopeParseError,
-    },
 }
 
 impl VerifierSettings {
@@ -277,7 +258,7 @@ impl VerifierSettings {
             .map(|(use_case_id, settings)| VerifierUseCase {
                 id: use_case_id,
                 key_pair: &settings.key_pair,
-                registration_certificate: settings.registration_certificate.as_deref(),
+                registration_certificate: &settings.registration_certificate,
                 dcql_query: Some(&settings.dcql_query),
             })
             .collect::<Vec<_>>();
@@ -307,18 +288,6 @@ impl VerifierSettings {
             .map(|((id, attestation), hsm)| {
                 let use_case_id = id.clone();
                 let use_case_future = async {
-                    let registration_certificate = attestation.registration_certificate.ok_or_else(|| {
-                        VerifierSettingsError::MissingRegistrationCertificate {
-                            use_case_id: use_case_id.clone(),
-                        }
-                    })?;
-                    let registration_certificate = RegistrationCertificateEnvelope::try_from(
-                        registration_certificate.as_slice(),
-                    )
-                    .map_err(|source| VerifierSettingsError::InvalidRegistrationCertificate {
-                        use_case_id: use_case_id.clone(),
-                        source,
-                    })?;
                     let key_pair = attestation
                         .key_pair
                         .parse(hsm)
@@ -326,7 +295,11 @@ impl VerifierSettings {
                         .map_err(VerifierSettingsError::PrivateKey)?;
 
                     let use_case = WalletInitiatedUseCase::new(
-                        UseCaseData::new(key_pair, SessionTypeReturnUrl::Both, registration_certificate),
+                        UseCaseData::new(
+                            key_pair,
+                            SessionTypeReturnUrl::Both,
+                            attestation.registration_certificate,
+                        ),
                         attestation.dcql_query.try_into().map_err(VerifierSettingsError::Dcql)?,
                         format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
                     );
