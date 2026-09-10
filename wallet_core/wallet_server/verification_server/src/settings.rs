@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use config::Config;
 use config::ConfigError;
@@ -32,7 +31,6 @@ use serde_with::TryFromIntoRef;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeyVariant;
-use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
@@ -147,44 +145,6 @@ impl UseCaseSettings {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum VerifierSettingsValidationError {
-    #[error("{0}")]
-    Certificate(#[source] CertificateVerificationError),
-    #[error("invalid registration certificate for use case `{usecase_id}`: {source}")]
-    InvalidRegistrationCertificate {
-        usecase_id: String,
-        #[source]
-        source: anyhow::Error,
-    },
-    #[error("DCQL query for use case `{usecase_id}` is not authorized by its registration certificate: {source}")]
-    UnauthorizedDcqlQuery {
-        usecase_id: String,
-        #[source]
-        source: RegistrationCertificateAuthorizationError,
-    },
-}
-
-impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
-    fn from(value: VerifierUseCasesValidationError) -> Self {
-        match value {
-            VerifierUseCasesValidationError::Certificate(error) => Self::Certificate(error),
-            VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
-                Self::InvalidRegistrationCertificate {
-                    usecase_id: use_case_id,
-                    source,
-                }
-            }
-            VerifierUseCasesValidationError::UnauthorizedDcqlQuery { use_case_id, source } => {
-                Self::UnauthorizedDcqlQuery {
-                    usecase_id: use_case_id,
-                    source,
-                }
-            }
-        }
-    }
-}
-
 impl From<&EphemeralIdSecret> for hmac::Key {
     fn from(value: &EphemeralIdSecret) -> Self {
         hmac::Key::new(hmac::HMAC_SHA256, value.as_ref())
@@ -192,7 +152,7 @@ impl From<&EphemeralIdSecret> for hmac::Key {
 }
 
 impl ServerSettings for VerifierSettings {
-    type ValidationError = VerifierSettingsValidationError;
+    type ValidationError = VerifierUseCasesValidationError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
@@ -244,7 +204,7 @@ impl ServerSettings for VerifierSettings {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<(), VerifierSettingsValidationError> {
+    fn validate(&self) -> Result<(), VerifierUseCasesValidationError> {
         tracing::debug!("verifying verifier.usecases certificates");
 
         let use_cases = self
@@ -265,7 +225,6 @@ impl ServerSettings for VerifierSettings {
             &self.server_settings.wrprc_trust_anchors,
             &TimeGenerator,
         )
-        .map_err(Into::into)
     }
 
     fn server_settings(&self) -> &Settings {

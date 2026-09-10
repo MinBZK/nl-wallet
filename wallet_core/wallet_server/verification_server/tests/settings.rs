@@ -24,12 +24,12 @@ use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
+use server_utils::settings::VerifierUseCasesValidationError;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use utils::generator::TimeGenerator;
 use verification_server::settings::EphemeralIdSecret;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use verification_server::settings::VerifierSettingsValidationError;
 
 const ANNEX_C_EXAMPLE: &str =
     include_str!("../../../lib/attestation_data/examples/spec/registration_certificate_annex_c.json");
@@ -211,7 +211,7 @@ fn test_settings_no_wrpac_trust_anchors() {
     let error = settings.validate().expect_err("should fail");
     assert_matches!(
         error,
-        VerifierSettingsValidationError::Certificate(CertificateVerificationError::MissingTrustAnchors)
+        VerifierUseCasesValidationError::Certificate(CertificateVerificationError::MissingTrustAnchors)
     );
 }
 
@@ -241,7 +241,7 @@ fn test_settings_wrong_wrpac_ca() {
     let error = settings.validate().expect_err("should fail");
     assert_matches!(
         error,
-        VerifierSettingsValidationError::Certificate(CertificateVerificationError::InvalidCertificate(
+        VerifierUseCasesValidationError::Certificate(CertificateVerificationError::InvalidCertificate(
             CertificateError::Verification(_), key
         )) if key == "wrong_ca"
     );
@@ -282,8 +282,8 @@ fn test_settings_rejects_registration_certificate_for_other_access_certificate()
 
     assert_matches!(
         settings.validate(),
-        Err(VerifierSettingsValidationError::InvalidRegistrationCertificate { usecase_id, .. })
-            if usecase_id == "mismatch"
+        Err(VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, .. })
+            if use_case_id == "mismatch"
     );
 }
 
@@ -304,7 +304,7 @@ fn test_settings_rejects_dcql_query_not_authorized_by_registration_certificate()
 
     assert_matches!(
         settings.validate(),
-        Err(VerifierSettingsValidationError::UnauthorizedDcqlQuery { usecase_id, .. })
-            if usecase_id == "unauthorized"
+        Err(VerifierUseCasesValidationError::UnauthorizedDcqlQuery { use_case_id, .. })
+            if use_case_id == "unauthorized"
     );
 }

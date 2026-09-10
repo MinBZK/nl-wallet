@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use axum::Router;
 use config::Config;
@@ -34,7 +33,6 @@ use serde::Deserialize;
 use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
-use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
@@ -199,43 +197,7 @@ pub enum IssuanceServerSettingsValidationError {
     Issuer(#[source] IssuerSettingsValidationError),
 
     #[error("{0}")]
-    Verifier(#[source] VerifierSettingsValidationError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum VerifierSettingsValidationError {
-    #[error("{0}")]
-    Certificate(#[source] CertificateVerificationError),
-
-    #[error("invalid registration certificate for disclosure setting `{use_case_id}`: {source}")]
-    InvalidRegistrationCertificate {
-        use_case_id: String,
-        #[source]
-        source: anyhow::Error,
-    },
-
-    #[error(
-        "DCQL query for disclosure setting `{use_case_id}` is not authorized by its registration certificate: {source}"
-    )]
-    UnauthorizedDcqlQuery {
-        use_case_id: String,
-        #[source]
-        source: RegistrationCertificateAuthorizationError,
-    },
-}
-
-impl From<VerifierUseCasesValidationError> for VerifierSettingsValidationError {
-    fn from(value: VerifierUseCasesValidationError) -> Self {
-        match value {
-            VerifierUseCasesValidationError::Certificate(error) => Self::Certificate(error),
-            VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source } => {
-                Self::InvalidRegistrationCertificate { use_case_id, source }
-            }
-            VerifierUseCasesValidationError::UnauthorizedDcqlQuery { use_case_id, source } => {
-                Self::UnauthorizedDcqlQuery { use_case_id, source }
-            }
-        }
-    }
+    Verifier(#[source] VerifierUseCasesValidationError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -251,7 +213,7 @@ pub enum VerifierSettingsError {
 }
 
 impl VerifierSettings {
-    fn validate(&self, wrprc_trust_anchors: &TrustAnchors) -> Result<(), VerifierSettingsValidationError> {
+    fn validate(&self, wrprc_trust_anchors: &TrustAnchors) -> Result<(), VerifierUseCasesValidationError> {
         let use_cases = self
             .disclosure_settings
             .iter()
@@ -269,7 +231,6 @@ impl VerifierSettings {
             wrprc_trust_anchors,
             &TimeGenerator,
         )
-        .map_err(Into::into)
     }
 
     pub async fn into_disclosure_router(
