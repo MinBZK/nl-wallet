@@ -352,6 +352,10 @@ and optionally <code class="docutils literal notranslate"><span class="pre">prev
 <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> is used to identify the current certificate
 signing key, and <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code> is used to accept certificates
 signed with previous signing keys after key rollover.</p></li>
+<li><p>The Wallet Provider settings now requires a <code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">instruction_result_signing_key_identifier</span></code>. The
+<code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> is used to identify the current instruction
+result signing key.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -403,6 +407,11 @@ and a Docker image built in CI (<code class="docutils literal notranslate"><span
 related keys (wallet certificate signing key and PIN HMAC key). This is done
 by updating the <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> and
 <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code> fields in the Wallet Provider settings.</p></li>
+<li><p>The Wallet Provider now supports key rollover for the instruction result
+signing key. The Wallet Configuration’s <code class="docutils literal notranslate"><span class="pre">instruction_result_public_keys</span></code>
+field maps key identifiers to public keys, and the Wallet Provider’s
+<code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> setting selects which key is currently used
+for signing.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
