@@ -1,3 +1,4 @@
+use attestation_types::claim_path::ClaimPath;
 use dcql::ClaimsQuery;
 use dcql::ClaimsSelection;
 use dcql::CredentialQuery;
@@ -89,7 +90,20 @@ fn format_is_authorized(requested: &CredentialQueryFormat, authorized: &Credenti
 }
 
 fn claim_is_authorized(requested: &ClaimsQuery, authorized: &ClaimsQuery) -> bool {
-    if requested.path != authorized.path {
+    // An authorized array wildcard permits a requested index, but not the reverse.
+    let path_is_authorized = requested.path.len() == authorized.path.len()
+        && requested
+            .path
+            .iter()
+            .zip(authorized.path.iter())
+            .all(|(requested, authorized)| {
+                requested == authorized
+                    || matches!(
+                        (requested, authorized),
+                        (ClaimPath::SelectByIndex(_), ClaimPath::SelectAll)
+                    )
+            });
+    if !path_is_authorized {
         return false;
     }
 
@@ -159,6 +173,62 @@ mod tests {
         );
 
         validate_query_authorization(&query, &[authorized_sd_jwt()]).unwrap();
+    }
+
+    #[rstest]
+    #[case::wildcard_allows_first_index(json!(["items", null]), json!(["items", 0]), true)]
+    #[case::wildcard_allows_other_index(json!(["items", null]), json!(["items", 2]), true)]
+    #[case::matching_wildcards(json!(["items", null]), json!(["items", null]), true)]
+    #[case::matching_indices(json!(["items", 2]), json!(["items", 2]), true)]
+    #[case::nested_wildcards(json!(["items", null, "names", null]), json!(["items", 2, "names", 1]), true)]
+    #[case::index_does_not_allow_wildcard(json!(["items", 2]), json!(["items", null]), false)]
+    #[case::different_indices(json!(["items", 2]), json!(["items", 3]), false)]
+    #[case::wildcard_does_not_allow_key(json!(["items", null]), json!(["items", "2"]), false)]
+    #[case::key_does_not_allow_index(json!(["items", "2"]), json!(["items", 2]), false)]
+    #[case::different_parent(json!(["items", null]), json!(["other", 2]), false)]
+    #[case::different_child(json!(["items", null, "name"]), json!(["items", 2, "age"]), false)]
+    #[case::shorter_request(json!(["items", null]), json!(["items"]), false)]
+    #[case::longer_request(json!(["items", null]), json!(["items", 2, "name"]), false)]
+    fn validate_array_claim_path_authorization(
+        #[case] authorized_path: Value,
+        #[case] requested_path: Value,
+        #[case] expected_authorized: bool,
+    ) {
+        let query = sd_jwt_query(&json!(["urn:example:pid"]), &json!([{ "path": requested_path }]));
+        let authorized = credential(json!({
+            "format": "dc+sd-jwt",
+            "meta": { "vct_values": ["urn:example:pid"] },
+            "claim": [{ "path": authorized_path }]
+        }));
+
+        assert_eq!(
+            validate_query_authorization(&query, &[authorized]).is_ok(),
+            expected_authorized
+        );
+    }
+
+    #[rstest]
+    #[case::allowed_value(json!([18]), true)]
+    #[case::unauthorized_value(json!([18, 65]), false)]
+    #[case::unrestricted_request(json!([]), false)]
+    fn array_claim_authorization_preserves_value_restrictions(
+        #[case] requested_values: Value,
+        #[case] expected_authorized: bool,
+    ) {
+        let query = sd_jwt_query(
+            &json!(["urn:example:pid"]),
+            &json!([{ "path": ["items", 2, "age"], "values": requested_values }]),
+        );
+        let authorized = credential(json!({
+            "format": "dc+sd-jwt",
+            "meta": { "vct_values": ["urn:example:pid"] },
+            "claim": [{ "path": ["items", null, "age"], "values": [18, 21] }]
+        }));
+
+        assert_eq!(
+            validate_query_authorization(&query, &[authorized]).is_ok(),
+            expected_authorized
+        );
     }
 
     #[test]
