@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use axum::Json;
 use axum::Router;
 use axum::extract::Path;

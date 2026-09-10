@@ -31,6 +31,7 @@ use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
+use utils::generator::TimeGenerator;
 use utils::generator::UuidV4AndTimeGenerator;
 use utoipa::OpenApi;
 use wallet_account::messages::instructions::CancelTransfer;
@@ -273,7 +274,12 @@ where
 
     let (certificate, revocation_code) = state
         .account_server
-        .register(&state.certificate_signing_key, payload, &state.user_state)
+        .register(
+            &state.certificate_signing_key,
+            payload,
+            &state.user_state,
+            &TimeGenerator,
+        )
         .await
         .inspect_err(|error| warn!("wallet registration failed: {}", error))?;
 

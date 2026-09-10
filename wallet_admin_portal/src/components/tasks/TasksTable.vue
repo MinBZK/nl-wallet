@@ -8,7 +8,7 @@
             <td>{{ task.id }}</td>
             <td>{{ task.action }}</td>
             <td>{{ task.target }}</td>
-            <td>{{ task.createdAt }}</td>
+            <td>{{ dateFormatter.format(task.createdAt) }}</td>
             <td>{{ task.createdBy }}</td>
             <td><a href="#" class="details">BEKIJK DETAILS</a></td>
           </tr>
@@ -20,16 +20,10 @@
 </template>
 
 <script setup lang="ts">
+import type { Task } from '@/types/task.ts'
+import { dateFormatter } from '@/utils/dateFormatters.ts'
 import EmptyState from '../ui/EmptyState.vue'
 import TasksTableHeader from './TasksTableHeader.vue'
-
-export interface Task {
-  id: string
-  action: string
-  target: string
-  createdAt: string
-  createdBy: string
-}
 
 defineProps<{
   columns: { label: string; width?: string }[]

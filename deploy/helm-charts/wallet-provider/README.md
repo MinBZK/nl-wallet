@@ -131,6 +131,13 @@
 | `hsm.configMapName`           | Name to the the ConfigMap containing the hsm config file | `nl-wallet-hsm-pkcs11` |
 | `hsm.configMapKey`            | Key of the the ConfigMap containing the hsm config file  | `cs_pkcs11_R3.cfg`     |
 
+### Key identifiers
+
+| Name                                     | Description                                                                           | Value |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- | ----- |
+| `keyIdentifiers.currentCertificateKid`   | The KID of the current certificate signing key and pin HMAC key combination           | `0`   |
+| `keyIdentifiers.previousCertificateKids` | A map of previous KIDs with expiry dates to be used for wallet certificate validation | `{}`  |
+
 ### Android parameters
 
 | Name                                 | Description                                                             | Value                               |

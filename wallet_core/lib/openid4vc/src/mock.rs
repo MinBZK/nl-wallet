@@ -3,10 +3,10 @@ use std::iter;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use dcql::disclosure::ExtendingVctRetriever;
-use indexmap::IndexSet;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::token::AuthorizationCode;
 pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
-use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 // Re-exported for convenience
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
@@ -14,10 +14,9 @@ use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-use crate::token::AuthorizationCode;
-use crate::token::TokenRequest;
+use crate::token::VciTokenRequest;
 
 pub struct ExtendingVctRetrieverStub;
 impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
@@ -26,51 +25,19 @@ impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
     }
 }
 
-impl AuthorizationServerMetadata {
-    /// Construct a new `AuthorizationServerMetadata` based on the OP's URL and some standardized or reasonable
-    /// defaults.
-    pub fn new_mock(issuer_identifier: IssuerIdentifier) -> Self {
-        let issuer_url = issuer_identifier.as_base_url();
-        let auth_url = issuer_url.join("/authorize");
-        let token_url = issuer_url.join("/issuance/token");
-        let challenge_url = issuer_url.join("/issuance/client_auth_challenge");
-        let jwks_url = issuer_url.join("/jwks.json");
-        let par_url = issuer_url.join("/par");
-
-        Self {
-            authorization_endpoint: Some(auth_url),
-            jwks_uri: Some(jwks_url),
-            userinfo_endpoint: Some(issuer_url.join("/userinfo")),
-            registration_endpoint: None,
-            scopes_supported: Some(IndexSet::from_iter(["openid".to_string()])),
-            response_types_supported: IndexSet::from_iter(
-                ["code", "code id_token", "id_token", "id_token token"].map(str::to_string),
-            ),
-            id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
-            pushed_authorization_request_endpoint: Some(par_url),
-            challenge_endpoint: Some(challenge_url),
-
-            ..AuthorizationServerMetadata::new(issuer_identifier, token_url)
-        }
-    }
-}
-
 impl IssuerMetadata {
     pub fn new_mock(
         issuer_identifier: IssuerIdentifier,
         credential_configs: Vec<(CredentialConfigurationId, CredentialKind)>,
     ) -> IssuerMetadata {
-        let issuer_url = issuer_identifier.as_issuer_url();
-        let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
-        let batch_credential_endpoint = issuer_url.join_issuer_url("/issuance/batch_credential");
-        let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
-        let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
+        let endpoints = IssuerEndpoints::new_mock(&issuer_identifier);
 
         let credential_configurations_supported = credential_configs
             .into_iter()
             .map(|(config_id, credential_kind)| {
                 let scope = format!("{config_id}_scope").parse().unwrap();
-                let type_metadata_uri = issuer_url
+                let type_metadata_uri = issuer_identifier
+                    .as_issuer_url()
                     .join_issuer_url("/issuance/type_metadata")
                     .join_config_id(&config_id);
 
@@ -100,14 +67,7 @@ impl IssuerMetadata {
         IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
-            endpoints: IssuerEndpoints {
-                credential_endpoint,
-                batch_credential_endpoint: Some(batch_credential_endpoint),
-                nonce_endpoint: Some(nonce_endpoint),
-                deferred_credential_endpoint: None,
-                notification_endpoint: None,
-                credential_preview_endpoint: Some(credential_preview_endpoint),
-            },
+            endpoints,
             credential_request_encryption: None,
             credential_response_encryption: None,
             batch_credential_issuance: Some(BatchCredentialIssuance {
@@ -119,12 +79,29 @@ impl IssuerMetadata {
     }
 }
 
-impl TokenRequest {
+impl IssuerEndpoints {
+    pub fn new_mock(issuer_identifier: &IssuerIdentifier) -> Self {
+        let issuer_url = issuer_identifier.as_issuer_url();
+        let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
+        let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
+        let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
+
+        Self {
+            credential_endpoint,
+            nonce_endpoint: Some(nonce_endpoint),
+            deferred_credential_endpoint: None,
+            notification_endpoint: None,
+            credential_preview_endpoint: Some(credential_preview_endpoint),
+        }
+    }
+}
+
+impl VciTokenRequest {
     pub fn new_mock() -> Self {
         Self::new_mock_with_pre_authorized_code("123".to_string().into())
     }
 
     pub fn new_mock_with_pre_authorized_code(pre_authorized_code: AuthorizationCode) -> Self {
-        TokenRequest::new_pre_authorized(pre_authorized_code)
+        VciTokenRequest::new_pre_authorized(pre_authorized_code)
     }
 }

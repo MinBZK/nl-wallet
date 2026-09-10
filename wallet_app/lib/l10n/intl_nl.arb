@@ -270,8 +270,19 @@
     "cardValueEmpty": "Leeg gelaten",
     "cardValueEmptyList": "Leeg gelaten",
     "cardValueFalse": "Nee",
+    "cardValueImage": "Foto",
+    "cardValueMapKeyAddress": "Adres",
+    "cardValueMapKeyCity": "Plaats",
+    "cardValueMapKeyCountry": "Land",
+    "cardValueMapKeyExpiryDate": "Vervaldatum",
+    "cardValueMapKeyFamilyName": "Achternaam",
+    "cardValueMapKeyGivenName": "Voornaam",
+    "cardValueMapKeyIssueDate": "Afgiftedatum",
+    "cardValueMapKeyPostalCode": "Postcode",
+    "cardValueMapKeyVehicleCategoryCode": "Voertuigcategorie",
     "cardValueNull": "Niet opgegeven",
     "cardValueTrue": "Ja",
+    "cardValueUnsupported": "Kan niet worden getoond",
     "changeLanguageScreenTitle": "Kies een taal",
     "changePinScreenConfirmNewPinTitle": "Gelukt! Herhaal je nieuwe pincode",
     "changePinScreenEnterCurrentPinTitle": "Voer eerst je huidige pincode in",
@@ -347,50 +358,6 @@
     "disclosureConfirmDataAttributesDisclaimer": "Deel alleen als je de organisatie en het verzoek vertrouwt.",
     "disclosureConfirmDataAttributesPageApproveCta": "Delen",
     "disclosureConfirmDataAttributesPageDenyCta": "Stop",
-    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {{organization} zal je gegevens 1 maand bewaren en niet delen met andere organisaties.} other {{organization} zal je gegevens {count} maanden bewaren en niet delen met andere organisaties.}}",
-    "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            },
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "De {organization} zal je gegevens niet bewaren en je gegevens worden niet gedeeld met andere organisaties",
-    "@disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {{organization} zal je gegevens 1 maand bewaren en kan deze delen met andere organisaties.} other {{organization} zal je gegevens {count} maanden bewaren en kan deze delen met andere organisaties.}}",
-    "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            },
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} zal je gegevens niet bewaren en kan deze delen met andere organisaties.",
-    "@disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
     "disclosureConfirmDataAttributesShareWithTitle": "Wil je de volgende gegevens delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -657,8 +624,6 @@
     "genericRelyingPartyErrorDescription": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "genericRelyingPartyErrorDescriptionWithOrganizationName": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, er gaat iets mis",
-    "helpScreenGroupTitleHelp": "Hulp",
-    "helpScreenGroupTitleInformation": "Informatie",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
     "@helpSheetErrorCode": {

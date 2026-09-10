@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::Path;
 
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_types::credential_kind::CredentialKind;
 use config::Config;
@@ -13,8 +12,8 @@ use derive_more::Into;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use oauth::issuer_identifier::IssuerIdentifier;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use serde::Deserialize;
 use serde_valid::Validate;
@@ -45,14 +44,14 @@ pub struct Server {
     pub port: u16,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum Usecase {
     PreAuthorized {
         data: IssuableDocumentTemplates,
     },
     DisclosureBased {
-        data: HashMap<AttributeValue, IssuableDocumentTemplates>,
+        data: HashMap<String, IssuableDocumentTemplates>,
         client_id: String,
         disclosed: Disclosed,
     },

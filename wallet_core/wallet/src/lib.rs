@@ -55,7 +55,6 @@ pub use crate::wallet::WalletState;
 
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;
-    pub use attestation_data::attributes::AttributeValue;
     pub use attestation_data::auth::LocalizedStrings;
     pub use attestation_data::auth::Organization;
     pub use attestation_data::disclosure_type::DisclosureType;
@@ -98,9 +97,12 @@ pub mod test {
     pub use crate::account_provider::AccountProviderClient;
     pub use crate::account_provider::HttpAccountProviderClient;
     pub use crate::account_provider::MockAccountProviderClient;
+    pub use crate::config::CONFIG_EXPIRY_LEEWAY;
     pub use crate::config::FileStorageConfigurationRepository;
     pub use crate::config::HttpConfigurationRepository;
     pub use crate::config::LocalConfigurationRepository;
+    pub use crate::config::ObservableConfigExpiry;
+    pub use crate::config::UpdatingConfigurationRepository;
     pub use crate::config::WalletConfigurationRepository;
     pub use crate::config::default_config_server_config;
     pub use crate::config::default_wallet_config;

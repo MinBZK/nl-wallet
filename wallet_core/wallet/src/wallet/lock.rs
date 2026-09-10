@@ -28,15 +28,15 @@ use crate::storage::Storage;
 use crate::storage::UnlockData;
 pub use crate::storage::UnlockMethod;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::PinRecoverySession;
 use crate::wallet::Session;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletUnlockError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -105,15 +105,14 @@ where
     #[instrument(skip_all)]
     pub async fn set_unlock_method(&mut self, method: UnlockMethod) -> Result<(), WalletUnlockError>
     where
+        CR: Repository<Arc<WalletConfiguration>>,
         UR: Repository<VersionState>,
         S: Storage,
     {
         info!("Setting unlock method to: {}", method);
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if self.lock.is_locked() {
@@ -159,10 +158,8 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -206,10 +203,8 @@ where
     {
         info!("Unlocking wallet with pin");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if !self.lock.is_locked() {
@@ -233,10 +228,8 @@ where
         S: Storage,
         APC: AccountProviderClient,
     {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking pin");
         self.send_check_pin_instruction(pin).await
@@ -250,10 +243,8 @@ where
         S: Storage,
     {
         info!("Unlocking wallet without pin");
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if !self.lock.is_locked() {

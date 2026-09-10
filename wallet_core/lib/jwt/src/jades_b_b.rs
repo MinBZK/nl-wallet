@@ -39,7 +39,7 @@ pub type JadesbbHeader = HeaderWithX5c<JadesbbInnerHeader>;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JadesbbInnerHeader {
     #[serde(flatten)]
-    pub inner: HeaderWithTyp,
+    inner: HeaderWithTyp,
 
     // required by the spec, but optional for interoperability concerns. Note: after decoding this will always be
     // `None` because `jsonwebtoken::Header` does not include it
@@ -50,6 +50,12 @@ pub struct JadesbbInnerHeader {
     )]
     pub iat: Option<DateTime<Utc>>,
     // `sigT` field is not allowed, but ignored for interoperability concerns
+}
+
+impl JadesbbInnerHeader {
+    pub fn inner(&self) -> &HeaderWithTyp {
+        &self.inner
+    }
 }
 
 impl From<JadesbbInnerHeader> for Header {
@@ -146,7 +152,7 @@ mod tests {
         let header: JadesbbHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.inner().iat, Some(chrono::Utc.timestamp_opt(iat, 0).unwrap()));
         assert_eq!(header.x5c.len(), NonZeroUsize::MIN);
-        assert_eq!(header.inner().inner.alg, Algorithm::ES256);
+        assert_eq!(header.inner().inner().alg, Algorithm::ES256);
     }
 
     #[test]
@@ -170,7 +176,7 @@ mod tests {
         let header: JadesbbHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.inner().iat, None);
         assert_eq!(header.x5c.len(), NonZeroUsize::MIN);
-        assert_eq!(header.inner().inner.alg, Algorithm::ES256);
+        assert_eq!(header.inner().inner().alg, Algorithm::ES256);
     }
 
     #[test]
@@ -192,8 +198,8 @@ mod tests {
 
         let header: JadesbbInnerHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.iat, None);
-        assert_eq!(header.inner.alg, Algorithm::ES256);
-        assert_eq!(header.inner.typ, JADES_B_B_JWT_TYP);
+        assert_eq!(header.inner().alg, Algorithm::ES256);
+        assert_eq!(header.inner().typ, JADES_B_B_JWT_TYP);
     }
 
     #[test]
@@ -206,8 +212,8 @@ mod tests {
 
         let header: JadesbbInnerHeader = serde_json::from_value(json).unwrap();
         assert_eq!(header.iat, None);
-        assert_eq!(header.inner.alg, Algorithm::ES256);
-        assert_eq!(header.inner.typ, JADES_B_B_JWT_TYP);
+        assert_eq!(header.inner().alg, Algorithm::ES256);
+        assert_eq!(header.inner().typ, JADES_B_B_JWT_TYP);
     }
 
     #[test]
@@ -256,8 +262,8 @@ mod tests {
 
         let verified = signed_jwt.clone().into_verified();
         assert!(verified.header().inner().iat.is_some());
-        assert_eq!(verified.header().inner().inner.typ, JADES_B_B_JWT_TYP);
-        assert_eq!(verified.header().inner().inner.alg, Algorithm::ES256);
+        assert_eq!(verified.header().inner().inner().typ, JADES_B_B_JWT_TYP);
+        assert_eq!(verified.header().inner().inner().alg, Algorithm::ES256);
 
         let unverified = signed_jwt.into_unverified();
         let (header, payload) = unverified
@@ -270,8 +276,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(header.inner().iat, Some(now.with_nanosecond(0).unwrap())); // will be rounded down to 0 ns
-        assert_eq!(header.inner().inner.typ, JADES_B_B_JWT_TYP);
-        assert_eq!(header.inner().inner.alg, Algorithm::ES256);
+        assert_eq!(header.inner().inner().typ, JADES_B_B_JWT_TYP);
+        assert_eq!(header.inner().inner().alg, Algorithm::ES256);
         assert_eq!(payload, toy_payload);
     }
 
@@ -310,8 +316,8 @@ mod tests {
             .unwrap(); // should parse even without an `iat` field
 
         assert!(header.inner().iat.is_none());
-        assert_eq!(header.inner().inner.typ, JADES_B_B_JWT_TYP);
-        assert_eq!(header.inner().inner.alg, Algorithm::ES256);
+        assert_eq!(header.inner().inner().typ, JADES_B_B_JWT_TYP);
+        assert_eq!(header.inner().inner().alg, Algorithm::ES256);
         assert_eq!(payload, toy_payload);
     }
 }

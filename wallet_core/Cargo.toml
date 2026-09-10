@@ -25,6 +25,7 @@ members = [
     "lib/mdoc",
     "lib/mdoc/mdoc_derive",
     "lib/measure",
+    "lib/oauth",
     "lib/openid4vc",
     "lib/openid4vc_server",
     "lib/sd_jwt",

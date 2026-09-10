@@ -19,7 +19,6 @@ import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/help/help_category.dart';
 import 'package:wallet/src/domain/model/help/help_subcategory.dart';
 import 'package:wallet/src/domain/model/help/help_topic.dart';
-import 'package:wallet/src/domain/model/help/help_topic_group.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
@@ -403,33 +402,18 @@ abstract class WalletMockData {
         HelpSubcategory(
           id: 'introduction',
           title: 'Introduction',
-          groups: [
-            HelpTopicGroup(
-              kind: HelpTopicGroupKind.help,
-              topics: [
-                HelpTopic(id: 'cannot_continue_demo', title: 'I cannot continue with the demo'),
-                HelpTopic(id: 'dont_know_wallet', title: 'I do not know what NL Wallet is'),
-              ],
-            ),
-            HelpTopicGroup(
-              kind: HelpTopicGroupKind.information,
-              topics: [
-                HelpTopic(id: 'what_is_wallet', title: 'What is NL Wallet?'),
-                HelpTopic(id: 'is_demo_real', title: 'Is the NL Wallet demo real?'),
-              ],
-            ),
+          topics: [
+            HelpTopic(id: 'cannot_continue_demo', title: 'I cannot continue with the demo'),
+            HelpTopic(id: 'dont_know_wallet', title: 'I do not know what NL Wallet is'),
+            HelpTopic(id: 'what_is_wallet', title: 'What is NL Wallet?'),
+            HelpTopic(id: 'is_demo_real', title: 'Is the NL Wallet demo real?'),
           ],
         ),
         HelpSubcategory(
           id: 'digid',
           title: 'Start with DigiD',
-          groups: [
-            HelpTopicGroup(
-              kind: HelpTopicGroupKind.information,
-              topics: [
-                HelpTopic(id: 'why_digid_needed_to_start', title: 'Why is DigiD needed?'),
-              ],
-            ),
+          topics: [
+            HelpTopic(id: 'why_digid_needed_to_start', title: 'Why is DigiD needed?'),
           ],
         ),
       ],
@@ -443,13 +427,8 @@ abstract class WalletMockData {
         HelpSubcategory(
           id: 'add',
           title: 'Add cards',
-          groups: [
-            HelpTopicGroup(
-              kind: HelpTopicGroupKind.help,
-              topics: [
-                HelpTopic(id: 'cannot_add_card', title: 'I cannot add a card'),
-              ],
-            ),
+          topics: [
+            HelpTopic(id: 'cannot_add_card', title: 'I cannot add a card'),
           ],
         ),
       ],

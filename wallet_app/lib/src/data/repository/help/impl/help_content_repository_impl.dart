@@ -1,13 +1,11 @@
 import 'dart:ui';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:yaml/yaml.dart';
 
 import '../../../../domain/model/help/help_category.dart';
 import '../../../../domain/model/help/help_subcategory.dart';
 import '../../../../domain/model/help/help_topic.dart';
-import '../../../../domain/model/help/help_topic_group.dart';
 import '../../../../domain/model/help/topic_block.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../help_content_repository.dart';
@@ -79,28 +77,15 @@ class HelpContentRepositoryImpl implements HelpContentRepository {
   HelpSubcategory _parseSubcategory(YamlMap entry, YamlMap translations) {
     final id = entry['subcategoryId'] as String;
     final title = (translations['subcategories'] as YamlMap)[id] as String;
-    final groups = _parseGroups(entry['topics'] as YamlList, translations['topics'] as YamlMap);
+    final topics = _parseTopics(entry['topicIds'] as YamlList, translations['topics'] as YamlMap);
 
-    return HelpSubcategory(id: id, title: title, groups: groups);
+    return HelpSubcategory(id: id, title: title, topics: topics);
   }
 
-  List<HelpTopicGroup> _parseGroups(YamlList entries, YamlMap topicTranslations) {
-    return entries
-        .map((entry) {
-          final map = entry as YamlMap;
-          final kind = _parseGroupKind(map['groupId'] as String);
-          if (kind == null) return null;
-          final topics = (map['topicIds'] as YamlList)
-              .cast<String>()
-              .map((topicId) => HelpTopic(id: topicId, title: topicTranslations[topicId] as String))
-              .toList();
-          return HelpTopicGroup(kind: kind, topics: topics);
-        })
-        .nonNulls
+  List<HelpTopic> _parseTopics(YamlList topicIds, YamlMap topicTranslations) {
+    return topicIds
+        .cast<String>()
+        .map((topicId) => HelpTopic(id: topicId, title: topicTranslations[topicId] as String))
         .toList();
-  }
-
-  HelpTopicGroupKind? _parseGroupKind(String rawId) {
-    return HelpTopicGroupKind.values.firstWhereOrNull((k) => k.name == rawId);
   }
 }

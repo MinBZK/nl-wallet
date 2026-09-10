@@ -17,7 +17,6 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
-use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
 use axum_extra::TypedHeader;
@@ -37,39 +36,38 @@ use jwt::wia::WIA_POP_HEADER_NAME;
 use jwt::wia::Wia;
 use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaPop;
-use openid4vc::authorization::PushedAuthorizationRequest;
-use openid4vc::authorization::PushedAuthorizationResponse;
+use oauth::authorization::PushedAuthorizationRequest;
+use oauth::authorization::PushedAuthorizationResponse;
+use oauth::dpop::DPOP_HEADER_NAME;
+use oauth::dpop::DPOP_NONCE_HEADER_NAME;
+use oauth::dpop::Dpop;
+use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::BodyOrRedirectErrorResponse;
+use oauth::errors::ErrorResponse;
+use oauth::token::AccessToken;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::client_auth::AttestationChallenge;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialResponse;
-use openid4vc::credential::draft;
 use openid4vc::credential_offer::CredentialOffer;
-use openid4vc::dpop::DPOP_HEADER_NAME;
-use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
-use openid4vc::dpop::Dpop;
-use openid4vc::errors::AuthorizationErrorCode;
-use openid4vc::errors::BodyOrRedirectErrorResponse;
 use openid4vc::errors::CredentialErrorCode;
 use openid4vc::errors::CredentialPreviewErrorCode;
-use openid4vc::errors::ErrorResponse;
 use openid4vc::errors::ParErrorCode;
-use openid4vc::errors::TokenErrorCode;
-use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
+use openid4vc::errors::VciTokenErrorCode;
+use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
-use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
+use openid4vc::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Store;
-use openid4vc::token::AccessToken;
-use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenResponse;
+use openid4vc::token::VciTokenRequest;
+use openid4vc::token::VciTokenResponse;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
@@ -142,6 +140,8 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
 {
+    let credential_path = format!("/issuance/{CREDENTIAL_ENDPOINT_PATH}");
+
     Router::new()
         .route("/.well-known/openid-credential-issuer", get(credential_metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
@@ -150,11 +150,7 @@ where
         .route("/issuance/type_metadata/{id}", get(type_metadata))
         .route("/issuance/credential_preview", post(credential_preview))
         .route("/issuance/nonce", post(nonce))
-        .route("/issuance/credential", post(credential))
-        .route("/issuance/credential", delete(reject_credential))
-        .route("/issuance/batch_credential", post(batch_credential))
-        .route("/issuance/batch_credential", delete(reject_batch_credential))
-        .route(&format!("/issuance/{CREDENTIAL_ENDPOINT_V1_PATH}"), post(credential_v1))
+        .route(&credential_path, post(credential))
         .with_state(IssuanceState { issuer })
 }
 
@@ -232,7 +228,7 @@ where
 
 async fn oauth_metadata<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
-) -> Json<AuthorizationServerMetadata> {
+) -> Json<IssuerAuthorizationServerMetadata> {
     Json(state.issuer.oauth_metadata())
 }
 
@@ -259,10 +255,10 @@ where
 
 async fn token<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
-    wia_headers: WiaHeaders<TokenErrorCode>,
+    wia_headers: WiaHeaders<VciTokenErrorCode>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Form(token_request): Form<TokenRequest>,
-) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
+    Form(token_request): Form<VciTokenRequest>,
+) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<VciTokenErrorCode>>
 where
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
@@ -276,7 +272,7 @@ where
 
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
-        HeaderValue::from_str(&dpop_nonce).unwrap(),
+        HeaderValue::from_str(dpop_nonce.as_ref()).unwrap(),
     )]);
     Ok((headers, Json(response)))
 }
@@ -334,90 +330,6 @@ async fn credential<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Json(credential_request): Json<draft::CredentialRequest>,
-) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
-where
-    K: EcdsaKeySend,
-    L: StatusListService,
-    S: SessionStore<IssuanceData>,
-    N: NonceStore,
-{
-    let access_token = authorization_header.into();
-    let response = state
-        .issuer
-        .process_credential(access_token, dpop, credential_request)
-        .await
-        .inspect_err(|error| warn!("processing credential failed: {}", error))?;
-
-    // According to <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-2.2>, the
-    // issuer should respond with a 202 status code in case of a deferred `CredentialResponse`. As we do not support
-    // deferred responses, the status code is always 200.
-
-    Ok(Json(response))
-}
-
-async fn reject_credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
-where
-    S: SessionStore<IssuanceData>,
-{
-    let access_token = authorization_header.into();
-    state
-        .issuer
-        .process_reject_issuance(access_token, dpop, "credential")
-        .await
-        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn batch_credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Json(credential_requests): Json<draft::CredentialRequests>,
-) -> Result<Json<draft::CredentialResponses>, ErrorResponse<CredentialErrorCode>>
-where
-    K: EcdsaKeySend,
-    L: StatusListService,
-    S: SessionStore<IssuanceData>,
-    N: NonceStore,
-{
-    let access_token = authorization_header.into();
-    let response = state
-        .issuer
-        .process_batch_credential(access_token, dpop, credential_requests)
-        .await
-        .inspect_err(|error| warn!("processing batch credential failed: {}", error))?;
-
-    Ok(Json(response))
-}
-
-async fn reject_batch_credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
-where
-    S: SessionStore<IssuanceData>,
-{
-    let access_token = authorization_header.into();
-    state
-        .issuer
-        .process_reject_issuance(access_token, dpop, "batch_credential")
-        .await
-        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn credential_v1<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
@@ -463,7 +375,7 @@ impl WiaRejection for ParErrorCode {
     }
 }
 
-impl WiaRejection for TokenErrorCode {
+impl WiaRejection for VciTokenErrorCode {
     fn invalid_client_attestation(description: String) -> ErrorResponse<Self> {
         ErrorResponse {
             error: Self::InvalidClientAttestation,
@@ -573,7 +485,7 @@ mod tests {
     use axum::http::request::Parts;
     use jwt::wia::WIA_HEADER_NAME;
     use jwt::wia::WIA_POP_HEADER_NAME;
-    use openid4vc::errors::TokenErrorCode;
+    use openid4vc::errors::VciTokenErrorCode;
     use rstest::rstest;
 
     use super::WiaHeaders;
@@ -596,7 +508,7 @@ mod tests {
             (WIA_POP_HEADER_NAME, VALID_WIA_POP.as_bytes()),
         ]);
 
-        let WiaHeaders(wia, wia_pop, _) = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+        let WiaHeaders(wia, wia_pop, _) = WiaHeaders::<VciTokenErrorCode>::from_request_parts(&mut parts, &())
             .await
             .unwrap();
 
@@ -629,11 +541,11 @@ mod tests {
     async fn should_reject_invalid_headers(#[case] headers: &[(&str, &[u8])], #[case] expected_description: &str) {
         let mut parts = request_parts(headers);
 
-        let error = WiaHeaders::<TokenErrorCode>::from_request_parts(&mut parts, &())
+        let error = WiaHeaders::<VciTokenErrorCode>::from_request_parts(&mut parts, &())
             .await
             .unwrap_err();
 
-        assert_eq!(error.error, TokenErrorCode::InvalidClientAttestation);
+        assert_eq!(error.error, VciTokenErrorCode::InvalidClientAttestation);
         assert!(
             error
                 .error_description

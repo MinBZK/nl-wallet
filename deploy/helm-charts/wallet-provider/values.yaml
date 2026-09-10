@@ -164,6 +164,14 @@ hsm:
   maxSessions: 10
   maxSessionLifeTimeInSec: 900
 
+## @section Key identifiers
+## @param keyIdentifiers.currentCertificateKid The KID of the current certificate signing key and pin HMAC key combination
+## @param keyIdentifiers.previousCertificateKids A map of previous KIDs with expiry dates to be used for wallet certificate validation
+##
+keyIdentifiers:
+  currentCertificateKid: 0
+  previousCertificateKids: {}
+
 ## @section Android parameters
 ## Parameters for the Android configuration
 ## @param android.rootPublicKeys Android root public keys

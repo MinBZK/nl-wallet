@@ -7,6 +7,8 @@ use crypto::x509::crl::CrlFetcher;
 use crypto::x509::crl::HttpCrlFetcher;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
+use oauth::errors::AuthorizationErrorResponse;
+use oauth::errors::ErrorResponse;
 use serde::Deserialize;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::reqwest::HttpStatusListClient;
@@ -27,8 +29,6 @@ use super::message_client::HttpVpMessageClient;
 use super::message_client::VpMessageClient;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
-use crate::errors::AuthorizationErrorResponse;
-use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthRequestValidationError;
 use crate::openid4vp::MsoMdocAlgValues;
@@ -301,7 +301,7 @@ mod tests {
     use std::sync::Arc;
     use std::sync::LazyLock;
 
-    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Attribute;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
     use attestation_types::claim_path::ClaimPath;
@@ -325,6 +325,7 @@ mod tests {
     use jwt::error::JwtParseError;
     use jwt::headers::HeaderWithX5c;
     use mdoc::holder::disclosure::PartialMdoc;
+    use oauth::errors::AuthorizationErrorResponse;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use serde::Serialize;
@@ -356,7 +357,6 @@ mod tests {
     use super::super::message_client::mock::request_uri;
     use super::super::session::VpDisclosureSession;
     use super::VpDisclosureClient;
-    use crate::errors::AuthorizationErrorResponse;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::openid4vp::AuthRequestValidationError;
@@ -653,7 +653,7 @@ mod tests {
                             .iter()
                             .filter_map(|(key, value)| {
                                 match value {
-                                    AttributeValue::Text(text) => Some(text),
+                                    Attribute::Text(text) => Some(text),
                                     _ => None,
                                 }
                                 .map(|text| (key.as_str(), text.as_str()))
@@ -665,7 +665,7 @@ mod tests {
                         .flattened()
                         .into_iter()
                         .flat_map(|(path, value)| match (path.iter().exactly_one().ok(), value) {
-                            (Some(path), AttributeValue::Text(text)) => Some((*path, text.as_str())),
+                            (Some(path), Attribute::Text(text)) => Some((*path, text.as_str())),
                             _ => None,
                         })
                         .collect(),

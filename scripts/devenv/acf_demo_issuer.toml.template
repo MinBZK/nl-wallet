@@ -45,7 +45,7 @@ kind = "consent"
 [[usecases.insurance.documents]]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
-attributes = { product = "Health Insurance", coverage = "Basic", start_date = "2025-01-01", duration = "365", customer_number = "283728" }
+attributes = { product = { type = "text", value = "Health Insurance" }, coverage = { type = "text", value = "Basic" }, start_date = { type = "date", value = "2025-01-01" }, duration = { type = "number", value = 365 }, customer_number = { type = "text", value = "283728" } }
 
 [usecases.loyalty]
 kind = "immediate"
@@ -53,7 +53,7 @@ kind = "immediate"
 [[usecases.loyalty.documents]]
 format = "mso_mdoc"
 attestation_type = "com.example.jum.bonuskaart"
-attributes = { branch = "Demodam", loyalty_number = "{{INSERT_RANDOM_VALUE}}" }
+attributes = { branch = { type = "text", value = "Demodam" }, loyalty_number = { type = "text", value = "{{INSERT_RANDOM_VALUE}}" } }
 
 [credential_configurations."com.example.jum.bonuskaart"]
 format = "mso_mdoc"

@@ -31,6 +31,9 @@ sealed class Image with _$Image {
   const factory Image.asset({
     required String path,
   }) = Image_Asset;
+
+  static Future<Image> tryJpegFromBytes({required List<int> value}) =>
+      WalletCore.instance.api.crateModelsImageImageTryJpegFromBytes(value: value);
 }
 
 class ImageWithMetadata {

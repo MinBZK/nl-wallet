@@ -69,6 +69,8 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use crate::scope::Scope;
+use crate::scope::ScopeInvalid;
 use crate::token::AccessToken;
 
 pub const DPOP_HEADER_NAME: &str = "DPoP";
@@ -111,6 +113,21 @@ pub enum DpopError {
 
 pub type Result<T, E = DpopError> = std::result::Result<T, E>;
 
+pub type DpopNonceInvalid = ScopeInvalid;
+
+/// The allowed characters for the DPoP nonce are exactly the same as a OAuth 2.0 scope value.
+///
+/// Source: <https://datatracker.ietf.org/doc/html/rfc9449#name-nonce-syntax>
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, Display, FromStr, Serialize, Deserialize)]
+#[as_ref(str)]
+pub struct DpopNonce(Scope);
+
+impl DpopNonce {
+    pub fn new_random() -> Self {
+        Self(Scope::try_new(random_string(32)).expect("a random alphanumeric string should be a valid DPoP nonce"))
+    }
+}
+
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -122,16 +139,16 @@ pub struct DpopPayload {
     #[serde(rename = "ath")]
     #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
     access_token_hash: Option<Vec<u8>>,
-    nonce: Option<String>,
+    nonce: Option<DpopNonce>,
     jti: String,
     #[serde(with = "ts_seconds")]
     iat: DateTime<Utc>,
 }
 
-pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
+pub const DPOP_JWT_TYPE: &str = "dpop+jwt";
 
 impl JwtTyp for DpopPayload {
-    const TYP: &'static str = OPENID4VCI_DPOP_JWT_TYPE;
+    const TYP: &'static str = DPOP_JWT_TYPE;
 }
 
 #[derive(Clone, AsRef, FromStr, Display)]
@@ -146,7 +163,7 @@ impl Dpop {
         url: Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-        nonce: Option<String>,
+        nonce: Option<DpopNonce>,
     ) -> Result<Self> {
         let payload = DpopPayload {
             jti: random_string(32),
@@ -170,7 +187,7 @@ impl Dpop {
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-        nonce: Option<&str>,
+        nonce: Option<&DpopNonce>,
     ) -> Result<()> {
         if verified_dpop.http_method != method.to_string() {
             return Err(DpopError::IncorrectMethod);
@@ -186,7 +203,7 @@ impl Dpop {
         // Verifying `jti` is not required by its spec (https://datatracker.ietf.org/doc/html/rfc9449).
         // We also do not check the `iat` field, to avoid having to deal with clockdrift.
         // Instead of both of these, the server can specify a `nonce` and later enforce its presence in the DPoP.
-        if verified_dpop.nonce.as_deref() != nonce {
+        if verified_dpop.nonce.as_ref() != nonce {
             return Err(DpopError::IncorrectNonce);
         }
 
@@ -213,7 +230,7 @@ impl Dpop {
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-        nonce: Option<&str>,
+        nonce: Option<&DpopNonce>,
     ) -> Result<()> {
         let validation = DPOP_VALIDATION.to_owned().into_validation(&expected_public_key);
 
@@ -241,9 +258,9 @@ mod tests {
     use serde::de::DeserializeOwned;
     use url::Url;
 
+    use super::DPOP_JWT_TYPE;
     use super::Dpop;
-    use crate::dpop::DpopPayload;
-    use crate::dpop::OPENID4VCI_DPOP_JWT_TYPE;
+    use super::DpopPayload;
     use crate::token::AccessToken;
 
     #[rstest]
@@ -260,7 +277,7 @@ mod tests {
 
         // Check the `typ` of the Header
         let header: Header = part(0, dpop.0.serialization());
-        assert_eq!(header.typ, Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()));
+        assert_eq!(header.typ, Some(DPOP_JWT_TYPE.to_string()));
 
         // Examine some fields in the claims
         let claims: DpopPayload = part(1, dpop.0.serialization());

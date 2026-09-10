@@ -1,8 +1,8 @@
 use std::assert_matches;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
-use std::slice::Iter;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -27,28 +27,31 @@ use jwt::VerifiedJwt;
 use jwt::pop::JwtPopClaims;
 use jwt::wia::WIA_HEADER_NAME;
 use jwt::wia::WIA_POP_HEADER_NAME;
-use openid4vc::authorization::PushedAuthorizationResponse;
+use oauth::authorization::PushedAuthorizationResponse;
+use oauth::dpop::DPOP_HEADER_NAME;
+use oauth::dpop::DPOP_NONCE_HEADER_NAME;
+use oauth::dpop::Dpop;
+use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::RemoteErrorCode;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::pkce::PkcePair;
+use oauth::pkce::S256PkcePair;
+use oauth::token::AuthorizationCode;
+use oauth::token::TokenType;
 use openid4vc::authorization_details::EntryContainer;
 use openid4vc::client_auth::fetch_client_auth_challenge;
 use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialRequestIdentifier;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::Credentials;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::dpop::DPOP_HEADER_NAME;
-use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
-use openid4vc::dpop::Dpop;
-use openid4vc::errors::AuthorizationErrorCode;
-use openid4vc::errors::RemoteErrorCode;
-use openid4vc::errors::TokenErrorCode;
+use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
-use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
-use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::response::NonceResponse;
-use openid4vc::pkce::PkcePair;
-use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
 use openid4vc::test::MOCK_ATTRS;
@@ -61,14 +64,14 @@ use openid4vc::test::mock_type_metadata;
 use openid4vc::test::mock_type_metadata_with_required_attr;
 use openid4vc::test::setup_mock_authorizing_issuer_from_sd_jwt_metadata;
 use openid4vc::test::setup_mock_issuer;
-use openid4vc::token::AuthorizationCode;
 use openid4vc::token::CredentialPreview;
-use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
-use openid4vc::token::TokenResponse;
-use openid4vc::token::TokenType;
+use openid4vc::token::VciTokenRequest;
+use openid4vc::token::VciTokenResponse;
 use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
@@ -222,9 +225,9 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
     }
 }
 
-fn verify_issued_credentials(
+fn verify_issued_credentials<'a>(
     issued_creds: Vec<CredentialWithMetadata>,
-    credential_previews: Iter<CredentialPreview>,
+    credential_previews: impl Iterator<Item = &'a CredentialPreview>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -272,11 +275,14 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     // Start authorization code flow — fetches metadata and creates an auth session.
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
+                &server.trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
-            &server.trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
             &server.trust_anchors,
         )
         .await
@@ -349,15 +355,18 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.credential_previews().len(), attestation_count);
+    assert_eq!(session.previews_with_metadata().count(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
+    let issued_creds = session
+        .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
+        .await
+        .unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
         issued_creds,
-        session.credential_previews().iter(),
+        session.previews_with_metadata().map(|(preview, _)| preview),
         attestation_count.get(),
         copy_count,
     );
@@ -380,19 +389,26 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server).await;
 
-    let previews = session.credential_previews();
-    assert_eq!(previews.len().get(), 1);
-    let attributes = previews[0].credential_payload.attributes.as_ref();
+    let Ok((preview, _)) = session.previews_with_metadata().exactly_one() else {
+        panic!("issuance session should contain exactly one preview");
+    };
+
+    let attributes = preview.credential_payload.attributes.as_ref();
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
-        .accept_issuance(&server.trust_anchors, &wscd)
+        .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
-    verify_issued_credentials(issued_creds, session.credential_previews().iter(), 1, 4);
+    verify_issued_credentials(
+        issued_creds,
+        session.previews_with_metadata().map(|(preview, _)| preview),
+        1,
+        4,
+    );
 }
 
 #[rstest]
@@ -420,11 +436,14 @@ async fn pre_authorized_code_flow(
 
     let flow = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_wia_keypair(wia_keypair),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &trust_anchors,
         )
         .await
@@ -439,57 +458,17 @@ async fn pre_authorized_code_flow(
 
     let copy_count = 4;
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session.accept_issuance(&trust_anchors, &wscd).await.unwrap();
-
-    verify_issued_credentials(
-        issued_creds,
-        session.credential_previews().iter(),
-        attestation_count.get(),
-        copy_count,
-    );
-}
-
-#[tokio::test]
-async fn reject_issuance() {
-    let attestation_count = NonZeroUsize::MIN;
-    let PreAuthCodeFlowServer {
-        issuer,
-        trust_anchors,
-        tls_trust_anchor,
-        wia_keypair,
-        crl_verifier,
-        ..
-    } = start_pre_authorized_code_flow_server(attestation_count).await;
-
-    let documents = mock_issuable_documents(attestation_count);
-    let credential_offer = issuer.new_preauthorized_session(documents).await.unwrap();
-    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
-
-    let discovery = HttpIssuanceDiscovery::new(
-        HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
-        crl_verifier,
-    );
-
-    let flow = discovery
-        .start(
-            &credential_offer_url,
-            MOCK_WALLET_CLIENT_ID.to_string(),
-            REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
-            &trust_anchors,
-        )
+    let issued_creds = session
+        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &wscd)
         .await
         .unwrap();
 
-    let IssuanceFlow::PreAuthorizedCode {
-        issuance_session: session,
-    } = flow
-    else {
-        panic!("should have received Pre-Authorized Code flow");
-    };
-
-    session.reject_issuance().await.unwrap();
+    verify_issued_credentials(
+        issued_creds,
+        session.previews_with_metadata().map(|(preview, _)| preview),
+        attestation_count.get(),
+        copy_count,
+    );
 }
 
 #[tokio::test]
@@ -517,11 +496,14 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     // with the `invalid_client_attestation` error code.
     let error = discovery
         .start(
-            &credential_offer_url,
+            IssuanceDiscoveryParameters::new(
+                &credential_offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
+                &trust_anchors,
+            ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
-            &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
             &trust_anchors,
         )
         .await
@@ -529,8 +511,8 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
 
     assert_matches!(
         error,
-        WalletIssuanceError::TokenRequest(error_response)
-            if error_response.error == RemoteErrorCode::Known(TokenErrorCode::InvalidClientAttestation)
+        WalletIssuanceError::VciTokenRequest(error_response)
+            if error_response.error == RemoteErrorCode::Known(VciTokenErrorCode::InvalidClientAttestation)
     );
 }
 
@@ -957,12 +939,14 @@ async fn token_ok() {
     let base = issuer_identifier.as_base_url().as_ref().as_str();
     let token_url: Url = format!("{base}issuance/token").parse().unwrap();
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: None,
-        code_verifier: Some(code_verifier),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: None,
+            code_verifier: Some(code_verifier),
+        },
         authorization_details: None,
     };
 
@@ -991,19 +975,19 @@ async fn token_ok() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let token_response = response
-        .json::<TokenResponse>()
+        .json::<VciTokenResponse>()
         .await
-        .expect("response body should deserialize to TokenResponse");
+        .expect("response body should deserialize to VciTokenResponse");
 
-    assert_eq!(token_response.token_type, TokenType::DPoP);
-    assert!(token_response.refresh_token.is_none());
-    assert!(token_response.scope.is_none());
-    assert!(token_response.expires_in.is_none());
+    assert_eq!(token_response.oauth_response.token_type, TokenType::DPoP);
+    assert!(token_response.oauth_response.refresh_token.is_none());
+    assert!(token_response.oauth_response.scope.is_none());
+    assert!(token_response.oauth_response.expires_in.is_none());
 
     let EntryContainer { entry, .. } = token_response
         .authorization_details
         .as_ref()
-        .expect("TokenResponse should contain authorization_details")
+        .expect("VciTokenResponse should contain authorization_details")
         .as_ref()
         .iter()
         .exactly_one()
@@ -1035,12 +1019,14 @@ async fn token_rejects_missing_code_verifier() {
     let base = issuer_identifier.as_base_url().as_ref().as_str();
     let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: None,
-        code_verifier: None,
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: None,
+            code_verifier: None,
+        },
         authorization_details: None,
     };
 
@@ -1090,12 +1076,14 @@ async fn token_rejects_unknown_code_verifier() {
     let base = issuer_identifier.as_base_url().as_ref().as_str();
     let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: None,
-        code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: None,
+            code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
+        },
         authorization_details: None,
     };
 
@@ -1148,14 +1136,16 @@ async fn token_rejects_grant_type_mismatch() {
     let base = issuer_identifier.as_base_url().as_ref().as_str();
     let token_url: Url = format!("{base}issuance/token",).parse().unwrap();
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::PreAuthorizedCode {
-            pre_authorized_code: code,
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                pre_authorized_code: code,
+            },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: None,
+            code_verifier: Some(code_verifier),
         },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: None,
-        code_verifier: Some(code_verifier),
         authorization_details: None,
     };
 
@@ -1207,12 +1197,14 @@ async fn token_rejects_authorization_details() {
 
     // Create a Token Request that contains (valid) `authorization_details`. The issuer should reject this as
     // being unsupported.
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: None,
-        code_verifier: Some(code_verifier),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: None,
+            code_verifier: Some(code_verifier),
+        },
         authorization_details: Some(
             vec_nonempty![EntryContainer::new_credential_config(
                 "com.example.pid_dc+sd-jwt".to_string().into()
@@ -1269,12 +1261,14 @@ async fn token_rejects_scope_mismatch() {
     // Reducing the scope in the Token Request should result in an "invalid_scope" error response.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: Some(HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()])),
-        code_verifier: Some(code_verifier),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: Some(HashSet::from(["com.example.pid_dc+sd-jwt".parse().unwrap()])),
+            code_verifier: Some(code_verifier),
+        },
         authorization_details: None,
     };
 
@@ -1307,15 +1301,17 @@ async fn token_rejects_scope_mismatch() {
     // However, including exactly the same scope as in the Authorization Request should be allowed.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: Some(HashSet::from([
-            "com.example.pid_dc+sd-jwt".parse().unwrap(),
-            "other_scope".parse().unwrap(),
-        ])),
-        code_verifier: Some(code_verifier),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: Some(HashSet::from([
+                "com.example.pid_dc+sd-jwt".parse().unwrap(),
+                "other_scope".parse().unwrap(),
+            ])),
+            code_verifier: Some(code_verifier),
+        },
         authorization_details: None,
     };
 
@@ -1370,15 +1366,17 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
         .unwrap()
         .pre_authorized_code;
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: None,
-        scope: Some(HashSet::from([
-            "com.example.pid_dc+sd-jwt".parse().unwrap(),
-            "other_scope".parse().unwrap(),
-        ])),
-        code_verifier: None,
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: None,
+            scope: Some(HashSet::from([
+                "com.example.pid_dc+sd-jwt".parse().unwrap(),
+                "other_scope".parse().unwrap(),
+            ])),
+            code_verifier: None,
+        },
         authorization_details: None,
     };
 
@@ -1431,12 +1429,14 @@ async fn token_rejects_differing_client_id() {
     // `invalid_client_attestation` error code.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some("wrong_client_id".to_string()),
-        redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
-        scope: None,
-        code_verifier: Some(code_verifier),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some("wrong_client_id".to_string()),
+            redirect_uri: Some(REDIRECT_URI.parse().unwrap()),
+            scope: None,
+            code_verifier: Some(code_verifier),
+        },
         authorization_details: None,
     };
 
@@ -1481,12 +1481,14 @@ async fn token_rejects_differing_redirect_uri() {
     // A Token Request without a `redirect_uri` should result in a 400 response with the `invalid_request` error code.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: None,
-        scope: None,
-        code_verifier: Some(code_verifier),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: None,
+            scope: None,
+            code_verifier: Some(code_verifier),
+        },
         authorization_details: None,
     };
 
@@ -1520,12 +1522,14 @@ async fn token_rejects_differing_redirect_uri() {
     // response with the `invalid_request` error code.
     let (code, code_verifier) = plant_authorized_session(&authorizing_issuer).await;
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode { code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: Some("https://wallet.example.com/other_path".parse().unwrap()),
-        scope: None,
-        code_verifier: Some(code_verifier),
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: Some("https://wallet.example.com/other_path".parse().unwrap()),
+            scope: None,
+            code_verifier: Some(code_verifier),
+        },
         authorization_details: None,
     };
 
@@ -1596,12 +1600,14 @@ async fn pre_authorized_code_flow_credential_request() {
         .unwrap()
         .pre_authorized_code;
 
-    let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-        client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
-        redirect_uri: None,
-        scope: None,
-        code_verifier: None,
+    let token_request = VciTokenRequest {
+        oauth_request: oauth::token::TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            client_id: Some(MOCK_WALLET_CLIENT_ID.to_string()),
+            redirect_uri: None,
+            scope: None,
+            code_verifier: None,
+        },
         authorization_details: None,
     };
 
@@ -1627,7 +1633,7 @@ async fn pre_authorized_code_flow_credential_request() {
         .to_str()
         .unwrap()
         .to_string();
-    let token_response = response.json::<TokenResponse>().await.unwrap();
+    let token_response = response.json::<VciTokenResponse>().await.unwrap();
 
     // Retrieve a fresh nonce from the issuer.
     let nonce_url = format!("{base}issuance/nonce",).parse::<Url>().unwrap();
@@ -1661,9 +1667,12 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap()
         .into();
-    let credential_request = CredentialRequest::new_credential_id(credential_id.clone(), vec_nonempty![proof]);
+    let credential_request = CredentialRequest::new(
+        CredentialRequestIdentifier::CredentialIdentifier(credential_id.clone()),
+        vec_nonempty![proof],
+    );
 
-    let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_V1_PATH}",)
+    let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_PATH}",)
         .parse::<Url>()
         .unwrap();
 
@@ -1671,15 +1680,18 @@ async fn pre_authorized_code_flow_credential_request() {
         &dpop_key,
         credential_url.clone(),
         &Method::POST,
-        Some(&token_response.access_token),
-        Some(dpop_nonce.clone()),
+        Some(&token_response.oauth_response.access_token),
+        Some(dpop_nonce.parse().unwrap()),
     )
     .unwrap()
     .to_string();
 
     let credential_response = http_client
         .post(credential_url.clone())
-        .header(AUTHORIZATION, format!("DPoP {}", token_response.access_token.as_ref()))
+        .header(
+            AUTHORIZATION,
+            format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
+        )
         .header(DPOP_HEADER_NAME, dpop_header)
         .json(&credential_request)
         .send()
@@ -1721,21 +1733,27 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap()
         .into();
-    let credential_request = CredentialRequest::new_credential_id(credential_id, vec_nonempty![proof]);
+    let credential_request = CredentialRequest::new(
+        CredentialRequestIdentifier::CredentialIdentifier(credential_id),
+        vec_nonempty![proof],
+    );
 
     let dpop_header = Dpop::new(
         &dpop_key,
         credential_url.clone(),
         &Method::POST,
-        Some(&token_response.access_token),
-        Some(dpop_nonce),
+        Some(&token_response.oauth_response.access_token),
+        Some(dpop_nonce.parse().unwrap()),
     )
     .unwrap()
     .to_string();
 
     let response = http_client
         .post(credential_url)
-        .header(AUTHORIZATION, format!("DPoP {}", token_response.access_token.as_ref()))
+        .header(
+            AUTHORIZATION,
+            format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
+        )
         .header(DPOP_HEADER_NAME, dpop_header)
         .json(&credential_request)
         .send()

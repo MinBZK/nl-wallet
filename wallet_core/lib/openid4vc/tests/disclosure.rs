@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
@@ -51,6 +51,9 @@ use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
 use mdoc::holder::disclosure::PartialMdoc;
+use oauth::errors::AuthorizationErrorResponse;
+use oauth::errors::BoxedErrorWithCode;
+use oauth::errors::RemoteErrorCode;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -62,12 +65,9 @@ use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
-use openid4vc::errors::AuthorizationErrorResponse;
-use openid4vc::errors::BoxedErrorWithCode;
 use openid4vc::errors::DisclosureErrorResponse;
 use openid4vc::errors::GetAuthRequestErrorCode;
 use openid4vc::errors::PostAuthResponseErrorCode;
-use openid4vc::errors::RemoteErrorCode;
 use openid4vc::errors::VpAuthorizationErrorCode;
 use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
@@ -140,17 +140,14 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
         .expect("disclosed attributes should include PID");
 
     assert_eq!(name_space.len(), 3);
-    assert_eq!(
-        name_space.get("bsn"),
-        Some(&AttributeValue::Text("999999999".to_string()))
-    );
+    assert_eq!(name_space.get("bsn"), Some(&Attribute::Text("999999999".to_string())));
     assert_eq!(
         name_space.get("given_name"),
-        Some(&AttributeValue::Text("Willeke Liselotte".to_string()))
+        Some(&Attribute::Text("Willeke Liselotte".to_string()))
     );
     assert_eq!(
         name_space.get("family_name"),
-        Some(&AttributeValue::Text("De Bruijn".to_string()))
+        Some(&Attribute::Text("De Bruijn".to_string()))
     );
 }
 

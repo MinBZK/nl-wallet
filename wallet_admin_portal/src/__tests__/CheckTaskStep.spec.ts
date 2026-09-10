@@ -35,4 +35,10 @@ describe('CheckTaskStep', () => {
     expect(card.text()).toContain('Wallet will be blocked')
     expect(card.text()).toContain('User will be informed')
   })
+
+  it('omits the consequences card when there are no consequences', () => {
+    const wrapper = mountStep([], [])
+
+    expect(wrapper.findAll('.card')).toHaveLength(1)
+  })
 })

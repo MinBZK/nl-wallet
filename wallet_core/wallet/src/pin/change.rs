@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use wallet_account::messages::registration::WalletCertificate;
 
+use crate::errors::CheckPreconditionsError;
 use crate::errors::InstructionError;
 use crate::errors::PinValidationError;
 use crate::errors::StorageError;
@@ -64,9 +65,8 @@ pub trait ChangePinStorage {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum ChangePinError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -352,7 +352,7 @@ mod test {
             iat: Utc::now(),
         };
 
-        let wallet_certificate = SignedJwt::sign_with_sub(certificate_claims, &certificate_signing_key)
+        let wallet_certificate = SignedJwt::sign_with_sub_and_kid(certificate_claims, &certificate_signing_key)
             .await
             .unwrap()
             .into();

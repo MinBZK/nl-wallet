@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
 use attestation_types::claim_path::ClaimPath;
@@ -22,25 +21,25 @@ use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use itertools::Either;
 use itertools::Itertools;
 use jwk_simple::Key;
+use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::BodyOrRedirectErrorResponse;
+use oauth::errors::ErrorWithCode;
+use oauth::errors::RedirectError;
+use oauth::pkce::PkcePair;
+use oauth::pkce::S256PkcePair;
+use oauth::token::AuthorizationCode;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::authorizing_issuer::RedirectQuery;
-use openid4vc::errors::AuthorizationErrorCode;
-use openid4vc::errors::BodyOrRedirectErrorResponse;
-use openid4vc::errors::ErrorWithCode;
-use openid4vc::errors::RedirectError;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::IssuanceData;
-use openid4vc::pkce::PkcePair;
-use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Consumed;
 use openid4vc::store::Store;
-use openid4vc::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use server_utils::keys::SecretKeyVariant;
@@ -514,18 +513,18 @@ async fn insert_recovery_code(mut attributes: Attributes, secret_key: &SecretKey
         .map_err(Error::RetrievingBsn)?
         .ok_or(Error::NoBsnFound)?
     {
-        AttributeValue::Text(str) => str,
+        Attribute::Text(str) => str,
         _ => return Err(Error::BsnUnexpectedType),
     };
 
-    let recovery_code = AttributeValue::Text(hex::encode(
+    let recovery_code = Attribute::Text(hex::encode(
         secret_key.sign_hmac(bsn.as_bytes()).await.map_err(Error::Hmac)?,
     ));
 
     attributes
         .insert(
             &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-            Attribute::Single(recovery_code),
+            recovery_code,
         )
         .map_err(Error::InsertingRecoveryCode)?;
 
@@ -543,13 +542,16 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use indexmap::IndexMap;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
     use itertools::Itertools;
+    use oauth::issuer_identifier::IssuerIdentifier;
+    use oauth::par::PAR_TTL;
+    use oauth::scope::Scope;
+    use oauth::token::AuthorizationCode;
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -558,11 +560,8 @@ mod tests {
     use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
-    use openid4vc::issuer_identifier::IssuerIdentifier;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
-    use openid4vc::par::PAR_TTL;
-    use openid4vc::scope::Scope;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionToken;
@@ -570,7 +569,6 @@ mod tests {
     use openid4vc::store::Store;
     use openid4vc::test::MockObtainingStatusListService;
     use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
-    use openid4vc::token::AuthorizationCode;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;
@@ -726,11 +724,7 @@ mod tests {
         let bsn = "123";
         let key: Vec<_> = (0..32).collect();
 
-        let attrs: Attributes = IndexMap::from_iter([(
-            "bsn".to_string(),
-            Attribute::Single(AttributeValue::Text(bsn.to_string())),
-        )])
-        .into();
+        let attrs: Attributes = IndexMap::from_iter([("bsn".to_string(), Attribute::Text(bsn.to_string()))]).into();
 
         let secret_key = SecretKeyVariant::from_settings(
             SecretKey::Software {
@@ -746,14 +740,8 @@ mod tests {
         let expected_hmac = hex::encode(hmac::sign(hmac_key, bsn.as_bytes()));
 
         let expected_attrs = Attributes::from(IndexMap::from_iter([
-            (
-                "bsn".to_string(),
-                Attribute::Single(AttributeValue::Text(bsn.to_string())),
-            ),
-            (
-                "recovery_code".to_string(),
-                Attribute::Single(AttributeValue::Text(expected_hmac)),
-            ),
+            ("bsn".to_string(), Attribute::Text(bsn.to_string())),
+            ("recovery_code".to_string(), Attribute::Text(expected_hmac)),
         ]));
 
         assert_eq!(

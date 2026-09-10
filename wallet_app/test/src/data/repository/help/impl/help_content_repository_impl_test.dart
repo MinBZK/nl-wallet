@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/data/repository/help/impl/help_content_repository_impl.dart';
-import 'package:wallet/src/domain/model/help/help_topic_group.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/util/mapper/help/topic_block_mapper.dart';
 
@@ -38,19 +37,13 @@ structure:
     icon: play_arrow
     subcategories:
       - subcategoryId: introduction
-        topics:
-          - groupId: help
-            topicIds:
-              - cannot_continue_demo
-              - dont_know_wallet
-          - groupId: information
-            topicIds:
-              - what_is_wallet
+        topicIds:
+          - cannot_continue_demo
+          - dont_know_wallet
+          - what_is_wallet
       - subcategoryId: digid
-        topics:
-          - groupId: help
-            topicIds:
-              - digid_does_not_open
+        topicIds:
+          - digid_does_not_open
 translations:
   en:
     categories:
@@ -132,21 +125,13 @@ void main() {
       expect(categories.single.title, 'Getting started');
     });
 
-    test('parses topic groups with the right topics', () async {
+    test('parses a subcategory topic list in YAML order', () async {
       final repo = _buildRepo({'assets/non-free/markdown/help/help.yaml': _kYaml});
 
       final categories = await repo.getCategories(const Locale('en'));
       final introduction = categories.single.subcategories.firstWhere((s) => s.id == 'introduction');
 
-      expect(introduction.groups.map((g) => g.kind), [HelpTopicGroupKind.help, HelpTopicGroupKind.information]);
-      expect(
-        introduction.groups.firstWhere((g) => g.kind == HelpTopicGroupKind.help).topics.map((t) => t.id),
-        ['cannot_continue_demo', 'dont_know_wallet'],
-      );
-      expect(
-        introduction.groups.firstWhere((g) => g.kind == HelpTopicGroupKind.information).topics.map((t) => t.id),
-        ['what_is_wallet'],
-      );
+      expect(introduction.topics.map((t) => t.id), ['cannot_continue_demo', 'dont_know_wallet', 'what_is_wallet']);
     });
 
     test('topic titles come from the selected locale', () async {
@@ -155,18 +140,16 @@ void main() {
       final en = await repo.getCategories(const Locale('en'));
       final nl = await repo.getCategories(const Locale('nl'));
 
-      expect(en.single.subcategories[0].groups[0].topics[0].title, 'I cannot continue with the demo');
-      expect(nl.single.subcategories[0].groups[0].topics[0].title, 'Ik kan niet verder met de demo');
+      expect(en.single.subcategories[0].topics[0].title, 'I cannot continue with the demo');
+      expect(nl.single.subcategories[0].topics[0].title, 'Ik kan niet verder met de demo');
     });
 
-    test('subcategory that has only one group still parses that group', () async {
+    test('subcategory with a single topic parses that topic', () async {
       final repo = _buildRepo({'assets/non-free/markdown/help/help.yaml': _kYaml});
       final categories = await repo.getCategories(const Locale('en'));
 
       final digid = categories.single.subcategories.firstWhere((s) => s.id == 'digid');
-      expect(digid.groups, hasLength(1));
-      expect(digid.groups.single.kind, HelpTopicGroupKind.help);
-      expect(digid.groups.single.topics.map((t) => t.id), ['digid_does_not_open']);
+      expect(digid.topics.map((t) => t.id), ['digid_does_not_open']);
     });
 
     test('caches the parsed tree per locale — second call does not reparse YAML', () async {

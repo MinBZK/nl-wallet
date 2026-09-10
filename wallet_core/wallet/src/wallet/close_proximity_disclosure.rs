@@ -864,7 +864,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::Organization;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
@@ -1284,7 +1283,7 @@ mod tests {
         // Create three PID attestations.
         let mut pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default()).0;
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("Jane".to_string()));
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("Jane".to_string());
         pid_credential_payload.previewable_payload.attributes = attributes_root.into();
         let pid1 = example_stored_attestation_copy(
             Format::MsoMdoc,
@@ -1296,7 +1295,7 @@ mod tests {
         let (pid2, _) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("John".to_string()));
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("John".to_string());
         pid_credential_payload.previewable_payload.attributes = attributes_root.into();
         let pid3 = example_stored_attestation_copy(
             Format::MsoMdoc,

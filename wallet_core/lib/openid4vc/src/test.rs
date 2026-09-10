@@ -6,7 +6,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
@@ -24,6 +23,10 @@ use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use derive_more::Constructor;
 use indexmap::IndexMap;
+use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::ErrorWithCode;
+use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::par::PAR_TTL;
 use p256::ecdsa::SigningKey;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
@@ -49,15 +52,11 @@ use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfigurationParameters;
-use crate::errors::AuthorizationErrorCode;
-use crate::errors::ErrorWithCode;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
-use crate::par::PAR_TTL;
 use crate::server_state::MemorySessionStore;
 use crate::store::MemoryStore;
 
@@ -123,12 +122,11 @@ pub fn mock_issuable_document_with_attrs(
 ) -> IssuableDocument {
     IssuableDocument::try_new_with_random_id(
         CredentialKind::new(format, attestation_type.to_string()),
-        IndexMap::from_iter(attrs.iter().map(|(key, val)| {
-            (
-                key.to_string(),
-                Attribute::Single(AttributeValue::Text(val.to_string())),
-            )
-        }))
+        IndexMap::from_iter(
+            attrs
+                .iter()
+                .map(|(key, val)| (key.to_string(), Attribute::Text(val.to_string()))),
+        )
         .into(),
     )
     .unwrap()
@@ -327,6 +325,7 @@ where
                     .unwrap()
                     .into_first(),
                 attestation_qualification: AttestationQualification::default(),
+                mdoc_namespace: None,
                 metadata_documents,
             };
 

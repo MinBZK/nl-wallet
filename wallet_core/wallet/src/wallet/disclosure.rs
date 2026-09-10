@@ -1004,7 +1004,6 @@ mod tests {
     use std::sync::atomic::Ordering;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -1038,6 +1037,8 @@ mod tests {
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use mockall::predicate::function;
+    use oauth::errors::ErrorResponse;
+    use oauth::errors::RemoteErrorCode;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::DisclosableAttestations;
@@ -1049,10 +1050,8 @@ mod tests {
     use openid4vc::disclosure_session::mock::MockDisclosureClient;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::errors::DisclosureErrorResponse;
-    use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetAuthRequestErrorCode;
     use openid4vc::errors::PostAuthResponseErrorCode;
-    use openid4vc::errors::RemoteErrorCode;
     use openid4vc::verifier::SessionType;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1286,8 +1285,7 @@ mod tests {
         // Create three PID attestations.
         let (mut pid_credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() =
-            Attribute::Single(AttributeValue::Text("Andere Naam".to_string()));
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("Andere Naam".to_string());
         pid_credential_payload.previewable_payload.attributes = attributes_root.into();
         let pid1 = example_stored_attestation_copy(
             requested_format,
@@ -1299,8 +1297,7 @@ mod tests {
         let (pid2, _) = example_pid_stored_attestation_copy(requested_format);
 
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
-        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() =
-            Attribute::Single(AttributeValue::Text("Iemand Anders".to_string()));
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Text("Iemand Anders".to_string());
         pid_credential_payload.previewable_payload.attributes = attributes_root.into();
         let pid3 = example_stored_attestation_copy(
             requested_format,
@@ -1319,13 +1316,11 @@ mod tests {
         );
 
         let mut attributes_root = address_credential_payload.previewable_payload.attributes.into_inner();
-        let Attribute::Nested(address_group) = attributes_root.get_mut(PID_ADDRESS_GROUP).unwrap() else {
+        let Attribute::Object(address_group) = attributes_root.get_mut(PID_ADDRESS_GROUP).unwrap() else {
             panic!("");
         };
-        *address_group.get_mut(PID_RESIDENT_HOUSE_NUMBER).unwrap() =
-            Attribute::Single(AttributeValue::Text("68".to_string()));
-        *address_group.get_mut(PID_RESIDENT_POSTAL_CODE).unwrap() =
-            Attribute::Single(AttributeValue::Text("2514 GL".to_string()));
+        *address_group.get_mut(PID_RESIDENT_HOUSE_NUMBER).unwrap() = Attribute::Text("68".to_string());
+        *address_group.get_mut(PID_RESIDENT_POSTAL_CODE).unwrap() = Attribute::Text("2514 GL".to_string());
         address_credential_payload.previewable_payload.attributes = attributes_root.into();
         let address2 = example_stored_attestation_copy(
             requested_format,
@@ -1406,7 +1401,7 @@ mod tests {
 
             assert!(attribute.key.iter().eq([PID_GIVEN_NAME]));
             assert_matches!(
-                &attribute.value, AttributeValue::Text(given_name) if given_name == expected_name
+                &attribute.value, Attribute::Text(given_name) if given_name == expected_name
             );
         }
 
@@ -1426,14 +1421,14 @@ mod tests {
 
             assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER]));
             assert_matches!(
-                &attribute.value, AttributeValue::Text(house_number) if house_number == expected_house_number
+                &attribute.value, Attribute::Text(house_number) if house_number == expected_house_number
             );
 
             let attribute = &presentation.attributes[1];
 
             assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE]));
             assert_matches!(
-                &attribute.value, AttributeValue::Text(postal_code) if postal_code == expected_postal_code
+                &attribute.value, Attribute::Text(postal_code) if postal_code == expected_postal_code
             );
         }
 
@@ -3084,14 +3079,14 @@ mod tests {
         let previewable_payload = CredentialPayload::example_with_attributes(
             my_attestation_type,
             Attributes::example([
-                ([my_sd_claim], AttributeValue::Text("Some Sd Claim".to_string())),
+                ([my_sd_claim], Attribute::Text("Some Sd Claim".to_string())),
                 (
                     [my_first_non_sd_claim],
-                    AttributeValue::Text("Some Non Sd Claim".to_string()),
+                    Attribute::Text("Some Non Sd Claim".to_string()),
                 ),
                 (
                     [my_second_non_sd_claim],
-                    AttributeValue::Text("Some Non Sd Claim".to_string()),
+                    Attribute::Text("Some Non Sd Claim".to_string()),
                 ),
             ]),
             holder_key.verifying_key(),

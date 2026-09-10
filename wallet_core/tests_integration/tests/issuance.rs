@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use attestation_data::attributes::Attribute;
 use attestation_types::credential_format::Format;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
@@ -10,7 +11,6 @@ use serial_test::serial;
 use tests_integration::common::*;
 use wallet::AttestationPresentation;
 use wallet::Pin;
-use wallet::attestation_data::AttributeValue;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
@@ -71,7 +71,7 @@ fn test_pid_attestation(pid_attestation: &AttestationPresentation) {
         .find(|a| a.key.iter().eq([PID_BSN]))
         .unwrap();
 
-    assert_eq!(bsn_attr.value, AttributeValue::Text("999991772".to_string()));
+    assert_eq!(bsn_attr.value, Attribute::Text("999991772".to_string()));
 
     // The recovery code should be hidden from presentation.
     let recovery_code_result = pid_attestation

@@ -10,6 +10,9 @@ use derive_more::Debug;
 use http_utils::urls::HttpsUri;
 use itertools::Either;
 use itertools::Itertools;
+use oauth::issuer_identifier::IssuerUrl;
+use oauth::scope::Scope;
+use oauth::scope::ScopeInvalid;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -17,13 +20,10 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::vec_at_least::VecNonEmptyUnique;
 
-use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
-use crate::scope::Scope;
-use crate::scope::ScopeInvalid;
-
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsError {
     #[error("no credential configuration parameters provided")]
@@ -43,6 +43,9 @@ pub enum CredentialConfigurationsError {
             .join(" / ")
     )]
     DuplicateFormatAndAttestationType(HashMap<CredentialKind, HashSet<CredentialConfigurationId>>),
+
+    #[error("mdoc_namespace set on configuration ({0}) that uses SD-JWT format")]
+    MdocNamespaceOnSdJwtFormat(CredentialConfigurationId),
 }
 
 #[derive(Debug)]
@@ -54,6 +57,10 @@ pub struct CredentialConfigurationParameters<K, L> {
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
+    /// Overrides the root mdoc namespace used when issuing this attestation as `MsoMdoc`. This exists for attestation
+    /// types whose mdoc namespace is mandated by an external specification and differs from their doctype, e.g. ISO
+    /// 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace `org.iso.18013.5.1`. Must be `None` for `SdJwt`.
+    pub mdoc_namespace: Option<String>,
     #[debug(skip)]
     pub metadata_documents: TypeMetadataDocuments,
 }
@@ -73,6 +80,7 @@ pub(crate) struct CredentialConfiguration<K, L> {
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
+    pub mdoc_namespace: Option<String>,
     pub metadata: CredentialConfigurationMetadata,
 }
 
@@ -95,14 +103,19 @@ impl<K, L> CredentialConfiguration<K, L> {
             valid_days,
             issuer_uri,
             attestation_qualification,
+            mdoc_namespace,
             metadata_documents,
         }: CredentialConfigurationParameters<K, L>,
     ) -> Result<Self, CredentialConfigurationsError> {
         // Use the Credential Configuration ID as the scope value.
-        let scope = Scope::try_new(String::from(config_id)).map_err(CredentialConfigurationsError::Scope)?;
+        let scope = Scope::try_new(config_id.as_ref()).map_err(CredentialConfigurationsError::Scope)?;
 
         let metadata = CredentialConfigurationMetadata::try_new(&credential_kind.attestation_type, metadata_documents)
             .map_err(CredentialConfigurationsError::TypeMetadata)?;
+
+        if credential_kind.format == Format::SdJwt && mdoc_namespace.is_some() {
+            return Err(CredentialConfigurationsError::MdocNamespaceOnSdJwtFormat(config_id));
+        }
 
         let config = Self {
             credential_kind,
@@ -112,6 +125,7 @@ impl<K, L> CredentialConfiguration<K, L> {
             valid_days,
             issuer_uri,
             attestation_qualification,
+            mdoc_namespace,
             metadata,
         };
 
@@ -318,6 +332,7 @@ mod tests {
                     valid_days: Days::new(1),
                     issuer_uri: "https://example.com".parse().unwrap(),
                     attestation_qualification: AttestationQualification::default(),
+                    mdoc_namespace: None,
                     metadata_documents,
                 };
 

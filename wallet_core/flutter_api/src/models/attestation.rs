@@ -204,17 +204,38 @@ pub enum AttributeValue {
     Number { value: i64 },
     Array { value: Vec<AttributeValue> },
     Null,
+
+    // only available for mdocs
+    Date { value: String },
+    Bytes { value: Vec<u8> },
+    Image { value: Image }, // bytes that represent an image
+
+    // TODO this should probably be `Map { value: Vec<AttestationAttribute> }`, for it to contain metadata (PVW-6241)
+    Map { value: Vec<(String, Box<AttributeValue>)> },
 }
 
-impl From<attestation_data::AttributeValue> for AttributeValue {
-    fn from(value: attestation_data::AttributeValue) -> Self {
+impl From<attestation_data::Attribute> for AttributeValue {
+    fn from(value: attestation_data::Attribute) -> Self {
         match value {
-            attestation_data::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
-            attestation_data::AttributeValue::Integer(value) => AttributeValue::Number { value },
-            attestation_data::AttributeValue::Text(value) => AttributeValue::String { value },
-            attestation_data::AttributeValue::Null => AttributeValue::Null,
-            attestation_data::AttributeValue::Array(entries) => AttributeValue::Array {
+            attestation_data::Attribute::Bool(value) => AttributeValue::Boolean { value },
+            attestation_data::Attribute::Number(value) => AttributeValue::Number { value },
+            attestation_data::Attribute::Text(value) => AttributeValue::String { value },
+            attestation_data::Attribute::Null => AttributeValue::Null,
+            attestation_data::Attribute::Array(entries) => AttributeValue::Array {
                 value: entries.into_iter().map(AttributeValue::from).collect(),
+            },
+            attestation_data::Attribute::Date(date) => AttributeValue::Date {
+                value: date.format("%Y-%m-%d").to_string(),
+            },
+            attestation_data::Attribute::Bytes(bytes) => match Image::try_jpeg_from_bytes(bytes) {
+                Ok(value) => AttributeValue::Image { value },
+                Err(value) => AttributeValue::Bytes { value },
+            },
+            attestation_data::Attribute::Object(entries) => AttributeValue::Map {
+                value: entries
+                    .into_iter()
+                    .map(|(key, value)| (key, Box::new(value.into())))
+                    .collect(),
             },
         }
     }

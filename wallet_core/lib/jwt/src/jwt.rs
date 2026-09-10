@@ -54,6 +54,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::error::JwkConversionError;
 use crate::error::JwtParseError;
 use crate::error::JwtSignError;
 use crate::error::JwtVerifyError;
@@ -419,23 +420,42 @@ where
     }
 }
 
+/// Trait for looking up a [`PublicKey`] by key ID (`kid`).
+///
+/// Implement this for custom key stores to use them with
+/// [`UnverifiedJwt::parse_and_verify_by_kid`] and
+/// [`UnverifiedJwt::parse_and_verify_with_sub_by_kid`].
+pub trait PublicKeyByKid {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error>;
+}
+
+impl PublicKeyByKid for JwkSet {
+    type Error = JwkConversionError;
+
+    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
+        self.find(kid).map(jwk_to_public_key).transpose()
+    }
+}
+
 impl<T, H, E> UnverifiedJwt<T, HeaderWithKid<H>>
 where
     T: DeserializeOwned + JwtTyp,
     H: DeserializeOwned + TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    /// Verify the JWT against the key in the provided JWK set whose `kid` matches the header.
-    pub fn parse_and_verify_with_jwkset(
+    /// Verify the JWT using the key whose `kid` matches the header, looked up from `keys`.
+    pub fn parse_and_verify_by_kid<K: PublicKeyByKid>(
         &self,
-        jwks: &JwkSet,
+        keys: &K,
         validation: JwtValidation,
     ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
         let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
-        let jwk = jwks.find(&kid).ok_or(JwtVerifyError::KeyNotFound(kid))?;
-        let pubkey = jwk_to_public_key(jwk)
-            .map_err(JwtParseError::Jwk)
-            .map_err(JwtVerifyError::ParseError)?;
+        let pubkey = keys
+            .find(&kid)
+            .map_err(|e| JwtVerifyError::PublicKeyByKid(Box::new(e)))?
+            .ok_or(JwtVerifyError::KeyNotFound(kid))?;
 
         let validation = validation.into_validation(&pubkey);
         self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
@@ -572,6 +592,20 @@ impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithJwk> {
         ))
         .map_err(JwtSignError::Jwk)?;
         SignedJwt::sign_with_header(header, payload, key).await
+    }
+}
+
+pub trait KeyWithKid {
+    fn kid(&self) -> &str;
+}
+
+impl<T> SignedJwt<T, HeaderWithKid>
+where
+    T: Serialize + JwtTyp,
+{
+    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: T, privkey: &K) -> Result<Self, JwtSignError> {
+        let header = HeaderWithKid::from_kid(privkey.kid().to_string());
+        SignedJwt::sign_with_header(header, &payload, privkey).await
     }
 }
 
@@ -1061,6 +1095,22 @@ where
     }
 }
 
+impl<T, H, E> UnverifiedJwt<T, HeaderWithKid<H>>
+where
+    T: DeserializeOwned + JwtTyp + JwtSub + 'static,
+    H: DeserializeOwned + TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
+{
+    /// Verify the JWT using the key whose `kid` matches the header, also enforcing the `sub` claim.
+    pub fn parse_and_verify_with_sub_by_kid<K: PublicKeyByKid>(
+        &self,
+        keys: &K,
+    ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
+        let validation = default_sub_validation::<T>();
+        self.parse_and_verify_by_kid(keys, validation.to_owned().into())
+    }
+}
+
 impl<T> SignedJwt<T, HeaderWithTyp>
 where
     T: Serialize + JwtTyp + JwtSub,
@@ -1068,6 +1118,19 @@ where
     pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<Self, JwtSignError> {
         let claims = PayloadWithSub::new(payload);
         SignedJwt::sign(&claims, privkey).await.map(Into::into)
+    }
+}
+
+impl<T> SignedJwt<T, HeaderWithKid>
+where
+    T: Serialize + JwtTyp + JwtSub,
+{
+    pub async fn sign_with_sub_and_kid<K: EcdsaKey + KeyWithKid>(
+        payload: T,
+        privkey: &K,
+    ) -> Result<Self, JwtSignError> {
+        let claims = PayloadWithSub::new(payload);
+        SignedJwt::sign_with_kid(claims, privkey).await.map(Into::into)
     }
 }
 
@@ -1243,6 +1306,29 @@ mod axum {
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use std::convert::Infallible;
+
+    use p256::ecdsa::SigningKey;
+
+    use super::*;
+
+    impl KeyWithKid for SigningKey {
+        fn kid(&self) -> &'static str {
+            "0"
+        }
+    }
+
+    impl PublicKeyByKid for HashMap<String, PublicKey> {
+        type Error = Infallible;
+
+        fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
+            Ok(self.get(kid).cloned())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -1250,6 +1336,7 @@ mod tests {
     use std::fmt::Debug;
 
     use ::axum::response::IntoResponse;
+    use chrono::TimeDelta;
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
@@ -1269,6 +1356,7 @@ mod tests {
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;
+    use jsonwebtoken::errors::ErrorKind;
     use jsonwebtoken::jwk::JwkSet;
     use p256::ecdsa::SigningKey;
     use p384::pkcs8::EncodePrivateKey;
@@ -1277,6 +1365,7 @@ mod tests {
     use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
     use serde_json::json;
+    use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::TimeGenerator;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_nonempty;
@@ -1427,6 +1516,55 @@ mod tests {
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
         assert_matches!(parsed, JwtVerifyError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
+    }
+
+    /// A payload carrying an RFC 7519 `exp` claim, in order to establish how the validations
+    /// in this crate treat that claim when it is present in the payload.
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    struct ExpiringMessage {
+        #[serde(rename = "exp")]
+        expires: DateTimeSeconds,
+    }
+
+    impl JwtTyp for ExpiringMessage {}
+
+    async fn expiring_jwt(private_key: &SigningKey, expires_in: TimeDelta) -> UnverifiedJwt<ExpiringMessage> {
+        let message = ExpiringMessage {
+            expires: (Utc::now() + expires_in).into(),
+        };
+
+        SignedJwt::sign(&message, private_key).await.unwrap().into_unverified()
+    }
+
+    #[tokio::test]
+    async fn test_esp256_only_validation_validates_exp_when_present() {
+        let private_key = SigningKey::generate();
+        let decoding_key = || JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key()));
+
+        // A payload without an `exp` claim at all is accepted, since `exp` is not a required claim.
+        SignedJwt::sign(&ToyMessage::default(), &private_key)
+            .await
+            .unwrap()
+            .into_unverified()
+            .parse_and_verify(decoding_key(), &*ESP256_ONLY_VALIDATION)
+            .expect("JWT without an `exp` claim should be accepted");
+
+        // A payload with an `exp` claim in the future is accepted.
+        expiring_jwt(&private_key, TimeDelta::hours(1))
+            .await
+            .parse_and_verify(decoding_key(), &*ESP256_ONLY_VALIDATION)
+            .expect("JWT with an `exp` claim in the future should be accepted");
+
+        // A payload with an `exp` claim in the past is rejected.
+        let error = expiring_jwt(&private_key, -TimeDelta::hours(1))
+            .await
+            .parse_and_verify(decoding_key(), &*ESP256_ONLY_VALIDATION)
+            .expect_err("JWT with an `exp` claim in the past should be rejected");
+
+        assert_matches!(
+            error,
+            JwtVerifyError::Validation(error) if *error.kind() == ErrorKind::ExpiredSignature
+        );
     }
 
     #[tokio::test]
@@ -1763,32 +1901,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_parse_and_verify_with_jwkset() {
+    async fn test_parse_and_verify_by_kid() {
         let signing_key = SigningKey::generate();
-        let kid = "my-key-id".to_owned();
+        let kid = signing_key.kid().to_string();
 
         let mut jwk = jwk_from_public_key(&PublicKey::from(*signing_key.verifying_key())).unwrap();
         jwk.common.key_id = Some(kid.clone());
         let jwks = JwkSet { keys: vec![jwk] };
 
         let payload = ToyMessage::default();
-        // Since there's no `sign_with_kid`, sign with a raw header that carries the kid and then cast the type by
-        // re-serializing
-        let header = Header {
-            alg: Algorithm::ES256,
-            kid: Some(kid.clone()),
-            ..Default::default()
-        };
-        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_header(header, &payload, &signing_key)
+        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(payload.clone(), &signing_key)
             .await
             .unwrap()
-            .into_unverified()
-            .serialization()
-            .parse()
-            .unwrap();
+            .into_unverified();
 
         let (verified_header, deserialized) = jwt
-            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATION.to_owned())
+            .parse_and_verify_by_kid(&jwks, DEFAULT_VALIDATION.to_owned())
             .unwrap();
 
         assert_eq!(deserialized, payload);
@@ -1796,7 +1924,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_parse_and_verify_with_jwkset_kid_not_found() {
+    async fn test_parse_and_verify_by_kid_not_found() {
         let signing_key = SigningKey::generate();
         let kid = "my-key-id".to_owned();
 
@@ -1820,14 +1948,14 @@ mod tests {
             .unwrap();
 
         let err = jwt
-            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATION.to_owned())
+            .parse_and_verify_by_kid(&jwks, DEFAULT_VALIDATION.to_owned())
             .unwrap_err();
 
         assert_matches!(err, JwtVerifyError::KeyNotFound(_));
     }
 
     #[tokio::test]
-    async fn test_parse_and_verify_with_jwkset_wrong_key() {
+    async fn test_parse_and_verify_by_kid_wrong_key() {
         let signing_key = SigningKey::generate();
         let other_key = SigningKey::generate();
         let kid = "my-key-id".to_owned();
@@ -1852,7 +1980,7 @@ mod tests {
             .unwrap();
 
         let err = jwt
-            .parse_and_verify_with_jwkset(&jwks, DEFAULT_VALIDATION.to_owned())
+            .parse_and_verify_by_kid(&jwks, DEFAULT_VALIDATION.to_owned())
             .unwrap_err();
 
         assert_matches!(err, JwtVerifyError::Validation(_));

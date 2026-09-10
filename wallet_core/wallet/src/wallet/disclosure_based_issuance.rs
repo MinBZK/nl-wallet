@@ -4,14 +4,16 @@ use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use oauth::errors::RemoteErrorCode;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::errors::PostAuthResponseErrorCode;
-use openid4vc::errors::RemoteErrorCode;
+use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -127,10 +129,13 @@ where
         let issuance_session = self
             .issuance_discovery
             .start_pre_authorized_code_flow(
-                &redirect_uri,
+                IssuanceDiscoveryParameters::new(
+                    &redirect_uri,
+                    &CredentialSelection::All,
+                    &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                    config.wrpac_trust_anchors(),
+                ),
                 config.issuer_trust_anchors(),
-                &self.new_remote_wia_client(attested_key, &registration_data, &config),
-                config.wrpac_trust_anchors(),
             )
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
@@ -176,6 +181,9 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;
     use mdoc::holder::disclosure::PartialMdoc;
+    use oauth::errors::BoxedErrorWithCode;
+    use oauth::errors::ErrorResponse;
+    use oauth::errors::ErrorWithCode;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
     use openid4vc::disclosure_session;
@@ -183,12 +191,10 @@ mod tests {
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
-    use openid4vc::errors::BoxedErrorWithCode;
-    use openid4vc::errors::ErrorResponse;
-    use openid4vc::errors::ErrorWithCode;
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::wallet_issuance::CredentialSelection;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
@@ -288,25 +294,18 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let (credential_preview, type_metadata) =
+        let (credential_preview, normalized_metadata) =
             create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         wallet
             .issuance_discovery
             .expect_start_pre_authorized_code_flow_sync()
-            .return_once(move || {
+            .withf(|selection| matches!(selection, CredentialSelection::All))
+            .return_once(move |_| {
                 let mut issuance_session = MockIssuanceSession::new();
 
-                issuance_session.expect_type_metadata().return_const(
-                    [(
-                        credential_preview.credential_payload.attestation_type.clone(),
-                        type_metadata,
-                    )]
-                    .into(),
-                );
-
                 issuance_session
-                    .expect_credential_previews()
-                    .return_const(vec_nonempty![credential_preview]);
+                    .expect_previews_with_metadata()
+                    .return_const(vec![(credential_preview, normalized_metadata)].into());
 
                 issuance_session
                     .expect_issuer()

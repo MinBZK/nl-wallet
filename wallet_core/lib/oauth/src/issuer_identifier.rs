@@ -11,8 +11,6 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use url::Url;
 
-use crate::metadata::issuer_metadata::CredentialConfigurationId;
-
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(strum::EnumDiscriminants))]
 pub enum IssuerUrlError {
@@ -43,13 +41,7 @@ pub struct IssuerUrl(BaseUrl);
 impl IssuerUrl {
     pub fn try_new(url_str: &str) -> Result<Self, IssuerUrlError> {
         let url = url_str.parse::<BaseUrl>()?;
-
-        // TODO (PVW-5612): Only allow HTTPS in local development environment.
-        if !ALLOWED_HTTP_SCHEMES.contains(&url.as_ref().scheme()) {
-            return Err(IssuerUrlError::SchemeNotHttps(Box::new(url)));
-        }
-
-        Ok(Self(url))
+        Self::try_from(url)
     }
 
     pub fn into_inner(self) -> BaseUrl {
@@ -77,14 +69,6 @@ impl IssuerUrl {
         Self(base_url)
     }
 
-    pub fn join_config_id(&self, config_id: &CredentialConfigurationId) -> Self {
-        let mut url = self.as_ref().as_ref().clone();
-        url.path_segments_mut()
-            .expect("issuer URL has a base and is guaranteed to have path segments")
-            .push(config_id.as_ref());
-        Self(BaseUrl::try_from(url).expect("issuer URL has a base and is guaranteed to succeed"))
-    }
-
     pub fn has_same_scheme_and_host(&self, other: &IssuerUrl) -> bool {
         let url = self.as_url();
         let other = other.as_url();
@@ -98,6 +82,17 @@ impl FromStr for IssuerUrl {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::try_new(s)
+    }
+}
+
+impl TryFrom<BaseUrl> for IssuerUrl {
+    type Error = IssuerUrlError;
+    fn try_from(url: BaseUrl) -> Result<Self, Self::Error> {
+        // TODO (PVW-5612): Only allow HTTPS in local development environment.
+        if !ALLOWED_HTTP_SCHEMES.contains(&url.as_ref().scheme()) {
+            return Err(IssuerUrlError::SchemeNotHttps(Box::new(url)));
+        }
+        Ok(Self(url))
     }
 }
 
@@ -159,7 +154,6 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use super::CredentialConfigurationId;
     use super::IssuerIdentifier;
     use super::IssuerIdentifierErrorDiscriminants;
     use super::IssuerUrl;
@@ -172,10 +166,6 @@ mod tests {
     #[cfg_attr(
         feature = "allow_insecure_url",
         case::ok_http("http://example.com/", Ok(()))
-    )]
-    #[cfg_attr(
-        not(feature = "allow_insecure_url"),
-        case::err_http("http://example.com/", Err(IssuerUrlErrorDiscriminants::SchemeNotHttps))
     )]
     fn test_issuer_url_parsing(#[case] input: &str, #[case] expected_result: Result<(), IssuerUrlErrorDiscriminants>) {
         let parsed_result = input.parse::<IssuerUrl>();
@@ -208,10 +198,6 @@ mod tests {
     #[cfg_attr(
         feature = "allow_insecure_url",
         case::ok_http("http://example.com/", Ok("http://example.com/"))
-    )]
-    #[cfg_attr(
-        not(feature = "allow_insecure_url"),
-        case::err_http("http://example.com/", Err(IssuerIdentifierErrorDiscriminants::UrlParsing))
     )]
     #[case::err_short_query("https://example.com/path?", Err(IssuerIdentifierErrorDiscriminants::HasQuery))]
     #[case::err_long_query(
@@ -258,20 +244,6 @@ mod tests {
             serde_json::from_str::<IssuerIdentifier>(&json).expect("deserialization from JSON should succeed");
 
         assert_eq!(deserialized_identifier, identifier);
-    }
-
-    #[rstest]
-    #[case::simple("simple", "https://example.com/simple")]
-    #[case::colons("urn:example:pid:nl:1", "https://example.com/urn:example:pid:nl:1")]
-    #[case::slash("hello/world", "https://example.com/hello%2Fworld")]
-    #[case::panda("🐼", "https://example.com/%F0%9F%90%BC")]
-    fn test_issuer_url_joining_config_id(#[case] config_id: String, #[case] expected: &str) {
-        let config_id: CredentialConfigurationId = config_id.into();
-        let issuer_url = IssuerUrl::try_new("https://example.com")
-            .unwrap()
-            .join_config_id(&config_id);
-
-        assert_eq!(issuer_url, expected.parse::<IssuerUrl>().unwrap());
     }
 
     #[rstest]

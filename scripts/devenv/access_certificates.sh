@@ -49,4 +49,12 @@ declare -A access_certificates=(
     [(museum_maandkaart,name)]='Museum Demodam'
     [(museum_maandkaart,legal_name)]='Museum Demodam B.V.'
     [(museum_maandkaart,oid)]='NTRNL-99876547'
+
+    [(mdl,name)]='RDW Demo'
+    [(mdl,legal_name)]='Dienst Wegverkeer'
+    [(mdl,oid)]='NTRNL-99876548'
+
+    [(mvc,name)]='RDW Demo'
+    [(mvc,legal_name)]='Dienst Wegverkeer'
+    [(mvc,oid)]='NTRNL-99876548'
 )

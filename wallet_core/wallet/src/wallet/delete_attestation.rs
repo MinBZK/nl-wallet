@@ -26,6 +26,7 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::HistoryError;
 use crate::wallet::attestations::AttestationsError;
 
@@ -33,9 +34,8 @@ use crate::wallet::attestations::AttestationsError;
 #[category(defer)]
 pub enum DeleteAttestationError {
     // State errors
-    #[error("app version is blocked")]
-    #[category(expected)]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -93,10 +93,8 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DeleteAttestationError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(DeleteAttestationError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -293,7 +291,10 @@ mod tests {
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteAttestationError::VersionBlocked);
+        assert_matches!(
+            error,
+            DeleteAttestationError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
     }
 
     #[tokio::test]

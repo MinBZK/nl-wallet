@@ -10,7 +10,7 @@ use http_utils::urls::BaseUrl;
 use issuer_common::settings::AuthorizingIssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
 use jwk_simple::Key;
-use openid4vc::issuer_identifier::IssuerIdentifier;
+use oauth::issuer_identifier::IssuerIdentifier;
 use openid4vc::server_state::SessionStoreTimeouts;
 use serde::Deserialize;
 use serde_with::base64::Base64;

@@ -9,9 +9,9 @@
     <h3>Taakdetails</h3>
     <TaskDetails :details="details" />
   </TaskWizardCard>
-  <TaskWizardCard>
+  <TaskWizardCard v-if="consequences.length > 0">
     <h3>{{ consequences.length > 1 ? 'Belangrijkste gevolgen' : 'Gevolg' }}</h3>
-    <TaskItemList :value="consequences.length > 1 ? consequences : (consequences[0] ?? '')" />
+    <TaskItemList :value="consequences.length > 1 ? consequences : consequences[0]!" />
   </TaskWizardCard>
 </template>
 

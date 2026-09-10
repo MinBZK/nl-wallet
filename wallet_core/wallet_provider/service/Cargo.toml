@@ -54,9 +54,10 @@ mock = [
 ]
 db_test = [
     "dep:db_test",
+    "dep:tempfile",
+    "jwt/test",
     "mock",
     "mock_secure_keys",
-    "dep:tempfile",
     "status_lists/revocation_helper",
     "tokio/macros",
     "tokio/rt-multi-thread",
@@ -76,7 +77,9 @@ itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 parking_lot.workspace = true
 getrandom.workspace = true
+nutype = { workspace = true, features = ["regex"] }
 rand_core.workspace = true
+regex.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 semver.workspace = true
@@ -86,9 +89,9 @@ serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tracing.workspace = true
+trait-variant.workspace = true
 tokio = { workspace = true, features = ["sync"] }
 uuid = { workspace = true, features = ["v4"] }
-trait-variant.workspace = true
 
 anyhow = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
@@ -128,7 +131,7 @@ attestation_data = { path = "../../lib/attestation_data", features = ["mock", "g
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
 audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
-jwt = { path = "../../lib/jwt", features = ["test", "mock"] }
+jwt = { path = "../../lib/jwt", features = ["mock", "test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }

@@ -18,4 +18,7 @@ class ConfigurationRepositoryImpl implements ConfigurationRepository {
   @override
   Stream<FlutterAppConfiguration> get observeAppConfiguration =>
       _walletCore.observeConfig().map(_flutterAppConfigurationMapper.map);
+
+  @override
+  Stream<bool> get observeConfigExpired => _walletCore.observeConfigExpired();
 }

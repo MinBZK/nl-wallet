@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/model/help/help_subcategory.dart';
-import '../../domain/model/help/help_topic_group.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
@@ -45,28 +44,15 @@ class HelpSubcategoryScreen extends StatelessWidget {
             child: TitleText(subcategory.title),
           ),
           const SizedBox(height: 16),
-          for (final group in subcategory.groups) _buildGroup(context, group),
+          for (final topic in subcategory.topics) ...[
+            const Divider(),
+            MenuItem(
+              label: Text(topic.title),
+              onPressed: () => _onTopicTap(context, topic.id),
+            ),
+          ],
         ],
       ),
-    );
-  }
-
-  Widget _buildGroup(BuildContext context, HelpTopicGroup group) {
-    return Column(
-      children: [
-        const Divider(),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Text(_groupTitle(context, group.kind), style: context.textTheme.titleSmall),
-        ),
-        for (final topic in group.topics) ...[
-          const Divider(),
-          MenuItem(
-            label: Text(topic.title),
-            onPressed: () => _onTopicTap(context, topic.id),
-          ),
-        ],
-      ],
     );
   }
 
@@ -77,9 +63,4 @@ class HelpSubcategoryScreen extends StatelessWidget {
       arguments: HelpTopicScreenArgument(topicId: topicId),
     );
   }
-
-  String _groupTitle(BuildContext context, HelpTopicGroupKind kind) => switch (kind) {
-    HelpTopicGroupKind.help => context.l10n.helpScreenGroupTitleHelp,
-    HelpTopicGroupKind.information => context.l10n.helpScreenGroupTitleInformation,
-  };
 }
