@@ -23,16 +23,19 @@ use utils::generator::TimeGenerator;
 use super::Credential;
 use crate::x509::RelyingParty;
 
+pub const ANNEX_C_EXAMPLE: &str = include_str!("../../examples/spec/registration_certificate_annex_c.json");
+pub const STATUS_LIST_URI: &str = "https://example.com/statuslists/1";
+
 #[derive(Serialize)]
 #[serde(transparent)]
-pub struct RegistrationCertificateFixture(Value);
+pub struct RegistrationCertificateFixture(pub Value);
 
 impl jwt::JwtTyp for RegistrationCertificateFixture {
     const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
 }
 
 #[derive(Debug, Clone)]
-pub struct StaticStatusListClient(StatusListToken);
+pub struct StaticStatusListClient(pub StatusListToken);
 
 impl StatusListClient for StaticStatusListClient {
     async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
@@ -95,7 +98,7 @@ pub fn registration_certificate_payload(
         "iat": TimeGenerator.generate().timestamp(),
         "status": {
             "idx": "0",
-            "uri": "https://example.com/statuslists/1"
+            "uri": STATUS_LIST_URI
         },
         "policy_id": ["0.4.0.19475.3.1"],
         "certificate_policy": "https://example.com/policy"
@@ -156,12 +159,11 @@ impl MockRegistrationCertificateAuthority {
         if status != StatusType::Valid {
             assert_eq!(status_list.insert(0, status), None);
         }
-        let status_list =
-            StatusListToken::builder("https://example.com/statuslists/1".parse().unwrap(), status_list.pack())
-                .sign(&status_list_key_pair)
-                .now_or_never()
-                .unwrap()
-                .unwrap();
+        let status_list = StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack())
+            .sign(&status_list_key_pair)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
 
         Self {
             ca,

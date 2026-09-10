@@ -16,6 +16,7 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
+use attestation_data::registration_certificate::mock::StaticStatusListClient;
 use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
@@ -81,9 +82,6 @@ use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
-use token_status_list::status_list_token::StatusListToken;
-use token_status_list::verification::client::StatusListClient;
-use token_status_list::verification::client::StatusListClientError;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::net::TcpListener;
 use tokio::time;
@@ -168,15 +166,6 @@ pub fn local_http_issuer_identifier(port: u16) -> IssuerIdentifier {
 pub enum WalletDeviceVendor {
     Apple,
     Google,
-}
-
-#[derive(Clone, Debug)]
-pub struct StaticStatusListClient(StatusListToken);
-
-impl StatusListClient for StaticStatusListClient {
-    async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
-        Ok(self.0.clone())
-    }
 }
 
 pub type WalletWithStorage = Wallet<

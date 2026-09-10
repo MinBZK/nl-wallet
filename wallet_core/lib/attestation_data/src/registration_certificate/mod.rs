@@ -43,10 +43,9 @@ mod test {
     use super::StatusValidatedRegistrationCertificate;
     use super::StructurallyValidatedRegistrationCertificate;
     use super::UncheckedRegistrationCertificate;
+    use super::mock::ANNEX_C_EXAMPLE;
+    use super::mock::STATUS_LIST_URI;
     use crate::x509::RelyingParty;
-
-    pub(super) const ANNEX_C_EXAMPLE: &str = include_str!("../../examples/spec/registration_certificate_annex_c.json");
-    pub(super) const STATUS_LIST_URI: &str = "https://example.com/statuslists/1";
 
     impl fmt::Debug for StructurallyValidatedRegistrationCertificate {
         fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

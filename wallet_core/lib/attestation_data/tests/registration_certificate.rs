@@ -1,4 +1,7 @@
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+use attestation_data::registration_certificate::mock::ANNEX_C_EXAMPLE;
+use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
+use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use chrono::DateTime;
@@ -11,26 +14,14 @@ use crypto::x509::DistinguishedName;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use rstest::rstest;
-use serde::Serialize;
 use serde_json::Value;
 use serde_json::json;
 use utils::generator::mock::MockTimeGenerator;
-
-const ANNEX_C_EXAMPLE: &str = include_str!("../examples/spec/registration_certificate_annex_c.json");
-const STATUS_LIST_URI: &str = "https://example.com/statuslists/1";
-
-#[derive(Serialize)]
-#[serde(transparent)]
-struct RegistrationCertificateFixture(Value);
 
 #[derive(Clone, Copy)]
 enum EnvelopeFormat {
     Jwt,
     Cwt,
-}
-
-impl jwt::JwtTyp for RegistrationCertificateFixture {
-    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
 }
 
 fn registration_certificate_payload() -> RegistrationCertificateFixture {

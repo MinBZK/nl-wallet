@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use std::num::NonZeroU64;
 
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+use attestation_data::registration_certificate::mock::ANNEX_C_EXAMPLE;
+use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
+use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
 use attestation_data::x509::RelyingParty;
 use chrono::Duration;
 use chrono::Utc;
@@ -15,7 +18,6 @@ use dcql::Query;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use serde::Serialize;
 use serde_json::Value;
 use serde_json::json;
 use server_utils::settings::CertificateVerificationError;
@@ -31,21 +33,10 @@ use verification_server::settings::EphemeralIdSecret;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
 
-const ANNEX_C_EXAMPLE: &str =
-    include_str!("../../../lib/attestation_data/examples/spec/registration_certificate_annex_c.json");
-
 #[derive(Clone, Copy)]
 enum RegistrationCertificateFormat {
     Jwt,
     Cwt,
-}
-
-#[derive(Serialize)]
-#[serde(transparent)]
-struct RegistrationCertificateFixture(Value);
-
-impl jwt::JwtTyp for RegistrationCertificateFixture {
-    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
 }
 
 fn registration_certificate(
@@ -76,7 +67,7 @@ fn registration_certificate(
     payload["exp"] = json!((now + Duration::days(30)).timestamp());
     payload["status"] = json!({
         "idx": "0",
-        "uri": "https://example.com/statuslists/1",
+        "uri": STATUS_LIST_URI,
     });
 
     let signer = wrprc_ca.generate_wrpac_verifier_mock().unwrap();

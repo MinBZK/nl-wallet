@@ -187,22 +187,14 @@ mod tests {
 
     use super::super::RegistrationCertificateValidationError;
     use super::super::UncheckedRegistrationCertificate;
-    use super::super::test::STATUS_LIST_URI;
+    use super::super::mock::STATUS_LIST_URI;
+    use super::super::mock::StaticStatusListClient;
     use super::super::test::legal_person_access_certificate_subject;
     use super::super::test::valid_payload;
     use super::super::test::valid_payload_json;
     use super::super::test::validation_time;
     use super::RegistrationCertificateStatus;
     use super::RegistrationCertificateStatusValidationError;
-
-    #[derive(Debug)]
-    struct StaticStatusListClient(StatusListToken);
-
-    impl StatusListClient for StaticStatusListClient {
-        async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
-            Ok(self.0.clone())
-        }
-    }
 
     #[derive(Debug)]
     struct FailingStatusListClient;

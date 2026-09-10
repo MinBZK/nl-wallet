@@ -10,6 +10,11 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "registration_certificate"
+path = "tests/registration_certificate.rs"
+required-features = ["mock"]
+
 [features]
 examples = ["attestation_types/test_pid_constants"]
 example_credential_payloads = ["attestation_types/mock", "attestation_types/test_pid_constants", "dep:rand_core"]

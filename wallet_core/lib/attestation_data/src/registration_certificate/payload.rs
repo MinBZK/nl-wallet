@@ -86,7 +86,7 @@ mod tests {
     use serde_json::json;
 
     use super::super::RegistrationCertificateValidationError;
-    use super::super::test::ANNEX_C_EXAMPLE;
+    use super::super::mock::ANNEX_C_EXAMPLE;
     use super::super::test::legal_person_access_certificate_subject;
     use super::super::test::valid_payload_json;
     use super::super::test::validation_time;
