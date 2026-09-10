@@ -82,7 +82,7 @@ async fn test_instruction_result_key_rollover() {
     wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     // Obtain a handle to the wallet's config repository for direct in-memory updates
-    let config_repo = wallet.config_repository();
+    let config_repo = Arc::clone(wallet.config_repository());
 
     // Stage 1: Before rollover — WP uses old key, wallet has old config only
     wallet.lock();

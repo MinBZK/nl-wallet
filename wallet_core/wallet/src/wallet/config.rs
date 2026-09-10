@@ -52,8 +52,8 @@ where
     DCC: DisclosureClient,
 {
     #[cfg(any(test, feature = "test"))]
-    pub fn config_repository(&self) -> Arc<CR> {
-        Arc::clone(&self.config_repository)
+    pub fn config_repository(&self) -> &Arc<CR> {
+        &self.config_repository
     }
 }
 
