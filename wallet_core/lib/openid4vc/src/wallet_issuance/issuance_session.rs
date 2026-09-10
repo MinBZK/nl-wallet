@@ -53,7 +53,6 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 use wscd::wscd::IssuanceKeyresult;
 use wscd::wscd::IssuanceWscd;
 use wscd::wscd::WiaClient;
@@ -333,6 +332,13 @@ enum OfferedCredentials {
 }
 
 impl OfferedCredentials {
+    pub fn credential_count(&self) -> usize {
+        match self {
+            Self::CredentialIds(previews_by_credential_id) => previews_by_credential_id.len(),
+            Self::CredentialConfigurationIds(previews_by_config_id) => previews_by_config_id.len(),
+        }
+    }
+
     pub fn credential_previews(&self) -> impl Iterator<Item = &CredentialPreview> {
         match self {
             Self::CredentialIds(previews_by_credential_id) => Either::Left(previews_by_credential_id.values()),
@@ -788,51 +794,18 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         Ok(offered_credentials)
     }
 
-    async fn fetch_credential<W>(
+    async fn fetch_credential(
         &self,
         identifier: CredentialRequestIdentifier,
         credential_preview: &CredentialPreview,
-        max_copy_count: NonZeroU8,
+        keys: VecNonEmpty<IssuanceKeyresult>,
+        dpop_nonce: Option<DpopNonce>,
         trust_anchors: &TrustAnchors,
-        wscd: &W,
-    ) -> Result<CredentialWithMetadata, WalletIssuanceError>
-    where
-        W: IssuanceWscd,
-    {
-        // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
-        let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count);
-
-        // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata. Use the DPoP nonce if it returns
-        // one.
-        let (proof_nonce, dpop_nonce) = match self.session_state.issuer_endpoints.nonce_endpoint.as_ref() {
-            None => (None, self.session_state.dpop_nonce.clone()),
-            Some(nonce_endpoint) => {
-                let (NonceResponse { c_nonce }, dpop_nonce) = self
-                    .message_client
-                    .request_nonce(nonce_endpoint.clone().into_url())
-                    .await?;
-
-                // If the nonce endpoint response included a "DPoP-Nonce" header, return that value as the DPoP nonce.
-                // Otherwise, use the value received in the Token Response, if any.
-                let dpop_nonce = dpop_nonce.or_else(|| self.session_state.dpop_nonce.clone());
-
-                (Some(c_nonce), dpop_nonce)
-            }
-        };
-
-        // Have the WSCD generate as many private keys and proofs as the number of credential copies.
-        // TODO: Call `perform_issuance()` once in in `accept_issuance()` in a combined call for all credentials.
-        let aud = self.session_state.credential_issuer.as_ref().to_string();
-        let proofs = wscd
-            .perform_issuance(aud, vec_nonempty![(copy_count, proof_nonce)])
-            .await
-            .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
-
+    ) -> Result<CredentialWithMetadata, WalletIssuanceError> {
         // Extract pairs of key identifiers and public keys and proofs from the WSCD response. Note that the WSCD may
         // have returned fewer proofs than we requested, which means the issuer will provide us with fewer credential
         // copies.
-        let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = proofs
-            .into_first()
+        let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = keys
             .into_nonempty_iter()
             .map(|IssuanceKeyresult { key_identifier, pop }| {
                 // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
@@ -848,7 +821,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .into_nonempty_iter()
             .unzip();
 
-        // Send the proofs of posession to the issuer in a Credential Request to actually fetch the credential copies.
+        // Send the proofs of possession to the issuer in a Credential Request to actually fetch the credential copies.
         let url = self
             .session_state
             .issuer_endpoints
@@ -928,13 +901,65 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     where
         W: IssuanceWscd,
     {
-        // Fetch a set of credential copies for each credential in parallel.
+        // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
+        let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count);
+
+        // Determine the proof nonce and DPoP nonce for each credential. If the nonce endpoint is defined in the
+        // metadata, call it for each credential in parallel in order to retrieve a proof nonce to be used in the Proof
+        // of Possession of the holder key.
+        let credential_count = self.session_state.offered_credentials.credential_count();
+        let (proof_nonces, dpop_nonces): (Vec<_>, Vec<_>) =
+            try_join_all((0..credential_count).map(async |_| -> Result<_, WalletIssuanceError> {
+                let (proof_nonce, dpop_nonce) = match self.session_state.issuer_endpoints.nonce_endpoint.as_ref() {
+                    None => {
+                        // There is no nonce endpoint available, so use the DPoP nonce from the Token Response, if
+                        // provided.
+                        (None, self.session_state.dpop_nonce.clone())
+                    }
+                    Some(nonce_endpoint) => {
+                        let (NonceResponse { c_nonce }, dpop_nonce) = self
+                            .message_client
+                            .request_nonce(nonce_endpoint.clone().into_url())
+                            .await?;
+
+                        // If the nonce endpoint response included a "DPoP-Nonce" header, return that value as the DPoP
+                        // nonce. Otherwise, use the value received in the Token Response, if any.
+                        let dpop_nonce = dpop_nonce.or_else(|| self.session_state.dpop_nonce.clone());
+
+                        (Some(c_nonce), dpop_nonce)
+                    }
+                };
+
+                Ok((proof_nonce, dpop_nonce))
+            }))
+            .await?
+            .into_iter()
+            .unzip();
+
+        // Have the WSCD generate sets of as many private keys and proofs as the number of credential copies for each
+        // individual credential.
+        let aud = self.session_state.credential_issuer.as_ref().to_string();
+        let key_counts_and_nonces = proof_nonces
+            .into_iter()
+            .map(|proof_nonce| (copy_count, proof_nonce))
+            .collect_vec()
+            .try_into()
+            .expect("credential_count is non-zero, which guarantees that proof_nonces is non-empty");
+        let key_results = wscd
+            .perform_issuance(aud, key_counts_and_nonces)
+            .await
+            .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
+
+        // Fetch a set of credential copies for each credential in parallel, using the key identifiers / proofs and a
+        // possible DPoP nonce.
         let credentials = try_join_all(
             self.session_state
                 .offered_credentials
                 .to_request_identifiers_and_previews()
-                .map(|(identifier, preview)| {
-                    self.fetch_credential(identifier, preview, max_copy_count, trust_anchors, wscd)
+                .zip_eq(key_results)
+                .zip_eq(dpop_nonces)
+                .map(|(((identifier, preview), keys), dpop_nonce)| {
+                    self.fetch_credential(identifier, preview, keys, dpop_nonce, trust_anchors)
                 }),
         )
         .await?;
