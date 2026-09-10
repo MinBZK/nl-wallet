@@ -18,6 +18,7 @@ use dcql::Query;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use openid4vc::verifier::SessionTypeReturnUrl;
+use rstest::rstest;
 use serde_json::Value;
 use serde_json::json;
 use server_utils::settings::CertificateVerificationError;
@@ -236,6 +237,37 @@ fn test_settings_wrong_wrpac_ca() {
             CertificateError::Verification(_), key
         )) if key == "wrong_ca"
     );
+}
+
+#[rstest]
+#[case::jwt(RegistrationCertificateFormat::Jwt)]
+#[case::cwt(RegistrationCertificateFormat::Cwt)]
+fn test_settings_wrong_wrprc_ca(#[case] format: RegistrationCertificateFormat) {
+    let mut settings = default_settings();
+    let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+    let wrpac = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
+    let wrprc_ca_trusted = Ca::generate_mock();
+    let wrprc_ca_wrong = Ca::generate_mock();
+    let registration_certificate = registration_certificate(&wrpac, &wrprc_ca_wrong, format, None);
+
+    settings.usecases = HashMap::from([("wrong_ca".to_string(), to_use_case(wrpac, &registration_certificate))]).into();
+    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
+    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca_trusted);
+
+    assert_matches!(
+        settings.validate(),
+        Err(VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source })
+            if use_case_id == "wrong_ca"
+                && source.chain().any(|error| matches!(
+                    error.downcast_ref::<CertificateError>(),
+                    Some(CertificateError::Verification(_))
+                ))
+    );
+
+    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca_wrong);
+    settings
+        .validate()
+        .expect("should succeed when the WRPRC signing CA is trusted");
 }
 
 #[test]
