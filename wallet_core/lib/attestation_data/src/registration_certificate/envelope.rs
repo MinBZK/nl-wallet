@@ -1,4 +1,3 @@
-use std::fmt;
 use std::str;
 
 use base64::DecodeError;
@@ -40,19 +39,10 @@ pub enum RegistrationCertificateEnvelopeError {
 }
 
 /// A parsed, but not yet authenticated, registration-certificate envelope.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum RegistrationCertificateEnvelope {
     Jwt(UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader>),
     Cwt(Box<UnverifiedWrprcCwt<UncheckedRegistrationCertificate>>),
-}
-
-impl fmt::Debug for RegistrationCertificateEnvelope {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(match self {
-            Self::Jwt(_) => "RegistrationCertificateEnvelope::Jwt",
-            Self::Cwt(_) => "RegistrationCertificateEnvelope::Cwt",
-        })
-    }
 }
 
 impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {

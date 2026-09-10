@@ -99,7 +99,7 @@ use crate::jwk::jwk_to_public_key;
 ///
 /// # Ok::<(), anyhow::Error>(())
 /// ```
-#[derive(Debug, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(derive_more::Debug, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{serialization}")]
 pub struct UnverifiedJwt<T, H = HeaderWithTyp> {
     serialization: String,
