@@ -5,7 +5,6 @@ use std::sync::Arc;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
@@ -383,7 +382,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await
@@ -460,7 +459,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
-                PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
+                config.account_server.instruction_result_public_keys.clone(),
             )),
         )
         .send(DiscloseRecoveryCodePinRecovery {

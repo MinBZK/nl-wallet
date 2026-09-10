@@ -105,8 +105,8 @@ pub struct AccountServerConfiguration {
     #[serde_as(as = "Base64")]
     pub certificate_public_key: DerVerifyingKey,
     #[debug(skip)]
-    #[serde_as(as = "Base64")]
-    pub instruction_result_public_key: DerVerifyingKey,
+    #[serde_as(as = "HashMap<_, Base64>")]
+    pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
     pub wia_trust_anchors: TrustAnchors,
 }

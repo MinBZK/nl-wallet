@@ -10,6 +10,7 @@ use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
+use jwt::headers::HeaderWithKid;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
 use jwt::wia::WiaDisclosure;
@@ -56,7 +57,7 @@ pub struct InstructionResultMessage<R> {
     pub result: InstructionResult<R>,
 }
 
-pub type InstructionResult<R> = UnverifiedJwt<InstructionResultClaims<R>>;
+pub type InstructionResult<R> = UnverifiedJwt<InstructionResultClaims<R>, HeaderWithKid>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InstructionResultClaims<R> {

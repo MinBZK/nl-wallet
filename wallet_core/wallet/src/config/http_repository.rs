@@ -53,6 +53,13 @@ impl<C> Repository<Arc<WalletConfiguration>> for HttpConfigurationRepository<C> 
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+impl<B> HttpConfigurationRepository<B> {
+    pub fn update_config(&self, new_config: Arc<WalletConfiguration>) {
+        *self.config.write() = (new_config, None);
+    }
+}
+
 impl<B> RawJwtProvider for HttpConfigurationRepository<B> {
     fn last_raw_jwt(&self) -> Option<Arc<WalletConfigJwt>> {
         self.config.read().1.as_ref().map(Arc::clone)

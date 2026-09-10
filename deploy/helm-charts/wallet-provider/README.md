@@ -133,10 +133,11 @@
 
 ### Key identifiers
 
-| Name                                     | Description                                                                           | Value |
-| ---------------------------------------- | ------------------------------------------------------------------------------------- | ----- |
-| `keyIdentifiers.currentCertificateKid`   | The KID of the current certificate signing key and pin HMAC key combination           | `0`   |
-| `keyIdentifiers.previousCertificateKids` | A map of previous KIDs with expiry dates to be used for wallet certificate validation | `{}`  |
+| Name                                         | Description                                                                           | Value |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- | ----- |
+| `keyIdentifiers.currentCertificateKid`       | The KID of the current certificate signing key and pin HMAC key combination           | `0`   |
+| `keyIdentifiers.previousCertificateKids`     | A map of previous KIDs with expiry dates to be used for wallet certificate validation | `{}`  |
+| `keyIdentifiers.currentInstructionResultKid` | The KID of the current instruction result signing key                                 | `0`   |
 
 ### Android parameters
 

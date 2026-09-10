@@ -1716,7 +1716,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             iat: Utc::now(),
         };
 
-        SignedJwt::sign_with_sub(claims, instruction_result_signing_key)
+        SignedJwt::sign_with_sub_and_kid(claims, instruction_result_signing_key)
             .await
             .map(Into::into)
             .map_err(InstructionError::Signing)

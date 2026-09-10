@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -167,9 +166,6 @@ where
             .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
-
         let remote_instruction = self
             .new_instruction_client(
                 pin,
@@ -179,7 +175,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    instruction_result_public_key,
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await?;
@@ -646,7 +642,7 @@ mod tests {
             iat: Utc::now(),
         };
         let other_key = SigningKey::generate();
-        let result = SignedJwt::sign_with_sub(result_claims, &other_key)
+        let result = SignedJwt::sign_with_sub_and_kid(result_claims, &other_key)
             .await
             .unwrap()
             .into();

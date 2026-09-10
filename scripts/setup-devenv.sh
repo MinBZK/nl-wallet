@@ -655,12 +655,21 @@ export WALLET_PROVIDER_SERVER_CERT
 WALLET_PROVIDER_SERVER_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.key.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_KEY
 
-generate_wp_signing_key wallet_certificate_signing_0
-WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_certificate_signing_0.pub.der" ${BASE64})
+WP_CERTIFICATE_KID=0
+export WP_CERTIFICATE_KID
+
+generate_wp_signing_key wallet_certificate_signing_${WP_CERTIFICATE_KID}
+WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_certificate_signing_${WP_CERTIFICATE_KID}.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
-generate_wp_signing_key instruction_result_signing_key
-WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing_key.pub.der" ${BASE64})
+WP_INSTRUCTION_RESULT_KID=0
+export WP_INSTRUCTION_RESULT_KID
+
+generate_wp_signing_key instruction_result_signing_${WP_INSTRUCTION_RESULT_KID}
+
+# Generate a second instruction result signing key to support rollover testing
+generate_wp_signing_key instruction_result_signing_1
+WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing_${WP_INSTRUCTION_RESULT_KID}.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 generate_wp_aes_key attestation_wrapping
@@ -703,7 +712,7 @@ softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM
 p11tool --login --write \
   --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
   --set-pin "${HSM_USER_PIN}" \
-  --label="pin_hmac_0" \
+  --label="pin_hmac_${WP_CERTIFICATE_KID}" \
   --provider="${HSM_LIBRARY_PATH}" \
   "${HSM_TOKEN_URL}"
 
