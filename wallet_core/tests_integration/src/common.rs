@@ -828,20 +828,12 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     port
 }
 
-pub async fn start_wallet_provider_with_abort_handle(
-    settings: WpSettings,
-    hsm: Pkcs11Hsm,
-    trust_anchor: ReqwestTrustAnchor,
-) -> (u16, tokio::task::AbortHandle) {
-    start_wallet_provider_inner(settings, hsm, trust_anchor).await
-}
-
 pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let (port, _) = start_wallet_provider_inner(settings, hsm, trust_anchor).await;
+    let (port, _) = start_wallet_provider_with_abort_handle(settings, hsm, trust_anchor).await;
     port
 }
 
-async fn start_wallet_provider_inner(
+pub async fn start_wallet_provider_with_abort_handle(
     settings: WpSettings,
     hsm: Pkcs11Hsm,
     trust_anchor: ReqwestTrustAnchor,
