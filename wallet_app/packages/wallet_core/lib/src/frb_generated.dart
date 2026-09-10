@@ -82,7 +82,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 872502596;
+  int get rustContentHash => -360334618;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -119,6 +119,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullCheckPin({required String pin});
 
   Future<void> crateApiFullClearAttestationsStream();
+
+  Future<void> crateApiFullClearConfigExpiredStream();
 
   Future<void> crateApiFullClearConfigurationStream();
 
@@ -204,6 +206,8 @@ abstract class WalletCoreApi extends BaseApi {
   Stream<List<AttestationPresentation>> crateApiFullSetAttestationsStream();
 
   Future<void> crateApiFullSetBiometricUnlock({required bool enable});
+
+  Stream<bool> crateApiFullSetConfigExpiredStream();
 
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream();
 
@@ -538,6 +542,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullClearAttestationsStreamConstMeta => const TaskConstMeta(
     debugName: "clear_attestations_stream",
+    argNames: [],
+  );
+
+  @override
+  Future<void> crateApiFullClearConfigExpiredStream() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__clear_config_expired_stream(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiFullClearConfigExpiredStreamConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullClearConfigExpiredStreamConstMeta => const TaskConstMeta(
+    debugName: "clear_config_expired_stream",
     argNames: [],
   );
 
@@ -1509,6 +1536,34 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullSetBiometricUnlockConstMeta => const TaskConstMeta(
     debugName: "set_biometric_unlock",
     argNames: ["enable"],
+  );
+
+  @override
+  Stream<bool> crateApiFullSetConfigExpiredStream() {
+    final sink = RustStreamSink<bool>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            var arg0 = cst_encode_StreamSink_bool_Dco(sink);
+            return wire.wire__crate__api__full__set_config_expired_stream(port_, arg0);
+          },
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_unit,
+            decodeErrorData: null,
+          ),
+          constMeta: kCrateApiFullSetConfigExpiredStreamConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiFullSetConfigExpiredStreamConstMeta => const TaskConstMeta(
+    debugName: "set_config_expired_stream",
+    argNames: ["sink"],
   );
 
   @override

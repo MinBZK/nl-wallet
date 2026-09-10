@@ -45,11 +45,13 @@ where
     DCC: DisclosureClient,
 {
     pub(super) fn pid_preview<'a>(
-        previews: &'a [CredentialPreview],
+        mut previews: impl Iterator<Item = &'a CredentialPreview>,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<&'a CredentialPreview, RecoveryCodeError> {
+        // Find the first preview that is in SD-JWT format and has one of the required `vct` values. In theory there
+        // could be more credentials in the preview that match, but we assume the caller just needs a single PID
+        // preview, so simply ignore any subsequent matches.
         previews
-            .iter()
             .find(|preview| {
                 preview.format == Format::SdJwt
                     && pid_config

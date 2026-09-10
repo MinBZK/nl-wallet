@@ -10,14 +10,10 @@ vi.mock('@/api/tasks.ts', () => ({
   createTask: vi.fn<() => Promise<CreatedTask>>(() => Promise.resolve({ id: 'TST-1234567' })),
 }))
 
-vi.mock('@/composables/authentication.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/composables/authentication')>()
-  return {
-    ...actual,
-    useAuth: () => ({ loggedInUser }),
-    getAuthState: () => mockGetAuthState(),
-  }
-})
+vi.mock('@/composables/authentication.ts', () => ({
+  useAuth: () => ({ loggedInUser }),
+  getAuthState: () => mockGetAuthState(),
+}))
 
 let wrapper: VueWrapper | undefined
 

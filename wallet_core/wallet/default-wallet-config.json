@@ -1,5 +1,6 @@
 {
   "version": 0,
+  "exp": 4070908800,
   "environment": "dev",
   "lock_timeouts": {
     "warning_timeout": 240,

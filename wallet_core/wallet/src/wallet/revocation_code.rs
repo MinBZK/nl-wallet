@@ -23,13 +23,13 @@ use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::CheckPreconditionsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum RevocationCodeError {
-    #[error("app version is blocked")]
-    #[category(expected)]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
 
     #[error("wallet is not registered, no revocation code present")]
     #[category(expected)]
@@ -67,10 +67,8 @@ where
         S: Storage,
         UR: Repository<VersionState>,
     {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(RevocationCodeError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(RevocationCodeError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let revocation_code = self.revocation_code().ok_or(RevocationCodeError::NotRegistered)?;
@@ -100,10 +98,8 @@ where
         S: Storage,
         APC: AccountProviderClient,
     {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(RevocationCodeError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(RevocationCodeError::CheckPreconditions)?;
 
         self.send_check_pin_instruction(pin).await?;
 
@@ -140,6 +136,7 @@ mod test {
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
+    use crate::wallet::CheckPreconditionsError;
 
     static PIN: LazyLock<Pin> = LazyLock::new(|| "293847".into());
 
@@ -174,7 +171,10 @@ mod test {
             .await
             .expect_err("retrieving revocation code before PID issuance should not succeed when the wallet is blocked");
 
-        assert_matches!(error, RevocationCodeError::VersionBlocked);
+        assert_matches!(
+            error,
+            RevocationCodeError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
     }
 
     #[tokio::test]
@@ -248,7 +248,10 @@ mod test {
             .await
             .expect_err("retrieving revocation code using PIN should not succeed when the wallet is blocked");
 
-        assert_matches!(error, RevocationCodeError::VersionBlocked);
+        assert_matches!(
+            error,
+            RevocationCodeError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
     }
 
     #[tokio::test]

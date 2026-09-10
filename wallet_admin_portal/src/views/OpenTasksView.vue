@@ -1,6 +1,8 @@
 <template>
   <TasksFilters />
+  <LoadingState v-if="loading" />
   <TasksTable
+    v-else
     :columns="columns"
     :tasks="tasks"
     empty-title="Geen openstaande taken gevonden"
@@ -13,8 +15,12 @@
 </template>
 
 <script setup lang="ts">
-import TasksFilters from '../components/tasks/TasksFilters.vue'
-import TasksTable from '../components/tasks/TasksTable.vue'
+import { onMounted, ref } from 'vue'
+import { fetchOpenTasks } from '@/api/tasks.ts'
+import type { Task } from '@/types/task.ts'
+import TasksTable from '@/components/tasks/TasksTable.vue'
+import TasksFilters from '@/components/tasks/TasksFilters.vue'
+import LoadingState from '@/components/LoadingState.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
 
 const columns = [
@@ -26,27 +32,15 @@ const columns = [
   { label: 'VOLGENDE STAP', width: '8.125rem' },
 ]
 
-const tasks = [
-  {
-    id: 'UD-3774219',
-    action: 'Gebruiker deblokkeren',
-    target: 'Gebruiker: RC-1234-9930',
-    createdAt: '07-09-2026',
-    createdBy: 'Lisa Vermeer',
-  },
-  {
-    id: 'UD-3774210',
-    action: 'Gebruiker deblokkeren',
-    target: 'Gebruiker: RC-1234-9930',
-    createdAt: '07-09-2026',
-    createdBy: 'John de Wit',
-  },
-  {
-    id: 'UD-3774201',
-    action: 'Gebruiker deblokkeren',
-    target: 'Gebruiker: RC-1234-9930',
-    createdAt: '08-09-2026',
-    createdBy: 'Sarah Jansen',
-  },
-]
+const tasks = ref<Task[]>([])
+const loading = ref(true)
+
+// TODO: handle a rejected fetch once the ErrorState component lands together with [PVW-6183].
+onMounted(async () => {
+  try {
+    tasks.value = await fetchOpenTasks()
+  } finally {
+    loading.value = false
+  }
+})
 </script>

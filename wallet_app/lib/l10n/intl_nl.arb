@@ -358,50 +358,6 @@
     "disclosureConfirmDataAttributesDisclaimer": "Deel alleen als je de organisatie en het verzoek vertrouwt.",
     "disclosureConfirmDataAttributesPageApproveCta": "Delen",
     "disclosureConfirmDataAttributesPageDenyCta": "Stop",
-    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {{organization} zal je gegevens 1 maand bewaren en niet delen met andere organisaties.} other {{organization} zal je gegevens {count} maanden bewaren en niet delen met andere organisaties.}}",
-    "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            },
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "De {organization} zal je gegevens niet bewaren en je gegevens worden niet gedeeld met andere organisaties",
-    "@disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {{organization} zal je gegevens 1 maand bewaren en kan deze delen met andere organisaties.} other {{organization} zal je gegevens {count} maanden bewaren en kan deze delen met andere organisaties.}}",
-    "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            },
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} zal je gegevens niet bewaren en kan deze delen met andere organisaties.",
-    "@disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
     "disclosureConfirmDataAttributesShareWithTitle": "Wil je de volgende gegevens delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {

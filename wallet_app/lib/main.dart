@@ -16,6 +16,7 @@ import 'src/di/wallet_dependency_provider.dart';
 import 'src/domain/usecase/biometrics/impl/get_available_biometrics_usecase_impl.dart';
 import 'src/feature/common/widget/flutter_app_configuration_provider.dart';
 import 'src/feature/common/widget/privacy_cover.dart';
+import 'src/feature/configuration/config_expiry_checker.dart';
 import 'src/feature/lock/auto_lock_observer.dart';
 import 'src/feature/maintenance/maintenance_checker.dart';
 import 'src/feature/root/root_checker.dart';
@@ -117,10 +118,12 @@ FutureOr<void> mainImpl() async {
           builder: (config) => AutoLockObserver(
             configuration: config,
             autoLockService: context.read(),
-            child: MaintenanceChecker(
-              child: UpdateChecker(
-                child: PrivacyCover(
-                  child: WalletApp(navigatorKey: _navigatorKey),
+            child: ConfigExpiryChecker(
+              child: MaintenanceChecker(
+                child: UpdateChecker(
+                  child: PrivacyCover(
+                    child: WalletApp(navigatorKey: _navigatorKey),
+                  ),
                 ),
               ),
             ),

@@ -1,11 +1,15 @@
 import { ref } from 'vue'
-import {
-  hasTaskCreationPrivilege,
-  type AuthState,
-  type UserProfile,
-} from '@/composables/authentication'
+import type { AuthState, UserProfile } from '@/composables/authentication'
 import { Role } from '@/types/roles.ts'
-import type { Privilege } from '@/types/privilege.ts'
+import { Privilege } from '@/types/privilege.ts'
+
+/** Mirrors `TASK_CREATION_PRIVILEGES` in `@/composables/authentication.ts`, independent of that module's mock shape. */
+const TASK_CREATION_PRIVILEGES: Privilege[] = [
+  Privilege.RevokeWallet,
+  Privilege.BlockUser,
+  Privilege.UnblockUser,
+  Privilege.RevokeSolution,
+]
 
 /**
  * Backing ref for the mocked `useAuth().loggedInUser`. Each spec file must register its own
@@ -19,7 +23,7 @@ export function mockLoggedInUser(privileges: Privilege[], overrides: Partial<Use
     displayName: 'Test User',
     privileges,
     role: Role.Unknown,
-    canCreateTask: hasTaskCreationPrivilege(privileges),
+    canCreateTask: TASK_CREATION_PRIVILEGES.some((privilege) => privileges.includes(privilege)),
     ...overrides,
   } as UserProfile
 }

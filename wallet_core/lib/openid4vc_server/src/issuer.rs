@@ -17,7 +17,6 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
-use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
 use axum_extra::TypedHeader;
@@ -52,13 +51,12 @@ use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::client_auth::AttestationChallenge;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialResponse;
-use openid4vc::credential::draft;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::errors::CredentialErrorCode;
 use openid4vc::errors::CredentialPreviewErrorCode;
 use openid4vc::errors::ParErrorCode;
 use openid4vc::errors::VciTokenErrorCode;
-use openid4vc::issuer::CREDENTIAL_ENDPOINT_V1_PATH;
+use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
@@ -142,6 +140,8 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
 {
+    let credential_path = format!("/issuance/{CREDENTIAL_ENDPOINT_PATH}");
+
     Router::new()
         .route("/.well-known/openid-credential-issuer", get(credential_metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
@@ -150,12 +150,50 @@ where
         .route("/issuance/type_metadata/{id}", get(type_metadata))
         .route("/issuance/credential_preview", post(credential_preview))
         .route("/issuance/nonce", post(nonce))
-        .route("/issuance/credential", post(credential))
-        .route("/issuance/credential", delete(reject_credential))
-        .route("/issuance/batch_credential", post(batch_credential))
-        .route("/issuance/batch_credential", delete(reject_batch_credential))
-        .route(&format!("/issuance/{CREDENTIAL_ENDPOINT_V1_PATH}"), post(credential_v1))
+        .route(&credential_path, post(credential))
         .with_state(IssuanceState { issuer })
+}
+
+async fn credential_offer<K, L, S, N, PAS, AF>(
+    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
+) -> Json<CredentialOffer> {
+    Json(state.authorizing_issuer.authorization_code_credential_offer())
+}
+
+async fn pushed_authorization_request<K, L, S, N, PAS, AF>(
+    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
+    wia_headers: WiaHeaders<ParErrorCode>,
+    Form(authorization_request): Form<VciAuthorizationRequest>,
+) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
+where
+    PAS: Store<String, VciAuthorizationRequest>,
+    N: NonceStore,
+{
+    let response = state
+        .authorizing_issuer
+        .process_pushed_authorization_request(authorization_request, &wia_headers.into())
+        .await
+        .inspect_err(|error| warn!("processing pushed authorization request failed: {error}"))?;
+
+    Ok((StatusCode::CREATED, Json(response)))
+}
+
+async fn authorize<K, L, S, N, PAS, AF>(
+    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
+    Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
+) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
+where
+    S: SessionStore<IssuanceData>,
+    PAS: Store<String, VciAuthorizationRequest>,
+    AF: AuthorizationCodeFlow,
+{
+    let redirect_url = state
+        .authorizing_issuer
+        .process_authorize(&request_uri, &client_id)
+        .await
+        .inspect_err(|error| warn!("processing authorization request failed: {error}"))?;
+
+    Ok(Redirect::to(redirect_url.as_str()))
 }
 
 async fn credential_metadata<K, L, S, N>(
@@ -192,6 +230,51 @@ async fn oauth_metadata<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
 ) -> Json<IssuerAuthorizationServerMetadata> {
     Json(state.issuer.oauth_metadata())
+}
+
+async fn client_auth_challenge<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+) -> Result<(TypedHeader<CacheControl>, Json<AttestationChallenge>), StatusCode>
+where
+    N: NonceStore,
+{
+    let attestation_challenge = state.issuer.generate_nonce().await.map_err(|error| {
+        warn!("generating fresh attestation_challenge failed: {}", error);
+
+        // Any error that occurs while generating the nonce is de facto a problem with the server.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Including this header is mandatory.
+    // See: <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#section-6.1>
+    let header = TypedHeader(CacheControl::new().with_no_store());
+    let body = Json(AttestationChallenge { attestation_challenge });
+
+    Ok((header, body))
+}
+
+async fn token<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+    wia_headers: WiaHeaders<VciTokenErrorCode>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
+    Form(token_request): Form<VciTokenRequest>,
+) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<VciTokenErrorCode>>
+where
+    K: EcdsaKeySend,
+    S: SessionStore<IssuanceData>,
+    N: NonceStore,
+{
+    let (response, dpop_nonce) = state
+        .issuer
+        .process_token_request(token_request, dpop, wia_headers.into())
+        .await
+        .inspect_err(|error| warn!("processing token request failed: {error}"))?;
+
+    let headers = HeaderMap::from_iter([(
+        HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
+        HeaderValue::from_str(dpop_nonce.as_ref()).unwrap(),
+    )]);
+    Ok((headers, Json(response)))
 }
 
 async fn type_metadata<K, L, S, N>(
@@ -243,108 +326,7 @@ where
     Ok((header, body))
 }
 
-async fn client_auth_challenge<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-) -> Result<(TypedHeader<CacheControl>, Json<AttestationChallenge>), StatusCode>
-where
-    N: NonceStore,
-{
-    let attestation_challenge = state.issuer.generate_nonce().await.map_err(|error| {
-        warn!("generating fresh attestation_challenge failed: {}", error);
-
-        // Any error that occurs while generating the nonce is de facto a problem with the server.
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    // Including this header is mandatory.
-    // See: <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#section-6.1>
-    let header = TypedHeader(CacheControl::new().with_no_store());
-    let body = Json(AttestationChallenge { attestation_challenge });
-
-    Ok((header, body))
-}
-
 async fn credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Json(credential_request): Json<draft::CredentialRequest>,
-) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
-where
-    K: EcdsaKeySend,
-    L: StatusListService,
-    S: SessionStore<IssuanceData>,
-    N: NonceStore,
-{
-    let access_token = authorization_header.into();
-    let response = state
-        .issuer
-        .process_credential(access_token, dpop, credential_request)
-        .await
-        .inspect_err(|error| warn!("processing credential failed: {}", error))?;
-
-    Ok(Json(response))
-}
-
-async fn batch_credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Json(credential_requests): Json<draft::CredentialRequests>,
-) -> Result<Json<draft::CredentialResponses>, ErrorResponse<CredentialErrorCode>>
-where
-    K: EcdsaKeySend,
-    L: StatusListService,
-    S: SessionStore<IssuanceData>,
-    N: NonceStore,
-{
-    let access_token = authorization_header.into();
-    let response = state
-        .issuer
-        .process_batch_credential(access_token, dpop, credential_requests)
-        .await
-        .inspect_err(|error| warn!("processing batch credential failed: {}", error))?;
-
-    Ok(Json(response))
-}
-
-async fn reject_credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
-where
-    S: SessionStore<IssuanceData>,
-{
-    let access_token = authorization_header.into();
-    state
-        .issuer
-        .process_reject_issuance(access_token, dpop, "credential")
-        .await
-        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn reject_batch_credential<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
-where
-    S: SessionStore<IssuanceData>,
-{
-    let access_token = authorization_header.into();
-    state
-        .issuer
-        .process_reject_issuance(access_token, dpop, "batch_credential")
-        .await
-        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn credential_v1<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
@@ -363,74 +345,11 @@ where
         .await
         .inspect_err(|error| warn!("processing credential request failed: {}", error))?;
 
-    // Deferred responses are not supported, so the response status is always 200.
+    // According to <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-2.2>, the
+    // issuer should respond with a 202 status code in case of a deferred `CredentialResponse`. As we do not support
+    // deferred responses, the status code is always 200.
+
     Ok(Json(response))
-}
-
-async fn token<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-    wia_headers: WiaHeaders<VciTokenErrorCode>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Form(token_request): Form<VciTokenRequest>,
-) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<VciTokenErrorCode>>
-where
-    K: EcdsaKeySend,
-    S: SessionStore<IssuanceData>,
-    N: NonceStore,
-{
-    let (response, dpop_nonce) = state
-        .issuer
-        .process_token_request(token_request, dpop, wia_headers.into())
-        .await
-        .inspect_err(|error| warn!("processing token request failed: {error}"))?;
-
-    let headers = HeaderMap::from_iter([(
-        HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
-        HeaderValue::from_str(&dpop_nonce).unwrap(),
-    )]);
-    Ok((headers, Json(response)))
-}
-
-async fn credential_offer<K, L, S, N, PAS, AF>(
-    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
-) -> Json<CredentialOffer> {
-    Json(state.authorizing_issuer.authorization_code_credential_offer())
-}
-
-async fn pushed_authorization_request<K, L, S, N, PAS, AF>(
-    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
-    wia_headers: WiaHeaders<ParErrorCode>,
-    Form(authorization_request): Form<VciAuthorizationRequest>,
-) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
-where
-    PAS: Store<String, VciAuthorizationRequest>,
-    N: NonceStore,
-{
-    let response = state
-        .authorizing_issuer
-        .process_pushed_authorization_request(authorization_request, &wia_headers.into())
-        .await
-        .inspect_err(|error| warn!("processing pushed authorization request failed: {error}"))?;
-
-    Ok((StatusCode::CREATED, Json(response)))
-}
-
-async fn authorize<K, L, S, N, PAS, AF>(
-    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
-    Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
-) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
-where
-    S: SessionStore<IssuanceData>,
-    PAS: Store<String, VciAuthorizationRequest>,
-    AF: AuthorizationCodeFlow,
-{
-    let redirect_url = state
-        .authorizing_issuer
-        .process_authorize(&request_uri, &client_id)
-        .await
-        .inspect_err(|error| warn!("processing authorization request failed: {error}"))?;
-
-    Ok(Redirect::to(redirect_url.as_str()))
 }
 
 #[derive(Debug, Clone)]

@@ -23,6 +23,7 @@ class TypedWalletCore {
   final Mapper<String, CoreError> _errorMapper;
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<core.FlutterConfiguration> _flutterConfig = BehaviorSubject();
+  final BehaviorSubject<bool> _configExpired = BehaviorSubject();
   final BehaviorSubject<core.FlutterVersionState> _flutterVersionState = BehaviorSubject();
   final BehaviorSubject<List<core.WalletEvent>> _recentHistory = BehaviorSubject();
   final BehaviorSubject<List<core.AttestationPresentation>> _attestations = BehaviorSubject();
@@ -34,7 +35,7 @@ class TypedWalletCore {
 
   TypedWalletCore(this._errorMapper) {
     _setupLockedStream();
-    _setupConfigurationStream();
+    _setupConfigurationStreams();
     _setupVersionStateStream();
     _setupAttestationsStream();
     _setupRecentHistoryStream();
@@ -51,7 +52,12 @@ class TypedWalletCore {
     _isLocked.onCancel = core.clearLockStream;
   }
 
-  void _setupConfigurationStream() {
+  void _setupConfigurationStreams() {
+    // Configuration expiry
+    _configExpired.onListen = () => core.setConfigExpiredStream().listen(_configExpired.add);
+    _configExpired.onCancel = core.clearConfigExpiredStream;
+
+    // Configuration
     _flutterConfig.onListen = () => core.setConfigurationStream().listen(_flutterConfig.add);
     _flutterConfig.onCancel = core.clearConfigurationStream;
   }
@@ -120,6 +126,8 @@ class TypedWalletCore {
   Stream<bool> get isLocked => _isLocked;
 
   Stream<core.FlutterConfiguration> observeConfig() => _flutterConfig.stream;
+
+  Stream<bool> observeConfigExpired() => _configExpired.stream;
 
   Stream<core.FlutterVersionState> observeVersionState() => _flutterVersionState.stream;
 
