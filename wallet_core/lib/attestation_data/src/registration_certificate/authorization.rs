@@ -359,6 +359,9 @@ mod tests {
         );
     }
 
+    // Claim authorization checks paths and allowed values, not intent_to_retain.
+    // These cases verify that an otherwise authorized request remains authorized
+    // regardless of whether the verifier intends to retain the disclosed claim.
     #[rstest]
     #[case::unspecified(json!({
         "path": ["urn:example:pid", "family_name"]
