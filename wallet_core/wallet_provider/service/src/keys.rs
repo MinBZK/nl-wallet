@@ -34,7 +34,7 @@ pub struct WalletCertificateSigning {
 
 pub struct InstructionResultSigning {
     pub kid: Kid,
-    pub hsm: HsmEcdsaKey,
+    pub key: HsmEcdsaKey,
 }
 
 impl EcdsaKey for WalletCertificateSigning {
@@ -53,11 +53,11 @@ impl EcdsaKey for InstructionResultSigning {
     type Error = HsmError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        self.hsm.verifying_key().await
+        self.key.verifying_key().await
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        self.hsm.try_sign(msg).await
+        self.key.try_sign(msg).await
     }
 }
 

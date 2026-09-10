@@ -132,7 +132,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         };
         let instruction_result_signing_key = InstructionResultSigning {
             kid: settings.current_instruction_result_kid.clone(),
-            hsm: HsmEcdsaKey::new(
+            key: HsmEcdsaKey::new(
                 InstructionResultSigningKeyIdentifier::from_kid(&settings.current_instruction_result_kid).into(),
                 wallet_user_hsm.clone(),
             ),
