@@ -53,7 +53,8 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::wscd::IssuanceResult;
+use utils::vec_nonempty;
+use wscd::wscd::IssuanceKeyresult;
 use wscd::wscd::IssuanceWscd;
 use wscd::wscd::WiaClient;
 
@@ -799,7 +800,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         W: IssuanceWscd,
     {
         // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
-        let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count).into();
+        let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count);
 
         // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata. Use the DPoP nonce if it returns
         // one.
@@ -820,33 +821,31 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         };
 
         // Have the WSCD generate as many private keys and proofs as the number of credential copies.
+        // TODO: Call `perform_issuance()` once in in `accept_issuance()` in a combined call for all credentials.
         let aud = self.session_state.credential_issuer.as_ref().to_string();
-        let IssuanceResult { key_identifiers, pops } = wscd
-            .perform_issuance(copy_count, aud, proof_nonce)
+        let proofs = wscd
+            .perform_issuance(aud, vec_nonempty![(copy_count, proof_nonce)])
             .await
             .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
 
         // Extract pairs of key identifiers and public keys and proofs from the WSCD response. Note that the WSCD may
-        // have returned either fewer key identifiers or proofs than we requested, this iterator results in the
-        // minimum of that.
-        let key_ids_public_keys_and_proofs = key_identifiers
+        // have returned fewer proofs than we requested, which means the issuer will provide us with fewer credential
+        // copies.
+        let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = proofs
+            .into_first()
             .into_nonempty_iter()
-            .zip(pops)
-            .map(|(key_identifier, proof)| {
+            .map(|IssuanceKeyresult { key_identifier, pop }| {
                 // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
-                let header = proof
+                let header = pop
                     .dangerous_parse_header_unverified()
                     .map_err(WalletIssuanceError::JwtParse)?;
 
                 let public_key = header.public_key().map_err(WalletIssuanceError::JwkConversion)?;
 
-                Ok((key_identifier, public_key, proof))
+                Ok(((key_identifier, public_key), pop))
             })
-            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?;
-
-        let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = key_ids_public_keys_and_proofs
+            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?
             .into_nonempty_iter()
-            .map(|(key_identifier, public_key, proof)| ((key_identifier, public_key), proof))
             .unzip();
 
         // Send the proofs of posession to the issuer in a Credential Request to actually fetch the credential copies.

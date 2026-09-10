@@ -1,4 +1,4 @@
-use std::num::NonZeroUsize;
+use std::num::NonZeroU8;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -160,19 +160,27 @@ impl InstructionAndResult for StartPinRecovery {
 
 // PerformIssuance instruction.
 
-#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuance {
-    pub key_count: NonZeroUsize,
     pub aud: String,
-    pub nonce: Option<Nonce>,
+    pub key_requests: VecNonEmpty<IssuanceKeySetRequest>,
 }
 
-#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssuanceKeySetRequest {
+    pub key_count: NonZeroU8,
+    pub proof_nonce: Option<Nonce>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
-    pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
+    pub keys: VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssuanceKeyResult {
+    pub key_identifier: String,
+    pub pop: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
 }
 
 impl InstructionAndResult for PerformIssuance {

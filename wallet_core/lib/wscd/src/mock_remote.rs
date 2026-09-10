@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::num::NonZeroUsize;
+use std::num::NonZeroU8;
 use std::time::Duration;
 
 use attestation_types::status_claim::StatusClaim;
@@ -36,7 +36,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::repeat_n;
 
 use crate::Poa;
-use crate::wscd::IssuanceResult;
+use crate::wscd::IssuanceKeyresult;
 use crate::wscd::IssuanceWscd;
 use crate::wscd::WiaClient;
 
@@ -138,46 +138,39 @@ impl IssuanceWscd for MockRemoteWscd {
 
     async fn perform_issuance(
         &self,
-        count: NonZeroUsize,
         aud: String,
-        nonce: Option<Nonce>,
-    ) -> Result<IssuanceResult, Self::Error> {
-        let claims = JwtPopClaims::new(
-            nonce,
-            MOCK_WALLET_CLIENT_ID.to_string(),
-            aud,
-            &MockTimeGenerator::default(),
-        );
+        key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
+    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
+        let time = MockTimeGenerator::default();
+        let mut signing_keys = self.disclosure.signing_keys.lock();
 
-        let mut keys = self.disclosure.signing_keys.lock();
-        let attestation_keys: VecNonEmpty<_> = repeat_n((), count)
-            .map(|_| {
-                let key = SigningKey::generate();
-                let identifier = verifying_key_sha256(key.verifying_key());
-                keys.insert(identifier.clone(), key.clone());
-                MockRemoteEcdsaKey::new(identifier, key)
+        let nonce_count = key_counts_and_nonces.len();
+        let key_results = key_counts_and_nonces
+            .into_nonempty_iter()
+            .zip(repeat_n(aud, nonce_count))
+            .map(|((key_count, nonce), aud)| {
+                let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud, &time);
+
+                repeat_n((), key_count.into())
+                    .map(|_| {
+                        let key = SigningKey::generate();
+                        let identifier = verifying_key_sha256(key.verifying_key());
+
+                        let pop = SignedJwt::sign_with_jwk(&claims, &key)
+                            .now_or_never()
+                            .unwrap()
+                            .unwrap()
+                            .into();
+
+                        signing_keys.insert(identifier.clone(), key);
+
+                        IssuanceKeyresult::new(identifier, pop)
+                    })
+                    .collect()
             })
             .collect();
-        drop(keys);
 
-        let pops = attestation_keys
-            .nonempty_iter()
-            .map(|attestation_key| {
-                SignedJwt::sign_with_jwk(&claims, attestation_key)
-                    .now_or_never()
-                    .unwrap()
-                    .unwrap()
-                    .into()
-            })
-            .collect();
-
-        Ok(IssuanceResult {
-            key_identifiers: attestation_keys
-                .into_nonempty_iter()
-                .map(|key| key.identifier)
-                .collect(),
-            pops,
-        })
+        Ok(key_results)
     }
 }
 

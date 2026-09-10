@@ -508,7 +508,6 @@ mod tests {
     use std::collections::HashSet;
     use std::convert::Infallible;
     use std::num::NonZeroU8;
-    use std::num::NonZeroUsize;
     use std::str::FromStr;
     use std::sync::Arc;
 
@@ -534,11 +533,13 @@ mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
     use uuid::Uuid;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificate;
+    use wscd::wscd::IssuanceKeyresult;
     use wscd::wscd::IssuanceWscd;
 
     use super::PinRecoveryError;
@@ -1065,10 +1066,9 @@ mod tests {
 
         async fn perform_issuance(
             &self,
-            _count: NonZeroUsize,
             _aud: String,
-            _nonce: Option<Nonce>,
-        ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
+            _key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
+        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
             unimplemented!()
         }
     }

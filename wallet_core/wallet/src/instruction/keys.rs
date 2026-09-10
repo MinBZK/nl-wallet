@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroUsize;
+use std::num::NonZeroU8;
 
 use crypto::WithVerifyingKey;
 use crypto::keys::CredentialEcdsaKey;
@@ -16,13 +16,18 @@ use p256::ecdsa::signature;
 use parking_lot::Mutex;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
+use wallet_account::messages::instructions::IssuanceKeySetRequest;
 use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PerformIssuance;
+use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificate;
 use wscd::Poa;
-use wscd::wscd::IssuanceResult;
+use wscd::wscd::IssuanceKeyresult;
 use wscd::wscd::IssuanceWscd;
 use wscd::wscd::WiaClient;
 
@@ -116,6 +121,31 @@ where
     }
 }
 
+fn build_perform_issuance_instruction(
+    aud: String,
+    key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
+) -> PerformIssuance {
+    let key_requests = key_counts_and_nonces
+        .into_nonempty_iter()
+        .map(|(key_count, proof_nonce)| IssuanceKeySetRequest { key_count, proof_nonce })
+        .collect();
+
+    PerformIssuance { aud, key_requests }
+}
+
+fn key_results_from_issuance_result(result: PerformIssuanceResult) -> VecNonEmpty<VecNonEmpty<IssuanceKeyresult>> {
+    result
+        .keys
+        .into_nonempty_iter()
+        .map(|proofs| {
+            proofs
+                .into_nonempty_iter()
+                .map(|proof| IssuanceKeyresult::new(proof.key_identifier, proof.pop))
+                .collect()
+        })
+        .collect()
+}
+
 impl<S, AK, GK, A> IssuanceWscd for RemoteEcdsaWscd<S, AK, GK, A>
 where
     S: Storage,
@@ -127,19 +157,17 @@ where
 
     async fn perform_issuance(
         &self,
-        key_count: NonZeroUsize,
         aud: String,
-        nonce: Option<Nonce>,
-    ) -> Result<IssuanceResult, Self::Error> {
+        key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
+    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
         let issuance_result = self
             .instruction_client
-            .send(PerformIssuance { key_count, aud, nonce })
+            .send(build_perform_issuance_instruction(aud, key_counts_and_nonces))
             .await?;
 
-        Ok(IssuanceResult::new(
-            issuance_result.key_identifiers,
-            issuance_result.pops,
-        ))
+        let key_results = key_results_from_issuance_result(issuance_result);
+
+        Ok(key_results)
     }
 }
 
@@ -213,14 +241,13 @@ where
 
     async fn perform_issuance(
         &self,
-        key_count: std::num::NonZeroUsize,
         aud: String,
-        nonce: Option<Nonce>,
-    ) -> Result<IssuanceResult, Self::Error> {
+        key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
+    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
         let result = self
             .instruction_client
             .send(StartPinRecovery {
-                issuance_instruction: PerformIssuance { key_count, aud, nonce },
+                issuance_instruction: build_perform_issuance_instruction(aud, key_counts_and_nonces),
                 pin_pubkey: self.pin_key.into(),
             })
             .await?;
@@ -228,10 +255,9 @@ where
         self.certificates.lock().push(result.certificate);
 
         let issuance_result = result.issuance_result;
-        Ok(IssuanceResult::new(
-            issuance_result.key_identifiers,
-            issuance_result.pops,
-        ))
+        let key_results = key_results_from_issuance_result(issuance_result);
+
+        Ok(key_results)
     }
 }
 

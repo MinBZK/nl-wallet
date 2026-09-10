@@ -49,6 +49,7 @@ use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::GetTransferStatus;
+use wallet_account::messages::instructions::IssuanceKeyResult;
 use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::IssueWiaResult;
 use wallet_account::messages::instructions::PairTransfer;
@@ -434,30 +435,51 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
-    let (key_ids, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
-        .wallet_user_hsm
-        .generate_wrapped_keys(&user_state.wrapping_key_identifier, instruction.key_count)
-        .await?
-        .into_nonempty_iter()
-        .unzip();
+    let request_count = instruction.key_requests.len();
 
-    let attestation_keys = wrapped_keys
-        .nonempty_iter()
-        .map(|wrapped_key| attestation_key(wrapped_key, user_state))
-        .collect();
+    let (proofs, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(
+        instruction
+            .key_requests
+            .into_iter()
+            .zip(std::iter::repeat_n(instruction.aud, request_count.get()))
+            .map(async |(request, aud)| -> Result<_, InstructionError> {
+                let (key_identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
+                    .wallet_user_hsm
+                    .generate_wrapped_keys(&user_state.wrapping_key_identifier, request.key_count.into())
+                    .await?
+                    .into_nonempty_iter()
+                    .unzip();
 
-    // The JWT claims to be signed in the PoPs.
-    let claims = JwtPopClaims::new(
-        instruction.nonce,
-        NL_WALLET_CLIENT_ID.to_string(),
-        instruction.aud,
-        time,
-    );
+                let attestation_keys = wrapped_keys
+                    .nonempty_iter()
+                    .map(|wrapped_key| attestation_key(wrapped_key, user_state))
+                    .collect();
+
+                // The JWT claims to be signed in the PoPs.
+                let claims = JwtPopClaims::new(request.proof_nonce, NL_WALLET_CLIENT_ID.to_string(), aud, time);
+
+                let proofs = issuance_pops(&attestation_keys, &claims)
+                    .await?
+                    .into_nonempty_iter()
+                    .zip(key_identifiers)
+                    .map(|(pop, key_identifier)| IssuanceKeyResult { key_identifier, pop })
+                    .collect::<VecNonEmpty<_>>();
+
+                Ok((proofs, wrapped_keys))
+            }),
+    )
+    .await?
+    .into_iter()
+    .unzip();
 
     let issuance_result = PerformIssuanceResult {
-        key_identifiers: key_ids,
-        pops: issuance_pops(&attestation_keys, &claims).await?,
+        keys: proofs
+            .try_into()
+            .expect("the PerformIssuance instruction contains a non-zero amount of proof requests"),
     };
+    let wrapped_keys = wrapped_keys.into_iter().flatten().collect_vec().try_into().expect(
+        "the PerformIssuance instruction contains a non-zero amount of proof requests and the inner vec is non-empty",
+    );
 
     Ok((issuance_result, wrapped_keys))
 }
@@ -1439,7 +1461,7 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
-    use std::num::NonZeroUsize;
+    use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::sync::LazyLock;
     use std::sync::Mutex;
@@ -1454,6 +1476,7 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
+    use itertools::Itertools;
     use jwt::Algorithm;
     use jwt::JwtDecodingKey;
     use jwt::JwtValidation;
@@ -1488,6 +1511,7 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::GetTransferStatus;
+    use wallet_account::messages::instructions::IssuanceKeySetRequest;
     use wallet_account::messages::instructions::IssueWia;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
@@ -2225,35 +2249,32 @@ mod tests {
         validation
     });
 
-    fn validate_issuance(
-        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
-        wia_with_disclosure: Option<&WiaDisclosure>,
-    ) {
-        pops.iter().for_each(|pop| {
+    fn validate_issuance_pops<'a>(pops: impl IntoIterator<Item = &'a UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>) {
+        for pop in pops {
             pop.parse_and_verify_with_jwk(ISSUANCE_VALIDATION.to_owned()).unwrap();
-        });
-
-        if let Some(wia_with_disclosure) = wia_with_disclosure {
-            let wia_key = wia_with_disclosure
-                .wia()
-                .dangerous_parse_unverified()
-                .unwrap()
-                .1
-                .cnf
-                .try_to_public_key()
-                .unwrap();
-
-            wia_with_disclosure
-                .wia_pop()
-                .parse_and_verify(
-                    JwtDecodingKey::from(&wia_key),
-                    ISSUANCE_VALIDATION
-                        .to_owned()
-                        .try_into_validation()
-                        .expect("created with only ES256"),
-                )
-                .unwrap();
         }
+    }
+
+    fn validate_wia_disclosure(wia_disclosure: &WiaDisclosure) {
+        let wia_key = wia_disclosure
+            .wia()
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .cnf
+            .try_to_public_key()
+            .unwrap();
+
+        wia_disclosure
+            .wia_pop()
+            .parse_and_verify(
+                JwtDecodingKey::from(&wia_key),
+                ISSUANCE_VALIDATION
+                    .to_owned()
+                    .try_into_validation()
+                    .expect("created with only ES256"),
+            )
+            .unwrap();
     }
 
     const POP_AUD: &str = "aud";
@@ -2261,17 +2282,31 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case(1)]
-    #[case(2)]
-    async fn should_handle_perform_issuance(#[case] key_count: usize) {
+    #[case(vec![1])]
+    #[case(vec![1, 1, 1])]
+    #[case(vec![4, 1, 3, 5])]
+    async fn should_handle_perform_issuance(#[case] key_counts: Vec<u8>, #[values(false, true)] include_nonce: bool) {
         let result = handle_issuance_instruction(PerformIssuance {
-            key_count: key_count.try_into().unwrap(),
             aud: POP_AUD.to_string(),
-            nonce: Some(Nonce::from(POP_NONCE.to_string())),
+            key_requests: key_counts
+                .into_iter()
+                .map(|key_count| IssuanceKeySetRequest {
+                    key_count: key_count.try_into().unwrap(),
+                    proof_nonce: include_nonce.then(|| Nonce::from(POP_NONCE.to_string())),
+                })
+                .collect_vec()
+                .try_into()
+                .unwrap(),
         })
         .await;
 
-        validate_issuance(result.pops.as_slice(), None);
+        validate_issuance_pops(
+            result
+                .keys
+                .iter()
+                .flat_map(|proofs| proofs.iter())
+                .map(|proof| &proof.pop),
+        );
     }
 
     #[tokio::test]
@@ -2282,7 +2317,7 @@ mod tests {
         })
         .await;
 
-        validate_issuance(&[], Some(&result.wia_disclosure));
+        validate_wia_disclosure(&result.wia_disclosure);
     }
 
     fn mock_change_pin_start_instruction() -> ChangePinStart {
@@ -2304,9 +2339,11 @@ mod tests {
 
     fn mock_issuance_instruction() -> PerformIssuance {
         PerformIssuance {
-            key_count: NonZeroUsize::MIN,
             aud: "aud".to_string(),
-            nonce: None,
+            key_requests: vec_nonempty![IssuanceKeySetRequest {
+                key_count: NonZeroU8::MIN,
+                proof_nonce: None
+            }],
         }
     }
 

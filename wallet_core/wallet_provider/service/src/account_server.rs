@@ -2058,7 +2058,7 @@ pub mod mock {
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
-    use std::num::NonZeroUsize;
+    use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::sync::Mutex;
     use std::time::Duration;
@@ -2113,6 +2113,7 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::IssuanceKeySetRequest;
     use wallet_account::messages::instructions::IssueWia;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
@@ -3593,9 +3594,11 @@ mod tests {
 
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                key_count: NonZeroUsize::MIN,
                 aud: "aud".to_string(),
-                nonce: Some(Nonce::from("nonce".to_string())),
+                key_requests: vec_nonempty![IssuanceKeySetRequest {
+                    key_count: NonZeroU8::MIN,
+                    proof_nonce: Some(Nonce::from("nonce".to_string())),
+                }],
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
@@ -3697,9 +3700,11 @@ mod tests {
 
         let pin_recovery_instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                key_count: NonZeroUsize::MIN,
                 aud: "aud".to_string(),
-                nonce: Some(Nonce::from("nonce".to_string())),
+                key_requests: vec_nonempty![IssuanceKeySetRequest {
+                    key_count: NonZeroU8::MIN,
+                    proof_nonce: Some(Nonce::from("nonce".to_string())),
+                }],
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
@@ -4072,9 +4077,11 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                key_count: NonZeroUsize::MIN,
                 aud: "aud".to_string(),
-                nonce: Some(Nonce::from("nonce".to_string())),
+                key_requests: vec_nonempty![IssuanceKeySetRequest {
+                    key_count: NonZeroU8::MIN,
+                    proof_nonce: Some(Nonce::from("nonce".to_string())),
+                }],
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
