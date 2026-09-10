@@ -328,6 +328,9 @@ struct IssuanceState {
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
+    // Keep metadata separate from offered credentials to prevent duplication. Metadata is per credential
+    // configuration, not per credential. `HttpIssuanceSession::create` enforces that every credential configuration
+    // has metadata.
     metadata: HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
     offered_credentials: OfferedCredentials,
     issuer_registration: IssuerRegistration,
@@ -947,7 +950,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .session_state
             .metadata
             .get(&credential_preview.config_id)
-            .expect("type constructor guarantees that metadata is present for all offered attestation types");
+            .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
         let (credential_copies, extended_attestation_types, issued_metadata) =
             match (credential_preview.format, metadata) {
@@ -1036,10 +1039,11 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .offered_credentials
             .credential_previews()
             .map(|preview| {
-                let metadata =
-                    self.session_state.metadata.get(&preview.config_id).expect(
-                        "type constructor guarantees that metadata is present for all offered configuration ids",
-                    ); // TODO (PVW-5547): does this hold?
+                let metadata = self
+                    .session_state
+                    .metadata
+                    .get(&preview.config_id)
+                    .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
                 (preview, metadata)
             })
