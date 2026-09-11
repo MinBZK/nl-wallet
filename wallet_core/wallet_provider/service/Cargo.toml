@@ -33,7 +33,7 @@ spoof_integrity_verdict_hash = []
 # Exposes the MockPlayIntegrityClient type, which can be used for testing or local development.
 mock_play_integrity = ["android_attest/mock"]
 # Implement InstructionResultSigningKey and related traits on SigningKey
-mock_secure_keys = ["crypto/mock_secure_keys"]
+mock_secure_keys = ["crypto/mock_secure_keys", "jwt/test"]
 # Include mock implementations and constructors for testing
 mock = [
     "dep:anyhow",
