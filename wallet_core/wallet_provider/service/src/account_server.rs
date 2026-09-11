@@ -129,6 +129,7 @@ use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::Kid;
+use crate::keys::KidError;
 use crate::keys::WalletCertificateSigningKey;
 use crate::pin_policy::PinRecoveryPinPolicy;
 use crate::revocation::RevocationError;
@@ -174,6 +175,9 @@ pub enum WalletCertificateError {
 
     #[error("validation failed: {0}")]
     Validation(#[source] JwtVerifyError),
+
+    #[error("invalid key identifier in wallet certificate header: {0}")]
+    InvalidKid(#[source] KidError),
 
     #[error("no registered wallet user found")]
     UserNotRegistered,
@@ -940,7 +944,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         // done when handling the instruction.
         let allow_blocked = true;
 
-        let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
+        let (user, claims, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &challenge_request.certificate,
             &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, time_generator),
             allow_blocked,
@@ -1081,7 +1085,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             return Err(InstructionError::WalletSolutionRevoked);
         }
 
-        let (wallet_user, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
+        let (wallet_user, _, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &instruction.certificate,
             &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, generators),
             false,

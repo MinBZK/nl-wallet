@@ -722,6 +722,14 @@ p11tool --login --write \
   --provider="${HSM_LIBRARY_PATH}" \
   "${HSM_TOKEN_URL}"
 
+# Generate a second pin HMAC key to support rollover testing
+p11tool --login --write \
+  --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
+  --set-pin "${HSM_USER_PIN}" \
+  --label="pin_hmac_1" \
+  --provider="${HSM_LIBRARY_PATH}" \
+  "${HSM_TOKEN_URL}"
+
 p11tool --login --write \
   --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \
   --set-pin "${HSM_USER_PIN}" \
