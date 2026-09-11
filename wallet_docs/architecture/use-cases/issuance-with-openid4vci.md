@@ -19,12 +19,12 @@ attributes to be issued out of band, binds them to a freshly generated
 pre-authorized code in an issuance session, and hands that code to the wallet
 inside an [OpenID4VCI Credential Offer][2]. The wallet sends the code to the
 issuer's `/token` endpoint with
-`grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code`, authenticating
-itself with a Wallet Instance Attestation (WIA) sent in HTTP headers
-([OAuth 2.0 Attestation-Based Client Authentication][12]); the issuer verifies
-the WIA and loads the session keyed by the code to find the attributes to issue
-(this grant carries no PKCE). The wallet then obtains a `c_nonce` from the
-issuer's [nonce endpoint][14] and exchanges proofs of possession for
+`grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code`,
+authenticating itself with a Wallet Instance Attestation (WIA) sent in HTTP
+headers ([OAuth 2.0 Attestation-Based Client Authentication][12]); the issuer
+verifies the WIA and loads the session keyed by the code to find the attributes
+to issue (this grant carries no PKCE). The wallet then obtains a `c_nonce` from
+the issuer's [nonce endpoint][14] and exchanges proofs of possession for
 attestations at the `/credential` endpoint.
 
 In our codebase, this flow is implemented by the `issuance_server` (the
@@ -170,13 +170,12 @@ that share no parameters:
    `PID Issuer`'s `/token`. The wallet's `client_id`, `redirect_uri`, `state`,
    PKCE pair, WIA and DPoP all terminate at the `PID Issuer`.
 
-2. **PID Issuer ↔ RDO Max** — a second, freshly minted exchange the
-   `PID Issuer` starts while handling the wallet's `/authorize`. Every parameter
-   here is the `PID Issuer`'s own: its DigiD `client_id`, its own `redirect_uri`
-   (the `PID Issuer`'s `/digid/callback`), a random `state` (the
-   `issuer_state`), its own PKCE pair, `scope=openid` and a fresh OIDC `nonce`.
-   RDO Max redirects back to the `PID Issuer`'s callback — **never to the
-   wallet**.
+2. **PID Issuer ↔ RDO Max** — a second, freshly minted exchange the `PID Issuer`
+   starts while handling the wallet's `/authorize`. Every parameter here is the
+   `PID Issuer`'s own: its DigiD `client_id`, its own `redirect_uri` (the
+   `PID Issuer`'s `/digid/callback`), a random `state` (the `issuer_state`), its
+   own PKCE pair, `scope=openid` and a fresh OIDC `nonce`. RDO Max redirects
+   back to the `PID Issuer`'s callback — **never to the wallet**.
 
 The `PID Issuer` terminates the upstream round-trip at its own callback,
 generates its **own** authorization code, and only then redirects the browser
@@ -191,10 +190,10 @@ Because the upstream round-trip is terminated at the `PID Issuer`, the upstream
 lookup happen **in the `/digid/callback` handler**, before the wallet ever calls
 `/token`. By the time the wallet exchanges its code at `/token`, the attributes
 are already determined and stored in the issuance session, so `/token` only
-verifies the wallet's PKCE `code_verifier` and WIA, and issues the access
-token — there is no upstream interaction at `/token`. If anything fails in
-the callback (BSN, BRP, document build), the `PID Issuer` redirects the
- browser back to the wallet's `redirect_uri` with an OAuth `error` response.
+verifies the wallet's PKCE `code_verifier` and WIA, and issues the access token
+— there is no upstream interaction at `/token`. If anything fails in the
+callback (BSN, BRP, document build), the `PID Issuer` redirects the browser back
+to the wallet's `redirect_uri` with an OAuth `error` response.
 
 Parameter handling, **wallet ↔ PID Issuer** (everything terminates at the PID
 Issuer):
@@ -366,7 +365,6 @@ front-channel browser redirect** (where the only way back to the wallet is the
   consent page for the acf-demo issuer — the state-bridge entry expires. The
   callback then arrives carrying only the opaque `state` (the bridge key); the
   wallet's `redirect_uri` lived _solely_ inside that entry. Two sub-cases:
-
     - **Within the delete leeway**, the entry is expired-but-still-present, so
       the callback recovers the `redirect_uri` and redirects the browser back to
       the wallet with an OAuth error (`invalid_request`). The wallet surfaces
