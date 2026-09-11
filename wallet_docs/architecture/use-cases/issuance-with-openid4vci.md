@@ -111,14 +111,23 @@ sequenceDiagram
     participant CI as Credential Issuer
     participant AS as Authorization Server
 
+    CI-->>OS: openid-credential-offer://?credential_offer_uri=<url><br/>(e.g. via QR code or universal link)
+    OS->>Wallet: open with offer URL
+    Wallet->>CI: GET <credential_offer_uri>
+    CI->>Wallet: Credential Offer<br/>{ credential_issuer, credential_configuration_ids,<br/>  grants: { authorization_code:<br/>    { ... } } }
+
+    Note over OS,AS: Discovery phase
+
     Wallet-->>CI: discover OpenID4VCI metadata
     CI-->>Wallet: { credential_issuer,<br/>  credential_configurations_supported,<br/>  authorization_servers, nonce_endpoint,<br/>  credential_endpoint, ... }
-    Wallet->>Wallet: discover Authorization Server
 
-    Note over OS,AS: Authentication phase
+    Wallet->>Wallet: discover Authorization Server
 
     Wallet-->>AS: discover OAuth metadata
     AS-->>Wallet: { pushed_authorization_request_endpoint,<br/>  authorization_endpoint, token_endpoint, ... }
+
+    Note over OS,AS: Authentication phase
+
     Wallet->>AS: POST PAR (WIA)
     AS->>Wallet: request_uri
     Wallet->>OS: open browser (URL)
@@ -136,7 +145,7 @@ sequenceDiagram
     loop for every credential
         Wallet->>CI: POST Nonce Request
         CI->>Wallet: c_nonce
-        Wallet-->>CI: GET metadata
+        Wallet-->>CI: GET /metadata
         CI-->>Wallet: metadata
         Wallet->>CI: POST Credential Request<br/>(access_token) to /credential
         CI->>Wallet: Credential Response (attestation copies)
@@ -146,9 +155,9 @@ sequenceDiagram
 ## PID issuance
 
 The NL Wallet requires at least the SD JWT format for PID attestations. The MSO
-mDoc can be issued as well. The attestation type and paths to the `login` claim
-and the `recovery_code` are dynamically configured. See the `pid_attributes`
-field in the `wallet-config.json` for details.
+mDoc format can be issued as well. The attestation type and paths to the `login`
+claim and the `recovery_code` are dynamically configured. See the
+`pid_attributes` field in the `wallet-config.json` for details.
 
 In the `pid_issuer`, the Authorization Server and Credential Issuer roles are
 combined: the wallet talks to a single `PID Issuer`, which hosts its own `/par`,
