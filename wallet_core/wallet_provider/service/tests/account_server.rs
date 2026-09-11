@@ -346,9 +346,14 @@ async fn test_wia_status() {
     ));
 }
 
-// Rollover the server's signing key map
-fn rollover_signing_keys(server: &mut MockAccountServer, keys: HashMap<Kid, CertificateSigningKeys>) {
+// Rollover the server's signing key map and kid
+fn rollover_signing_keys(
+    server: &mut MockAccountServer,
+    keys: HashMap<Kid, CertificateSigningKeys>,
+    current_kid: &Kid,
+) {
     server.keys.wallet_certificate_signing_pubkeys = keys;
+    server.keys.pin_keys.hmac_key_identifier = pin_hmac_key_identifier(current_kid);
 }
 
 /// Tests that a wallet certificate issued with a previous certificate signing key can still be
@@ -377,12 +382,13 @@ async fn test_certificate_signing_key_rollover() {
     .await;
 
     // The new current keys that the WP is rolling over to
+    let new_current_kid = Kid::try_from("1").unwrap();
     let new_current_keys = (
-        Kid::try_from("1").unwrap(),
+        new_current_kid.clone(),
         CertificateSigningKeys {
             exp: None,
             certificate_public_key: PublicKey::from(*SigningKey::generate().verifying_key()),
-            pin_hmac_key_identifier: pin_hmac_key_identifier(&Kid::try_from("1").unwrap()),
+            pin_hmac_key_identifier: pin_hmac_key_identifier(&new_current_kid),
         },
     );
 
@@ -403,8 +409,9 @@ async fn test_certificate_signing_key_rollover() {
                 },
             ),
         ]),
+        &new_current_kid,
     );
-    account_server
+    let challenge = account_server
         .instruction_challenge(
             hw_privkey
                 .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 1, certificate.clone())
@@ -415,11 +422,26 @@ async fn test_certificate_signing_key_rollover() {
         .await
         .expect("certificate with non-expired old kid should be accepted");
 
+    // Also fully handle an instruction so that the PIN public key stored in the certificate is verified
+    let instruction = hw_privkey
+        .sign_instruction(CheckPin, challenge, 2, &pin_privkey, certificate.clone())
+        .await;
+    account_server
+        .handle_instruction(
+            instruction,
+            &certificate_signing_key,
+            &UuidV4AndTimeGenerator,
+            &TimeoutPinPolicy,
+            &user_state,
+        )
+        .await
+        .expect("PIN public key hashed with the non-expired old kid's HMAC key should be accepted");
+
     // Use a future time to test that the old kid is now expired
     account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 2, certificate.clone())
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 3, certificate.clone())
                 .await,
             &MockTimeGenerator::new(now + Duration::from_hours(2)),
             &user_state,
@@ -428,11 +450,11 @@ async fn test_certificate_signing_key_rollover() {
         .expect_err("certificate with expired old kid should be rejected");
 
     // Remove old kid from the key map
-    rollover_signing_keys(&mut account_server, HashMap::from([new_current_keys]));
+    rollover_signing_keys(&mut account_server, HashMap::from([new_current_keys]), &new_current_kid);
     account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 2, certificate)
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 4, certificate)
                 .await,
             &MockTimeGenerator::new(now),
             &user_state,
