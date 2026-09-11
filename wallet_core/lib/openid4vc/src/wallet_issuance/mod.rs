@@ -271,10 +271,6 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     OAuth(#[from] OAuthError),
 
-    #[error("issuer has no batch credential endpoint")]
-    #[category(critical)]
-    NoBatchCredentialEndpoint,
-
     #[error("issuer has no credential preview endpoint")]
     #[category(critical)]
     NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
