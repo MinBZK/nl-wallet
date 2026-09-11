@@ -16,7 +16,7 @@ use jwt::error::JwtX5cVerifyError;
 use jwt::jades_b_b::JadesbbHeader;
 use utils::generator::Generator;
 
-use super::UncheckedRegistrationCertificate;
+use super::ParsedRegistrationCertificate;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateJwtParseError {
@@ -47,11 +47,13 @@ pub enum RegistrationCertificateEnvelopeError {
     SigningCertificateSubject(#[source] CertificateError),
 }
 
-/// A parsed, but not yet authenticated, registration-certificate envelope.
+/// A registration certificate in JWT or CWT form, with an encoded, unparsed payload.
+///
+/// This type provides no guarantees about signature trust or payload validity.
 #[derive(Debug, Clone)]
 pub enum RegistrationCertificateEnvelope {
-    Jwt(UnverifiedJwt<UncheckedRegistrationCertificate, JadesbbHeader>),
-    Cwt(Box<UnverifiedWrprcCwt<UncheckedRegistrationCertificate>>),
+    Jwt(UnverifiedJwt<ParsedRegistrationCertificate, JadesbbHeader>),
+    Cwt(Box<UnverifiedWrprcCwt<ParsedRegistrationCertificate>>),
 }
 
 impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
@@ -110,18 +112,19 @@ impl RegistrationCertificateEnvelope {
     }
 }
 
-/// A registration-certificate envelope whose signature and certificate chain have been verified.
+/// A registration-certificate envelope whose signature and certificate chain have been verified and whose payload
+/// satisfies its intrinsic rules. WRPAC binding, current validity, status, and query authorization are separate checks.
 pub struct VerifiedRegistrationCertificateEnvelope {
-    payload: UncheckedRegistrationCertificate,
+    payload: ParsedRegistrationCertificate,
     signing_certificate_dn: CanonicalDistinguishedName,
 }
 
 impl VerifiedRegistrationCertificateEnvelope {
-    pub fn into_payload(self) -> UncheckedRegistrationCertificate {
+    pub fn into_payload(self) -> ParsedRegistrationCertificate {
         self.payload
     }
 
-    pub fn into_parts(self) -> (UncheckedRegistrationCertificate, CanonicalDistinguishedName) {
+    pub fn into_parts(self) -> (ParsedRegistrationCertificate, CanonicalDistinguishedName) {
         (self.payload, self.signing_certificate_dn)
     }
 }

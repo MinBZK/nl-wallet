@@ -129,7 +129,7 @@ async fn verify_and_validate_registration_certificate(#[case] format: EnvelopeFo
         .unwrap()
         .into_payload();
     let certificate = payload
-        .validate_structure(&access_certificate_subject(), validation_time())
+        .validate_binding_and_time(&access_certificate_subject(), validation_time())
         .unwrap();
 
     assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));

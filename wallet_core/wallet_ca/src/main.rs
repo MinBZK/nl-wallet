@@ -7,7 +7,7 @@ use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
+use attestation_data::registration_certificate::ParsedRegistrationCertificate;
 use attestation_data::x509::RelyingParty;
 use attestation_types::claim_path::ClaimPath;
 use base64::Engine;
@@ -535,8 +535,8 @@ impl Command {
                 let access_certificate = read_certificate(&wrpac_crt_file)?;
                 let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
                 let payload: Value = serde_json::from_reader(payload_file)?;
-                serde_json::from_value::<UncheckedRegistrationCertificate>(payload.clone())?
-                    .validate_structure(&access_subject, Utc::now())?;
+                serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?
+                    .validate_binding_and_time(&access_subject, Utc::now())?;
 
                 let runtime = tokio::runtime::Builder::new_current_thread().build()?;
                 let serialized = runtime.block_on(sign_registration_certificate(

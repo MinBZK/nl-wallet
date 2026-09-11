@@ -304,10 +304,13 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
+    use attestation_data::registration_certificate::RegistrationCertificateValidationError;
+    use attestation_data::registration_certificate::mock::registration_certificate_payload;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use base64::prelude::*;
+    use cose::wrprc_cwt::SignedWrprcCwt;
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -324,6 +327,7 @@ mod tests {
     use jwt::UnverifiedJwt;
     use jwt::error::JwtParseError;
     use jwt::headers::HeaderWithX5c;
+    use jwt::jades_b_b::JadesbbHeader;
     use mdoc::holder::disclosure::PartialMdoc;
     use oauth::errors::AuthorizationErrorResponse;
     use rstest::rstest;
@@ -334,6 +338,7 @@ mod tests {
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
     use url::Url;
+    use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -371,6 +376,11 @@ mod tests {
     use crate::verifier::SessionType;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://cert.rp.example.com/disclosure".parse().unwrap());
+
+    enum RegistrationCertificateFormat {
+        Jwt,
+        Cwt,
+    }
 
     type StartDisclosureResult = Result<
         (
@@ -798,6 +808,79 @@ mod tests {
         assert_matches!(
             verifier_session.wallet_messages.lock().last(),
             Some(WalletMessage::Error(_))
+        );
+    }
+
+    #[rstest]
+    #[case::jwt(RegistrationCertificateFormat::Jwt)]
+    #[case::cwt(RegistrationCertificateFormat::Cwt)]
+    #[tokio::test]
+    async fn test_vp_disclosure_client_reports_intrinsically_invalid_registration_certificate_payload(
+        #[case] format: RegistrationCertificateFormat,
+    ) {
+        let mut verifier_session = MockVerifierSession::new(
+            &VERIFIER_URL,
+            SessionType::SameDevice,
+            VpRequestUriMethod::GET,
+            None,
+            NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+        );
+        let mut payload = registration_certificate_payload(
+            verifier_session.key_pair.certificate(),
+            verifier_session.credential_requests.clone().into(),
+        );
+        payload.0.as_object_mut().unwrap().remove("id");
+        let ca = Ca::generate_mock();
+        let signer = ca.generate_issuer_mock().unwrap();
+        let certificate = match format {
+            RegistrationCertificateFormat::Jwt => {
+                SignedJwt::<_, JadesbbHeader>::sign_with_iat(&payload, &signer, &TimeGenerator)
+                    .await
+                    .unwrap()
+                    .to_string()
+                    .into_bytes()
+            }
+            RegistrationCertificateFormat::Cwt => {
+                SignedWrprcCwt::sign_with_certificate(&payload, &signer, &TimeGenerator)
+                    .await
+                    .unwrap()
+                    .to_vec()
+                    .unwrap()
+            }
+        };
+        let registration_certificate = verifier_session.registration_certificate.as_mut().unwrap();
+        registration_certificate.certificate = certificate;
+        registration_certificate.trust_anchors = TrustAnchors::from(&ca);
+        let verifier_session = Arc::new(verifier_session);
+        let registration_certificate = verifier_session.registration_certificate.as_ref().unwrap();
+        let client = VpDisclosureClient::new(
+            MockVerifierVpMessageClient::new(Arc::clone(&verifier_session)),
+            verifier_session.crl_verifier.clone(),
+            registration_certificate.status_list_client.clone(),
+        );
+
+        let error = client
+            .start(
+                &verifier_session.request_uri_query(),
+                DisclosureUriSource::Link,
+                DisclosureTrustAnchors {
+                    wrpac: &verifier_session.trust_anchors,
+                    wrprc: &registration_certificate.trust_anchors,
+                },
+            )
+            .await
+            .expect_err("an intrinsically invalid payload should be rejected during payload deserialization");
+
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::RegistrationCertificate(ref registration_error)
+            )) if matches!(registration_error.as_ref(), RegistrationCertificateError::Envelope(_))
+                && registration_error.to_string().contains(&RegistrationCertificateValidationError::MissingId.to_string())
+        );
+        assert_matches!(
+            verifier_session.wallet_messages.lock().last(),
+            Some(WalletMessage::Error(response)) if response.error_response.error == VpAuthorizationErrorCode::InvalidRequest
         );
     }
 

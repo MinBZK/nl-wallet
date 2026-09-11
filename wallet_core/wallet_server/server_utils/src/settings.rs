@@ -3,9 +3,9 @@ use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
 
+use attestation_data::registration_certificate::BoundRegistrationCertificate;
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
-use attestation_data::registration_certificate::StructurallyValidatedRegistrationCertificate;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
@@ -300,13 +300,13 @@ fn validate_registration_certificate(
     access_certificate: &BorrowingCertificate,
     trust_anchors: &TrustAnchors,
     time: &impl Generator<DateTime<Utc>>,
-) -> Result<StructurallyValidatedRegistrationCertificate, anyhow::Error> {
+) -> Result<BoundRegistrationCertificate, anyhow::Error> {
     let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
 
     let payload =
         verify_registration_certificate_envelope(registration_certificate, trust_anchors, time)?.into_payload();
 
     payload
-        .validate_structure(&access_subject, time.generate())
+        .validate_binding_and_time(&access_subject, time.generate())
         .map_err(anyhow::Error::from)
 }

@@ -15,15 +15,16 @@ pub use payload::Credential;
 pub use payload::Intermediary;
 pub use payload::MultiLanguageString;
 pub use payload::MultiLanguageStringSet;
+pub use payload::ParsedRegistrationCertificate;
 pub use payload::SupervisoryAuthority;
 pub use payload::UncheckedRegistrationCertificate;
 pub use status::RegistrationCertificateStatus;
 pub use status::RegistrationCertificateStatusValidationError;
 pub use status::StatusValidatedRegistrationCertificate;
+pub use validation::BoundRegistrationCertificate;
 pub use validation::CredentialSetValidationError;
 pub use validation::MultiLanguageStringSetValidationError;
 pub use validation::RegistrationCertificateValidationError;
-pub use validation::StructurallyValidatedRegistrationCertificate;
 pub use validation::SubjectType;
 
 #[cfg(any(test, feature = "mock"))]
@@ -40,16 +41,17 @@ mod test {
     use serde_json::Value;
     use serde_json::json;
 
+    use super::BoundRegistrationCertificate;
+    use super::ParsedRegistrationCertificate;
     use super::StatusValidatedRegistrationCertificate;
-    use super::StructurallyValidatedRegistrationCertificate;
     use super::UncheckedRegistrationCertificate;
     use super::mock::ANNEX_C_EXAMPLE;
     use super::mock::STATUS_LIST_URI;
     use crate::x509::RelyingParty;
 
-    impl fmt::Debug for StructurallyValidatedRegistrationCertificate {
+    impl fmt::Debug for BoundRegistrationCertificate {
         fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-            formatter.write_str("StructurallyValidatedRegistrationCertificate")
+            formatter.write_str("BoundRegistrationCertificate")
         }
     }
 
@@ -57,6 +59,16 @@ mod test {
         fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             formatter.write_str("StatusValidatedRegistrationCertificate")
         }
+    }
+
+    impl fmt::Debug for ParsedRegistrationCertificate {
+        fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("ParsedRegistrationCertificate")
+        }
+    }
+
+    pub(super) fn valid_parsed_payload() -> ParsedRegistrationCertificate {
+        serde_json::from_value(valid_payload_json()).unwrap()
     }
 
     pub(super) fn valid_payload_json() -> Value {

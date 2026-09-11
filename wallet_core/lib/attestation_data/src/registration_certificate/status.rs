@@ -14,13 +14,13 @@ use url::Url;
 use utils::generator::Generator;
 
 use super::payload::UncheckedRegistrationCertificate;
-use super::validation::StructurallyValidatedRegistrationCertificate;
+use super::validation::BoundRegistrationCertificate;
 
 /// Reference to the status list entry for this registration certificate.
 ///
 /// Deserialization accepts both the direct shape required by ETSI TS 119 475 clause 6.2.6.1 and the nested OAuth
-/// Status List shape used by the informative Annex C example, but structural validation only accepts the normative
-/// direct shape with a numeric-string index.
+/// Status List shape used by the informative Annex C example. Constructing a [`super::ParsedRegistrationCertificate`]
+/// only accepts the normative direct shape with a numeric-string index.
 pub struct RegistrationCertificateStatus {
     status_list_claim: StatusListClaim,
     input_format: RegistrationCertificateStatusInputFormat,
@@ -108,7 +108,7 @@ impl<'de> Deserialize<'de> for RegistrationCertificateStatus {
     }
 }
 
-impl StructurallyValidatedRegistrationCertificate {
+impl BoundRegistrationCertificate {
     /// Verifies the referenced status-list token using the registration-certificate trust anchors.
     ///
     /// The signing-certificate distinguished name must come from the already verified registration-certificate
@@ -143,11 +143,11 @@ impl StructurallyValidatedRegistrationCertificate {
     }
 }
 
-/// A structurally validated registration-certificate payload whose referenced status-list entry is valid.
+/// A WRPAC-bound, time-checked registration-certificate payload whose referenced status-list entry is valid.
 ///
 /// Registration-certificate header and signature validation are performed by
 /// [`super::verify_registration_certificate_envelope`].
-pub struct StatusValidatedRegistrationCertificate(StructurallyValidatedRegistrationCertificate);
+pub struct StatusValidatedRegistrationCertificate(BoundRegistrationCertificate);
 
 impl StatusValidatedRegistrationCertificate {
     pub fn payload(&self) -> &UncheckedRegistrationCertificate {
@@ -185,12 +185,13 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
 
+    use super::super::ParsedRegistrationCertificate;
     use super::super::RegistrationCertificateValidationError;
     use super::super::UncheckedRegistrationCertificate;
     use super::super::mock::STATUS_LIST_URI;
     use super::super::mock::StaticStatusListClient;
     use super::super::test::legal_person_access_certificate_subject;
-    use super::super::test::valid_payload;
+    use super::super::test::valid_parsed_payload;
     use super::super::test::valid_payload_json;
     use super::super::test::validation_time;
     use super::RegistrationCertificateStatus;
@@ -255,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn reject_non_normative_status_shapes_during_structural_validation() {
+    fn reject_non_normative_status_shapes_during_payload_parsing() {
         let mut nested = valid_payload_json();
         nested["status"] = json!({
             "status_list": {
@@ -265,7 +266,7 @@ mod tests {
         });
         let nested: UncheckedRegistrationCertificate = serde_json::from_value(nested).unwrap();
         assert_matches!(
-            nested.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(nested),
             Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)
         );
 
@@ -276,7 +277,7 @@ mod tests {
         });
         let integer: UncheckedRegistrationCertificate = serde_json::from_value(integer).unwrap();
         assert_matches!(
-            integer.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(integer),
             Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)
         );
     }
@@ -284,8 +285,8 @@ mod tests {
     #[tokio::test]
     async fn accept_registration_certificate_with_valid_referenced_status() {
         let context = status_validation_context(StatusType::Valid, 8).await;
-        let certificate = valid_payload()
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        let certificate = valid_parsed_payload()
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
             .validate_status(
                 &context.verifier,
@@ -302,8 +303,8 @@ mod tests {
     #[tokio::test]
     async fn reject_registration_certificate_with_revoked_status() {
         let context = status_validation_context(StatusType::Invalid, 8).await;
-        let result = valid_payload()
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        let result = valid_parsed_payload()
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
             .validate_status(
                 &context.verifier,
@@ -321,9 +322,9 @@ mod tests {
         let context = status_validation_context(StatusType::Valid, 8).await;
         let mut payload = valid_payload_json();
         payload["status"]["idx"] = json!("8");
-        let payload: UncheckedRegistrationCertificate = serde_json::from_value(payload).unwrap();
+        let payload: ParsedRegistrationCertificate = serde_json::from_value(payload).unwrap();
         let result = payload
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
             .validate_status(
                 &context.verifier,
@@ -343,8 +344,8 @@ mod tests {
     async fn reject_status_list_not_signed_under_registration_certificate_trust_anchor() {
         let context = status_validation_context(StatusType::Valid, 8).await;
         let untrusted_ca = Ca::generate_mock();
-        let result = valid_payload()
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        let result = valid_parsed_payload()
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
             .validate_status(
                 &context.verifier,
@@ -370,8 +371,8 @@ mod tests {
             Duration::ZERO,
             context.time.clone(),
         );
-        let result = valid_payload()
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        let result = valid_parsed_payload()
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
             .validate_status(
                 &verifier,

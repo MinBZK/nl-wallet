@@ -7,6 +7,7 @@ use url::Url;
 
 use super::payload::Credential;
 use super::payload::MultiLanguageStringSet;
+use super::payload::ParsedRegistrationCertificate;
 use super::payload::UncheckedRegistrationCertificate;
 use crate::x509::RelyingParty;
 
@@ -34,19 +35,19 @@ pub(super) const ANNEX_A_3_1_SUB_ENTITLEMENTS: [&str; 5] = [
     "https://uri.etsi.org/19475/SubEntitlement/psp/unspecified",
 ];
 
-/// A registration-certificate payload that passed all synchronous structural and direct-WRPAC-binding checks.
+/// A parsed registration-certificate payload bound to a WRPAC subject and checked against the current time.
 ///
 /// Header and signature validation are performed by [`super::verify_registration_certificate_envelope`]. Verification
 /// of the referenced status list is a separate asynchronous step; use [`Self::validate_status`] to perform it.
-pub struct StructurallyValidatedRegistrationCertificate(UncheckedRegistrationCertificate);
+pub struct BoundRegistrationCertificate(ParsedRegistrationCertificate);
 
-impl StructurallyValidatedRegistrationCertificate {
+impl BoundRegistrationCertificate {
     pub fn payload(&self) -> &UncheckedRegistrationCertificate {
-        &self.0
+        self.0.payload()
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum SubjectType {
     LegalPerson,
     NaturalPerson,
@@ -174,11 +175,7 @@ fn validate_credential_set(value: &[Credential]) -> Result<(), CredentialSetVali
 }
 
 impl UncheckedRegistrationCertificate {
-    pub fn validate_structure(
-        self,
-        access_certificate_subject: &RelyingParty,
-        now: DateTime<Utc>,
-    ) -> Result<StructurallyValidatedRegistrationCertificate, RegistrationCertificateValidationError> {
+    pub(super) fn parse_structure(&self) -> Result<SubjectType, RegistrationCertificateValidationError> {
         let id = self
             .id
             .as_deref()
@@ -192,7 +189,7 @@ impl UncheckedRegistrationCertificate {
             validate_non_empty("name", name)?;
         }
 
-        self.validate_subject(access_certificate_subject)?;
+        let subject_type = self.parse_subject_type()?;
 
         if self.country.len() != 2 || !self.country.bytes().all(|byte| byte.is_ascii_alphabetic()) {
             return Err(RegistrationCertificateValidationError::InvalidCountry);
@@ -244,30 +241,23 @@ impl UncheckedRegistrationCertificate {
             })?;
         }
 
-        if let Some(expiration) = self.exp {
-            if now >= expiration {
-                return Err(RegistrationCertificateValidationError::Expired { expiration });
-            }
-            if self
+        if let Some(expiration) = self.exp
+            && self
                 .iat
                 .checked_add_months(Months::new(12))
                 .is_none_or(|latest_expiration| expiration > latest_expiration)
-            {
-                return Err(RegistrationCertificateValidationError::ExpirationTooLate);
-            }
+        {
+            return Err(RegistrationCertificateValidationError::ExpirationTooLate);
         }
 
         if !self.policy_id.iter().any(|policy| policy == WRPRC_POLICY_IDENTIFIER) {
             return Err(RegistrationCertificateValidationError::MissingPolicyIdentifier);
         }
 
-        Ok(StructurallyValidatedRegistrationCertificate(self))
+        Ok(subject_type)
     }
 
-    fn validate_subject(
-        &self,
-        access_certificate_subject: &RelyingParty,
-    ) -> Result<(), RegistrationCertificateValidationError> {
+    fn parse_subject_type(&self) -> Result<SubjectType, RegistrationCertificateValidationError> {
         let subject_type = match (self.sub_ln.as_deref(), self.sub_gn.as_deref(), self.sub_fn.as_deref()) {
             (Some(sub_ln), None, None) => {
                 validate_non_empty("sub_ln", sub_ln)?;
@@ -284,44 +274,7 @@ impl UncheckedRegistrationCertificate {
             _ => return Err(RegistrationCertificateValidationError::UndeterminedSubjectType),
         };
 
-        let (subject_field, access_identifier) = match (&subject_type, access_certificate_subject) {
-            (
-                SubjectType::LegalPerson,
-                RelyingParty::LegalPerson {
-                    organization_identifier,
-                    ..
-                },
-            ) => ("organizationIdentifier", organization_identifier.as_str()),
-            (SubjectType::NaturalPerson, RelyingParty::NaturalPerson { serial_number, .. }) => {
-                ("serialNumber", serial_number.as_str())
-            }
-            (_, access_certificate_subject) => {
-                let access = match access_certificate_subject {
-                    RelyingParty::LegalPerson { .. } => SubjectType::LegalPerson,
-                    RelyingParty::NaturalPerson { .. } => SubjectType::NaturalPerson,
-                };
-                return Err(
-                    RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
-                        registration: subject_type,
-                        access,
-                    },
-                );
-            }
-        };
-
-        if is_empty(access_identifier) {
-            return Err(
-                RegistrationCertificateValidationError::MissingAccessCertificateIdentifier {
-                    field: subject_field,
-                    subject_type,
-                },
-            );
-        }
-        if self.sub != access_identifier {
-            return Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch { field: subject_field });
-        }
-
-        Ok(())
+        Ok(subject_type)
     }
 
     fn validate_supervisory_authority(&self) -> Result<(), RegistrationCertificateValidationError> {
@@ -366,6 +319,58 @@ impl UncheckedRegistrationCertificate {
         }
 
         Ok(is_service_provider)
+    }
+}
+
+impl ParsedRegistrationCertificate {
+    pub fn validate_binding_and_time(
+        self,
+        access_certificate_subject: &RelyingParty,
+        now: DateTime<Utc>,
+    ) -> Result<BoundRegistrationCertificate, RegistrationCertificateValidationError> {
+        let subject_type = self.subject_type();
+        let (subject_field, access_identifier) = match (subject_type, access_certificate_subject) {
+            (
+                SubjectType::LegalPerson,
+                RelyingParty::LegalPerson {
+                    organization_identifier,
+                    ..
+                },
+            ) => ("organizationIdentifier", organization_identifier.as_str()),
+            (SubjectType::NaturalPerson, RelyingParty::NaturalPerson { serial_number, .. }) => {
+                ("serialNumber", serial_number.as_str())
+            }
+            (_, access_certificate_subject) => {
+                let access = match access_certificate_subject {
+                    RelyingParty::LegalPerson { .. } => SubjectType::LegalPerson,
+                    RelyingParty::NaturalPerson { .. } => SubjectType::NaturalPerson,
+                };
+                return Err(
+                    RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
+                        registration: subject_type,
+                        access,
+                    },
+                );
+            }
+        };
+        if is_empty(access_identifier) {
+            return Err(
+                RegistrationCertificateValidationError::MissingAccessCertificateIdentifier {
+                    field: subject_field,
+                    subject_type,
+                },
+            );
+        }
+        if self.payload().sub != access_identifier {
+            return Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch { field: subject_field });
+        }
+        if let Some(expiration) = self.payload().exp
+            && now >= expiration
+        {
+            return Err(RegistrationCertificateValidationError::Expired { expiration });
+        }
+
+        Ok(BoundRegistrationCertificate(self))
     }
 }
 
@@ -415,6 +420,7 @@ mod tests {
     use super::ANNEX_A_3_1_SUB_ENTITLEMENTS;
     use super::CredentialSetValidationError;
     use super::MultiLanguageStringSetValidationError;
+    use super::ParsedRegistrationCertificate;
     use super::RegistrationCertificateValidationError;
     use super::SERVICE_PROVIDER_ENTITLEMENT;
     use super::SubjectType;
@@ -422,8 +428,9 @@ mod tests {
 
     #[test]
     fn validate_payload_based_on_annex_c_example() {
-        let certificate = valid_payload()
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
+        let certificate = ParsedRegistrationCertificate::try_from(valid_payload())
+            .unwrap()
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap();
 
         assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
@@ -447,7 +454,10 @@ mod tests {
         ))
         .unwrap();
 
-        let certificate = payload.validate_structure(&access_subject, validation_time()).unwrap();
+        let certificate = ParsedRegistrationCertificate::try_from(payload)
+            .unwrap()
+            .validate_binding_and_time(&access_subject, validation_time())
+            .unwrap();
         assert_eq!(certificate.payload().sub_gn.as_deref(), Some("Jane"));
     }
 
@@ -461,7 +471,7 @@ mod tests {
         payload.sub_fn = sub_fn.map(str::to_string);
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::AmbiguousSubjectType)
         );
     }
@@ -477,7 +487,7 @@ mod tests {
         payload.sub_fn = sub_fn.map(str::to_string);
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::UndeterminedSubjectType)
         );
     }
@@ -488,7 +498,9 @@ mod tests {
         payload.sub = "different".to_string();
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload)
+                .unwrap()
+                .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time()),
             Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch {
                 field: "organizationIdentifier"
             })
@@ -508,7 +520,9 @@ mod tests {
         .unwrap();
 
         assert_matches!(
-            payload.validate_structure(&access_subject, validation_time()),
+            ParsedRegistrationCertificate::try_from(payload)
+                .unwrap()
+                .validate_binding_and_time(&access_subject, validation_time()),
             Err(
                 RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
                     registration: SubjectType::LegalPerson,
@@ -525,7 +539,7 @@ mod tests {
         missing_credentials.credentials = None;
 
         assert_matches!(
-            missing_credentials.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(missing_credentials),
             Err(RegistrationCertificateValidationError::MissingServiceProviderCredentials)
         );
 
@@ -534,7 +548,7 @@ mod tests {
         missing_purpose.credentials = Some(Vec::new());
         missing_purpose.purpose = None;
         assert_matches!(
-            missing_purpose.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(missing_purpose),
             Err(RegistrationCertificateValidationError::MissingServiceProviderPurpose)
         );
     }
@@ -548,7 +562,7 @@ mod tests {
         }]);
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidMultiLanguageStringSet {
                 field: "purpose",
                 source: MultiLanguageStringSetValidationError::InvalidLanguageTag { index: 0, .. },
@@ -565,7 +579,7 @@ mod tests {
         }]);
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidMultiLanguageStringSet {
                 field: "purpose",
                 source: MultiLanguageStringSetValidationError::EmptyValue { index: 0 },
@@ -579,7 +593,7 @@ mod tests {
         payload.entitlements = vec_nonempty!["https://example.com/unknown-entitlement".parse().unwrap()];
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidEntitlement { .. })
         );
     }
@@ -590,7 +604,7 @@ mod tests {
         payload.entitlements = vec_nonempty!["https://uri.etsi.org/19475/SubEntitlement/psp/psp-ai".parse().unwrap(),];
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::MissingAnnexA2Entitlement)
         );
     }
@@ -606,9 +620,7 @@ mod tests {
                 sub_entitlement.parse().unwrap(),
             ];
 
-            payload
-                .validate_structure(&legal_person_access_certificate_subject(), validation_time())
-                .unwrap();
+            ParsedRegistrationCertificate::try_from(payload).unwrap();
         }
     }
 
@@ -625,7 +637,7 @@ mod tests {
         ];
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidEntitlement { index: 1, .. })
         );
     }
@@ -638,15 +650,16 @@ mod tests {
         let mut valid = valid_payload();
         valid.iat = issued_at;
         valid.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 0).unwrap());
-        valid
-            .validate_structure(&legal_person_access_certificate_subject(), now)
+        ParsedRegistrationCertificate::try_from(valid)
+            .unwrap()
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), now)
             .unwrap();
 
         let mut too_late = valid_payload();
         too_late.iat = issued_at;
         too_late.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 1).unwrap());
         assert_matches!(
-            too_late.validate_structure(&legal_person_access_certificate_subject(), now),
+            ParsedRegistrationCertificate::try_from(too_late),
             Err(RegistrationCertificateValidationError::ExpirationTooLate)
         );
 
@@ -654,7 +667,9 @@ mod tests {
         expired.iat = issued_at;
         expired.exp = Some(now);
         assert_matches!(
-            expired.validate_structure(&legal_person_access_certificate_subject(), now),
+            ParsedRegistrationCertificate::try_from(expired)
+                .unwrap()
+                .validate_binding_and_time(&legal_person_access_certificate_subject(), now),
             Err(RegistrationCertificateValidationError::Expired { .. })
         );
     }
@@ -676,9 +691,7 @@ mod tests {
                 lang: language_tag.to_string(),
                 value: "value".to_string(),
             }]];
-            payload
-                .validate_structure(&legal_person_access_certificate_subject(), validation_time())
-                .unwrap();
+            ParsedRegistrationCertificate::try_from(payload).unwrap();
         }
 
         for language_tag in ["", "e", "en_US", "en-", "en-US-abc", "en-a", "en-x", "en-ü"] {
@@ -688,7 +701,7 @@ mod tests {
                 value: "value".to_string(),
             }]];
             assert_matches!(
-                payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+                ParsedRegistrationCertificate::try_from(payload),
                 Err(RegistrationCertificateValidationError::InvalidServiceDescription {
                     source: MultiLanguageStringSetValidationError::InvalidLanguageTag { .. },
                     ..
@@ -703,7 +716,7 @@ mod tests {
             value: "  ".to_string(),
         }]];
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidServiceDescription {
                 source: MultiLanguageStringSetValidationError::EmptyValue { index: 0 },
                 ..
@@ -715,9 +728,7 @@ mod tests {
     fn validate_credential_metadata() {
         let mut payload = valid_payload();
         payload.credentials = Some(Vec::new());
-        payload
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
-            .unwrap();
+        ParsedRegistrationCertificate::try_from(payload).unwrap();
 
         let empty_doctype: Credential = serde_json::from_value(json!({
             "format": "mso_mdoc",
@@ -727,7 +738,7 @@ mod tests {
         let mut payload = valid_payload();
         payload.credentials = Some(vec![empty_doctype]);
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidCredentialSet {
                 source: CredentialSetValidationError::EmptyDoctype { index: 0 },
                 ..
@@ -742,7 +753,7 @@ mod tests {
         let mut payload = valid_payload();
         payload.credentials = Some(vec![empty_vct]);
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidCredentialSet {
                 source: CredentialSetValidationError::EmptyVctValue {
                     index: 0,
@@ -758,14 +769,14 @@ mod tests {
         let mut invalid_support = valid_payload();
         invalid_support.support_uri = "not a URL or email address".to_string();
         assert_matches!(
-            invalid_support.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(invalid_support),
             Err(RegistrationCertificateValidationError::InvalidSupportUri)
         );
 
         let mut invalid_email = valid_payload();
         invalid_email.supervisory_authority.email = Some("supervisory.example.com".to_string());
         assert_matches!(
-            invalid_email.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(invalid_email),
             Err(RegistrationCertificateValidationError::InvalidSupervisoryAuthorityEmail)
         );
 
@@ -773,7 +784,7 @@ mod tests {
             let mut invalid_phone = valid_payload();
             invalid_phone.supervisory_authority.phone = Some(phone.to_string());
             assert_matches!(
-                invalid_phone.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+                ParsedRegistrationCertificate::try_from(invalid_phone),
                 Err(RegistrationCertificateValidationError::InvalidSupervisoryAuthorityPhone)
             );
         }
@@ -786,9 +797,7 @@ mod tests {
         payload.privacy_policy = Some("ftp://example.com/privacy".parse().unwrap());
         payload.certificate_policy = "ftp://registrar.example.com/certificate-policy".parse().unwrap();
 
-        payload
-            .validate_structure(&legal_person_access_certificate_subject(), validation_time())
-            .unwrap();
+        ParsedRegistrationCertificate::try_from(payload).unwrap();
     }
 
     #[rstest]
@@ -801,7 +810,7 @@ mod tests {
         payload.country = country.to_string();
 
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidCountry)
         );
     }
@@ -811,21 +820,21 @@ mod tests {
         let mut invalid_id = valid_payload();
         invalid_id.id = Some("  ".to_string());
         assert_matches!(
-            invalid_id.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(invalid_id),
             Err(RegistrationCertificateValidationError::EmptyField { field: "id" })
         );
 
         let mut invalid_name = valid_payload();
         invalid_name.name = Some("  ".to_string());
         assert_matches!(
-            invalid_name.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(invalid_name),
             Err(RegistrationCertificateValidationError::EmptyField { field: "name" })
         );
 
         let mut invalid_policy = valid_payload();
         invalid_policy.policy_id.clear();
         assert_matches!(
-            invalid_policy.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(invalid_policy),
             Err(RegistrationCertificateValidationError::MissingPolicyIdentifier)
         );
     }
