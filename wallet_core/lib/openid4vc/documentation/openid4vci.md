@@ -2,7 +2,7 @@
 
 OpenID4VCI is a protocol for issuance of attestations. The version of the
 specification implemented here may be found
-[here](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html).
+[here](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html).
 
 It aims to be generic over different attestation formats, such as the mdoc
 attestation format and
@@ -11,7 +11,7 @@ The standard therefore only defines protocols (although it includes a number of
 examples using the mdoc, SD-JWT and JSON-LD VC formats). By contrast, the
 [ISO mdoc](../../mdoc/documentation/mdoc.md) specifications (ISO 18013-5,
 23220-3, 23220-4) define both an attestation format (COSE over `IssuerSigned`)
-and protocols to issue and verify them with.
+and protocols with which to issue and verify them.
 
 A note on terminology: In the OpenID4VCI/OpenID4VP specs, a "Verifiable
 Credential" and just "credential" is what we call an attestation. Here
@@ -41,30 +41,41 @@ Access Token.
 
 The OpenID4VCI protocol has the following phases.
 
-1. The Wallet obtains an Authorization Code in one of the following two ways:
+1. The issuer transmit a Credential Offer to the Wallet, e.g. in the form of a
+   QR code, which contains Credential Configuration Identifiers for a set of
+   offered credentials. This Credential Offer also determines which flow to use
+   in step 3.
+2. Based on the issuer URL in this Credential Offer, the Wallet retrieves both
+   the the Issuer Metadata and Oauth 2.0 Authorization Server Metadata from the
+   issuer, in order to determine the relevant HTTP endpoint paths and to obtain
+   details about of the offered credentials.
+3. The Wallet obtains an Authorization Code in one of the following two ways:
     1. Using the Authorization Code Flow defined in OpenID4VCI, by sending an
-       Authorization Request to the Authorization Endpoint `/authorize` and
-       receiving an Authorization Response as in OAuth 2.0.
+       Authorization Request to the Authorization Endpoint and receiving an
+       Authorization Response as in OAuth 2.0.
     2. Using the Pre-Authorized Code Flow, i.e. in some issuer-specific way not
        covered by OpenID4VCI (in this case the Authorization Code is called the
        "Pre-Authorized Code" but it performs the same role).
-2. The Wallet exchanges the Authorization Code for an Access Token to the Token
-   Endpoint `/token` using an OAuth Token Request, receiving an OAuth Token
-   Response containing the Access Token. The Token Response also contains the
-   `c_nonce` which the Wallet will have to sign with its attestation private
-   keys (that is, the private keys of which it wants the corresponding public
-   keys to be put in the issued attestations).
-3. The Wallet signs the `c_nonce` with its attestation private keys, creating
-   PoPs (Proofs of Possessions) in the form of JWTs, and sends these to an
-   OpenID4VCI-specific endpoint (as `CredentialRequest`/`CredentialRequests`
-   message to `POST /credential` or `POST /batch_credential`). This endpoint is
-   an OAuth 2.0 Protected Resource, i.e., requires the Access Token in the
-   `Authorization` header. The issuer verifies the PoP JWTs and responds with
-   the `CredentialResponse`/`CredentialResponses` message.
+4. The Wallet exchanges the Authorization Code for an Access Token at the Token
+   Endpoint using an OAuth Token Request, receiving an OAuth Token Response
+   containing the Access Token.
+5. If the Issuer Metadata contained a Nonce Endpoint, the Wallet calls this
+   endpoint for each credentials it wishes to have issued. The Wallet will have
+   to sign this nonce with its attestation private keys (that is, the private
+   keys of which it wants the corresponding public keys to be put in the issued
+   credentials).
+6. After creating PoPs (Proofs of Possessions) in the form of JWTs, which may
+   include the nonce retrieved in the previous step, the Wallet sends these to
+   an OpenID4VCI-specific Credential Endpoint. It calls the Credential Endpoint
+   once per credential it wishes to have issued, with each invocation resulting
+   in one or more copies of the same credential data, determined by the amount
+   of proofs the Wallet sends. This endpoint is an OAuth 2.0 Protected Resource,
+   i.e., requires the Access Token in the `Authorization` header. The issuer
+   verifies the PoP JWTs and responds with the issued credential copies.
 
 A sequence diagram of the pre-authorized code flow looks as follows. In this
 flow, the `code` is renamed to `pre-authorized_code` (but otherwise it functions
-in the same way).
+in the same way). Note that the HTTP paths in this diagram are just examples.
 
 ```mermaid
 sequenceDiagram
@@ -76,20 +87,34 @@ sequenceDiagram
     participant Issuer
 
     note over User, Issuer: authenticate user (out of scope of OpenID4VCI pre-authorized code flow)
-    Issuer->>OS: openWallet(pre-authorized_code)
-    OS->>Wallet: openWallet(pre-authorized_code)
+    Issuer->>OS: openWallet(credential_offer)
+    OS->>Wallet: openWallet(credential_offer)
     activate Wallet
-        Wallet->>+Issuer: POST /token(pre-authorized_code)
-        Issuer->>Issuer: lookup(code)
-        Issuer->>-Wallet: access_token, c_nonce
-        Wallet->>+Issuer: POST /batch_credential(access_token, PoPs)
-        Issuer->>-Wallet: attestations
+        Wallet->>+Issuer: GET /issuer_metadata
+        Issuer->>-Wallet: OpenID4VCI Issuer Metadata
+
+        Wallet->>+Issuer: GET /oauth_metadata
+        Issuer->>-Wallet: OAuth 2.0 Authorization Server Metadata
+
+        Wallet->>+Issuer: POST /token (pre-authorized_code)
+        Issuer->>Issuer: lookup code
+        Issuer->>-Wallet: access_token
+
+        loop Every credential
+            Wallet-->>+Issuer: GET /nonce
+            Issuer->>Issuer: generate nonce
+            Issuer-->>-Wallet: nonce
+
+            Wallet->>+Issuer: POST /credential (access_token, PoPs)
+            Issuer->>Issuer: sign credential
+            Issuer->>-Wallet: attestation copies
+        end
     deactivate Wallet
 ```
 
 Sequence diagrams showing full details of the implementation in this crate can
 be found
-[here](../../../wallet_docs/architecture-diagrams/issuance-with-openid4vci.md).
+[here](../../../../wallet_docs/architecture/use-cases/issuance-with-openid4vci.md).
 
 ## Comparison with the mdoc issuance protocol
 
@@ -101,12 +126,11 @@ be found
   whose public key it wants to have in the attestation, thereby proving
   possession to the issuer of the private key.
 - There are as many private keys involved as there are attestation (copies) to
-  be issued, but there is only a single nonce that the holder signs with all
-  private keys.
-- The protocol supports issuance of multiple attestations simultaneously (using
-  the `/batch_credential` endpoint).
-- The protocol depends on TLS for transport security and confidentiality, and
-  includes no encryption of its own.
+  be issued, but per credential there is only a single nonce that the holder
+  signs with all private keys.
+- The protocol supports issuance of multiple attestation copies simultaneously,
+  while issuance of multiple credentials requires subsequent calls to the
+  Credential Endpoint.
 
 ### Differences
 
@@ -129,69 +153,55 @@ be found
 ## Specifics of this implementation
 
 - Since the OpenID4VCI protocol is structured as a superset of OAuth, this
-  implementation is as well; OpenID4VCI-specific extensions to protocol messages
-  are wrapped in `Option` so that the protocol messages can also be used for
-  ordinary OAuth 2.0. Additionally, the protocol messages in this implementation
-  are such that they can be used in both OpenID4VCI servers and
-  OpenID(4VCI)/OAuth clients.
-- This implementation currently only supports the Pre-Authorized Code Flow.
-  Supporting the Authorized Code Flow is future work.
-- This implementation currently only supports issuance of mdocs. Supporting
-  SD-JWT is future work.
+  implementation is as well; OpenID4VCI-specific types of protocol messages
+  contain the base OAuth 2.0 message while expanding upon it with extra fields.
+  Additionally, the protocol messages in this implementation are such that they
+  can be used in both OpenID4VCI servers and OpenID(4VCI)/OAuth clients.
 - This implementation uses the DPoP (Demonstrating Proof of Possession,
   [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)) mechanism, which
   defends against certain replay attacks by making the wallet use an ephemeral
   ECDSA private key in both calls to the issuer:
-    - Just before the wallet sends the pre-authorized code to `/token`, it
-      generates a new ECDSA public/private keypair, and then signs the public
-      key using the private key;
-    - When the wallet sends the pre-authorized code to `/token`, it includes the
-      signed public key to make it known to the issuer;
-    - when the holder requests the attestations by sending the access token and
-      its signatures over the nonce to `/batch_credential`, it also signs and
-      includes the access token with the ephemeral ECDSA private key. The issuer
-      verifies the signature using the public key from the `/token` invocation.
+    - Just before the wallet sends the pre-authorized code to the Token
+      Endpoint, it generates a new ECDSA public/private keypair, and then signs
+      the public key using the private key;
+    - When the wallet sends the pre-authorized code to the Token Endpoint, it
+      includes the signed public key to make it known to the issuer;
+    - When the holder requests the attestations by sending the access token and
+      its signatures over the nonce to the Credential Endpoint, it also signs
+      and includes the access token with the ephemeral ECDSA private key. The
+      issuer verifies the signature using the public key from the Token Endpoint
+      invocation.
 - Normally in both OAuth and OpenID(4VCI), the user gives user consent when the
-  User Agent has navigated to `/authorize` and the user has authenticated
-  themselves. In OpenID4VCI, it is additionally assumed that at this moment in
-  the flow, i.e. during the issuer-controlled part, that the user is informed of
-  the attribute names and maybe their values that it will receive. In our
-  implementation, this would be during the DigiD app part of the flow. However,
-  in this implementation instead we wish to ask for the user consent in the
-  Wallet App itself, to unify the UX of this experience. Therefore, user consent
-  is implemented here as follows:
-    - The issuer-controlled part (in our case the DigiD app part of the flow) is
-      not assumed to inform the user of the attribute values; instead it is only
-      responsible for authenticating the user, as it was already.
-    - This implementation adds a custom field called `credential_previews` of
-      type `Vec<CredentialPreview>` to the Token Response (alongside the Access
-      Token and the `c_nonce`), so the Wallet can see the attribute names and
-      values that it will receive.
-    - After receiving the Access Token, `c_nonce` and the attestation previews,
-      the Wallet App shows the attestation previews to the user and asks for
-      their consent. Only then does the Wallet app invoke the
-      `/batch_credential` endpoint to obtain the attestations. (By contrast,
-      normally in OAuth/OpenID(4VCI) the Authorization Code / Pre-Authorized
-      Code itself represents the user consent, so that the OAuth 2.0 Potected
-      Resource would be invoked immediately after receiving the Access Token.)
-    - The user can reject issuance custom to this implementation by invoking
-      `DELETE /credential` or `DELETE /batch_credential`.
+  User Agent has navigated to the Authorization Endpoint and the user has
+  authenticated themselves. In OpenID4VCI, it is additionally assumed that at
+  this moment in the flow, i.e. during the issuer-controlled part, the user is
+  informed of the attribute names and maybe the values that it will receive.
+  However, in this implementation instead we wish to ask for the user consent in
+  the Wallet App itself, to unify the UX of this experience. Therefore, user
+  consent is implemented here as follows:
+    - The issuer-controlled part is not assumed to inform the user of the
+      attribute values; instead it is only responsible for authenticating the
+      user, as it was already.
+    - This implementation adds a custom Credential Preview endpoint, the path to
+      which is included in the Issuer Metadata.
+    - After receiving the Access Token, the Wallet App retrieves the Credential
+      Preview from the Issuer, which contains all claims of all the credentials
+      offered in the issuance session.
+    - The Wallet App shows the attestation previews to the user and asks for
+      their consent. Only then does the Wallet app invoke the Credential
+      Endpoint to obtain the attestations. (By contrast, normally in
+      OAuth/OpenID(4VCI) the Authorization Code / Pre-Authorized Code itself
+      represents the user consent, so that the OAuth 2.0 Potected Resource would
+      be invoked immediately after receiving the Access Token.)
+    - The user can choose to abort issuance, after which the Wallet App will not
+      call the Credential Endpoint.
+- As OpenID4VCI does not contain a provision to distribute SD-JWT VC Type
+  Metadata, this implementation includes a Credential Metadata Endpoint. The
+  Issuer anounces this endpoint in the Issuer Metadata and the Wallet App
+  retrieves SD-JWT VC Type Metadata documents for all issued credentials.
 - This implementation is currently not compatible with potential other
-  implementations that are unaware of (and thus don't send) the
-  `attestation_previews` field in the `TokenResponse` message; this is left for
-  later.
-- The `CredentialResponses` message that the wallet receives from the
-  `POST /batch_credential` endpoint supports issuance of multiple attestations
-  simultaneously, by having a `Vec` for the attestations. In this
-  implementation, there is an extra level: we wish to support issuance of
-  multiple copies of multiple distinct attestations. Since both our Wallet and
-  the Issuer know in advance using the `batch_size` field of the
-  `CredentialPreviewContent` struct how many copies to send and expect, in this
-  implementation we simply flatten all attestation copies into the single `Vec`
-  field of the `CredentialResponses` struct. The same holds for the PoPs in
-  `CredentialRequest` struct. There is
-  [an open issue in OpenID4VCI](https://github.com/openid/OpenID4VCI/issues/93#issuecomment-1805495347)
-  to support mdoc copies at the protocol level.
+  implementations that are unaware of (and thus don not implement) both the
+  Credential Preview and Credential Metadata endpoints; this is left for later.
 - In the OAuth/OpenID(4VCI) protocols the Authorization and Token Requests that
   the client sends are not JSON-encoded but instead URL-encoded (as they are
   (sometimes) sent as the query parameter in the URL). In this implementation,
