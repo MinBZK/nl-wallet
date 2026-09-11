@@ -14,7 +14,12 @@
         "${WALLET_PROVIDER_SERVER_CA_CRT}"
       ]
     },
-    "certificate_public_key": "${WP_CERTIFICATE_PUBLIC_KEY}",
+    "certificate_public_keys": {
+      "${WP_CERTIFICATE_KID}": {
+        "key": "${WP_CERTIFICATE_PUBLIC_KEY}",
+        "created_at": ${WP_CERTIFICATE_CREATED_AT}
+      }
+    },
     "instruction_result_public_keys": {
       "${WP_INSTRUCTION_RESULT_KID}": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}"
     },
