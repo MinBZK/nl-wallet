@@ -72,7 +72,7 @@ aes.workspace = true
 chrono = { workspace = true, features = ["now"] }
 cmac.workspace = true
 ctr.workspace = true
-der = { workspace = true, features = ["derive", "oid"] }
+der = { workspace = true, features = ["derive", "heapless", "oid"] }
 ecdsa.workspace = true
 hex-literal.workspace = true
 httpmock.workspace = true
