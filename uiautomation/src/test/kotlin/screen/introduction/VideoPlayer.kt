@@ -11,7 +11,7 @@ class VideoPlayer : MobileActions() {
 
     fun visible() = elementContainingTextVisible(closeButton)
 
-    fun closeButtonVisible() = elementContainingTextVisible(closeButton)
+    fun closeButtonVisible() = elementContainingTextVisible(closeButton, 15)
 
     fun subtitlesOnToggleVisible() = elementContainingTextVisible(subtitlesOnToggle)
 
@@ -19,7 +19,7 @@ class VideoPlayer : MobileActions() {
 
     fun close() = clickElementContainingText(closeButton)
 
-    fun replayButtonVisible() = elementContainingTextVisible(videoPlayerReplayTooltip)
+    fun replayButtonVisible() = elementContainingTextVisible(videoPlayerReplayTooltip, 15)
 
 
 }
