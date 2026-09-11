@@ -356,6 +356,10 @@ signed with previous signing keys after key rollover.</p></li>
 instead of <code class="docutils literal notranslate"><span class="pre">instruction_result_signing_key_identifier</span></code>. The
 <code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> is used to identify the current instruction
 result signing key.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">certificate_public_key</span></code> field in the Wallet configuration has been
+renamed to <code class="docutils literal notranslate"><span class="pre">certificate_public_keys</span></code> and changed to be a map from key
+identifier (kid) to <code class="docutils literal notranslate"><span class="pre">key,</span> <span class="pre">created_at</span></code>. This allows multiple wallet certificat
+signing keys to be present in the Wallet configuration during key rollover.</p></li>
 </ul>
 </section>
 <section id="new-features">
