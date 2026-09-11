@@ -75,12 +75,11 @@ The `PID Issuer` process is assembled from three crates:
     - `issuer::create_issuance_router` mounts the **Issuance Phase** handlers:
       `/.well-known/openid-credential-issuer`,
       `/.well-known/oauth-authorization-server`, `/issuance/token`,
-      `/issuance/nonce`, `/issuance/credential` (+ `batch_credential`, the
-      `delete` reject routes) and `/issuance/credential_preview` (an extension
-      we support on top of the spec). Backed by `IssuanceState { issuer }`. Both
-      flows mount this: the pre-authorized `issuance_server` mounts it
-      standalone, the auth-code `pid_issuer` mounts it alongside the
-      authorization router.
+      `/issuance/nonce`, `/issuance/credential` and
+      `/issuance/credential_preview` (an extension we support on top of the
+      spec). Backed by `IssuanceState { issuer }`. Both flows mount this: the
+      pre-authorized `issuance_server` mounts it standalone, the auth-code
+      `pid_issuer` mounts it alongside the authorization router.
     - `issuer::create_authorization_router` mounts the **Authorization Phase**
       handlers `/issuance/par` and `/issuance/authorize`. Backed by
       `AuthorizationState { authorizing_issuer }`. The `/authorize` handler just
