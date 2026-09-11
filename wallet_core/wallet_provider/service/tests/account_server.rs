@@ -62,7 +62,7 @@ async fn do_registration(
     pin_privkey: &SigningKey,
     db: Db,
     attestation_ca: AttestationCa<'_>,
-    wrapping_key_identifier: &str,
+    wrapping_kid: Kid,
 ) -> (
     WalletCertificate,
     MockHardwareKey,
@@ -106,7 +106,7 @@ async fn do_registration(
         Repositories::from(db),
         flags,
         wallet_certificate::mock::setup_hsm().await,
-        wrapping_key_identifier.to_string(),
+        wrapping_kid,
         TrustAnchors::empty(),
         status_list_service,
     );
@@ -197,7 +197,7 @@ async fn test_instruction_challenge(
 ) {
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
-    let wrapping_key_identifier = "my-wrapping-key-identifier";
+    let wrapping_kid = Kid::try_from("0").unwrap();
 
     let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
@@ -220,7 +220,7 @@ async fn test_instruction_challenge(
         &pin_privkey,
         db,
         attestation_ca,
-        wrapping_key_identifier,
+        wrapping_kid,
     )
     .await;
 
@@ -257,7 +257,7 @@ async fn test_instruction_challenge(
 async fn test_wia_status() {
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
-    let wrapping_key_identifier = "my-wrapping-key-identifier";
+    let wrapping_kid = Kid::try_from("0").unwrap();
 
     let certificate_signing_key = SigningKey::generate();
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
@@ -275,7 +275,7 @@ async fn test_wia_status() {
         &pin_privkey,
         db,
         AttestationCa::Apple(&MOCK_APPLE_CA),
-        wrapping_key_identifier,
+        wrapping_kid,
     )
     .await;
 
@@ -362,7 +362,7 @@ fn rollover_signing_keys(
 async fn test_certificate_signing_key_rollover() {
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
-    let wrapping_key_identifier = "my-wrapping-key-identifier";
+    let wrapping_kid = Kid::try_from("0").unwrap();
 
     let certificate_signing_key = SigningKey::generate();
     let kid = Kid::try_from(certificate_signing_key.kid()).unwrap();
@@ -377,7 +377,7 @@ async fn test_certificate_signing_key_rollover() {
         &pin_privkey,
         db,
         AttestationCa::Apple(&MOCK_APPLE_CA),
-        wrapping_key_identifier,
+        wrapping_kid,
     )
     .await;
 

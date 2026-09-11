@@ -191,7 +191,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             AccountServerKeys {
                 wallet_certificate_signing_pubkeys,
                 pin_keys: AccountServerPinKeys {
-                    encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
+                    encryption_kids: settings.pin_pubkey_encryption_kid,
                     hmac_key_identifier,
                 },
                 revocation_code_key_identifier: settings.revocation_code_key_identifier,
@@ -275,7 +275,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 wallet_user_hsm,
                 wia_issuer,
                 wia_status_tracking_validity: settings.wia_settings.wia_status_tracking_validity,
-                wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
+                wrapping_kids: settings.attestation_wrapping_kid,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 status_list_service,
             },

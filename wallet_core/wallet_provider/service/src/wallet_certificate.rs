@@ -26,6 +26,7 @@ use crate::instructions::PinCheckOptions;
 use crate::keys::Kid;
 use crate::keys::WalletCertificateSigningKey;
 use crate::keys::pin_hmac_key_identifier;
+use crate::keys::pin_pubkey_encryption_key_identifier;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -138,7 +139,12 @@ where
         return Ok(());
     }
 
-    let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
+    let pin_pubkey = Decrypter::decrypt(
+        hsm,
+        &pin_pubkey_encryption_key_identifier(&pin_keys.encryption_kids.current),
+        encrypted_pin_pubkey,
+    )
+    .await?;
 
     // Use the HMAC key belonging to the same `kid` as the one that signed the wallet certificate
     let pin_hash_verification = verify_pin_pubkey(
@@ -286,10 +292,11 @@ pub mod mock {
     use crate::keys::Kid;
     use crate::keys::certificate_signing_key_identifier;
     use crate::keys::pin_hmac_key_identifier;
+    use crate::keys::pin_pubkey_encryption_key_identifier;
 
     pub static CERTIFICATE_KID: LazyLock<Kid> = LazyLock::new(|| Kid::try_new("0".to_owned()).unwrap());
+    pub static ENCRYPTION_KID: LazyLock<Kid> = LazyLock::new(|| Kid::try_new("0".to_owned()).unwrap());
 
-    pub const ENCRYPTION_KEY_IDENTIFIER: &str = "encryption_key_1";
     pub const REVOCATION_CODE_KEY_IDENTIFIER: &str = "revocation_code_key_identifier_1";
 
     pub async fn setup_hsm() -> MockPkcs11Client<HsmError> {
@@ -325,7 +332,7 @@ pub mod mock {
 
             let encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
                 &MockPkcs11Client::<HsmError>::default(),
-                ENCRYPTION_KEY_IDENTIFIER,
+                &pin_pubkey_encryption_key_identifier(&ENCRYPTION_KID),
                 pin_pubkey,
             )
             .await
@@ -366,7 +373,9 @@ mod tests {
     use crate::account_server::mock::user_state;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
+    use crate::keys::KidPair;
     use crate::keys::pin_hmac_key_identifier;
+    use crate::keys::pin_pubkey_encryption_key_identifier;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::new_wallet_certificate;
@@ -374,8 +383,6 @@ mod tests {
     use crate::wallet_certificate::sign_pin_pubkey;
     use crate::wallet_certificate::verify_pin_pubkey;
     use crate::wallet_certificate::verify_wallet_certificate;
-
-    const WRAPPING_KEY_IDENTIFIER: &str = "my-wrapping-key-identifier";
 
     fn init_user_state(
         hw_pubkey: VerifyingKey,
@@ -398,7 +405,7 @@ mod tests {
             },
             StubWalletFlags::default(),
             hsm,
-            WRAPPING_KEY_IDENTIFIER.to_string(),
+            mock::ENCRYPTION_KID.clone(),
             TrustAnchors::empty(),
             MockStatusListService::default(),
         )
@@ -455,7 +462,10 @@ mod tests {
             )]),
             &AccountServerPinKeys {
                 hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
-                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+                encryption_kids: KidPair {
+                    current: mock::ENCRYPTION_KID.clone(),
+                    previous: None,
+                },
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -491,7 +501,10 @@ mod tests {
             )]),
             &AccountServerPinKeys {
                 hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
-                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+                encryption_kids: KidPair {
+                    current: mock::ENCRYPTION_KID.clone(),
+                    previous: None,
+                },
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -525,7 +538,7 @@ mod tests {
 
         let other_encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
             &MockPkcs11Client::<HsmError>::default(),
-            mock::ENCRYPTION_KEY_IDENTIFIER,
+            &pin_pubkey_encryption_key_identifier(&mock::ENCRYPTION_KID),
             *SigningKey::generate().verifying_key(),
         )
         .await
@@ -545,7 +558,10 @@ mod tests {
             )]),
             &AccountServerPinKeys {
                 hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
-                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+                encryption_kids: KidPair {
+                    current: mock::ENCRYPTION_KID.clone(),
+                    previous: None,
+                },
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),

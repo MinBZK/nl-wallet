@@ -57,6 +57,7 @@ use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
 use wallet_provider_service::flags::WalletFlags;
 use wallet_provider_service::flags::mock::StubWalletFlags;
+use wallet_provider_service::keys::Kid;
 use wallet_provider_service::revocation::RevocationError;
 use wallet_provider_service::revocation::revoke_solution;
 use wallet_provider_service::revocation::revoke_wallet_by_revocation_code;
@@ -108,7 +109,7 @@ async fn setup_state(
         Repositories::from(db),
         flags,
         hsm,
-        "wrapping_key_identifier".to_owned(),
+        Kid::try_from("0").unwrap(),
         TrustAnchors::empty(),
         service,
     );

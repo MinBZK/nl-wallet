@@ -6,9 +6,12 @@ use jwt::KeyWithKid;
 use nutype::nutype;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
+use serde::Deserialize;
 
 const WALLET_CERTIFICATE_SIGNING_KEY_PREFIX: &str = "wallet_certificate_signing_";
 const PIN_HMAC_KEY_PREFIX: &str = "pin_hmac_";
+const PIN_PUBKEY_ENCRYPTION_KEY_PREFIX: &str = "pin_pubkey_encryption_";
+const ATTESTATION_WRAPPING_KEY_PREFIX: &str = "attestation_wrapping_";
 
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Hash, PartialEq, Eq, Deserialize),
@@ -22,6 +25,39 @@ pub fn certificate_signing_key_identifier(kid: &Kid) -> String {
 
 pub fn pin_hmac_key_identifier(kid: &Kid) -> String {
     format!("{}{}", PIN_HMAC_KEY_PREFIX, kid.as_ref())
+}
+
+pub fn attestation_wrapping_key_identifier(kid: &Kid) -> String {
+    format!("{}{}", ATTESTATION_WRAPPING_KEY_PREFIX, kid.as_ref())
+}
+
+pub fn pin_pubkey_encryption_key_identifier(kid: &Kid) -> String {
+    format!("{}{}", PIN_PUBKEY_ENCRYPTION_KEY_PREFIX, kid.as_ref())
+}
+
+/// A pair of key identifiers ("kid"s) for a symmetric encryption key: the one currently used to encrypt, and
+/// optionally the previous one, still needed to decrypt data that hasn't been re-encrypted yet as part of a
+/// key rollover.
+#[derive(Debug, Clone, Deserialize)]
+pub struct KidPair {
+    pub current: Kid,
+    #[serde(default)]
+    pub previous: Option<Kid>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("unknown key kid: {0:?}")]
+pub struct UnknownKid(pub Kid);
+
+impl KidPair {
+    /// Errors if `kid` is neither the current nor the previous kid.
+    pub fn validate(&self, kid: &Kid) -> Result<(), UnknownKid> {
+        if kid == &self.current || self.previous.as_ref() == Some(kid) {
+            Ok(())
+        } else {
+            Err(UnknownKid(kid.clone()))
+        }
+    }
 }
 
 pub trait WalletCertificateSigningKey: SecureEcdsaKey + KeyWithKid {}
