@@ -562,7 +562,7 @@ cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pi
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${PACF_ISSUANCE_SERVER_DIR}"
-cp "${DEVENV}/com.example.jum.bonuskaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.jum.bonuskaart.mdoc.json" "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.jum.bonuskaart.mdoc.json" "${ACF_DEMO_ISSUER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
