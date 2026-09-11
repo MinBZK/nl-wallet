@@ -8,11 +8,11 @@ use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
-use http_utils::urls::BaseUrl;
 use jsonwebtoken::errors::ErrorKind;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -52,7 +52,7 @@ pub struct WiaWalletInfo {
     pub wallet_name: String,
     pub wallet_version: String,
     #[serde(default)]
-    pub wallet_link: Option<BaseUrl>,
+    pub wallet_link: Option<Url>,
 
     // The structure (and therefore) type of this field is not yet defined, but the example in TS3 shows a string.
     pub wallet_solution_certification_information: String,
