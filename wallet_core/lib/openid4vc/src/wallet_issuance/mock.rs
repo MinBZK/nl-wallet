@@ -10,8 +10,8 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-use wscd::mock_remote::MockWiaClient;
-use wscd::wscd::WiaClient;
+use wscd::wia::mock::MockWiaClient;
+use wscd::wia::WiaClient;
 
 use super::AuthorizationSession;
 use super::CredentialSelection;

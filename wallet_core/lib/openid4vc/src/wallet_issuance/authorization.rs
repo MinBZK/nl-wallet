@@ -23,7 +23,7 @@ use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-use wscd::wscd::WiaClient;
+use wscd::wia::WiaClient;
 
 use super::AuthorizationSession;
 use super::WalletIssuanceError;
@@ -363,7 +363,7 @@ mod tests {
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
-    use wscd::mock_remote::MockWiaClient;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::super::AuthorizationSession;
     use super::super::WalletIssuanceError;

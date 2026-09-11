@@ -11,11 +11,8 @@ workspace = true
 doctest = false
 
 [features]
-# Include examples from the ISO specification
-examples = ["crypto/examples"]
-# Include MockRemoteEcdsaKey type and MockRemoteWscd implementation of Wscd for testing
+# Include the MockRemoteWscd and MockWiaClient types and adds a mock method on Poa.
 mock = [
-    "dep:parking_lot",
     "dep:rand_core",
     "chrono/now",
     "attestation_types/mock",
@@ -24,6 +21,8 @@ mock = [
     "jwt/mock",
     "utils/mock_time",
 ]
+# Include key examples from the ISO specification for MockRemoteWscd.
+examples = ["mock", "crypto/examples"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
@@ -38,14 +37,12 @@ jwt.path = "../jwt"
 utils.path = "../utils"
 
 chrono = { workspace = true, optional = true }
-parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 
 attestation_types = { path = "../attestation_types", optional = true }
 
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
-parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

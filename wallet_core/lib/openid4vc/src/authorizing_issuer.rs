@@ -418,8 +418,8 @@ mod tests {
     use url::Url;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MockWiaClient;
-    use wscd::wscd::WiaClient;
+    use wscd::wia::WiaClient;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::AuthorizationRequestError;
     use super::AuthorizeError;

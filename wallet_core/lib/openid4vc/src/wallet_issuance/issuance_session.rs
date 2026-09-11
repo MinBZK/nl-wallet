@@ -53,9 +53,9 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::wscd::IssuanceKeyresult;
-use wscd::wscd::IssuanceWscd;
-use wscd::wscd::WiaClient;
+use wscd::issuance::IssuanceKeyresult;
+use wscd::issuance::IssuanceWscd;
+use wscd::wia::WiaClient;
 
 use super::IssuanceSession;
 use super::WalletIssuanceError;
@@ -1269,8 +1269,8 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MockRemoteWscd;
-    use wscd::mock_remote::MockWiaClient;
+    use wscd::issuance::mock::MockRemoteWscd;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::*;
     use crate::authorization_details::AuthorizationDetails;

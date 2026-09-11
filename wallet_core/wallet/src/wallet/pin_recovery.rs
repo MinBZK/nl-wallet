@@ -530,8 +530,8 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificate;
-    use wscd::wscd::IssuanceKeyresult;
-    use wscd::wscd::IssuanceWscd;
+    use wscd::issuance::IssuanceKeyresult;
+    use wscd::issuance::IssuanceWscd;
 
     use super::PinRecoveryError;
     use super::PinRecoverySession;

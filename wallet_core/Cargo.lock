@@ -11114,7 +11114,6 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "p256 0.14.0",
- "parking_lot",
  "rand_core 0.9.5",
  "rstest",
  "serde",

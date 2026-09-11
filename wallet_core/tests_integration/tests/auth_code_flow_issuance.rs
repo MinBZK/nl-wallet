@@ -31,9 +31,9 @@ use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
 use wallet::IssuanceStartResult;
 use wallet::Pin;
-use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
-use wscd::mock_remote::MockWiaClient;
-use wscd::wscd::WiaClient;
+use wscd::mock::MOCK_WALLET_CLIENT_ID;
+use wscd::wia::mock::MockWiaClient;
+use wscd::wia::WiaClient;
 
 /// The `issuer_state` carried by the auth-code credential offer, identifying the demo usecase.
 const ISSUER_STATE: &str = "insurance";

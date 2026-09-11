@@ -96,9 +96,9 @@ use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-use wscd::mock_remote::MockRemoteWscd;
-use wscd::mock_remote::MockWiaClient;
-use wscd::wscd::WiaClient;
+use wscd::issuance::mock::MockRemoteWscd;
+use wscd::wia::mock::MockWiaClient;
+use wscd::wia::WiaClient;
 
 const REDIRECT_URI: &str = "https://wallet.example.com/callback";
 

@@ -18,7 +18,7 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmptyUnique;
-use wscd::wscd::WiaClient;
+use wscd::wia::WiaClient;
 
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
@@ -682,7 +682,7 @@ mod test {
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MockWiaClient;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::CredentialSelection;
     use super::HttpIssuanceDiscovery;

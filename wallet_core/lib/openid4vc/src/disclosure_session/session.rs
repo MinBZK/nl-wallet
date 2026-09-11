@@ -301,7 +301,7 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MockRemoteWscd;
+    use wscd::issuance::mock::MockRemoteWscd;
 
     use super::super::DisclosableAttestations;
     use super::super::DisclosureSession;

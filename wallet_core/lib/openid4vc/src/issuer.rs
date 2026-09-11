@@ -1739,10 +1739,10 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
-    use wscd::mock_remote::MockRemoteWscd;
-    use wscd::mock_remote::MockWiaClient;
-    use wscd::wscd::WiaClient;
+    use wscd::issuance::mock::MockRemoteWscd;
+    use wscd::mock::MOCK_WALLET_CLIENT_ID;
+    use wscd::wia::WiaClient;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::*;
     use crate::cleanup::CLEANUP_INTERVAL;
