@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io;
 use std::net::IpAddr;
@@ -21,6 +22,7 @@ use axum::Json;
 use axum::Router;
 use axum::routing::post;
 use crypto::PublicKey;
+use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
@@ -113,6 +115,7 @@ use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
+use wallet_provider_service::keys::Kid;
 use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
 use crate::logging::init_logging;
@@ -248,7 +251,7 @@ pub struct MockDeviceConfig {
 }
 
 impl MockDeviceConfig {
-    fn generate() -> Self {
+    pub fn generate() -> Self {
         Self {
             app_identifier: AppIdentifier::new_mock(),
             environment: AttestationEnvironment::Development,
@@ -428,12 +431,57 @@ pub async fn setup_env(
 /// `pid_credential_offer` is only relevant to flows that issue PID; pass `None` to leave the bundled
 /// config's default offer untouched.
 async fn build_wallet_environment(
+    static_settings: StaticSettings,
+    static_root_ca: ReqwestTrustAnchor,
+    ups_port: u16,
+    ups_root_ca: ReqwestTrustAnchor,
+    wp_port: u16,
+    pid_credential_offer: Option<Url>,
+) -> (ConfigServerConfiguration, WalletConfiguration) {
+    build_wallet_environment_inner(
+        static_settings,
+        static_root_ca,
+        ups_port,
+        ups_root_ca,
+        wp_port,
+        pid_credential_offer,
+        None,
+    )
+    .await
+}
+
+/// Build a wallet environment (signed config server + wallet config) with a specific set of
+/// instruction result public keys. Each call starts a fresh static server on a new port.
+/// Used for testing instruction result key rollover, which does not require a static server.
+pub async fn build_wallet_environment_with_instruction_result_keys(
+    ups_port: u16,
+    ups_root_ca: ReqwestTrustAnchor,
+    wp_port: u16,
+    instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
+) -> (ConfigServerConfiguration, WalletConfiguration) {
+    let (static_settings, static_root_ca) = static_server_settings();
+
+    build_wallet_environment_inner(
+        static_settings,
+        static_root_ca,
+        ups_port,
+        ups_root_ca,
+        wp_port,
+        None,
+        Some(instruction_result_public_keys),
+    )
+    .await
+}
+
+#[expect(clippy::too_many_arguments, reason = "test setup function")]
+async fn build_wallet_environment_inner(
     mut static_settings: StaticSettings,
     static_root_ca: ReqwestTrustAnchor,
     ups_port: u16,
     ups_root_ca: ReqwestTrustAnchor,
     wp_port: u16,
     pid_credential_offer: Option<Url>,
+    instruction_result_public_keys: Option<HashMap<String, DerVerifyingKey>>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -447,6 +495,9 @@ async fn build_wallet_environment(
     .unwrap();
     served_wallet_config.update_policy_server.http_config =
         TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca.clone()]).unwrap();
+    if let Some(instruction_result_public_keys) = instruction_result_public_keys.clone() {
+        served_wallet_config.account_server.instruction_result_public_keys = instruction_result_public_keys;
+    }
     served_wallet_config.version += 1;
 
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
@@ -466,6 +517,9 @@ async fn build_wallet_environment(
     .unwrap();
     wallet_config.update_policy_server.http_config =
         TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca]).unwrap();
+    if let Some(instruction_result_public_keys) = instruction_result_public_keys {
+        wallet_config.account_server.instruction_result_public_keys = instruction_result_public_keys;
+    }
 
     (config_server_config, wallet_config)
 }
@@ -712,6 +766,16 @@ pub fn wallet_provider_settings(db_url: Url, audit_db_url: Url) -> (WpSettings, 
     (settings, root_ca)
 }
 
+pub fn wallet_provider_settings_with_instruction_result_kid(
+    db_url: Url,
+    audit_db_url: Url,
+    instruction_result_kid: Kid,
+) -> (WpSettings, ReqwestTrustAnchor) {
+    let (mut settings, trust_anchor) = wallet_provider_settings(db_url, audit_db_url);
+    settings.current_instruction_result_kid = instruction_result_kid;
+    (settings, trust_anchor)
+}
+
 pub async fn start_static_server(settings: StaticSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
@@ -765,6 +829,15 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 }
 
 pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) -> u16 {
+    let (port, _) = start_wallet_provider_with_abort_handle(settings, hsm, trust_anchor).await;
+    port
+}
+
+pub async fn start_wallet_provider_with_abort_handle(
+    settings: WpSettings,
+    hsm: Pkcs11Hsm,
+    trust_anchor: ReqwestTrustAnchor,
+) -> (u16, tokio::task::AbortHandle) {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
@@ -773,7 +846,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
         settings.android.play_store_certificate_hashes.clone(),
     );
 
-    tokio::spawn(async {
+    let abort_handle = tokio::spawn(async {
         if let Err(error) = wallet_provider::server::serve_with_listener(
             listener,
             settings,
@@ -784,10 +857,10 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
         .await
         {
             tracing::error!("Could not start wallet_provider: {error:?}");
-
             process::exit(1);
         }
-    });
+    })
+    .abort_handle();
 
     let base_url = local_wp_base_url(port);
     wait_for_server(
@@ -795,7 +868,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
         Some(vec_nonempty![trust_anchor.into_certificate()]),
     )
     .await;
-    port
+    (port, abort_handle)
 }
 
 pub fn pid_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> PidIssuerSettings {

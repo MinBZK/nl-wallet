@@ -4,8 +4,8 @@
 # key identifier for the current certificate signing key and PIN HMAC key
 current_certificate_kid = "0"
 
-# Identifier for key used to sign instruction results sent from wallet_provider to wallet
-instruction_result_signing_key_identifier = "instruction_result_signing_key"
+# key identifier used to sign instruction results sent from wallet_provider to wallet
+current_instruction_result_kid = "0"
 
 # Identifier for key used to wrap attestation private keys that will be persisted
 attestation_wrapping_key_identifier = "attestation_wrapping_key"
@@ -59,8 +59,8 @@ wia_wallet_version = "1.0.0"
 base_url = "http://cdn.example.com/tsl"
 # Directory to publish the Status List Tokens
 publish_dir = "/srv/html/tsl"
-# Identifier for key inused to sign Status List Token
-key_identifier = "instruction_result_signing_key"
+# Identifier for key used to sign Status List Token
+key_identifier = "wia_tsl_key_identifier"
 # Base64 DER encoded certificate containing the public key
 key_certificate = "MIJ..."
 

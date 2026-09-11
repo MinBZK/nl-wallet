@@ -1104,6 +1104,71 @@ pub mod test {
         assert_eq!(*attributes.as_ref(), expected_attributes);
     }
 
+    #[test]
+    fn test_attributes_mvc_chassis_number_info_round_trip() {
+        let mdoc_attributes = IndexMap::from([(
+            String::from("org.iso.7367.2.1"),
+            vec![
+                Entry {
+                    name: String::from("registration_number"),
+                    value: ciborium::Value::Text(String::from("AB-CD-12")),
+                },
+                Entry {
+                    name: String::from("chassis_number_info"),
+                    value: ciborium::Value::Map(vec![(
+                        ciborium::Value::Text(String::from("vehicle_identification_number")),
+                        ciborium::Value::Text(String::from("WVWZZZ1JZXW000001")),
+                    )]),
+                },
+                Entry {
+                    name: String::from("basic_vehicle_info"),
+                    value: ciborium::Value::Map(vec![(
+                        ciborium::Value::Text(String::from("make")),
+                        ciborium::Value::Text(String::from("Volkswagen")),
+                    )]),
+                },
+            ],
+        )]);
+
+        let attributes = Attributes::from_mdoc_attributes(mdoc_attributes.clone())
+            .expect("mVC's map-valued data elements should convert from mdoc attributes");
+
+        let expected_json = json!({
+            "org.iso.7367.2.1": {
+                "type": "object",
+                "value": {
+                    "registration_number": { "type": "text", "value": "AB-CD-12" },
+                    "chassis_number_info": {
+                        "type": "object",
+                        "value": {
+                            "vehicle_identification_number": { "type": "text", "value": "WVWZZZ1JZXW000001" },
+                        },
+                    },
+                    "basic_vehicle_info": {
+                        "type": "object",
+                        "value": { "make": { "type": "text", "value": "Volkswagen" } },
+                    },
+                },
+            },
+        });
+
+        assert_eq!(
+            serde_json::to_value(&attributes)
+                .unwrap()
+                .to_json_string_pretty()
+                .unwrap(),
+            expected_json.to_json_string_pretty().unwrap(),
+        );
+
+        // Converting back should yield exactly the input again, with both nested objects still maps.
+        assert_eq!(
+            attributes
+                .to_mdoc_attributes()
+                .expect("mVC's map-valued data elements should convert to mdoc attributes"),
+            mdoc_attributes
+        );
+    }
+
     fn example_attributes() -> Attributes {
         IndexMap::from([
             ("name".to_string(), Attribute::Text("Wallet".to_string())),

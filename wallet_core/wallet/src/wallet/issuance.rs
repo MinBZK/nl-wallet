@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::num::NonZeroU8;
 use std::sync::Arc;
 
 use attestation_data::auth::Organization;
@@ -634,8 +635,10 @@ where
         };
 
         info!("Signing nonce using Wallet Provider");
+
+        // Request as many copies per credential as the issuer will allow.
         let issuance_result = protocol_state
-            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd)
+            .accept_issuance(NonZeroU8::MAX, config.issuer_trust_anchors(), &remote_wscd)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 
@@ -1885,7 +1888,7 @@ mod tests {
             .unzip::<_, _, Vec<_>, Vec<_>>();
 
         let credential_count = stored_attestations.len();
-        let (pid_issuer, attestations) = mock_issuance_session(stored_attestations);
+        let (pid_issuer, attestations) = mock_issuance_session(stored_attestations, Some(NonZeroU8::MAX));
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
@@ -2095,7 +2098,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|| Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(key_error))));
+                .return_once(|_| Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(key_error))));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -2190,7 +2193,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
+                .return_once(|_| Err(WalletIssuanceError::IssuerMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -2223,7 +2226,8 @@ mod tests {
 
         // Have the mock OpenID4VCI session issue the PID only in Mdoc format.
         let (mdoc_credential, metadata_documents, _) = mdoc_pid();
-        let (pid_issuer, attestations) = mock_issuance_session([(mdoc_credential, metadata_documents)]);
+        let (pid_issuer, attestations) =
+            mock_issuance_session([(mdoc_credential, metadata_documents)], Some(NonZeroU8::MAX));
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
@@ -2256,7 +2260,8 @@ mod tests {
 
         // Have the mock OpenID4VCI session issue an SD-JWT PID.
         let (sd_jwt_credential, metadata_documents, _) = sd_jwt_pid();
-        let (pid_issuer, attestations) = mock_issuance_session([(sd_jwt_credential, metadata_documents)]);
+        let (pid_issuer, attestations) =
+            mock_issuance_session([(sd_jwt_credential, metadata_documents)], Some(NonZeroU8::MAX));
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
@@ -2473,7 +2478,7 @@ mod tests {
 
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| {
+            client.expect_accept().return_once(|_| {
                 Err(WalletIssuanceError::PrivateKeyGeneration(Box::new(
                     RemoteEcdsaKeyError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
                         revocation_reason: RevocationReason::AdminRequest,

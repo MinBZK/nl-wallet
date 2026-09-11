@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -133,7 +132,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await?;

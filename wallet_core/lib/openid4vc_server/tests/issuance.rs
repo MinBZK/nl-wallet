@@ -1,6 +1,7 @@
 use std::assert_matches;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use std::time::Duration;
@@ -357,7 +358,10 @@ async fn authorization_code_flow(
     assert_eq!(session.previews_with_metadata().count(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session.accept_issuance(&server.trust_anchors, &wscd).await.unwrap();
+    let issued_creds = session
+        .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
+        .await
+        .unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
@@ -395,7 +399,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
-        .accept_issuance(&server.trust_anchors, &wscd)
+        .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
@@ -454,7 +458,10 @@ async fn pre_authorized_code_flow(
 
     let copy_count = 4;
     let wscd = MockRemoteWscd::new(vec![]);
-    let issued_creds = session.accept_issuance(&trust_anchors, &wscd).await.unwrap();
+    let issued_creds = session
+        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &wscd)
+        .await
+        .unwrap();
 
     verify_issued_credentials(
         issued_creds,
