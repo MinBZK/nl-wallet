@@ -76,9 +76,7 @@ futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 parking_lot.workspace = true
-getrandom.workspace = true
 nutype = { workspace = true, features = ["regex"] }
-rand_core.workspace = true
 regex.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
@@ -120,7 +118,6 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 [dev-dependencies]
 anyhow.workspace = true
 mockall.workspace = true
-rand.workspace = true
 rstest.workspace = true
 tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
@@ -129,7 +126,6 @@ android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../../lib/attestation_data", features = ["mock", "generate"] }
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
-audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 jwt = { path = "../../lib/jwt", features = ["mock", "test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
