@@ -8,6 +8,8 @@ use chrono::Utc;
 use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
+use derive_more::AsRef;
+use derive_more::Into;
 use futures::future::try_join_all;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::Hsm;
@@ -103,6 +105,17 @@ async fn kid_and_certificate_signing_keys(
     ))
 }
 
+const INSTRUCTION_RESULT_SIGNING_KEY_PREFIX: &str = "instruction_result_signing_";
+
+#[derive(Debug, Clone, Into, AsRef)]
+struct InstructionResultSigningKeyIdentifier(String);
+
+impl InstructionResultSigningKeyIdentifier {
+    pub fn from_kid(kid: &Kid) -> Self {
+        Self(format!("{}{}", INSTRUCTION_RESULT_SIGNING_KEY_PREFIX, kid.as_ref()))
+    }
+}
+
 impl<GRC, PIC> RouterState<GRC, PIC> {
     pub async fn new_from_settings(
         settings: Settings,
@@ -117,10 +130,13 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             kid: settings.current_certificate_kid.clone(),
             key: HsmEcdsaKey::new(wc_signing_key_identifier, wallet_user_hsm.clone()),
         };
-        let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
-            settings.instruction_result_signing_key_identifier,
-            wallet_user_hsm.clone(),
-        ));
+        let instruction_result_signing_key = InstructionResultSigning {
+            kid: settings.current_instruction_result_kid.clone(),
+            key: HsmEcdsaKey::new(
+                InstructionResultSigningKeyIdentifier::from_kid(&settings.current_instruction_result_kid).into(),
+                wallet_user_hsm.clone(),
+            ),
+        };
 
         let certificate_public_key = certificate_signing_key.verifying_key().await?.into();
 

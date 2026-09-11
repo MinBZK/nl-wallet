@@ -17,6 +17,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::de;
 
+use crate::p256_der::DerVerifyingKey;
 use crate::utils;
 
 const AES_GCM_IV_BYTES_SIZE: usize = 12;
@@ -64,6 +65,12 @@ impl Hash for PublicKey {
 impl From<p256::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p256::ecdsa::VerifyingKey) -> Self {
         Self::ESP256(key)
+    }
+}
+
+impl From<DerVerifyingKey> for PublicKey {
+    fn from(key: DerVerifyingKey) -> Self {
+        Self::ESP256(key.into_inner())
     }
 }
 
@@ -183,7 +190,6 @@ impl<T: EcdsaKey> WithVerifyingKey for T {
 /// Contract for ECDSA private keys suitable for credentials.
 /// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
 pub trait CredentialEcdsaKey: WithVerifyingKey {
-    // from WithIdentifier: identifier()
     // from WithVerifyingKey: verifying_key()
 }
 

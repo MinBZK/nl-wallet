@@ -6,7 +6,7 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
 #[derive(Debug, thiserror::Error)]
-#[error("scope is empty or contains invalid characters: {0}")]
+#[error("token is empty or contains invalid characters: {0}")]
 pub struct ScopeInvalid(String);
 
 /// An individual scope token as defined by RFC 6749. The scope field in OAuth 2.0 payloads may contain one or more of

@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use http_utils::reqwest::IntoReqwestClient;
-use jwt::ESP256_ONLY_VALIDATION;
 use jwt::JwtDecodingKey;
 use parking_lot::RwLock;
 use tracing::info;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::WALLET_CONFIG_VALIDATION;
 use super::WalletConfigJwt;
 use super::file_repository::RawJwtProvider;
 use crate::config::ConfigurationError;
@@ -53,6 +53,13 @@ impl<C> Repository<Arc<WalletConfiguration>> for HttpConfigurationRepository<C> 
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+impl<B> HttpConfigurationRepository<B> {
+    pub fn update_config(&self, new_config: Arc<WalletConfiguration>) {
+        *self.config.write() = (new_config, None);
+    }
+}
+
 impl<B> RawJwtProvider for HttpConfigurationRepository<B> {
     fn last_raw_jwt(&self) -> Option<Arc<WalletConfigJwt>> {
         self.config.read().1.as_ref().map(Arc::clone)
@@ -72,7 +79,7 @@ where
         match response {
             HttpResponse::Parsed(parsed_response) => {
                 let (_, new_config) =
-                    parsed_response.parse_and_verify(&self.signing_public_key, &*ESP256_ONLY_VALIDATION)?;
+                    parsed_response.parse_and_verify(&self.signing_public_key, &*WALLET_CONFIG_VALIDATION)?;
 
                 {
                     let current_config = self.config.read();

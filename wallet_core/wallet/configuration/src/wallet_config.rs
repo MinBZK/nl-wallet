@@ -20,6 +20,7 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -44,6 +45,14 @@ pub struct WalletConfiguration {
     // Note that this serializes to a "start" and "end" field.
     pub maintenance_window: Option<Range<DateTime<Utc>>>,
     pub version: u64,
+
+    /// The moment after which this configuration should no longer be used, ensuring the key material and trust anchors
+    /// contained in this configuration can't be trusted indefinitely.
+    ///
+    /// Note that no `nbf` counterpart is present, as the `version` field above already prevents an older
+    /// configuration from being presented to the wallet.
+    #[serde(rename = "exp")]
+    pub expires: DateTimeSeconds,
 }
 
 impl JwtTyp for WalletConfiguration {}
@@ -96,8 +105,8 @@ pub struct AccountServerConfiguration {
     #[serde_as(as = "Base64")]
     pub certificate_public_key: DerVerifyingKey,
     #[debug(skip)]
-    #[serde_as(as = "Base64")]
-    pub instruction_result_public_key: DerVerifyingKey,
+    #[serde_as(as = "HashMap<_, Base64>")]
+    pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
     pub wia_trust_anchors: TrustAnchors,
 }

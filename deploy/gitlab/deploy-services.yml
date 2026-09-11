@@ -17,15 +17,20 @@
       - deploy-variables/general
       - deploy-variables/${DEPLOY_ENV}
 
+create-deployment-ont:
+  extends: .create-deployment
+  variables:
+    DEPLOY_ENV: ont
+
 create-deployment-demo:
   extends: .create-deployment
   variables:
     DEPLOY_ENV: demo
 
-create-deployment-ont:
+create-deployment-pub:
   extends: .create-deployment
   variables:
-    DEPLOY_ENV: ont
+    DEPLOY_ENV: pub
 
 .deploy-apps:
   needs:
@@ -76,6 +81,19 @@ create-deployment-ont:
   variables:
     PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
+deploy-apps-ont:
+  extends: .deploy-apps
+  rules: !reference [.default-or-merge-request-manual, rules]
+  needs:
+    - job: create-deployment-ont
+      artifacts: false
+    - !reference [.deploy-apps, needs]
+  trigger:
+    include:
+      - artifact: deploy-ont.yml
+        job: create-deployment-ont
+    strategy: depend
+
 deploy-apps-demo:
   extends: .deploy-apps
   rules: !reference [.default-branch, rules]
@@ -91,15 +109,17 @@ deploy-apps-demo:
   when: manual
   allow_failure: true
 
-deploy-apps-ont:
+deploy-apps-pub:
   extends: .deploy-apps
-  rules: !reference [.default-or-merge-request-manual, rules]
+  rules: !reference [.default-branch, rules]
   needs:
-    - job: create-deployment-ont
+    - job: create-deployment-pub
       artifacts: false
     - !reference [.deploy-apps, needs]
   trigger:
     include:
-      - artifact: deploy-ont.yml
-        job: create-deployment-ont
+      - artifact: deploy-pub.yml
+        job: create-deployment-pub
     strategy: depend
+  when: manual
+  allow_failure: true

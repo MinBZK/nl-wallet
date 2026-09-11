@@ -71,7 +71,8 @@ scheduled-automation-tests-trigger:
     - export MATCH_GIT_BASIC_AUTHORIZATION
     - export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
     - bundle install
-    - bundle exec fastlane match development --readonly
+    # Scope to only the identifiers the e2e jobs need
+    - bundle exec fastlane match development --readonly --app_identifier "nl.ictu.edi.wallet.latest,nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner"
     # Quoted because the unquoted 'codesign: ' colon would make YAML parse this line as a mapping.
     - 'security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db > /dev/null'
     # Point the WebDriverAgentRunner target at the match profile (per-target manual signing);

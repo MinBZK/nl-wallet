@@ -20,6 +20,11 @@ path = "tests/static_server.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "wallet_config_expiry"
+path = "tests/wallet_config_expiry.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "health_metrics"
 path = "tests/health_metrics.rs"
 required-features = ["integration_test"]
@@ -97,6 +102,11 @@ required-features = ["integration_test"]
 [[test]]
 name = "auth_code_flow_issuance"
 path = "tests/auth_code_flow_issuance.rs"
+required-features = ["integration_test"]
+
+[[test]]
+name = "key_rollover"
+path = "tests/key_rollover.rs"
 required-features = ["integration_test"]
 
 [features]
@@ -201,6 +211,7 @@ hsm_test = ["hsm/hsm_test", "hsm/hsm_test_key_import", "wallet_provider?/hsm_tes
 integration_test = [
     "allow_insecure_url",
     "db_test",
+    "dep:chrono",
     "dep:jsonwebtoken",
     "dep:rand_core",
     "dep:regex",
@@ -269,6 +280,7 @@ performance_test = [
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 http = { workspace = true, optional = true }

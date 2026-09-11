@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "exp": ${WALLET_CONFIG_EXP},
   "environment": "dev",
   "lock_timeouts": {
     "warning_timeout": 240,
@@ -14,7 +15,9 @@
       ]
     },
     "certificate_public_key": "${WP_CERTIFICATE_PUBLIC_KEY}",
-    "instruction_result_public_key": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}",
+    "instruction_result_public_keys": {
+      "${WP_INSTRUCTION_RESULT_KID}": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}"
+    },
     "wia_trust_anchors": ["${WIA_CA_CRT}"]
   },
   "pid_attributes": {

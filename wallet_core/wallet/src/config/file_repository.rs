@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use derive_more::Constructor;
 use http_utils::reqwest::IntoReqwestClient;
-use jwt::ESP256_ONLY_VALIDATION;
 use jwt::JwtDecodingKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::ConfigurationError;
 use super::HttpConfigurationRepository;
+use super::WALLET_CONFIG_VALIDATION;
 use super::WalletConfigJwt;
 use super::config_file;
 use crate::repository::Repository;
@@ -33,7 +33,7 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
     ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
             Some(jwt) => {
-                match jwt.parse_and_verify(&signing_public_key, &*ESP256_ONLY_VALIDATION) {
+                match jwt.parse_and_verify(&signing_public_key, &*WALLET_CONFIG_VALIDATION) {
                     Ok((_, stored_config)) if stored_config.version >= initial_config.version => stored_config,
                     // Initial config is newer or JWT is tampered/invalid: fall back to the embedded config.
                     // We do not write the embedded config to disk since it has no corresponding JWT.
@@ -93,7 +93,6 @@ mod tests {
     use crypto::PublicKey;
     use http_utils::client::InternalHttpConfig;
     use http_utils::client::TlsPinningConfig;
-    use jwt::ESP256_ONLY_VALIDATION;
     use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
     use p256::ecdsa::SigningKey;
@@ -105,6 +104,7 @@ mod tests {
     use crate::config::ConfigurationError;
     use crate::config::FileStorageConfigurationRepository;
     use crate::config::HttpConfigurationRepository;
+    use crate::config::WALLET_CONFIG_VALIDATION;
     use crate::config::WalletConfigJwt;
     use crate::config::config_file;
     use crate::config::default_wallet_config;
@@ -194,7 +194,7 @@ mod tests {
 
         // Verify the JWT was written to disk and can be parsed back
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
-        let (_, file_config) = jwt.parse_and_verify(&decoding_key, &*ESP256_ONLY_VALIDATION).unwrap();
+        let (_, file_config) = jwt.parse_and_verify(&decoding_key, &*WALLET_CONFIG_VALIDATION).unwrap();
 
         assert_eq!(
             700, file_config.lock_timeouts.background_timeout,
@@ -244,7 +244,7 @@ mod tests {
         // since it has no corresponding JWT. The next HTTP fetch will update the file.
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
         let (_, stored_config) = jwt
-            .parse_and_verify(&config_decoding_key, &*ESP256_ONLY_VALIDATION)
+            .parse_and_verify(&config_decoding_key, &*WALLET_CONFIG_VALIDATION)
             .unwrap();
         assert_eq!(
             10, stored_config.version,

@@ -362,50 +362,6 @@
     "disclosureConfirmDataAttributesDisclaimer": "Only share if you trust the organization and the request.",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
     "disclosureConfirmDataAttributesPageDenyCta": "Stop",
-    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {{organization} will store your data for 1 month and will not share it with other organizations.} other {{organization} will store your data for {count} months and will not share it with other organizations.}}",
-    "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            },
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "The {organization} will not store your data and your data will not be shared with other organizations.",
-    "@disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {{organization} will store your data for 1 month and can share your data with other organizations.} other {The {organization} will store your data for {count} months and can share your data with other organizations.}}",
-    "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            },
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} will not store your data and can share your data with other organizations.",
-    "@disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            }
-        }
-    },
     "disclosureConfirmDataAttributesShareWithTitle": "Do you want to share the following details with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {

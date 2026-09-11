@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -26,6 +25,7 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::HistoryError;
 use crate::wallet::attestations::AttestationsError;
 
@@ -33,9 +33,8 @@ use crate::wallet::attestations::AttestationsError;
 #[category(defer)]
 pub enum DeleteAttestationError {
     // State errors
-    #[error("app version is blocked")]
-    #[category(expected)]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -93,10 +92,8 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DeleteAttestationError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(DeleteAttestationError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -135,7 +132,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await?;
@@ -293,7 +290,10 @@ mod tests {
             .await
             .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteAttestationError::VersionBlocked);
+        assert_matches!(
+            error,
+            DeleteAttestationError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
     }
 
     #[tokio::test]

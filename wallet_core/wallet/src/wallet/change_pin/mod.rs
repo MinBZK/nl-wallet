@@ -50,10 +50,8 @@ where
         info!("Fetching update policy");
         self.update_policy_repository.fetch(&config.http_config).await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(ChangePinError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(ChangePinError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = match &mut self.registration {
@@ -69,7 +67,6 @@ where
         }
 
         let config = &self.config_repository.get().account_server;
-        let instruction_result_public_key = PublicKey::from(*config.instruction_result_public_key.as_inner()).into();
         let certificate_public_key = config.certificate_public_key.as_inner();
 
         // Extract the public key belonging to the hardware attested key from the current certificate.
@@ -90,7 +87,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.http_config.clone(),
-                instruction_result_public_key,
+                config.instruction_result_public_keys.clone(),
             ),
         );
 
@@ -122,10 +119,8 @@ where
     pub async fn continue_change_pin(&mut self, pin: &Pin) -> Result<(), ChangePinError> {
         info!("Continue PIN change");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(ChangePinError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(ChangePinError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -136,8 +131,6 @@ where
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
         let config = &self.config_repository.get().account_server;
-        let instruction_result_public_key = PublicKey::from(*config.instruction_result_public_key.as_inner()).into();
-
         let instruction_client = InstructionClientFactory::new(
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
@@ -147,7 +140,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.http_config.clone(),
-                instruction_result_public_key,
+                config.instruction_result_public_keys.clone(),
             ),
         );
 

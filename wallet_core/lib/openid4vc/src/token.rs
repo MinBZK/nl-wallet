@@ -26,6 +26,7 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
 use crate::authorization_details::IssuerAuthorizationDetailsEntries;
 use crate::authorization_details::WalletAuthorizationDetails;
@@ -156,6 +157,7 @@ impl VciTokenResponse {
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialPreview {
+    pub credential_id: CredentialId,
     pub config_id: CredentialConfigurationId,
 
     pub format: Format,
@@ -402,8 +404,8 @@ mod tests {
         assert_eq!(
             entry_container.entry.credential_identifiers,
             vec_nonempty![
-                "CivilEngineeringDegree-2023".to_string(),
-                "ElectricalEngineeringDegree-2023".to_string()
+                "CivilEngineeringDegree-2023".to_string().into(),
+                "ElectricalEngineeringDegree-2023".to_string().into()
             ]
             .into()
         );

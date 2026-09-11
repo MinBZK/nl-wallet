@@ -393,12 +393,6 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::MalformedToken | Self::Unauthorized => CredentialErrorCode::InvalidToken,
 
-            Self::CredentialTypeNotOffered(_) => CredentialErrorCode::UnknownCredentialConfiguration,
-
-            Self::UseBatchIssuance | Self::WrongNumberOfCredentialRequests | Self::CredentialTypeMismatch { .. } => {
-                CredentialErrorCode::InvalidCredentialRequest
-            }
-
             Self::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
 
             Self::TooManyCopiesRequested(_) => CredentialErrorCode::InvalidCredentialRequest,

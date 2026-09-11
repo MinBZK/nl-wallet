@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -28,15 +27,15 @@ use crate::storage::Storage;
 use crate::storage::UnlockData;
 pub use crate::storage::UnlockMethod;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::PinRecoverySession;
 use crate::wallet::Session;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletUnlockError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -105,15 +104,14 @@ where
     #[instrument(skip_all)]
     pub async fn set_unlock_method(&mut self, method: UnlockMethod) -> Result<(), WalletUnlockError>
     where
+        CR: Repository<Arc<WalletConfiguration>>,
         UR: Repository<VersionState>,
         S: Storage,
     {
         info!("Setting unlock method to: {}", method);
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if self.lock.is_locked() {
@@ -159,19 +157,14 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
-
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
 
         let remote_instruction = self
             .new_instruction_client(
@@ -182,7 +175,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    instruction_result_public_key,
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await?;
@@ -206,10 +199,8 @@ where
     {
         info!("Unlocking wallet with pin");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if !self.lock.is_locked() {
@@ -233,10 +224,8 @@ where
         S: Storage,
         APC: AccountProviderClient,
     {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking pin");
         self.send_check_pin_instruction(pin).await
@@ -250,10 +239,8 @@ where
         S: Storage,
     {
         info!("Unlocking wallet without pin");
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(WalletUnlockError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(WalletUnlockError::CheckPreconditions)?;
 
         info!("Checking if locked");
         if !self.lock.is_locked() {
@@ -655,7 +642,7 @@ mod tests {
             iat: Utc::now(),
         };
         let other_key = SigningKey::generate();
-        let result = SignedJwt::sign_with_sub(result_claims, &other_key)
+        let result = SignedJwt::sign_with_sub_and_kid(result_claims, &other_key)
             .await
             .unwrap()
             .into();

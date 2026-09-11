@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use jwe::algorithm::EcdhAlgorithm;
@@ -44,6 +43,7 @@ use crate::storage::TransferKeyData;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::HistoryError;
 use crate::wallet::WalletRegistration;
 use crate::wallet::attestations::AttestationsError;
@@ -52,9 +52,8 @@ use crate::wallet::notifications::NotificationsError;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum TransferError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[source] CheckPreconditionsError),
 
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -273,9 +272,6 @@ where
             .ok_or_else(|| TransferError::NotRegistered)?;
 
         let config = self.config_repository.get();
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
-
         let remote_instruction = self
             .new_instruction_client(
                 pin,
@@ -285,7 +281,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    instruction_result_public_key,
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await?;
@@ -383,10 +379,8 @@ where
     }
 
     fn validate_transfer_allowed(&self) -> Result<(), TransferError> {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(TransferError::VersionBlocked);
-        }
+        self.check_config_preconditions()
+            .map_err(TransferError::CheckPreconditions)?;
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -445,9 +439,6 @@ where
             .ok_or_else(|| TransferError::NotRegistered)?;
 
         let config = self.config_repository.get();
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
-
         let instruction_client = self.new_hw_signed_instruction_client(
             Arc::clone(attested_key),
             InstructionClientParameters::new(
@@ -455,7 +446,7 @@ where
                 registration_data.pin_salt.clone(),
                 registration_data.wallet_certificate.clone(),
                 config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                config.account_server.instruction_result_public_keys.clone(),
             ),
         );
 
@@ -508,7 +499,10 @@ mod tests {
             .await
             .expect_err("Wallet validate transfer should have resulted in error");
 
-        assert_matches!(error, TransferError::VersionBlocked);
+        assert_matches!(
+            error,
+            TransferError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
     }
 
     #[tokio::test]

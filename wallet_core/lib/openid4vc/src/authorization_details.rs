@@ -1,4 +1,6 @@
 use derive_more::AsRef;
+use derive_more::Display;
+use derive_more::From;
 use derive_more::Into;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -26,6 +28,12 @@ pub enum AuthorizationDetailsError {
     #[error("duplicate credential_configuration_id in authorization details: {}", .0.iter().join(", "))]
     DuplicateCredentialConfigIds(Vec<CredentialConfigurationId>),
 }
+
+/// Represents a Credential Identifier as transported in the Token Response variant of `authorization_details`. This is
+/// a newtype around [`String`] that exists purely for semantic reasons.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
+#[as_ref(str)]
+pub struct CredentialId(String);
 
 /// This represents a list of `authorization_details` entries with the following guarantees:
 ///
@@ -63,7 +71,7 @@ where
 
 impl AuthorizationDetails<CredentialEntry> {
     pub fn from_credential_ids_and_identifiers<'a>(
-        credential_ids_and_identifiers: impl IntoNonEmptyIterator<Item = (&'a CredentialConfigurationId, String)>,
+        credential_ids_and_identifiers: impl IntoNonEmptyIterator<Item = (&'a CredentialConfigurationId, CredentialId)>,
     ) -> Self {
         let entries = credential_ids_and_identifiers
             .into_iter()
@@ -88,7 +96,7 @@ impl AuthorizationDetails<CredentialEntry> {
 
     pub fn into_credential_ids_and_identifiers(
         self,
-    ) -> VecNonEmpty<(CredentialConfigurationId, VecNonEmptyUnique<String>)> {
+    ) -> VecNonEmpty<(CredentialConfigurationId, VecNonEmptyUnique<CredentialId>)> {
         let Self(entry_containers) = self;
 
         entry_containers
@@ -158,7 +166,7 @@ impl EntryContainer<CredentialConfigEntry> {
 impl EntryContainer<CredentialEntry> {
     pub fn new_credential(
         credential_configuration_id: CredentialConfigurationId,
-        credential_identifiers: VecNonEmptyUnique<String>,
+        credential_identifiers: VecNonEmptyUnique<CredentialId>,
     ) -> Self {
         Self {
             entry_type: EntryType::OpenidCredential,
@@ -191,7 +199,7 @@ pub struct CredentialEntry {
     /// Access Token returned in this response. Each of these Credential Datasets corresponds to the Credential
     /// Configuration referenced in the credential_configuration_id parameter. The Wallet MUST use these identifiers
     /// together with an Access Token in subsequent Credential Requests.
-    pub credential_identifiers: VecNonEmptyUnique<String>,
+    pub credential_identifiers: VecNonEmptyUnique<CredentialId>,
 }
 
 impl EntryWithConfigId for CredentialEntry {
@@ -244,12 +252,12 @@ mod tests {
         let credential_config_id_a = CredentialConfigurationId::from("credential_identifer_a".to_string());
         let credential_config_id_b = CredentialConfigurationId::from("credential_identifer_b".to_string());
         let credential_ids_and_identifiers = vec_nonempty![
-            (&credential_config_id_b, "id_1_b".to_string()),
-            (&credential_config_id_a, "id_1_a".to_string()),
-            (&credential_config_id_a, "id_2_a".to_string()),
-            (&credential_config_id_a, "id_3_a".to_string()),
-            (&credential_config_id_b, "id_2_b".to_string()),
-            (&credential_config_id_b, "id_2_b".to_string())
+            (&credential_config_id_b, "id_1_b".to_string().into()),
+            (&credential_config_id_a, "id_1_a".to_string().into()),
+            (&credential_config_id_a, "id_2_a".to_string().into()),
+            (&credential_config_id_a, "id_3_a".to_string().into()),
+            (&credential_config_id_b, "id_2_b".to_string().into()),
+            (&credential_config_id_b, "id_2_b".to_string().into())
         ];
 
         let authorization_details =
@@ -271,11 +279,16 @@ mod tests {
             vec![
                 (
                     credential_config_id_a,
-                    vec_nonempty!["id_1_a".to_string(), "id_2_a".to_string(), "id_3_a".to_string()].into()
+                    vec_nonempty![
+                        "id_1_a".to_string().into(),
+                        "id_2_a".to_string().into(),
+                        "id_3_a".to_string().into()
+                    ]
+                    .into()
                 ),
                 (
                     credential_config_id_b,
-                    vec_nonempty!["id_1_b".to_string(), "id_2_b".to_string()].into()
+                    vec_nonempty!["id_1_b".to_string().into(), "id_2_b".to_string().into()].into()
                 )
             ]
         );
@@ -379,7 +392,7 @@ mod tests {
                 .entry
                 .credential_identifiers
                 .iter()
-                .map(String::as_str)
+                .map(AsRef::as_ref)
                 .collect_vec(),
             vec!["CivilEngineeringDegree-2023", "ElectricalEngineeringDegree-2023"]
         );

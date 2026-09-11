@@ -21,7 +21,7 @@ use crate::wscd::DisclosureWscd;
 use crate::wscd::WscdPoa;
 
 /// To be used in test in place of `RemoteEcdsaKey`, implementing the
-/// [`EcdsaKey`], [`SecureEcdsaKey`] and [`WithIdentifier`] traits.
+/// [`EcdsaKey`], [`SecureEcdsaKey`] and [`CredentialEcdsaKey`] traits.
 #[derive(Debug, Clone, Constructor)]
 pub struct MockRemoteEcdsaKey {
     pub identifier: String,

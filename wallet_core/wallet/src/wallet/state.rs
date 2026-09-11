@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -50,6 +49,10 @@ pub enum CheckPreconditionsError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+
+    #[error("wallet configuration is expired")]
+    #[category(expected)]
+    ConfigExpired,
 
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -211,13 +214,32 @@ where
         Ok(WalletState::Ready)
     }
 
-    /// Checks the common preconditions for session (issuance/disclosure)-related operations: version not blocked,
-    /// wallet registered, and wallet not locked.
-    pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError> {
+    /// Checks the preconditions that apply to every operation relying on the wallet configuration: the app version
+    /// is not blocked and the configuration has not expired.
+    pub(super) fn check_config_preconditions(&self) -> Result<(), CheckPreconditionsError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+    {
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(CheckPreconditionsError::VersionBlocked);
         }
+
+        info!("Checking if the configuration is expired");
+        if self.is_config_expired() {
+            return Err(CheckPreconditionsError::ConfigExpired);
+        }
+
+        Ok(())
+    }
+
+    /// Checks the common preconditions for session (issuance/disclosure)-related operations: version not blocked,
+    /// configuration not expired, wallet registered, and wallet not locked.
+    pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+    {
+        self.check_config_preconditions()?;
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -246,10 +268,7 @@ where
             .fetch(&config.update_policy_server.http_config)
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(CheckPreconditionsError::VersionBlocked);
-        }
+        self.check_config_preconditions()?;
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -274,9 +293,6 @@ where
         CR: Repository<Arc<WalletConfiguration>>,
         APC: AccountProviderClient,
     {
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
-
         self.new_instruction_client(
             pin,
             attested_key,
@@ -285,7 +301,7 @@ where
                 registration_data.pin_salt,
                 registration_data.wallet_certificate,
                 config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                config.account_server.instruction_result_public_keys.clone(),
             ),
         )
         .await
@@ -331,6 +347,8 @@ mod tests {
     use std::assert_matches;
 
     use attestation_data::disclosure_type::DisclosureType;
+    use chrono::TimeDelta;
+    use chrono::Utc;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
@@ -341,6 +359,7 @@ mod tests {
     use uuid::Uuid;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
+    use wallet_configuration::wallet_config::WalletConfiguration;
 
     use crate::BlockedReason;
     use crate::PidIssuancePurpose;
@@ -360,9 +379,11 @@ mod tests {
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::pin_recovery::PinRecoverySession;
     use crate::wallet::state::CancelSessionError;
+    use crate::wallet::state::CheckPreconditionsError;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_sd_jwt;
+    use crate::wallet::test::create_wallet_configuration;
     use crate::wallet::test::mock_issuance_session;
 
     impl WalletState {
@@ -733,13 +754,16 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session([(
-            WithKeyIdentifier {
-                key_identifier: "key_id".to_string(),
-                data: StoredAttestation::SdJwt(sd_jwt.clone()),
-            },
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        )]);
+        let (pid_issuer, attestations) = mock_issuance_session(
+            [(
+                WithKeyIdentifier {
+                    key_identifier: "key_id".to_string(),
+                    data: StoredAttestation::SdJwt(sd_jwt.clone()),
+                },
+                VerifiedTypeMetadataDocuments::nl_pid_example(),
+            )],
+            None,
+        );
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
@@ -792,5 +816,51 @@ mod tests {
 
         assert_matches!(error, CancelSessionError::SessionState);
         assert!(wallet.session.is_none());
+    }
+
+    /// Creates a wallet holding a configuration that expired an hour ago.
+    async fn wallet_with_expired_config() -> TestWalletMockStorage {
+        let config = WalletConfiguration {
+            expires: (Utc::now() - TimeDelta::hours(1)).into(),
+            ..create_wallet_configuration()
+        };
+
+        TestWalletMockStorage::new_unregistered_with_config(WalletDeviceVendor::Apple, config).await
+    }
+
+    #[tokio::test]
+    async fn test_check_session_preconditions_config_expired() {
+        let wallet = wallet_with_expired_config().await;
+
+        let error = wallet
+            .check_session_preconditions()
+            .expect_err("checking session preconditions should fail when the configuration is expired");
+
+        assert_matches!(
+            error,
+            CheckPreconditionsError::ConfigExpired,
+            "An expired config should take precedence over the wallet state being unregistered"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_check_accept_session_preconditions_config_expired() {
+        let mut wallet = wallet_with_expired_config().await;
+
+        let error = wallet
+            .check_accept_session_preconditions()
+            .await
+            .expect_err("checking accept session preconditions should fail when the configuration is expired");
+
+        assert_matches!(error, CheckPreconditionsError::ConfigExpired);
+    }
+
+    #[tokio::test]
+    async fn test_check_session_preconditions_config_not_expired() {
+        let wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .check_session_preconditions()
+            .expect("checking session preconditions should succeed when the configuration is not expired");
     }
 }
