@@ -33,7 +33,7 @@ spoof_integrity_verdict_hash = []
 # Exposes the MockPlayIntegrityClient type, which can be used for testing or local development.
 mock_play_integrity = ["android_attest/mock"]
 # Implement InstructionResultSigningKey and related traits on SigningKey
-mock_secure_keys = ["crypto/mock_secure_keys"]
+mock_secure_keys = ["crypto/mock_secure_keys", "jwt/test"]
 # Include mock implementations and constructors for testing
 mock = [
     "dep:anyhow",
@@ -55,6 +55,7 @@ mock = [
 db_test = [
     "dep:db_test",
     "dep:tempfile",
+    "audit_log/mock",
     "jwt/test",
     "mock",
     "mock_secure_keys",
@@ -76,9 +77,7 @@ futures = { workspace = true, features = ["async-await"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 parking_lot.workspace = true
-getrandom.workspace = true
 nutype = { workspace = true, features = ["regex"] }
-rand_core.workspace = true
 regex.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
@@ -120,7 +119,6 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 [dev-dependencies]
 anyhow.workspace = true
 mockall.workspace = true
-rand.workspace = true
 rstest.workspace = true
 tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
@@ -129,7 +127,6 @@ android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../../lib/attestation_data", features = ["mock", "generate"] }
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
-audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 jwt = { path = "../../lib/jwt", features = ["mock", "test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
