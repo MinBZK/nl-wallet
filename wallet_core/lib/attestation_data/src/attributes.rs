@@ -376,8 +376,6 @@ impl Attributes {
                     return Err(AttributesError::NotNamespaced(name_space));
                 };
 
-                // An attribute below the name space is a data element value, which ISO 18013-5 allows to be any CBOR
-                // value, including a map. ISO 7367-2 mVC relies on this for e.g. `chassis_number_info`.
                 let entries = entries
                     .into_iter()
                     .map(|(name, attribute)| Entry {

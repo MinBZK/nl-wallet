@@ -857,6 +857,60 @@ mod test {
         );
     }
 
+    /// An mdoc data element value may be any CBOR value, including a map, which ISO 7367-2 mVC relies on for e.g.
+    /// `chassis_number_info`. Such an element should survive signing, CBOR (de)serialization and conversion back
+    /// into `Attributes` unchanged.
+    #[tokio::test]
+    async fn test_into_signed_mdoc_map_valued_data_element_round_trip() {
+        let (payload_preview, credential_payload, _, _, _, issuance_key) = setup_into_signed();
+
+        let attributes = Attributes::example([
+            (
+                vec![PID_ATTESTATION_TYPE, "registration_number"],
+                Attribute::Text("AB-CD-12".to_string()),
+            ),
+            (
+                vec![
+                    PID_ATTESTATION_TYPE,
+                    "chassis_number_info",
+                    "vehicle_identification_number",
+                ],
+                Attribute::Text("WVWZZZ1JZXW000001".to_string()),
+            ),
+            (
+                vec![PID_ATTESTATION_TYPE, "basic_vehicle_info", "make"],
+                Attribute::Text("Volkswagen".to_string()),
+            ),
+            (
+                vec![PID_ATTESTATION_TYPE, "date_of_registration"],
+                Attribute::Date(chrono::NaiveDate::from_ymd_opt(2023, 1, 10).unwrap()),
+            ),
+        ]);
+
+        let credential_payload = CredentialPayload {
+            previewable_payload: PreviewableCredentialPayload {
+                attributes: attributes.clone(),
+                ..payload_preview.clone()
+            },
+            ..credential_payload
+        };
+
+        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
+
+        // Round-trip the `IssuerSigned` through CBOR, as happens when it is sent to the wallet and stored.
+        let issuer_signed: IssuerSigned = mdoc::utils::serialization::cbor_deserialize(
+            mdoc::utils::serialization::cbor_serialize(&issuer_signed)
+                .unwrap()
+                .as_slice(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            Attributes::from_mdoc_attributes(issuer_signed.into_entries_by_namespace()).unwrap(),
+            attributes
+        );
+    }
+
     #[tokio::test]
     async fn test_into_signed_sd_jwt() {
         let (payload_preview, credential_payload, metadata, metadata_integrity, ca, issuance_key) = setup_into_signed();
