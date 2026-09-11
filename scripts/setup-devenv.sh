@@ -662,6 +662,9 @@ WP_CERTIFICATE_CREATED_AT="$(date +%s)"
 export WP_CERTIFICATE_CREATED_AT
 
 generate_wp_signing_key wallet_certificate_signing_${WP_CERTIFICATE_KID}
+
+# Generate a second certificate signing key to support rollover testing
+generate_wp_signing_key wallet_certificate_signing_1
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_certificate_signing_${WP_CERTIFICATE_KID}.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
