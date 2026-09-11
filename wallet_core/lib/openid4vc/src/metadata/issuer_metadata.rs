@@ -622,6 +622,7 @@ mod example_constructors {
     use attestation_types::metadata::AttestationMetadata;
     use itertools::Itertools;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::CredentialClaim;
@@ -640,6 +641,23 @@ mod example_constructors {
         }
 
         pub fn new_mdoc_example(name_space: &str, claim_names: &[&str]) -> Self {
+            Self::new_example_with_paths(claim_names.iter().map(|name| {
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from(name_space)),
+                    ClaimPath::SelectByKey(String::from(*name)),
+                ]
+            }))
+        }
+
+        pub fn new_example(claim_names: &[&str]) -> Self {
+            Self::new_example_with_paths(
+                claim_names
+                    .iter()
+                    .map(|name| vec_nonempty![ClaimPath::SelectByKey(String::from(*name))]),
+            )
+        }
+
+        fn new_example_with_paths(paths: impl Iterator<Item = VecNonEmpty<ClaimPath>>) -> Self {
             Self {
                 display: Some(vec_nonempty![CredentialDisplay {
                     name_locale: NameLocale {
@@ -652,13 +670,9 @@ mod example_constructors {
                     background_image: None,
                     text_color: None,
                 }]),
-                claims: claim_names
-                    .iter()
-                    .map(|name| CredentialClaim {
-                        path: vec_nonempty![
-                            ClaimPath::SelectByKey(String::from(name_space)),
-                            ClaimPath::SelectByKey(String::from(*name)),
-                        ],
+                claims: paths
+                    .map(|path| CredentialClaim {
+                        path,
                         mandatory: false,
                         display: None,
                     })

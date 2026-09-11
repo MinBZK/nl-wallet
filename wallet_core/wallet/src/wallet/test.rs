@@ -712,11 +712,50 @@ pub fn mock_issuance_session(
                             normalized_type_metadata.extended_vcts().map(str::to_string).collect(),
                         )
                     }
+                    (
+                        StoredAttestation::SdJwt(sd_jwt),
+                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
+                    ) => {
+                        let key_identifier = stored_attestation.key_identifier;
+                        let claims = sd_jwt.claims();
+                        let exp = claims.exp;
+                        let nbf = claims.nbf;
+                        let attestation_type = claims.vct.clone();
+                        let issuer_registration =
+                            match IssuerRegistration::from_certificate(sd_jwt.issuer_leaf_certificate()) {
+                                Ok(Some(registration)) => registration,
+                                _ => IssuerRegistration::new_mock(),
+                            };
+
+                        let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
+                            AttestationIdentity::Ephemeral,
+                            attestation_type.clone(),
+                            credential_metadata.clone(),
+                            issuer_registration.organization.clone(),
+                            AttestationValidity {
+                                revocation_status: None,
+                                validity_window: ValidityWindow {
+                                    valid_from: nbf.map(Into::into),
+                                    valid_until: exp.map(Into::into),
+                                },
+                            },
+                            sd_jwt.decoded_claims().unwrap(),
+                            &EmptyPresentationConfig,
+                        )
+                        .unwrap();
+
+                        (
+                            IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
+                            attestation_type,
+                            exp,
+                            nbf,
+                            issuer_registration,
+                            attestation_presentation,
+                            Vec::<String>::new(),
+                        )
+                    }
                     (StoredAttestation::MsoMdoc(_), IssuedCredentialMetadata::TypeMetadata(_)) => {
                         panic!("an mdoc is described by Credential Metadata, not Type Metadata")
-                    }
-                    (StoredAttestation::SdJwt(_), IssuedCredentialMetadata::CredentialMetadata(_)) => {
-                        panic!("this mock does not support describing an SD-JWT by Credential Metadata")
                     }
                 };
 
@@ -777,10 +816,15 @@ fn example_stored_attestation_copy_with_issuer_keypair(
         (Format::MsoMdoc, StoredAttestationMetadata::TypeMetadata(_)) => {
             panic!("an mdoc is described by Credential Metadata, not Type Metadata")
         }
-        // TODO (PVW-5547): support this once an SD-JWT can fall back to Credential Metadata.
-        (Format::SdJwt, StoredAttestationMetadata::CredentialMetadata(_)) => {
-            panic!("this mock does not support describing an SD-JWT by Credential Metadata")
-        }
+        (Format::SdJwt, StoredAttestationMetadata::CredentialMetadata(_)) => StoredAttestation::SdJwt(
+            // An SD-JWT described by Credential Metadata has no Type Metadata prescribing selective disclosure, so
+            // make every claim concealable.
+            verified_sd_jwt_from_credential_payload(
+                credential_payload,
+                &NormalizedTypeMetadata::empty_example(),
+                issuer_keypair,
+            ),
+        ),
     };
 
     StoredAttestationCopy::new(

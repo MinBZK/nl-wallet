@@ -177,9 +177,12 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TokenResponseUnknownScope(Vec<Scope>),
 
-    #[error("type metadata URI is missing for credential configuration ID(s): {}", .0.iter().join(", "))]
+    #[error(
+        "no metadata (type metadata URI or credential metadata) available for credential configuration ID(s): {}",
+        .0.iter().join(", ")
+    )]
     #[category(critical)]
-    TypeMetadataUriMissing(Vec<CredentialConfigurationId>),
+    MetadataMissing(Vec<CredentialConfigurationId>),
 
     #[error(
         "type metadata URI(s) found in Issuer Metadata with issuer identifier \"{}\" that have a different host: {}",
@@ -201,14 +204,6 @@ pub enum WalletIssuanceError {
     #[error("no credential metadata for credential configuration id(s): {}", .0.iter().join(", "))]
     #[category(critical)]
     CredentialMetadataMissing(Vec<CredentialConfigurationId>),
-
-    #[error("metadata for credential configuration id `{0}` not found")]
-    #[category(critical)]
-    MetadataNotFound(CredentialConfigurationId),
-
-    #[error("type metadata for credential configuration id `{0}` not found")]
-    #[category(critical)]
-    TypeMetadataNotFound(CredentialConfigurationId),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
