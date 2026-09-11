@@ -9,7 +9,6 @@ use derive_more::Constructor;
 use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
 use jwt::headers::HeaderWithKid;
 use jwt::nonce::Nonce;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -21,8 +20,8 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
+use wscd::payload::jwt_proof::JwtProof;
 use wscd::payload::poa::Poa;
-use wscd::payload::pop::JwtPopClaims;
 use wscd::payload::wia::WiaDisclosure;
 
 use super::registration::WalletCertificate;
@@ -180,7 +179,7 @@ pub struct PerformIssuanceResult {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IssuanceKeyResult {
     pub key_identifier: String,
-    pub pop: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
+    pub pop: JwtProof,
 }
 
 impl InstructionAndResult for PerformIssuance {

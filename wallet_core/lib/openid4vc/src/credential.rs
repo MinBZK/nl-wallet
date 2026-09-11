@@ -3,9 +3,6 @@ use std::time::Duration;
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
 use jwk_simple::Key;
-use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
-use wscd::payload::pop::JwtPopClaims;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -20,6 +17,7 @@ use serde_with::skip_serializing_none;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::payload::jwt_proof::JwtProof;
 
 use crate::authorization_details::CredentialId;
 use crate::jwe::JweCompressionAlgorithm;
@@ -51,7 +49,7 @@ pub struct CredentialRequest {
 }
 
 impl CredentialRequest {
-    pub fn new(identifier: CredentialRequestIdentifier, proofs: VecNonEmpty<UnverifiedJwtProof>) -> Self {
+    pub fn new(identifier: CredentialRequestIdentifier, proofs: VecNonEmpty<JwtProof>) -> Self {
         Self {
             identifier,
             proofs: Some(CredentialRequestProofs::Jwt(proofs)),
@@ -75,13 +73,11 @@ pub enum CredentialRequestIdentifier {
     CredentialConfigurationId(CredentialConfigurationId),
 }
 
-pub type UnverifiedJwtProof = UnverifiedJwt<JwtPopClaims, HeaderWithJwk>;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialRequestProofs {
     // TODO (PVW-5548): Implement `attestation` proof type and update `jwt` proof type to OpenID4VCI 1.0.
-    Jwt(VecNonEmpty<UnverifiedJwtProof>),
+    Jwt(VecNonEmpty<JwtProof>),
 }
 
 /// Object containing information for encrypting the Credential Response.

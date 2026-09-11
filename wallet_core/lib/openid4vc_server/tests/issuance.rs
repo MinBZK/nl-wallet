@@ -24,7 +24,6 @@ use http_utils::server::TlsServerConfig;
 use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::VerifiedJwt;
-use wscd::payload::pop::JwtPopClaims;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
@@ -95,6 +94,7 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::issuance::mock::MockRemoteWscd;
+use wscd::payload::jwt_proof::JwtProofClaims;
 use wscd::payload::wia::WIA_HEADER_NAME;
 use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::wia::WiaClient;
@@ -1657,10 +1657,10 @@ async fn pre_authorized_code_flow_credential_request() {
         .into_first()
         .1
         .into_first();
-    let proof_claims = JwtPopClaims::new(
-        Some(nonce_response.c_nonce),
+    let proof_claims = JwtProofClaims::new(
         MOCK_WALLET_CLIENT_ID.to_string(),
         issuer.issuer_identifier().as_ref().to_string(),
+        Some(nonce_response.c_nonce),
         &MockTimeGenerator::default(),
     );
     let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())
@@ -1723,10 +1723,10 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap();
 
-    let proof_claims = JwtPopClaims::new(
-        Some(nonce_response.c_nonce),
+    let proof_claims = JwtProofClaims::new(
         MOCK_WALLET_CLIENT_ID.to_string(),
         issuer.issuer_identifier().as_ref().to_string(),
+        Some(nonce_response.c_nonce),
         &MockTimeGenerator::default(),
     );
     let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())

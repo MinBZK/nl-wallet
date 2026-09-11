@@ -1721,7 +1721,6 @@ mod tests {
     use derive_more::Debug;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
-    use wscd::payload::pop::JwtPopClaims;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
     use oauth::dpop::Dpop;
@@ -1741,6 +1740,7 @@ mod tests {
     use utils::vec_nonempty;
     use wscd::issuance::mock::MockRemoteWscd;
     use wscd::mock::MOCK_WALLET_CLIENT_ID;
+    use wscd::payload::jwt_proof::JwtProofClaims;
     use wscd::wia::WiaClient;
     use wscd::wia::mock::MockWiaClient;
 
@@ -2423,10 +2423,10 @@ mod tests {
                     Some(issuer.generate_nonce().now_or_never().unwrap().unwrap())
                 };
 
-                let claims = JwtPopClaims::new(
-                    nonce,
+                let claims = JwtProofClaims::new(
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     aud,
+                    nonce,
                     &MockTimeGenerator::default(),
                 );
 

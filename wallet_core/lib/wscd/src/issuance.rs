@@ -2,17 +2,15 @@ use std::error::Error;
 use std::num::NonZeroU8;
 
 use derive_more::Constructor;
-use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
 use jwt::nonce::Nonce;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::payload::pop::JwtPopClaims;
+use crate::payload::jwt_proof::JwtProof;
 
 #[derive(Debug, Constructor)]
 pub struct IssuanceKeyresult {
     pub key_identifier: String,
-    pub pop: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
+    pub pop: JwtProof,
 }
 
 pub trait IssuanceWscd {
@@ -60,8 +58,8 @@ pub mod mock {
     use super::IssuanceKeyresult;
     use super::IssuanceWscd;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::payload::jwt_proof::JwtProofClaims;
     use crate::payload::poa::Poa;
-    use crate::payload::pop::JwtPopClaims;
 
     /// A type that implements [`Wscd`] and can be used in tests. It has the option
     /// of returning `MockRemoteWscdError::Generating` when generating multiple
@@ -130,10 +128,10 @@ pub mod mock {
                 Some(
                     Poa::new(
                         keys.try_into().unwrap(),
-                        JwtPopClaims::new(
-                            poa_input.nonce,
+                        JwtProofClaims::new(
                             MOCK_WALLET_CLIENT_ID.to_string(),
                             poa_input.aud,
+                            poa_input.nonce,
                             &MockTimeGenerator::default(),
                         ),
                     )
@@ -164,7 +162,7 @@ pub mod mock {
                 .into_nonempty_iter()
                 .zip(utils::vec_at_least::repeat_n(aud, nonce_count))
                 .map(|((key_count, nonce), aud)| {
-                    let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud, &time);
+                    let claims = JwtProofClaims::new(MOCK_WALLET_CLIENT_ID.to_string(), aud, nonce, &time);
 
                     utils::vec_at_least::repeat_n((), key_count.into())
                         .map(|_| {

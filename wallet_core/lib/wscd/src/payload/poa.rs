@@ -26,7 +26,7 @@ use serde::Serialize;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::payload::pop::JwtPopClaims;
+use crate::payload::jwt_proof::JwtProofClaims;
 
 pub const POA_JWT_TYP: &str = "poa+jwt";
 
@@ -72,7 +72,7 @@ pub enum PoaVerificationError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
     #[serde(flatten)]
-    pub payload: JwtPopClaims,
+    pub proof: JwtProofClaims,
     pub jwks: VecAtLeastTwoUnique<Jwk>,
 }
 
@@ -111,9 +111,9 @@ impl WscdPoa for Poa {
 }
 
 impl Poa {
-    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaSigning> {
+    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, proof: JwtProofClaims) -> Result<Poa, PoaSigning> {
         let payload = PoaPayload {
-            payload,
+            proof,
             jwks: try_join_all(keys.as_slice().iter().map(|privkey| async {
                 jwk_from_public_key(&PublicKey::from(
                     privkey
@@ -201,7 +201,7 @@ impl Poa {
             });
         }
 
-        let nonce = payload.payload.nonce.ok_or(PoaVerificationError::MissingNonce)?;
+        let nonce = payload.proof.nonce.ok_or(PoaVerificationError::MissingNonce)?;
 
         // Validate all the JWTs, against the keys in the payload of the JWTs.
         let mut base_validation = DEFAULT_VALIDATION.to_owned();
@@ -262,7 +262,7 @@ mod tests {
     use super::Poa;
     use super::PoaPayload;
     use super::PoaVerificationError;
-    use crate::payload::pop::JwtPopClaims;
+    use crate::payload::jwt_proof::JwtProofClaims;
 
     fn poa_setup() -> (Poa, PublicKey, PublicKey, String, String, Nonce) {
         let key1 = MockRemoteEcdsaKey::new_random("key1".into());
@@ -274,10 +274,10 @@ mod tests {
 
         let poa = Poa::new(
             vec![&key1, &key2].try_into().unwrap(),
-            JwtPopClaims::new(
-                Some(nonce.clone()),
+            JwtProofClaims::new(
                 iss.clone(),
                 aud.clone(),
+                Some(nonce.clone()),
                 &MockTimeGenerator::default(),
             ),
         )
