@@ -80,6 +80,7 @@ class DeleteCardTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton();
 
+        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         dashboardScreen.clickCard(cardMetadata.getMuseumMaandkaartDisplayName())
         cardDetailScreen.clickDeleteCardButton()

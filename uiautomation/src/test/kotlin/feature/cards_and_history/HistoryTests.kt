@@ -91,6 +91,8 @@ class HistoryTests : TestBase() {
 
         amsterdamWebPage.openApp()
         amsterdamWebPage.switchToNativeContext()
+
+        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.visible())
 
         dashboardScreen.clickMenuButton()

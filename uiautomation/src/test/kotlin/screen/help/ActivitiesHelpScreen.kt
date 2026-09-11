@@ -10,8 +10,6 @@ class ActivitiesHelpScreen : MobileActions() {
     private val somethingElseButton = l10n.getString("helpTopicScreenSomethingElseCta")
     private val cardActivitiesButton = l10n.getString("cardHistoryScreenTitle")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
-    private val helpHeader = l10n.getString("helpScreenGroupTitleHelp")
-    private val infoHeader = l10n.getString("helpScreenGroupTitleInformation")
 
     fun visible() = elementContainingTextVisible(title)
 
@@ -19,7 +17,6 @@ class ActivitiesHelpScreen : MobileActions() {
 
     fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 
-    fun helpAndInfoHeadersVisible() = elementWithTextVisible(helpHeader) && elementWithTextVisible(infoHeader)
 
     fun clickSomethingElseButton() {
         scrollToElementWithText(somethingElseButton)
@@ -29,10 +26,10 @@ class ActivitiesHelpScreen : MobileActions() {
     fun clickFirstHelpGroupButton() {
         when (platform()) {
             Platform.ANDROID -> driver.findElement(
-                By.xpath("//*[@content-desc='$helpHeader']//android.widget.Button[1]")
+                By.xpath("(//*[@scrollable='true']//*[@clickable='true'])[1]")
             ).click()
             Platform.IOS -> driver.findElement(
-                By.xpath("//*[@name='$helpHeader']/following-sibling::XCUIElementTypeButton[1]")
+                By.xpath("//XCUIElementTypeScrollView//XCUIElementTypeButton[1]")
             ).click()
         }
     }
