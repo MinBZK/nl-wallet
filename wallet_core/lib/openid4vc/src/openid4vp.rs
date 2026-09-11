@@ -77,8 +77,8 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-use wscd::Poa;
-use wscd::PoaVerificationError;
+use wscd::payload::poa::Poa;
+use wscd::payload::poa::PoaVerificationError;
 
 use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
@@ -1195,9 +1195,9 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
-    use wscd::Poa;
     use wscd::issuance::mock::MockRemoteWscd;
-    use wscd::poa::JwtPoaInput;
+    use wscd::payload::poa::JwtPoaInput;
+    use wscd::payload::poa::Poa;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;

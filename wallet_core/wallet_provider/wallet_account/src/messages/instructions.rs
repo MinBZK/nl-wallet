@@ -23,7 +23,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
-use wscd::Poa;
+use wscd::payload::poa::Poa;
 
 use super::registration::WalletCertificate;
 use crate::messages::transfer::TransferSessionState;

@@ -9,7 +9,7 @@ use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequests;
 use url::Url;
 use utils::generator::Generator;
-use wscd::Poa;
+use wscd::payload::poa::Poa;
 
 use super::DisclosureClient;
 use super::DisclosureSession;

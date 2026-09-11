@@ -57,8 +57,8 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
-use wscd::Poa;
-use wscd::poa::JwtPoaInput;
+use wscd::payload::poa::Poa;
+use wscd::payload::poa::JwtPoaInput;
 
 use crate::AttributesNotAvailable;
 use crate::DisclosureProposalPresentation;
@@ -921,8 +921,8 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::SignResult;
-    use wscd::mock::MOCK_WALLET_CLIENT_ID;
     use wscd::issuance::mock::MockRemoteWscd;
+    use wscd::mock::MOCK_WALLET_CLIENT_ID;
 
     use super::CloseProximityDisclosableAttestation;
     use super::CloseProximityDisclosureAttestations;

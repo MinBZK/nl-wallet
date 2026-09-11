@@ -60,7 +60,7 @@ pub mod mock {
     use super::IssuanceKeyresult;
     use super::IssuanceWscd;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::poa::Poa;
+    use crate::payload::poa::Poa;
 
     /// A type that implements [`Wscd`] and can be used in tests. It has the option
     /// of returning `MockRemoteWscdError::Generating` when generating multiple

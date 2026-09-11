@@ -120,7 +120,7 @@ use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
 use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
-use wscd::PoaError;
+use wscd::payload::poa::PoaSigning;
 
 use crate::flags::WalletFlags;
 use crate::instructions::HandleInstruction;
@@ -297,7 +297,7 @@ pub enum InstructionError {
     NonExistingKey(String),
 
     #[error("PoA construction error: {0}")]
-    Poa(#[from] PoaError),
+    Poa(#[from] PoaSigning),
 
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),

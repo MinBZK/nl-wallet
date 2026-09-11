@@ -26,7 +26,7 @@ use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificate;
-use wscd::Poa;
+use wscd::payload::poa::Poa;
 use wscd::issuance::IssuanceKeyresult;
 use wscd::wia::WiaClient;
 use wscd::issuance::IssuanceWscd;

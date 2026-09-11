@@ -11,21 +11,21 @@ workspace = true
 doctest = false
 
 [features]
-# Include the MockRemoteWscd and MockWiaClient types and adds a mock method on Poa.
 mock = [
     "dep:rand_core",
     "chrono/now",
+    "derive_more/as_ref",
     "attestation_types/mock",
     "crypto/mock",
     "crypto/generate",
     "jwt/mock",
     "utils/mock_time",
-]
+] # Include the MockRemoteWscd and MockWiaClient types and adds a mock method on Poa.
 # Include key examples from the ISO specification for MockRemoteWscd.
 examples = ["mock", "crypto/examples"]
 
 [dependencies]
-derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
+derive_more = { workspace = true, features = ["constructor"] }
 futures.workspace = true
 itertools.workspace = true
 p256.workspace = true
@@ -43,9 +43,9 @@ attestation_types = { path = "../attestation_types", optional = true }
 
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
+derive_more = { workspace = true, features = ["as_ref"] }
 rand_core.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["macros"] }
 
 attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["mock", "generate"] }

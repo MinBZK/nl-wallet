@@ -3,9 +3,7 @@ use std::collections::HashSet;
 use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::wscd::WscdPoa;
-use derive_more::AsRef;
 use derive_more::Constructor;
-use derive_more::From;
 use futures::future::try_join_all;
 use jwt::DEFAULT_VALIDATION;
 use jwt::JsonJwt;
@@ -13,8 +11,10 @@ use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
+use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtSignError;
+use jwt::error::JwtVerifyError;
 use jwt::jwk::AlgorithmParameters;
 use jwt::jwk::Jwk;
 use jwt::jwk::jwk_alg_from_public_key;
@@ -27,10 +27,46 @@ use serde::Serialize;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::error::PoaError;
-use crate::error::PoaVerificationError;
-
 pub const POA_JWT_TYP: &str = "poa+jwt";
+
+#[derive(Debug, thiserror::Error)]
+pub enum PoaSigning {
+    #[error("error converting key from/to JWK: {0}")]
+    Jwk(#[source] JwkConversionError),
+
+    #[error("JWT bulk signing error: {0}")]
+    Sign(#[source] JwtSignError),
+
+    #[error("error obtaining verifying key from signing key: {0}")]
+    VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PoaVerificationError {
+    #[error("JWT verification error: {0}")]
+    JwtParse(#[source] JwtParseError),
+
+    #[error("unexpected amount of signatures in PoA: expected {expected}, found {found}")]
+    UnexpectedSignatureCount { expected: usize, found: usize },
+
+    #[error("unexpected amount of keys in PoA: expected {expected}, found {found}")]
+    UnexpectedKeyCount { expected: usize, found: usize },
+
+    #[error("nonce is missing from PoA payload")]
+    MissingNonce,
+
+    #[error("incorrect nonce")]
+    IncorrectNonce,
+
+    #[error("error converting key from/to JWK: {0}")]
+    Jwk(#[source] JwkConversionError),
+
+    #[error("any of the JWTs in the PoA are invalid: {0}")]
+    InvalidJwt(#[source] JwtVerifyError),
+
+    #[error("key missing in PoA: {0:?}")]
+    MissingKey(AlgorithmParameters),
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -44,7 +80,7 @@ impl JwtTyp for PoaPayload {
 }
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
-#[derive(Debug, Clone, From, AsRef, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Poa(JsonJwt<PoaPayload>);
 
 #[derive(Debug, Constructor)]
@@ -58,7 +94,8 @@ impl TryFrom<VecNonEmpty<UnverifiedJwt<PoaPayload>>> for Poa {
 
     fn try_from(source: VecNonEmpty<UnverifiedJwt<PoaPayload>>) -> Result<Self, Self::Error> {
         let json_jwt: JsonJwt<_, _> = source.try_into()?;
-        Ok(json_jwt.into())
+
+        Ok(Poa(json_jwt))
     }
 }
 
@@ -68,8 +105,12 @@ impl From<Poa> for Vec<UnverifiedJwt<PoaPayload>> {
     }
 }
 
+impl WscdPoa for Poa {
+    type Input = JwtPoaInput;
+}
+
 impl Poa {
-    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
+    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaSigning> {
         let payload = PoaPayload {
             payload,
             jwks: try_join_all(keys.as_slice().iter().map(|privkey| async {
@@ -77,9 +118,9 @@ impl Poa {
                     privkey
                         .verifying_key()
                         .await
-                        .map_err(|e| PoaError::VerifyingKey(Box::new(e)))?,
+                        .map_err(|error| PoaSigning::VerifyingKey(Box::new(error)))?,
                 ))
-                .map_err(PoaError::Jwk)
+                .map_err(PoaSigning::Jwk)
             }))
             .await?
             .try_into()
@@ -90,7 +131,8 @@ impl Poa {
             try_join_all(keys.as_slice().iter().map(async |key| {
                 Result::<_, JwtSignError>::Ok(SignedJwt::sign(&payload, *key).await?.into_unverified())
             }))
-            .await?
+            .await
+            .map_err(PoaSigning::Sign)?
             .try_into()
             .unwrap(); // our iterable is a `VecAtLeastTwo`
 
@@ -127,7 +169,7 @@ impl Poa {
     ///   the order of the signatures.
     /// - the `aud` and `iss` fields in the payload have the expected values.
     /// - a nonce is present in the payload
-    pub fn verify_returning_nonce(
+    fn verify_returning_nonce(
         self,
         expected_keys: &[PublicKey],
         expected_aud: &str,
@@ -146,7 +188,11 @@ impl Poa {
         // payloads of all of them are equal to one another, so we can suffice with checking the first one.
         // We may use `unwrap()` because of the use of `NonEmpty` in `JsonJwtSignatures`, and we may use
         // `dangerous_parse_unverified()` because we actually validate all JWTs below.
-        let (_, payload) = jwts.first().unwrap().dangerous_parse_unverified()?;
+        let (_, payload) = jwts
+            .first()
+            .unwrap()
+            .dangerous_parse_unverified()
+            .map_err(PoaVerificationError::JwtParse)?;
         if jwts.len() != payload.jwks.as_slice().len() {
             return Err(PoaVerificationError::UnexpectedKeyCount {
                 expected: jwts.len(),
@@ -161,7 +207,7 @@ impl Poa {
         base_validation.require_aud(expected_aud);
         base_validation.require_iss(accepted_issuers);
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
-            let pubkey = jwk_to_public_key(jwk)?;
+            let pubkey = jwk_to_public_key(jwk).map_err(PoaVerificationError::Jwk)?;
             let validation = base_validation.clone().into_validation(&pubkey);
             jwt.parse_and_verify(JwtDecodingKey::from(&pubkey), validation)
                 .map_err(PoaVerificationError::InvalidJwt)?;
@@ -174,7 +220,7 @@ impl Poa {
         let associated_keys: HashSet<AlgorithmParameters> =
             payload.jwks.into_inner().into_iter().map(|key| key.algorithm).collect();
         for key in expected_keys {
-            let expected_key = jwk_alg_from_public_key(key)?;
+            let expected_key = jwk_alg_from_public_key(key).map_err(PoaVerificationError::Jwk)?;
             if !associated_keys.contains(&expected_key) {
                 return Err(PoaVerificationError::MissingKey(expected_key));
             }
@@ -182,15 +228,17 @@ impl Poa {
 
         Ok(nonce)
     }
-
-    #[cfg(feature = "mock")]
-    pub fn set_payload(&mut self, payload: String) {
-        self.0.payload = payload;
-    }
 }
 
-impl WscdPoa for Poa {
-    type Input = JwtPoaInput;
+#[cfg(feature = "mock")]
+mod mock {
+    use super::Poa;
+
+    impl Poa {
+        pub fn set_payload(&mut self, payload: String) {
+            self.0.payload = payload;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -199,6 +247,7 @@ mod tests {
 
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use futures::FutureExt;
     use jwt::DEFAULT_VALIDATION;
     use jwt::JwtDecodingKey;
     use jwt::UnverifiedJwt;
@@ -214,7 +263,7 @@ mod tests {
     use super::PoaPayload;
     use super::PoaVerificationError;
 
-    async fn poa_setup() -> (Poa, PublicKey, PublicKey, String, String, Nonce) {
+    fn poa_setup() -> (Poa, PublicKey, PublicKey, String, String, Nonce) {
         let key1 = MockRemoteEcdsaKey::new_random("key1".into());
         let key2 = MockRemoteEcdsaKey::new_random("key2".into());
 
@@ -231,7 +280,8 @@ mod tests {
                 &MockTimeGenerator::default(),
             ),
         )
-        .await
+        .now_or_never()
+        .unwrap()
         .unwrap();
 
         (
@@ -244,9 +294,9 @@ mod tests {
         )
     }
 
-    #[tokio::test]
-    async fn it_works() {
-        let (poa, key1, key2, iss, aud, nonce) = poa_setup().await;
+    #[test]
+    fn it_works() {
+        let (poa, key1, key2, iss, aud, nonce) = poa_setup();
 
         let jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.clone().into();
 
@@ -273,13 +323,13 @@ mod tests {
     #[case(Some("other_issuer"), None, None)]
     #[case(None, Some("other_aud"), None)]
     #[case(None, None, Some("other_nonce"))]
-    #[tokio::test]
-    async fn incorrect_values(
+    #[test]
+    fn incorrect_values(
         #[case] verification_iss: Option<&str>,
         #[case] verification_aud: Option<&str>,
         #[case] verification_nonce: Option<&str>,
     ) {
-        let (poa, key1, key2, iss, aud, nonce) = poa_setup().await;
+        let (poa, key1, key2, iss, aud, nonce) = poa_setup();
 
         poa.verify(
             &[key1, key2],
@@ -292,9 +342,9 @@ mod tests {
         .unwrap_err();
     }
 
-    #[tokio::test]
-    async fn insufficient_keys() {
-        let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
+    #[test]
+    fn insufficient_keys() {
+        let (poa, key1, _, iss, aud, nonce) = poa_setup();
 
         assert_matches!(
             &poa.verify(&[key1], &aud, &[iss], &nonce).unwrap_err(),
@@ -302,9 +352,9 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn too_many_keys() {
-        let (poa, key1, key2, iss, aud, nonce) = poa_setup().await;
+    #[test]
+    fn too_many_keys() {
+        let (poa, key1, key2, iss, aud, nonce) = poa_setup();
 
         let key3 = PublicKey::from(*SigningKey::generate().verifying_key());
 
@@ -314,9 +364,9 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn missing_signature() {
-        let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
+    #[test]
+    fn missing_signature() {
+        let (poa, key1, _, iss, aud, nonce) = poa_setup();
 
         let mut jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
@@ -329,9 +379,9 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn missing_key() {
-        let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
+    #[test]
+    fn missing_key() {
+        let (poa, key1, _, iss, aud, nonce) = poa_setup();
 
         let other_key = PublicKey::from(*SigningKey::generate().verifying_key());
 

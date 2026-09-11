@@ -11118,7 +11118,6 @@ dependencies = [
  "rstest",
  "serde",
  "thiserror 2.0.17",
- "tokio",
  "utils",
 ]
 

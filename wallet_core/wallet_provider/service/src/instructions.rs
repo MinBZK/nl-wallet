@@ -72,8 +72,8 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wscd::Poa;
-use wscd::poa::POA_JWT_TYP;
+use wscd::payload::poa::POA_JWT_TYP;
+use wscd::payload::poa::Poa;
 
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
