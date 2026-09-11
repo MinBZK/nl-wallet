@@ -5,7 +5,7 @@ use derive_more::Constructor;
 use jwk_simple::Key;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
-use jwt::pop::JwtPopClaims;
+use wscd::payload::pop::JwtPopClaims;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;

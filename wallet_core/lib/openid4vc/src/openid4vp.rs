@@ -1175,7 +1175,6 @@ mod tests {
     use jwt::SignedJwt;
     use jwt::error::JwtX5cVerifyError;
     use jwt::nonce::Nonce;
-    use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
@@ -1198,6 +1197,7 @@ mod tests {
     use wscd::issuance::mock::MockRemoteWscd;
     use wscd::payload::poa::JwtPoaInput;
     use wscd::payload::poa::Poa;
+    use wscd::payload::pop::JwtPopClaims;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;

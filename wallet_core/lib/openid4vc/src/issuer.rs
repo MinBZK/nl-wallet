@@ -1721,7 +1721,7 @@ mod tests {
     use derive_more::Debug;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
-    use jwt::pop::JwtPopClaims;
+    use wscd::payload::pop::JwtPopClaims;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
     use oauth::dpop::Dpop;

@@ -24,7 +24,7 @@ use http_utils::server::TlsServerConfig;
 use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::VerifiedJwt;
-use jwt::pop::JwtPopClaims;
+use wscd::payload::pop::JwtPopClaims;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;

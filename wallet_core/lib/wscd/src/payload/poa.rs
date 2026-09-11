@@ -21,11 +21,12 @@ use jwt::jwk::jwk_alg_from_public_key;
 use jwt::jwk::jwk_from_public_key;
 use jwt::jwk::jwk_to_public_key;
 use jwt::nonce::Nonce;
-use jwt::pop::JwtPopClaims;
 use serde::Deserialize;
 use serde::Serialize;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
+
+use crate::payload::pop::JwtPopClaims;
 
 pub const POA_JWT_TYP: &str = "poa+jwt";
 
@@ -252,7 +253,6 @@ mod tests {
     use jwt::JwtDecodingKey;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
-    use jwt::pop::JwtPopClaims;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
@@ -262,6 +262,7 @@ mod tests {
     use super::Poa;
     use super::PoaPayload;
     use super::PoaVerificationError;
+    use crate::payload::pop::JwtPopClaims;
 
     fn poa_setup() -> (Poa, PublicKey, PublicKey, String, String, Nonce) {
         let key1 = MockRemoteEcdsaKey::new_random("key1".into());

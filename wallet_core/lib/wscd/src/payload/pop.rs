@@ -1,24 +1,27 @@
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use jwt::JwtTyp;
+use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
 use utils::generator::Generator;
-
-use crate::JwtTyp;
-use crate::nonce::Nonce;
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 
 /// JWT claims of a PoP (Proof of Possession). Used a.o. as a JWT proof in a Credential Request
 /// (<https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2.1.1>).
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtPopClaims {
     pub iss: String,
     pub aud: String,
     pub nonce: Option<Nonce>,
     #[serde(with = "ts_seconds")]
     pub iat: DateTime<Utc>,
+}
+
+impl JwtTyp for JwtPopClaims {
+    const TYP: &'static str = OPENID4VCI_VC_POP_JWT_TYPE;
 }
 
 impl JwtPopClaims {
@@ -30,8 +33,4 @@ impl JwtPopClaims {
             iat: time.generate(),
         }
     }
-}
-
-impl JwtTyp for JwtPopClaims {
-    const TYP: &'static str = OPENID4VCI_VC_POP_JWT_TYPE;
 }

@@ -5,8 +5,9 @@ use derive_more::Constructor;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::nonce::Nonce;
-use jwt::pop::JwtPopClaims;
 use utils::vec_at_least::VecNonEmpty;
+
+use crate::payload::pop::JwtPopClaims;
 
 #[derive(Debug, Constructor)]
 pub struct IssuanceKeyresult {
@@ -48,7 +49,6 @@ pub mod mock {
     use itertools::Itertools;
     use jwt::SignedJwt;
     use jwt::nonce::Nonce;
-    use jwt::pop::JwtPopClaims;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
@@ -61,6 +61,7 @@ pub mod mock {
     use super::IssuanceWscd;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::payload::poa::Poa;
+    use crate::payload::pop::JwtPopClaims;
 
     /// A type that implements [`Wscd`] and can be used in tests. It has the option
     /// of returning `MockRemoteWscdError::Generating` when generating multiple
