@@ -261,7 +261,7 @@ async fn test_certificate_key_rollover() {
     let pin_a: Pin = "112234".into();
     wallet = do_wallet_registration(wallet, pin_a.clone()).await;
 
-    let config_repo = wallet.config_repository();
+    let config_repo = Arc::clone(wallet.config_repository());
 
     // Stage 1: Before rollover — WP uses old key, wallet has old config only. PIN change completes
     // fully, so the stored wallet certificate remains signed with kid = "0".
