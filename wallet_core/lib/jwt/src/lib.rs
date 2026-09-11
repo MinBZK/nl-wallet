@@ -42,7 +42,6 @@ pub mod jwk;
 pub mod jwt;
 pub mod nonce;
 pub mod pop;
-pub mod wia;
 
 pub use jsonwebtoken::Algorithm;
 pub use jsonwebtoken::EncodingKey;

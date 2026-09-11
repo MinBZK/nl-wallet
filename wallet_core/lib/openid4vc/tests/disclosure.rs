@@ -109,8 +109,8 @@ use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 use wscd::issuance::mock::MockRemoteWscd;
-use wscd::payload::poa::Poa;
 use wscd::payload::poa::JwtPoaInput;
+use wscd::payload::poa::Poa;
 
 fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<DisclosedAttestations>) {
     assert_eq!(disclosed_attestations.len().get(), 1);

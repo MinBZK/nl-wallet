@@ -8,7 +8,18 @@ use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
-use jsonwebtoken::errors::ErrorKind;
+use jwt::DEFAULT_VALIDATION;
+use jwt::JwtDecodingKey;
+use jwt::JwtTyp;
+use jwt::JwtValidation;
+use jwt::UnverifiedJwt;
+use jwt::confirmation::ConfirmationClaim;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtVerifyError;
+use jwt::error::JwtX5cVerifyError;
+use jwt::error::ValidationErrorKind;
+use jwt::jades_b_b::JadesbbHeader;
+use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -17,19 +28,54 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
-use crate::DEFAULT_VALIDATION;
-use crate::JwtDecodingKey;
-use crate::JwtTyp;
-use crate::JwtValidation;
-use crate::UnverifiedJwt;
-use crate::confirmation::ConfirmationClaim;
-use crate::error::JwkConversionError;
-use crate::error::JwtVerifyError;
-use crate::error::JwtX5cVerifyError;
-use crate::jades_b_b::JadesbbHeader;
-use crate::nonce::Nonce;
+pub const WIA_HEADER_NAME: &str = "oauth-client-attestation";
+pub const WIA_POP_HEADER_NAME: &str = "oauth-client-attestation-pop";
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+pub const WIA_CLIENT_CHALLENGE_HEADER_NAME: &str = "oauth-client-attestation-challenge";
+
+pub const WIA_JWT_TYP: &str = "oauth-client-attestation+jwt";
+pub const WIA_POP_JWT_TYP: &str = "oauth-client-attestation-pop+jwt";
+
+/// The `token_endpoint_auth_methods_supported` value for Attestation-Based Client Authentication using a client
+/// attestation PoP JWT, as defined by
+/// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#name-authorization-server-and-re).
+pub const WIA_CLIENT_AUTH_METHOD: &str = "attest_jwt_client_auth";
+
+// Returns the JWS validation for WIA verification.
+//
+// NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
+// without leeway. There must be no clock drift between the WIA issuer and the caller.
+pub static WIA_JWT_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
+    let mut validation = DEFAULT_VALIDATION.to_owned();
+    validation.set_leeway(Duration::default());
+
+    // Enforce validity of exp and nbf, and presence of exp.
+    // (nbf is optional, but if it is present, it needs to be valid.)
+    validation.require_exp();
+    validation.validate_nbf();
+
+    validation
+});
+
+pub type Wia = UnverifiedJwt<WiaClaims, JadesbbHeader>;
+pub type WiaPop = UnverifiedJwt<WiaPopClaims>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum WiaVerificationError {
+    #[error("JWK conversion error: {0}")]
+    JwkConversion(#[from] JwkConversionError),
+
+    #[error("JWT verify error: {0}")]
+    JwtVerify(#[from] JwtX5cVerifyError),
+
+    #[error("incorrect sub field in WIA: found '{0}', expected '{1}'")]
+    IncorrectSub(String, String),
+
+    #[error("WIA has expired")]
+    Expired,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WiaClaims {
     pub cnf: ConfirmationClaim,
 
@@ -47,7 +93,7 @@ pub struct WiaClaims {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WiaWalletInfo {
     pub wallet_name: String,
     pub wallet_version: String,
@@ -58,7 +104,7 @@ pub struct WiaWalletInfo {
     pub wallet_solution_certification_information: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientStatus {
     // Revocation status of the Wallet Instance that presented the WIA.
     pub status: StatusClaim,
@@ -66,6 +112,10 @@ pub struct ClientStatus {
     // The duration for which the WP will track revocation status in the `status` URL.
     // (Distinct in terms of semantics as well as value from the top level WIA `exp` claim, which is max 24h.)
     pub exp: DateTimeSeconds,
+}
+
+impl JwtTyp for WiaClaims {
+    const TYP: &'static str = WIA_JWT_TYP;
 }
 
 impl WiaClaims {
@@ -80,6 +130,7 @@ impl WiaClaims {
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Self, JwkConversionError> {
         let now = time.generate().into();
+
         Ok(Self {
             cnf: ConfirmationClaim::try_from_public_key(holder_pubkey)?,
             iss,
@@ -93,23 +144,6 @@ impl WiaClaims {
     }
 }
 
-pub const WIA_HEADER_NAME: &str = "oauth-client-attestation";
-pub const WIA_POP_HEADER_NAME: &str = "oauth-client-attestation-pop";
-
-pub const WIA_CLIENT_CHALLENGE_HEADER_NAME: &str = "oauth-client-attestation-challenge";
-
-pub const WIA_JWT_TYP: &str = "oauth-client-attestation+jwt";
-pub const WIA_POP_JWT_TYP: &str = "oauth-client-attestation-pop+jwt";
-
-/// The `token_endpoint_auth_methods_supported` value for Attestation-Based Client Authentication using a client
-/// attestation PoP JWT, as defined by
-/// [draft-ietf-oauth-attestation-based-client-auth](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#name-authorization-server-and-re).
-pub const WIA_CLIENT_AUTH_METHOD: &str = "attest_jwt_client_auth";
-
-impl JwtTyp for WiaClaims {
-    const TYP: &'static str = WIA_JWT_TYP;
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WiaPopClaims {
     pub iss: String,
@@ -118,9 +152,6 @@ pub struct WiaPopClaims {
     pub jti: String,
     pub challenge: Option<Nonce>,
 }
-
-pub type Wia = UnverifiedJwt<WiaClaims, JadesbbHeader>;
-pub type WiaPop = UnverifiedJwt<WiaPopClaims>;
 
 impl JwtTyp for WiaPopClaims {
     const TYP: &str = WIA_POP_JWT_TYP;
@@ -139,18 +170,6 @@ impl WiaDisclosure {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum WiaError {
-    #[error("JWK conversion error: {0}")]
-    JwkConversion(#[source] JwkConversionError),
-    #[error("JWT verify error: {0}")]
-    JwtVerify(#[source] JwtX5cVerifyError),
-    #[error("incorrect sub field in WIA: found '{0}', expected '{1}'")]
-    IncorrectSub(String, String),
-    #[error("WIA has expired")]
-    Expired,
-}
-
 impl WiaDisclosure {
     pub fn verify(
         &self,
@@ -158,7 +177,7 @@ impl WiaDisclosure {
         expected_aud: &str,
         accepted_wallet_client_ids: impl IntoIterator<Item = impl ToString>,
         client_id: Option<&str>,
-    ) -> Result<(WiaClaims, Option<Nonce>), WiaError> {
+    ) -> Result<(WiaClaims, Option<Nonce>), WiaVerificationError> {
         let (_, verified_wia_claims) = self
             .0
             .parse_and_verify_against_trust_anchors(
@@ -167,13 +186,13 @@ impl WiaDisclosure {
                 Some(CertificateUsage::Wia),
                 WIA_JWT_VALIDATION.to_owned(),
             )
-            .map_err(|err| match err {
+            .map_err(|error| match error {
                 JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(e))
-                    if matches!(e.kind(), ErrorKind::ExpiredSignature) =>
+                    if matches!(e.kind(), ValidationErrorKind::ExpiredSignature) =>
                 {
-                    WiaError::Expired
+                    WiaVerificationError::Expired
                 }
-                _ => WiaError::JwtVerify(err),
+                _ => WiaVerificationError::JwtVerify(error),
             })?;
 
         // "If a client_id is provided in the request containing the Client Attestation, then this client_id
@@ -181,13 +200,17 @@ impl WiaDisclosure {
         if let Some(client_id) = client_id
             && verified_wia_claims.sub != *client_id
         {
-            return Err(WiaError::IncorrectSub(verified_wia_claims.sub, client_id.to_string()));
+            return Err(WiaVerificationError::IncorrectSub(
+                verified_wia_claims.sub,
+                client_id.to_string(),
+            ));
         }
 
         let wia_pubkey = verified_wia_claims
             .cnf
             .try_to_public_key()
-            .map_err(WiaError::JwkConversion)?;
+            .map_err(WiaVerificationError::JwkConversion)?;
+
         tracing::debug!("WIA status claim: {:?}", verified_wia_claims.client_status.status);
 
         let mut validation = DEFAULT_VALIDATION.to_owned();
@@ -199,31 +222,15 @@ impl WiaDisclosure {
             .1
             .parse_and_verify(JwtDecodingKey::from(&wia_pubkey), &validation)
             .map_err(JwtX5cVerifyError::JwtVerify)
-            .map_err(WiaError::JwtVerify)?;
+            .map_err(WiaVerificationError::JwtVerify)?;
 
         Ok((verified_wia_claims, wia_disclosure_claims.challenge))
     }
 }
 
-// Returns the JWS validation for WIA verification.
-//
-// NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
-// without leeway. There must be no clock drift between the WIA issuer and the caller.
-pub static WIA_JWT_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
-    let mut validation = DEFAULT_VALIDATION.to_owned();
-    validation.set_leeway(Duration::default());
-
-    // Enforce validity of exp and nbf, and presence of exp.
-    // (nbf is optional, but if it is present, it needs to be valid.)
-    validation.require_exp();
-    validation.validate_nbf();
-
-    validation
-});
-
 #[cfg(any(test, feature = "mock"))]
 mod mock {
-    use crate::wia::WiaWalletInfo;
+    use super::WiaWalletInfo;
 
     impl WiaWalletInfo {
         pub fn new_mock() -> WiaWalletInfo {
@@ -251,6 +258,13 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
+    use jwt::SignedJwt;
+    use jwt::UnverifiedJwt;
+    use jwt::error::JwtVerifyError;
+    use jwt::error::JwtX5cVerifyError;
+    use jwt::error::ValidationErrorKind;
+    use jwt::jades_b_b::JadesbbHeader;
+    use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use rstest::fixture;
@@ -259,18 +273,12 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::SignedJwt;
-    use crate::UnverifiedJwt;
-    use crate::error::JwtVerifyError;
-    use crate::error::JwtX5cVerifyError;
-    use crate::jades_b_b::JadesbbHeader;
-    use crate::nonce::Nonce;
-    use crate::wia::ClientStatus;
-    use crate::wia::WiaClaims;
-    use crate::wia::WiaDisclosure;
-    use crate::wia::WiaError;
-    use crate::wia::WiaPopClaims;
-    use crate::wia::WiaWalletInfo;
+    use super::ClientStatus;
+    use super::WiaClaims;
+    use super::WiaDisclosure;
+    use super::WiaPopClaims;
+    use super::WiaVerificationError;
+    use super::WiaWalletInfo;
 
     const AUD: &str = "https://issuer.example.com/";
     const ISS: &str = "https://wia-issuer.example.com/";
@@ -366,7 +374,7 @@ mod tests {
         let error = disclosure
             .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
-        assert_matches!(error, WiaError::JwtVerify(_));
+        assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
 
     #[rstest]
@@ -383,7 +391,7 @@ mod tests {
         let error = disclosure
             .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
-        assert_matches!(error, WiaError::JwtVerify(_));
+        assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
 
     #[rstest]
@@ -392,7 +400,7 @@ mod tests {
         let error = disclosure
             .verify(&TrustAnchors::from(&ca), AUD, ["other-client"], None)
             .unwrap_err();
-        assert_matches!(error, WiaError::JwtVerify(_));
+        assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
 
     #[rstest]
@@ -411,8 +419,8 @@ mod tests {
             .unwrap_err();
         assert_matches!(
             error,
-            WiaError::JwtVerify(JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(error)))
-                if *error.kind() == jsonwebtoken::errors::ErrorKind::ImmatureSignature
+            WiaVerificationError::JwtVerify(JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(error)))
+                if *error.kind() == ValidationErrorKind::ImmatureSignature
         );
     }
 
@@ -440,7 +448,7 @@ mod tests {
                 Some("wrong-client-id"),
             )
             .unwrap_err();
-        assert_matches!(error, WiaError::IncorrectSub(found, expected)
+        assert_matches!(error, WiaVerificationError::IncorrectSub(found, expected)
             if found == WALLET_CLIENT_ID && expected == "wrong-client-id");
     }
 }

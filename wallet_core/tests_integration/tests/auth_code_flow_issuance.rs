@@ -7,8 +7,6 @@ use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::UnverifiedJwt;
-use jwt::wia::WIA_HEADER_NAME;
-use jwt::wia::WIA_POP_HEADER_NAME;
 use oauth::authorization::PushedAuthorizationRequest;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::issuer_identifier::IssuerIdentifier;
@@ -32,8 +30,10 @@ use utils::vec_nonempty;
 use wallet::IssuanceStartResult;
 use wallet::Pin;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
-use wscd::wia::mock::MockWiaClient;
+use wscd::payload::wia::WIA_HEADER_NAME;
+use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::wia::WiaClient;
+use wscd::wia::mock::MockWiaClient;
 
 /// The `issuer_state` carried by the auth-code credential offer, identifying the demo usecase.
 const ISSUER_STATE: &str = "insurance";

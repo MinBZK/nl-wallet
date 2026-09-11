@@ -1,7 +1,8 @@
 use std::error::Error;
 
 use jwt::nonce::Nonce;
-use jwt::wia::WiaDisclosure;
+
+use crate::payload::wia::WiaDisclosure;
 
 pub trait WiaClient {
     type Error: Error + Send + Sync + 'static;
@@ -24,17 +25,17 @@ pub mod mock {
     use futures::FutureExt;
     use jwt::SignedJwt;
     use jwt::nonce::Nonce;
-    use jwt::wia::ClientStatus;
-    use jwt::wia::WiaClaims;
-    use jwt::wia::WiaDisclosure;
-    use jwt::wia::WiaPopClaims;
-    use jwt::wia::WiaWalletInfo;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use utils::generator::mock::MockTimeGenerator;
 
     use super::WiaClient;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::payload::wia::ClientStatus;
+    use crate::payload::wia::WiaClaims;
+    use crate::payload::wia::WiaDisclosure;
+    use crate::payload::wia::WiaPopClaims;
+    use crate::payload::wia::WiaWalletInfo;
 
     #[derive(Debug, Default)]
     pub struct MockWiaClient {

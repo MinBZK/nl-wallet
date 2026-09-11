@@ -19,8 +19,6 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
-use jwt::wia::WiaDisclosure;
-use jwt::wia::WiaPopClaims;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -74,6 +72,8 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 use wscd::payload::poa::POA_JWT_TYP;
 use wscd::payload::poa::Poa;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::payload::wia::WiaPopClaims;
 
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
@@ -1484,7 +1484,6 @@ mod tests {
     use jwt::headers::HeaderWithJwk;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
-    use jwt::wia::WiaDisclosure;
     use mockall::predicate;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
@@ -1528,6 +1527,7 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
+    use wscd::payload::wia::WiaDisclosure;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::UserState;

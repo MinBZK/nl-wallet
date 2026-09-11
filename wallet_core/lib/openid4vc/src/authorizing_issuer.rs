@@ -14,7 +14,6 @@ use std::sync::Arc;
 use derive_more::Constructor;
 use futures::join;
 use itertools::Itertools;
-use jwt::wia::WiaDisclosure;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::BoxedErrorWithCode;
@@ -26,6 +25,7 @@ use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::payload::wia::WiaDisclosure;
 
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
@@ -42,7 +42,7 @@ use crate::issuer::Grant;
 use crate::issuer::IssuableDocumentError;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::issuer::WiaVerificationError;
+use crate::issuer::WiaError;
 use crate::nonce::store::NonceStore;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
@@ -54,7 +54,7 @@ pub enum ParError {
     UnknownClient(String),
 
     #[error("error verifying WIA and WIA PoP: {0}")]
-    Wia(#[source] WiaVerificationError),
+    Wia(#[source] WiaError),
 
     #[error("a PAR containing authorization_details is not supported")]
     AuthorizationDetailsUnsupported,
@@ -405,7 +405,6 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use futures::FutureExt;
     use jwt::nonce::Nonce;
-    use jwt::wia::WiaDisclosure;
     use oauth::errors::AuthorizationErrorCode;
     use oauth::errors::ErrorWithCode;
     use oauth::errors::RedirectError;
@@ -418,6 +417,7 @@ mod tests {
     use url::Url;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
+    use wscd::payload::wia::WiaDisclosure;
     use wscd::wia::WiaClient;
     use wscd::wia::mock::MockWiaClient;
 
@@ -435,7 +435,7 @@ mod tests {
     use crate::issuer::AuthRequestValues;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
-    use crate::issuer::WiaVerificationError;
+    use crate::issuer::WiaError;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::nonce::memory_store::MemoryNonceStore;
     use crate::server_state::MemorySessionStore;
@@ -651,7 +651,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_matches!(error, ParError::Wia(WiaVerificationError::MissingChallenge));
+        assert_matches!(error, ParError::Wia(WiaError::MissingChallenge));
         assert!(authorizing_issuer.par_store.is_empty());
     }
 
@@ -675,7 +675,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_matches!(error, ParError::Wia(WiaVerificationError::InvalidChallenge));
+        assert_matches!(error, ParError::Wia(WiaError::InvalidChallenge));
         assert!(authorizing_issuer.par_store.is_empty());
     }
 
@@ -702,7 +702,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_matches!(error, ParError::Wia(WiaVerificationError::InvalidChallenge));
+        assert_matches!(error, ParError::Wia(WiaError::InvalidChallenge));
     }
 
     #[tokio::test]

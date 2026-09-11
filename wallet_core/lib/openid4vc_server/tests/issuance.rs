@@ -25,8 +25,6 @@ use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::VerifiedJwt;
 use jwt::pop::JwtPopClaims;
-use jwt::wia::WIA_HEADER_NAME;
-use jwt::wia::WIA_POP_HEADER_NAME;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
@@ -97,8 +95,10 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::issuance::mock::MockRemoteWscd;
-use wscd::wia::mock::MockWiaClient;
+use wscd::payload::wia::WIA_HEADER_NAME;
+use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::wia::WiaClient;
+use wscd::wia::mock::MockWiaClient;
 
 const REDIRECT_URI: &str = "https://wallet.example.com/callback";
 

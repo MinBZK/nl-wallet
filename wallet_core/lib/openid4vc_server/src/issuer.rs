@@ -31,11 +31,6 @@ use http::header::ACCEPT;
 use http::request::Parts;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
-use jwt::wia::WIA_HEADER_NAME;
-use jwt::wia::WIA_POP_HEADER_NAME;
-use jwt::wia::Wia;
-use jwt::wia::WiaDisclosure;
-use jwt::wia::WiaPop;
 use oauth::authorization::PushedAuthorizationRequest;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
@@ -72,6 +67,11 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
 use utils::generator::TimeGenerator;
+use wscd::payload::wia::WIA_HEADER_NAME;
+use wscd::payload::wia::WIA_POP_HEADER_NAME;
+use wscd::payload::wia::Wia;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::payload::wia::WiaPop;
 
 const APPLICATION_JWT_MEDIA_TYPE: MediaType =
     MediaType::new(mediatype::names::APPLICATION, mediatype::names::JWT, None);
@@ -483,10 +483,10 @@ mod tests {
     use axum::http::HeaderValue;
     use axum::http::Request;
     use axum::http::request::Parts;
-    use jwt::wia::WIA_HEADER_NAME;
-    use jwt::wia::WIA_POP_HEADER_NAME;
     use openid4vc::errors::VciTokenErrorCode;
     use rstest::rstest;
+    use wscd::payload::wia::WIA_HEADER_NAME;
+    use wscd::payload::wia::WIA_POP_HEADER_NAME;
 
     use super::WiaHeaders;
 

@@ -8,8 +8,6 @@ use error_category::ErrorCategory;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
-use jwt::wia::WIA_HEADER_NAME;
-use jwt::wia::WIA_POP_HEADER_NAME;
 use oauth::authorization::AuthorizationResponse;
 use oauth::authorization::PushedAuthorizationRequest;
 use oauth::authorization::PushedAuthorizationResponse;
@@ -23,6 +21,8 @@ use oauth::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use wscd::payload::wia::WIA_HEADER_NAME;
+use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::wia::WiaClient;
 
 use super::AuthorizationSession;
@@ -353,7 +353,6 @@ mod tests {
     use httpmock::Method::POST;
     use httpmock::MockServer;
     use jwt::nonce::Nonce;
-    use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
     use oauth::errors::AuthorizationErrorCode;
     use oauth::errors::RemoteErrorCode;
     use oauth::issuer_identifier::IssuerIdentifier;
@@ -363,6 +362,7 @@ mod tests {
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
+    use wscd::payload::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
     use wscd::wia::mock::MockWiaClient;
 
     use super::super::AuthorizationSession;

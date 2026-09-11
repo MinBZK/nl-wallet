@@ -13,7 +13,6 @@ use jwt::headers::HeaderWithJwk;
 use jwt::headers::HeaderWithKid;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
-use jwt::wia::WiaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use semver::Version;
 use serde::Deserialize;
@@ -24,6 +23,7 @@ use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 use wscd::payload::poa::Poa;
+use wscd::payload::wia::WiaDisclosure;
 
 use super::registration::WalletCertificate;
 use crate::messages::transfer::TransferSessionState;

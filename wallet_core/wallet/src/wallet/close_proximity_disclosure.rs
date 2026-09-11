@@ -57,8 +57,8 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
-use wscd::payload::poa::Poa;
 use wscd::payload::poa::JwtPoaInput;
+use wscd::payload::poa::Poa;
 
 use crate::AttributesNotAvailable;
 use crate::DisclosureProposalPresentation;

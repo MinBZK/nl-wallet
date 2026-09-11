@@ -672,7 +672,6 @@ mod test {
     use jwt::UnverifiedJwt;
     use jwt::error::JwtVerifyError;
     use jwt::error::JwtX5cVerifyError;
-    use jwt::wia::WIA_CLIENT_AUTH_METHOD;
     use oauth::issuer_identifier::IssuerIdentifier;
     use rstest::rstest;
     use sd_jwt_vc_metadata::TypeMetadata;
@@ -682,6 +681,7 @@ mod test {
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use wscd::payload::wia::WIA_CLIENT_AUTH_METHOD;
     use wscd::wia::mock::MockWiaClient;
 
     use super::CredentialSelection;
