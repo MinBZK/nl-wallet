@@ -20,7 +20,11 @@ class CardAttributeValueMapper extends Mapper<core.AttributeValue, AttributeValu
       core.AttributeValue_Date(:final value) => DateValue(DateTime.parse(value)),
       core.AttributeValue_Bytes(:final value) => BytesValue(value),
       core.AttributeValue_Image(:final value) => ImageValue(_imageMapper.map(value)),
-      core.AttributeValue_Map(:final value) => MapValue({for (final (key, value) in value) key: map(value)}),
+      core.AttributeValue_Map(:final value) => MapValue(_mapEntries(value)),
     };
   }
+
+  Map<String, AttributeValue> _mapEntries(List<(String, core.AttributeValue)> entries) => {
+    for (final (key, value) in entries) key: map(value),
+  };
 }
