@@ -402,8 +402,6 @@ pub mod tests {
             })
             .await;
 
-        dbg!(&issuer_identifier);
-
         let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let metadata = OidcProviderMetadata::fetch_well_known_json(&client, &issuer_identifier)
             .await
