@@ -108,6 +108,7 @@ use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::wallet_config::CertificatePublicKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AndroidRootPublicKey;
 use wallet_provider::settings::AppleEnvironment;
@@ -115,7 +116,6 @@ use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
-use wallet_provider_service::keys::Kid;
 use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
 use crate::logging::init_logging;
@@ -446,6 +446,7 @@ async fn build_wallet_environment(
         wp_port,
         pid_credential_offer,
         None,
+        None,
     )
     .await
 }
@@ -469,6 +470,31 @@ pub async fn build_wallet_environment_with_instruction_result_keys(
         wp_port,
         None,
         Some(instruction_result_public_keys),
+        None,
+    )
+    .await
+}
+
+/// Build a wallet environment (signed config server + wallet config) with a specific set of
+/// certificate public keys. Each call starts a fresh static server on a new port.
+/// Used for testing certificate signing key rollover, which does not require a static server.
+pub async fn build_wallet_environment_with_certificate_public_keys(
+    ups_port: u16,
+    ups_root_ca: ReqwestTrustAnchor,
+    wp_port: u16,
+    certificate_public_keys: HashMap<String, CertificatePublicKey>,
+) -> (ConfigServerConfiguration, WalletConfiguration) {
+    let (static_settings, static_root_ca) = static_server_settings();
+
+    build_wallet_environment_inner(
+        static_settings,
+        static_root_ca,
+        ups_port,
+        ups_root_ca,
+        wp_port,
+        None,
+        None,
+        Some(certificate_public_keys),
     )
     .await
 }
@@ -482,6 +508,7 @@ async fn build_wallet_environment_inner(
     wp_port: u16,
     pid_credential_offer: Option<Url>,
     instruction_result_public_keys: Option<HashMap<String, DerVerifyingKey>>,
+    certificate_public_keys: Option<HashMap<String, CertificatePublicKey>>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -497,6 +524,9 @@ async fn build_wallet_environment_inner(
         TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca.clone()]).unwrap();
     if let Some(instruction_result_public_keys) = instruction_result_public_keys.clone() {
         served_wallet_config.account_server.instruction_result_public_keys = instruction_result_public_keys;
+    }
+    if let Some(certificate_public_keys) = certificate_public_keys.clone() {
+        served_wallet_config.account_server.certificate_public_keys = certificate_public_keys;
     }
     served_wallet_config.version += 1;
 
@@ -519,6 +549,9 @@ async fn build_wallet_environment_inner(
         TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca]).unwrap();
     if let Some(instruction_result_public_keys) = instruction_result_public_keys {
         wallet_config.account_server.instruction_result_public_keys = instruction_result_public_keys;
+    }
+    if let Some(certificate_public_keys) = certificate_public_keys {
+        wallet_config.account_server.certificate_public_keys = certificate_public_keys;
     }
 
     (config_server_config, wallet_config)
@@ -764,16 +797,6 @@ pub fn wallet_provider_settings(db_url: Url, audit_db_url: Url) -> (WpSettings, 
     let root_ca = read_file("wp.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
-}
-
-pub fn wallet_provider_settings_with_instruction_result_kid(
-    db_url: Url,
-    audit_db_url: Url,
-    instruction_result_kid: Kid,
-) -> (WpSettings, ReqwestTrustAnchor) {
-    let (mut settings, trust_anchor) = wallet_provider_settings(db_url, audit_db_url);
-    settings.current_instruction_result_kid = instruction_result_kid;
-    (settings, trust_anchor)
 }
 
 pub async fn start_static_server(settings: StaticSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {

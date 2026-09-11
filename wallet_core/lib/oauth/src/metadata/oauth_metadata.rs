@@ -318,23 +318,23 @@ pub mod tests {
     }
 
     #[rstest]
-    #[case("http://example.com", "http://example.com/.well-known/openid-configuration".parse().unwrap())]
-    #[case("http://example.com/", "http://example.com/.well-known/openid-configuration".parse().unwrap())]
+    #[case("https://example.com", "https://example.com/.well-known/openid-configuration".parse().unwrap())]
+    #[case("https://example.com/", "https://example.com/.well-known/openid-configuration".parse().unwrap())]
     #[case(
-        "http://example.com/my-realm",
-        "http://example.com/my-realm/.well-known/openid-configuration".parse().unwrap()
+        "https://example.com/my-realm",
+        "https://example.com/my-realm/.well-known/openid-configuration".parse().unwrap()
     )]
     #[case(
-        "http://example.com/my-realm/",
-        "http://example.com/my-realm/.well-known/openid-configuration".parse().unwrap()
+        "https://example.com/my-realm/",
+        "https://example.com/my-realm/.well-known/openid-configuration".parse().unwrap()
     )]
     #[case(
-        "http://example.com/realms/my-realm",
-        "http://example.com/realms/my-realm/.well-known/openid-configuration".parse().unwrap()
+        "https://example.com/realms/my-realm",
+        "https://example.com/realms/my-realm/.well-known/openid-configuration".parse().unwrap()
     )]
     #[case(
-        "http://example.com/realms/my-realm/",
-        "http://example.com/realms/my-realm/.well-known/openid-configuration".parse().unwrap()
+        "https://example.com/realms/my-realm/",
+        "https://example.com/realms/my-realm/.well-known/openid-configuration".parse().unwrap()
     )]
     fn test_legacy_openid_url(#[case] issuer_identifier: &str, #[case] expected: Url) {
         let issuer: IssuerIdentifier = issuer_identifier.parse().unwrap();
